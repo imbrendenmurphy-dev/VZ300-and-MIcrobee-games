@@ -1,0 +1,95 @@
+THE LANTERN DEEP  -  the whole Deep: five regions, twenty rooms
+An original dungeon adventure for the Microbee Premium Plus
+VIBED BY BPM - 2026
+
+REQUIREMENTS
+  Microbee Premium Plus with 1MB RAM, booting the Microbee CP/M on this
+  disk (or your own Premium CP/M disk with this one in a drive).
+
+STARTING
+  Boot this disk: it goes straight to the plain CP/M A> prompt (there
+  is no Microbee shell menu on it). Then type:   LANTERN
+  The loader fills the expanded RAM banks (dots show progress) and the
+  game takes over the machine. Reset to return to CP/M.
+
+  First it asks which monitor you have: press C for colour (or RETURN),
+  M for a monochrome monitor (green, amber or white). Monochrome mode
+  shows the lantern's light by the character patterns alone, so it
+  fades properly on a mono screen. Creatures and treasure in good
+  light are drawn as solid blocks so they stand out; at the dim edge
+  of the light they are only outlines in the gloom.
+
+KEYS
+  Arrow keys, or Q A O P (W S also up/down) ... walk. Your lantern
+                                                 lights the way you face.
+  SPACE or Z ... strike with your sword; open, read, take and touch
+  F or X     ... hurl a fire bolt (uses one magic orb)
+  RETURN     ... choose on the title menu
+  M          ... your journal: a map of the region, what you carry;
+                 press S there to save your journey to disk
+  ESC        ... back to the title (CONTINUE takes you back in)
+  A Microbee joystick works too (fire = strike).
+
+THE STORY
+  Beneath the old town lie the halls of the Vaunar, who kept a great
+  Lantern burning at the Heart of the Deep to hold back the Unlight.
+  The Lantern has gone out. You carry the last flame down to rekindle it.
+
+THE WAY DOWN
+  1 THE DROWNED TEMPLE      find the Iron Key; it opens the way down
+  2 THE OSSUARY             the Bone Colossus guards the Glimmer Lantern,
+                            whose light reaches further and finds what
+                            is hidden
+  3 THE CRYSTAL CAVERNS     the Moonsilver Blade cuts the singing stone
+  4 THE EMBER HALLS         the Ember Ring lets you cross burning rock
+  5 THE HEART OF THE DEEP   face the Hollow King, rekindle the Heart
+
+  Read the tablets. Touch the great crystals to restore your magic.
+  Chests hold flasks of light and heart crystals. Rooms remember what
+  you have explored, opened and defeated.
+
+LIVES
+  You have three lives (the figure and number at the bottom right). Fall,
+  and you wake where the current region began, keeping everything you
+  carry, with every gate, chest and boss as you left them. Lose the last
+  one and the title returns: CONTINUE starts you at that region's
+  beginning with three lives again.
+
+SAVING
+  Press M for your journal, then S to save your journey to disk. The
+  game disk must be in drive A or B and not write-protected. The save
+  goes into SAVE.DAT on this disk: the game checks that file's signature
+  before writing, so nothing else on the disk is ever touched. You
+  resume at the doorway where you last entered a room, with everything
+  you carried, every gate, chest and boss as you left them, and the
+  explored halls still remembered.
+
+ATTRACT TOUR
+  Leave the title screen alone for about 30 seconds and a demo tours the
+  Deep: the Lanternless Way and the Drowned Hall, the Bone Colossus, the
+  Prism Grotto, the Magma Bridge, the Forge and the Hollow King's hall.
+  Any key returns to the title. (It only plays when no journey is in
+  memory, so it can never disturb one.)
+
+CONTINUE
+  CONTINUE on the title menu returns you to your journey: the one in
+  memory if the machine has stayed on, otherwise the one saved on disk.
+
+FILES
+  LANTERN.COM  loader              LANTERN.LO / .HI  the program
+  GFX.BNK      sprites and font    WORLD.BNK / WORLD2.BNK  lantern ray-trees
+  REGION0-4.BNK  each region's tiles, light ramps and animations
+  ROOMS0-4.BNK   each region's rooms
+  TITLE.BNK    title illustration  AUDIO.BNK  sampled speech
+  SAVE.DAT     your saved journey (keep it on the disk)
+  CCP.SYS      CP/M command processor (from the system on this disk)
+
+STATUS
+  Tested in a software model of the Premium Plus (Z80 core with the
+  1MB banking, video/PCG/colour RAM, 6545, keyboard, speaker and disk
+  controller), including booting this disk with the Microbee boot ROM
+  into CP/M, typing LANTERN, and a scripted play-through from the first
+  room to the ending. It has NOT been run on real hardware yet. The 1MB
+  bank decoding follows the ubee512 Premium Plus model; LANTERN.COM
+  checks RAM blocks 0-25 before loading and says so if they are not as
+  expected.

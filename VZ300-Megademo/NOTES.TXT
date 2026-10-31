@@ -1,0 +1,92 @@
+VZ300 MEGADEMO 2026  -  ViBED by BPM                         version 1.4
+=======================================================================
+
+Needs: VZ300 (or VZ200) + BennVenn SD loader with 128K SRAM.
+
+FILES (copy ALL of them to the ROOT of the SD card)
+  VZMEGA.VZ  + VZMEGA.DAT     the full demo (about 6 minutes)
+  RASTEST.VZ                  hardware test / calibration (run it first!)
+  FXKEFREN.VZ + .DAT          effect test: Kefrens bars, raster bands,
+                              synthwave picture, FLD rubber stretch
+  FXPLASMA.VZ + .DAT          effect test: 50fps LUT plasma + scroller
+  FX3DCUBE.VZ + .DAT          effect test: shaded cube + octahedron, FLD bounce
+  FXTUNNEL.VZ + .DAT          effect test: 50fps tunnel + shaded torus
+  FXSEMIGR.VZ + .DAT          effect test: rotozoom, twister, rolling logo,
+                              transparency
+  Each FX program loops forever. The .DAT file must sit next to its .VZ.
+
+  LOAD"VZMEGA"    (or LOAD"RASTEST", LOAD"FXPLASMA" ...)  - they autostart.
+
+-----------------------------------------------------------------------
+PLEASE RUN RASTEST FIRST AND SEND ME THESE NUMBERS
+-----------------------------------------------------------------------
+Screen 1 RESULTS (just write them down):
+  SCANLINES PER FIELD   expected about 312
+  FIELD SYNC LOW LINES  expected 30..60
+  SRAM LOW BANK 1       OK / FAIL      (the demo keeps the octahedron,
+                                        torus, twister, rotozoom and the
+                                        speech in this 2nd SRAM bank)
+  SRAM HIGH BANK        NO EFFECT / SWITCHES / ODD
+  FIELDS TAKEN          how long 32 SD sectors took (50 = 1 second)
+  Press RETURN.
+
+Screen 2 CALIBRATE (needs the most care):
+  * Q / A moves a single horizontal marker line up / down (D LINE value).
+    Find the value where the marker line sits EXACTLY on the top pixel
+    row of the green text area (row "0"). Lower values put it in the
+    black top border, higher values put it inside the text.
+    -> tell me that D LINE value (v1.1 uses 64, measured from your photos).
+  * Two blocks of 10 lines further down the screen deliberately flick the
+    video mode for a few cycles on every line. If that flick lands in the
+    visible picture you see short green dashes / specks at the left or
+    right edge. W / S changes HPHASE. Step through all 32 values and tell
+    me the range of HPHASE values where BOTH blocks look clean (no
+    dashes anywhere). v1.1 uses 22 (measured from your photos).
+  Press RETURN.
+
+Screen 3 SPLIT: text, then a block of coloured vertical stripes, then text
+  again.  Tell me if you see that (this is the mid-frame mode switch and
+  the "line hold" trick every raster effect depends on).
+Screen 4 FLD: the whole text screen should bounce smoothly.
+
+-----------------------------------------------------------------------
+WHAT'S IN THE DEMO
+-----------------------------------------------------------------------
+ 1 BOOT     fake BASIC boot with REAL live diagnostics (scanlines per
+            field, SRAM bank test, SD stream), glitch storm (random line
+            holds, mode/colour-set flips, ROM garbage), speech
+            "V Z THREE HUNDRED!", rainbow logo rising and bouncing in with
+            FLD, jelly wobble, copper-striped subtitle.
+ 2 PLASMA   full-screen plasma recomputed every frame (50 fps) through
+            colour look-up tables, giant smooth scroller, dissolve,
+            speech "FOUR COLOURS. NO LIMITS."
+ 3 RASTER   Kefrens bars (one VRAM row shown on 130 scanlines while bars
+            are drawn into it), mode(0) logo above a mode(1) area,
+            rolling colour-set bands, synthwave mode(1) picture with
+            moving raster bars split to a copper text scroller, FLD
+            rubber-stretch of the picture.
+ 4 3D       pre-rendered flat-shaded cube, octahedron and torus, tear-free
+            at 25 fps in a mode(1) window, FLD bounce; 50 fps tunnel.
+ 5 SEMI-    rotozoomer, twister over a wobbling checkerboard, rolling
+   GRAPHICS cylinder logo, transparency / overlapping layers.
+ 6 FINALE   music-synced rapid cuts (tunnel / plasma / rotozoom /
+            Kefrens), plasma + credits scroller, speech
+            "YOU THOUGHT THIS WAS IMPOSSIBLE?", closing logo + credits.
+
+The music never stops for the effects: every scanline (228 T-states)
+the code plays two voices + 1-bit drum samples on the speaker, writes
+the video latch twice (mode, colour set, line hold) and still has ~105
+T-states left to copy frames, run the plasma or draw Kefrens bars.
+
+The short pauses with a flashing green/white border and clicking are the
+SD card streaming the next part into memory ("SD DATA BURST") - the music
+deliberately stops and comes back in on the next pattern.
+
+Memory: resident engine $8000-$A8FF, overlay parts streamed to
+$A900-$F9FF, $FA00-$FFFF left alone for the SD DOS, extra data in SRAM
+bank 1 ($4000-$67FF, port 55 = 3), DOS bank switched back before every
+SD call.  Interrupts are off for the whole demo.
+
+If SRAM LOW BANK 1 says FAIL the demo still runs, but the octahedron,
+torus, twister, transparency and rotozoom fall back / go missing and the
+"FOUR COLOURS" and "YOU THOUGHT..." speech is skipped.

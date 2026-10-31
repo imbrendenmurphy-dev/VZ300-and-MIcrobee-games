@@ -1,0 +1,18 @@
+VZ300 MEGADEMO 2026 - ViBED by BPM            source code, version 1.4
+======================================================================
+src/     Z80 assembly (sjasmplus syntax)
+         resident.asm  engine + loader (the .VZ), core/music/speech.asm
+         p1..p6.asm    the overlay parts streamed from VZMEGA.DAT
+         rastest.asm   hardware test / calibration program
+tools/   Python asset generators (assets_p*.py, song.py = the music,
+         speech.py = espeak-ng speech), build.py, release.sh,
+         vzemu.c + z80.c/h = headless test emulator
+
+Needs: Linux, Python 3 with numpy + Pillow, espeak-ng, sjasmplus
+(put the binary in tools/), gcc for the emulator.
+The emulator also needs a VZ300 BASIC ROM image as tools/vzrom.v21
+(not included).
+
+Build everything:   bash tools/release.sh     -> build/release/
+One part only:      python3 tools/build.py p3 STARTORD=14 LOOPTEST=1 NAME=TEST
+Emulator:           gcc -O2 -o tools/vzemu tools/vzemu.c tools/z80.c

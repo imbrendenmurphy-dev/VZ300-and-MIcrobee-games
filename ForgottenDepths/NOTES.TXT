@@ -1,0 +1,123 @@
+THE FORGOTTEN DEPTHS                                         version 1.3
+An atmospheric dungeon adventure for the Dick Smith VZ300
+with BennVenn SD loader + 128K RAM               VIBED BY BPM - 2026
+=========================================================================
+
+FILE - copy this ONE file to the SD card (DEPTHS.DAT is no longer used)
+  DEPTHS.VZ    the whole game, 20.5 KB, loads at $8000-$D1FF, autostarts
+  LOAD"DEPTHS"
+
+  Tested in my headless VZ300 emulator (an automatic play-through of
+  the whole game, start to finish). NOT yet run on real hardware.
+
+THE GAME
+  Beneath the village of Ashford lie halls older than memory. The Ember
+  their builders guarded is dying. Take your lantern and go down.
+
+  CHAPTER I   THE EMBER HALLS   The Descent, Ember Temple, the
+              Scriptorium (library wing), Cistern of Tears, the Sealed
+              Crypt and the Warden's Hall.     Boss: the Bone Warden
+  CHAPTER II  THE DROWNED CITY  Flooded Stair, Canal Street, Sunken
+              Market, Aqueduct Works, Hall of Tides, the Pearl Vault,
+              Palace Gate and the Drowned Throne. Boss: the Drowned King
+  CHAPTER III THE EMBER CORE    Ash Stair, Obsidian Gallery, Lava Falls,
+              Cinder Vault, Molten Bridge, Forge of the Builders, Heart
+              Gate and the Ember Heart.         Boss: the Ember Wyrm
+  Rekindle the Ember for the ending.
+
+  Things to find: the Ember Staff (fire magic), keys, Reed Boots (wade
+  through water), the Runeblade (+2 damage), the Sunstone (a bigger
+  lantern beam - and every hidden wall glows), the Ring of Embers (walk
+  on lava), heart crystals, mana crystals, potions and gems.
+  Monsters: bats, skeletons, slimes, ghosts (through walls), spiders,
+  eels (in the water), drowned dead, fire imps (they shoot) and magma
+  slimes. Each boss has its own mode(1) portrait when you meet it.
+  Kills give experience; level ups raise life and mana. If you fall you
+  wake at the entrance of the room - the world keeps what you've done.
+
+NEW IN 1.3  (art tidy)
+  * Floors are plain full stops. Scenery stays in semigraphics, so any
+    TEXT character you see is something to pick up or use.
+  * Items are flashing ASCII (normal / inverse):
+      &  key        $  gem         !  potion       +  heart crystal
+      %  mana       [  reed boots  )  runeblade    *  sunstone
+      O  ring of embers            /  ember staff
+  * Walls are solid blocks of colour, so the lantern falls away in bands:
+    bright (yellow / white) -> dim (orange / red) -> memory (blue).
+  * Rooms are built halls now, not caves: the Descent, the Sealed Crypt,
+    the Warden's Hall, the Flooded Stair, the Pearl Vault, the Ash Stair
+    and the Ember Heart are squared up, and the Grotto of Tears is now
+    the CISTERN OF TEARS (a pillared reservoir with a glowing pool).
+  * Hidden walls match the walls around them (no colour giveaway).
+  * New attract demo for the new Descent.
+
+NEW IN 1.2  (v1.1 hung after "FILE TYPE BINARY")
+  * Memory now works the way BIX uses your BennVenn card: the game never
+    calls the SD DOS after loading. Everything is inside DEPTHS.VZ.
+      - The .VZ is packed and loads low ($8000-$D7E7). A small stub
+        unpacks it in RAM (like Xevious 1.2 / Cybernoid, no mapper write
+        while loading, nothing unpacked from video RAM).
+      - port $37 = 3 bank ($4000-$67FF): common data + current chapter
+      - port $37 = 1 home bank: the three chapter blocks (this overwrites
+        the DOS, as BIX and Cybernoid do - reset to load something else)
+      - port $37 = 5 is not used at all.
+      - Both banks are checksummed at power-on; if one fails you get
+        "128K SRAM BANK TEST FAILED: 1" or ": 3" (tell me the digit).
+  * The sampled speech is gone (it needed the SD card at run time and
+    didn't fit in the single file).
+  * New music engine, after the Cybernoid VZ title player: three voices
+    (lead, harmony, bass) plus kick / snare / hat drum bursts. Every note
+    starts as a square wave and narrows (BIX's settings), leads are an
+    octave lower, so it is warmer and much less shrill. T switches the
+    music on and off (title and in game).
+  * Still in from 1.1: attract demo, portals, the pressure plate, monsters
+    that back away when hurt.
+
+CONTROLS
+  Q A O P  (or W S D, or either VZ joystick)   move
+  SPACE / FIRE   swing the sword (walking into a monster also strikes)
+  M / ARM        cast a fireball (needs the Ember Staff and mana)
+  RETURN         parchment automap (mode 1)      I   inventory
+  Strike a suspicious wall: some walls are not walls.
+
+  Title: N or FIRE  new game     C  enter a password
+         S story   I how to play   K credits  (they also cycle by themselves)
+
+PASSWORDS (instead of saving)
+  Each chapter opens with a title card showing a six-letter password.
+  It holds the chapter, your items, life, mana, level and gems. Press C
+  on the title, type it (CTRL deletes, RETURN accepts, SPACE cancels).
+  Example: TMF96K starts chapter III with everything.
+  Why passwords: the BennVenn DOS calls I know ($5F00 open, $5F03 first
+  sector, $5F09 next sector) only read. If you know a write call, the
+  game could save to SD instead.
+
+HOW IT USES THE MACHINE
+  * Mode(0) for play, with the text colour set per region (warm brown
+    floors in temples, crypts and volcanoes; green moss in the caves and
+    the drowned city); mode(1) for the automap, boss portraits and the
+    ending picture.
+  * Directional lantern: a bright cone where you face, a dim ring and a
+    glow all round, cast through precomputed shadow-casting trees.
+    Torches, braziers, candles, crystals, luminous pools, lava, magic
+    seals, fireballs and explosions all light the scene; walls block
+    light; what you've seen stays as a blue memory map.
+  * Memory:  $7E00 loader stub (power-on only)   $8000-$C3A2 code+tables
+             $C800 chapter state   $CC00-$F8FF level map (tile + light)
+             port $37 = 3 bank: $4000 common data, $5A40 current chapter
+             port $37 = 1 home bank: chapter archive (DOS overwritten)
+  * Interrupts are off; the game syncs to field sync. Music plays in the
+    idle time of every frame (title, chapter cards and boss portraits get
+    almost the whole frame; in play the game logic takes a share).
+
+IF SOMETHING GOES WRONG - what to tell me
+  * Screen stays on the loader text after FILE TYPE BINARY: the stub /
+    unpacking (a photo helps).
+  * "128K SRAM BANK TEST FAILED: n": which digit.
+  * To jump straight to the later chapters (tests the chapter archive):
+      29TZE9  chapter II  (staff, level 3)
+      TLAJX5  chapter III (staff, boots, sunstone, runeblade, level 4)
+      TMF96K  chapter III with everything
+
+NOT IN THIS VERSION
+  Split-screen status bar, saving (passwords instead), sampled speech.

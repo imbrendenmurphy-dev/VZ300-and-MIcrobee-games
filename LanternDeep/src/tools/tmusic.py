@@ -1,0 +1,149 @@
+"""THE LANTERN DEEP - the title tune for the three-voice player.
+
+The player (src/title.asm, tm_row) time-slices three square waves onto the
+1-bit speaker in one loop of exactly 145 T-states; each voice is a 16-bit
+phase accumulator (add = f * 65536 * 145 / 3375000). Every 64 passes
+(2.75 ms) a "step" handles note gates, the kick drum (a falling pitch on
+the bass voice) and the snare (the chord voice jumps to random pitches).
+
+Voices: 1 = chord arpeggio (quietest slice), 2 = melody, 3 = bass.
+Rows are sixteenth notes; each row is 11 bytes in the TITLE bank:
+  DB flags (b0 kick, b1 snare), steps
+  DW add1, add2, add3
+  DB gate1, gate2, gate3   (mute the voice when this many steps remain;
+                            0 = sound the whole row)
+An original tune, A minor, in the spirit of the gritty 8-bit title themes.
+"""
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+LOOP_T = 176
+CLOCK = 3375000
+STEPS = 33                    # steps per sixteenth (a step is 64 passes of 176 T = 3.3 ms): ~110 ms
+
+NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
+
+
+def freq(n):
+    name, octv = n[:-1], int(n[-1])
+    return 440.0 * 2 ** ((NAMES.index(name) + 12 * (octv + 1) - 69) / 12)
+
+
+TRANSPOSE = -5                # the whole tune sits a fourth lower (E minor): warm, not shrill
+
+
+def add(n):
+    if n is None:
+        return 0
+    n = shift(n, TRANSPOSE)
+    while freq(n) < 75:                         # small speakers lose deeper bass
+        n = shift(n, 12)
+    return round(freq(n) * 65536 * LOOP_T / CLOCK)
+
+
+def shift(n, semis):
+    name, octv = n[:-1], int(n[-1])
+    i = NAMES.index(name) + 12 * octv + semis
+    return '%s%d' % (NAMES[i % 12], i // 12)
+
+
+CHORDS = {'Am': ('A', 'C', 'E'), 'F': ('F', 'A', 'C'), 'C': ('C', 'E', 'G'), 'G': ('G', 'B', 'D'),
+          'E': ('E', 'G#', 'B'), 'Dm': ('D', 'F', 'A')}
+ROOT_NOTE = {'Am': 'A2', 'F': 'F2', 'C': 'C3', 'G': 'G2', 'E': 'E2', 'Dm': 'D3'}
+
+# the melody: (note, sixteenths) per bar, written an octave up, played down
+MELODY = {
+    1: 'E5:4 A5:2 C6:2 B5:4 A5:2 G5:2',
+    2: 'A5:6 G5:2 F5:4 E5:4',
+    3: 'E5:2 G5:2 C6:4 D6:2 C6:2 B5:4',
+    4: 'D6:8 B5:4 G5:4',
+    5: 'E6:4 D6:2 C6:2 B5:4 C6:2 D6:2',
+    6: 'C6:6 A5:2 F5:4 A5:4',
+    7: 'B5:4 D6:4 G6:4 F6:2 D6:2',
+    8: 'E6:12 -:4',
+    9: 'F6:4 E6:2 D6:2 A5:8',
+    10: 'C6:4 B5:2 A5:2 E5:8',
+    11: 'A5:2 C6:2 F6:4 E6:2 D6:2 C6:4',
+    12: 'B5:4 G#5:4 E5:8',
+}
+A_CH = ['Am', 'F', 'C', 'G', 'Am', 'F', 'G', 'E']
+B_CH = ['Dm', 'Am', 'F', 'E']
+
+
+def chord_tones(ch):
+    r, t, f = CHORDS[ch]
+    # arpeggio in octave 3-4, rising then falling
+    base = []
+    for n in (r, t, f):
+        o = 3
+        base.append('%s%d' % (n, o))
+    base.sort(key=freq)
+    up = base + [shift(base[0], 12)]
+    return up + up[-2:0:-1]                     # r 3 5 8 5 3
+
+
+def gate(frac):
+    return max(1, STEPS - round(frac * STEPS))
+
+
+def bar_rows(ch, mel, chords_on=True, mel_on=True):
+    rows = []
+    arp = chord_tones(ch)
+    notes = []
+    if mel_on and mel:
+        for tok in mel.split():
+            n, d = tok.split(':')
+            d = int(d)
+            for k in range(d):
+                notes.append((None if n == '-' else shift(n, -12), k == 0, k == d - 1))
+    else:
+        notes = [(None, False, False)] * 16
+    assert len(notes) == 16, (ch, mel)
+    root = ROOT_NOTE[ch]
+    for i in range(16):
+        flags = (1 if i in (0, 8) else 0) | (2 if i in (4, 12) else 0)
+        c = arp[i % len(arp)] if chords_on else None
+        m, first, last = notes[i]
+        e8 = i // 2
+        b = shift(root, 12) if e8 in (3, 7) else root
+        g1 = gate(0.40)
+        g2 = gate(0.75) if (m and last) else 0
+        g3 = 0 if i % 2 == 0 else gate(0.5)
+        rows.append((flags, STEPS, add(c), add(m), add(b), g1 if c else 0, g2, g3))
+    return rows
+
+
+def song():
+    rows = []
+    rows += bar_rows('Am', None, chords_on=False, mel_on=False)        # intro: drums and bass
+    rows += bar_rows('Am', None, mel_on=False)                         # + the chords
+    for k, ch in enumerate(A_CH):
+        rows += bar_rows(ch, MELODY[k + 1])
+    for k, ch in enumerate(B_CH):
+        rows += bar_rows(ch, MELODY[k + 9])
+    for k, ch in enumerate(A_CH):
+        rows += bar_rows(ch, MELODY[k + 1])
+    return rows
+
+
+def main():
+    rows = song()
+    blob = bytearray()
+    for (fl, st, a1, a2, a3, g1, g2, g3) in rows:
+        blob += bytes([fl, st]) + a1.to_bytes(2, 'little') + a2.to_bytes(2, 'little') + a3.to_bytes(2, 'little')
+        blob += bytes([g1, g2, g3])
+    blob += b'\xFF' * 11
+    bank = bytearray((ROOT / 'build' / 'TITLE.BNK').read_bytes())
+    off = (len(bank) + 15) & ~15
+    bank += bytes(off - len(bank)) + blob
+    assert len(bank) <= 0x7F00, len(bank)
+    (ROOT / 'build' / 'TITLE.BNK').write_bytes(bank)
+    kick = round(300 * 65536 * LOOP_T / CLOCK)
+    (ROOT / 'src' / 'gen' / 'tmus.asm').write_text(
+        '; generated by tools/tmusic.py\nTM_DATA EQU $%04X\nTM_KICK EQU %d\n' % (off, kick))
+    print('title tune: %d rows, %d bytes at %04X, %.1f s' % (len(rows), len(blob), off,
+                                                             len(rows) * STEPS * 64 * LOOP_T / CLOCK))
+
+
+if __name__ == '__main__':
+    main()

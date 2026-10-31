@@ -1,0 +1,158 @@
+BILBIES!  for the VZ300 (BennVenn SD loader + 128K RAM expansion)
+=================================================================
+An original puzzle game in the "guide the little critters home" genre:
+the same puzzle mechanics as ZX Spectrum Lemmings, with original
+characters (bilbies), original levels, original artwork and lettering.
+The title tune is an arrangement of Grieg's "In the Hall of the Mountain
+King" (1875, public domain); the jingles are original.
+
+FILES
+  BILBIES.VZ              the whole game in one file (23K, loads at $8000).
+                          No DAT files.
+  Bilbies_VZ300_src.zip   source, build tools, level designs, test emulator
+  title_music.wav         the title music as the emulator plays it
+  screenshots\            pictures from the emulator
+
+LOADING
+  Copy BILBIES.VZ to the SD card and run it from the BennVenn SD loader.
+  It loads low ($8000), never runs from video RAM and unpacks from main RAM:
+  the level data is copied into bank B first, then the program is unpacked
+  in place over it.
+  It needs BOTH 10K SRAM banks of the BennVenn at $4000-$67FF:
+    bank A (mapping 1, as the DOS leaves it) holds the level picture,
+    bank B (mapping 3) holds the 24 level designs, packed.
+  If either isn't there you'll see a message saying which, in mode(0).
+  Press RESET to get back to the loader.
+
+CONTROLS
+  Q A O P / joystick   move the cursor (it speeds up as you hold it).
+                       Push against any edge of the playfield to scroll:
+                       the levels are 512 x 80 pixels, four screens
+                       across and nearly two down.
+  SPACE / M / FIRE     give the selected skill to the bilby under the cursor,
+                       or press a button when the cursor is on the panel.
+                       Fire on the minimap jumps the view there.
+  ARM / X  /  Z        next / previous skill
+  1 - 8                climber, floater, bomber, blocker, builder, basher,
+                       miner, digger
+  ,  .                 release rate down / up (or hold fire on - / +)
+  H                    pause            N  N   nuke (press twice)
+  CTRL+Q               give up (back to the level menu)
+
+  Title: FIRE / SPACE / RETURN play,  T trainer (every level open),
+         K music on/off,  S sound effects on/off.
+         Leave it ~30 seconds for the attract mode (five levels played
+         by the computer); any key returns.
+  Level menu: O P level,  Q A rating,  FIRE play,  Q back.
+
+THE SCREEN (mode 1, 128x64, 4 colours)
+  * Playfield 128 x 44 pixels, a window on a level of 512 x 80 that
+    scrolls four ways.
+  * Row 44: a bar showing where the window is across the level.
+  * Status line (3x5 font): what's under the cursor and how many, OUT,
+    IN %, and the time left.
+  * Twelve buttons with counts and icons (rate - +, the 8 skills, pause,
+    nuke), the selected one framed in yellow, and a minimap of the whole
+    level (one dot for 16 x 8 pixels) with the bilbies on it and the window
+    marked in green. Fire on the minimap jumps the window there.
+  * Behind the bilbies: faint sky, star, mist and cave textures, with
+    scenery that never gets in the way (gum trees, scrub, far hills,
+    clouds, cave columns, crystals, ruined pillars, reeds), plus 50
+    hand-drawn Australiana pictures placed through the levels.
+    Set pieces:
+      Burrow Down       grain silos, windpump and tank, the dunny
+      Up the Bank       a station homestead with its verandah, the farm ute
+      Gum Tree Gully    a shearing shed, a great granite wave rock
+      Wait Here         a two-storey country pub with iron lace verandahs
+      Sloping Off       a goldfields poppet head over the mine
+      Moonlit Ruins     a ruined bush church, a homestead chimney
+      The Jetty         a harbour beach: sand, Norfolk pines, the flags, a
+                        lifesavers' tower, umbrellas, surfboards; across the
+                        water the opera house sails, a big steel arch bridge
+                        and limestone sea stacks
+      Two Ways Home     a lighthouse on the cliff
+      Sinking Feeling   a croc in the drowned cave
+      Red Centre        a road train and a camel string
+      Termite Towers    the big red rock on the horizon
+      Billabong         a paddle steamer
+      The Last Burrow   the homestead again, windpump, tank
+    The rest:
+      out bush   windpumps, water tanks, tin sheds, a rotary clothes line,
+                 drum letterboxes, fences, a BILBY CROSSING sign, grass
+                 trees, wattle, banksia, boabs, termite mounds, roos, emus,
+                 galahs overhead
+      at night   the moon, the Southern Cross, a ruined homestead chimney,
+                 campfires with the billy on, swag tents
+      the water  herons in the reeds
+      below      goldfields mine timbers, ore carts on rails, miners' lamps,
+                 picks and shovels, glints of gold, sleeping bats
+    They're kept as a small packed library in bank B and stamped onto
+    open air only, so they never change where a bilby can walk.
+  * The split-screen idea: the VZ's only interrupt comes at the end of the
+    picture, so a text panel at the bottom would mean cycle-counting through
+    almost the whole frame, and one at the top costs about half of every
+    frame waiting, on the green text background. A mode(1) panel with its
+    own small font was clearer and costs nothing.
+
+THE RULES (as Lemmings; distances in VZ pixels, 2 dots wide x 3 lines tall)
+  walkers step up 2 rows and down 3 before they fall; falls of 24+ rows are
+  fatal (floaters are safe); the edges of the map turn walkers round and
+  can't be climbed; climbers go up any wall and over the top;
+  blockers turn everyone round; builders lay 12 sticks (a step up every 2),
+  and warn on the last 3; bashers tunnel sideways, miners diagonally down,
+  diggers straight down - none of them through steel; bombers count down
+  5 seconds, say "oh no" and blow a hole; water drowns; the release rate
+  can't go below the level's own; nuke ends the level. The game runs at
+  12.5 ticks a second (the Spectrum managed about 9). Animation frames per
+  action are the Spectrum's counts: walk 8, fall 4, float 8, climb 8,
+  climb-over 8, block 8, build 16, shrug 8, bash 32, mine 24, dig 16,
+  splat 16, drown 16, exit 8, oh-no 16.
+
+THE LEVELS (24, six in each rating, all 512 x 80 or near it)
+  MILD   1  BURROW DOWN            10 bilbies, save  5, 5 min  (dig 10)
+  MILD   2  UP THE BANK            12 bilbies, save  9, 5 min  (build 6)
+  MILD   3  RED ROCK WALL          15 bilbies, save 10, 5 min  (bash 4)
+  MILD   4  GUM TREE GULLY         10 bilbies, save  7, 6 min  (climb 10, float 10)
+  MILD   5  WAIT HERE              20 bilbies, save 15, 5 min  (block 2, bash 3)
+  MILD   6  SLOPING OFF            15 bilbies, save 10, 6 min  (mine 4)
+  TRICKY 1  DRIPSTONE HALL         20 bilbies, save 14, 6 min  (build 2, bash 2, dig 2)
+  TRICKY 2  CRYSTAL LADDER         20 bilbies, save 16, 7 min  (build 4)
+  TRICKY 3  UNDERGROUND CREEK      15 bilbies, save 11, 8 min  (climb 1, build 4, bash 1)
+  TRICKY 4  BOOM GATE              20 bilbies, save 15, 5 min  (bomb 2, block 1)
+  TRICKY 5  ECHO CHAMBER           20 bilbies, save 15, 7 min  (bash 2, mine 2)
+  TRICKY 6  LONG WAY DOWN          15 bilbies, save 11, 7 min  (float 15, dig 3)
+  TOUGH  1  MOONLIT RUINS          15 bilbies, save 10, 7 min  (climb 12, bash 1, dig 1)
+  TOUGH  2  THE JETTY              20 bilbies, save 15, 7 min  (bomb 1, block 1, build 3)
+  TOUGH  3  STONE TOWER            20 bilbies, save 16, 8 min  (float 20, build 5)
+  TOUGH  4  TWO WAYS HOME          25 bilbies, save 18, 7 min  (block 1, bash 2, dig 1)
+  TOUGH  5  SINKING FEELING        20 bilbies, save 15, 7 min  (build 2, mine 2, dig 3)
+  TOUGH  6  NIGHT SHIFT            30 bilbies, save 24, 9 min  (block 1, build 3, bash 2, mine 2, dig 2)
+  WILD   1  RED CENTRE             30 bilbies, save 27, 8 min  (climb 30, float 30, bash 1)
+  WILD   2  TERMITE TOWERS         30 bilbies, save 25, 8 min  (build 2, bash 3)
+  WILD   3  BILLABONG              30 bilbies, save 24, 9 min  (climb 1, build 5, bash 1)
+  WILD   4  CRYSTAL CAVERNS        25 bilbies, save 20, 8 min  (build 1, bash 2, mine 2, dig 2)
+  WILD   5  THUNDER GORGE          30 bilbies, save 26, 9 min  (bomb 1, block 1, build 4)
+  WILD   6  THE LAST BURROW        40 bilbies, save 34, 9 min  (float 40, build 3, bash 2, mine 2, dig 2)
+  The briefing shows a quarter-size picture of the whole level. Building a
+  level from its design takes 1-2 seconds, while the briefing is up.
+  Every level has been played through to a win in the emulator by a script
+  (tools/test.py runs all 24).
+
+KNOWN LIMITS / THINGS TO CHECK ON REAL HARDWARE
+  * Tested only in the emulator model of the VZ300 + BennVenn.
+  * With 30-40 bilbies all on screen the game slows by about a fifth.
+  * Not yet tried on a real BennVenn with bank B (mapping 3): if your
+    board's banks differ, the start-up check will say so.
+  * Progress (which levels are open) is kept until reset; no save.
+  * No music during play (the speaker player needs the whole CPU): music on
+    the title, briefing and results screens, sound effects in the game.
+
+BUILDING
+  ./build.sh  (needs sjasmplus and zx0). tools/gen.py makes the data
+  (art.py: sprites, font, panel, textures; levels.py + levels_data.py:
+  the levels and their solution scripts; lvlkit.py: the level kit and a
+  Python copy of the builder, which tools/verify.py checks pixel for pixel
+  against the Z80 one;
+  music.py: the tunes), src/main.asm is assembled, tools/package.py makes
+  BILBIES.VZ. emu/vzemu.c is the test emulator; tools/test.py plays the
+  levels by script.
