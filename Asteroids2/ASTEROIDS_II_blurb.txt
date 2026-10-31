@@ -1,0 +1,162 @@
+ASTEROIDS II  -  for the Dick Smith VZ300
+A sequel to VZ ASTEROIDS by Dubois & McNamara
+
+Blast, split and shatter your way through escalating waves in this all-new arcade sequel to the classic
+VZ Asteroids by Dubois & McNamara. Crack ore rocks for spinning jewels and chain them for up to x4 points.
+Trigger volatile rocks into chain-reaction shrapnel. Duel raider saucers, aiming hunters, diving stingers
+and creeping mines, and grab spread shot, rapid fire, shields and smart bombs on the way.
+
+TECHNICAL SPECIFICATIONS
+
+PLATFORM
+- Dick Smith VZ300: Z80 at 3.5469 MHz, PAL 50 Hz (312 lines, 70,938 CPU cycles per field).
+- BennVenn SD loader / 128K expansion:
+  - Loads from SD as a single 23,545-byte .VZ binary ($8000-$DBF8). No bank switching during the load.
+  - Uses the second 10 KB SRAM bank ($4000, port $37 = 3) as graphics memory.
+  - Leaves the DOS bank and $F800-$FFFF untouched.
+  - Detects a missing expansion and says so on screen.
+- 100% hand-written Z80 machine code. No ROM calls once running.
+
+GRAPHICS ENGINE
+- Mode 1 (CG2): 128x64 pixels, 4 colours.
+  - 128x58 playfield under a 6-row status bar.
+  - Deep-blue space, using a software background colour: sprites are XOR-encoded against blue, so it
+    costs no extra time.
+- The VZ has one 2 KB screen and no hardware double buffering, so every frame is built in an off-screen
+  buffer in RAM:
+  - The buffer has 44-byte rows with 6-byte margins each side, so objects wrap seamlessly around all
+    four screen edges.
+- Finished frames are copied to the screen with a fully unrolled stack copy (POP/PUSH):
+  - 3,712 bytes of straight-line code, 23,731 cycles (6.7 ms).
+  - Each copy starts exactly on the field-sync edge and finishes inside the 120-line vertical blank,
+    ahead of the TV beam.
+  - Result: no flicker and no tearing.
+- 25 frames per second with adaptive pacing:
+  - A screen copy every second field.
+  - Game logic and drawing share a 141,876-cycle budget.
+  - A cheap field-sync poller notices when a heavy frame runs over, so it slips by exactly one field
+    instead of tearing.
+  - Measured over a 10-minute self-play test reaching wave 9: an effective 24.4 fps in the busiest
+    waves.
+
+SPRITES AND ANIMATION
+- 155 sprites, generated from vector shapes and corrected for the VZ's tall pixels (2:3 aspect), so
+  shapes stay round as they rotate.
+- Player ship: 32 rotation frames on a 256-step heading.
+- Rocks: 4 kinds x 3 sizes, 80 tumble frames in all (8 per large and medium rock, 4 per small).
+- Enemies:
+  - 2-frame saucer and hunter.
+  - 8-direction stinger.
+  - 2-frame mine.
+- Spinning jewels (3 x 4 frames) and blinking pickup capsules (5 x 2).
+- At start-up every sprite is pre-shifted to all 4 pixel positions, building a 14.5 KB sprite cache
+  (about 10 KB in BennVenn SRAM, the rest in main RAM). Drawing never shifts bits at run time.
+- Blitter: width-specialised unrolled XOR drawing, a fast path for sprites clear of the edges, and
+  automatic splitting for sprites that wrap.
+
+EFFECTS
+- 40-particle system: engine exhaust, rock debris, fire, impact sparks, jewel sparkles, shield hits.
+  Bursts take velocities from a precomputed table of directions.
+- Shock-wave rings, a full-screen palette flash (the VDG colour-set switch) and screen shake on big
+  explosions, smart bombs and deaths.
+- 18-star, three-layer parallax starfield that drifts with each wave and reacts to the ship's motion.
+- Score pop-ups, wave banners and blinking invulnerability.
+
+GAMEPLAY SYSTEMS
+- Physics:
+  - 8.8 fixed-point positions and velocities.
+  - 64-entry sine tables, with vertical motion scaled for pixel aspect.
+  - Thrust 0.12 px/frame squared, 1/64 drag, speed capped at 3 px (horizontal) / 2 rows (vertical)
+    per frame.
+  - Rotation accelerates the longer you hold it.
+- Collision: wrap-aware bounding boxes, with a fast horizontal reject before the full test.
+- Live objects: ship, 24 rocks, 4 enemies, 6 items, 12 player shots/shrapnel, 8 enemy shots,
+  40 particles.
+- Rock behaviours:
+  - Stone splits in two.
+  - Ore takes 3/2/1 hits and drops jewels.
+  - Volatile bursts into 8 shrapnel shards that chain-react through rocks, enemies and the player.
+  - Crystal is fast and splits in three.
+- Enemy AI:
+  - Aiming uses a table-based arctangent: octant plus ratio lookup.
+  - Raider saucer wanders and sprays shots.
+  - Hunter fires aimed shots with slight spread.
+  - Stinger has turn-rate-limited homing and dashes in bursts.
+  - Mine creeps after you.
+- Scoring:
+  - Jewel chain multiplier up to x4 within 2.4 seconds.
+  - Extra ship every 10,000 points.
+  - 5-entry high-score table with initials.
+- Escalating waves: more and faster rocks, new rock types, and more varied enemies.
+
+SOUND ENGINE
+- The VZ has a single 1-bit piezo speaker (latch bits 0/5, three output levels) and no sound chip.
+  Everything is produced in software.
+- Three-voice mixer:
+  - Writes voice A, B and C to the speaker in turn every 214 cycles, a mixing rate of about 16.6 kHz.
+  - Each voice has a 16-bit phase accumulator; pulse width doubles as volume and timbre.
+  - Voice C can switch to noise for drums and explosions.
+- The mixer runs only while the game is waiting for the next field, so sound costs no game speed.
+- Music:
+  - Three channels: bass, lead, and drums with chord arpeggios.
+  - 14 patterns in about 690 bytes; 125 BPM; staccato envelopes keep the notes separate.
+  - On the title screen the animation is budgeted to about 10,000 cycles per field, so the music plays
+    86% of the time.
+- Sound effects:
+  - A 50 Hz bytecode sequencer (pitch sweeps, volume decay, noise, looping) with per-channel priority.
+  - Up to three effects at once: the classic heartbeat (speeds up as rocks thin out), shots,
+    explosions, saucer sirens, jewel and chain chimes, pickup fanfares.
+
+PRESENTATION
+- Title:
+  - Shining two-tone logo with drop shadow and a pulsing "II".
+  - Tumbling rocks.
+  - Background-aware starfield that never draws over text.
+  - Smooth scroller using RLD nibble rotation.
+  - Alternating credits.
+- Attract loop: Title > Enemy Files > Treasure & Power > self-playing AI demo > High Scores.
+- Controls:
+  - Keyboard: U/I rotate, O thrust, Z/SPACE fire, P hyperspace, B smart bomb, M music on/off.
+  - VZ joystick, auto-detected: down = smart bomb, arm button = hyperspace. A floating data bus is
+    recognised and ignored.
+
+WHY IT NEEDS THE BENNVENN SD / 128K
+- Memory: about 42 KB in use while running:
+  - program and data 18 KB ($8000-$C823)
+  - back buffer, object tables and sprite descriptors 7 KB
+  - pre-shifted sprite cache 14.5 KB
+  - variables, particles and stack 2 KB in $7800-$7FFF
+- A stock VZ300 has 16 KB of user RAM ($7800-$B7FF). A standard 16K expansion takes it to 32 KB
+  ($7800-$F7FF). That still isn't enough on its own.
+- The BennVenn's 128K adds a second 10 KB SRAM bank at $4000 (port $37 = 3).
+  - It holds most of the sprite cache: every sprite stored at all four pixel shifts, so nothing is
+    shifted at run time.
+  - That's what makes 8-frame tumbling rocks and 32-direction ship rotation affordable at 25 fps.
+- SD loading: the 23.5 KB .VZ loads directly from SD in seconds. Graphics source data is loaded into
+  the screen-buffer area and used up at start-up, so it costs no permanent RAM.
+- For comparison, the original VZ Asteroids also needed an expanded machine. Its stack sat at $CFF0
+  and it used work buffers up to $BF57, so it needed a 16K RAM pack.
+- A reduced build for a VZ300 with a standard 16K expansion is possible. It would need fewer rock
+  animation frames and a smaller sprite cache.
+
+MEMORY MAP
+- $4000-$67FF   SRAM bank 1: sprite cache
+- $7000-$77FF   video RAM
+- $7800-$79FF   stack
+- $7A00-$7BFF   variables
+- $7C00         row table
+- $7D00         particles, stars
+- $8000-$C823   program and data
+- $D000-$F7FF   back buffer, object tables, sprite descriptors, sprite cache overflow
+- Graphics source data is loaded into the back-buffer area and used up during start-up, so it costs
+  no permanent RAM.
+
+DEVELOPMENT
+- Assembled with sjasmplus.
+- Python tools generate the sprites, trig and note tables, and compile the music.
+- Tested on a custom cycle-counting VZ300 test harness. It models field sync, keyboard, joystick ports,
+  BennVenn banking and the speaker, and captures the display line by line as the beam would draw it.
+
+CREDITS
+Original VZ ASTEROIDS by Dubois & McNamara.
+ASTEROIDS II - 2026, vibed by BPM.
