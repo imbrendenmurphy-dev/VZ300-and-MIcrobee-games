@@ -1,0 +1,7 @@
+build/
+test-output/
+resources/*.rom
+resources/boot_tracks.bin
+resources/CCP.SYS
+src/data.asm
+.tools/
