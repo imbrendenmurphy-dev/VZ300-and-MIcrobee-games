@@ -74,3 +74,20 @@ it must not be counted as a pass. Real hardware has not been tested.
 Current build and test outputs are in build/ and test-output/. Release and
 selected reports/screenshots are copied into release/ and docs/reports/ for
 review. Check their manifests against final commit history before resuming.
+
+## Publication
+
+Draft PR: https://github.com/imbrendenmurphy-dev/VZ300-and-MIcrobee-games/pull/1
+
+Remote branch: codex/bilbies-microbee-premium-plus. Git CLI push failed because
+Windows Credential Manager could not persist credentials. The connected
+GitHub service successfully published the committed source tree instead;
+its Git tree SHA was checked against the local tree before publication.
+Original local milestone history is preserved on codex/bilbies-local-milestones;
+the main working branch is synchronized to the API-published history.
+
+The owner will request the outstanding external assembly examples later.
+Do not repeatedly ask for that material. Those examples may help, but do not
+assume they implement a ColdFire worker interface until they are inspected.
+The supplied desktop photo appears to show SymbOS; it is not proof of
+ColdFire execution or concurrent processing. No external person was contacted.

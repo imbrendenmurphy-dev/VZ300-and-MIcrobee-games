@@ -39,3 +39,10 @@ the public Microbee uClinux console driver. No supported CP/M worker-loading
 API identified. Firmware/software package path requested. A further lead for
 external assembly tests has not yet produced a confirmed public repository;
 a project URL has been requested. See COLDFIRE.md.
+
+Published the prototype through the connected GitHub service after CLI
+credential storage failed; draft PR #1 records the unfinished scope and
+test limitations. The remote Git tree was verified identical to local.
+The owner will seek the outstanding assembly examples later. Explained that
+small assembly probes measure specific memory/bus/timing behaviour; they do
+not establish a missing coprocessor launch interface by themselves.
