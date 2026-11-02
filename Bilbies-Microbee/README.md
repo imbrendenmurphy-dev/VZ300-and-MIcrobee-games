@@ -1,92 +1,87 @@
-# Bilbies! — Microbee Premium Plus prototype
+# Bilbies! — bespoke Microbee renderer in development
 
-**Work in progress, not the requested completed conversion.** Native Z80
-bring-up retains the newer owner's Bilbies simulation, all 24 original
-levels and scenery, title/trainer, skills, terrain destruction and solution
-scripts. The compatibility renderer runs too slowly. This is a reviewable
-milestone and a starting point for the replacement renderer.
+The default build now uses **native/renderer.asm**, independently of the VZ
+renderer and compatibility port. It displays 640x256, streams native PCG cell
+maps from expanded RAM, and composes native masked bilbies into private PCG
+slots. It never reads or writes the VZ framebuffer. Native artwork is compiled
+for the Premium RGBI palette and two-colours-per-cell restriction.
 
-The owner has confirmed the **ColdFire Premium Plus**. Acceleration is now
-the next architecture investigation; see `docs/COLDFIRE.md`. This prototype
-does not yet run code on ColdFire, and the test model does not emulate it.
+**This is a renderer harness, not the completed game.** Original simulation,
+levels and regression tests remain available in the baseline, but gameplay,
+saves, menus and mouse are not connected to the new renderer yet. The forty-
+bilby case still misses its performance budget. No ColdFire acceleration or
+real-hardware success is claimed.
 
-## Run
+## Run the new renderer
 
-Use `release/BILBIES.DS8` on a Premium Plus configured for 1MB RAM and 32K
-PCG. Boot to `A>`, then type `BILBIES`. No Microbee Shell is included.
-Choose **C** colour or **M** monochrome, then **SPACE** to leave settings.
-**G** opens settings during the game. The mode choice is saved to disk.
+Boot `release/BILBIES.DS8` to CP/M `A>`, then type `BILBIES`. No Microbee Shell
+is included. Target: Premium Plus, 32K PCG, 1MB Z80 RAM.
 
-QAOP or arrows move the cursor; Space/M or joystick fire assigns the skill
-or activates the panel. X/Z cycle skills, 1–8 choose directly, comma/period
-change release rate, H pauses, NN nukes, Ctrl-Q abandons. Use the cursor on
-the skill panel and minimap to play with one joystick button. Edge scrolling
-is still the original four-logical-pixel horizontal step, not per-pixel.
+| Key | Renderer-harness action |
+|---|---|
+| O / P | Pan left/right by one native pixel |
+| C / M | Colour / deliberately patterned monochrome |
+| 1 / 4 | Ten / forty animated bilbies |
+| D | Apply a native terrain-patch demonstration |
 
-Progress and mode use preallocated `SAVE.DAT` on the launch drive, with a
-signature, checksum and read-back verification. Missing/deleted save files
-and write protection return failure. Runtime saving does not allocate space;
-the file is reserved during disk construction. Do not relocate SAVE.DAT in
-this prototype. A failed automatic progress save is currently only recorded
-in `sv_error`; the settings screen shows explicit save failures. Saves use
-one sector and are not power-failure atomic.
+Panning clears the demonstration patches: they exercise the viewport-cell
+job interface, not persistent world editing. The harness does not simulate
+movement, skills or collision. Its gait animation and stress layouts test
+composition. See `native/README.md` for exact scope.
 
-## Build on Windows
+The earlier playable compatibility baseline is retained as `release/BILBASE.DS8`
+for regression comparison. It is not the default renderer or proposed final
+architecture. Its save/settings features do not imply those features are
+already integrated into the new renderer.
 
-Python 3.12 was used. Assembly/compression needs sjasmplus 1.20.3 and ZX0.
-The bootstrap downloads pinned tools into `.tools` and verifies their hashes.
+## Rebuild
+
+Python 3.12, NumPy and Pillow are needed for the native asset compiler. The
+bootstrap obtains pinned, hash-verified assembler/compressor tools in `.tools`.
 
 ```powershell
 .\build.ps1 -Python C:\path\to\python.exe -Bootstrap
 ```
 
-The default DOS donor is the repository's `LanternDeep/release/LANTERN.DS8`.
-To use an owner's compatible CP/M disk, supply `-BaseDisk C:\path\BASE.DS8`.
-The builder copies system track-sides and CCP.SYS, creates a fresh directory,
-and validates file extraction and exact 819200-byte DS80 size. It does not
-copy the donor's game or Shell. Build output is `build/BILBIES.DS8`.
+Default output: `build/native/BILBIES-NATIVE.DS8`. The default DOS donor is
+`../LanternDeep/release/LANTERN.DS8`; `-BaseDisk` selects another compatible
+owner-supplied image. The builder keeps system track-sides and CCP.SYS and
+creates a fresh directory without Shell. Source art is local; image generation
+is not part of rebuilding. Install `requirements-test.txt` for dependencies.
 
 ## Tests
 
-Install `requirements-test.txt` in your selected Python environment. Supply
-your BN60 boot ROM at `resources/bn60.rom` for the boot test; it is not in Git.
+Supply the owner's BN60 ROM at `resources/bn60.rom` and character ROM at
+`resources/charrom.bin` for boot/font capture. Neither ROM is distributed.
 
 ```powershell
-python tools/verify_port.py --solutions
-python tools/boot_test.py
-python tools/smoke.py
-python tools/measure.py
-python tools/native_solution.py
+python native/test_renderer.py
+python native/profile_renderer.py
 ```
 
-Tests execute Z80 instructions in the repository's adapted `ppmodel.py`
-(non-cycle-exact Premium Plus model, z80 1.2.0 CPU core). `verify_port.py`
-checks every terrain and collision pixel against the original Python builder.
-Its solution tests explicitly replace only `mb_present` with RET, so those
-results establish simulation regression coverage, not display performance.
-`native_solution.py` keeps rendering enabled for the first level.
+Tests execute the Z80 binary in the adapted Premium Plus model. They check
+24 camera/phase cases across colour/mono, masked composition of ten and forty
+overlapping bilbies, edge clipping, zero actors, native terrain patches,
+keyboard panning/mode selection, unchanged static PCG on scroll, and a canary
+proving 7000h-77FFh is untouched. Actual BN60/CP-M boot/launch is exercised.
+Measurements exclude some bus waits and do not emulate ColdFire.
 
-The boot test uses the actual owner's BN60 ROM and executes CP/M/BDOS from
-the disk. It verifies prompt and takeover and captures screens. It does not
-establish uBee512 or real-hardware compatibility. An attempted local uBee512
-launch did not provide a usable verification result.
+The baseline can still be rebuilt with `-CompatibilityBaseline` and tested
+with `tools/verify_port.py --solutions`. Those original 24-level results are
+physics/content regression coverage, not new-renderer gameplay coverage.
 
-## Still required
+## Outstanding work
 
-- Replace the renderer; restore original real-time pace and implement smooth
-  per-pixel scrolling. See measured rejection of this architecture in
-  `docs/HARDWARE.md`.
-- Substantial new Australiana artwork, larger sprites, enhanced animations
-  and expanded layouts. Current art is the original, converted to PCG cells.
-- Microbee mouse interrupt driver. Interface researched, not implemented.
-- Audio driver: prototype sound/music calls are stubs.
-- More extensive keyboard/joystick interaction tests and independent emulator
-  testing. Monochrome patterns need human readability review.
-- Better save resilience, moved-file handling, and visible automatic-save
-  error notification; disk-full/error-injection tests.
-- Full 1MB asset/cache architecture; most RAM is presently unused.
-- Real hardware: banking, monitor timing, input interfaces, disk writes and
-  sustained performance all remain to be verified.
+The bespoke renderer is a working component, not a finished engine. Sprite
+composition is too expensive at forty actors. The dynamic tile pool is
+bounded, persistent world edits are not connected, and larger dirty regions
+need a residency policy. Next work: performance/residency and simulation
+integration, remaining levels, native menus, mouse, audio, saved preferences
+and progress, independent emulator and physical-machine testing.
 
-See `docs/HANDOVER.md`, `docs/ORIGINAL.md`, `docs/PROGRESS.md` and
-`docs/HARDWARE.md`. The original `Bilbies/` repository folder is unchanged.
+The owner confirmed the ColdFire Premium Plus. Compositor work can be
+offloaded only after a supported worker-loading/bus-ownership interface is
+established; that remains unavailable. See `docs/COLDFIRE.md`.
+
+Details: `native/README.md`, `docs/HANDOVER.md`, `docs/PROGRESS.md` and
+`docs/ORIGINAL.md`. The repository's original `Bilbies/` folder is unchanged.

@@ -1,0 +1,20 @@
+{
+  "resolution": [
+    640,
+    256
+  ],
+  "phase_map_cases": 24,
+  "terrain_tstates": 78030,
+  "ten_sprite_tstates": 161443,
+  "forty_sprite_tstates": 574002,
+  "terrain_frames": 1.156,
+  "ten_total_frames": 3.5477481481481483,
+  "forty_total_frames": 9.659733333333334,
+  "sprite_oracle": "masked native 16x16, 10 and 40 overlapping bilbies",
+  "legacy_framebuffer_untouched": true,
+  "static_pcg_unchanged_during_scroll": true,
+  "native_terrain_patch_plus_40_sprites": "pixel oracle passed in both modes",
+  "monochrome_all_cells_white_on_black": true,
+  "native_keyboard_pan_and_mode_switch": true,
+  "oversubscribed_foreground": "signals exhaustion; static PCG preserved; frame intentionally incomplete"
+}

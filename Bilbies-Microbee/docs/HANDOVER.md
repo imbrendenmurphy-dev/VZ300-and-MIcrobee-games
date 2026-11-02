@@ -1,5 +1,32 @@
 # Handover — 2026-11-02
 
+## Latest milestone: bespoke renderer
+
+Default build and release/BILBIES.DS8 now run native/renderer.asm: an independent
+640x256 renderer harness. No VZ renderer, BACK buffer or 2-bpp frame conversion
+is included. See native/README.md before resuming; it supersedes the earlier
+compatibility-renderer architecture below. The old playable baseline is kept
+as release/BILBASE.DS8 and behind build.ps1 -CompatibilityBaseline.
+
+The new path has eight pixel scroll phases, banked native PCG maps, batched
+masked sprite composition, native terrain-cell jobs and colour/mono artwork.
+Source art includes an imagegen homestead; its original PNG and exact prompt
+are in native/art. The compiler applies RGBI and per-cell colour restrictions.
+Native tests prove the VZ framebuffer remains untouched.
+
+It is NOT integrated gameplay. Forty-actor CPU composition is too expensive
+(about 9.66 frames including terrain in the model), and edit-job residency is
+bounded. No ColdFire execution is present. Do not use the older baseline's
+24-level gameplay/save results as coverage for this new path. Next work is
+compositor throughput, residency, then simulation/input/save integration.
+
+Build from project with build.ps1 (sjasmplus on PATH, NumPy/Pillow available).
+Run native/test_renderer.py and native/profile_renderer.py with the same
+Python/PYTHONPATH described below. Local owner character ROM was copied into
+resources/charrom.bin for captures; it is Git ignored. No ROM is distributed.
+
+## Earlier compatibility milestone
+
 Owner's goal remains unfinished. This branch contains a native, bootable
 prototype, not a completed enhanced Microbee conversion. Do not present the
 compatibility renderer as an acceptable final architecture.
@@ -84,10 +111,13 @@ Windows Credential Manager could not persist credentials. The connected
 GitHub service successfully published the committed source tree instead;
 its Git tree SHA was checked against the local tree before publication.
 Original local milestone history is preserved on codex/bilbies-local-milestones;
-the main working branch is synchronized to the API-published history.
+the bespoke renderer also has a normal local milestone commit. Publication
+through the API creates a different commit ID with the same verified tree.
+Keep both histories; do not force-push. If switching back to Git CLI publishing,
+fetch and merge the remote branch once credentials are working.
 
 The owner will request the outstanding external assembly examples later.
 Do not repeatedly ask for that material. Those examples may help, but do not
 assume they implement a ColdFire worker interface until they are inspected.
-The supplied desktop photo appears to show SymbOS; it is not proof of
-ColdFire execution or concurrent processing. No external person was contacted.
+A SymbOS desktop alone is not evidence of ColdFire execution or concurrent
+processing. No external person was contacted.

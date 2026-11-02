@@ -1,5 +1,24 @@
 # Bilbies! Premium Plus progress
 
+2026-11-02, bespoke renderer milestone: replaced the default build/release
+path with independent native/renderer.asm. The old compatibility baseline is
+retained for regression comparison only. New code streams 640x256 native PCG
+cell maps, supports eight single-pixel horizontal phases, uses font ROM, and
+batches native masked bilbies into private glyphs. Native cell jobs demonstrate
+terrain updates. Tests prove no access to the VZ screen buffer.
+
+Redrew the landscape for RGBI and generated a new homestead source asset via
+the built-in imagegen tool. Compiler outputs actual two-colour cells and a
+separate mono design. All eight phases fit with 65 one-pixel scenery-only
+glyph merges; collision-bearing glyphs are protected. Art source and prompt
+are saved, with no API requirement for rebuilding.
+
+Pixel/plane, clipping, zero-actor, colour/mono, terrain-job and ROM-launch
+tests pass. Model timings show terrain output about 78K T-states, but the
+complete forty-actor rendering pass about 652K: target performance is NOT
+met. Native gameplay, full art/content, persistent edits/saves and ColdFire
+integration remain open. See native/README.md and native/reports.
+
 2026-11-02: Cloned the main repository on branch `codex/bilbies-microbee-premium-plus`.
 Inspected Bilbies source, generators, original manual, and Lantern Deep's
 banking, PCG, input, loader, disk builder and emulator. The account's other

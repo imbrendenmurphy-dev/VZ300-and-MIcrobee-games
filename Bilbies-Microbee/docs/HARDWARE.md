@@ -1,5 +1,12 @@
 # Evidence and current tradeoffs
 
+Latest: native/renderer.asm now exercises 640x256 using 80x16 cells of 8x16
+pixels. It is independent of the compatibility renderer discussed below.
+Eight resident horizontal phases permit pixel panning without terrain PCG
+writes. Model pixel tests pass, but foreground composition misses the target
+budget. See native/README.md for the current measurements and limitations.
+The old 512x192 compatibility path is no longer the default build.
+
 Evidence means emulator implementation or execution unless explicitly stated.
 No real Microbee has been tested in this project.
 
