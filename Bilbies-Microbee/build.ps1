@@ -2,7 +2,9 @@ param(
     [string]$Python = 'python',
     [string]$BaseDisk = (Join-Path $PSScriptRoot '..\LanternDeep\release\LANTERN.DS8'),
     [switch]$Bootstrap,
-    [switch]$CompatibilityBaseline
+    [switch]$CompatibilityBaseline,
+    [switch]$CompactBilbies,
+    [switch]$RamBackground
 )
 $ErrorActionPreference = 'Stop'
 if ($Bootstrap) {
@@ -17,7 +19,10 @@ if ($CompatibilityBaseline) {
     if ($LASTEXITCODE -ne 0) { throw 'Baseline disk build failed' }
     Write-Output (Join-Path $PSScriptRoot 'build\BILBIES.DS8')
 } else {
-    & $Python (Join-Path $PSScriptRoot 'native\build.py') --base $BaseDisk
+    $nativeBuildArgs = @('--base', $BaseDisk)
+    if ($CompactBilbies) { $nativeBuildArgs += '--compact-bilbies' }
+    if ($RamBackground) { $nativeBuildArgs += '--ram-background' }
+    & $Python (Join-Path $PSScriptRoot 'native\build.py') @nativeBuildArgs
     if ($LASTEXITCODE -ne 0) { throw 'Native renderer build failed' }
     Write-Output (Join-Path $PSScriptRoot 'build\native\BILBIES-NATIVE.DS8')
 }

@@ -1,4 +1,8 @@
 {
+  "sprite_dimensions": [
+    16,
+    16
+  ],
   "colour": {
     "static_glyphs": 1792,
     "phase_map_bytes": 49152,
@@ -14,5 +18,19 @@
     "dynamic_slots": 255,
     "one_pixel_scenery_merges": 0,
     "collision_glyphs_protected": 350
+  },
+  "compiled_sprites": {
+    "bank": 14,
+    "origin": 8192,
+    "bytes": 21561,
+    "record_bytes": 32,
+    "vertical_phases": 16,
+    "directions": 1,
+    "frames": 8,
+    "rows": {
+      "masked": 1935,
+      "opaque": 405,
+      "transparent": 60
+    }
   }
 }

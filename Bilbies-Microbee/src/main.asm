@@ -22,4 +22,8 @@ code_start:
 code_end:
         ASSERT code_end <= MASK
         DISPLAY "code end: ",/A,code_end
+        IFDEF LINEAR_BLOCKERS
+        SAVEBIN "../build/BILBIES-LINEAR.HI",CODE,code_end-CODE
+        ELSE
         SAVEBIN "../build/BILBIES.HI",CODE,code_end-CODE
+        ENDIF

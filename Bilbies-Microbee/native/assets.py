@@ -8,6 +8,7 @@ from pathlib import Path
 import json
 import math
 import sys
+import subprocess
 import numpy as np
 from collections import Counter
 from PIL import Image, ImageDraw, ImageFont
@@ -18,6 +19,7 @@ import levels, lvlkit
 
 B=R/'build/native'
 W,H=1024,224
+COMPACT=False
 PAL=[(0,0,0),(192,0,0),(0,192,0),(192,192,0),(0,0,192),
      (192,0,192),(0,192,192),(192,192,192),(96,96,96),(255,0,0),
      (0,255,0),(255,255,0),(0,0,255),(255,0,255),(0,255,255),(255,255,255)]
@@ -185,9 +187,53 @@ def compile_world(im,mono,solid):
     return glyphs,maps,packing
 
 
+def compile_rasters(name,glyphs,maps):
+    """Eight native column-major rasters, compressed in one bank-sized pack.
+
+    Each decoded bank is 28672 bitmap bytes followed by 1792 colour bytes.
+    These are the exact compiled Microbee glyph bits, including packing;
+    neither original VZ pixels nor a PCG-as-framebuffer assumption is used.
+    """
+    pack=bytearray(32);sizes=[]
+    for phase,data in enumerate(maps):
+        bitmap=bytearray();colours=bytearray()
+        for col in range(128):
+            for row in range(14):
+                off=row*128+col
+                glyph=(data[off]&127)+(data[2048+off]<<7)
+                bitmap.extend(glyphs[glyph]);colours.append(data[4096+off])
+        raw=B/f'{name}{phase}.raster'
+        raw.write_bytes(bitmap+colours)
+        compressed=raw.with_suffix('.zx0')
+        subprocess.run(['zx0','-q','-f',str(raw),str(compressed)],check=True,capture_output=True)
+        payload=compressed.read_bytes()
+        assert len(payload)<=12288, 'Mode staging buffer is 12K'
+        at=phase*4
+        pack[at:at+4]=len(pack).to_bytes(2,'little')+len(payload).to_bytes(2,'little')
+        pack.extend(payload);sizes.append(len(payload))
+    assert len(pack)<=32768, 'Native raster pack exceeds one expanded block'
+    (B/f'{name}.raster.bnk').write_bytes(pack)
+    return {'decoded_bank_bytes':30464,'compressed_phase_bytes':sizes,'pack_bytes':len(pack),
+            'compressor':'ZX0 v2 quick'}
+
+
 def bilby(frame,direction=0):
     """16x16 native silhouette: big ears, bright eye, long tail, eight gait frames."""
     im=Image.new('1',(16,16));d=ImageDraw.Draw(im)
+    if COMPACT:
+        d.line((3,4,2,0),fill=1,width=1)
+        d.line((5,4,6,0),fill=1,width=1)
+        d.ellipse((2,3,8,6),fill=1)
+        d.polygon([(7,3),(10,5),(7,5)],fill=1)
+        d.line((3,6,0,7),fill=1)
+        d.point((7,4),fill=0)
+        for x,p in [(4,0),(7,4)]:
+            dx=[-1,0,1,1,0,-1,-1,0][(frame+p)&7]
+            d.line((x,6,x+dx,7),fill=1)
+        if direction:
+            box=im.crop((0,0,12,8)).transpose(Image.Transpose.FLIP_LEFT_RIGHT)
+            im.paste(box,(0,0))
+        return im
     bob=(frame//2)&1
     d.line((5,7+bob,4,0),fill=1,width=2)
     d.line((8,7+bob,10,1),fill=1,width=2)
@@ -202,20 +248,79 @@ def bilby(frame,direction=0):
     return im
 
 
-def build():
+def compile_sprites(sprites,resident=False):
+    """Bank-14 callable row programs, indexed by frame/phase/column.
+
+    Scratch is column-major: a sprite column stays contiguous even across
+    PCG-cell boundaries. Each routine draws all 16 rows with one call.
+    """
+    count=8*8*3
+    code=bytearray() if resident else bytearray(0x2000+count*32)
+    meta=bytearray(32768) if resident else code
+    meta[0x1000:0x1460]=bytes([255])*1120
+    for pose in range(64):
+        meta[0x1460+pose*2:0x1462+pose*2]=(0x2000+pose*96).to_bytes(2,'little')
+    for row in range(14):
+        for col in range(80):
+            cell=row*80+col
+            address=0xA000+col*224+row*16
+            meta[cell]=address&255
+            meta[0x800+cell]=address>>8
+    kinds=Counter()
+    for column in range(count):
+        table=len(code)
+        rows=8 if COMPACT else 16
+        active=[r for r in range(rows) if sprites[column*32+r*2:column*32+r*2+2]!=b'\xff\x00']
+        first,last=(min(active),max(active)+1) if active else (0,0)
+        at=0x2000+column*32
+        meta[at:at+4]=table.to_bytes(2,'little')+bytes([first,last-first])
+        for dy in range(16):
+            meta[at+16+dy]=int(any(r+dy<16 for r in active))|2*int(any(r+dy>=16 for r in active))
+        for row in range(first,last):
+            mask,ink=sprites[column*32+row*2:column*32+row*2+2]
+            if mask==255 and ink==0:
+                kinds['transparent']+=1
+            elif mask==0:
+                code.extend([0x3E,ink,0x12])  # LD A,ink : LD (DE),A
+                kinds['opaque']+=1
+            else:
+                code.extend([0x1A,0xE6,mask,0xF6,ink,0x12])
+                kinds['masked']+=1
+            code.append(0x13)  # INC DE: a column can cross a page boundary.
+        code.append(0xC9)
+    assert len(code)<=32768, len(code)
+    (B/'sprite-code.bnk').write_bytes(code)
+    if resident:(B/'sprite-meta.bnk').write_bytes(meta)
+    return {'bank':26 if resident else 14,'origin':0 if resident else 0x2000,
+            'bytes':len(code) if resident else len(code)-0x2000,
+            'record_bytes':32,'vertical_phases':16,'directions':1,'frames':8,'rows':dict(kinds)}
+
+
+def build(compact=False,reuse_world=False,ram_background=False,resident=False,compiled=False):
+    global COMPACT
+    COMPACT=compact
     B.mkdir(parents=True,exist_ok=True)
+    width,height=(12,8) if compact else (16,16)
+    (B/'config.inc').write_text(f'N_SPRITE_W EQU {width}\nN_SPRITE_H EQU {height}\n')
     level=levels.LEVELS[1]
     im,solid=world(level)
     im.crop((0,0,W,H)).save(B/'world.png')
-    report={}
-    for mono,name in [(False,'colour'),(True,'mono')]:
-        glyphs,maps,packing=compile_world(im,mono,solid)
-        pcg=bytearray(b''.join(glyphs).ljust(32768,b'\0'))
-        (B/f'{name}.pcg').write_bytes(pcg)
-        for half in range(2):
-            (B/f'{name}{half}.map').write_bytes(b''.join(maps[half*4:half*4+4]))
-        report[name]={'static_glyphs':len(glyphs),'phase_map_bytes':sum(map(len,maps)),
-                      'pcg_bytes':len(glyphs)*16,'dynamic_slots':255,**packing}
+    report={'sprite_dimensions':[width,height]}
+    if reuse_world:
+        cached=json.loads((B/'assets.json').read_text())
+        for name in ['colour','mono']:
+            if ram_background:assert (B/f'{name}.raster.bnk').exists()
+            report[name]=cached[name]
+    else:
+        for mono,name in [(False,'colour'),(True,'mono')]:
+            glyphs,maps,packing=compile_world(im,mono,solid)
+            pcg=bytearray(b''.join(glyphs).ljust(32768,b'\0'))
+            (B/f'{name}.pcg').write_bytes(pcg)
+            for half in range(2):
+                (B/f'{name}{half}.map').write_bytes(b''.join(maps[half*4:half*4+4]))
+            report[name]={'static_glyphs':len(glyphs),'phase_map_bytes':sum(map(len,maps)),
+                          'pcg_bytes':len(glyphs)*16,'dynamic_slots':255,**packing}
+            if ram_background:report[name]['native_rasters']=compile_rasters(name,glyphs,maps)
     sprites=bytearray()
     for direction in range(2):
         for frame in range(8):
@@ -234,6 +339,10 @@ def build():
                 for col in range(3):
                     for outline,ink in rows:sprites.extend([outline[col]^255,ink[col]])
     (B/'sprites.bin').write_bytes(sprites)
+    report['compiled_sprites']=compile_sprites(sprites,resident)
+    if compiled:
+        from compiled_actors import generate
+        generate(B,sprites,height)
     mask=bytes(sum(bool(solid[y][x*8+b])<<(7-b) for b in range(8)) for y in range(80) for x in range(64))
     (B/'collision.bin').write_bytes(mask)
     (B/'parameters.bin').write_bytes(bytes(level.compile('NATIVE'))[:512].ljust(512,b'\0'))
@@ -241,7 +350,7 @@ def build():
     for i in range(40):
         x=32+i*14
         ys=[y for y in range(80) if solid[y][min(511,x//2)]]
-        y=max(0,min(208,64+(ys[0] if ys else 70)*2-16))
+        y=max(0,min(224-height,64+(ys[0] if ys else 70)*2-height))
         entities.extend(bytes([x&255,x>>8,y,0]))
     (B/'entities.bin').write_bytes(entities)
     jobs=bytearray()

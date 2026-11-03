@@ -1,87 +1,88 @@
 {
-  "instructions": 58119,
-  "tstates": 573631,
-  "unique_cells": 142,
+  "instructions": 45608,
+  "tstates": 411856,
+  "unique_cells": 141,
+  "max_poll_gap_tstates": 8846,
   "hotspots": [
     [
-      "n_compose_cell.row",
-      119126
-    ],
-    [
-      "n_compose_cell.allocated",
-      98309
+      "n_touch_cell",
+      117594
     ],
     [
       "n_upload_glyphs.glyph",
-      56100
+      57742
     ],
     [
-      "n_allocate_cell",
-      42612
+      "compiled_sprite_code",
+      47480
     ],
     [
       "n_sprites.column",
-      31175
-    ],
-    [
-      "n_flush_sprites.cell",
-      29556
-    ],
-    [
-      "n_tile_address",
-      24955
-    ],
-    [
-      "n_sprites",
-      23665
-    ],
-    [
-      "n_poll",
-      23421
-    ],
-    [
-      "n_compose_cell.blend",
-      19096
+      32384
     ],
     [
       "n_sprites.nextcol",
-      17730
+      23540
     ],
     [
-      "n_compose_cell.existing",
-      16926
+      "n_sprites.bottom",
+      17433
     ],
     [
-      "n_sprites.positivecol",
-      16670
+      "n_sprites.cpu_ready",
+      15080
+    ],
+    [
+      "n_touch_cell.existing",
+      12675
     ],
     [
       "n_sprites.xin",
-      10240
+      10629
     ],
     [
-      "n_poll.done",
-      10020
+      "n_sprites.draw",
+      8470
+    ],
+    [
+      "n_flush_sprites.colour_blocks",
+      7918
+    ],
+    [
+      "n_flush_sprites.attr_blocks",
+      7790
+    ],
+    [
+      "n_sprites.clear_blocks",
+      7406
     ],
     [
       "n_sprites.entity",
       7280
     ],
     [
-      "n_poll.out",
-      6800
+      "n_flush_sprites.char_blocks",
+      6382
     ],
     [
-      "n_allocate_cell.address",
-      6727
+      "n_sprites.one_row",
+      5640
     ],
     [
-      "n_compose_cell",
-      6293
+      "n_sprites.positivecol",
+      5520
+    ],
+    [
+      "n_touch_cell.ink",
+      4875
+    ],
+    [
+      "n_poll",
+      4316
     ],
     [
       "n_sprites.skip",
-      2610
+      3290
     ]
   ]
 }

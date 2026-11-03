@@ -284,10 +284,19 @@ count_blockers:
         ld hl,CRT
         ld de,CSZ
         ld bc,NCRT*256
+        IFNDEF LINEAR_BLOCKERS
+        ld ix,v_blkptrs
+        ENDIF
 .l:     ld a,(hl)
         cp ST_BLOCK
         jr nz,.n
         inc c
+        IFNDEF LINEAR_BLOCKERS
+        ld (ix+0),l
+        ld (ix+1),h
+        inc ix
+        inc ix
+        ENDIF
 .n:     add hl,de
         djnz .l
         ld a,c
@@ -429,9 +438,20 @@ blocked:
         push ix
         push bc
         push de
+        IFDEF LINEAR_BLOCKERS
         ld iy,CRT
         ld a,NCRT
+        ELSE
+        ld ix,v_blkptrs
+        ld a,(v_nblock)
+        ENDIF
 .l:     push af
+        IFNDEF LINEAR_BLOCKERS
+        ld l,(ix+0)
+        ld h,(ix+1)
+        push hl
+        pop iy
+        ENDIF
         ld a,(iy+C_ST)
         cp ST_BLOCK
         jr nz,.n
@@ -464,10 +484,16 @@ blocked:
         pop ix
         or 1
         ret
-.n:     push de
+.n:
+        IFDEF LINEAR_BLOCKERS
+        push de
         ld de,CSZ
         add iy,de
         pop de
+        ELSE
+        inc ix
+        inc ix
+        ENDIF
         pop af
         dec a
         jr nz,.l

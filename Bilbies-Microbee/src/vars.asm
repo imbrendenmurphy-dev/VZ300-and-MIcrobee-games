@@ -170,5 +170,8 @@ v_idle:     dw 0
 v_flash:    db 0
 v_infoi:    db 0
 v_res:      db 0
+; Derived tick-local index. State is rechecked when queried, because a
+; blocker may fall or enter its bomb animation earlier in this same tick.
+v_blkptrs:  ds NCRT*2
 VARS_END:
         ASSERT VARS_END <= CRT

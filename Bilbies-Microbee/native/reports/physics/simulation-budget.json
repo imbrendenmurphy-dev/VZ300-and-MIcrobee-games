@@ -1,0 +1,76 @@
+{
+  "walking": {
+    "initial_state": 1,
+    "one_blocker": false,
+    "actors": 40,
+    "ticks": 8,
+    "tstates": [
+      66954,
+      66975,
+      66954,
+      66954,
+      66954,
+      66954,
+      66954,
+      66954
+    ],
+    "maximum": 66975,
+    "mean": 66956.625
+  },
+  "falling": {
+    "initial_state": 2,
+    "one_blocker": false,
+    "actors": 40,
+    "ticks": 8,
+    "tstates": [
+      78814,
+      78855,
+      78834,
+      78834,
+      78814,
+      78834,
+      78834,
+      78834
+    ],
+    "maximum": 78855,
+    "mean": 78831.625
+  },
+  "walking_with_blocker": {
+    "initial_state": 1,
+    "one_blocker": true,
+    "actors": 40,
+    "ticks": 8,
+    "tstates": [
+      83094,
+      83115,
+      83094,
+      83094,
+      83094,
+      82167,
+      83085,
+      83085
+    ],
+    "maximum": 83115,
+    "mean": 82978.5
+  },
+  "building_first_stick": {
+    "initial_state": 7,
+    "one_blocker": false,
+    "actors": 40,
+    "ticks": 8,
+    "tstates": [
+      177283,
+      18756,
+      18735,
+      18735,
+      18735,
+      18735,
+      18735,
+      18735
+    ],
+    "maximum": 177283,
+    "mean": 38556.125
+  },
+  "scope": "original game_tick on a synthetic flat collision mask; no graphics or inputs",
+  "native_renderer_integrated": false
+}

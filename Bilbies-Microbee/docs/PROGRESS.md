@@ -1,5 +1,20 @@
 # Bilbies! Premium Plus progress
 
+2026-11-03, renderer optimisation checkpoint: generated column programs and
+vertical-phase footprints, native CPU bitmap, batched plane output, dirty-row
+restoration, exact unchanged-frame rejection, H pause and runtime frame-edge
+counter. Transfers retain a normal stack for a future IRQ driver. Full terrain
+61,567 T-states; same forty-actor large scene 467,192 including full terrain,
+about 28% below the initial native renderer. Dense alignments still fail the
+budget. Compact 12x8 art is optional, also over budget in adversarial layouts.
+Tests now cover all gait frames and eighty alignment cases, ink/paper as well
+as glyph bits, partial-left overlap, reload invalidation and idle video writes.
+Original simulation measured separately at about 67-79K for forty walkers or
+fallers. These are samples, not worst-case bounds or native integration.
+Independent Windows testing could not proceed: uBee512 hung without output;
+the computer-use helper failed to initialise after reset/retry. See
+native/OPTIMISATION.md for evidence and next work. Conversion remains unfinished.
+
 2026-11-02, bespoke renderer milestone: replaced the default build/release
 path with independent native/renderer.asm. The old compatibility baseline is
 retained for regression comparison only. New code streams 640x256 native PCG
@@ -65,3 +80,11 @@ test limitations. The remote Git tree was verified identical to local.
 The owner will seek the outstanding assembly examples later. Explained that
 small assembly probes measure specific memory/bus/timing behaviour; they do
 not establish a missing coprocessor launch interface by themselves.
+
+2026-11-03: Indexed blocker physics passed equivalence and all 24 compatibility
+solution tests. Generated banked actor code passed compact-art pixel and boot
+checks, but misses the worst-case graphics budget. See HANDOVER.md.
+
+2026-11-03: Added actor-count/scroll feasibility measurements, an original
+solution workload survey, and a tested relocated-simulation probe. Sustained
+40-bilby play is a real workload; current renderer misses its timing budget.

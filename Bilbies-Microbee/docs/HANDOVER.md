@@ -1,4 +1,15 @@
-# Handover — 2026-11-02
+# Handover — 2026-11-03
+
+Read native/OPTIMISATION.md first for the latest checkpoint. Generated column
+programs, a native CPU bitmap, ordinary-stack batched metadata transfers,
+dirty-row restoration, exact idle-frame rejection, H pause and a coarse GFX
+counter are tested. The main forty-actor scene is about 28% cheaper but still
+over budget. Compact art also fails adversarial timing. Original simulation
+adds 67-79K T-states in sampled forty-actor walking/falling cases. Do not call
+the renderer solved. Next experiment: banked native terrain pixels for batch
+background acquisition. Native gameplay, persistent edits, action art, mouse,
+joystick and saves remain unconnected. Independent emulator UI checks failed;
+exact errors are in native/OPTIMISATION.md. No hardware or ColdFire pass exists.
 
 ## Latest milestone: bespoke renderer
 
@@ -15,7 +26,7 @@ are in native/art. The compiler applies RGBI and per-cell colour restrictions.
 Native tests prove the VZ framebuffer remains untouched.
 
 It is NOT integrated gameplay. Forty-actor CPU composition is too expensive
-(about 9.66 frames including terrain in the model), and edit-job residency is
+(originally about 9.66 frames, now 6.92 with full terrain), and edit-job residency is
 bounded. No ColdFire execution is present. Do not use the older baseline's
 24-level gameplay/save results as coverage for this new path. Next work is
 compositor throughput, residency, then simulation/input/save integration.
@@ -121,3 +132,34 @@ Do not repeatedly ask for that material. Those examples may help, but do not
 assume they implement a ColdFire worker interface until they are inspected.
 A SymbOS desktop alone is not evidence of ColdFire execution or concurrent
 processing. No external person was contacted.
+
+## 2026-11-03: banked actor programs and physics
+
+The optional `--compiled-actors` renderer generates Z80 routines for all eight
+walking frames and each horizontal and vertical alignment, using eight 32K
+RAM banks. In the Z80 model its compact 12x8 artwork passed the native pixel,
+colour, clipping, gait, scrolling, overflow and ROM/CP-M boot checks. Forty
+moving actors cost up to 233,112 T-states for steady presentation in the test;
+the six-cell staggered case costs 472,224 T-states for actors alone. It does
+not meet the 135,000 T-state graphics target. This remains a renderer harness,
+not integrated gameplay. The separate persistent-glyph and banked-raster
+experiments were slower; they are retained as optional experiments.
+
+The original simulation's blocker lookup now builds an ordered list each
+tick. Its controlled 40-walker, one-blocker case decreased from 265,407 to
+83,115 T-states. Indexed and original implementations matched in five
+multi-tick scenarios and 1,540 collision queries; the compatibility game
+passed all 24 recorded level solutions. These are model tests, not hardware
+or independent emulator tests. A keyboard font-mode corruption was also fixed.
+
+Run `python native/build.py --compact-bilbies --compiled-actors` to build the
+experimental image and `python native/test_renderer.py` to verify it. The
+latest results and known issues are in `native/reports/compiled-compact/` and
+`native/OPTIMISATION.md`. Native skills, persistent terrain edits, input
+controllers, saves, and full content integration still need implementation.
+
+2026-11-03 feasibility: see native/FEASIBILITY.md and native/reports/feasibility.
+The compiled renderer remains too slow for sustained crowds, particularly with
+scrolling. A lower-bank simulation probe matches 96 baseline ticks but has no
+native rendering or playable controls. Workload sampling measures recorded
+solutions, not all possible player actions. No real hardware or ColdFire test.
