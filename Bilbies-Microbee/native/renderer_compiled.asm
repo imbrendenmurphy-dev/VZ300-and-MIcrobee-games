@@ -281,7 +281,16 @@ n_initial_entities: INCBIN "../build/native/entities.bin"
 n_demo_patches: INCBIN "../build/native/patches.bin"
 n_end:
         ASSERT n_end < $9000
+        IFDEF SLICE
+        ORG $9A00
+        INCLUDE "slice_bridge.asm"
+        INCLUDE "slice_controls.asm"
+slice_end:
+        ASSERT slice_end <= $A000
+        SAVEBIN "../build/native/ENGINE.HI",$8000,slice_end-$8000
+        ELSE
         SAVEBIN "../build/native/ENGINE.HI",$8000,n_end-$8000
+        ENDIF
 
 
 

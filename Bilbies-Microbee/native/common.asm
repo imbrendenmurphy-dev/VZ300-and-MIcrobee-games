@@ -17,18 +17,42 @@ n_boot:
         inc hl : inc c : ld a,c : cp 16 : jr nz,.c
         call n_load_pcg
         call n_hud
+        IFDEF SLICE
+        call slice_init
+        ELSE
         call n_demo_init
+        ENDIF
         xor a : ld (n_frames),a : ld (n_vblank),a
         ld a,2 : ld (n_target),a
 n_loop:
         call n_wait
+        ; Schedule from the previous deadline. Scheduling from the end of
+        ; rendering would add a full 40ms wait after every update.
+        ld a,(n_target) : add a,2 : ld (n_target),a
+        IFDEF SLICE
+        call slice_unmark
+        call slice_input
+        call slice_tick
+        ELSE
         call n_input
         call n_demo_tick
+        ENDIF
         ld a,(n_frames) : ld (n_render_start),a
+        IFDEF SLICE
+        call slice_patches
+        jr c,.slice_overflow
+        ENDIF
         call n_present
+        IFDEF SLICE
+        ld a,(n_overflow) : or a : jr nz,.slice_overflow
+        call slice_mark
+        jr .slice_done
+.slice_overflow:
+        call slice_show_overflow
+.slice_done:
+        ENDIF
         call n_poll
         ld a,(n_frames) : ld hl,n_render_start : sub (hl) : call n_show_time
-        ld a,(n_frames) : add a,2 : ld (n_target),a
         jp n_loop
 
 ; 108 character clocks x 19*16+8 scanlines = 50Hz PAL timing.
@@ -209,16 +233,34 @@ n_hud:
         xor a : out ($08),a
         jp n_home
 n_hud_text:
+        IFDEF SLICE
+        db "BILBIES!  UP THE BANK      SAVED 00/00  T:000"
+        ELSE
         db "BILBIES!    NATIVE MICROBEE ENGINE    UP THE BANK"
+        ENDIF
         BLOCK 56-($-n_hud_text),32
         db "GFX:"
 n_hud_digits: db "00F  H:PAUSE"
         BLOCK 80-($-n_hud_text),32
 n_hud_line2:
+        IFDEF SLICE
+        db "LEFT/RIGHT SELECT  4 BLOCK  5 BUILD  8 DIG  SPACE ASSIGN   BILBY 00  SKILL 8"
+        ELSE
         db "O/P PAN  C/M DISPLAY  1/4 TEN/FORTY BILBIES  D TERRAIN PATCH"
+        ENDIF
         BLOCK 80-($-n_hud_line2),32
 n_hud_end:
         ASSERT n_hud_end-n_hud_text == 160
+        IFDEF SLICE
+slice_show_overflow:
+        ld a,1 : ld (n_paused),a : call n_bank
+        xor a : out ($08),a
+        ld a,$80 : out ($1C),a
+        ld hl,.message : ld de,$F000+1120 : ld bc,.end-.message : ldir
+        jp n_home
+.message: db "TERRAIN LIMIT - PAUSED"
+.end:
+        ENDIF
 n_show_time:
         cp 100 : jr c,.bounded : ld a,99
 .bounded: ld d,'0'
@@ -264,7 +306,11 @@ n_input:
 .mono:  ld a,13 : call n_key : jr z,.ten
         ld a,(n_mono) : or a : jr nz,.ten
         ld a,1 : ld (n_mono),a : call n_load_pcg : call n_hud
-.ten:   ld a,$21 : call n_key : jr z,.forty
+.ten:
+        IFDEF SLICE
+        jp .done
+        ELSE
+        ld a,$21 : call n_key : jr z,.forty
         ld a,10 : ld (n_count),a
 .forty: ld a,$24 : call n_key : jr z,.dig
         ld a,40 : ld (n_count),a
@@ -272,6 +318,7 @@ n_input:
         ld hl,0 : ld (n_camera),hl
         ld hl,n_demo_patches : ld de,n_patch_buffer : ld bc,38 : ldir
         ld a,2 : ld (n_patch_count),a
+        ENDIF
 .done:  ld a,8 : call n_key
         ld hl,n_h_down : cp (hl) : jr z,.no_h
         ld (hl),a : or a : jr z,.no_h

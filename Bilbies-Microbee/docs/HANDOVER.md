@@ -163,3 +163,13 @@ The compiled renderer remains too slow for sustained crowds, particularly with
 scrolling. A lower-bank simulation probe matches 96 baseline ticks but has no
 native rendering or playable controls. Workload sampling measures recorded
 solutions, not all possible player actions. No real hardware or ColdFire test.
+
+2026-11-03: Experimental original-simulation/native-renderer slice added.
+See native/SLICE.md and release/BILSLICE.DS8. Real keyboard scanning in the
+Z80 model assigned a builder and produced a visible persistent terrain edit;
+pan, mono, pause, restart and ROM/CP-M launch passed. Full level completion,
+independent emulator and hardware are untested. Integrated 20- and 40-bilby
+updates remain over the frame budget. ColdFire worker API remains unknown.
+Automated original UP THE BANK skill events now complete in the slice model:
+12 saved against quota 9, with 59 sampled render checks. This is not an
+independent-emulator or real-time human playthrough.

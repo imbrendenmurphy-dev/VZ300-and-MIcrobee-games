@@ -88,3 +88,7 @@ checks, but misses the worst-case graphics budget. See HANDOVER.md.
 2026-11-03: Added actor-count/scroll feasibility measurements, an original
 solution workload survey, and a tested relocated-simulation probe. Sustained
 40-bilby play is a real workload; current renderer misses its timing budget.
+
+2026-11-03: Integrated a one-level keyboard slice and original simulation;
+model tests pass for builder/terrain, scrolling, monochrome, pause and restart.
+Crowded performance remains unresolved. See native/SLICE.md.

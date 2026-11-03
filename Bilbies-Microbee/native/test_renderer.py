@@ -59,6 +59,8 @@ def machine():
         data=(B/name).read_bytes();p.blocks[block][:len(data)]=data
     if COMPILED:
         for i in range(8):p.blocks[16+i][:]=(B/f'ACTOR{i}.BNK').read_bytes()
+    if CONFIG.get('slice',False):
+        p.blocks[27][:]=(R/'build/native-simulation/SIM.BNK').read_bytes()
     p.mem[0x7000:0x7800]=bytes([0xA5])*2048
     p.m.pc=S['n_boot']
     assert p.run_until(S['n_loop'],500),'native initialization timeout'
@@ -66,7 +68,7 @@ def machine():
 
 
 def call(p,label,frames=500):
-    assert p.lower in (1,14) and p.p50&4
+    assert p.lower in (1,14,27) and p.p50&4
     p.m.sp=0xEFF0;p.mem[0xEFF0:0xEFF2]=RETURN.to_bytes(2,'little')
     p.m.pc=S[label]
     start=p.ticks()

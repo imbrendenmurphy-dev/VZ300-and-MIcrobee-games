@@ -4,7 +4,8 @@ param(
     [switch]$Bootstrap,
     [switch]$CompatibilityBaseline,
     [switch]$CompactBilbies,
-    [switch]$RamBackground
+    [switch]$RamBackground,
+    [switch]$Slice
 )
 $ErrorActionPreference = 'Stop'
 if ($Bootstrap) {
@@ -22,6 +23,7 @@ if ($CompatibilityBaseline) {
     $nativeBuildArgs = @('--base', $BaseDisk)
     if ($CompactBilbies) { $nativeBuildArgs += '--compact-bilbies' }
     if ($RamBackground) { $nativeBuildArgs += '--ram-background' }
+    if ($Slice) { $nativeBuildArgs += '--slice' }
     & $Python (Join-Path $PSScriptRoot 'native\build.py') @nativeBuildArgs
     if ($LASTEXITCODE -ne 0) { throw 'Native renderer build failed' }
     Write-Output (Join-Path $PSScriptRoot 'build\native\BILBIES-NATIVE.DS8')

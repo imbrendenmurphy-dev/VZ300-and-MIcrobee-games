@@ -1,0 +1,22 @@
+{
+  "level": "UP THE BANK",
+  "simulation_ticks": 1199,
+  "saved": 12,
+  "quota": 9,
+  "original_script_events": [
+    [
+      5,
+      232,
+      236,
+      true
+    ],
+    [
+      410,
+      256,
+      264,
+      true
+    ]
+  ],
+  "sampled_render_checks": 59,
+  "scope": "Model, automated actor assignment, rendering sampled; not real-time full gameplay or hardware"
+}
