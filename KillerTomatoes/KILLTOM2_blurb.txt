@@ -1,0 +1,80 @@
+ATTACK OF THE KILLER TOMATOES - RE-SAUCED!
+for the Dick Smith VZ300 / Laser 310
+ViBED by BPM 2026 - after the 1984 original by Apolon Ivankovic
+
+San Diego. A quiet summer evening. Suddenly... the salad bowl strikes back!
+
+Killer tomatoes are rolling through town, the army is baffled, and the scientists
+are mostly hiding. Only Mason Dixon stands in their way, armed with a mallet and
+a box of homemade traps.
+
+The 1984 VZ classic's trap-and-whack idea is back, rebuilt from scratch in Z80
+assembly. Build a trap, wait for a tomato to blunder in, then whack it until it
+goes SPLAT. Do it before it struggles free, and before its friends catch up
+with you.
+
+Fight through three worlds, each with its own look and hazards:
+  1. San Diego Suburbs - BBQ grills and manholes
+  2. The Cannery - conveyor belts and steam vents
+  3. Top Secret Lab - zappers and teleports
+Each world ends in a boss fight: Mama Beefsteak, Baron von Beefsteak, and
+finally The Great Tomato, which only one terrible love song can hurt.
+
+FEATURES
+- Mode 1 title screen with a giant animated tomato that blinks, glares and
+  chomps, dripping title lettering, twinkling stars and the odd lightning flash
+- Full attract sequence: typed story, cast pages, "WANTED!" boss posters,
+  power-up guide, self-playing demo and the Hall of Sauce high scores
+- 14 stages: 9 mazes, 3 bosses and 2 "Tomato Smash" bonus rounds, then an
+  ending and a harder Second Helping lap
+- 8 tomato types, each with its own personality:
+    Cherry Tom, Roma Runner (chases you), Big Beefsteak (splits in two),
+    Unripe Greenie (traps don't work), Golden Tomato (rare, flees),
+    Jumping Jack (dodges traps), Rotten Ronnie (leaves a stink),
+    Cannonball (rolls in straight lines)
+- Power-ups:
+    Ketchup Gun (3 upgrade levels), Sneakers, Sauce Boss (double points),
+    Colander helmet (shield), Disguise, Soup Can (extra life), and
+    PUBERTY LOVE, the record that sends every tomato running
+- Collect the S-A-U-C-E letters for a bonus and an extra life
+- Combo scoring, a golden-tomato chase, news flashes ("SALSA DECLARED
+  ILLEGAL"), splat particles, BONK/SNAP pop-ups, hit and screen flashes
+- Smooth, flicker-free sprites drawn racing the TV beam, at 50 frames a second
+- Beeper music and sound effects that play in each frame's spare time, so the
+  game never slows down
+
+QUALITY OF LIFE
+- Play on the keyboard or on either joystick: FIRE builds traps and whacks,
+  ARM fires ketchup
+- Music on/off at any time (S)
+- Pause and quit to title
+- Easy / Normal / Hard
+- Trainer mode with infinite lives (no high score recorded)
+- Level select, including the bosses
+- Continue from the stage you were on
+- Pick traps back up
+- Short invulnerability after respawning, and fair, forgiving hit boxes
+- Type your initials straight in for the high-score table
+
+TECHNICAL SPECS
+  Machine ........ Dick Smith VZ300 / Laser 310 (Z80 @ 3.54 MHz, PAL 50 Hz)
+  Memory ......... BennVenn 128K SD expansion, or the standard 16K RAM pack
+                   (RAM to $F7FF needed; a stock 16K VZ300 is not enough)
+  File ........... KILLTOM2.VZ - machine code (type F1), 22,355 bytes
+  Load address ... $8000-$D752, runs automatically on load
+  Graphics ....... Mode 1, 128 x 64, 4 colours, both colour sets used
+                   (each world has its own palette)
+  Playfield ...... 16 x 11 cells of 8 x 5 pixels, plus a status bar
+  Sprites ........ 8 x 5 masked sprites at 2-pixel steps, bosses up to 24 x 15
+  Sound .......... 1-bit beeper: pulse-width envelope music in game,
+                   two-voice melody and bass on the front-end screens,
+                   9 tunes, 19 sound effects
+  Code ........... 100% Z80 assembly; no ROM calls, interrupts off
+  Hardware ....... no mapper writes, DOS area at $FA00+ left untouched
+  Controls ....... keyboard: Q A O P (or M ,) to move, SPACE = trap/whack,
+                   Z = ketchup, RETURN = pause, S = music
+                   joystick 1 or 2: stick, FIRE, ARM
+  Title options .. D = skill, T = trainer, L = level select
+
+Original game: "Attack of the Killer Tomatoes" for the VZ200/300 by Apolon
+Ivankovic, January 1984. Inspired by the 1978 film. All music is original.
