@@ -1,0 +1,350 @@
+# monsters.py - battle monster artwork (64x44, 4 colours + key) and battle backdrops (128x46)
+import math
+from PIL import Image, ImageDraw
+
+W, H = 64, 44
+T = -1   # transparent
+
+class Canvas:
+    def __init__(self, w=W, h=H, fill=T):
+        self.w, self.h = w, h
+        self.p = [[fill] * w for _ in range(h)]
+    def _mask(self, drawfn, ss=4):
+        im = Image.new('L', (self.w * ss, self.h * ss), 0)
+        d = ImageDraw.Draw(im)
+        drawfn(d, ss)
+        im = im.resize((self.w, self.h), Image.BOX)
+        return im.load()
+    def paint(self, m, fill, thresh=128):
+        for y in range(self.h):
+            for x in range(self.w):
+                if m[x, y] >= thresh:
+                    self.p[y][x] = self.pat(fill, x, y)
+    def pat(self, fill, x, y):
+        if isinstance(fill, int): return fill
+        a, b = fill[0], fill[1]
+        mode = fill[2] if len(fill) > 2 else 50
+        if mode == 50: return b if (x + y) & 1 else a
+        if mode == 25: return b if (x & 1) and (y & 1) else a
+        if mode == 75: return a if (x & 1) and (y & 1) else b
+        if mode == 'h': return b if y & 1 else a
+        if mode == 'v': return b if x & 1 else a
+        return a
+    def ellipse(self, cx, cy, rx, ry, fill):
+        self.paint(self._mask(lambda d, s: d.ellipse([(cx - rx) * s, (cy - ry) * s, (cx + rx) * s, (cy + ry) * s], fill=255)), fill)
+    def poly(self, pts, fill):
+        self.paint(self._mask(lambda d, s: d.polygon([(x * s, y * s) for x, y in pts], fill=255)), fill)
+    def line(self, x0, y0, x1, y1, fill, w=1.0):
+        self.paint(self._mask(lambda d, s: d.line([(x0 * s, y0 * s), (x1 * s, y1 * s)], fill=255, width=max(1, int(w * s)))), fill, 100)
+    def rect(self, x0, y0, x1, y1, fill):
+        for y in range(max(0, y0), min(self.h, y1 + 1)):
+            for x in range(max(0, x0), min(self.w, x1 + 1)):
+                self.p[y][x] = self.pat(fill, x, y)
+    def px(self, x, y, c):
+        if 0 <= x < self.w and 0 <= y < self.h: self.p[y][x] = c
+    def outline(self, col, only_into=None):
+        """add an outline of colour col around opaque pixels"""
+        q = [r[:] for r in self.p]
+        for y in range(self.h):
+            for x in range(self.w):
+                if self.p[y][x] != T: continue
+                for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                    nx, ny = x + dx, y + dy
+                    if 0 <= nx < self.w and 0 <= ny < self.h and self.p[ny][nx] != T and self.p[ny][nx] != col:
+                        q[y][x] = col; break
+        self.p = q
+    def mirror_x(self, cx=32):
+        for y in range(self.h):
+            for x in range(cx, self.w):
+                mx = 2 * cx - 1 - x
+                if 0 <= mx < self.w: self.p[y][x] = self.p[y][mx]
+
+G, Y, B, R = 0, 1, 2, 3        # CSS0 names
+BU, CY, MA, OR = 0, 1, 2, 3    # CSS1 names
+
+# ----------------------------------------------------------------- BAT
+def bat(frame):
+    c = Canvas()
+    up = {0: 1, 1: -1, 2: 0}[frame]
+    cx, cy = 32, 22 if frame != 2 else 24
+    # wings (left side, mirrored)
+    tip_y = cy - 14 * up if up else cy - 4
+    pts = [(cx - 4, cy - 3), (cx - 12, tip_y + 2), (cx - 20, tip_y - 2), (cx - 29, tip_y + 4 + (6 if up < 0 else 0)),
+           (cx - 25, cy + 4 + 6 * (up < 0)), (cx - 20, cy + 1 + 4 * (up < 0)), (cx - 15, cy + 7 + 4 * (up < 0)),
+           (cx - 10, cy + 2), (cx - 4, cy + 6)]
+    c.poly(pts, (R, B, 25))
+    for (ex, ey) in ((cx - 12, tip_y + 2), (cx - 20, tip_y - 2), (cx - 29, tip_y + 4 + (6 if up < 0 else 0))):
+        c.line(cx - 4, cy - 1, ex, ey, B, 0.8)
+    c.mirror_x(32)
+    # body + head
+    c.ellipse(cx, cy + 3, 6, 9, R)
+    c.ellipse(cx, cy + 5, 3, 6, (R, B, 50))
+    c.ellipse(cx, cy - 6, 6, 5, R)
+    c.poly([(cx - 6, cy - 8), (cx - 7, cy - 16), (cx - 2, cy - 10)], R)    # ears
+    c.poly([(cx + 6, cy - 8), (cx + 7, cy - 16), (cx + 2, cy - 10)], R)
+    c.px(cx - 6, cy - 13, B); c.px(cx + 6, cy - 13, B)
+    # eyes
+    for ex in (cx - 3, cx + 2):
+        c.rect(ex, cy - 8, ex + 1, cy - 6, Y)
+    c.px(cx - 3, cy - 7, B) if frame == 1 else None
+    # fangs / mouth
+    if frame == 2:
+        c.rect(cx - 3, cy - 4, cx + 2, cy - 1, B)
+        c.px(cx - 3, cy - 4, Y); c.px(cx + 2, cy - 4, Y); c.px(cx - 3, cy - 3, Y); c.px(cx + 2, cy - 3, Y)
+    else:
+        c.px(cx - 2, cy - 3, Y); c.px(cx + 1, cy - 3, Y)
+    # feet
+    c.line(cx - 3, cy + 11, cx - 4, cy + 14, Y); c.line(cx + 2, cy + 11, cx + 3, cy + 14, Y)
+    c.outline(B)
+    return c, G
+
+# ----------------------------------------------------------------- SKELETON
+def skeleton(frame):
+    c = Canvas()
+    cx = 30
+    bob = 1 if frame == 1 else 0
+    # legs
+    for sx in (-5, 5):
+        c.line(cx + sx, 30, cx + sx * 1.2, 37, Y, 1.6)
+        c.line(cx + sx * 1.2, 37, cx + sx * 1.1, 42, Y, 1.6)
+        c.rect(int(cx + sx * 1.1) - 2, 42, int(cx + sx * 1.1) + 2, 43, Y)
+        c.ellipse(cx + sx * 1.2, 37, 1.6, 1.4, (Y, B, 50))
+    # pelvis
+    c.poly([(cx - 7, 27), (cx + 7, 27), (cx + 5, 31), (cx - 5, 31)], Y)
+    c.rect(cx - 1, 28, cx, 30, B)
+    # spine + ribs
+    c.line(cx, 14 + bob, cx, 27, Y, 1.5)
+    for i, ry in enumerate(range(15 + bob, 26, 3)):
+        wdt = 8 - abs(i - 1)
+        c.line(cx - wdt, ry + 1, cx + wdt, ry + 1, Y, 1.2)
+        c.px(cx - wdt, ry + 2, B); c.px(cx + wdt, ry + 2, B)
+    # shoulders
+    c.line(cx - 9, 14 + bob, cx + 9, 14 + bob, Y, 1.5)
+    # skull
+    sy = 6 + bob
+    c.ellipse(cx, sy, 6, 6, Y)
+    c.rect(cx - 4, sy + 4, cx + 4, sy + 8, Y)
+    c.rect(cx - 4, sy - 1, cx - 2, sy + 2, B)            # eye sockets
+    c.rect(cx + 2, sy - 1, cx + 4, sy + 2, B)
+    c.px(cx - 3, sy, R); c.px(cx + 3, sy, R)              # glowing red pupils
+    c.px(cx, sy + 3, B)                                     # nose
+    for tx in range(cx - 3, cx + 4, 2): c.px(tx, sy + 6 + (1 if frame == 1 else 0), B)   # teeth gaps
+    if frame == 1: c.rect(cx - 3, sy + 7, cx + 3, sy + 7, B)  # jaw drops (rattle)
+    # shield arm (left)
+    c.line(cx - 9, 14 + bob, cx - 13, 21, Y, 1.4)
+    c.ellipse(cx - 15, 23, 6, 8, (R, B, 25))
+    c.ellipse(cx - 15, 23, 3, 4, Y)
+    c.px(cx - 15, 23, R)
+    # sword arm (right)
+    if frame == 2:      # swing down across
+        c.line(cx + 9, 14, cx + 14, 18, Y, 1.4)
+        c.line(cx + 14, 18, cx + 26, 30, (Y, B, 50), 2.2)
+        c.line(cx + 12, 15, cx + 16, 21, R, 1.5)
+    else:
+        c.line(cx + 9, 14 + bob, cx + 14, 20 + bob, Y, 1.4)
+        c.line(cx + 14, 20 + bob, cx + 15, 1 + bob, (Y, B, 50), 2.2)       # blade up
+        c.line(cx + 11, 20 + bob, cx + 18, 20 + bob, R, 1.5)               # crossguard
+        c.px(cx + 15, 0 + bob, Y)
+    c.outline(B)
+    return c, G
+
+# ----------------------------------------------------------------- GHOST (CSS1)
+def ghost(frame):
+    c = Canvas()
+    cx, cy = 32, 16 + (1 if frame == 1 else 0)
+    # flowing body: head circle + skirt with wavy hem
+    c.ellipse(cx, cy, 11, 11, BU)
+    hem = []
+    wave = 0 if frame != 1 else 1.5
+    for i in range(0, 25):
+        x = cx - 14 + i * 28 / 24
+        y = 40 + 2.5 * math.sin(i * 0.9 + wave)
+        hem.append((x, y))
+    body = [(cx - 11, cy), (cx + 11, cy), (cx + 14, cy + 14)] + hem[::-1][:-0 or None] + [(cx - 14, cy + 14)]
+    c.poly([(cx - 11, cy), (cx + 11, cy), (cx + 15, 40)] + hem[::-1] + [(cx - 15, 40)], BU)
+    # shading
+    c.poly([(cx + 6, cy + 4), (cx + 13, cy + 12), (cx + 15, 40), (cx + 8, 40)], (BU, CY, 50))
+    c.poly([(cx - 15, 40), (cx - 10, 26), (cx - 6, 40)], (BU, CY, 25))
+    # arms
+    if frame == 2:
+        c.poly([(cx - 10, cy + 8), (cx - 28, cy + 2), (cx - 30, cy + 6), (cx - 12, cy + 14)], BU)
+        c.poly([(cx + 10, cy + 8), (cx + 28, cy + 2), (cx + 30, cy + 6), (cx + 12, cy + 14)], BU)
+        for fx in (-30, 30):
+            for k in range(3): c.px(cx + fx + (k if fx < 0 else -k), cy + 1 + k * 2, CY)
+    else:
+        c.poly([(cx - 10, cy + 9), (cx - 20, cy + 18 - frame * 2), (cx - 17, cy + 22 - frame * 2), (cx - 9, cy + 16)], BU)
+        c.poly([(cx + 10, cy + 9), (cx + 20, cy + 18 + frame * 2), (cx + 17, cy + 22 + frame * 2), (cx + 9, cy + 16)], BU)
+    # face
+    ey = cy - 2
+    c.ellipse(cx - 4, ey, 2.4, 3.4, MA); c.ellipse(cx + 4, ey, 2.4, 3.4, MA)
+    c.px(cx - 4, ey - 1, OR); c.px(cx + 4, ey - 1, OR)
+    if frame == 2: c.ellipse(cx, cy + 6, 3.5, 4.5, MA)
+    else: c.ellipse(cx, cy + 6, 2, 2.5 + frame, MA)
+    c.outline(CY)
+    return c, OR
+
+# ----------------------------------------------------------------- GARGOYLE (boss)
+def gargoyle(frame):
+    c = Canvas()
+    cx = 32
+    spread = {0: 0, 1: 2, 2: 8}[frame]
+    # wings: dark membrane with bright bony ribs
+    wp = [(cx - 8, 14), (cx - 18 - spread, 2 - spread // 2), (cx - 24 - spread, 4), (cx - 30 - spread // 2, 14 + spread),
+          (cx - 26, 22), (cx - 22, 18), (cx - 18, 26), (cx - 12, 22)]
+    c.poly(wp, (B, R, 25))
+    c.line(cx - 8, 14, cx - 18 - spread, 2 - spread // 2, Y, 1.2)
+    c.line(cx - 18 - spread, 2 - spread // 2, cx - 24 - spread, 4, Y, 1)
+    c.line(cx - 10, 16, cx - 30 - spread // 2, 14 + spread, Y, 1)
+    c.line(cx - 12, 19, cx - 22, 18, Y, 1)
+    c.mirror_x(32)
+    # pedestal
+    c.rect(cx - 14, 40, cx + 13, 43, (Y, B, 50))
+    c.rect(cx - 16, 38, cx + 15, 39, Y)
+    c.line(cx - 16, 40, cx + 15, 40, B)
+    # body
+    c.ellipse(cx, 28, 11, 11, (Y, B, 25))
+    c.ellipse(cx + 4, 30, 6, 7, (Y, B, 50))
+    c.line(cx - 6, 22, cx + 6, 22, B); c.line(cx - 7, 26, cx + 7, 26, B); c.line(cx - 6, 30, cx + 6, 30, B)
+    for sx in (-1, 1):
+        c.ellipse(cx + sx * 9, 34, 5, 5, Y)
+        c.ellipse(cx + sx * 10, 35, 3, 3, (Y, B, 50))
+        for k in range(3): c.px(cx + sx * 9 + (k - 1) * 2, 38 + (1 if frame == 2 else 0), R)
+    if frame == 2:
+        c.line(cx - 8, 22, cx - 17, 33, Y, 2.5); c.line(cx + 8, 22, cx + 17, 33, Y, 2.5)
+        for sx in (-19, 15):
+            for k in range(4): c.px(cx + sx + k, 35, R)
+    else:
+        c.line(cx - 8, 22, cx - 6, 33, Y, 2.5); c.line(cx + 8, 22, cx + 6, 33, Y, 2.5)
+    hy = 14 - (2 if frame == 2 else 0)
+    c.ellipse(cx, hy, 7, 6, Y)
+    c.ellipse(cx + 3, hy + 2, 3, 3, (Y, B, 25))
+    c.poly([(cx - 5, hy - 3), (cx - 11, hy - 12), (cx - 2, hy - 5)], Y)
+    c.poly([(cx + 5, hy - 3), (cx + 11, hy - 12), (cx + 2, hy - 5)], Y)
+    c.line(cx - 6, hy - 2, cx - 1, hy - 1, B); c.line(cx + 6, hy - 2, cx + 1, hy - 1, B)   # brow
+    c.rect(cx - 4, hy - 1, cx - 2, hy, R); c.rect(cx + 2, hy - 1, cx + 4, hy, R)
+    if frame == 0: c.rect(cx - 4, hy - 1, cx - 2, hy - 1, B); c.rect(cx + 2, hy - 1, cx + 4, hy - 1, B)
+    c.rect(cx - 3, hy + 3, cx + 3, hy + 4 + (1 if frame == 2 else 0), B)
+    c.px(cx - 2, hy + 3, Y); c.px(cx + 2, hy + 3, Y)
+    c.outline(B)
+    return c, G
+
+MONSTERS = [
+    # name, fn, hp, atk, def, xp, gold, flags, css
+    ('BAT', bat, 9, 5, 0, 4, 3, 2, 0),
+    ('SKELETON', skeleton, 20, 7, 2, 9, 7, 1, 0),
+    ('GHOST', ghost, 18, 7, 1, 11, 8, 4, 1),
+    ('GARGOYLE', gargoyle, 60, 8, 4, 45, 60, 8, 0),
+]
+
+def frame_bytes(c, key):
+    out = bytearray()
+    for y in range(H):
+        for xb in range(16):
+            v = 0
+            for i in range(4):
+                p = c.p[y][xb * 4 + i]
+                v = (v << 2) | (key if p == T else p)
+            out.append(v)
+    return bytes(out)
+
+# ----------------------------------------------------------------- BACKDROPS (128 x 46)
+def backdrop_grounds():
+    c = Canvas(128, 46, B)
+    # sky banding near horizon
+    for y in range(22, 30):
+        for x in range(128): c.p[y][x] = c.pat((B, R, 25) if y > 25 else B, x, y)
+    # stars
+    import random
+    rnd = random.Random(3)
+    for _ in range(40):
+        x, y = rnd.randrange(128), rnd.randrange(22)
+        c.px(x, y, Y)
+    # moon
+    c.ellipse(104, 9, 8, 7, Y)
+    c.ellipse(101, 8, 2, 2, (Y, B, 25)); c.ellipse(107, 11, 1.5, 1.5, (Y, B, 25))
+    # castle silhouette far right
+    c.rect(96, 18, 127, 30, R)
+    for tx, th in ((98, 10), (110, 6), (122, 12)):
+        c.rect(tx - 3, th, tx + 3, 30, R)
+        c.poly([(tx - 4, th), (tx, th - 6), (tx + 4, th)], R)
+    for wx, wy in ((98, 14), (110, 10), (122, 16), (104, 22), (116, 24)): c.px(wx, wy, Y)
+    # dead tree left
+    c.line(14, 34, 16, 14, R, 2.5); c.line(15, 22, 6, 12, R, 1.5); c.line(16, 18, 26, 9, R, 1.5); c.line(8, 14, 4, 15, R, 1)
+    # rolling hill
+    for x in range(128):
+        top = int(30 + 3 * math.sin(x / 13.0) + 2 * math.sin(x / 5.3))
+        for y in range(top, 46):
+            c.p[y][x] = c.pat((G, B, 50) if y < top + 2 else ((G, B, 25) if y < 40 else G), x, y)
+    # gravestones
+    for gx, gy, gw, gh in ((30, 31, 4, 7), (44, 33, 3, 5), (84, 32, 4, 8), (118, 34, 3, 5), (70, 34, 2, 4)):
+        c.ellipse(gx, gy, gw, gw * 0.9, (Y, B, 50)); c.rect(gx - gw, gy, gx + gw, gy + gh, (Y, B, 50))
+        c.line(gx - gw, gy + gh, gx + gw, gy + gh, B)
+    c.line(84, 26, 84, 32, Y); c.line(81, 28, 87, 28, Y)   # cross
+    return c
+
+def backdrop_hall():
+    c = Canvas(128, 46, B)
+    # back wall stone courses
+    for y in range(0, 34):
+        for x in range(128):
+            row = y // 5; off = 6 if row & 1 else 0
+            mortar = (y % 5 == 0) or ((x + off) % 12 == 0)
+            c.p[y][x] = c.pat((B, R, 25), x, y) if mortar else B
+            if (y % 5 == 1) and not ((x + off) % 12 == 0) and (x * 7 + y) % 5 == 0: c.p[y][x] = R
+    # arches with dark recesses and red curtains
+    for ax in (16, 64, 112):
+        c.rect(ax - 11, 6, ax + 11, 34, (R, B, 50))
+        c.ellipse(ax, 8, 11, 7, (R, B, 50))
+        c.rect(ax - 9, 8, ax + 9, 34, B)
+        c.ellipse(ax, 8, 9, 5, B)
+        c.poly([(ax - 9, 6), (ax - 3, 6), (ax - 6, 34), (ax - 9, 34)], (R, B, 25))
+        c.poly([(ax + 9, 6), (ax + 3, 6), (ax + 6, 34), (ax + 9, 34)], (R, B, 25))
+    # candelabra on pillars
+    for px_ in (40, 88):
+        c.rect(px_ - 1, 14, px_ + 1, 30, (Y, R, 50))
+        c.line(px_ - 5, 16, px_ + 5, 16, Y)
+        for k in (-5, 0, 5):
+            c.rect(px_ + k, 12, px_ + k, 15, Y)
+            c.px(px_ + k, 10, R); c.px(px_ + k, 11, Y)
+    # floor: chequer receding + carpet
+    for y in range(34, 46):
+        for x in range(128):
+            zz = (y - 33)
+            u = (x - 64) / (zz * 1.6 + 6)
+            chk = (int(math.floor(u)) + (y - 34) // 3) & 1
+            col = (B, R, 25) if chk else B
+            if abs(x - 64) < 12 + (y - 34) * 2: col = R if abs(x - 64) < 10 + (y - 34) * 2 else Y
+            c.p[y][x] = c.pat(col, x, y)
+    c.line(0, 34, 127, 34, Y)
+    return c
+
+def backdrop_bytes(c):
+    out = bytearray()
+    for y in range(46):
+        for xb in range(32):
+            v = 0
+            for i in range(4): v = (v << 2) | (c.p[y][xb * 4 + i] & 3)
+            out.append(v)
+    return bytes(out)
+
+if __name__ == '__main__':
+    from gfx import PAL
+    sheet = Image.new('RGB', (64 * 3 * 4 + 16, 44 * 6 * 4 + 32), (40, 40, 40))
+    for mi, (name, fn, *_rest) in enumerate(MONSTERS):
+        css = _rest[-1]
+        for f in range(3):
+            c, key = fn(f)
+            im = Image.new('RGB', (64, 44), (30, 30, 30))
+            for y in range(44):
+                for x in range(64):
+                    p = c.p[y][x]
+                    if p != T: im.putpixel((x, y), PAL[css * 4 + p])
+            sheet.paste(im.resize((256, 44 * 6), Image.NEAREST), (f * 260, mi * (44 * 6 + 8)))
+    sheet.save('/home/claude/dc2/shots/monsters.png')
+    for nm, fn in (('grounds', backdrop_grounds), ('hall', backdrop_hall)):
+        c = fn()
+        for css in (0, 1):
+            im = Image.new('RGB', (128, 46))
+            for y in range(46):
+                for x in range(128): im.putpixel((x, y), PAL[css * 4 + c.p[y][x]])
+            im.resize((512, 46 * 6), Image.NEAREST).save('/home/claude/dc2/shots/bd_%s_%d.png' % (nm, css))
