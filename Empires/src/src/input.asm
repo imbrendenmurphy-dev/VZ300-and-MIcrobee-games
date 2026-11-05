@@ -46,7 +46,7 @@ key_test:                       ; sequence as used by the BIOS and The Lantern D
 
 ; table of keys scanned each frame -> bitmap keys_now (4 bytes = 32 keys)
 KEYTAB:
-        db K_W,K_A,K_S,K_D,K_I,K_J,K_K,K_L              ; 0-7 movement
+        db K_W,K_A,K_S,K_D,K_F,K_L,K_S,K_G              ; 0-3 movement, 4 F file, 5 L load, 6 S save
         db K_SPACE,K_RET,K_ESC,K_TAB,K_M,K_C,K_P,K_SHIFT  ; 8-15
         db K_1,K_1+1,K_1+2,K_1+3,K_1+4,K_1+5,K_1+6,K_1+7  ; 16-23 '1'-'8'
         db K_1+8,K_0,K_COMMA,K_DOT,K_H,K_Q,K_Y,K_N         ; 24-31
@@ -56,6 +56,9 @@ KB_UP   equ 0
 KB_LEFT equ 1
 KB_DOWN equ 2
 KB_RIGHT equ 3
+KB_FILE equ 4
+KB_LOAD equ 5
+KB_SAVE equ 6
 KB_SPACE equ 8
 KB_RET  equ 9
 KB_ESC  equ 10

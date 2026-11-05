@@ -18,7 +18,8 @@ BLK_OVL   equ 17
 BLK_CPM   equ 18
 BLK_GAME  equ 19
 BLK_STAGE equ 20
-N_BLOCKS  equ 21                ; blocks 0..20 must all exist
+BLK_SAVE  equ 21                ; 21-24: save-file staging
+N_BLOCKS  equ 25                ; blocks 0..24 must all exist
 DMA       equ 0A800h            ; record buffer in upper TPA
 UP_LEN    equ 7000h             ; engine image 8000-EFFF
 
@@ -26,9 +27,24 @@ UP_LEN    equ 7000h             ; engine image 8000-EFFF
         jp start
 ; ---- resident services (fixed addresses, used by the engine) ----
         jp svc_exit             ; 0103: CP/M upper restored, video off -> A>
-cpm_port: db 0                  ; 0106: CP/M's port 50h value
-cpm_block: db 0                 ; 0107
-        ds 8                    ; 0108: reserved for disk services
+        jp svc_disk             ; 0106: CP/M upper restored, video off -> disk job
+cpm_port: db 0                  ; 0109: CP/M's port 50h value
+cpm_block: db 0                 ; 010A
+d_cmd:   db 0                   ; 010B: 1 save, 2 load, 3 read slot headers
+d_name:  ds 11                  ; 010C: file name (8+3, CP/M FCB form)
+d_len:   ds 3                   ; 0117: bytes (save: to write; load: read)
+d_res:   db 0                   ; 011A: 0 ok, 1 no file, 2 write-protected, 3 no room, 4 disk full
+
+svc_disk:
+        ld sp,0400h
+        ld a,(cpm_port)
+        out (P_MEM),a
+        ei
+        ld hl,reloc
+        ld de,0A000h
+        ld bc,reloc_end-reloc_start
+        ldir
+        jp disk_main
 
 svc_exit:
         ld sp,0400h
@@ -163,7 +179,7 @@ blk_port:
         pop bc
         ret
 
-; Which block is CP/M's lower 32K?  The loader's own signature at 0700h
+; Which block is CP/M's lower 32K?  The loader's own signature at 0F00h
 ; is looked for in every block.  Also: where is CP/M's video window?
 find_cpm:
         in a,(P_LV)
@@ -184,7 +200,7 @@ find_cpm:
 .scan:  ld a,c
         call blk_port
         out (P_MEM),a
-        ld hl,0700h
+        ld hl,0F00h
         ld de,sig_copy
         ld b,16
 .cmp:   ld a,(de)
@@ -361,6 +377,244 @@ load_file:
 .eof:   or a
         ret
 
+; ---------------------------------------------------------------------
+; Disk jobs for the engine (CP/M fully restored, running at A000h)
+; ---------------------------------------------------------------------
+disk_main:
+        ld sp,0A7F0h
+        ld a,(cpm_port)         ; the relocated copy starts with a blank value
+        ld (r_cpm_port),a
+        xor a
+        ld (d_res),a
+        ld a,(d_cmd)
+        cp 1
+        jp z,dk_save
+        cp 2
+        jp z,dk_load
+        cp 3
+        jp z,dk_heads
+        jp dk_done
+
+dk_fcb:                         ; FCB from d_name
+        ld hl,fcb
+        ld (hl),0
+        inc hl
+        ex de,hl
+        ld hl,d_name
+        ld bc,11
+        ldir
+        ld hl,fcb+12
+        ld b,24
+.z:     ld (hl),0
+        inc hl
+        djnz .z
+        ret
+
+dk_save:
+        ld c,25                 ; current disk
+        call BDOS
+        push af
+        ld c,29                 ; read-only vector
+        call BDOS
+        pop af
+        ld b,a
+        inc b
+.rb:    dec b
+        jr z,.rt
+        srl h
+        rr l
+        jr .rb
+.rt:    bit 0,l
+        ld a,2
+        jp nz,dk_res
+        call dk_fcb
+        ld de,fcb
+        ld c,19                 ; delete the old save
+        call BDOS
+        call dk_fcb
+        ld de,fcb
+        ld c,22                 ; make
+        call BDOS
+        inc a
+        ld a,3
+        jp z,dk_res
+        ld a,BLK_SAVE
+        ld (cur_blk),a
+        ld hl,0
+        ld (dest),hl
+        ; records = ceil(len / 128)
+        ld hl,(d_len)
+        ld a,(d_len+2)
+        ld de,127
+        add hl,de
+        adc a,0
+        add hl,hl
+        rla
+        ld l,h
+        ld h,a                  ; HL = len*2 / 256 = records
+        ld (recs),hl
+.w:     ld hl,(recs)
+        ld a,h
+        or l
+        jr z,.wd
+        dec hl
+        ld (recs),hl
+        di
+        ld a,(cur_blk)
+        call blk_port
+        out (P_MEM),a
+        ld hl,(dest)
+        ld de,DMA
+        ld bc,128
+        ldir
+        ld a,(r_cpm_port)
+        out (P_MEM),a
+        ei
+        call dk_adv
+        ld de,DMA
+        ld c,26
+        call BDOS
+        ld de,fcb
+        ld c,21
+        call BDOS
+        or a
+        jr z,.w
+        ld de,fcb
+        ld c,16
+        call BDOS
+        ld a,4
+        jp dk_res
+.wd:    ld de,fcb
+        ld c,16
+        call BDOS
+        xor a
+        jp dk_res
+
+dk_adv: ld hl,(dest)            ; next 128 bytes of the staging blocks
+        ld de,128
+        add hl,de
+        bit 7,h
+        jr z,.s
+        ld hl,0
+        ld a,(cur_blk)
+        inc a
+        ld (cur_blk),a
+.s:     ld (dest),hl
+        ret
+
+dk_load:
+        call dk_fcb
+        ld de,fcb
+        ld c,15
+        call BDOS
+        inc a
+        ld a,1
+        jp z,dk_res
+        ld a,BLK_SAVE
+        ld (cur_blk),a
+        ld hl,0
+        ld (dest),hl
+        ld (recs),hl
+.r:     ld de,DMA
+        ld c,26
+        call BDOS
+        ld de,fcb
+        ld c,20
+        call BDOS
+        or a
+        jr nz,.e
+        di
+        ld a,(cur_blk)
+        call blk_port
+        out (P_MEM),a
+        ld hl,DMA
+        ld de,(dest)
+        ld bc,128
+        ldir
+        ld a,(r_cpm_port)
+        out (P_MEM),a
+        ei
+        call dk_adv
+        ld hl,(recs)
+        inc hl
+        ld (recs),hl
+        ld a,(cur_blk)
+        cp BLK_SAVE+4
+        jr nz,.r
+.e:     ld de,fcb
+        ld c,16
+        call BDOS
+        ld hl,(recs)            ; bytes = records * 128
+        xor a
+        srl h
+        rr l
+        rra
+        ld (d_len),a
+        ld (d_len+1),hl
+        xor a
+        jp dk_res
+
+dk_heads:                       ; record 0 of SAVE1-3.EMP -> staging block offsets 0, 128, 256
+        ld a,'1'
+        ld (d_name+4),a
+        ld hl,0
+        ld (dest),hl
+.n:     call dk_fcb
+        ld hl,DMA
+        ld de,DMA+1
+        ld bc,127
+        ld (hl),0
+        ldir
+        ld de,fcb
+        ld c,15
+        call BDOS
+        inc a
+        jr z,.cp
+        ld de,DMA
+        ld c,26
+        call BDOS
+        ld de,fcb
+        ld c,20
+        call BDOS
+        ld de,fcb
+        ld c,16
+        call BDOS
+.cp:    di
+        ld a,BLK_SAVE
+        call blk_port
+        out (P_MEM),a
+        ld hl,DMA
+        ld de,(dest)
+        ld bc,128
+        ldir
+        ld (dest),de
+        ld a,(r_cpm_port)
+        out (P_MEM),a
+        ei
+        ld a,(d_name+4)
+        inc a
+        ld (d_name+4),a
+        cp '4'
+        jr nz,.n
+        xor a
+
+dk_res: ld (d_res),a
+dk_done:
+        ; back to the engine: re-snapshot CP/M, restore the engine (stub at F000h)
+        di
+        ld a,(cpm_port)
+        ld (r_cpm_port),a
+        or 8
+        out (P_MEM),a
+        ld hl,ret_src
+        ld de,0F000h
+        ld bc,ret_end-ret_start
+        ldir
+        ld a,(d_res)
+        ld (rt_res),a
+        jp 0F000h
+recs:   dw 0
+
 cur_blk:    db 0
 cur_name:   dw 0
 dest:       dw 0
@@ -425,8 +679,44 @@ f_cpm:  db 0
 f_blk:  db 0
 final_end:
         ent
+
+ret_src:
+        disp 0F000h
+ret_start:
+        ld a,BLK_CPM
+        call fb_port2
+        out (P_MEM),a
+        ld hl,8000h
+        ld de,0
+        ld bc,UP_LEN
+        ldir                    ; CP/M snapshot refreshed (BDOS state changed)
+        ld a,BLK_GAME
+        call fb_port2
+        out (P_MEM),a
+        ld hl,0
+        ld de,8000h
+        ld bc,UP_LEN
+        ldir                    ; engine back
+        db 3Eh
+rt_res: db 0
+        ld (8005h),a
+        jp 8006h                ; engine: svc_resume
+fb_port2: ld b,a
+        and 3
+        xor 2
+        ld c,a
+        ld a,b
+        and 1Ch
+        rlca
+        rlca
+        rlca
+        or c
+        or 0Ch
+        ret
+ret_end:
+        ent
 phys_end:
-        assert phys_end <= 0700h, "loader too long for the signature at 0700h"
-        org 0700h
+        assert phys_end <= 0F00h, "loader too long for the signature at 0F00h"
+        org 0F00h
 sig:    db "EMPIRES-LOADER!!"
         db 1Ah

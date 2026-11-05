@@ -4,21 +4,11 @@
 curband:    db 0FFh
 lowport:    db 0
 ovl_ret:    db 0
-worldsize:  db 0
-mapwm1:     db 127
-maphm1:     db 127
-mapcx:      db 64
-mapcy:      db 64
-vxmax:      db 88
-vymax:      db 108
-ovcw:       db 3
-ovch:       db 6
 ovcols:     db 0
 ovcol:      db 0
 ov_x:       db 0
 ov_y:       db 0
 ovtown:     ds 22*8
-seed:       dw 1234h
 frames:     dw 0
 mono:       db 0
 sound_on:   db 1
@@ -26,7 +16,6 @@ spkbit:     db 20h          ; keep RS232 TXD (bit 5) at mark
 tperiod:    db 0
 dos_colour: db 0
 title_played: db 0
-worldtype:  db 0
 quit_flag:  db 0
 txtcol:     db 0
 cellcol:    db 0
@@ -77,7 +66,6 @@ glowxy: dw 0
 gcnt:   db 0
 grad:   db 0
 barval: db 0
-startxy: dw 0
 grid:   ds 1200
 colv:   ds 40
 colacc: ds 40*4
@@ -111,29 +99,11 @@ sc_n:   db 0
 sc_len: dw 0
 dv_r:   db 0
 dv_c:   db 0
-viewx:  db 0
-viewy:  db 0
-curx:   db 0
-cury:   db 0
 cursor_bc: dw 0
 curoff: dw 0
 curshown: db 0
 ; game
-food:   dw 0
-wood:   dw 0
-stone:  dw 0
-gold:   dw 0
-pop:    dw 0
-happy:  db 0
-season: db 0
-week:   db 0
-year:   dw 0
-speed:  db 0
-lastspeed: db 0
-tickc:  db 0
-tool:   db 0
 overview: db 0
-nbld:   db 0
 loopn:  db 0
 workers: dw 0
 dfood:  dw 0
@@ -190,6 +160,41 @@ bg_g:   db 0
 bg_row: db 0
 bg_col: db 0
 bg_colr: db 0
+; ---- everything below up to sv_end is saved with the world ----
+sv_start:
+worldtype: db 0
+worldsize: db 0
+mapwm1: db 127
+maphm1: db 127
+mapcx: db 64
+mapcy: db 64
+vxmax: db 88
+vymax: db 108
+ovcw: db 3
+ovch: db 6
+seed: dw 1234h
+food: dw 0
+wood: dw 0
+stone: dw 0
+gold: dw 0
+pop: dw 0
+happy: db 0
+season: db 0
+week: db 0
+year: dw 0
+speed: db 0
+lastspeed: db 0
+tickc: db 0
+tool: db 0
+nbld: db 0
+viewx: db 0
+viewy: db 0
+curx: db 0
+cury: db 0
+startxy: dw 0
+blist:  ds MAXBLD*BREC
+sv_end:
+
 ; random table for stable per-tile variation
 rtab:
         db 157,44,203,9,118,240,77,31,192,63,140,5,88,229,116,19
@@ -209,9 +214,31 @@ rtab:
         db 28,136,211,93,41,167,115,250,74,19,194,143,56,231,101,9
         db 172,85,238,116,12,158,69,208,132,36,245,97,179,26,220,63
 ; buffers
-blist:  ds MAXBLD*BREC
 SCHR:   ds SCRSIZE
 SATR:   ds SCRSIZE
 SCOL:   ds SCRSIZE
+
+
+; save/load
+svc_sp:   dw 0
+fm_mode:  db 0
+fm_slot:  db 0
+fm_act:   db 0
+sv_res:   db 0
+sv_name:  ds 11
+sv_hdr:   ds 128
+sv_heads: ds 96
+sv_cnt:   ds 3
+st_blk:   db 0
+st_off:   dw 0
+st_n:     db 0
+st_rp:    db 0
+st_total: ds 3
+st_sum:   dw 0
+st_buf:   ds 256
+rle_val:  db 0
+rle_len:  db 0
+rowbuf:   ds 512
+
         ds 256
 stacktop:

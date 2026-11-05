@@ -340,7 +340,7 @@ putch:  push hl
         ret
 
 ; ---- numbers: HL -> decimal at DE (no leading zeros), colour txtcol ----
-putnum: push bc
+putnum: push bc                 ; (uses IX)
         ld ix,numbuf
         ld bc,-10000
         call .dig

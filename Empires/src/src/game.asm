@@ -2432,29 +2432,25 @@ handle_keys:
         ld a,KB_UP
         call key_down
         ld b,a
-        ld a,4
-        call key_down
+        xor a
         or b
         ld (mv_u),a
         ld a,KB_DOWN
         call key_down
         ld b,a
-        ld a,6
-        call key_down
+        xor a
         or b
         ld (mv_d),a
         ld a,KB_LEFT
         call key_down
         ld b,a
-        ld a,5
-        call key_down
+        xor a
         or b
         ld (mv_l),a
         ld a,KB_RIGHT
         call key_down
         ld b,a
-        ld a,7
-        call key_down
+        xor a
         or b
         ld (mv_r),a
         ld a,(mv_u)
@@ -2722,7 +2718,13 @@ handle_keys:
         ld (speed),a
         ld a,1
         ld (dirty_status),a
-.k8:    ld a,KB_HELP
+.k8:    ld a,KB_FILE
+        call key_hit
+        jr z,.k8b
+        call cursor_off_hw
+        call file_screen
+        call redraw_all
+.k8b:   ld a,KB_HELP
         call key_hit
         jr z,.k9
         call cursor_off_hw
@@ -2760,7 +2762,7 @@ handle_keys:
 
 ; ---------------- text ----------------
 msg_welcome:  db "YOUR SETTLERS HAVE FOUNDED A TOWN. BUILD HUTS, FARMS AND A WOODCUTTER!",0
-msg_hint:     db "ARROWS MOVE  SPACE BUILD  1-0 TOOLS  M MAP  P PAUSE  < > SPEED  H HELP",0
+msg_hint:     db "ARROWS MOVE  SPACE BUILD  1-0 TOOLS  M MAP  F SAVE/LOAD  P PAUSE  H HELP",0
 msg_started:  db "CONSTRUCTION BEGUN.",0
 msg_complete: db "CONSTRUCTION COMPLETE!",0
 msg_grow:     db "A HUT HAS GROWN INTO A FINER HOME.",0
@@ -2793,3 +2795,67 @@ txt_unexplored: db "UNEXPLORED",0
 txt_building: db " (BUILDING)",0
 txt_worldmap: db "WORLD MAP",0
 txt_ovhelp:   db "WASD MOVE",0
+
+; ---------------- save / load panel (in game) ----------------
+file_screen:
+        ld hl,msg_reading
+        ld a,C_MSG
+        call set_msg
+        call draw_msg
+        call read_heads
+        xor a
+        ld (fm_mode),a
+        ld hl,file_menu
+        call ovl_call
+        ld a,(ovl_ret)
+        or a
+        ret z
+        cp 10h
+        jr nc,.load
+        ld (fm_slot),a
+        ld hl,msg_saving
+        ld a,C_MSG
+        call set_msg
+        call draw_msg
+        ld a,(fm_slot)
+        call save_game
+        or a
+        jr nz,.err
+        ld hl,msg_saved
+        ld a,C_GOOD
+        call set_msg
+        jp sfx_done
+.load:  and 0Fh
+        call load_game
+        or a
+        jr nz,.err
+        ld hl,msg_loaded
+        ld a,C_GOOD
+        call set_msg
+        ld a,1
+        ld (dirty_status),a
+        jp sfx_done
+.err:   ; A = error 1..5
+        dec a
+        add a,a
+        ld l,a
+        ld h,0
+        ld de,disk_errs
+        add hl,de
+        ld a,(hl)
+        inc hl
+        ld h,(hl)
+        ld l,a
+        ld a,C_WARN
+        call set_msg
+        jp sfx_error
+disk_errs: dw de1,de2,de3,de4,de5
+de1:    db "THERE IS NO SAVED WORLD IN THAT SLOT.",0
+de2:    db "THE DISK IS WRITE-PROTECTED.",0
+de3:    db "NO ROOM IN THE DISK DIRECTORY.",0
+de4:    db "THE DISK IS FULL - THE SAVE IS INCOMPLETE.",0
+de5:    db "THAT SAVE IS DAMAGED OR NOT AN EMPIRES SAVE.",0
+msg_reading: db "READING THE DISK...",0
+msg_saving:  db "SAVING YOUR WORLD TO DISK...",0
+msg_saved:   db "YOUR WORLD HAS BEEN SAVED.",0
+msg_loaded:  db "WORLD LOADED. WELCOME BACK!",0

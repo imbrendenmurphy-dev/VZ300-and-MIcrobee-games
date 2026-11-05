@@ -79,6 +79,8 @@ NTOOLS    equ 10
 K_A equ 1
 K_C equ 3
 K_D equ 4
+K_F equ 6
+K_G equ 7
 K_H equ 8
 K_I equ 9
 K_J equ 10

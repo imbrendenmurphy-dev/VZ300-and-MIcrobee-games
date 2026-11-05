@@ -7,8 +7,8 @@ STARTING
   Boot this disk. It goes straight to the A> prompt. Type:  EMPIRES
   The loader fills the expanded RAM (dots show progress).
   Press C for a colour monitor or M for a monochrome monitor.
-  On the title, 2 picks the world type and 6 the size (128 x 128 or
-  256 x 256).  ESC in the game returns to the title; ESC on the title
+  On the title, 2 picks the world type, 6 the size (128 x 128 or
+  256 x 256) and 7 loads a saved world.  ESC in the game returns to the title; ESC on the title
   returns to A>.
 
 KEYS
@@ -20,6 +20,7 @@ KEYS
   1 Road  2 Hut  3 Farm  4 Woodcutter  5 Quarry  6 Well
   7 Market  8 Windmill  9 Watchtower  0 Clear land   TAB cycles
   M world map   C colour/monochrome   H help
+  F save or load your world (3 slots, SAVE1-3.EMP on this disk)
   P pause   , slower   . faster
 
 TIPS

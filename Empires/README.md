@@ -2,7 +2,7 @@
 
 An original civilisation and city-building game for the Microbee Premium Plus. Lead a handful of settlers from a lonely town hall to a thriving town in a procedurally generated world: plough fields, fell forests, build roads and bridges, and watch huts grow into houses and manors as the seasons turn the land from spring green to autumn gold to winter white. Colour and monochrome display modes.
 
-**Milestone 1** · ViBED by BPM · 2026
+**Milestone 2** · ViBED by BPM · 2026
 
 ![title](screenshots/title.png)
 
@@ -16,7 +16,7 @@ Boot `release/EMPIRES.DS8` (on a Premium Plus without a DS8 drive, boot the imag
 
     EMPIRES
 
-The loader fills the expanded RAM (dots show progress). Choose **C** for a colour monitor or **M** for monochrome. On the title, **2** picks the world type and **6** the size (128×128 or 256×256). ESC on the title returns to `A>`.
+The loader fills the expanded RAM (dots show progress). Choose **C** for a colour monitor or **M** for monochrome. On the title, **2** picks the world type and **6** the size (128×128 or 256×256) and **7** loads a saved world. ESC on the title returns to `A>`.
 
 ## Keys
 | | |
@@ -26,13 +26,14 @@ The loader fills the expanded RAM (dots show progress). Choose **C** for a colou
 | SPACE or RETURN | build the selected tool |
 | 1–9, 0 / TAB | road, hut, farm, woodcutter, quarry, well, market, windmill, watchtower, clear land |
 | M | world map |
+| F | save / load (3 slots on the game disk) |
 | C | colour / monochrome |
 | P / , / . | pause / slower / faster |
 | H | help |
 | ESC | leave the world (Y/N) |
 
 ## Status
-Tested in the project's own Premium model (screenshots); not yet run on real hardware. Microsoft serial mouse support added: run `MOUSE` from the disk to check yours. Worlds now live in the 1MB banked RAM (up to 256×256) and EXIT returns cleanly to `A>`. Next: disk saves, technology, rival civilisations, scenarios.
+Tested in the project's own Premium model (screenshots); not yet run on real hardware. Microsoft serial mouse support added: run `MOUSE` from the disk to check yours. Worlds live in the 1MB banked RAM (up to 256×256), worlds save to and load from the game disk (3 slots), and ESC on the title returns cleanly to `A>`. Next: technology, rival civilisations, scenarios, victory conditions.
 
 ## Folders
 - `release/`: the bootable disk image and the program on its own

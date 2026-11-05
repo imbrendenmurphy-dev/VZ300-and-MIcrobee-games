@@ -97,10 +97,13 @@ hall flag animate by redefining PCG characters, so every copy on screen animates
 | block 16 at 4000h | PCG patterns (colour + mono) and animation frames |
 | block 17 at 0000h | Overlay code: start-up choice, title logo and menu, help |
 | block 18 | Snapshot of CP/M's 8000–EFFF, so EMPIRES can return to `A>` |
-| block 19 | Reserved: game snapshot during disk saves |
+| block 19 | Snapshot of the engine while CP/M does a disk job |
 | block 20 | Loader staging for the engine image |
+| blocks 21–24 | Save-file staging (header + state + RLE map) |
 
 `EMPIRES.COM` (the loader) finds CP/M's own block by a signature scan and its video window by a probe (both from The Lantern Deep's loader), checks that blocks 0–20 exist and are distinct, loads `EMPIRES.UP`, `EMPIRES.OVL` and `EMPIRES.ART` into their blocks through BDOS, snapshots CP/M's upper memory, copies the engine to 8000h and starts it, all from a final stage at F000h with the video window off. The first part of the loader stays resident in CP/M's block. To leave, the engine restores the screen, copies a small stub to F000h (video off), the stub copies CP/M's memory back from block 18 and jumps to the loader's resident exit, which restores CP/M's port 50h value, re-enables interrupts and warm-boots to `A>`. In the test harness CP/M's upper memory comes back byte for byte.
+
+**Saving.** F in the game opens a Save / Load panel with three slots (`SAVE1-3.EMP` on the current disk); the title's 7 loads. The engine writes a 128-byte header (signature, world size, year, season, population, lengths, 16-bit checksum), the saved-state block (918 bytes: resources, calendar, view, building list, world parameters, random seed) and the map (terrain + objects, row by row, run-length coded) into blocks 21–24. Then it swaps CP/M back in (engine → block 19, CP/M ← block 18, via a stub at F000h with the video window off) and jumps to the loader's resident disk service, which checks the disk isn't write-protected (BDOS 29), writes the file with ordinary BDOS calls, refreshes CP/M's snapshot, restores the engine and returns through 8006h. Loading reads the file the same way and checks the signature and checksum before anything in the current world changes. A 128×128 world saves in about 7K, a 256×256 world in about 24K. In the harness a 256×256 world comes back byte for byte (all four 32K bands and the state block).
 
 **Performance (3.375 MHz, measured in the harness).** Scrolling redraws only the exposed strip (~4 frames). Full view redraw ~9 frames (season change, mode switch). World map ~10 frames. Simulation tick < 0.1 frame. World generation: 128×128 about 5 s, 256×256 about 18 s, with a progress bar (unrolled noise interpolation, incremental vertical steps, table-driven falloff).
 
@@ -121,6 +124,5 @@ switch, quit to menu and exit to DOS.
 **Mouse.** A Microsoft serial mouse (1200 baud, 7N1, 3-byte packets) is read in software from PIO B bit 4. The game polls the line during the idle part of every frame and between key tests; a start bit triggers a cycle-counted receive of the whole packet, with a stop-bit check so a mid-byte lock-on is rejected. The idle level is measured at start-up, so either line polarity works. Packets arriving during a full redraw or a tune are dropped and the next one resyncs. Tested bit-for-bit with an emulated serial line at both polarities; `MOUSE.COM` on the disk shows the raw packets on real hardware.
 
 **Not in this milestone (planned):**
-- Bootable DS80 disk image — needs your Premium Plus CP/M boot disk image to add the game to (no shell, boots to `A>`).
 - Joystick — port not yet confirmed.
-- Save/load (the CP/M snapshot mechanism is in place for it), technology tree, rival civilisations, diplomacy, scenarios, victory conditions, regional view, terrain shaping, harbours/ships.
+- Technology tree, rival civilisations, diplomacy, scenarios, victory conditions, regional view, terrain shaping, harbours/ships.

@@ -72,13 +72,13 @@ title_menu:
         ld a,C_TITLE
         call puts_at
         call draw_menu
-        ld b,22
-        ld c,31
+        ld b,23
+        ld c,4
         ld hl,txt_vibed
         ld a,COL(BMAGENTA,BLACK)
         call puts_at
         ld b,23
-        ld c,22
+        ld c,34
         ld hl,txt_edition
         ld a,C_DIM
         call puts_at
@@ -116,6 +116,9 @@ title_menu:
         ld a,KB_1+5
         call key_hit
         jr nz,.wsz
+        ld a,KB_1+6
+        call key_hit
+        jr nz,.ld
         ld a,KB_ESC
         call key_hit
         jr z,.loop
@@ -136,16 +139,20 @@ title_menu:
         call sfx_click
         call draw_menu
         ld b,15
-        ld c,7
+        ld c,8
         call present_rows
         jr .loop
+.ld:    call sfx_click
+        ld a,3
+        ld (ovl_ret),a
+        ret
 .wsz:   ld a,(worldsize)
         xor 1
         ld (worldsize),a
         call sfx_click
         call draw_menu
         ld b,15
-        ld c,7
+        ld c,8
         call present_rows
         jp .loop
 .disp:  ld a,(mono)
@@ -161,7 +168,7 @@ title_menu:
         call sfx_click
         call draw_menu
         ld b,15
-        ld c,7
+        ld c,8
         call present_rows
         jp .loop
 .help:  call sfx_click
@@ -233,7 +240,7 @@ bigword: db G_BIG_E-256,G_BIG_M-256,G_BIG_P-256,G_BIG_I-256,G_BIG_R-256,G_BIG_E-
 
 draw_menu:
         ld b,15
-        ld c,7
+        ld c,8
         ld a,C_TEXT
         call shadow_clear_rows
         ld b,15
@@ -301,6 +308,11 @@ draw_menu:
         call puts
         ld b,21
         ld c,28
+        ld hl,txt_m8
+        ld a,C_TEXT
+        call puts_at
+        ld b,22
+        ld c,28
         ld hl,txt_m6
         ld a,C_DIM
         jp puts_at
@@ -319,6 +331,7 @@ txt_m4:  db "4  SOUND:   ",0
 txt_m5:  db "5  HOW TO PLAY",0
 txt_m6:  db "ESC  EXIT TO DOS",0
 txt_m7:  db "6  SIZE:    ",0
+txt_m8:  db "7  LOAD A SAVED WORLD",0
 txt_small: db "128 x 128",0
 txt_large: db "256 x 256",0
 txt_colour: db "COLOUR    ",0
@@ -365,12 +378,13 @@ help_text:
         db C_TEXT,"Lead a handful of settlers from a lonely town hall to a thriving town.",0
         db C_TEXT,"Every building costs wood, stone or gold and takes weeks to build.",0
         db C_DIM,"",0
-        db C_GOOD,"MOVE   ARROWS, W A S D, I J K L or joystick (SHIFT = faster)",0
+        db C_GOOD,"MOVE   mouse, arrows, W A S D or joystick (SHIFT = faster)",0
         db C_GOOD,"BUILD  SPACE or RETURN places the selected tool at the cursor",0
         db C_GOOD,"TOOLS  1 ROAD  2 HUT  3 FARM  4 WOODCUTTER  5 QUARRY  6 WELL",0
         db C_GOOD,"       7 MARKET  8 WINDMILL  9 WATCHTOWER  0 CLEAR    TAB cycles",0
         db C_GOOD,"VIEW   M world map    C colour/monochrome    H this help",0
         db C_GOOD,"TIME   P pause    < slower    > faster    ESC leave world",0
+        db C_GOOD,"DISK   F save or load your world (3 slots on the game disk)",0
         db C_DIM,"",0
         db C_TEXT,"FOOD   Farms plough the grass around them into fields. Fields yield",0
         db C_TEXT,"       most in autumn and nothing in winter - store food for the snow!",0
@@ -382,3 +396,192 @@ help_text:
         db C_DIM,"",0
         db C_MSG,"PRESS ANY KEY",0
         db 0FFh
+
+; ---- save / load panel.  fm_mode 0: in game (save or load), 1: title (load)
+; returns ovl_ret: 0 back, 1-3 save to slot, 11h-13h load slot
+file_menu:
+        ld b,6
+        ld c,13
+        ld a,C_PANEL
+        call shadow_clear_rows
+        ld b,7
+        ld c,4
+        ld hl,txt_fm_title
+        ld a,C_PANELHI
+        call puts_at
+        ld b,1                  ; slot
+.sl:    push bc
+        ld a,b
+        add a,a
+        add a,8                 ; rows 10, 12, 14
+        ld b,a
+        ld c,6
+        call cell_off
+        pop bc
+        push bc
+        ld a,b
+        add a,'0'
+        ld (txtcol),a
+        ld a,C_PANELHI
+        ld (txtcol),a
+        ld a,b
+        add a,'0'
+        call putch
+        inc de
+        inc de
+        ; header pointer
+        ld a,b
+        dec a
+        add a,a
+        add a,a
+        add a,a
+        add a,a
+        add a,a                 ; *32
+        ld l,a
+        ld h,0
+        ld bc,sv_heads
+        add hl,bc
+        push hl
+        pop ix
+        ld a,(ix+0)
+        cp 'E'
+        jr z,.full
+        ld hl,txt_fm_empty
+        ld a,COL(GREY,BLUE)
+        call puts
+        jr .ns
+.full:  ld a,C_PANEL
+        ld (txtcol),a
+        ld hl,txt_fm_year
+        call puts
+        ld l,(ix+20)
+        ld h,(ix+21)
+        push ix
+        call putnum
+        pop ix
+        ld a,' '
+        call putch
+        ld a,(ix+19)
+        and 3
+        add a,a
+        ld l,a
+        ld h,0
+        ld bc,fm_seasons
+        add hl,bc
+        ld a,(hl)
+        inc hl
+        ld h,(hl)
+        ld l,a
+        ld a,C_PANEL
+        call puts
+        ld hl,txt_fm_pop
+        ld a,C_PANEL
+        call puts
+        ld l,(ix+22)
+        ld h,(ix+23)
+        push ix
+        call putnum
+        pop ix
+        ld hl,txt_fm_s128
+        ld a,(ix+17)
+        or a
+        jr z,.sz
+        ld hl,txt_fm_s256
+.sz:    ld a,C_PANEL
+        call puts
+.ns:    pop bc
+        inc b
+        ld a,b
+        cp 4
+        jr nz,.sl
+        ld hl,txt_fm_keys
+        ld a,(fm_mode)
+        or a
+        jr z,.k
+        ld hl,txt_fm_keys2
+.k:     ld b,17
+        ld c,6
+        ld a,COL(BCYAN,BLUE)
+        call puts_at
+        ld b,6
+        ld c,13
+        call present_rows
+        call wait_release
+        ld a,(fm_mode)
+        or a
+        ld a,10h                ; title: load straight away
+        jr nz,.act
+        xor a
+.act:   ld (fm_act),a
+.lp:    call wait_frame
+        call scan_keys
+        ld a,KB_ESC
+        call key_hit
+        jr nz,.back
+        ld a,KB_SAVE
+        call key_hit
+        jr z,.l1
+        ld a,(fm_mode)
+        or a
+        jr nz,.l1
+        xor a
+        ld (fm_act),a
+        ld hl,txt_fm_which_s
+        call .prompt
+.l1:    ld a,KB_LOAD
+        call key_hit
+        jr z,.l2
+        ld a,10h
+        ld (fm_act),a
+        ld hl,txt_fm_which_l
+        call .prompt
+.l2:    ld b,0
+.dg:    ld a,b
+        add a,KB_1
+        push bc
+        call key_hit
+        pop bc
+        jr nz,.slot
+        inc b
+        ld a,b
+        cp 3
+        jr nz,.dg
+        jr .lp
+.slot:  inc b
+        ld a,(fm_act)
+        or b
+        ld (ovl_ret),a
+        jp sfx_click
+.back:  xor a
+        ld (ovl_ret),a
+        jp sfx_click
+.prompt:
+        push hl
+        ld b,17
+        ld c,1
+        ld a,C_PANEL
+        call shadow_clear_rows
+        pop hl
+        ld b,17
+        ld c,6
+        ld a,C_PANELHI
+        call puts_at
+        ld b,17
+        ld c,1
+        call present_rows
+        jp sfx_click
+fm_seasons: dw fs0,fs1,fs2,fs3
+fs0:    db "SPRING",0
+fs1:    db "SUMMER",0
+fs2:    db "AUTUMN",0
+fs3:    db "WINTER",0
+txt_fm_title: db "SAVE OR LOAD A WORLD  (SAVE1-3.EMP ON THE GAME DISK)",0
+txt_fm_empty: db "- EMPTY -",0
+txt_fm_year:  db "YEAR ",0
+txt_fm_pop:   db "   POPULATION ",0
+txt_fm_s128:  db "   128 x 128",0
+txt_fm_s256:  db "   256 x 256",0
+txt_fm_keys:  db "S THEN 1-3 SAVES     L THEN 1-3 LOADS     ESC BACK",0
+txt_fm_keys2: db "1-3 LOADS THAT WORLD     ESC BACK",0
+txt_fm_which_s: db "SAVE INTO WHICH SLOT?  1, 2 OR 3   (ESC BACK)",0
+txt_fm_which_l: db "LOAD WHICH SLOT?  1, 2 OR 3   (ESC BACK)",0

@@ -17,6 +17,8 @@
         jp start
 p_cpm_port:  db 0               ; 8003: set by the loader
 p_cpm_block: db 0               ; 8004
+p_result:    db 0               ; 8005: result of a loader disk job
+        jp svc_resume           ; 8006: the loader returns here after a disk job
 
 start:  ld sp,stacktop
         di
@@ -46,6 +48,8 @@ start:  ld sp,stacktop
 menu:   call title_screen
         or a
         jr z,exit_dos
+        cp 3
+        jr z,title_load
         call wait_release
         ld a,C_TEXT
         call shadow_clear
@@ -63,6 +67,33 @@ menu:   call title_screen
         call play_tune
         xor a
         ld (quit_flag),a
+        call game_loop
+        call wait_release
+        jr menu
+
+; ---- load a saved world from the title
+title_load:
+        call wait_release
+        call read_heads
+        ld a,1
+        ld (fm_mode),a
+        ld hl,file_menu
+        call ovl_call
+        ld a,(ovl_ret)
+        or a
+        jr z,menu
+        and 0Fh
+        call load_game
+        or a
+        jr z,.ok
+        call sfx_error
+        jr menu
+.ok:    xor a
+        ld (quit_flag),a
+        ld (msgtimer),a
+        ld hl,msg_loaded
+        ld a,C_GOOD
+        call set_msg
         call game_loop
         call wait_release
         jr menu
@@ -119,6 +150,7 @@ txt_building_world: db "BUILDING A NEW WORLD",0
         include "render.asm"
         include "game.asm"
         include "titleup.asm"
+        include "save.asm"
         include "art.inc"
         include "vars.asm"
 engine_end:
