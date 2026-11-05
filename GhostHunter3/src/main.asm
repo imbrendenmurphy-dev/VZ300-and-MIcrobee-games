@@ -115,6 +115,9 @@ do_frame:
 .nf:    ld a,b
         or MODE1
         ld (latchbase),a
+        ld a,(bghook)
+        or a
+        call nz,bg_step
         call sound_tick
         call frame_wait
         ld a,(gmode)
@@ -1021,6 +1024,13 @@ itemy:  db 0
 pitry:  db 0
 spawnstep: dw 0
 hudcache: ds 12
+bghook: db 0
+bg_ox:  db 0
+bg_oy:  db 0
+bg_dx:  db 0
+bg_dy:  db 0
+bg_cap: db 0
+bg_r:   db 0
 npy0:   db 0
 npy1:   db 0
 npsweep: db 0

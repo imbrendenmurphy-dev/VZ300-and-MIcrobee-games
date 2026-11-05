@@ -26,6 +26,7 @@ Copy `release/GHOST3.VZ` to the SD card and load it from the BennVenn menu. It l
 * **The hunt.** Ghosts that are off-screen show as coloured **blips** at the edge of the view. Treasures and power-ups appear at hiding spots around the maze and twinkle at the edge too.
 * **Camera swoops.** Teleporters and respawns glide the camera across the maze.
 * Each maze's name is shown at READY. Bonus rounds are 30 s (Ghost Buffet) and 50 s (Pellet Panic).
+* **Intermissions** now have a sparse geometric backdrop drifting diagonally behind the cartoon. "Who's Hunting Who?" has little crosses; "The Night Shift" has diamonds and green motes. It is repainted every frame between the sprite erase and draw, so it runs at full speed.
 * A new title screen with an extruded "3D" logo and a haunted house whose windows flicker, plus a new title tune.
 
 ## How it works (technical)
@@ -40,6 +41,9 @@ Copy `release/GHOST3.VZ` to the SD card and load it from the BennVenn menu. It l
 
 ## Building
 `src/build.sh` needs `sjasmplus` and Python 3 with Pillow. `tools/vzemu` is the test emulator; it models the BennVenn banks, frame timing and VRAM writes during the display.
+
+## Intermissions
+![](screenshots/06_intermission_1.png) ![](screenshots/07_intermission_2.png)
 
 ## Maps
 | | | |

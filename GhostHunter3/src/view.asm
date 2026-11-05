@@ -1826,3 +1826,171 @@ animate_map:
         inc a
 .lk:    ld (ix+D_FRAME),a
         ret
+
+; ---------------------------------------------------------------------
+; INTERMISSION BACKDROPS: a sparse 16x16 pattern scrolling diagonally behind
+; the cartoon (rows BG_TOP..BG_BOT-1). The pattern is pre-shifted into four
+; pixel phases; each frame BGBUF is repainted outside vblank and VRAM during
+; vblank (just before the sprites), both with stack pushes.
+; ---------------------------------------------------------------------
+BG_TOP  equ 12
+BG_BOT  equ 52
+BGPH    equ TPAGE           ; 4 phases x 16 rows x 4 bytes (scratch: TPAGE is rebuilt per level)
+BGROWS  equ TPAGE+256       ; this frame's rows: 16 x (C,B,E,D)
+
+; bg_begin: HL = 64-byte pattern, D = dx, E = dy (per frame)
+bg_begin:
+        ld a,d
+        ld (bg_dx),a
+        ld a,e
+        ld (bg_dy),a
+        xor a
+        ld (bg_ox),a
+        ld (bg_oy),a
+        ld (bg_cap),a
+        ld de,BGPH
+        ld bc,64
+        ldir
+        ; phases 1..3: each is the previous rotated left by one pixel (2 bits)
+        ld hl,BGPH
+        ld de,BGPH+64
+        ld bc,192
+        ldir
+        ld ix,BGPH+64
+        ld c,3
+.ph:    ld b,16
+.row:   push bc
+        ld b,2
+.bit:   ld a,(ix+0)
+        rlca
+        rl (ix+3)
+        rl (ix+2)
+        rl (ix+1)
+        rl (ix+0)
+        djnz .bit
+        ; the next phase starts from this one
+        pop bc
+        push bc
+        ld a,c
+        cp 1
+        jr z,.nocp
+        ld a,(ix+0)
+        ld (ix+64),a
+        ld a,(ix+1)
+        ld (ix+65),a
+        ld a,(ix+2)
+        ld (ix+66),a
+        ld a,(ix+3)
+        ld (ix+67),a
+.nocp:  pop bc
+        ld de,4
+        add ix,de
+        djnz .row
+        dec c
+        jr nz,.ph
+        ld a,1
+        ld (bghook),a
+        ret
+
+; bg_step (outside vblank): advance, build the row table, repaint BGBUF
+bg_step:
+        ld a,(bg_dx)
+        ld hl,bg_ox
+        add a,(hl)
+        ld (hl),a
+        ld a,(bg_dy)
+        ld hl,bg_oy
+        add a,(hl)
+        ld (hl),a
+        ; row table: for pattern row k, the 4 bytes rotated by (ox>>2)&3, phase ox&3
+        ld a,(bg_ox)
+        and 3
+        rrca
+        rrca                    ; phase*64
+        ld l,a
+        ld h,BGPH>>8
+        ld a,(bg_ox)
+        rrca
+        rrca
+        and 3
+        ld c,a                  ; byte rotation
+        ld de,BGROWS
+        ld b,16
+.r:     push bc
+        ld b,4
+.q:     ld a,c
+        and 3
+        push hl
+        add a,l
+        ld l,a
+        ld a,(hl)
+        pop hl
+        ld (de),a
+        inc de
+        inc c
+        djnz .q
+        ld a,l
+        add a,4
+        ld l,a
+        pop bc
+        djnz .r
+        ret
+
+; bg_vram (vblank)
+bg_vram:
+        ld hl,VRAM
+; bg_paint:
+        ld (savesp),sp
+        ld de,(BG_TOP+1)*32
+        add hl,de               ; end of the first row
+        ld a,(bg_oy)
+        add a,BG_TOP
+        and 15
+        add a,a
+        add a,a
+        ld ixl,a
+        ld ixh,BGROWS>>8
+        ld a,BG_TOP
+.row:   ld (bg_r),a
+        ld b,a
+        ld a,(bg_cap)
+        or a
+        jr z,.nc
+        ld c,a
+        ld a,b
+        sub c
+        cp 5
+        jr c,.skip              ; leave the caption alone (no stack use: SP is in VRAM)
+.nc:    ld c,(ix+0)
+        ld b,(ix+1)
+        ld e,(ix+2)
+        ld d,(ix+3)
+        ld sp,hl
+        push de
+        push bc
+        push de
+        push bc
+        push de
+        push bc
+        push de
+        push bc
+        push de
+        push bc
+        push de
+        push bc
+        push de
+        push bc
+        push de
+        push bc
+.skip:  ld de,32
+        add hl,de
+        ld a,ixl
+        add a,4
+        and 63
+        ld ixl,a
+        ld a,(bg_r)
+        inc a
+        cp BG_BOT
+        jr nz,.row
+        ld sp,(savesp)
+        ret

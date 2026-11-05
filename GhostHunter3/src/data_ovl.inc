@@ -46,6 +46,16 @@ spr_BEYES:
     db $AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$A8,$2A,$0A,$AA,$A8,$EA,$3A,$AA
     db $AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA
     db $AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA
+bgpat1:
+    db $AA,$AA,$AA,$AA,$AE,$AA,$AA,$AA,$BF,$AA,$AA,$AA,$AE,$AA,$AA,$AA
+    db $AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA
+    db $AA,$AA,$AA,$AA,$AA,$AA,$AE,$AA,$AA,$AA,$BF,$AA,$AA,$AA,$AE,$AA
+    db $AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA
+bgpat2:
+    db $AA,$AA,$AA,$AA,$AA,$EA,$AA,$AA,$AB,$BA,$AA,$AA,$AE,$AE,$AA,$AA
+    db $AB,$BA,$AA,$2A,$AA,$EA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA
+    db $AA,$AA,$AA,$AA,$AA,$AA,$AA,$EA,$AA,$AA,$AB,$BA,$A2,$AA,$AE,$AE
+    db $AA,$AA,$AB,$BA,$AA,$AA,$AA,$EA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA
 NWIN equ 9
 winlist:
     db $69,$23,$63,$28,$66,$28,$6C,$28,$6F,$28,$63,$2B,$66,$2B,$6E,$2B

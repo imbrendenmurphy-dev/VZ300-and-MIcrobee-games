@@ -1057,7 +1057,20 @@ run_intermission:
         ld de,mus_inter_1
         call play_music
         pop af
+        push af
+        ld hl,bgpat1
+        ld de,$0101             ; drifting up and to the left
         cp 2
+        jr nz,.p1
+        ld hl,bgpat2
+        ld de,$01FF             ; drifting down and to the left
+.p1:    call bg_begin
+        pop af
+        call .go
+        xor a
+        ld (bghook),a
+        ret
+.go:    cp 2
         jp z,inter2
 ; --- 1: WHO'S HUNTING WHO?
 inter1:
@@ -1356,6 +1369,8 @@ inter2:
 .end:   ld a,1
         ld b,2
         call set_ink
+        ld a,24
+        ld (bg_cap),a           ; the backdrop leaves the caption alone
         ld hl,s_i2b
         ld e,24
         call print_c

@@ -786,7 +786,10 @@ render:
         jr nz,.erow
         pop hl
         jr .e
-.edone: ld hl,eraselist
+.edone: ld a,(bghook)            ; intermission backdrop: repaint between erase and draw
+        or a
+        call nz,bg_vram
+        ld hl,eraselist
         ld (elptr),hl
         ld ix,drawlist
 .d:     ld a,(ix+0)
@@ -835,8 +838,10 @@ render:
         ld e,(ix+2)
         call scraddr
         pop de
-        ; clip width
+        ; clip width (skip sprites entirely off the right edge)
         ld a,(col_)
+        cp 32
+        jp nc,.next
         ld b,a
         ld a,32
         sub b                   ; bytes available
@@ -876,6 +881,9 @@ render:
         ld c,e                  ; BC = sprite data
         ex de,hl                ; DE = VRAM
         ld h,MASKTAB/256
+        ld a,(skip_)
+        or a
+        jr nz,.row              ; clipped: the general loop skips the hidden bytes
         ld a,(w_)
         cp 3
         jr z,.row3
