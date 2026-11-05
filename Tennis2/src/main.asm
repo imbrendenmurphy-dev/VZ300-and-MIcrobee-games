@@ -300,6 +300,7 @@ tmp_k:  db 0
 srv_tim: db 0
 srv_hitz: db 0
 srv_x:  db 0
+srv_drops: db 0
 rally:  db 0
 ; score
 pts:    ds 2

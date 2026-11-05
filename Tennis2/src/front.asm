@@ -630,7 +630,7 @@ hof_anim:
         call idx_byte
         srl a
         ld c,a
-        ld a,52
+        ld a,55
         sub c
         ld c,a
         ld a,b
@@ -1106,7 +1106,7 @@ unlock_classic:
         ld de,mus_fire_1
         call jingle
         ld hl,s_unlock
-        ld e,9
+        ld e,52
         ld a,2
         call text_c
         jp save_records
@@ -1139,19 +1139,22 @@ exhib_setup:
         and 7
         ld (exopp),a
         call exhib_draw
-.n1:    bit 1,c
+.n1:    ld a,(inpnew)
+        ld c,a
+        bit 1,c
         jr z,.n2
         ld a,(exopp)
         dec a
         and 7
         ld (exopp),a
         call exhib_draw
-.n2:    ld a,c
+.n2:    ld a,(inpnew)
+        ld c,a
         and $0C
         jr z,.n3
         call next_court
         call exhib_draw
-.n3:    ld a,c
+.n3:    ld a,(inpnew)
         and $10
         jr nz,.go
         ld a,(keysnew)
@@ -1197,7 +1200,7 @@ exhib_draw:
         call play_sfx
         xor a
         ld de,$0010
-        ld bc,$2024
+        ld bc,$2028
         call fill_rect
         ld a,(exopp)
         ld e,16
@@ -1252,7 +1255,7 @@ twop_setup:
         jr z,.n
         call next_court
         call twop_court
-.n:     ld a,c
+.n:     ld a,(inpnew)
         and $10
         jr nz,.go
         ld a,(keysnew)
@@ -1745,10 +1748,6 @@ grand_slam:
         call page
         call draw_trophy
         ld hl,s_gs2
-        ld e,15
-        ld a,3
-        call text_c
-        ld hl,s_gs3
         ld e,58
         ld a,2
         call text_c

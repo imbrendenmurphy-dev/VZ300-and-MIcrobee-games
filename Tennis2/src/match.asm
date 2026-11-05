@@ -353,7 +353,7 @@ match_step:
         ld (demotim),hl
         ld a,h
         or l
-        jr z,.abort
+        jr z,.tout
         call check_start
         jr nz,.abort
 .nd:    ld a,(pt_over)
@@ -377,8 +377,10 @@ match_step:
         or a
         ret nz
         jp serve_setup
+.tout:  ld a,$FE                ; demo ran its time
+        jr .ab2
 .abort: ld a,$FF
-        ld (match_win),a
+.ab2:   ld (match_win),a
         ld a,1
         ld (match_over),a
         ret
@@ -436,6 +438,7 @@ toggle_sound:
 ; serve_setup: players to their serving positions, ball in the server's hand
 serve_setup:
         xor a
+        ld (srv_drops),a
         ld (pt_over),a
         ld (ball_st),a
         ld (ball_net),a
@@ -904,6 +907,9 @@ serve_logic:
         ld a,(ix+P_INPN)
         bit 4,a
         jp nz,serve_hit
+        ld a,(srv_drops)        ; let it drop twice and it's served for you
+        cp 2
+        jr nc,.cpu
         jr .fall
 .cpu:   ld hl,(ball_vz)
         bit 7,h
@@ -922,6 +928,8 @@ serve_logic:
         add hl,de
         ret c
         ; caught it: toss again
+        ld hl,srv_drops
+        inc (hl)
         xor a
         ld (ball_st),a
         ld a,40

@@ -34,6 +34,7 @@ static int watch_pc = -1; static int watch_hits = 0; static long long watch_last
 static int watch_over = 0; static unsigned long long prof[65536]; static const char *proffile=0; static int prof_from=0;
 static long long watch_min = 1LL<<60, watch_max = 0, watch_sum = 0; static int watch_n = 0;
 
+static const char *bvsave = 0; static int bv = 0, bvmap = 1; static uint8_t bvbank[2][0x2800]; static int bvwrites = 0;
 static uint8_t rd(void *u, uint16_t a) {
   if (a >= 0x6800 && a < 0x7000) {
     uint8_t r = 0x3f;
@@ -44,12 +45,14 @@ static uint8_t rd(void *u, uint16_t a) {
     return r;
   }
   if (a < 0x4000) return 0xff;
+  if (bv && a < 0x6800) return bvbank[(bvmap >> 1) & 1][a - 0x4000];
   snowchk(a);
   return mem[a];
 }
 static void wr(void *u, uint16_t a, uint8_t v) {
   if (a < 0x4000) { if (romwrite_warn < 5) { fprintf(stderr, "ROM write %04X\n", a); romwrite_warn++; } return; }
   if (a >= 0x6800 && a < 0x7000) { latch = v; return; }
+  if (bv && a >= 0x4000 && a < 0x6800) { bvbank[(bvmap >> 1) & 1][a - 0x4000] = v; return; }
   snowchk(a);
   if (a == 0x7FFF) { if (cur_line > mark_max && cur_line < 200) mark_max = cur_line; if (cur_line >= FS_LEN+TOPB && cur_line < 200) mark_late++; mark_hist[cur_line/16 < 8 ? cur_line/16 : 7]++; }
   mem[a] = v;
@@ -62,7 +65,8 @@ static uint8_t pin(z80 *z, uint8_t p) {
   }
   return 0xff;
 }
-static void pout(z80 *z, uint8_t p, uint8_t v) { (void)z; (void)p; (void)v; }
+// optional BennVenn SRAM model (-bennvenn): port $37 bit1 picks SRAM bank 1 or 3 at $4000-$67FF
+static void pout(z80 *z, uint8_t p, uint8_t v) { (void)z; if (bv && p == 0x37) { bvmap = v; if (bvwrites++ < 40 && getenv("BVLOG")) fprintf(stderr, "out37 %02X pc %04X\n", v, z->pc); } }
 
 static const uint32_t pal[8] = {0x07ff00, 0xffff00, 0x3b08ff, 0xcc003b, 0xffffff, 0x07e399, 0xff1cff, 0xff8100};
 
@@ -169,6 +173,9 @@ int main(int argc, char **argv) {
     else if (!strcmp(argv[i], "-watch")) watch_pc = strtol(argv[++i], 0, 16);
     else if (!strcmp(argv[i], "-prof")) { proffile = argv[++i]; prof_from = atoi(argv[++i]); }
     else if (!strcmp(argv[i], "-dump")) dumpspec = argv[++i];
+    else if (!strcmp(argv[i], "-bennvenn")) bv = 1;
+    else if (!strcmp(argv[i], "-loadsram")) { FILE *q = fopen(argv[++i], "rb"); if (q) { fread(bvbank, 1, sizeof bvbank, q); fclose(q); } }
+    else if (!strcmp(argv[i], "-savesram")) { bvsave = argv[++i]; }
     else if (!strcmp(argv[i], "-trace")) { char fn[200]; sscanf(argv[++i], "%x:%x:%199s", &tra, &trl, fn); trf = fopen(fn, "wb"); }
     else if (!strcmp(argv[i], "-poke")) { sscanf(argv[++i], "%d:%x:%x", &pkf[npk], &pka[npk], &pkv[npk]); npk++; }
   }
@@ -213,10 +220,12 @@ int main(int argc, char **argv) {
       render_line(line);
     }
     if (trf) fwrite(mem + tra, 1, trl, trf);
-    if (wantshot[frame] || (every && frame % every == 0)) {
+    if ((frame < 100000 && wantshot[frame]) || (every && frame % every == 0)) {
       char fn[256]; sprintf(fn, "%s_%05d.ppm", out, frame); save_png(fn);
     }
   }
+  if (bvsave) { FILE *q = fopen(bvsave, "wb"); fwrite(bvbank, 1, sizeof bvbank, q); fclose(q); }
+  if (bv) fprintf(stderr, "bennvenn: %d port $37 writes, final mapping %d\n", bvwrites, bvmap);
   if (proffile) { FILE *pf = fopen(proffile, "wb"); fwrite(prof, 8, 65536, pf); fclose(pf); }
   if (wav) { wav_hdr(wav, wavsamples); fclose(wav); }
   if (watch_pc >= 0 && watch_n) { fprintf(stderr, "overruns %d\n", watch_over); } if (watch_pc >= 0 && watch_n) fprintf(stderr, "watch %04X hits %d: min %lld max %lld avg %lld cycles (frame=71136)\n", watch_pc, watch_hits, watch_min, watch_max, watch_sum / watch_n);
