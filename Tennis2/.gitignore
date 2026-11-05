@@ -1,0 +1,6 @@
+build/
+__pycache__/
+*.pyc
+src/tennis2.bin
+tools/vzemu/vzemu
+orig/

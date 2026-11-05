@@ -1,0 +1,663 @@
+; =====================================================================
+;  TENNIS II - surfaces, run-time sprite build, court backdrop,
+;  scoreboard panel, umpire banners, crowd
+; =====================================================================
+
+; surface table, 16 bytes each:
+; latch, bgmap[4] (court,line,surround,accent), sprmap[4] (dark,light,teamA,teamB),
+; shadow colour, style (0 std / 1 classic), bounce rest, bounce keep, dw name, pad
+SURF_GRASS   equ 0
+SURF_CLAY    equ 1
+SURF_HARD    equ 2
+SURF_NIGHT   equ 3
+SURF_CLASSIC equ 4
+surftab:
+        db MODE1,      0,1,0,2,  2,1,2,3,  2, 0, 140, 236 : dw sn_grass   : db 0
+        db MODE1|CSS1, 3,0,3,2,  2,0,1,2,  2, 0, 196, 196 : dw sn_clay    : db 0
+        db MODE1|CSS1, 1,0,1,3,  2,0,2,3,  2, 0, 172, 220 : dw sn_hard    : db 0
+        db MODE1,      2,1,2,3,  0,1,3,0,  0, 0, 160, 232 : dw sn_night   : db 0
+        db MODE1,      0,1,0,2,  1,1,2,3,  2, 1, 150, 236 : dw sn_classic : db 0
+sn_grass:   db "GRASS",0
+sn_clay:    db "CLAY",0
+sn_hard:    db "HARD COURT",0
+sn_night:   db "NIGHT INDOOR",0
+sn_classic: db "CLASSIC 1984",0
+
+; set_surface: A = surface. Copies its table, rebuilds the sprites in its colours.
+set_surface:
+        ld (surface),a
+        add a,a
+        add a,a
+        add a,a
+        add a,a
+        ld l,a
+        ld h,0
+        ld de,surftab
+        add hl,de
+        ld de,s_latch
+        ld bc,16
+        ldir
+        ; default colouring: team A at the far end, team B near
+        ld hl,s_sprmap
+        ld de,bmap
+        ld bc,4
+        ldir
+        jp build_sprites
+
+; recolour the player sprites for whoever is at each end now
+sprites_for_ends:
+        ld hl,s_sprmap
+        ld de,bmap
+        ld bc,4
+        ldir
+        ld a,(pl0+P_END)
+        or a
+        ret z                   ; team A (pl0) is far: default
+        ld a,(s_sprmap+3)
+        ld (bmap+2),a
+        ld a,(s_sprmap+2)
+        ld (bmap+3),a
+        jp build_sprites
+
+; build a 256-byte recolour table at RMAP from the 4-entry map at HL
+build_rmap:
+        ld (mapptr),hl
+        ld hl,RMAP
+        ld c,0
+.b:     ld b,4
+        ld e,c
+        ld d,0
+.f:     ld a,e
+        rlca
+        rlca
+        ld e,a
+        and 3
+        push hl
+        push de
+        ld hl,(mapptr)
+        ld e,a
+        ld d,0
+        add hl,de
+        ld a,(hl)
+        pop de
+        pop hl
+        sla d
+        sla d
+        or d
+        ld d,a
+        djnz .f
+        ld (hl),d
+        inc l
+        inc c
+        jr nz,.b
+        ret
+
+; build_sprites: shift (4 positions) + recolour every sprite into SPRWORK,
+; and fill shtab (dw base, db pw=3, db h, dw shiftsize, dw 0) for render.
+build_sprites:
+        ld hl,bmap
+        call build_rmap
+        ld ix,sprsrc
+        ld iy,shtab
+        ld de,SPRWORK
+        ld b,NSPR
+.spr:   push bc
+        ld (iy+0),e
+        ld (iy+1),d
+        ld (iy+2),3
+        ld a,(ix+2)
+        ld (iy+3),a
+        ld (rowcnt),a
+        ; shift size = h*6
+        ld l,a
+        ld h,0
+        add hl,hl
+        ld b,h
+        ld c,l
+        add hl,hl
+        add hl,bc
+        ld (iy+4),l
+        ld (iy+5),h
+        ld a,(ix+3)
+        or a
+        ld a,3
+        jr z,.four
+        ld (iy+4),0             ; single, byte-aligned copy
+        ld (iy+5),0
+        xor a
+.four:  ld (lastsh),a
+        xor a
+.sh:    ld (shiftn),a
+        ld l,(ix+0)
+        ld h,(ix+1)
+        ld a,(rowcnt)
+        ld b,a
+.row:   push bc
+        ld a,(hl)
+        ld (rowd),a
+        inc hl
+        ld a,(hl)
+        ld (rowd+1),a
+        inc hl
+        ld a,(hl)
+        ld (rowd+3),a
+        inc hl
+        ld a,(hl)
+        ld (rowd+4),a
+        inc hl
+        xor a
+        ld (rowd+2),a
+        dec a
+        ld (rowd+5),a
+        ld a,(shiftn)
+        add a,a
+        jr z,.ns
+        ld b,a
+        push hl
+.sb:    ld hl,rowd
+        or a
+        rr (hl)
+        inc hl
+        rr (hl)
+        inc hl
+        rr (hl)
+        inc hl
+        scf
+        rr (hl)
+        inc hl
+        rr (hl)
+        inc hl
+        rr (hl)
+        djnz .sb
+        pop hl
+.ns:    push hl
+        ld hl,rowd
+        ld b,3
+.pr:    push bc
+        ld a,(hl)               ; data
+        inc hl
+        inc hl
+        inc hl
+        ld c,(hl)               ; mask
+        dec hl
+        dec hl
+        push hl
+        ld h,RMAP/256
+        ld l,a
+        ld a,c
+        cpl
+        and (hl)
+        pop hl
+        ex de,hl
+        ld (hl),c
+        inc hl
+        ld (hl),a
+        inc hl
+        ex de,hl
+        pop bc
+        djnz .pr
+        pop hl
+        pop bc
+        djnz .row
+        ld a,(lastsh)
+        ld b,a
+        ld a,(shiftn)
+        cp b
+        jr z,.sd
+        inc a
+        jr .sh
+.sd:
+        ld bc,4
+        add ix,bc
+        ld bc,8
+        add iy,bc
+        pop bc
+        dec b
+        jp nz,.spr
+        ld (sprend),de
+        ret
+
+; ---------------------------------------------------------------------
+; court_to_bg: unpack this surface's court into BG (recoloured). No queueing.
+court_to_bg:
+        ld hl,court_std
+        ld a,(s_style)
+        or a
+        jr z,.s
+        ld hl,court_classic
+.s:     ld de,BGBUF
+        call unpack
+        ld hl,s_bgmap
+        call build_rmap
+        ld hl,BGBUF
+        ld d,RMAP/256
+.r:     ld e,(hl)
+        ld a,(de)
+        ld (hl),a
+        inc hl
+        ld a,h
+        or a
+        jr nz,.r
+        ret
+
+; court_show: full court + panel, revealed with blinds
+court_show:
+        ld a,(s_latch)
+        ld (palbase),a
+        call dl_reset
+        call do_frame
+        call court_to_bg
+        ld a,1
+        ld (noq),a
+        call hud_draw
+        xor a
+        ld (noq),a
+        jp wipe_show
+
+; restore the banner box area from a fresh court copy (keeps HUD)
+court_restore:
+        call court_to_bg
+        ld a,(mode)
+        cp MODE_PRACTICE
+        call z,stamp_machine
+        ld a,1
+        ld (noq),a
+        call hud_draw
+        call crowd_reset
+        xor a
+        ld (noq),a
+        ld de,$0712
+        ld bc,$1805
+        call queue_rect
+        ld de,$0717
+        ld bc,$1805
+        call queue_rect
+        ld de,$071C
+        ld bc,$1805
+        jp queue_rect
+
+; ---------------------------------------------------------------------
+; banner: HL = line 1, DE = line 2 (or 0). Box over the far court.
+banner:
+        push de
+        push hl
+        ld a,1
+        ld (noq),a
+        ld a,(s_bgmap+1)
+        call colbyte_a
+        ld de,$0712
+        ld bc,$180F
+        call fill_rect
+        ld a,(s_bgmap)
+        call colbyte_a
+        ld de,$0813
+        ld bc,$160D
+        call fill_rect
+        ld a,(s_bgmap+1)
+        ld b,a
+        ld a,(s_bgmap)
+        ld c,a
+        ld a,b
+        ld b,c
+        call set_ink
+        pop hl
+        ld e,21
+        call print_court_c
+        pop hl
+        ld a,h
+        or l
+        jr z,.q
+        ld e,27
+        call print_court_c
+.q:     xor a
+        ld (noq),a
+        ld de,$0712
+        ld bc,$1805
+        call queue_rect
+        ld de,$0717
+        ld bc,$1805
+        call queue_rect
+        ld de,$071C
+        ld bc,$1805
+        jp queue_rect
+
+; A = colour 0..3 -> A = full byte of it
+colbyte_a:
+        push hl
+        ld hl,colbyte
+        add a,l
+        ld l,a
+        jr nc,.n
+        inc h
+.n:     ld a,(hl)
+        pop hl
+        ret
+
+; print HL centred on the court (centre column 19), row E
+print_court_c:
+        push hl
+        ld b,0
+.l:     ld a,(hl)
+        or a
+        jr z,.d
+        inc b
+        inc hl
+        jr .l
+.d:     ld a,b
+        inc a
+        srl a
+        ld b,a
+        ld a,19
+        sub b
+        ld d,a
+        pop hl
+        jp print
+
+; ---------------------------------------------------------------------
+; scoreboard panel (columns 0-3). The player at the far end is shown at the top.
+hud_draw:
+        ld a,(noq)
+        push af
+        ld a,1
+        ld (noq),a
+        call hud_draw2
+        pop af
+        ld (noq),a
+        or a
+        ret nz
+        ; copy the panel to the screen in four slices
+        ld de,$0000
+        ld bc,$0410
+        call queue_rect
+        ld de,$0010
+        ld bc,$0410
+        call queue_rect
+        ld de,$0020
+        ld bc,$0410
+        call queue_rect
+        ld de,$0030
+        ld bc,$0410
+        jp queue_rect
+hud_draw2:
+        ld a,(s_bgmap)
+        call colbyte_a
+        ld de,$0000
+        ld bc,$0440
+        call fill_rect
+        ld a,(s_bgmap+1)
+        call colbyte_a
+        and $CC
+        ld de,$001F
+        ld bc,$0401
+        call fill_rect
+        ld a,(mode)
+        cp MODE_PRACTICE
+        jp z,hud_practice
+        ; top = player at end 0
+        call top_player         ; IX = top, IY = bottom
+        push iy
+        ld a,0
+        call hud_one_top
+        pop ix
+        jp hud_one_bottom
+
+; IX = player at the far end, IY = near
+top_player:
+        ld ix,pl0
+        ld iy,pl1
+        ld a,(ix+P_END)
+        or a
+        ret z
+        ld ix,pl1
+        ld iy,pl0
+        ret
+
+hud_ink:        ; ink in IX's team colour on the court colour
+        ld a,(s_bgmap)
+        ld b,a
+        ld a,(ix+P_TEAM)
+        or a
+        ld a,(s_sprmap+2)
+        jr z,.a
+        ld a,(s_sprmap+3)
+.a:     jp set_ink
+
+hud_one_top:
+        call hud_ink
+        call hud_name_at        ; E = row
+        db 0
+        ld e,6
+        call hud_points
+        ld e,18
+        call hud_games
+        ld e,24
+        jp hud_sets
+hud_one_bottom:
+        call hud_ink
+        ld e,34
+        call hud_sets
+        ld e,40
+        call hud_games
+        ld e,47
+        call hud_points
+        call hud_name_at
+        db 59
+        ret
+
+; name + serve marker; the row follows the call as an inline byte
+hud_name_at:
+        pop hl
+        ld e,(hl)
+        inc hl
+        push hl
+        push de
+        ld l,(ix+P_NAME)
+        ld h,(ix+P_NAME+1)
+        ld d,0
+        call print
+        pop de
+        ld hl,s_serve
+        ld a,(server)
+        cp (ix+P_IDX)
+        jr z,.s
+        ld hl,s_noserve
+.s:     ld d,3
+        jp print
+s_serve:   db "@",0
+s_noserve: db " ",0
+
+hud_points:     ; E = row (big digits)
+        push de
+        call points_text        ; HL = 2-char string for IX
+        pop de
+        ld d,0
+        jp print2
+
+hud_games:
+        push de
+        ld hl,s_g
+        ld d,0
+        call print
+        pop de
+        ld a,(ix+P_IDX)
+        ld hl,games
+        call idx_byte
+        ld d,2
+        jp print_dec2
+hud_sets:
+        ld a,(setsneed)
+        cp 2
+        ret c
+        push de
+        ld hl,s_s
+        ld d,0
+        call print
+        pop de
+        ld a,(ix+P_IDX)
+        ld hl,sets
+        call idx_byte
+        ld d,2
+        jp print_dec2
+s_g: db "G",0
+s_s: db "S",0
+
+; A = (HL + A)
+idx_byte:
+        add a,l
+        ld l,a
+        jr nc,.n
+        inc h
+.n:     ld a,(hl)
+        ret
+
+; points_text: IX = player -> HL = "00"/"15"/"30"/"40"/"AD"/tiebreak count
+points_text:
+        ld a,(ix+P_IDX)
+        ld e,a
+        xor 1
+        ld hl,pts
+        call idx_byte
+        ld d,a                  ; opponent's points
+        ld a,e
+        ld hl,pts
+        call idx_byte           ; mine
+        ld e,a
+        ld a,(tiebreak)
+        or a
+        jr nz,.tb
+        ld a,e
+        cp 3
+        jr c,.plain
+        ld a,d
+        cp 3
+        jr c,.plain3
+        ld a,e
+        cp d
+        jr z,.forty
+        jr c,.forty
+        ld hl,s_ad
+        ret
+.plain3:
+.forty: ld hl,s_40
+        ret
+.plain: ld a,e
+        add a,a
+        add a,a
+        ld l,a
+        ld h,0
+        ld de,ptnames
+        add hl,de
+        ret
+.tb:    ld a,e
+        ld hl,tbuf
+        ld b,'0'-1
+.t:     inc b
+        sub 10
+        jr nc,.t
+        add a,10+'0'
+        ld (hl),b
+        inc hl
+        ld (hl),a
+        inc hl
+        ld (hl),0
+        ld hl,tbuf
+        ret
+ptnames: db "00",0,0,"15",0,0,"30",0,0
+s_40:    db "40",0
+s_ad:    db "AD",0
+
+hud_practice:
+        ld a,(s_sprmap+3)
+        ld b,a
+        ld a,(s_bgmap)
+        ld c,a
+        ld a,b
+        ld b,c
+        call set_ink
+        ld hl,s_balls
+        ld de,$0001
+        call print
+        ld a,(pr_balls)
+        ld de,$000C
+        call print2_dec
+        ld hl,s_hits
+        ld de,$0019
+        call print
+        ld a,(pr_hits)
+        ld de,$0024
+        call print2_dec
+        ld hl,s_pts
+        ld de,$0031
+        call print
+        ld hl,pr_score
+        ld b,2
+        ld de,$003A
+        jp print_bcd
+s_balls: db "BALL",0
+s_hits:  db "HITS",0
+s_pts:   db "PTS",0
+
+; big two-digit number A at D/E
+print2_dec:
+        ld hl,tbuf
+        ld b,'0'-1
+.t:     inc b
+        sub 10
+        jr nc,.t
+        add a,10+'0'
+        ld (hl),b
+        inc hl
+        ld (hl),a
+        inc hl
+        ld (hl),0
+        ld hl,tbuf
+        jp print2
+
+; ---------------------------------------------------------------------
+; crowd: the strip along the top cheers by flipping colours (XOR $AA)
+crowd_cheer:    ; A = frames
+        ld (crowdtim),a
+        ret
+crowd_tick:
+        ld a,(crowdtim)
+        or a
+        ret z
+        dec a
+        ld (crowdtim),a
+        and 3
+        ret nz
+        ld a,(crowdflip)
+        xor 1
+        ld (crowdflip),a
+crowd_xor:
+        ld hl,BGBUF+5
+        ld c,4
+.r:     ld b,27
+        push hl
+.b:     ld a,(hl)
+        xor $AA
+        ld (hl),a
+        inc hl
+        djnz .b
+        pop hl
+        ld de,32
+        add hl,de
+        dec c
+        jr nz,.r
+        ld de,$0500
+        ld bc,$1B04
+        jp queue_rect
+crowd_reset:
+        xor a
+        ld (crowdtim),a
+        ld (crowdflip),a
+        ret
+crowd_settle:   ; make sure the crowd ends unflipped
+        xor a
+        ld (crowdtim),a
+        ld a,(crowdflip)
+        or a
+        ret z
+        xor a
+        ld (crowdflip),a
+        jr crowd_xor
