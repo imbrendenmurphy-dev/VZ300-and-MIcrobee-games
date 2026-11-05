@@ -1,0 +1,27 @@
+# Development notes (working state)
+
+- Build: `./build.sh` (mkdata, mkfront, zasm main + loader, build_disk -> build/UBTYPE.DS8)
+- Test harness: `tools/run.py boot(stage)` (stage None = normal boot via front end), `tools/boottest.py <bn60.rom> <outdir>` boots the DS8 with the real ROM (rom staged at /tmp/claude-0/s/bn60.rom from C:\Users\Owner\Documents\Codex\2026-10-29\co\work\bn60.rom)
+- Fidelity: `tools/fidelity.py N` (VZ vs MB frame-by-frame; only death frames differ = harness artifact)
+- Performance: `tools/perfcmp.py [stages]` VZ vs MB per stage start + boss. Stage 1 start: VZ 22.0 fps / MB 21.2; boss: VZ 20.5 / MB 13.4 (needs optimising: compose 19%, drawspr 17%, cell 12%, restore 7%).
+- Front end overlay: src/front.asm at FEBASE=PROFR (CD00..E56B), stored in block 1, copied in by fe_load (src/demo.asm). OCC=QA, LOGOK=HUDA.
+- Loader: src/loader.asm (from Lantern), stages files to 24-27 then final stage at F000 copies to 1,4,5 and 8000; CP/M lower block is 2 in the model; must not jump to 8000 with the video window on.
+- Disk: 147/196 blocks; loading takes ~38 s in the model.
+- Music: VZ player, 122 T loop; melody-only rows play flat as on the VZ (bass reload path 144 T) - faithful. Title callback ~13K T/frame (19.5% silent) vs VZ 33% silent at ~16 Hz.
+- Saved to GitHub repo imbrendenmurphy-dev/vz300-and-microbee-games (clone /home/claude/vz300-and-microbee-games, folder uB-Type), commit 8adea96 first WIP; PC copy at C:\Users\Owner\Documents\GitHub\uBType_Microbee (via /mnt/user-data/outputs/uBType_Microbee + device_commit_files). tools/sync.sh copies into both staging places.
+- Commit attribution lines: Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com> / Claude-Session: https://claude.ai/code/session_01NPZwRFZyhNF8Gh7vfDQ8ht
+- Remaining: boss performance, sound comparison note, README/verification report, release folder with DS8, push + PC copy.
+- Compose rewritten (unrolled cmp_chain, BGBUF ALIGN 16): stage-1 boss MB 14.5 fps (busy 200K) vs VZ 20.5. Boss frames: ~54 cells/frame (29 composed, 17 fast, 7 cell_over), 7.6 enemy bullets. Next: find which sprites cost most, reduce.
+- Boss cells per frame (stage 1 boss): BGUN0 13.2 composed, CORE1 6.4, BGUN1 4.8, CORE0 1.3, EBUL 3.6 composed (of 18.6 cells). Plan: cache composed glyphs of boss-part sprites (SP_CORE0..SP_HATCH1) while scroll stopped, in PCG banks 14 (page A)/15 (page B) + mirror copy; CSLOT=254 marks cached cells; CMAP $E000 (2K) code per cell; CTABA $E800/CTABB $EA00 8 entries x 64; SLOTQ $EC00 for cell_over queue index.
+- Glyph cache implemented (src/dcache.asm; CMAP/CTABA/CTABB/SLOTQ now ds in vars, vars_end exactly EE00 - no room left there!). Stage-1 boss: MB 16.2 fps (busy 168K) vs VZ 20.5 (142K). Start: 21.1 vs 22.0. Still short; next profile again.
+- Labels dc_ok/dc_n clashed with vzeng.asm -> renamed dch_ok/dch_n.
+- Cache verified: boss parts hit every frame once boss settled. Remaining boss cost: drawspr_nc 15.6% (~1.5K/call), cell 10.8%, restore 9.1%, apply_queue 7.4%; enemy bullets ~9 calls/18 cells per frame, ship 7.5 cells.
+- Full perf table running in background -> /tmp/claude-0/s/perfall.txt (tools/perfcmp.py all stages). Screenshots so far in /tmp/claude-0/s/: fe_mid.png (title pages), flow.png (intro/gameover/names), femono.png, demo.png, boot/boot_all.png, cm.png; docs/screenshots has wip_*.
+- Sound check scripts: /tmp/claude-0/s/snd2.py (pitch), cbt.py (callback gap MB), vzcb.py (VZ gap).
+- Next steps: README + verification report (docs/README.md -> uB-Type/README.md), release/UBTYPE.DS8, sync.sh, push repo (git -C /home/claude/vz300-and-microbee-games: fetch origin main, rebase, push), device_commit_files to C:\Users\Owner\Documents\GitHub\uBType_Microbee\ (README.md, uBType_source.zip, screenshots/*, UBTYPE.DS8).
+- Key facts for report: VZ baseline same script stage1 start 22.0 fps/65% full, MB 21.1/65%. Fidelity 1500 frames: only death-restart frames differ (harness). Disk boot test passes: CP/M A> after 118 frames, DIR lists 23 files, game display 38.4 s after typing UBTYPE, colour choice, title, game starts (lives 3).
+- Music: pitch tables for 122T loop at 3.375MHz (R=27664); identical loop structure to VZ so relative pitch exact; title callback MB ~13K T per 67.5K frame (19.5% gap at 50Hz) vs VZ ~71K per 216K tick (33% gap at ~16Hz) -> MB cleaner, less chop.
+- Tearing: game flips pages in vblank (R12/R13) ; vram_display_writes counter exists in emulator (pp.vram_display_writes()).
+- PERF TABLE (VZ fps / MB fps): st1 start 22.0/21.1 boss 20.5/16.2; st2 start 20.5/16.0 boss 21.0/10.8; st3 start 23.0/21.3 boss 20.1/9.9; st4 start 22.2/21.7 boss 20.6/15.4; st5 start 20.6/14.6 boss 20.4/11.5. => MB much slower in busy scenes & bosses. MAJOR TODO: optimise sprite pipeline (drawspr_nc per-call overhead, cell, restore, apply_queue) and big bosses (st2/3 boss 10 fps). Profile st3 boss & st2 start first.
+- St3 boss (serpent): SERPA 12 calls/f, 53 cells/f (16 composed) dominates; bullets 20 cells; ship 7.5. drawspr_nc 19.8%, cell 17.9%. => per-cell + per-call cost too high; serpent segments are big sprites (4.5 cells each).
+- Profiling scripts: /tmp/claude-0/s/bossprof.py ST BOSS(0/1), /tmp/claude-0/s/sprcount.py ST BOSS (cells per sprite id).

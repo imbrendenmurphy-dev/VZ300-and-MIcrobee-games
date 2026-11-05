@@ -53,6 +53,7 @@ BK_BOSS     EQU 7           ; boss body (banks 7-9)
 BK_POOLA    EQU 10          ; sprite cells, page A (banks 10-11)
 BK_POOLB    EQU 12          ; sprite cells, page B (banks 12-13)
 BK_SPARE    EQU 14
+BK_CACHE    EQU 14          ; boss-part glyph cache: 14 page A, 15 page B
 
 BLANK_CODE  EQU $80         ; glyph 0 of bank 0 is blank
 

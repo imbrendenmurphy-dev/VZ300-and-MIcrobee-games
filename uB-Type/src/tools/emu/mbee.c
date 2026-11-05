@@ -39,6 +39,7 @@ typedef struct {
     uint64_t *spk_t; uint8_t *spk_v; int spk_n, spk_cap;
     /* breakpoints / pc watch */
     uint8_t bp[65536];
+    int ww_blk, ww_lo, ww_hi, ww_hit; uint16_t ww_pc, ww_a, curpc;
     uint8_t watch[65536];
     uint64_t *ev_t; uint16_t *ev_pc; int ev_n, ev_cap;
     int profiling;
@@ -114,9 +115,11 @@ static void mwr(void *ctx, uint16_t a, uint8_t v) {
     }
     if (a >= 0x8000) {
         if (!(m->p50 & 4)) { m->rom_writes++; return; }
+        if (m->ww_blk == 100 && a >= m->ww_lo && a < m->ww_hi && !m->ww_hit) { m->ww_hit = 1; m->ww_pc = m->curpc; m->ww_a = a; }
         m->blocks[0][a - 0x8000] = v;
         return;
     }
+    if (m->lower == m->ww_blk && a >= m->ww_lo && a < m->ww_hi && !m->ww_hit) { m->ww_hit = 1; m->ww_pc = m->curpc; m->ww_a = a; }
     m->blocks[m->lower][a] = v;
 }
 
@@ -290,6 +293,7 @@ int mb_run(M *m, uint64_t target) {
     Z80 *z = &m->z;
     while (m->tick < target) {
         uint16_t pc = z->pc;
+        m->curpc = pc;
         if (m->watch[pc]) {
             if (m->ev_n >= m->ev_cap) {
                 m->ev_cap = m->ev_cap ? m->ev_cap * 2 : 4096;
@@ -302,6 +306,10 @@ int mb_run(M *m, uint64_t target) {
         m->tick += t;
         if (m->profiling) m->prof[pc] += t;
         if (m->bp[z->pc]) return 1;
+        if (m->ww_hit == 1) { m->ww_hit = 2; return 2; }
     }
     return 0;
 }
+
+void mb_set_ww(M *m, int blk, int lo, int hi) { m->ww_blk = blk; m->ww_lo = lo; m->ww_hi = hi; m->ww_hit = 0; }
+int mb_ww(M *m, int *a) { *a = m->ww_a; return m->ww_hit ? m->ww_pc : -1; }

@@ -551,8 +551,9 @@ class Asm:
             name = label
             if not label.startswith('@'):
                 self.glabel = label
-        if self.final and name in self.syms and self.syms[name] != value and name not in self.redefinable:
-            pass
+        if self.final and name in self.defset:
+            raise AsmError('label defined twice: ' + name)
+        self.defset.add(name)
         if self.syms.get(name) != value:
             self.changed = True
         self.syms[name] = value
@@ -786,12 +787,14 @@ class Asm:
             self.disp = 0
             self.macro_n = 0
             self.redefinable = set()
+            self.defset = set()
             self.run_lines(self.read_lines(self.main))
             snap = dict(self.syms)
             if not self.unresolved and snap == prev:
                 break
             prev = snap
         self.final = True
+        self.defset = set()
         self.mem = bytearray(65536)
         self.written = bytearray(65536)
         self.pc = 0

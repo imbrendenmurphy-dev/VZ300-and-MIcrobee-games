@@ -42,7 +42,7 @@ def boot(stage=0, mono=False, S=None):
     pp = Mbee()
     load_blocks(pp)
     if 'protostage' in S:
-        pp.blocks[0][S['protostage'] - 0x8000] = stage
+        pp.blocks[0][S['protostage'] - 0x8000] = 255 if stage is None else stage
     if mono and 'mono' in S:
         pp.blocks[0][S['mono'] - 0x8000] = 1
     pp.out(0x50, blk_port(2))

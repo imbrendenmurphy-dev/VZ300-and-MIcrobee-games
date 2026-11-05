@@ -61,6 +61,11 @@ T_CORE	equ 19
 start:	di
 	ld sp,STACKTOP
 	im 1
+	ld hl,code_end		; variables start at zero
+	ld de,code_end+1
+	ld bc,vars_end-code_end-1
+	ld (hl),0
+	ldir
 	call hw_init
 	ld hl,$1234
 	ld (rseed),hl
@@ -68,8 +73,12 @@ start:	di
 	ld (trainer),a
 	ld (demomode),a
 	call gfx_load
-	call init_hiscores
-	jp title
+	ld a,(protostage)	; (test harness: straight into a stage)
+	inc a
+	jp z,fe_boot
+	dec a
+	ld (lvlnum),a
+	jp new_game_at
 
 	INCLUDE "core.asm"
 	INCLUDE "eng.asm"
@@ -80,7 +89,8 @@ start:	di
 	INCLUDE "enemy.asm"
 	INCLUDE "boss.asm"
 	INCLUDE "bosscell.asm"
-	INCLUDE "front_stub.asm"
+	INCLUDE "demo.asm"
+	INCLUDE "dcache.asm"
 	INCLUDE "../build/vzdata.inc"
 SP_BIG	equ NSPR
 code_end:
@@ -98,10 +108,8 @@ inpedge	ds 1
 joyok	ds 1
 rseed	ds 2
 pbank	ds 1
-dbgcol	ds 2
 trainer	ds 1
 demomode ds 1
-mono	ds 1
 sats	ds 1
 sx1	ds 1
 sy1	ds 1
@@ -191,6 +199,7 @@ bandrow	ds 1
 bandcol	ds 1
 starcol	ds 1
 colbuf	ds 3*PROWS
+	ALIGN 16
 BGBUF	ds 16
 QA	ds 5*270
 QB	ds 5*270
@@ -211,9 +220,29 @@ PROFR	ds 256
 TRING	ds 64*16
 LVLBUF	ds 2048
 BOSSBUF	ds $490
+; boss-part glyph cache (dcache.asm)
+	ALIGN 256
+CMAP	ds 2048			; cached glyph code per ring cell
+CTABA	ds 512			; boss-part caches, page A (8 x 64)
+CTABB	ds 512			; page B
+SLOTQ	ds 256			; pool slot -> queue entry
 vars_end:
 STACKTOP equ $EFFE
 	ASSERT vars_end <= $EE00
 
 	DISPLAY "code end: ",/H,code_end,"  vars end: ",/H,vars_end
 	SAVEBIN "../build/UBTYPE.BIN",$8000,code_end-$8000
+	ASSERT code_end <= $C000	; (the loader copies 4000h bytes)
+
+; =====================================================================
+;  the front-end overlay: assembled to run at FEBASE, over the level
+;  buffers; stored in block 1 (FRONT.BNK) and copied in when needed
+; =====================================================================
+FEBASE	equ PROFR
+	ORG FEBASE
+	INCLUDE "front.asm"
+fe_end:
+FE_SIZE	equ fe_end-FEBASE
+	ASSERT fe_end <= $EE00
+	DISPLAY "front end: ",/H,FEBASE,"-",/H,fe_end
+	SAVEBIN "../build/FRONT.BNK",FEBASE,FE_SIZE

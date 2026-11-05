@@ -78,6 +78,10 @@ render:
 	ld (pool_slot),a
 	ld (qcount),a
 	ld (qslot0),a
+	ld (caching),a
+	ld a,(scrollon)		; boss-part glyph caches only hold while
+	or a			; the scenery stands still
+	call nz,dc_clear
 	call restore		; (also points qptr at this page's queue)
 	call vschk
 	call update_cols
@@ -725,6 +729,16 @@ st_code	db 0
 ;  descriptor (16 bytes): W0, dat0, ct0, W1, dat1, ct1, H, 2H, hcm, 4hcm, nk
 ; ---------------------------------------------------------------------
 drawspr:
+	cp SP_CORE0		; boss parts (core, guns, hatches)
+	jr c,drawspr_nc
+	cp SP_HATCH1+1
+	jr nc,drawspr_nc
+	ld e,a
+	ld a,(scrollon)
+	or a
+	ld a,e
+	jp z,ds_cached
+drawspr_nc:
 	ld l,a
 	ld h,0
 	add hl,hl
@@ -1007,6 +1021,8 @@ cell:	ld (cl_ink),a
 	ld a,(hl)		; CSLOT
 	or a
 	jr z,.new
+	cp 254
+	jr z,.cache
 	inc a
 	jp nz,cell_over		; another sprite's glyph is here already
 	; ---- boss body underneath (marked FFh)
@@ -1017,6 +1033,31 @@ cell:	ld (cl_ink),a
 	ld a,h
 	xor $70^$60
 	ld h,a
+	call .alloc
+	ret z
+	push hl
+	jr .comp
+.cache:	; a cached boss-part glyph underneath: compose onto a copy of it
+	xor a
+	ld (dch_ok),a		; (a cached sprite over another: don't keep)
+	push hl
+	ld a,h
+	and 7
+	or CMAP>>8
+	ld d,a
+	ld e,l
+	ld a,(de)
+	ld (cl_bgc),a
+	ld a,(rpage)
+	add a,BK_CACHE
+	ld (cl_bgb),a
+	ld a,h
+	xor $60^$78
+	ld h,a
+	ld a,(hl)		; SHK
+	and $F0
+	ld (cl_pap),a
+	pop hl
 	call .alloc
 	ret z
 	push hl
@@ -1068,19 +1109,33 @@ cell:	ld (cl_ink),a
 	ld c,a
 	jr .q
 .alloc:	; HL = CSLOT address: take the next pool slot -> NZ, HL = SHC address
-	ld a,(pool_slot)
+	ld a,(caching)
+	or a
+	jr z,.al
+	ld (hl),254		; a cached glyph: not a pool slot
+	jr .alc
+.al:	ld a,(pool_slot)
 	cp 255
 	ret z			; pool full
 	inc a
 	ld (hl),a		; slot + 1
 	ld (pool_slot),a
-	ld a,h
+.alc:	ld a,h
 	xor $60^$70
 	ld h,a
 	or 1
 	ret
 .q:	; queue entry: SHC address, code, bank, colour
-	ld hl,(qptr)
+	ld a,(caching)
+	or a
+	jr nz,.qn
+	ld a,(pool_slot)
+	dec a
+	ld l,a
+	ld h,SLOTQ>>8
+	ld a,(qcount)
+	ld (hl),a		; slot -> its queue entry
+.qn:	ld hl,(qptr)
 	ld (hl),e
 	inc hl
 	ld (hl),d
@@ -1148,76 +1203,111 @@ bg_fetch:
 	MEMV BLK_WORK
 	ret
 
-; BGBUF + sprite column -> PCG at DE. Cell lines 0..zt-1 and zt+n..15 keep
-; the background; lines zt.. show (background AND mask) OR data.
+; BGBUF + sprite column -> PCG at DE (a glyph: 16-aligned). Cell lines
+; 0..zt-1 and zt+n..15 keep the background; lines zt.. show (background
+; AND mask) OR data. The sprite lines run through an unrolled chain
+; entered n lines from its end (56 T-states a line).
 compose:
-	ld ix,BGBUF
 	ld a,(ds_st)
 	ld c,0			; zt
 	or a
 	jp p,.p
 	neg
 	ld c,a
-.p:	ld a,c
-	or a
-	jr z,.m0
-	ld b,a
-.t:	ld a,(ix+0)		; background above the sprite
-	ld (de),a
-	inc ix
-	inc e
-	djnz .t
-.m0:	; sprite lines in this cell
-	ld a,16
+.p:	ld a,16
 	sub c
-	ld b,a			; room
+	ld b,a			; room in the cell
 	ld a,(ds_st)
 	or a
 	jp p,$+5
 	xor a			; s0
-	ld c,a
+	ld l,a
 	ld a,(ds_h)
-	sub c			; lines left
+	sub l			; lines left in the sprite
 	cp b
 	jr nc,$+3
 	ld b,a			; n = min(room, left)
 	ld a,b
 	ld (cp_n),a
+	; background above the sprite
+	ld a,c
 	or a
-	jr z,.bot
+	jr z,.nt
+	push bc
+	ld b,0
+	ld hl,BGBUF
+	ldir
+	pop bc
+.nt:	ld a,b
+	or a
+	jr z,.bot0
+	push iy
+	; chain entry: cmp_end - 10n
+	add a,a
+	ld l,a
+	add a,a
+	add a,a
+	add a,l			; 10n
+	ld l,a
+	ld a,cmp_end&255
+	sub l
+	ld l,a
+	ld a,cmp_end>>8
+	sbc a,0
+	ld h,a
+	ld (.go+1),hl
+	; pointers: BC background, HL mask, HL' data, DE' destination
+	ld a,c
+	add a,BGBUF&255
+	ld c,a
+	ld b,BGBUF>>8
+	ld hl,(ds_src)
+	push hl
 	push de
-	ld hl,(ds_src)		; data at line s0
 	ld a,(ds_h)
 	ld e,a
 	ld d,0
-	push hl
-	add hl,de		; mask at line s0
+	add hl,de
+	exx
 	pop de
+	pop hl
+	exx
+.go:	call cmp_end
+	exx
 	push de
-	pop iy			; IY = data
+	exx
 	pop de
-.m:	ld a,(ix+0)
-	and (hl)
-	or (iy+0)
-	ld (de),a
-	inc hl
-	inc iy
-	inc ix
-	inc e
-	djnz .m
-.bot:	; background below
-	ld a,e
+	ld h,b
+	ld l,c			; background below
+	pop iy
+	jr .bot
+.bot0:	ld hl,BGBUF
+	ld a,c
+	add a,l
+	ld l,a
+.bot:	ld a,e
 	and 15
 	ret z
-	ld b,a
-	ld a,16
-	sub b
-	ld b,a
-.u:	ld a,(ix+0)
+	neg
+	add a,16
+	ld c,a
+	ld b,0
+	ldir
+	ret
+cmp_chain:
+	REPT 16
+	ld a,(bc)
+	inc c
+	and (hl)
+	inc hl
+	exx
+	or (hl)
+	inc hl
 	ld (de),a
-	inc ix
 	inc e
-	djnz .u
+	exx
+	ENDR
+cmp_end:
 	ret
 cp_n	db 0
 
@@ -1254,13 +1344,13 @@ cell_over:
 	ld a,(pool_bank)
 	or LV_SCREEN
 	out (P_LV),a
-	; the sprite on top gives the cell its colour: entry = qbase + 5*(slot+qslot0) + 4
-	ld a,(qslot0)
-	add a,c
-	ld l,a
+	xor a
+	ld (dch_ok),a		; (caching: this cell can't be kept)
+	; the sprite on top gives the cell its colour: entry = qbase + 5*n + 4
+	ld l,c
+	ld h,SLOTQ>>8
+	ld l,(hl)		; n = this slot's queue entry
 	ld h,0
-	jr nc,$+3
-	inc h
 	ld e,l
 	ld d,h
 	add hl,hl
@@ -1490,7 +1580,6 @@ ds_ra	dw 0
 ds_st	db 0
 ds_s0	db 0
 ds_x	dw 0
-ds_j0	db 0
 ds_zb	db 0
 ds_src	dw 0
 cl_ink	db 0
@@ -1505,3 +1594,4 @@ poolbase db 0
 qbase	dw 0
 qcount	db 0
 qslot0	db 0
+caching	db 0

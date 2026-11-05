@@ -55,7 +55,19 @@ hud_init:
 	ld hl,hs_help
 	ld de,HUDC+64+40
 	call hstr
-	ld a,G_LBRK
+	ld a,(demomode)
+	or a
+	jr z,.nd
+	ld hl,hs_demo
+	ld de,HUDC+64+50
+	call hstr
+	ld hl,HUDK+64+50
+	ld b,13
+	ld a,$0B		; yellow
+.dc:	ld (hl),a
+	inc hl
+	djnz .dc
+.nd:	ld a,G_LBRK
 	ld (HUDC+21),a
 	ld a,G_RBRK
 	ld (HUDC+46),a
@@ -94,6 +106,7 @@ hs_st	db "ST",0
 hs_speed	db "SPEED",0
 hs_pod	db "POD",0
 hs_help	db "HELP",0
+hs_demo	db "DEMO - SPACE",0
 
 hud_update:
 	; beam meter: charge 0..48 -> 0..192 pixels over 24 cells

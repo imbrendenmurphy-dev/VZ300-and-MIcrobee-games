@@ -4,30 +4,56 @@
 
 Directed and playtested by BPM. Code, graphics and music by Claude (Anthropic).
 
-**Status: in development, no playable disk yet.** This folder is updated as work goes on.
+**Status: playable from the disk image, still being optimised.** So far it has been tested only in an emulator (the Premium Plus model in `src/tools/emu`), not on real hardware.
 
-## Done so far
+## Running it
 
-- **Engine prototype, measured.** The game runs on the Premium Plus at 64×16 characters of 8×16 PCG cells (512×256 pixels, exactly 4× the VZ300's 128×64). Scrolling uses the 6545 start address with two screen pages and pre-shifted glyphs: one VZ pixel (4 Microbee pixels) per frame, as on the VZ. Pages flip in vertical blank, so there is no tearing. In the emulator's measurements under the same firing script, it averages 21.7 frames per second against the VZ300 original's 21.4.
-- **VZ-TYPE game logic ported.** Player, pod, weapons, enemies, bosses, scoring and level data come from the VZ source. A frame-by-frame comparison against the original running in a VZ300 model shows the same game state on every frame checked (4,000 frames).
-- **New artwork.** All eight stages have new terrain, sprites, capsules, explosions and boss bodies drawn for the PCG display.
-- **Monochrome mode.** Each stage has a second glyph set drawn for a monochrome monitor (outlined shapes, patterned shading instead of colour).
+1. Boot `release/UBTYPE.DS8` on a Premium Plus with 1MB of RAM. The disk boots to the CP/M `A>` prompt. It has no Microbee shell.
+2. Type `UBTYPE` and press RETURN. The loader fills the memory banks, which took about 40 seconds in the emulator.
+3. Choose your monitor: **C** for colour, **M** for monochrome.
 
-## Still to do
+| Key | Action |
+|---|---|
+| Q A O P or cursor keys | move |
+| SPACE | fire; hold it to charge the beam |
+| M or Z | launch or recall the pod |
+| H | pause (X while paused ends the game) |
+| ESC or RETURN | back to the title |
+| T on the title | trainer mode (no high scores) |
 
-- Title screen, attract sequence with a gameplay demo, information pages, stage intro, game over, name entry and congratulations screens
-- Music (the VZ tunes, retimed for the Microbee)
-- CP/M loader and the DS8 boot disk (boots to the CP/M prompt, no shell)
-- Full verification report
+A joystick on the parallel port also works.
 
-## Screenshots (emulator)
+## What's in it
 
-- `screenshots/wip_colour_stages.png`: six stages in colour
-- `screenshots/wip_mono_stages.png`: the same in monochrome mode
-- `screenshots/wip_colour_vs_mono.png`: colour and mono side by side
+- **Display:** 64×16 characters of 8×16 PCG cells (512×256, exactly 4× the VZ300's 128×64).
+- **Scrolling:** smooth and tear-free. The game uses the 6545 start address with two screen pages and pre-shifted glyphs, scrolls one VZ pixel (4 Microbee pixels) per frame as on the VZ, and flips pages in vertical blank.
+- **Gameplay:** VZ-TYPE's own game logic, ported. A frame-by-frame comparison against the original running in a VZ300 model matches on every frame, apart from the frames where a life restarts. Those frames differ only because of how the test harness lines the two machines up.
+- **Graphics:** new artwork for all eight stages (terrain, sprites, capsules, explosions, boss bodies), plus a second glyph set made for monochrome monitors.
+- **Front end:**
+  - choice of colour or monochrome monitor
+  - title with the μB-TYPE logo, glint, starfield and scroller
+  - hall of fame, how to play and power-ups pages
+  - attract mode: the real game on a different stage each time, flown by an autopilot
+  - stage intro, game over, name entry, and congratulations after stage 8
+- **Music:** VZ-TYPE's two-voice tunes, retimed for 3.375 MHz.
 
-Testing so far is in an emulator only (the Premium Plus model in `src/tools/emu`), not on real hardware.
+## Performance so far (emulator, the same scripted input on both machines)
+
+| Stage | Part | VZ300 fps | Microbee fps |
+|---|---|---|---|
+| 1 Outer Hull | start | 22.0 | 21.1 |
+| 1 Outer Hull | boss | 20.5 | 16.2 |
+| 2 The Hive | start | 20.5 | 16.0 |
+| 2 The Hive | boss | 21.0 | 10.8 |
+| 3 Rock Belt | start | 23.0 | 21.3 |
+| 3 Rock Belt | boss | 20.1 | 9.9 |
+| 4 Crystal Vein | start | 22.2 | 21.7 |
+| 4 Crystal Vein | boss | 20.6 | 15.4 |
+| 5 Dreadnought | start | 20.6 | 14.6 |
+| 5 Dreadnought | boss | 20.4 | 11.5 |
+
+Quieter scenes match the VZ. Busy scenes and the big bosses are slower, because every sprite cell is rebuilt as a PCG glyph each frame. Speeding up the sprite pipeline is the current work.
 
 ## Building
 
-Needs Python 3 with numpy and Pillow, plus a C compiler for the test emulator. Run `./build.sh` from `src/`. The outputs go to `src/build/`.
+Needs Python 3 with numpy and Pillow, plus gcc for the test emulator. Run `./build.sh` in `src/`. It builds everything into `src/build/`, including `UBTYPE.DS8`. `src/tools/boottest.py <boot ROM> <dir>` boots the disk in the emulator with a Microbee boot ROM, which is not included.

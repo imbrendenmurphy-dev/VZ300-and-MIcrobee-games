@@ -412,6 +412,7 @@ keytest:
 
 ; key codes
 K_A	equ 1
+K_C	equ 3
 K_H	equ 8
 K_M	equ 13
 K_O	equ 15

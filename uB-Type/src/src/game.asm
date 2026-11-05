@@ -4,10 +4,12 @@
 
 new_game:
 	xor a
+	ld (lvlnum),a
+new_game_at:			; (the attract demo starts on other stages)
+	xor a
 	ld (score),a
 	ld (score+1),a
 	ld (score+2),a
-	ld (lvlnum),a
 	ld (loopn),a
 	ld a,3
 	ld (lives),a
@@ -572,6 +574,9 @@ upd_player:
 ptpts:	db 6,2, 1,1, 1,3, 4,1, 4,3	; terrain test points (fins trimmed by a pixel)
 
 kill_player:
+	ld a,(demomode)		; the attract demo's ship can't be hit
+	or a
+	ret nz
 	ld a,(pstate)
 	or a
 	ret nz
