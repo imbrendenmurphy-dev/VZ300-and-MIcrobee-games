@@ -140,7 +140,7 @@ set_obj:
         push hl
         push de
         call tile_addr
-        ld de,MAPSIZE
+        ld de,OBJOFF
         add hl,de
         ld (hl),a
         pop de
@@ -183,18 +183,14 @@ centre_view:
         sub VIEWW/2
         jr nc,.x1
         xor a
-.x1:    cp MAPW-VIEWW
-        jr c,.x2
-        ld a,MAPW-VIEWW
-.x2:    ld (viewx),a
+.x1:    call clampvx
+        ld (viewx),a
         ld a,(cury)
         sub VIEWH/2
         jr nc,.y1
         xor a
-.y1:    cp MAPH-VIEWH
-        jr c,.y2
-        ld a,MAPH-VIEWH
-.y2:    ld (viewy),a
+.y1:    call clampvy
+        ld (viewy),a
         ret
 
 ; ---------------- fog of war ----------------
@@ -238,14 +234,14 @@ reveal: push bc
         ld e,a
         ld a,(rv_dy)
         add a,e
-        cp MAPH
+        call cph
         jr nc,.skip
         ld b,a
         ld a,(rv_x)
         ld e,a
         ld a,(rv_dx)
         add a,e
-        cp MAPW
+        call cpw
         jr nc,.skip
         ld c,a
         call tile_addr
@@ -1753,6 +1749,8 @@ ev_wolves:
 
 ; ---------------- animation (PCG redefinition) ----------------
 animate:
+        ld a,BLK_ART            ; frames live in the art block
+        call with_block
         ld a,(animf)
         inc a
         ld (animf),a
@@ -1827,7 +1825,7 @@ animate:
         djnz .o
         ld a,EXT_ON
         out (P_EXT),a
-        ret
+        jp map_home
 .frameptr:                      ; HL += A*11
         or a
         ret z
@@ -1875,66 +1873,78 @@ draw_overview:
         ld c,23
         ld a,C_TEXT
         call shadow_clear_rows
+        ; columns of cells, centred
+        ld a,(ovcw)
+        ld c,a
+        ld a,(mapwm1)
+        call div_a_c
+        inc a
+        ld (ovcols),a
+        ld b,a
+        ld a,COLS
+        sub b
+        srl a
+        ld (ovcol),a
+        call ov_mark_towns
         ld a,(mono)
         ld (ov_mono),a
         xor a
         ld (ov_d),a
-.r:     ; IX = shadow cell, HL = map row (y = d*5+2)
+.r:     ; IX = shadow cell of this row
         ld a,(ov_d)
         inc a
         ld b,a
-        ld c,OVCOL
+        ld a,(ovcol)
+        ld c,a
         call cell_off
         ld ix,SCHR
         add ix,de
+        ; sample row y = d*ovch + ovch/2 (clamped)
+        ld a,(ovch)
+        ld e,a
         ld a,(ov_d)
-        ld b,a
-        add a,a
-        add a,a
-        add a,b
-        add a,2
-        ld b,a
-        ld c,0
-        call tile_addr
-        ld (ov_row),hl
-        ld a,MAPW/2
+        ld h,a
+        push ix
+        call mul8
+        pop ix
+        ld a,(ovch)
+        srl a
+        add a,l
+        jr c,.yc
+        call cph
+        jr c,.yo
+.yc:    ld a,(maphm1)
+.yo:    ld (ov_y),a
+        xor a
         ld (ov_e),a
-.c:     ld hl,(ov_row)
+        ld (ov_x),a
+.c:     ld a,(ov_y)
+        ld b,a
+        ld a,(ovcw)
+        srl a
+        ld c,a
+        ld a,(ov_x)
+        add a,c
+        jr c,.xc
+        call cpw
+        jr c,.xo
+.xc:    ld a,(mapwm1)
+.xo:    ld c,a
+        call tile_addr
         ld a,(hl)
-        bit 7,a
-        jr nz,.k
-        inc hl
-        ld a,(hl)
-        dec hl
         bit 7,a
         jr nz,.k
         ld a,G_OV_FOG-256
         jr .put
 .k:     and 1Fh
         ld e,a
-        ; settlement in the 2x5 block? obj ptr = hl + MAPSIZE - 2*MAPW
-        push hl
-        ld bc,MAPSIZE-2*MAPW
-        add hl,bc
-        ld bc,MAPW
-        ld d,5
-.t:     ld a,(hl)
-        inc hl
-        or (hl)
-        dec hl
-        and 7Eh
-        jr nz,.town
-        add hl,bc
-        dec d
-        jr nz,.t
-        pop hl
+        call ov_is_town
+        ld a,G_OV_TOWN-256
+        jr nz,.put
         ld d,0
         ld hl,ov_class
         add hl,de
         ld a,(hl)
-        jr .put
-.town:  pop hl
-        ld a,G_OV_TOWN-256
 .put:   ; A = G low (G = 256 + A): code = A|80h, bank = 2 + (A>>7)
         ld e,a
         or 80h
@@ -1969,39 +1979,46 @@ draw_overview:
         call season_bg
 .cs:    ld (hl),a
         inc ix
-        ld hl,(ov_row)
-        inc hl
-        inc hl
-        ld (ov_row),hl
-        ld hl,ov_e
-        dec (hl)
+        ld a,(ovcw)
+        ld b,a
+        ld a,(ov_x)
+        add a,b
+        ld (ov_x),a
+        ld a,(ov_e)
+        inc a
+        ld (ov_e),a
+        ld hl,ovcols
+        cp (hl)
         jr nz,.c
         ld hl,ov_d
         inc (hl)
         ld a,(hl)
         cp 22
         jp nz,.r
-        ; view rectangle: invert cells under the view
+        ; view rectangle: invert the border cells under the view
+        ld a,(ovch)
+        ld c,a
         ld a,(viewy)
-        ld c,5
         call div_a_c
         ld (ovy0),a
         ld a,(viewy)
         add a,VIEWH-1
-        ld c,5
         call div_a_c
         ld (ovy1),a
+        ld a,(ovcw)
+        ld c,a
         ld a,(viewx)
-        srl a
+        call div_a_c
         ld (ovx0),a
-        add a,VIEWW/2-1
+        ld a,(viewx)
+        add a,VIEWW-1
+        call div_a_c
         ld (ovx1),a
         ld a,(ovy0)
         ld b,a
 .vr:    ld a,(ovx0)
         ld c,a
-.vc:    ; border only
-        ld a,b
+.vc:    ld a,b
         ld hl,ovy0
         cp (hl)
         jr z,.inv
@@ -2015,12 +2032,13 @@ draw_overview:
         ld hl,ovx1
         cp (hl)
         jr nz,.ni
-.inv:   push bc
-        ld a,b
-        inc a
-        ld b,a
-        ld a,c
-        add a,OVCOL
+.inv:   ld a,b
+        cp 22
+        jr nc,.ni
+        push bc
+        inc b
+        ld a,(ovcol)
+        add a,c
         ld c,a
         call cell_off
         ld hl,SCOL
@@ -2049,7 +2067,6 @@ draw_overview:
         cp 0FFh
         jr z,.lge
         inc hl
-        ld e,(hl)
         inc hl
         push hl
         push bc
@@ -2079,6 +2096,74 @@ draw_overview:
         call puts_at
         jp present_all
 
+; mark overview cells containing a settlement (bit array 22 rows x 64 cols)
+ov_mark_towns:
+        ld hl,ovtown
+        ld de,ovtown+1
+        ld bc,22*8-1
+        ld (hl),0
+        ldir
+        ld a,(nbld)
+        or a
+        ret z
+        ld b,a
+        ld ix,blist
+.l:     push bc
+        ld a,(ovcw)
+        ld c,a
+        ld a,(ix+1)
+        call div_a_c
+        ld e,a                  ; cell x
+        ld a,(ovch)
+        ld c,a
+        ld a,(ix+2)
+        call div_a_c            ; cell y
+        cp 22
+        jr nc,.n
+        call ov_bitaddr
+        or (hl)
+        ld (hl),a
+.n:     ld de,BREC
+        add ix,de
+        pop bc
+        djnz .l
+        ret
+; A = cell y, E = cell x -> HL = byte, A = bit mask
+ov_bitaddr:
+        ld l,a
+        ld h,0
+        add hl,hl
+        add hl,hl
+        add hl,hl               ; y*8 bytes
+        ld a,e
+        rrca
+        rrca
+        rrca
+        and 1Fh
+        ld c,a
+        ld b,0
+        add hl,bc
+        ld bc,ovtown
+        add hl,bc
+        ld a,e
+        and 7
+        ld b,a
+        inc b
+        ld a,80h
+.s:     rlca
+        djnz .s
+        ret
+; NZ if the current overview cell (ov_e, ov_d) has a settlement
+ov_is_town:
+        push de
+        ld a,(ov_e)
+        ld e,a
+        ld a,(ov_d)
+        call ov_bitaddr
+        and (hl)
+        pop de
+        ret
+
 legend: db G_OV_TOWN-256,0
         db "TOWN",0
         db G_OV_GRASS-256,0
@@ -2095,34 +2180,21 @@ legend: db G_OV_TOWN-256,0
         db "UNKNOWN",0
         db 0FFh
 
-; any building in overview cell (B..B+4, C..C+1)? -> Z
-ov_town:                        ; B = sample y (cell top+2), C = x -> Z if building
-        push bc
-        ld a,b
-        sub 2
-        ld b,a
-        call tile_addr
-        ld de,MAPSIZE
-        add hl,de
-        ld de,MAPW
-        ld b,5
-.l:     ld a,(hl)
-        and 7Fh
-        cp O_TC_TL
-        jr nc,.yes
-        inc hl
+clampvx:                        ; A = min(A, vxmax)
+        push hl
+        ld hl,vxmax
+        cp (hl)
+        jr c,.ok
         ld a,(hl)
-        dec hl
-        and 7Fh
-        cp O_TC_TL
-        jr nc,.yes
-        add hl,de
-        djnz .l
-        pop bc
-        or 1
+.ok:    pop hl
         ret
-.yes:   pop bc
-        xor a
+clampvy:
+        push hl
+        ld hl,vymax
+        cp (hl)
+        jr c,.ok
+        ld a,(hl)
+.ok:    pop hl
         ret
 
 div_a_c:                        ; A = A / C
@@ -2160,8 +2232,11 @@ overview_mode:
         ld a,KB_LEFT
         call key_hit
         jr z,.m1
+        ld a,(ovcw)
+        add a,a
+        ld b,a
         ld a,(viewx)
-        sub 4
+        sub b
         jr nc,.m0
         xor a
 .m0:    ld (viewx),a
@@ -2169,18 +2244,21 @@ overview_mode:
 .m1:    ld a,KB_RIGHT
         call key_hit
         jr z,.m2
+        ld a,(ovcw)
+        add a,a
+        ld b,a
         ld a,(viewx)
-        add a,4
-        cp MAPW-VIEWW+1
-        jr c,.m3
-        ld a,MAPW-VIEWW
+        add a,b
+        call clampvx
 .m3:    ld (viewx),a
         ld c,1
 .m2:    ld a,KB_UP
         call key_hit
         jr z,.m4
+        ld a,(ovch)
+        ld b,a
         ld a,(viewy)
-        sub 5
+        sub b
         jr nc,.m5
         xor a
 .m5:    ld (viewy),a
@@ -2188,11 +2266,11 @@ overview_mode:
 .m4:    ld a,KB_DOWN
         call key_hit
         jr z,.m6
+        ld a,(ovch)
+        ld b,a
         ld a,(viewy)
-        add a,5
-        cp MAPH-VIEWH+1
-        jr c,.m7
-        ld a,MAPH-VIEWH
+        add a,b
+        call clampvy
 .m7:    ld (viewy),a
         ld c,1
 .m6:    ld a,c
@@ -2440,7 +2518,7 @@ handle_keys:
         or a
         jr z,.g2
         ld a,(cury)
-        cp MAPH-1
+        call ishm1
         jr z,.g2
         inc a
         ld (cury),a
@@ -2456,7 +2534,7 @@ handle_keys:
         or a
         jr z,.g4
         ld a,(curx)
-        cp MAPW-1
+        call iswm1
         jr z,.g4
         inc a
         ld (curx),a
@@ -2487,12 +2565,13 @@ handle_keys:
         cp VIEWW-2
         jr c,.s2
         ld a,b
-        cp MAPW-VIEWW
+        push hl
+        ld hl,vxmax
+        cp (hl)
+        pop hl
         jr z,.s2
         add a,4
-        cp MAPW-VIEWW+1
-        jr c,.s1b
-        ld a,MAPW-VIEWW
+        call clampvx
 .s1b:   ld (viewx),a
         ld c,1
 .s2:    ld a,(viewy)
@@ -2516,12 +2595,13 @@ handle_keys:
         cp VIEWH-2
         jr c,.s4
         ld a,b
-        cp MAPH-VIEWH
+        push hl
+        ld hl,vymax
+        cp (hl)
+        pop hl
         jr z,.s4
         add a,3
-        cp MAPH-VIEWH+1
-        jr c,.s3b
-        ld a,MAPH-VIEWH
+        call clampvy
 .s3b:   ld (viewy),a
         ld c,1
 .s4:    ld a,c
@@ -2646,7 +2726,8 @@ handle_keys:
         call key_hit
         jr z,.k9
         call cursor_off_hw
-        call help_screen
+        ld hl,help_screen
+        call ovl_call
         call redraw_all
 .k9:    ld a,KB_ESC
         call key_hit

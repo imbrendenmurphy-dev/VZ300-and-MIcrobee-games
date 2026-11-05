@@ -88,19 +88,21 @@ whatever the composite output does with colour.
 **Animation.** Water (shore, river and sea — 20 characters, 4 frames), windmill sails, chimney smoke and the town
 hall flag animate by redefining PCG characters, so every copy on screen animates for one write.
 
-**Memory (CP/M TPA)**
+**Memory (1MB banked).** Port 50h follows The Lantern Deep (from ubee512's Premium Plus model, confirmed there by a RAM test on real hardware): only the lower 32K (0000–7FFF) is a window onto one of 32 blocks of 32K; 8000–FFFF is always block 0.
 
-| Range | Contents |
+| Where | Contents |
 |---|---|
-| 0100–4053 | Code and tables |
-| 4054–5EF7 | Variables, building list, 3 × 1920-byte shadow planes, stack |
-| 5EF8–8FF7 | Terrain map 112×112 (bit 7 = explored). Holds the PCG pattern data at load, overwritten after upload |
-| 8FF8–C0F7 | Object map 112×112 |
+| block 0, 8000–EFFF | Engine: all code that touches the map, screen shadow planes, variables, stack (22K used of 28K) |
+| blocks 8–11 (lower window) | World map, banded: row stride 256, 64 rows per block, terrain at 0000h, objects at 4000h. 128×128 uses 2 blocks, 256×256 uses 4 |
+| block 16 at 4000h | PCG patterns (colour + mono) and animation frames |
+| block 17 at 0000h | Overlay code: start-up choice, title logo and menu, help |
+| block 18 | Snapshot of CP/M's 8000–EFFF, so EMPIRES can return to `A>` |
+| block 19 | Reserved: game snapshot during disk saves |
+| block 20 | Loader staging for the engine image |
 
-The program refuses to start if the BDOS entry is below C0F8h.
+`EMPIRES.COM` (the loader) finds CP/M's own block by a signature scan and its video window by a probe (both from The Lantern Deep's loader), checks that blocks 0–20 exist and are distinct, loads `EMPIRES.UP`, `EMPIRES.OVL` and `EMPIRES.ART` into their blocks through BDOS, snapshots CP/M's upper memory, copies the engine to 8000h and starts it, all from a final stage at F000h with the video window off. The first part of the loader stays resident in CP/M's block. To leave, the engine restores the screen, copies a small stub to F000h (video off), the stub copies CP/M's memory back from block 18 and jumps to the loader's resident exit, which restores CP/M's port 50h value, re-enables interrupts and warm-boots to `A>`. In the test harness CP/M's upper memory comes back byte for byte.
 
-**Performance (3.375 MHz, measured in the harness).** Scrolling redraws only the exposed strip (~4 frames). Full
-view redraw ~9 frames (season change, mode switch). World map ~10 frames. Simulation tick < 0.1 frame. World generation ~10 s with progress bar.
+**Performance (3.375 MHz, measured in the harness).** Scrolling redraws only the exposed strip (~4 frames). Full view redraw ~9 frames (season change, mode switch). World map ~10 frames. Simulation tick < 0.1 frame. World generation: 128×128 about 5 s, 256×256 about 18 s, with a progress bar (unrolled noise interpolation, incremental vertical steps, table-driven falloff).
 
 ---
 
@@ -113,7 +115,7 @@ switch, quit to menu and exit to DOS.
 **Not yet verified on a real Premium Plus — please check:**
 1. That CP/M leaves the screen in 80×24 at F000 with colour RAM enabled.
 2. The key matrix codes (A=1…Z=26, 0–9 = 32–41, ESC 48, TAB 50, RETURN 52, SPACE 55, SHIFT 63).
-3. The TPA is large enough (needs BDOS above C0F8h).
+3. The loader needs a TPA reaching past B000h and a 1MB Premium Plus (it checks both).
 4. Speaker pitch and the feel of the tunes.
 
 **Mouse.** A Microsoft serial mouse (1200 baud, 7N1, 3-byte packets) is read in software from PIO B bit 4. The game polls the line during the idle part of every frame and between key tests; a start bit triggers a cycle-counted receive of the whole packet, with a stop-bit check so a mid-byte lock-on is rejected. The idle level is measured at start-up, so either line polarity works. Packets arriving during a full redraw or a tune are dropped and the next one resyncs. Tested bit-for-bit with an emulated serial line at both polarities; `MOUSE.COM` on the disk shows the raw packets on real hardware.
@@ -121,5 +123,4 @@ switch, quit to menu and exit to DOS.
 **Not in this milestone (planned):**
 - Bootable DS80 disk image — needs your Premium Plus CP/M boot disk image to add the game to (no shell, boots to `A>`).
 - Joystick — port not yet confirmed.
-- 1 MB banked RAM for bigger worlds and save games — the Premium Plus bank-select PROM table isn't documented; needs a probe program run on your machine.
-- Save/load, technology tree, rival civilisations, diplomacy, scenarios, victory conditions, regional view, terrain shaping, harbours/ships.
+- Save/load (the CP/M snapshot mechanism is in place for it), technology tree, rival civilisations, diplomacy, scenarios, victory conditions, regional view, terrain shaping, harbours/ships.

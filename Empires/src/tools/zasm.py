@@ -289,10 +289,12 @@ class Assembler:
     # ---------- driver ----------
     def emit(s,bytes_):
         for v in bytes_:
+            ph=(s.pc+s.dispoff)&0xFFFF
             if s.passno>=2:
-                s.out[s.pc]=v&255
-                s.minaddr=s.pc if s.minaddr is None else min(s.minaddr,s.pc)
-                s.maxaddr=s.pc if s.maxaddr is None else max(s.maxaddr,s.pc)
+                if ph in s.out and s.out_owner.get(ph)!=s.curkey and False: pass
+                s.out[ph]=v&255
+                s.minaddr=ph if s.minaddr is None else min(s.minaddr,ph)
+                s.maxaddr=ph if s.maxaddr is None else max(s.maxaddr,ph)
             s.pc=(s.pc+1)&0xFFFF
 
     def strbytes(s,item):
@@ -345,7 +347,11 @@ class Assembler:
             if s.passno>=2 and s.syms.get(name)!=s.pc: s.changed=True
             s.syms[name]=s.pc; s.defined.add(name)
         if not mn: return
-        if mn=='org': s.pc=s.ev(rest); return
+        if mn=='org': s.pc=s.ev(rest); s.dispoff=0; return
+        if mn in ('disp','phase'):
+            ph=(s.pc+s.dispoff)&0xFFFF; s.pc=s.ev(rest); s.dispoff=(ph-s.pc)&0xFFFF; return
+        if mn in ('ent','dephase'):
+            s.pc=(s.pc+s.dispoff)&0xFFFF; s.dispoff=0; return
         if mn in ('db','defb','defm','dm','byte'):
             for it in split_ops(rest):
                 sb=s.strbytes(it)
@@ -371,6 +377,10 @@ class Assembler:
             p=split_ops(rest)
             if s.passno>=2 and not s.ev(p[0]): raise AsmError('assertion failed: '+(p[1] if len(p)>1 else p[0]))
             return
+        if mn=='savebin':
+            p=split_ops(rest)
+            if s.passno>=2: s.saves.append((p[0].strip().strip('"'),s.ev(p[1]),s.ev(p[2])))
+            return
         if mn in ('end',): return
         s.emit(s.encode(mn,split_ops(rest)))
 
@@ -386,7 +396,9 @@ class Assembler:
         for p in range(1,20):
             s.passno=1 if p==1 else 2
             s.pc=0; s.out={}; s.lastglobal=''; s.defined=set(); s.changed=False; s.minaddr=None
+            s.dispoff=0; s.out_owner={}
             s.unresolved=False
+            s.saves=[]
             s.assemble_file(fname)
             if p>1 and not s.changed: return
         raise AsmError('labels did not converge')
@@ -399,8 +411,15 @@ def main():
     except AsmError as e:
         print('ERROR',e); sys.exit(1)
     lo,hi=a.minaddr,a.maxaddr
-    data=bytes(a.out.get(i,0) for i in range(lo,hi+1))
-    open(sys.argv[2],'wb').write(data)
+    for fn,st,ln in a.saves:
+        used=[i for i in range(st,st+ln) if i in a.out]
+        end=(max(used)+1) if used else st
+        d=bytes(a.out.get(i,0) for i in range(st,end))
+        open(os.path.join(os.path.dirname(sys.argv[1]),fn),'wb').write(d)
+        print('  savebin %s: %04X-%04X (%d bytes)'%(fn,st,end-1,len(d)))
+    if a.saves: data=b''
+    else: data=bytes(a.out.get(i,0) for i in range(lo,hi+1))
+    if data: open(sys.argv[2],'wb').write(data)
     if len(sys.argv)>3:
         with open(sys.argv[3],'w') as f:
             for k,v in sorted(a.syms.items(),key=lambda x:x[1]):

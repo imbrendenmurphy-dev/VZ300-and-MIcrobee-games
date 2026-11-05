@@ -2,18 +2,20 @@
 """Automated play-test: start a world, pick valid build sites, drive the game,
 then report state and screenshots."""
 import subprocess, sys
-EMU='tools/beeemu'; COM='build/EMPIRES.COM'
-sym={l.split()[1]:int(l.split()[0],16) for l in open('build/empires.sym')}
+import os
+os.chdir(os.path.join(os.path.dirname(os.path.abspath(__file__)),'..','build'))
+EMU='../tools/beeemu'; COM='EMPIRES.COM'
+sym={l.split()[1]:int(l.split()[0],16) for l in open('empires.sym')}
 W=112
-PRE=["frames 25","key 3 1","frames 3","key 3 0","frames 250","key 33 1","frames 3","key 33 0","frames 1500"]
+PRE=["frames 60","key 3 1","frames 6","key 3 0","frames 300","key 33 1","frames 6","key 33 0","frames 1500"]
 def run(lines):
-    r=subprocess.run([EMU,COM],input='\n'.join(lines)+'\n',capture_output=True,text=True)
+    r=subprocess.run([EMU,COM,'banked'],input='\n'.join(lines)+'\n',capture_output=True,text=True)
     return r.stderr
-run(PRE+["mem build/pt0.bin"])
-m=open('build/pt0.bin','rb').read()
-T=sym['TERR']; O=sym['OBJ']
-def t(x,y): return m[T+y*W+x]&31
-def expl(x,y): return m[T+y*W+x]&128
+run(PRE+["mem pt0.bin","blk 8 pm8.bin","blk 9 pm9.bin"])
+m=open('pt0.bin','rb').read()
+MB=[open('pm8.bin','rb').read(),open('pm9.bin','rb').read()]
+def t(x,y): return MB[y>>6][(y&63)*256+x]&31
+def expl(x,y): return MB[y>>6][(y&63)*256+x]&128
 sx=m[sym['startxy']]; sy=m[sym['startxy']+1]
 print('start',sx,sy)
 GRASS=(4,5)
@@ -67,12 +69,12 @@ tap(33,1,4)
 for name,tk,(x,y) in sites:
     if name=='hut' and t(x,y+1) in GRASS and (x,y+1) not in used:
         goto(x,y+1); tap(KEY['space'],1,4); L.append("frames 10")
-L+=["frames 20","shot build/d_pt1.bin"]
+L+=["frames 20","shot d_pt1.bin"]
 tap(46,1,4); tap(46,1,4)        # faster
-L+=["frames %d"%int(sys.argv[1]) if len(sys.argv)>1 else "frames 4000","shot build/d_pt2.bin","mem build/pt1.bin","key 3 1","frames 8","key 3 0","frames 30","shot build/d_pt3.bin","regs"]
+L+=["frames %d"%int(sys.argv[1]) if len(sys.argv)>1 else "frames 4000","shot d_pt2.bin","mem pt1.bin","key 3 1","frames 8","key 3 0","frames 30","shot d_pt3.bin","regs"]
 out=run(L)
 print(out.strip().split('\n')[-2:])
-m=open('build/pt1.bin','rb').read()
+m=open('pt1.bin','rb').read()
 def w16(n): return m[sym[n]]|m[sym[n]+1]<<8
 print({k:w16(k) for k in ['food','wood','stone','gold','pop','year']},'happy',m[sym['happy']],'season',m[sym['season']])
 n=m[sym['nbld']]; b=sym['blist']

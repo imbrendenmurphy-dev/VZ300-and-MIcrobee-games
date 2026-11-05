@@ -1,7 +1,23 @@
 ; ===================================================================
 ;  vars.asm - variables and buffers (uninitialised area)
 ; ===================================================================
-oldsp:      dw 0
+curband:    db 0FFh
+lowport:    db 0
+ovl_ret:    db 0
+worldsize:  db 0
+mapwm1:     db 127
+maphm1:     db 127
+mapcx:      db 64
+mapcy:      db 64
+vxmax:      db 88
+vymax:      db 108
+ovcw:       db 3
+ovch:       db 6
+ovcols:     db 0
+ovcol:      db 0
+ov_x:       db 0
+ov_y:       db 0
+ovtown:     ds 22*8
 seed:       dw 1234h
 frames:     dw 0
 mono:       db 0
@@ -62,8 +78,13 @@ gcnt:   db 0
 grad:   db 0
 barval: db 0
 startxy: dw 0
-grid:   ds 256
-colv:   ds 20
+grid:   ds 1200
+colv:   ds 40
+colacc: ds 40*4
+th_desert: db 46
+th_marsh: db 200
+th_dense: db 168
+th_forest: db 126
 ; render
 tterr:  db 0
 tL:     db 0
@@ -188,7 +209,6 @@ rtab:
         db 28,136,211,93,41,167,115,250,74,19,194,143,56,231,101,9
         db 172,85,238,116,12,158,69,208,132,36,245,97,179,26,220,63
 ; buffers
-rowtab: ds MAPH*2
 blist:  ds MAXBLD*BREC
 SCHR:   ds SCRSIZE
 SATR:   ds SCRSIZE

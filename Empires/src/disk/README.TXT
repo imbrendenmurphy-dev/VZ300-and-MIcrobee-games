@@ -3,9 +3,13 @@ An original civilisation and city-building game
 for the Microbee Premium Plus.   ViBED by BPM 2026
 
 STARTING
+  Needs a Microbee Premium Plus with 1MB RAM.
   Boot this disk. It goes straight to the A> prompt. Type:  EMPIRES
+  The loader fills the expanded RAM (dots show progress).
   Press C for a colour monitor or M for a monochrome monitor.
-  ESC in the game returns to the title; ESC on the title returns to A>.
+  On the title, 2 picks the world type and 6 the size (128 x 128 or
+  256 x 256).  ESC in the game returns to the title; ESC on the title
+  returns to A>.
 
 KEYS
   Mouse (Microsoft serial mouse on the serial port), arrow keys,

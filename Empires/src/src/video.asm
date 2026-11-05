@@ -31,7 +31,9 @@ cursor_hide:                    ; park hardware cursor beyond visible 1920 cells
         ret
 
 ; ---- upload both PCG sets (colour -> banks 0-7, mono -> banks 8-15) ----
-pcg_upload:
+pcg_upload:                     ; patterns come from the art block (lower window)
+        ld a,BLK_ART
+        call with_block
         ld hl,pcg_colour
         ld c,0                  ; bank offset 0
         call .set
@@ -40,7 +42,7 @@ pcg_upload:
         call .set
         ld a,EXT_ON
         out (P_EXT),a
-        ret
+        jp map_home
 .set:   ; HL = pattern data, C = bank base
         ld de,0                 ; G counter
 .lp:    ld a,d

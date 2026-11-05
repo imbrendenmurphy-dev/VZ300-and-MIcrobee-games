@@ -11,10 +11,12 @@
 #include <stdint.h>
 
 typedef uint8_t u8; typedef uint16_t u16; typedef int8_t s8;
-static u8 ram[65536], vram[2048], aram[2048], cram[2048], pcg[16][2048];
+static u8 blocks[32][32768]; static u8 ram[65536]; static u8 p50; static int lowblk=2, vidon=1, vid8000=0, cpm_block=2, banked=0;
+static u8 vram[2048], aram[2048], cram[2048], pcg[16][2048];
 static u8 p08, p1c, crtc_idx, crtc[32]; static int keys[64];
 static long long tstates, frame_start; static int spk_toggles; static u8 last_b;
 static int halted_exit=0;
+static u8 cpm_ref[0x7000];
 /* serial mouse: queued bytes, 7N1 at 1200 baud, bit4: mark=0 (idle), space=1 */
 #define BIT_T 2812
 static u8 sq[4096]; static long long sqt[4096]; static int sqn=0, sqh=0; static long long ser_until=0;
@@ -37,7 +39,19 @@ static void ser_send(u8 b){ long long t=tstates; if(sqn>sqh && sqt[sqn-1]+9*BIT_
 #define FRAME_T 67500
 
 /* ---- memory ---- */
+static int vidwin(u16 a){ if(!vidon) return 0; if(vid8000) return a>=0x8000&&a<0x9000; return a>=0xF000; }
+static u16 vaddr(u16 a){ return vid8000? (a-0x8000+0xF000): a; }
+static u8 rdv(u16 a);
+static void wrv(u16 a,u8 v);
 static u8 rd(u16 a){
+  if(banked){ if(vidwin(a)) return rdv(vaddr(a)); return a<0x8000? blocks[lowblk][a]: blocks[0][a-0x8000]; }
+  return rdv(a);
+}
+static void wr(u16 a,u8 v){
+  if(banked){ if(vidwin(a)) { wrv(vaddr(a),v); return; } if(a<0x8000) blocks[lowblk][a]=v; else blocks[0][a-0x8000]=v; return; }
+  wrv(a,v);
+}
+static u8 rdv(u16 a){
   if(a>=0xF000){
     if(a<0xF800) return (p1c&0x10)? aram[a&0x7ff]: vram[a&0x7ff];
     if(p08&0x40) return cram[a&0x7ff];
@@ -45,7 +59,7 @@ static u8 rd(u16 a){
   }
   return ram[a];
 }
-static void wr(u16 a,u8 v){
+static void wrv(u16 a,u8 v){
   if(a>=0xF000){
     if(a<0xF800){ if(p1c&0x10) aram[a&0x7ff]=v; else vram[a&0x7ff]=v; return; }
     if(p08&0x40) cram[a&0x7ff]=v; else pcg[p1c&15][a&0x7ff]=v; return;
@@ -70,6 +84,7 @@ static void outport(u8 p,u8 v){
     case 0x0C: crtc_idx=v&31; break;
     case 0x0D: crtc[crtc_idx&31]=v; break;
     case 0x02: if((v^last_b)&0x40) spk_toggles++; last_b=v; break;
+    case 0x50: if(banked){ p50=v; int low=(v&3)^((v&4)?2:0); lowblk=(((v>>5)&7)<<2)|low; vidon=!(v&8); vid8000=(v&0x10)!=0; } break;
   }
 }
 
@@ -221,8 +236,10 @@ static int exec_idx(u16 *ixp){
 static u16 hist[64]; static int histp;
 static int step(void){
   hist[histp++&63]=PC;
-  if(PC==0x0005){ bdos(); PC=pop(); return 10; }
-  if(PC==0x0000){ trap_exit=1; return 4; }
+  if(!banked || lowblk==cpm_block){
+    if(PC==0x0005){ bdos(); PC=pop(); return 10; }
+    if(PC==0x0000){ trap_exit=1; return 4; }
+  }
   instr_count++;
   u8 op=fetch(); R=(R&0x80)|((R+1)&0x7f);
   int x=op>>6,y=(op>>3)&7,z=op&7,p=y>>1,q=y&1;
@@ -329,11 +346,19 @@ int main(int argc,char**argv){
   for(int i=0;i<256;i++){ int b=0; for(int k=0;k<8;k++) b^=(i>>k)&1; parity[i]=b?0:FP; }
   FILE *f=fopen(argv[1],"rb"); if(!f){perror(argv[1]);return 1;}
   size_t n=fread(ram+0x100,1,0xD000,f); fclose(f);
+  if(argc>2 && !strcmp(argv[2],"banked")){
+    banked=1; cpm_block=2; lowblk=2; vidon=1; p50=0x04;
+    memcpy(blocks[2],ram,32768);
+    for(int i=0;i<0x7000;i++) blocks[0][i]=(u8)((i*7+(i>>8))^0x5A);   /* stand-in for CP/M in 8000-EFFF */
+    for(int b=1;b<32;b++) if(b!=2) for(int i=0;i<32768;i++) blocks[b][i]=(u8)(b*37+i);
+  }
   conlog=stdout;
   /* page zero: warm boot at 0, BDOS entry at 5 pointing to E006 (TPA top) */
   ram[0]=0xC3; ram[1]=0x03; ram[2]=0xEA; ram[5]=0xC3; ram[6]=0x06; ram[7]=0xE0;
+  if(banked){ blocks[2][0]=0xC3; blocks[2][1]=0x03; blocks[2][2]=0xEA; blocks[2][5]=0xC3; blocks[2][6]=0x06; blocks[2][7]=0xC0; }
   SP=0xE000; push(0x0000); PC=0x100;
   crtc[1]=80; crtc[6]=24; crtc[9]=10;
+  if(banked) memcpy(cpm_ref,blocks[0],0x7000);
   fprintf(stderr,"loaded %zu bytes\n",n);
   char line[512];
   while(fgets(line,sizeof line,stdin)){
@@ -344,14 +369,16 @@ int main(int argc,char**argv){
         frame_start=tstates - ((tstates)%FRAME_T); long long end=frame_start+FRAME_T;
         while(tstates<end && !trap_exit && !halted_exit){ int t=step(); tstates+=t; }
       }
-      if(trap_exit){ fprintf(stderr,"program exited to CP/M (PC=%04X) after %lld instr\n",PC,instr_count); }
+      if(trap_exit){ fprintf(stderr,"program exited to CP/M (PC=%04X) after %lld instr\n",PC,instr_count);
+        if(banked){ int bad=0; for(int i=0x4000;i<0x7000;i++) if(blocks[0][i]!=cpm_ref[i]){ if(bad<4) fprintf(stderr,"  diff at %04X: %02X\n",0x8000+i,blocks[0][i]); bad++; }
+          fprintf(stderr,"CP/M upper memory C000-EFFF %s (%d bytes differ), port50=%02X lowblk=%d video=%d\n", bad?"DAMAGED":"intact",bad,p50,lowblk,vidon); } }
       if(halted_exit){ fprintf(stderr,"HALT at %04X\nhistory:",PC-1); for(int i=0;i<64;i++) fprintf(stderr," %04X",hist[(histp+i)&63]); fprintf(stderr,"\n"); }
     }
     else if(!strcmp(cmd,"key")){ sscanf(line,"%*s %d %d",&a,&b); if(a>=0&&a<64) keys[a]=b; }
     else if(!strcmp(cmd,"shot")){ sscanf(line,"%*s %399s",arg); shot(arg); }
     else if(!strcmp(cmd,"regs")){ fprintf(stderr,"PC=%04X SP=%04X A=%02X F=%02X BC=%04X DE=%04X HL=%04X IX=%04X IY=%04X T=%lld spk=%d\n",PC,SP,A,F,BC,DE,HL,IX,IY,tstates,spk_toggles); }
     else if(!strcmp(cmd,"peek")){ sscanf(line,"%*s %x %d",&a,&b); fprintf(stderr,"%04X:",a); for(int i=0;i<b;i++) fprintf(stderr," %02X",rd(a+i)); fprintf(stderr,"\n"); }
-    else if(!strcmp(cmd,"mem")){ sscanf(line,"%*s %399s",arg); FILE*m=fopen(arg,"wb"); fwrite(ram,1,65536,m); fclose(m); }
+    else if(!strcmp(cmd,"mem")){ sscanf(line,"%*s %399s",arg); FILE*m=fopen(arg,"wb"); for(int i=0;i<65536;i++) fputc(rd(i),m); fclose(m); }
     else if(!strcmp(cmd,"callt")){ sscanf(line,"%*s %x",&a); u16 ret=PC, sp0=SP; push(ret); PC=a; long long t0=tstates;
       static unsigned prof[65536]; memset(prof,0,sizeof prof);
       while(!(PC==ret && SP==sp0) && !trap_exit && !halted_exit){ u16 p0=PC; int t=step(); prof[p0]+=t; tstates+=t; }
@@ -360,6 +387,11 @@ int main(int argc,char**argv){
     else if(!strcmp(cmd,"mouse")){ int dx=0,dy=0,l=0,r=0; sscanf(line,"%*s %d %d %d %d",&dx,&dy,&l,&r);
       u8 b1=0x40|(l?0x20:0)|(r?0x10:0)|(((dy>>6)&3)<<2)|((dx>>6)&3); ser_send(b1); ser_send(dx&0x3F); ser_send(dy&0x3F); }
     else if(!strcmp(cmd,"serinv")){ sscanf(line,"%*s %d",&ser_inv); }
+    else if(!strcmp(cmd,"blk")){ int b=0; sscanf(line,"%*s %d %399s",&b,arg); FILE*m=fopen(arg,"wb"); fwrite(blocks[b],1,32768,m); fclose(m); }
+    else if(!strcmp(cmd,"bank")){ fprintf(stderr,"port50=%02X lowblk=%d video=%d\n",p50,lowblk,vidon); }
+    else if(!strcmp(cmd,"profile")){ sscanf(line,"%*s %d",&a); static unsigned prof2[65536]; memset(prof2,0,sizeof prof2);
+      long long end=tstates+(long long)a*FRAME_T; while(tstates<end && !trap_exit && !halted_exit){ u16 p0=PC; int t=step(); prof2[p0]+=t; tstates+=t; }
+      FILE*pf=fopen("../build/prof.bin","wb"); if(!pf) pf=fopen("build/prof.bin","wb"); fwrite(prof2,4,65536,pf); fclose(pf); fprintf(stderr,"profiled %d frames, PC=%04X\n",a,PC); }
     else if(!strcmp(cmd,"quit")) break;
   }
   fprintf(stderr,"T=%lld frames=%.1f speaker_toggles=%d\n",tstates,(double)tstates/FRAME_T,spk_toggles);

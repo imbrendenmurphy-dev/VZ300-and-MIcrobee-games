@@ -43,37 +43,6 @@ mul8:   ld d,0
 .n:     djnz .l
         ret
 
-; ---- address helpers ----
-; tile_addr: B = y, C = x -> HL = TERR + y*MAPW + x
-tile_addr:
-        push de
-        ld l,b
-        ld h,0
-        add hl,hl
-        ld de,rowtab
-        add hl,de
-        ld e,(hl)
-        inc hl
-        ld d,(hl)
-        ld l,c
-        ld h,0
-        add hl,de
-        pop de
-        ret
-
-make_rowtab:
-        ld hl,TERR
-        ld de,MAPW
-        ld ix,rowtab
-        ld b,MAPH
-.l:     ld (ix+0),l
-        ld (ix+1),h
-        inc ix
-        inc ix
-        add hl,de
-        djnz .l
-        ret
-
 ; ---- progress text ----
 gen_status:                     ; HL = message
         push hl
@@ -128,15 +97,14 @@ gen_octave:
 .sp:    add a,a
         djnz .sp
         ld (gsp),a              ; 8 or 16
-        ; grid width = MAPW/sp + 2
+        ; cells across = (W-1)>>shift + 1, grid width = cells + 2
+        ld a,(gshift)
         ld b,a
-        ld a,MAPW
-        ld c,0
-.dv:    inc c
-        sub b
-        jr nz,.dv
-        ld a,c
-        ld (gcells),a           ; cells across
+        ld a,(mapwm1)
+.dv:    srl a
+        djnz .dv
+        inc a
+        ld (gcells),a
         add a,2
         ld (ggw),a
         ; fill grid gw*gw with rand*amp>>8
@@ -165,8 +133,6 @@ gen_octave:
         xor a
         ld (gy),a
 .row:   ld a,(gy)
-        cp MAPH
-        jp z,.done
         ; gyi = y>>shift, fy = y & (sp-1)
         ld b,a
         ld a,(gshift)
@@ -180,7 +146,10 @@ gen_octave:
         dec a
         and b
         ld (gfy),a
-        ; pointer to grid row gyi
+        ld a,(gfy)
+        or a
+        jr nz,.cstep
+        ; start of a grid band: acc = top << 8 (+0.5), step = (bottom-top) << (8-shift)
         ld a,(gyi)
         ld h,a
         ld a,(ggw)
@@ -188,52 +157,77 @@ gen_octave:
         call mul8
         ld de,grid
         add hl,de               ; HL = &G[gyi][0]
-        ld (gptr),hl
-        ; column values
         ld a,(ggw)
         ld b,a
-        ld ix,colv
-.cv:    push bc
-        ld hl,(gptr)
-        ld a,(hl)               ; a = top
-        ld (gta),a
+        ld ix,colacc
+.ci:    push bc
+        push hl
+        ld a,(hl)               ; top
+        ld (ix+1),a
+        ld (ix+0),80h
+        ld e,a
         ld a,(ggw)
-        ld e,a
-        ld d,0
-        add hl,de
-        ld a,(hl)               ; b = bottom
-        ld hl,(gptr)
-        inc hl
-        ld (gptr),hl
-        ; diff = b - a  (signed 16) in DE
-        ld e,a
-        ld d,0
-        ld a,(gta)
-        ld l,a
+        ld c,a
+        ld b,0
+        add hl,bc
+        ld l,(hl)               ; bottom
         ld h,0
-        ex de,hl
+        ld d,0
         or a
-        sbc hl,de               ; HL = b - a
-        ; prod = diff * fy
-        ld a,(gfy)
-        ld b,a
-        ex de,hl
-        ld hl,0
-        or a
-        jr z,.pz
-.pm:    add hl,de
-        djnz .pm
-.pz:    ; arithmetic shift right by gshift
+        sbc hl,de               ; bottom - top (signed)
         ld a,(gshift)
         ld b,a
-.as:    sra h
-        rr l
-        djnz .as
-        ld a,(gta)
-        add a,l
-        ld (ix+0),a
-        inc ix
+        ld a,8
+        sub b
+        ld b,a
+.cs:    add hl,hl
+        djnz .cs
+        ld (ix+2),l
+        ld (ix+3),h
+        ld de,4
+        add ix,de
+        pop hl
+        inc hl
         pop bc
+        djnz .ci
+        jr .cdone
+.cstep: ld a,(ggw)
+        ld b,a
+        ld hl,colacc
+.cn:    ld e,(hl)
+        inc hl
+        ld d,(hl)               ; acc
+        inc hl
+        ld a,(hl)
+        inc hl
+        push hl
+        ld h,(hl)
+        ld l,a                  ; step
+        add hl,de
+        ex de,hl
+        pop hl
+        dec hl
+        dec hl
+        dec hl
+        ld (hl),e
+        inc hl
+        ld (hl),d
+        inc hl
+        inc hl
+        inc hl
+        djnz .cn
+.cdone: ; colv[j] = acc high byte
+        ld a,(ggw)
+        ld b,a
+        ld hl,colacc+1
+        ld de,colv
+.cv:    ld a,(hl)
+        ld (de),a
+        inc de
+        inc hl
+        inc hl
+        inc hl
+        inc hl
         djnz .cv
         ; horizontal interpolation into destination row
         ld a,(gy)
@@ -267,31 +261,221 @@ gen_octave:
         ld a,(gta)
         ld h,a
         ld l,80h                ; v = a.5
-        ld a,(gsp)
-        ld b,a
-        push ix
-        ld ix,(gout)
-.px:    ld a,(gmode)
+        ld bc,(gout)
+        ld a,(gmode)
         or a
-        ld a,h
-        jr z,.store
-        add a,(ix+0)
-        jr nc,.store
-        ld a,255
-.store: ld (ix+0),a
-        inc ix
-        add hl,de
-        djnz .px
-        ld (gout),ix
-        pop ix
+        jr nz,.addm
+        ld a,(gsp)
+        cp 8
+        jr z,.s8
+        call px_set16
+        jr .pd
+.s8:    call px_set8
+        jr .pd
+.addm:  ld a,(gsp)
+        cp 8
+        jr z,.a8
+        call px_add16
+        jr .pd
+.a8:    call px_add8
+.pd:    ld (gout),bc
         inc ix
         pop bc
         djnz .hc
         ld a,(gy)
         inc a
         ld (gy),a
-        jp .row
-.done:  ret
+        ld e,a
+        ld a,(maphm1)
+        inc a
+        sub e
+        jp nz,.row
+        ret
+
+
+; unrolled interpolation: HL = value (8.8), DE = step, BC = destination
+px_set16:
+        ld a,h
+        ld (bc),a
+        inc bc
+        add hl,de
+        ld a,h
+        ld (bc),a
+        inc bc
+        add hl,de
+        ld a,h
+        ld (bc),a
+        inc bc
+        add hl,de
+        ld a,h
+        ld (bc),a
+        inc bc
+        add hl,de
+        ld a,h
+        ld (bc),a
+        inc bc
+        add hl,de
+        ld a,h
+        ld (bc),a
+        inc bc
+        add hl,de
+        ld a,h
+        ld (bc),a
+        inc bc
+        add hl,de
+        ld a,h
+        ld (bc),a
+        inc bc
+        add hl,de
+px_set8:
+        ld a,h
+        ld (bc),a
+        inc bc
+        add hl,de
+        ld a,h
+        ld (bc),a
+        inc bc
+        add hl,de
+        ld a,h
+        ld (bc),a
+        inc bc
+        add hl,de
+        ld a,h
+        ld (bc),a
+        inc bc
+        add hl,de
+        ld a,h
+        ld (bc),a
+        inc bc
+        add hl,de
+        ld a,h
+        ld (bc),a
+        inc bc
+        add hl,de
+        ld a,h
+        ld (bc),a
+        inc bc
+        add hl,de
+        ld a,h
+        ld (bc),a
+        inc bc
+        add hl,de
+        ret
+px_add16:
+        ld a,(bc)
+        add a,h
+        jr nc,$+4
+        ld a,255
+        ld (bc),a
+        inc bc
+        add hl,de
+        ld a,(bc)
+        add a,h
+        jr nc,$+4
+        ld a,255
+        ld (bc),a
+        inc bc
+        add hl,de
+        ld a,(bc)
+        add a,h
+        jr nc,$+4
+        ld a,255
+        ld (bc),a
+        inc bc
+        add hl,de
+        ld a,(bc)
+        add a,h
+        jr nc,$+4
+        ld a,255
+        ld (bc),a
+        inc bc
+        add hl,de
+        ld a,(bc)
+        add a,h
+        jr nc,$+4
+        ld a,255
+        ld (bc),a
+        inc bc
+        add hl,de
+        ld a,(bc)
+        add a,h
+        jr nc,$+4
+        ld a,255
+        ld (bc),a
+        inc bc
+        add hl,de
+        ld a,(bc)
+        add a,h
+        jr nc,$+4
+        ld a,255
+        ld (bc),a
+        inc bc
+        add hl,de
+        ld a,(bc)
+        add a,h
+        jr nc,$+4
+        ld a,255
+        ld (bc),a
+        inc bc
+        add hl,de
+px_add8:
+        ld a,(bc)
+        add a,h
+        jr nc,$+4
+        ld a,255
+        ld (bc),a
+        inc bc
+        add hl,de
+        ld a,(bc)
+        add a,h
+        jr nc,$+4
+        ld a,255
+        ld (bc),a
+        inc bc
+        add hl,de
+        ld a,(bc)
+        add a,h
+        jr nc,$+4
+        ld a,255
+        ld (bc),a
+        inc bc
+        add hl,de
+        ld a,(bc)
+        add a,h
+        jr nc,$+4
+        ld a,255
+        ld (bc),a
+        inc bc
+        add hl,de
+        ld a,(bc)
+        add a,h
+        jr nc,$+4
+        ld a,255
+        ld (bc),a
+        inc bc
+        add hl,de
+        ld a,(bc)
+        add a,h
+        jr nc,$+4
+        ld a,255
+        ld (bc),a
+        inc bc
+        add hl,de
+        ld a,(bc)
+        add a,h
+        jr nc,$+4
+        ld a,255
+        ld (bc),a
+        inc bc
+        add hl,de
+        ld a,(bc)
+        add a,h
+        jr nc,$+4
+        ld a,255
+        ld (bc),a
+        inc bc
+        add hl,de
+        ret
 
 ; ---------------------------------------------------------------
 ; world type parameters: amp16, amp8, falloff shift, raise, moisture bias(signed)
@@ -322,7 +506,7 @@ wt_get:                         ; A = param index -> A
         ret
 
 generate_world:
-        call make_rowtab
+        call map_clear
         ld hl,msg_gen1
         call gen_status
         xor a
@@ -347,7 +531,7 @@ generate_world:
         ld a,12
         call gen_bar
         ; moisture
-        ld hl,MAPSIZE           ; moisture layer (OBJ)
+        ld hl,OBJOFF            ; moisture layer (object layer during generation)
         ld (gdest),hl
         ld b,4
         ld c,200
@@ -375,20 +559,32 @@ generate_world:
         call place_ruins
         ld a,36
         call gen_bar
-        ; clear object layer
-        ld hl,OBJ
-        ld de,OBJ+1
+        ; clear object layer in every band
+        xor a
+.cb:    push af
+        call map_band
+        ld hl,OBJOFF
+        ld de,OBJOFF+1
+        ld bc,3FFFh
         ld (hl),0
-        ld bc,MAPSIZE-1
         ldir
+        pop af
+        inc a
+        cp 4
+        jr nz,.cb
         call find_start
         ld a,40
         jp gen_bar
 
-; falloff + raise + moisture bias
+; falloff + raise + moisture bias.  falloff(x,y) ~ min(255, fx[x] + fy)
+; with fx[x] = (x-cx)^2 >> f and fy = (y-cy)^2 >> f: no multiplies per tile
 shape_pass:
         ld a,2
         call wt_get
+        ld b,a
+        ld a,(worldsize)
+        add a,a
+        add a,b
         ld (gfall),a
         ld a,3
         call wt_get
@@ -396,75 +592,101 @@ shape_pass:
         ld a,4
         call wt_get
         ld (gmbias),a
-        ld b,0                  ; y
-.y:     ld c,0
-.x:     push bc
-        call tile_addr          ; HL -> height
-        push hl
-        ; d2 = dx^2 + dy^2
-        ld a,c
-        sub MAPW/2
-        jr nc,.ax
-        neg
-.ax:    call sq16               ; HL = a^2
-        push hl
-        ld a,b
-        sub MAPH/2
-        jr nc,.ay
-        neg
-.ay:    call sq16
-        pop de
-        add hl,de               ; HL = d2
-        ld a,(gfall)
-        ld b,a
-.f:     srl h
-        rr l
-        djnz .f
-        ld a,h
-        or a
-        jr z,.ok
-        ld l,255
-.ok:    ld e,l                  ; E = falloff
-        pop hl
+        ; biome thresholds move instead of every moisture value
+        ld hl,th_base
+        ld de,th_desert
+        ld b,4
+.th:    ld a,(gmbias)
+        ld c,a
         ld a,(hl)
-        ld d,a
+        sub c                   ; threshold - bias (signed bias)
+        bit 7,c
+        jr nz,.tn
+        jr nc,.tw
+        ld a,1                  ; underflow: keep >= 1
+        jr .tw
+.tn:    jr c,.tw                ; negative bias: a borrow is the normal case
+        ld a,254
+.tw:    ld (de),a
+        inc hl
+        inc de
+        djnz .th
+        ; column table in grid[0..255]
+        ld c,0
+.fx:    ld a,c
+        ld hl,mapcx
+        call .fall
+        ld hl,grid
+        ld e,c
+        ld d,0
+        add hl,de
+        ld (hl),a
+        inc c
+        ld a,(mapwm1)
+        inc a
+        sub c
+        jr nz,.fx
+        ld b,0
+.y:     ld a,b
+        ld hl,mapcy
+        call .fall
+        ld (gfy),a
+        ld c,0
+        call tile_addr
+        ld de,grid
+.x:     ld a,(de)
+        push hl
+        ld hl,gfy
+        add a,(hl)
+        jr nc,.f1
+        ld a,255
+.f1:    ld (gta),a              ; falloff for this tile
         ld a,(graise)
-        add a,d
+        pop hl
+        add a,(hl)
         jr nc,.r
         ld a,255
-.r:     sub e
+.r:     push hl
+        ld hl,gta
+        sub (hl)
+        pop hl
         jr nc,.s
         xor a
 .s:     ld (hl),a
-        ; moisture bias
-        ld de,MAPSIZE
-        add hl,de
-        ld a,(gmbias)
-        bit 7,a
-        jr nz,.neg
-        add a,(hl)
-        jr nc,.ms
-        ld a,254
-        jr .ms
-.neg:   add a,(hl)
-        jr c,.ms
-        xor a
-.ms:    cp 255
-        jr nz,.m2
-        dec a
-.m2:    ld (hl),a
-        pop bc
+        inc hl
+        inc de
         inc c
-        ld a,c
-        cp MAPW
+        ld a,(mapwm1)
+        inc a
+        sub c
         jr nz,.x
         inc b
-        ld a,b
-        cp MAPH
+        ld a,(maphm1)
+        inc a
+        sub b
         jr nz,.y
         ret
+.fall:  ; A = coordinate, HL -> centre: A = min(255, (A-centre)^2 >> gfall)
+        sub (hl)
+        jr nc,.p
+        neg
+.p:     call sq16
+        ld a,(gfall)
+        push bc
+        ld b,a
+.sh:    srl h
+        rr l
+        djnz .sh
+        pop bc
+        ld a,h
+        or a
+        ld a,l
+        ret z
+        ld a,255
+        ret
 
-sq16:                           ; HL = A*A (A<=60)
+th_base: db 46,200,168,126      ; desert, marsh, dense, forest (moisture)
+sq16:                           ; HL = A*A
         push de
         push bc
         ld h,a
@@ -486,11 +708,15 @@ carve_rivers:
         ; find a source (up to 60 tries)
         ld a,60
         ld (gtries),a
-.try:   ld b,MAPW-8
+.try:   ld a,(mapwm1)
+        sub 7
+        ld b,a
         call rand_n
         add a,4
         ld c,a
-        ld b,MAPH-8
+        ld a,(maphm1)
+        sub 7
+        ld b,a
         call rand_n
         add a,4
         ld b,a
@@ -510,7 +736,7 @@ carve_rivers:
 .step:  ; mark current
         call tile_addr
         push hl
-        ld de,MAPSIZE
+        ld de,OBJOFF
         add hl,de
         ld (hl),255
         pop hl
@@ -526,7 +752,7 @@ carve_rivers:
         call .cand
         inc c
 .n1:    ld a,c
-        cp MAPW-1
+        call iswm1
         jr z,.n2
         inc c
         call .cand
@@ -538,7 +764,7 @@ carve_rivers:
         call .cand
         inc b
 .n3:    ld a,b
-        cp MAPH-1
+        call ishm1
         jr z,.n4
         inc b
         call .cand
@@ -564,15 +790,15 @@ carve_rivers:
 .ly:    ld d,3
         push bc
 .lx:    ld a,b
-        cp MAPH
+        call cph
         jr nc,.ls
         ld a,c
-        cp MAPW
+        call cpw
         jr nc,.ls
         push hl
         call tile_addr
         push de
-        ld de,MAPSIZE
+        ld de,OBJOFF
         add hl,de
         pop de
         ld (hl),255
@@ -609,7 +835,7 @@ classify:
         ld a,(hl)               ; height
         ld d,a
         push de
-        ld de,MAPSIZE
+        ld de,OBJOFF
         add hl,de
         pop de
         ld e,(hl)               ; moisture
@@ -648,25 +874,29 @@ classify:
         jr z,.set
         ld a,T_HILLS
         jr .set
-.low:   ld a,e
-        cp 46
+.low:   ld a,(th_desert)        ; moisture < desert threshold
+        dec a
+        cp e
         ld a,T_DESERT
-        jr c,.set
-        ld a,e
-        cp 200
-        jr c,.nm
+        jr nc,.set
+        ld a,(th_marsh)
+        dec a
+        cp e
+        jr nc,.nm
         ld a,d
         cp SEA+18
         ld a,T_MARSH
         jr c,.set
-.nm:    ld a,e
-        cp 168
+.nm:    ld a,(th_dense)
+        dec a
+        cp e
         ld a,T_DENSE
-        jr nc,.set
-        ld a,e
-        cp 126
+        jr c,.set
+        ld a,(th_forest)
+        dec a
+        cp e
         ld a,T_FOREST
-        jr nc,.set
+        jr c,.set
         call hash_xy
         and 7
         ld a,T_MEADOW
@@ -674,12 +904,14 @@ classify:
         ld a,T_GRASS
 .set:   ld (hl),a
         inc c
-        ld a,c
-        cp MAPW
+        ld a,(mapwm1)
+        inc a
+        sub c
         jr nz,.x
         inc b
-        ld a,b
-        cp MAPH
+        ld a,(maphm1)
+        inc a
+        sub b
         jr nz,.y
         ret
 
@@ -705,10 +937,12 @@ hash_xy:
 place_ruins:
         ld a,7
         ld (gcount),a
-.l:     ld b,MAPW
+.l:     ld a,(mapwm1)
+        ld b,a
         call rand_n
         ld c,a
-        ld b,MAPH
+        ld a,(maphm1)
+        ld b,a
         call rand_n
         ld b,a
         call tile_addr
@@ -748,7 +982,7 @@ find_start:
         ld d,a
         ld a,(grad)
         ld e,a
-        ld a,MAPW/2
+        ld a,(mapcx)
         sub e
         add a,d
         ld c,a
@@ -759,7 +993,7 @@ find_start:
         ld d,a
         ld a,(grad)
         ld e,a
-        ld a,MAPH/2
+        ld a,(mapcy)
         sub e
         add a,d
         ld b,a
@@ -767,13 +1001,21 @@ find_start:
         ld a,b
         cp 4
         jr c,.try
-        cp MAPH-6
-        jr nc,.try
+        ld e,a
+        ld a,(maphm1)
+        sub 6
+        cp e
+        ld a,e
+        jr c,.try
         ld a,c
         cp 4
         jr c,.try
-        cp MAPW-6
-        jr nc,.try
+        ld e,a
+        ld a,(mapwm1)
+        sub 6
+        cp e
+        ld a,e
+        jr c,.try
         call grasslike
         jr nz,.try
         inc c
@@ -791,17 +1033,20 @@ find_start:
         cp 3
         jr c,.try
         jr .found
-.force: ld b,MAPH/2
-        ld c,MAPW/2
+.force: ld a,(mapcy)
+        ld b,a
+        ld a,(mapcx)
+        ld c,a
         call tile_addr
         ld (hl),T_GRASS
         inc hl
         ld (hl),T_GRASS
-        ld de,MAPW-1
-        add hl,de
+        inc b
+        call tile_addr
         ld (hl),T_GRASS
         inc hl
         ld (hl),T_GRASS
+        dec b
 .found: ld (startxy),bc
         ret
 
@@ -828,10 +1073,10 @@ count_forest5:                  ; count forest/dense in +-5 box -> A
         ld c,a
         ld d,11
 .x:     ld a,b
-        cp MAPH
+        call cph
         jr nc,.s
         ld a,c
-        cp MAPW
+        call cpw
         jr nc,.s
         call tile_addr
         ld a,(hl)

@@ -4,10 +4,10 @@
 
 ; terrain at B=y,C=x with bounds (outside map = deep water) -> A (id, no flags)
 tget:   ld a,b
-        cp MAPH
+        call cph
         jr nc,.out
         ld a,c
-        cp MAPW
+        call cpw
         jr nc,.out
         push hl
         call tile_addr
@@ -19,15 +19,15 @@ tget:   ld a,b
         ret
 ; object at B,C (outside = 0)
 oget:   ld a,b
-        cp MAPH
+        call cph
         jr nc,.out
         ld a,c
-        cp MAPW
+        call cpw
         jr nc,.out
         push hl
         push de
         call tile_addr
-        ld de,MAPSIZE
+        ld de,OBJOFF
         add hl,de
         ld a,(hl)
         pop de
@@ -94,7 +94,7 @@ tile_look:
         jp z,.fog
         and 1Fh
         ld (tterr),a
-        ld de,MAPSIZE
+        ld de,OBJOFF
         add hl,de
         ld a,(hl)
         or a

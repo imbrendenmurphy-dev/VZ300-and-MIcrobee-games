@@ -1,28 +1,29 @@
 ; ===================================================================
 ;  EMPIRES : THE LIVING WORLD
 ;  An original civilisation / city-building game for the
-;  Microbee Premium Plus (80x24, 32K PCG, colour + monochrome)
+;  Microbee Premium Plus (1MB RAM, 80x24, 32K PCG, colour + monochrome)
 ;  ViBED by BPM 2026
 ;
-;  CP/M .COM - launch from the DOS prompt:  A>EMPIRES
+;  Engine image: runs in block 0 at 8000-EFFF, started by EMPIRES.COM
+;  (loader.asm).  The world map lives in banked RAM in the lower window.
+;  One assembly produces three images:
+;    EMPIRES.UP   engine          8000h  (block 0)
+;    EMPIRES.OVL  overlay code    0000h  (block BLK_OVL)
+;    EMPIRES.ART  PCG + animation 4000h  (block BLK_ART)
 ; ===================================================================
         include "defs.inc"
 
-        org 0100h
-start:  ld (oldsp),sp
-        ld sp,stacktop
-        ; enough TPA?  BDOS entry (0006h) must be above our top of memory
-        ld hl,(6)
-        ld de,MEMTOP
-        or a
-        sbc hl,de
-        jr nc,.memok
-        ld de,txt_nomem
-        ld c,9
-        call 5
-        ld sp,(oldsp)
-        ret
-.memok: di
+        org 8000h
+        jp start
+p_cpm_port:  db 0               ; 8003: set by the loader
+p_cpm_block: db 0               ; 8004
+
+start:  ld sp,stacktop
+        di
+        ld a,0FFh
+        ld (curband),a
+        xor a
+        call map_band           ; map band 0 in the lower window, video on
         ; remember the DOS screen colour so we can restore it on exit
         ld a,40h
         out (P_COL),a
@@ -39,8 +40,9 @@ start:  ld (oldsp),sp
         out (P_PIOB),a
         call mouse_init
         call pcg_clear
-        call pcg_upload         ; pattern data is overwritten by the maps after this
-        call startup_choice
+        call pcg_upload
+        ld hl,startup_choice
+        call ovl_call
 menu:   call title_screen
         or a
         jr z,exit_dos
@@ -54,6 +56,7 @@ menu:   call title_screen
         ld a,C_TITLE
         call puts_at
         call present_all
+        call set_world_size
         call generate_world
         call new_game
         ld hl,tune_start
@@ -64,8 +67,10 @@ menu:   call title_screen
         call wait_release
         jr menu
 
+; ---- back to DOS: clean screen, then restore CP/M's memory from its
+; snapshot with a stub at F000h (video window off), and return to the
+; loader's resident code in CP/M's own block.
 exit_dos:
-        ; restore a clean DOS screen
         ld a,(dos_colour)
         call shadow_clear
         call present_all
@@ -75,16 +80,37 @@ exit_dos:
         out (P_COL),a
         ld a,20h
         out (P_PIOB),a
-        ei
-        ld de,txt_bye
-        ld c,9
-        call 5
-        jp 0                    ; warm boot back to the A> prompt
+        di
+        ld a,(lowport)
+        or 8                    ; video window off: F000-FFFF is RAM
+        out (P_MEM),a
+        ld hl,exit_stub
+        ld de,0F000h
+        ld bc,exit_stub_end-exit_stub
+        ldir
+        ld a,(p_cpm_port)
+        ld (0F000h+exit_cpm-exit_stub),a
+        jp 0F000h
+exit_stub:                      ; position independent
+        ld a,BLK_CPM
+        call blk_port
+        or 8
+        out (P_MEM),a
+        ld hl,0
+        ld de,8000h
+        ld bc,7000h
+        ldir                    ; CP/M's upper memory is back (this engine is gone)
+        db 3Eh                  ; ld a,n
+exit_cpm:
+        db 0
+        or 8
+        out (P_MEM),a           ; lower window = CP/M's block, video still off
+        jp 0103h                ; loader: svc_exit
+exit_stub_end:
 
-txt_nomem:  db "EMPIRES needs more free memory (TPA).",13,10,"$"
-txt_bye:    db 26,"Thanks for playing EMPIRES : THE LIVING WORLD - ViBED by BPM",13,10,"$"
 txt_building_world: db "BUILDING A NEW WORLD",0
 
+        include "banks.asm"
         include "video.asm"
         include "input.asm"
         include "mouse.asm"
@@ -92,12 +118,24 @@ txt_building_world: db "BUILDING A NEW WORLD",0
         include "worldgen.asm"
         include "render.asm"
         include "game.asm"
-        include "title.asm"
+        include "titleup.asm"
         include "art.inc"
         include "vars.asm"
-; ---- boot-only PCG patterns live where the world maps go ----
-TERR    equ $
+engine_end:
+        assert engine_end <= 0F000h, "engine image too big"
+        savebin "../build/EMPIRES.UP",8000h,7000h
+
+; ---- overlay block (lower window, 0000h) ----
+        org 0000h
+        include "overlay.asm"
+overlay_end:
+        assert overlay_end <= 4000h, "overlay too big"
+        savebin "../build/EMPIRES.OVL",0000h,4000h
+
+; ---- art block (lower window, 4000h) ----
+        org 4000h
         include "art_pcg.inc"
-OBJ     equ TERR+MAPSIZE
-MEMTOP  equ OBJ+MAPSIZE
-        assert pcg_end <= MEMTOP
+        include "art_anim.inc"
+art_end:
+        assert art_end <= 8000h, "art too big"
+        savebin "../build/EMPIRES.ART",4000h,4000h

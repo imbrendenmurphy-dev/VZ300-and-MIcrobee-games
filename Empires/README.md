@@ -9,14 +9,14 @@ An original civilisation and city-building game for the Microbee Premium Plus. L
 ![town in autumn](screenshots/town-colour.png)
 
 ## You need
-- Microbee Premium Plus (this milestone runs in the CP/M TPA; later milestones will use the 1MB RAM)
+- Microbee Premium Plus with 1MB RAM
 
 ## Starting
 Boot `release/EMPIRES.DS8` (on a Premium Plus without a DS8 drive, boot the image from SD). It goes straight to the `A>` prompt. Type:
 
     EMPIRES
 
-Choose **C** for a colour monitor or **M** for monochrome. ESC on the title returns to `A>`.
+The loader fills the expanded RAM (dots show progress). Choose **C** for a colour monitor or **M** for monochrome. On the title, **2** picks the world type and **6** the size (128×128 or 256×256). ESC on the title returns to `A>`.
 
 ## Keys
 | | |
@@ -32,7 +32,7 @@ Choose **C** for a colour monitor or **M** for monochrome. ESC on the title retu
 | ESC | leave the world (Y/N) |
 
 ## Status
-Tested in the project's own Premium model (screenshots); not yet run on real hardware. Microsoft serial mouse support added: run `MOUSE` from the disk to check yours. Next: 1MB banked worlds and disk saves, technology, rival civilisations, scenarios.
+Tested in the project's own Premium model (screenshots); not yet run on real hardware. Microsoft serial mouse support added: run `MOUSE` from the disk to check yours. Worlds now live in the 1MB banked RAM (up to 256×256) and EXIT returns cleanly to `A>`. Next: disk saves, technology, rival civilisations, scenarios.
 
 ## Folders
 - `release/`: the bootable disk image and the program on its own

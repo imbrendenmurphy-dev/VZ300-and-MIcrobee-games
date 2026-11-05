@@ -593,21 +593,23 @@ emit(' db %d,%d,%d,%d'%(GREEN,GREEN,YELLOW,WHITE))
 anim=[]
 for g,fr in water_frames.items(): anim.append((g,fr,ANIMF))
 emit('ANIM_WATER_N equ %d'%len(water_frames))
-emit('anim_water:   ; G, then %d frames x 11 bytes colour, then same for mono'%ANIMF)
+ab=[]
+ab.append('anim_water:   ; G, then %d frames x 11 bytes colour, then same for mono'%ANIMF)
 for g,fr in water_frames.items():
-    emit(' db %d'%g)
-    for f in fr: emit(' '+dbrows(f))
-    for f in mono_frames(g,fr): emit(' '+dbrows(f))
+    ab.append(' db %d'%g)
+    for f in fr: ab.append(' '+dbrows(f))
+    for f in mono_frames(g,fr): ab.append(' '+dbrows(f))
 others=[]
 for d in (mill_frames,smoke_frames,flag_frames):
     for g,fr in d.items(): others.append((g,fr))
 emit('ANIM_OTHER_N equ %d'%len(others))
-emit('anim_other:   ; G, nframes, frames colour, frames mono')
+ab.append('anim_other:   ; G, nframes, frames colour, frames mono')
 for g,fr in others:
-    emit(' db %d,%d'%(g,len(fr)))
-    for f in fr: emit(' '+dbrows(f))
-    for f in mono_frames(g,fr): emit(' '+dbrows(f))
+    ab.append(' db %d,%d'%(g,len(fr)))
+    for f in fr: ab.append(' '+dbrows(f))
+    for f in mono_frames(g,fr): ab.append(' '+dbrows(f))
 
+open('src/art_anim.inc','w').write('\n'.join(['; ---- generated: animation frames (art bank) ----']+ab)+'\n')
 # terrain names
 emit('terr_names:')
 for t in range(16): emit(' db "%s",0'%TERR_NAMES[t])
