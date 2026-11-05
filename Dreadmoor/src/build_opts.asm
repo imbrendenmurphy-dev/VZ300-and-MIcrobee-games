@@ -1,0 +1,4 @@
+DBG_START equ 16
+DBG_ARMOUR equ 1
+DBG_OWNED equ 1
+DBG_CHEAT equ 0

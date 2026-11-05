@@ -1,0 +1,5 @@
+build/
+shots/
+*.ppm
+__pycache__/
+emu/vzemu
