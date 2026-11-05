@@ -49,13 +49,28 @@ def poke_start(poke, peekw, S, boss):
             poke(S[name] + 1, (cols - 70) >> 8)
 
 
+def decouple(peek, poke, S, dummy):
+    """test only: the effect-noise generator gets a seed of its own, so the
+    game's random numbers no longer depend on timing (as in fidelity.py)"""
+    n = 0
+    for a in range(S['sfx_tog'], S['sfx_frame']):
+        if peek(a) in (0x2A, 0x22) and peek(a + 1) == S['rseed'] & 255 and peek(a + 2) == S['rseed'] >> 8:
+            poke(a + 1, dummy & 255)
+            poke(a + 2, dummy >> 8)
+            n += 1
+    assert n == 2, n
+
+
 def mb(stage, boss):
     pp = run.boot(stage)
     S = pp.S
+    decouple(pp.peek, pp.poke, S, 0xEF00)
     pp.run_until(S['prof_reset'], 400)
     poke_start(pp.poke, pp.peekw, S, boss)
     pp.run_until(S['mainloop'], 400)
     pp.poke(S['trainer'], 1)
+    pp.poke(S['rseed'], 0x34)
+    pp.poke(S['rseed'] + 1, 0x12)
     pp.run_frames(20)
     busy, per, _ = measure.frame_stats(pp, NF, lambda p, f: setattr(p, 'keys', keys_at(f)))
     return summarise(busy, [p / FRAME_T for p in per])
@@ -64,6 +79,7 @@ def mb(stage, boss):
 def vz(stage, boss):
     S = vzmeasure.vzsyms(VZSYM)
     v = VZ(VZFILE)
+    decouple(v.peek, lambda a, x: v.mem.__setitem__(a, x), S, 0x7FF0)
     v.run_fields(150)
     v.keys = {'SPACE'}
     v.run_fields(4)
@@ -74,6 +90,8 @@ def vz(stage, boss):
     poke_start(lambda a, x: v.mem.__setitem__(a, x), lambda a: v.peek(a) | v.peek(a + 1) << 8, S, boss)
     v.run_until(S['mainloop'], 2000)
     v.mem[S['trainer']] = 1
+    v.mem[S['rseed']] = 0x34
+    v.mem[S['rseed'] + 1] = 0x12
     v.run_fields(20)
     v.watch(S['blit'])
     v.watch(S['waitframe'])
