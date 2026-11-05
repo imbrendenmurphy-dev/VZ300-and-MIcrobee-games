@@ -1,0 +1,78 @@
+BILBIES!  for the Dick Smith VZ300
+==================================
+
+I asked an AI to port Lemmings to the VZ300. It wouldn't copy Lemmings,
+so I had it make an original one for the VZ instead: the same kind of
+puzzle, with everything else new.
+
+THE STORY
+Out past the last fence post, where the red dirt runs to the sky, the
+bilbies have lost their way home. Their burrows are scattered right
+across the country - under the plains, through the gullies, down the old
+goldfields shafts, past the homestead and out to the beach - and the
+little marsupials have no sense of direction whatsoever. Once they start
+walking, they don't stop.
+
+That's where you come in. Give each one the right job at the right
+moment - dig, build, bash, mine, climb, float, block, or (sorry, mate)
+blow up - and lead as many as you can down to safety. Across 24 big
+levels, from a gentle first dig to a nine-minute trek with forty
+bilbies, every burrow is waiting.
+
+WHAT'S IN IT
+* 24 original levels in four ratings: MILD (out in the scrub), TRICKY
+  (under the ground), TOUGH (night falls) and WILD (the big country)
+* 8 skills: climber, floater, bomber, blocker, builder, basher, miner,
+  digger
+* Big maps - 512 x 80 pixels each, four screens across and nearly two
+  down - with smooth four-way scrolling and a minimap you can click
+* Up to 40 bilbies on the go at once, with full animation: 8 walk
+  frames, 16 for building, 32 for bashing, 24 for mining and more
+* Australiana everywhere: 50 hand-drawn scenery pictures and set pieces
+  - a station homestead, a country pub with iron lace verandahs, a
+  shearing shed, windpumps and water tanks, a road train and a camel
+  string, a goldfields poppet head, Wave Rock, Uluru on the horizon, a
+  paddle steamer, a lighthouse, a harbour beach with the flags out, and
+  the Opera House and Harbour Bridge across the water - plus gum trees,
+  grass trees, roos, emus, galahs, a croc and the outback dunny
+* Faint sky, star, mist and cave textures behind the action, so the
+  scenery never gets in the way of the bilbies
+* Animated title screen with a three-voice beeper arrangement of Grieg's
+  "In the Hall of the Mountain King", plus original jingles and sound
+  effects
+* Attract mode that plays five levels by itself, a trainer to open every
+  level, a level menu with a picture of each map, and a briefing for
+  every level
+* Keyboard or joystick (both ports)
+
+TECH SPECS
+* Machine: Dick Smith VZ300 with the BennVenn SD loader and 128K RAM
+  expansion (needs both 10K SRAM banks at $4000-$67FF)
+* Display: mode(1), 128 x 64 in 4 colours - a 128 x 44 scrolling
+  playfield above a status line, a 12-button skill panel and a minimap
+* One file, BILBIES.VZ (23K). It loads low at $8000, copies the levels
+  into the second SRAM bank, then unpacks the program in place - nothing
+  runs from video RAM
+* 100% Z80 assembly. The game logic runs at 12.5 ticks a second and the
+  screen redraws at 25 frames a second
+* Each level is built on the fly from a compact description - ground,
+  rock, caves, stalactites, strata, lit edges and scenery - packed with
+  ZX0 into SRAM bank B. The 512 x 80 picture is built into SRAM bank A,
+  and a 1-bit-per-pixel map of solid ground sits in main RAM. A level
+  builds in 1-2 seconds while the briefing is up
+* Sound: everything through the VZ's 1-bit speaker; the title music
+  plays three voices at once
+* Played on real VZ300 hardware through every version, and every level
+  has also been played through to a win by script in an emulator of the
+  VZ300 + BennVenn
+
+CONTROLS
+  Q A O P / joystick   move the cursor; push an edge to scroll
+  SPACE / M / FIRE     give the selected skill to a bilby
+  1-8                  pick a skill        Z / X  previous / next skill
+  ,  .                 release rate        H      pause
+  N N                  nuke                CTRL+Q give up
+  Title: FIRE play, T trainer, K music, S sound effects
+
+Lemmings is a trademark of its owners. BILBIES! is a separate, original
+game in the same genre and isn't affiliated with them.

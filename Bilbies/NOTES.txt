@@ -9,8 +9,7 @@ King" (1875, public domain); the jingles are original.
 FILES
   BILBIES.VZ              the whole game in one file (23K, loads at $8000).
                           No DAT files.
-  Bilbies_VZ300_src.zip   source, build tools, level designs, test emulator
-  title_music.wav         the title music as the emulator plays it
+  src\                    source, build tools, level designs
   screenshots\            pictures from the emulator
 
 LOADING

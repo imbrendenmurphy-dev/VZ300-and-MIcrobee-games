@@ -745,7 +745,8 @@ jingle_wait:
         jr nz,.q
         call mus_frame
         jr .k
-.q:     ei
+.q:     call snd_init           ; (the tune leaves its own values in B' C')
+        ei
         ld a,1
         call frame_sync
 .k:     call read_controls

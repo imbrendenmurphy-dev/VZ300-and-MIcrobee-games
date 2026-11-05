@@ -38,6 +38,7 @@ snd_step:
         sbc a,a
         and c
         xor b
+        or L_MODE               ; whatever's in B', never leave graphics mode
         ld (LATCH),a
         exx
         ld a,(v_hold)
