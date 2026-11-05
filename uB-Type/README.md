@@ -39,18 +39,18 @@ A joystick on the parallel port also works.
 
 ## Performance so far (emulator, the same scripted input on both machines)
 
-| Stage | Part | VZ300 fps | Microbee fps |
-|---|---|---|---|
-| 1 Outer Hull | start | 22.0 | 21.1 |
-| 1 Outer Hull | boss | 20.5 | 16.2 |
-| 2 The Hive | start | 20.5 | 16.0 |
-| 2 The Hive | boss | 21.0 | 10.8 |
-| 3 Rock Belt | start | 23.0 | 21.3 |
-| 3 Rock Belt | boss | 20.1 | 9.9 |
-| 4 Crystal Vein | start | 22.2 | 21.7 |
-| 4 Crystal Vein | boss | 20.6 | 15.4 |
-| 5 Dreadnought | start | 20.6 | 14.6 |
-| 5 Dreadnought | boss | 20.4 | 11.5 |
+| Stage | VZ300 start | Microbee start | VZ300 boss | Microbee boss |
+|---|---|---|---|---|
+| 1 Outer Hull | 22.0 | 21.1 | 20.5 | 16.2 |
+| 2 The Hive | 20.5 | 16.0 | 21.0 | 10.8 |
+| 3 Rock Belt | 23.0 | 21.3 | 20.1 | 9.9 |
+| 4 Crystal Vein | 22.2 | 21.7 | 20.6 | 15.4 |
+| 5 Dreadnought | 20.6 | 14.6 | 20.4 | 11.5 |
+| 6 Gut Caverns | 22.4 | 21.9 | 20.9 | 13.2 |
+| 7 Deep Field | 22.4 | 18.2 | 20.7 | 14.3 |
+| 8 The Core | 22.2 | 21.0 | 20.0 | 10.6 |
+
+Frames per second. Both machines cap at 25 frames per second.
 
 Quieter scenes match the VZ. Busy scenes and the big bosses are slower, because every sprite cell is rebuilt as a PCG glyph each frame. Speeding up the sprite pipeline is the current work.
 
