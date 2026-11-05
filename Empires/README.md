@@ -1,0 +1,41 @@
+# EMPIRES : The Living World
+
+An original civilisation and city-building game for the Microbee Premium Plus. Lead a handful of settlers from a lonely town hall to a thriving town in a procedurally generated world: plough fields, fell forests, build roads and bridges, and watch huts grow into houses and manors as the seasons turn the land from spring green to autumn gold to winter white. Colour and monochrome display modes.
+
+**Milestone 1** · ViBED by BPM · 2026
+
+![title](screenshots/title.png)
+
+![town in autumn](screenshots/town-colour.png)
+
+## You need
+- Microbee Premium Plus (this milestone runs in the CP/M TPA; later milestones will use the 1MB RAM)
+
+## Starting
+Boot `release/EMPIRES.DS8` (on a Premium Plus without a DS8 drive, boot the image from SD). It goes straight to the `A>` prompt. Type:
+
+    EMPIRES
+
+Choose **C** for a colour monitor or **M** for monochrome. ESC on the title returns to `A>`.
+
+## Keys
+| | |
+|---|---|
+| Arrows, W A S D, I J K L or joystick | move the cursor (SHIFT = faster) |
+| SPACE or RETURN | build the selected tool |
+| 1–9, 0 / TAB | road, hut, farm, woodcutter, quarry, well, market, windmill, watchtower, clear land |
+| M | world map |
+| C | colour / monochrome |
+| P / , / . | pause / slower / faster |
+| H | help |
+| ESC | leave the world (Y/N) |
+
+## Status
+Tested in the project's own Premium model (screenshots); not yet run on real hardware. Next: Microsoft serial mouse, 1MB banked worlds and disk saves, technology, rival civilisations, scenarios.
+
+## Folders
+- `release/`: the bootable disk image and the program on its own
+- `src/`: Z80 source, Python art and test tools, `build.sh`, `DESIGN.md` (hardware findings, memory map, status)
+- `screenshots/`: colour and mono screens, world map, the five world types
+
+*Rebuilding the disk needs the Microbee system tracks and `CCP.SYS`. These are Microbee system files, so they're not included here; copy them from your own Microbee system disk into `src/src/resources/` (`boot_tracks.bin`, `CCP.SYS`).*

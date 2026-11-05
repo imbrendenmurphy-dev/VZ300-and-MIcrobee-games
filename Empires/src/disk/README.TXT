@@ -1,0 +1,25 @@
+EMPIRES : THE LIVING WORLD
+An original civilisation and city-building game
+for the Microbee Premium Plus.   ViBED by BPM 2026
+
+STARTING
+  Boot this disk. It goes straight to the A> prompt. Type:  EMPIRES
+  Press C for a colour monitor or M for a monochrome monitor.
+  ESC in the game returns to the title; ESC on the title returns to A>.
+
+KEYS
+  Arrow keys, W A S D, I J K L or a joystick ... move the cursor
+                                (hold SHIFT to move faster)
+  SPACE or RETURN ... build the selected tool
+  1 Road  2 Hut  3 Farm  4 Woodcutter  5 Quarry  6 Well
+  7 Market  8 Windmill  9 Watchtower  0 Clear land   TAB cycles
+  M world map   C colour/monochrome   H help
+  P pause   , slower   . faster
+
+TIPS
+  Farms plough the grass around them into fields. Fields yield most
+  in autumn and nothing in winter, so store food for the snow.
+  Huts with a road beside them, a well nearby and happy people grow
+  into houses; houses near a market grow into manors.
+  You can only build near your own buildings: watchtowers see far
+  and widen your lands. Explore to find ancient ruins.

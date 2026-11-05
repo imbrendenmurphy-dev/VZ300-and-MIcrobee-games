@@ -1,0 +1,4 @@
+build/
+src/resources/
+tools/beeemu
+__pycache__/
