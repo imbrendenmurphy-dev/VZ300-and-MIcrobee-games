@@ -22,4 +22,4 @@ ROM images for the machines and emulators are not included.
 
 ## Third-party code
 
-The test emulator in some `src/tools/` folders (Forgotten Depths, Megademo, Ghost Hunter 2, Asteroids II) uses a Z80 CPU core that looks like superzazu/z80 (MIT licence, https://github.com/superzazu/z80). It's used only for testing and isn't part of the games.
+The test emulator in some `src/tools/` folders (Forgotten Depths, Megademo, Ghost Hunter 2, Asteroids II, Circus 2) uses a Z80 CPU core that looks like superzazu/z80 (MIT licence, https://github.com/superzazu/z80). It's used only for testing and isn't part of the games.
