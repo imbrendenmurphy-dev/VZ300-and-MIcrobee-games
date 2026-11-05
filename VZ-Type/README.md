@@ -15,7 +15,8 @@ Copy `release/VZTYPE.VZ` to the SD card and run it from the BennVenn SD loader. 
 ## Folders
 - `release/`: the game
 - `src/`: Z80 source and Python build tools (`build.sh` builds everything)
-- `screenshots/`: the title screen and every stage and boss
+- `screenshots/`: the title sequence, attract pages, and every stage and boss
+- `media/`: the title music, recorded from the emulator
 
 ## Original notes
 
