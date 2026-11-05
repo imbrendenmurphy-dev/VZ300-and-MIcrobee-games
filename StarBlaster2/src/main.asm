@@ -42,6 +42,19 @@ start:
         ld bc,2047
         ld (hl),$AA
         ldir
+        ; hardware check: 128K RAM ($F000) and BennVenn SRAM bank 3 ($6000)
+        ld a,3
+        out ($37),a
+        ld hl,$6000
+        ld (hl),$5A
+        ld a,(hl)
+        cp $5A
+        jr nz,no_ram
+        ld hl,$F000
+        ld (hl),$A5
+        ld a,(hl)
+        cp $A5
+        jr nz,no_ram
         call build_library      ; also selects SRAM bank 3
         ld a,r
         ld l,a
@@ -61,6 +74,25 @@ start:
         ld a,$C9
         ld (CCODE),a
         jp attract
+
+no_ram: xor a                   ; text mode message, then stop
+        ld ($6800),a
+        ld hl,VRAM
+        ld de,VRAM+1
+        ld bc,511
+        ld (hl),$20
+        ldir
+        ld hl,s_noram
+        ld de,VRAM+32*7+3
+.c:     ld a,(hl)
+        or a
+        jr z,.h
+        ld (de),a
+        inc hl
+        inc de
+        jr .c
+.h:     jr .h
+s_noram: db "NEEDS BENNVENN SD + 128K RAM",0
 
 hitab_init:     ; score (3 BCD), sector reached, initials (3), pad
         db $02,$00,$00,8,"BPM",0
@@ -113,6 +145,7 @@ keysnew: db 0
 autoplay: db 0
 godmode: db 0
 forceclear: db 0
+startsec: db 0
 trainer: db 0
 skill:  db 0
 soundmode: db 0

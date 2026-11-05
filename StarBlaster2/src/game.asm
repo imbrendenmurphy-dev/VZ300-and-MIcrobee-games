@@ -87,8 +87,9 @@ new_game:
         ld (score),a
         ld (score+1),a
         ld (score+2),a
-        ld (sector),a
         ld (lap),a
+        ld a,(startsec)         ; test hook (normally 0)
+        ld (sector),a
         ld a,2
         ld (novas),a
         call start_sector
@@ -1088,7 +1089,10 @@ spawn_fighter:
         ld iy,OBJS
         ld a,(iy+O_AZ+1)
         ld (ix+O_AZ+1),a
+        ld a,(iy+O_EL+1)
+        ld (ix+O_EL+1),a
         ld a,(iy+O_Z+1)
+        sub 2
         ld (ix+O_Z+1),a
         ret
 
@@ -1136,13 +1140,13 @@ spawn_convoy:
         ld b,40
         call rand_pm
         ld (ix+O_EL+1),a
-        ld b,22
+        ld b,16
         call rand_n
-        add a,16
+        add a,10
         ld (ix+O_Z+1),a
         call random
         and $3F
-        add a,40
+        add a,32
         bit 0,l
         jr z,.d
         neg
@@ -1249,12 +1253,12 @@ spawn_boss:
         ld (ix+O_AZ+1),a
         ld (ix+O_Z+1),60
         ld (ix+O_VZ),-24
-        ld a,3
+        ld a,2
         ld (turhp),a
         ld (turhp+1),a
         ld (turhp+2),a
         ld (turhp+3),a
-        ld a,10
+        ld a,8
         ld (corehp),a
         ld a,80
         ld (bosst),a
@@ -1506,6 +1510,7 @@ b_boss:
         ld (ix+O_VZ),0
 .mv:    ld a,(ix+O_PH)
         call sinv
+        sra a
         sra a
         sra a
         ld (ix+O_VAZ),a
@@ -1997,8 +2002,8 @@ hit_boss:
         ld b,0
 .t:     ld a,(bt_dx)
         sub (hl)
-        add a,4
-        cp 9
+        add a,5
+        cp 11
         jr nc,.tn
         inc hl
         ld a,(bt_dy)
@@ -2694,15 +2699,32 @@ draw_sights:
         ld a,(gstate)
         cp 3
         ret nc
+        call sights_busy
+        ld a,$14                ; yellow arms
+        ld c,$C5
+        ld d,$40
+        jr nc,.col
+        ld a,$3C                ; red arms when locked on
+        ld c,$CF
+        ld d,$C0
+.col:   ld (sg_a),a
+        ld a,c
+        ld (sg_c),a
+        ld a,d
+        ld (sg_d),a
         ld hl,SROW
+        ld a,(sg_a)
+        ld b,a
         ld a,(hl)
         and $C3
-        or $14                  ; x 61,62 yellow
+        or b                    ; x 61,62
         ld (hl),a
         inc l
+        ld a,(sg_c)
+        ld b,a
         ld a,(hl)
         and $30
-        or $C5                  ; x 64 red, 66,67 yellow
+        or b                    ; x 64 red, 66,67
         ld (hl),a
         ld de,-96
         call .v
@@ -2728,9 +2750,11 @@ draw_sights:
         ret
 .v:     ld hl,BG+CY*32+16
         add hl,de
+        ld a,(sg_d)
+        ld b,a
         ld a,(hl)
         and $3F
-        or $40                  ; x 64 yellow
+        or b                    ; x 64
         ld (hl),a
         ret
 
@@ -3361,8 +3385,101 @@ ai_play:
         ld a,ixh
         or ixl
         ret z
-        call rel_az
         ld c,0
+        ld a,(ix+O_VIS)
+        or a
+        jp z,.far
+        ; on screen: steer by screen position (boss: aim at a live turret / the core)
+        xor a
+        ld (bt_dx),a
+        ld (bt_dy),a
+        ld a,2
+        ld (bu_n),a             ; aim tolerance
+        ld a,(ix+O_TYPE)
+        cp T_BOSS
+        jr nz,.aim
+        ld a,(ix+O_SIZE)
+        cp 2
+        jr c,.aim
+        ld hl,turpos
+        ld de,turhp
+        ld b,4
+.tl:    ld a,(de)
+        or a
+        jr nz,.tf
+        inc hl
+        inc hl
+        inc de
+        djnz .tl
+        jr .aimb                ; core (offset 0,0)
+.tf:    ld a,(hl)
+        ld (bt_dx),a
+        inc hl
+        ld a,(hl)
+        ld (bt_dy),a
+.aimb:  xor a
+        ld (bu_n),a
+.aim:   ld a,(ix+O_SX+1)
+        or a
+        jr nz,.far
+        ld a,(bt_dx)
+        add a,(ix+O_SX)
+        sub CX                  ; ex
+        ld b,a
+        ld a,(bt_dy)
+        add a,(ix+O_SY)
+        sub CY                  ; ey
+        ld d,a
+        ld a,b
+        cp 2
+        jr c,.xok0
+        cp -1
+        jr nc,.xok0
+        bit 7,a
+        jr nz,.xl
+        set 0,c
+        jr .xok0
+.xl:    set 1,c
+.xok0:  ld a,d
+        cp 2
+        jr c,.yok
+        cp -1
+        jr nc,.yok
+        bit 7,a
+        jr nz,.yu
+        set 3,c                 ; target below centre: scan down
+        jr .yok
+.yu:    set 2,c
+.yok:   ; fire when inside the target box
+        ld a,(bu_n)
+        or a
+        ld a,(ix+O_HW)
+        jr nz,.fw
+        ld a,2
+.fw:    add a,1
+        ld e,a
+        ld a,b
+        bit 7,a
+        jr z,.p1
+        neg
+.p1:    cp e
+        jr nc,.done
+        ld a,(bu_n)
+        or a
+        ld a,(ix+O_HH)
+        jr nz,.fh
+        ld a,2
+.fh:    add a,1
+        ld e,a
+        ld a,d
+        bit 7,a
+        jr z,.p2
+        neg
+.p2:    cp e
+        jr nc,.done
+        set 4,c
+        jr .done
+.far:   call rel_az
         ld a,h
         bit 7,a
         jr nz,.l
@@ -3382,39 +3499,60 @@ ai_play:
 .ud:    ld hl,(vel)
         ld a,(ix+O_EL+1)
         sub h
-        jr z,.f
+        jr z,.done
         jp m,.dn
         cp 2
-        jr c,.f
+        jr c,.done
         set 2,c
-        jr .f
+        jr .done
 .dn:    cp -1
-        jr nc,.f
+        jr nc,.done
         set 3,c
-.f:     ; fire when roughly on target
+.done:  push bc
+        call sights_busy
+        pop bc
+        jr nc,.nf
+        set 4,c
+.nf:    ld a,c
+        ld (inp),a
+        ret
+; sights_busy: carry if any visible object is under the crosshair
+sights_busy:
+        ld ix,OBJS
+        ld b,NOBJ
+.o:     ld a,(ix+O_TYPE)
+        or a
+        jr z,.n
+        cp T_PLANET
+        jr z,.n
         ld a,(ix+O_VIS)
         or a
-        jr z,.done
-        ld l,(ix+O_SX)
-        ld a,l
+        jr z,.n
+        ld a,(ix+O_SX+1)
+        or a
+        jr nz,.n
+        ld a,(ix+O_SX)
         sub CX
-        jp p,.ax
+        jp p,.a1
         neg
-.ax:    ld b,a
+.a1:    ld c,a
         ld a,(ix+O_HW)
-        add a,2
-        cp b
-        jr c,.done
+        inc a
+        cp c
+        jr c,.n
         ld a,(ix+O_SY)
         sub CY
-        jp p,.ay
+        jp p,.a2
         neg
-.ay:    ld b,a
+.a2:    ld c,a
         ld a,(ix+O_HH)
-        add a,3
-        cp b
-        jr c,.done
-        set 4,c
-.done:  ld a,c
-        ld (inp),a
+        inc a
+        cp c
+        jr c,.n
+        scf
+        ret
+.n:     ld de,OSZ
+        add ix,de
+        djnz .o
+        or a
         ret

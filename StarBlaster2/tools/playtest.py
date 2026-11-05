@@ -17,11 +17,12 @@ every = int(sys.argv[3]) if len(sys.argv) > 3 else 0
 shot = int(sys.argv[4]) if len(sys.argv) > 4 else 100
 startkey = sys.argv[5] if len(sys.argv) > 5 else 'SPACE'
 god = int(sys.argv[6]) if len(sys.argv) > 6 else 1
+sec = int(sys.argv[7]) if len(sys.argv) > 7 else 0
 keys = out + '_keys.txt'
 open(keys, 'w').write("100 103 %s\n" % startkey)
 args = [os.path.join(HERE, 'vzemu', 'vzemu'), os.path.join(ROOT, 'build', 'STARBLS2.VZ'),
         '-frames', str(frames), '-keys', keys, '-every', str(shot), '-out', out]
-pk = [(150, sym['autoplay'], 1), (150, sym['godmode'], god)]
+pk = [(50, sym['startsec'], sec), (150, sym['autoplay'], 1), (150, sym['godmode'], god)]
 if every:
     f = 150 + every
     while f < frames and len(pk) < 62:

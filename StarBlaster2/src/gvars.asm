@@ -71,3 +71,6 @@ letp:   dw 0
 sdvaz:  dw 0
 sdvel:  dw 0
 lag:    db 0
+sg_a:   db 0
+sg_c:   db 0
+sg_d:   db 0

@@ -77,7 +77,9 @@ frame_wait:
 
 ; next_frame: tick the sequencer and wait for the next vblank
 next_frame:
+        push ix
         call sound_tick
+        pop ix
         jp frame_wait
 
 ; fs_check: call between heavy jobs; counts a vblank that arrives while
