@@ -1,0 +1,8 @@
+build/
+__pycache__/
+*.pyc
+src/sb2.bin
+tools/vzemu/vzemu
+# the original game is not ours to redistribute - kept locally only
+ref/
+*.wav
