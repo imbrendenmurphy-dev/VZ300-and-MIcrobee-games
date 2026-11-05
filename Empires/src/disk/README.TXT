@@ -8,7 +8,9 @@ STARTING
   ESC in the game returns to the title; ESC on the title returns to A>.
 
 KEYS
-  Arrow keys, W A S D, I J K L or a joystick ... move the cursor
+  Mouse (Microsoft serial mouse on the serial port), arrow keys,
+  W A S D, I J K L or a joystick ... move the cursor
+  Left button builds, right button picks the next tool.
                                 (hold SHIFT to move faster)
   SPACE or RETURN ... build the selected tool
   1 Road  2 Hut  3 Farm  4 Woodcutter  5 Quarry  6 Well
@@ -23,3 +25,7 @@ TIPS
   into houses; houses near a market grow into manors.
   You can only build near your own buildings: watchtowers see far
   and widen your lands. Explore to find ancient ruins.
+
+MOUSE.COM
+  A test for the serial mouse. Type MOUSE, move the mouse and press
+  its buttons: each packet is shown. Any key returns to A>.

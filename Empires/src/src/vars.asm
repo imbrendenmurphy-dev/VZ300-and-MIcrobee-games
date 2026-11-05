@@ -6,7 +6,7 @@ seed:       dw 1234h
 frames:     dw 0
 mono:       db 0
 sound_on:   db 1
-spkbit:     db 0
+spkbit:     db 20h          ; keep RS232 TXD (bit 5) at mark
 tperiod:    db 0
 dos_colour: db 0
 title_played: db 0
@@ -17,6 +17,21 @@ cellcol:    db 0
 pr_off:     dw 0
 pr_len:     dw 0
 numbuf:     ds 8
+ms_idle:    db 0
+ms_ok:      db 0
+ms_btn:     db 0
+ms_obtn:    db 0
+ms_click:   db 0
+ms_b1:      db 0
+ms_b2:      db 0
+ms_b3:      db 0
+ms_ax:      dw 0
+ms_ay:      dw 0
+ms_sens:    db 12
+ms_mu:      db 0
+ms_md:      db 0
+ms_ml:      db 0
+ms_mr:      db 0
 keys_now:   ds 5
 keys_prev:  ds 5
 keys_hit:   ds 5

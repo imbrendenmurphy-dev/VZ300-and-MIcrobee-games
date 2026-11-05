@@ -2349,6 +2349,7 @@ game_loop:
 
 ; ---------------- input ----------------
 handle_keys:
+        call mouse_frame
         ; movement with auto-repeat
         ld a,KB_UP
         call key_down
@@ -2388,6 +2389,22 @@ handle_keys:
         jr nz,.moving
         xor a
         ld (rep),a
+        ; mouse motion: one immediate step
+        ld a,(ms_mu)
+        ld (mv_u),a
+        ld b,a
+        ld a,(ms_md)
+        ld (mv_d),a
+        or b
+        ld b,a
+        ld a,(ms_ml)
+        ld (mv_l),a
+        or b
+        ld b,a
+        ld a,(ms_mr)
+        ld (mv_r),a
+        or b
+        jp nz,.go
         jp .act
 .moving:
         ld a,(rep)
@@ -2517,7 +2534,10 @@ handle_keys:
 .nos:   call update_cursor_bc
         call cursor_on_hw
         call draw_info
-.act:   ; ---- action keys
+.act:   ; ---- action keys (left mouse button = build, right = next tool)
+        ld a,(ms_click)
+        bit 1,a
+        jr nz,.place
         ld a,KB_SPACE
         call key_hit
         jr nz,.place
@@ -2554,9 +2574,13 @@ handle_keys:
         ld a,b
         cp NTOOLS
         jr nz,.tk
-.k2:    ld a,KB_TAB
+.k2:    ld a,(ms_click)
+        bit 0,a
+        jr nz,.tab
+        ld a,KB_TAB
         call key_hit
         jr z,.k3
+.tab:
         ld a,(tool)
         inc a
         cp NTOOLS

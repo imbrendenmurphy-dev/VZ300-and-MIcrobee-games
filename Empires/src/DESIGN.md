@@ -11,7 +11,7 @@ At start-up choose **C** (colour monitor) or **M** (monochrome monitor). Change 
 
 | Key | Action |
 |---|---|
-| W A S D or I J K L | Move the tile cursor (hold SHIFT to move faster). The view scrolls at the edges |
+| Mouse, arrows, W A S D, I J K L or joystick | Move the tile cursor (SHIFT = faster). The view scrolls at the edges. Left button builds, right button picks the next tool |
 | SPACE / RETURN | Build the selected tool at the cursor |
 | 1–9, 0 | Tools: 1 Road · 2 Hut · 3 Farm · 4 Woodcutter · 5 Quarry · 6 Well · 7 Market · 8 Windmill · 9 Watchtower · 0 Clear |
 | TAB | Cycle tools |
@@ -68,7 +68,10 @@ Microbee Technology forum notes on 6545 keyboard scanning.
 - **Attribute RAM** (F000–F7FF when port 1Ch bit 4 = 1, extended graphics bit 7 = 1): bits 0–3 choose one of 16 PCG
   banks for character codes 80h–FFh; bit 6 inverse; bit 7 flash. Codes below 80h come from the character ROM, so text costs no PCG.
 - **PCG**: 16 banks × 128 characters × 16 bytes = 32K. The CPU sees the bank selected by port 1Ch bits 0–3 at F800.
-- **Keyboard**: R18/R19 = keycode×16, write R31, wait for status bit 7, status bit 6 = key down.
+- **Keyboard**: R18/R19 = keycode×16, write R31, wait for status bit 7, status bit 6 = key down; port 0Bh = 1 during the scan, as the BIOS and The Lantern Deep do. Cursor keys 38h/3Ah/3Bh/3Eh.
+- **CP/M video set-up** (read from the BIOS table in the system tracks): `6B 50 59 37 1B 05 18 1A 48 0A 2A 0A 20 00` — 80×24, 11-line characters, start address 2000h (MA13 selects the character ROM set). EMPIRES keeps this and only parks the cursor.
+- **Serial port** (MAME driver comments): PIO port B bit 4 RS232 input (0 = mark), bit 5 output (1 = mark), bit 3 CTS, bit 2 clock/DTR. No UART.
+- **Joystick**: PIO port A, active low, b0–b3 directions, b7 fire (reads 00 with none fitted) — as The Lantern Deep uses.
 - **Frame sync**: 6545 status bit 5 (vertical blanking). **Speaker**: PIO port B (02h) bit 6.
 
 **Display mode.** The game runs in the 80×24 mode CP/M leaves it in (11-scanline characters, 640×264). A map tile
@@ -113,9 +116,10 @@ switch, quit to menu and exit to DOS.
 3. The TPA is large enough (needs BDOS above C0F8h).
 4. Speaker pitch and the feel of the tunes.
 
+**Mouse.** A Microsoft serial mouse (1200 baud, 7N1, 3-byte packets) is read in software from PIO B bit 4. The game polls the line during the idle part of every frame and between key tests; a start bit triggers a cycle-counted receive of the whole packet, with a stop-bit check so a mid-byte lock-on is rejected. The idle level is measured at start-up, so either line polarity works. Packets arriving during a full redraw or a tune are dropped and the next one resyncs. Tested bit-for-bit with an emulated serial line at both polarities; `MOUSE.COM` on the disk shows the raw packets on real hardware.
+
 **Not in this milestone (planned):**
 - Bootable DS80 disk image — needs your Premium Plus CP/M boot disk image to add the game to (no shell, boots to `A>`).
-- Microbee mouse — I found no documentation of its protocol; keyboard pointer for now.
 - Joystick — port not yet confirmed.
 - 1 MB banked RAM for bigger worlds and save games — the Premium Plus bank-select PROM table isn't documented; needs a probe program run on your machine.
 - Save/load, technology tree, rival civilisations, diplomacy, scenarios, victory conditions, regional view, terrain shaping, harbours/ships.

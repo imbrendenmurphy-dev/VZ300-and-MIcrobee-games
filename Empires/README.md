@@ -21,7 +21,8 @@ Choose **C** for a colour monitor or **M** for monochrome. ESC on the title retu
 ## Keys
 | | |
 |---|---|
-| Arrows, W A S D, I J K L or joystick | move the cursor (SHIFT = faster) |
+| Mouse, arrows, W A S D, I J K L or joystick | move the cursor (SHIFT = faster) |
+| Left / right mouse button | build / next tool |
 | SPACE or RETURN | build the selected tool |
 | 1–9, 0 / TAB | road, hut, farm, woodcutter, quarry, well, market, windmill, watchtower, clear land |
 | M | world map |
@@ -31,7 +32,7 @@ Choose **C** for a colour monitor or **M** for monochrome. ESC on the title retu
 | ESC | leave the world (Y/N) |
 
 ## Status
-Tested in the project's own Premium model (screenshots); not yet run on real hardware. Next: Microsoft serial mouse, 1MB banked worlds and disk saves, technology, rival civilisations, scenarios.
+Tested in the project's own Premium model (screenshots); not yet run on real hardware. Microsoft serial mouse support added: run `MOUSE` from the disk to check yours. Next: 1MB banked worlds and disk saves, technology, rival civilisations, scenarios.
 
 ## Folders
 - `release/`: the bootable disk image and the program on its own

@@ -35,6 +35,9 @@ start:  ld (oldsp),sp
         ld a,1
         ld (sound_on),a
         call video_init
+        ld a,20h                ; serial TXD at mark, speaker off
+        out (P_PIOB),a
+        call mouse_init
         call pcg_clear
         call pcg_upload         ; pattern data is overwritten by the maps after this
         call startup_choice
@@ -70,8 +73,7 @@ exit_dos:
         xor a
         out (P_EXT),a           ; extended graphics off (attributes ignored)
         out (P_COL),a
-        ld a,(spkbit)
-        and 0BFh
+        ld a,20h
         out (P_PIOB),a
         ei
         ld de,txt_bye
@@ -85,6 +87,7 @@ txt_building_world: db "BUILDING A NEW WORLD",0
 
         include "video.asm"
         include "input.asm"
+        include "mouse.asm"
         include "sound.asm"
         include "worldgen.asm"
         include "render.asm"

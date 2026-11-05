@@ -56,6 +56,7 @@ if __name__ == '__main__':
     txt = (ROOT / 'disk' / 'README.TXT').read_text().replace('\r\n', '\n').replace('\n', '\r\n')
     files = {
         'EMPIRES.COM': (B / 'EMPIRES.COM').read_bytes(),
+        'MOUSE.COM': (B / 'MOUSE.COM').read_bytes(),
         'CCP.SYS': (ROOT / 'src' / 'resources' / 'CCP.SYS').read_bytes(),
         'README.TXT': txt.encode('ascii') + b'\x1a',
     }

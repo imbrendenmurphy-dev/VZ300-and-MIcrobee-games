@@ -14,7 +14,26 @@ typedef uint8_t u8; typedef uint16_t u16; typedef int8_t s8;
 static u8 ram[65536], vram[2048], aram[2048], cram[2048], pcg[16][2048];
 static u8 p08, p1c, crtc_idx, crtc[32]; static int keys[64];
 static long long tstates, frame_start; static int spk_toggles; static u8 last_b;
-static int halted_exit=0; static long long instr_count;
+static int halted_exit=0;
+/* serial mouse: queued bytes, 7N1 at 1200 baud, bit4: mark=0 (idle), space=1 */
+#define BIT_T 2812
+static u8 sq[4096]; static long long sqt[4096]; static int sqn=0, sqh=0; static long long ser_until=0;
+static int ser_inv=0;
+static int serial_level(void){
+  while(sqh<sqn){
+    long long t0=sqt[sqh]; long long dt=tstates-t0;
+    if(dt<0) return ser_inv;               /* idle before byte */
+    int bit=(int)(dt/BIT_T);
+    if(bit>=9){ sqh++; continue; }
+    int mark;
+    if(bit==0) mark=0;                      /* start bit = space */
+    else if(bit<=7) mark=(sq[sqh]>>(bit-1))&1;
+    else mark=1;                            /* stop */
+    return (mark?0:1)^ser_inv;
+  }
+  return ser_inv;
+}
+static void ser_send(u8 b){ long long t=tstates; if(sqn>sqh && sqt[sqn-1]+9*BIT_T>t) t=sqt[sqn-1]+9*BIT_T+BIT_T/3; sq[sqn]=b; sqt[sqn]=t; sqn++; } static long long instr_count;
 #define FRAME_T 67500
 
 /* ---- memory ---- */
@@ -40,7 +59,7 @@ static u8 inport(u8 p){
                  if(code>=0&&code<64&&keys[code]) s|=0x40;
                  if(in_vblank()) s|=0x20; return s; }
     case 0x0D: return crtc[crtc_idx&31];
-    case 0x02: return 0x08 | (in_vblank()?0x80:0);
+    case 0x02: return 0x08 | (in_vblank()?0x80:0) | (serial_level()?0x10:0);
   }
   return 0xFF;
 }
@@ -338,6 +357,9 @@ int main(int argc,char**argv){
       while(!(PC==ret && SP==sp0) && !trap_exit && !halted_exit){ u16 p0=PC; int t=step(); prof[p0]+=t; tstates+=t; }
       { FILE*pf=fopen("build/prof.bin","wb"); fwrite(prof,4,65536,pf); fclose(pf); }
       fprintf(stderr,"callt %04X: %lld T (%.2f frames)\n",a,tstates-t0,(double)(tstates-t0)/FRAME_T); }
+    else if(!strcmp(cmd,"mouse")){ int dx=0,dy=0,l=0,r=0; sscanf(line,"%*s %d %d %d %d",&dx,&dy,&l,&r);
+      u8 b1=0x40|(l?0x20:0)|(r?0x10:0)|(((dy>>6)&3)<<2)|((dx>>6)&3); ser_send(b1); ser_send(dx&0x3F); ser_send(dy&0x3F); }
+    else if(!strcmp(cmd,"serinv")){ sscanf(line,"%*s %d",&ser_inv); }
     else if(!strcmp(cmd,"quit")) break;
   }
   fprintf(stderr,"T=%lld frames=%.1f speaker_toggles=%d\n",tstates,(double)tstates/FRAME_T,spk_toggles);

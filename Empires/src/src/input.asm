@@ -86,7 +86,16 @@ scan_keys:
         ld c,5
 .byte:  ld b,8
         ld e,0
-.bit:   ld a,(ix+0)
+.bit:   push hl
+        push bc
+        push de
+        call mouse_poll         ; keep listening between key tests
+        pop de
+        pop bc
+        pop hl
+        ld a,1
+        out (P_ROMLAT),a
+        ld a,(ix+0)
         inc ix
         call key_test
         jr z,.up
@@ -215,7 +224,8 @@ wait_release:
 ; ---- frame sync on 6545 vertical blanking (status bit 5) ----
 wait_frame:
         ld bc,0
-.a:     in a,(P_CRTCA)          ; wait while in vblank
+.a:     call mouse_poll         ; the idle part of every frame listens to the mouse
+        in a,(P_CRTCA)          ; wait while in vblank
         and 20h
         jr z,.b
         dec bc
@@ -223,7 +233,8 @@ wait_frame:
         or c
         jr nz,.a
 .b:     ld bc,0
-.c:     in a,(P_CRTCA)          ; wait for vblank start
+.c:     call mouse_poll
+        in a,(P_CRTCA)          ; wait for vblank start
         and 20h
         jr nz,.d
         dec bc
