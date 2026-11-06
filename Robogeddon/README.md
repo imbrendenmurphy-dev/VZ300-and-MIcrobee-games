@@ -13,7 +13,7 @@ Original code, graphics and music. It's inspired by Robotron but contains nothin
 ## Play it
 
 Copy `release/ROBOGEDN.VZ` to the SD card and run it from the BennVenn SD loader.
-- It's a single type F1 binary. It loads at $8000 (to $D84F) and runs from $8000. There are no other files.
+- It's a single type F1 binary. It loads at $8000 (to $D952) and runs from $8000. There are no other files.
 - It needs the **128K expansion** (RAM up to $FFFF, and the card's SRAM at $4000–$67FF).
 - It doesn't call the DOS while running, and it never writes to the SD card.
 
@@ -58,6 +58,10 @@ wave, and run into the humans to save them. Each rescue is worth more than the l
 | **Tank** | 200 | Lumbers toward you and lobs shells that bounce off the walls |
 
 Any spark, missile or shell can be shot down for 25 points.
+
+**Easing in.** The first waves are gentler. On waves 1 and 2 every robot moves noticeably slower, the
+droids speed up only every 10 seconds (and never reach full speed), sparks fly at half speed, and the robots
+start further away from you. Waves 3 and 4 are a little slower. From wave 5 it's full speed.
 
 **Waves.** There are 20 hand-made waves: droid swarms, crusher waves, mindbot waves and tank waves. After
 wave 20 they repeat, faster. Each wave opens with its robots *materialising* line by line, with a caption
@@ -125,7 +129,7 @@ you switch off.
 | $4800–$640B | screen-copy routines, built at start-up (SRAM bank 1) |
 | $6700–$6746 | saved high scores (SRAM bank 3) |
 | $7000–$77FF | video RAM |
-| $8000–$D84F | code and data |
+| $8000–$D952 | code and data |
 | $E800–$EFFF | frame buffer 0 |
 | $F000–$F100, $F1F1 | IM2 vector table, `jp isr` |
 | $F200–$F6FF | variables, objects (64 × 8 bytes), bullets, shots, high scores |

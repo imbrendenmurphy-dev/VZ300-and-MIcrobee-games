@@ -215,8 +215,44 @@ start_wave:
         ld      de,wrow
         ld      bc,10
         ldir
+        ; easing in: waves 1-2 ease 2, waves 3-4 ease 1, then none
+        ld      a,(wave)
+        ld      b,2
+        cp      3
+        jr      c,.ez
+        dec     b
+        cp      5
+        jr      c,.ez
+        dec     b
+.ez:    ld      a,b
+        ld      (easy),a
+        add     a,a
+        add     a,2
+        ld      (droid_min),a       ; fastest the droids get: 6 / 4 / 2 frames
+        ld      a,(easy)            ; safe box: x 42-10e..82+10e, y 22-5e..47+5e
+        ld      b,a
+        add     a,a
+        add     a,a
+        add     a,b                 ; 5e
+        ld      c,a
+        add     a,a                 ; 10e
+        ld      b,a
+        add     a,82
+        ld      (safe_box),a
+        ld      a,42
+        sub     b
+        ld      (safe_box+1),a
+        ld      a,47
+        add     a,c
+        ld      (safe_box+2),a
+        ld      a,22
+        sub     c
+        ld      (safe_box+3),a
         ; droid speed: frames between steps
         ld      a,(wrow+9)
+        ld      b,a
+        ld      a,(easy)
+        add     a,b
         ld      b,a
         ld      a,(wave_lvl)
         neg
@@ -334,16 +370,20 @@ spawn_obj:
         call    rnd_n
         add     a,AY0
         ld      (iy+2),a
-        ; keep clear of the centre box x 46..82, y 25..47
+        ; keep clear of a box round the player (bigger on the first waves)
+        ld      hl,safe_box
         ld      a,(iy+1)
-        cp      82
+        cp      (hl)                ; x1
         jr      nc,.ok
-        cp      42
+        inc     hl
+        cp      (hl)                ; x0
         jr      c,.ok
+        inc     hl
         ld      a,(iy+2)
-        cp      47
+        cp      (hl)                ; y1
         jr      nc,.ok
-        cp      22
+        inc     hl
+        cp      (hl)                ; y0
         jr      nc,.pos
 .ok:    ; default fields
         ld      a,8
@@ -367,6 +407,12 @@ spawn_obj:
         ld      a,50
         call    rnd_n
         add     a,30
+        ld      b,a
+        ld      a,(easy)
+        rrca
+        rrca
+        rrca                        ; ease*32
+        add     a,b
         ld      (iy+3),a
         ld      (iy+7),0            ; children spawned
         or      1                   ; NZ
@@ -492,15 +538,23 @@ state_step:
         xor     a
         call    start_music
         ret
-.p1:    ; droids speed up every 4 seconds
+.p1:    ; droids speed up every 4 s (7 s on waves 3-4, 10 s on waves 1-2)
+        ld      a,(easy)
+        add     a,low accel_tab
+        ld      l,a
+        ld      h,high accel_tab
+        ld      b,(hl)
         ld      hl,droid_acc
         inc     (hl)
         ld      a,(hl)
-        cp      100
+        cp      b
         jr      c,.p2
         ld      (hl),0
+        ld      a,(droid_min)
+        ld      b,a
         ld      a,(droid_spd)
-        cp      2
+        cp      b
+        jr      z,.p2
         jr      c,.p2
         dec     a
         ld      (droid_spd),a
@@ -1461,6 +1515,21 @@ mul_sgn:
         sub     d
         ret
 
+; ease_skip: NZ = sit this frame out (half the frames at ease 2, a
+;   quarter at ease 1, none after).  keeps BC, DE, HL
+ease_skip:
+        ld      a,(easy)
+        or      a
+        ret     z
+        push    bc
+        ld      b,a
+        ld      a,(gtick)
+        and     3
+        cp      b                   ; C if (gtick & 3) < ease
+        pop     bc
+        sbc     a,a                 ; $FF (NZ) if so
+        ret
+
 ; ---- DROID -----------------------------------------------------------
 upd_droid:
         ld      a,(logic_on)
@@ -1524,7 +1593,9 @@ upd_crush:
         call    z,pick_target
         dec     (ix+3)
         jr      nz,.chk
-        ld      (ix+3),3
+        ld      a,(easy)
+        add     a,3
+        ld      (ix+3),a
         inc     (ix+6)
         call    rnd
         and     31
@@ -1724,6 +1795,8 @@ upd_orb:
         ld      a,(logic_on)
         or      a
         jp      z,.fr
+        call    ease_skip
+        jr      nz,.b2
         ld      d,(ix+4)
         ld      a,(gtick)
         and     1
@@ -1834,14 +1907,16 @@ upd_seek:
         and     3
         jr      nz,.mv
         ld      (ix+5),0
-.mv:    ld      d,(ix+4)
+.mv:    call    ease_skip
+        jr      nz,.fire
+        ld      d,(ix+4)
         ld      e,(ix+5)
         ld      a,(gtick)
         and     1
         jr      z,.m2
         ld      e,0
 .m2:    call    move_obj
-        dec     (ix+3)
+.fire:  dec     (ix+3)
         jr      nz,.dr
         ld      a,(wave_lvl)
         add     a,a
@@ -1852,6 +1927,12 @@ upd_seek:
         sub     b
         call    rnd_n
         add     a,30
+        ld      b,a
+        ld      a,(easy)
+        rrca
+        rrca
+        rrca                        ; ease*32
+        add     a,b
         ld      (ix+3),a
         ld      b,(ix+1)
         inc     b
@@ -1882,7 +1963,9 @@ upd_brain:
         call    z,pick_target
         dec     (ix+3)
         jr      nz,.cv
-        ld      (ix+3),3
+        ld      a,(easy)
+        add     a,3
+        ld      (ix+3),a
         inc     (ix+6)
         call    target_xy
         ld      de,$0101
@@ -1937,6 +2020,8 @@ upd_mut:
         or      a
         jr      z,.dr
         inc     (ix+6)
+        call    ease_skip
+        jr      nz,.dr
         ld      de,$0101
         ld      a,(gtick)
         and     1
@@ -1963,7 +2048,10 @@ upd_tank:
         jr      z,.dr
         dec     (ix+3)
         jr      nz,.dr
-        ld      (ix+3),4
+        ld      a,(easy)
+        add     a,a
+        add     a,4
+        ld      (ix+3),a
         inc     (ix+6)
         ld      de,$0101
         call    rnd
@@ -2214,8 +2302,11 @@ fire_ebul:
         ld      c,(hl)
         ld      a,(tmp1)
         cp      1
-        jr      z,.sp
-        sra     b                   ; shells and missiles start slower
+        jr      nz,.sl
+        ld      a,(easy)
+        cp      2
+        jr      c,.sp               ; sparks: half speed on waves 1-2
+.sl:    sra     b                   ; shells and missiles start slower
         sra     c
 .sp:    ld      (iy+5),b
         ld      (iy+6),c

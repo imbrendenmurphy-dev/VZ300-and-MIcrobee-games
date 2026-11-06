@@ -147,6 +147,8 @@ colpat: db      $00,$55,$AA,$FF
 cyc_pat:                ; green > yellow > red > blue > green, dithered between
         db      $00,$11,$55,$77,$FF,$EE,$AA,$88
         db      $00,$44,$55,$DD,$FF,$BB,$AA,$22
+accel_tab:
+        db      100,175,250
 ring_cols:
         db      0,1,3,1
 
@@ -252,6 +254,9 @@ fam_saved:  db 0
 fam_lost:   db 0
 droid_spd:  db 0
 droid_acc:  db 0
+droid_min:  db 0
+easy:       db 0
+safe_box:   ds 4
 wave_lvl:   db 0
 pick_t:     dw 0
 nshots:     db 0
