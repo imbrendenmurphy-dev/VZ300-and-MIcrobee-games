@@ -373,23 +373,61 @@ hud_draw:
         ld a,1
         ld (noq),a
         call hud_draw2
+        call hud_centre
         pop af
         ld (noq),a
         or a
         ret nz
         ; copy the panel to the screen in four slices
         ld de,$0000
-        ld bc,$0410
+        ld bc,$0510
         call queue_rect
         ld de,$0010
-        ld bc,$0410
+        ld bc,$0510
         call queue_rect
         ld de,$0020
-        ld bc,$0410
+        ld bc,$0510
         call queue_rect
         ld de,$0030
-        ld bc,$0410
+        ld bc,$0510
         jp queue_rect
+
+; hud_centre: the panel is drawn in columns 0-3 (x 0-15); slide it 2 pixels right
+; (x 2-17) so it sits centred between the screen border and the divider at x 19,
+; and never touches the border colour. RRD shifts a nibble (2 pixels) per byte.
+hud_centre:
+        ld a,(s_bgmap)
+        call colbyte_a
+        and $0F
+        ld d,a                  ; 2 pixels of panel background to feed in on the left
+        ld hl,BGBUF
+        ld c,64
+.r:     ld a,d
+        rrd
+        inc hl
+        rrd
+        inc hl
+        rrd
+        inc hl
+        rrd
+        inc hl
+        add a,a                 ; last 2 pixels of column 3 -> left half of column 4
+        add a,a
+        add a,a
+        add a,a
+        ld b,a
+        ld a,(hl)
+        and $0F                 ; keep x 18 and the divider at x 19
+        or b
+        ld (hl),a
+        ld a,l
+        add a,28
+        ld l,a
+        jr nc,.n
+        inc h
+.n:     dec c
+        jr nz,.r
+        ret
 hud_draw2:
         ld a,(s_bgmap)
         call colbyte_a

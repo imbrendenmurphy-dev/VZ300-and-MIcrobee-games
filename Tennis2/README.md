@@ -1,7 +1,7 @@
 # TENNIS II — GRAND SLAM
 
 Sequel to the VZ200/VZ300 game *TENNIS*, for the Dick Smith VZ300 / VZ200 with the **BennVenn SD loader + 128K**.
-ViBED by BPM 2026. Version 1.1.1. Original code, graphics and music. Nothing from the original game is included.
+ViBED by BPM 2026. Version 1.1.2. Original code, graphics and music. Nothing from the original game is included.
 
 ![title](screenshots/TENNIS2_title.gif)
 
@@ -126,6 +126,7 @@ In two-player mode, player 1 uses joystick 1 or Q A M , SPACE, and player 2 uses
   - Your BIX bank tests showed that port $37 values 1 and 3 hold separate data. The block sits at the very top of the bank, clear of Dracula's Castle II's save slot.
   - At start-up the game probes the bank switch: it writes one byte, checks it, then restores it. It only saves if bank 1 is untouched and bank 3 holds the byte. Otherwise saving is simply off.
   - The mapping is always put back to 1 (the DOS) straight afterwards.
+- **Score panel:** drawn in byte columns, then slid 2 pixels right (nibble rotate, RRD) so it sits centred between the border and the divider and never merges with the Mode 1 border colour.
 - **Snow-free drawing:** VRAM is written only in the vblank window after field sync, through the Penguin 2 commit queue (now able to split rectangles too big for one frame) and POP-drawn sprites. Popup text goes into the backdrop and is restored afterwards, so it costs nothing in vblank.
   - The crowd animation only steps when the queue is empty.
   - The info-screen backplane writes its dots straight to VRAM in vblank, half the lattice per frame, and only on frames when the queue copied nothing. Its dots never enter the background buffer.
