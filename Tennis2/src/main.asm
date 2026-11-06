@@ -224,6 +224,8 @@ sfxdelta: dw 0
 sfxleft: db 0
 sfxmode: db 0
 sfxprio: db 0
+noiseon: db 0                   ; channel 2 plays white noise this frame
+sfxpend: db 0                   ; crowd sound waiting for the effect channel
 ; sprite engine
 sw_:    db 0
 pw_:    db 0

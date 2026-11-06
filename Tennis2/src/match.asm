@@ -2002,12 +2002,12 @@ point_won:
         ld a,26
         call crowd_cheer
         ld a,SFX_CLAP
-        call play_sfx
+        ld (sfxpend),a           ; plays as soon as the channel is free
         jr .plain
 .great: ld a,110
         call crowd_wave
         ld a,SFX_CROWD
-        call play_sfx
+        ld (sfxpend),a           ; plays as soon as the channel is free
         call ctl_cpu
         jr z,.plain
         inc (ix+P_STREAK)

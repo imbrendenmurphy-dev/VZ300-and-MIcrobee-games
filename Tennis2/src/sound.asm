@@ -113,9 +113,12 @@ mus_chan:
         ret
 
 sound_tick:
+        xor a
+        ld (noiseon),a
         ld a,(soundmode)
         or a
         jr nz,.on
+        ld (sfxpend),a
         ld hl,0
         ld (step1),hl
         ld (step2),hl
@@ -123,6 +126,17 @@ sound_tick:
 .on:    ld hl,0
         ld (step1),hl
         ld (step2),hl
+        ; a crowd sound waits until the effect channel is free
+        ld a,(sfxleft)
+        or a
+        jr nz,.nopend
+        ld a,(sfxpend)
+        or a
+        jr z,.nopend
+        call play_sfx
+        xor a
+        ld (sfxpend),a
+.nopend:
         ld a,(mplaying)
         or a
         jr z,.sfx
@@ -158,15 +172,16 @@ sound_tick:
         jr z,.warble
         dec a
         jr nz,.thump
-        push hl
+        push hl                 ; noise: density = H + 0-15, varied each frame
         call random
         pop hl
-        and $3F
+        and $0F
         add a,h
         ld h,a
-        call random
-        ld l,a
-        jr .plain
+        ld (step2),hl
+        ld a,1
+        ld (noiseon),a
+        ret
 .thump:                         ; woody racket thud: rough low byte of the pitch
         cp 2                    ; A = mode-2: 1 = thump, 2 = pop
         jr z,.pop
@@ -200,7 +215,7 @@ sound_tick:
 .ch2:   ld (step2),hl
         ret
 
-;  start, delta, len, mode (0 plain, 1 warble, 2 noise, 3 thump, 4 pop), prio
+;  start, delta, len, mode (0 plain, 1 warble, 2 noise: start/delta high byte = density, 3 thump, 4 pop), prio
 SFX_HIT    equ 0
 SFX_POWER  equ 1
 SFX_BOUNCE equ 2
@@ -222,18 +237,18 @@ sfxtab:
         dw 1150,-260 : db 3,3,3,0         ; racket "thunk" (~380 -> 160 Hz, 60 ms)
         dw 1400,-280 : db 4,3,4,0         ; power drive: deeper, fuller thunk (80 ms)
         dw 700,-40   : db 3,0,2,0         ; bounce
-        dw 260,-8    : db 8,2,4,0         ; into the net
+        dw $1000,-$180 : db 8,2,4,0       ; into the net: a short rattle
         dw 1700,0    : db 14,1,5,0        ; line judge "OUT!"
         dw 500,90    : db 6,0,1,0         ; toss
-        dw 1400,0    : db 34,2,1,0        ; crowd roar
+        dw $4800,-$100 : db 40,2,1,0      ; crowd roar: loud, dies away over 0.8 s
         dw 1500,-90  : db 3,0,2,0         ; menu blip
         dw 900,160   : db 8,0,3,0         ; select
         dw 600,-25   : db 10,0,4,0        ; fault
         dw 1300,-200 : db 6,4,5,0         ; smash: loud POP - 40 ms crack, then a deep thud (120 ms)
         dw 2300,0    : db 2,0,1,0         ; tick
         dw 800,140   : db 16,1,5,0        ; target hit
-        dw 300,50    : db 6,2,2,0         ; ball machine
+        dw $0800,$300 : db 6,2,2,0        ; ball machine: a rising whoosh
         dw 1300,-270 : db 4,3,4,0         ; serve thunk
         dw 900,-120  : db 4,3,4,0         ; net cord: a dull clip on the tape
-        dw 2600,0    : db 9,2,1,0         ; applause
+        dw $0C00,-$80 : db 18,2,1,0       ; applause: crackling, 0.36 s
         ASSERT $-sfxtab == 17*8, "sfxtab entries must be 8 bytes"

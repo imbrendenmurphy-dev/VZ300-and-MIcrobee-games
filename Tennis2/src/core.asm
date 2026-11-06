@@ -15,6 +15,9 @@ frame_wait:
         ld iyl,0                ; IY is a pointer elsewhere: clear the pulse-stretch byte
         ld a,(latchcur)         ; palette/mode changes wait for vblank
         ld c,a
+        ld a,(noiseon)
+        or a
+        jp nz,frame_wait_noise
         ld hl,(acc1)
         ld de,(step1)
         exx
@@ -62,6 +65,76 @@ frame_wait:
         ld a,(latchbase)
         ld (latchcur),a
         ld ($6800),a            ; speaker rest + new mode/palette, in vblank
+        ld (acc1),hl
+        exx
+        ld (acc2),hl
+        exx
+        ld hl,(framecount)
+        inc hl
+        ld (framecount),hl
+        ret
+
+; frame_wait_noise: as frame_wait, but channel 2 is white noise. HL' walks
+; through the game's own code ($8000-$C4FF, two bytes a sample) and a pulse
+; fires when the byte is below D' (the noise density, 0-255). Same 126 T loop,
+; so channel 1 (melody) keeps its pitch; pulse stretching is dropped for the
+; noise frames to pay for it. Never touches VRAM.
+frame_wait_noise:
+        ld hl,(acc1)
+        ld de,(step1)
+        exx
+        ld hl,(acc2)
+        ld a,h
+        and $3F
+        or $80
+        ld h,a                  ; keep the walk inside $8000-$C4FF
+        ld de,(step2)           ; D' = density
+        exx
+.low:
+        exx                     ; 4
+        ld a,(hl)               ; 7
+        inc hl                  ; 6
+        cp d                    ; 4   carry = byte < density
+        sbc a,a                 ; 4
+        and $20                 ; 7
+        inc hl                  ; 6   (padding that also skips a byte)
+        exx                     ; 4
+        ld b,a                  ; 4
+        add hl,de               ; 11
+        sbc a,a                 ; 4
+        and $01                 ; 7
+        or b                    ; 4
+        ld b,a                  ; 4   (padding)
+        nop                     ; 4   (padding)
+        or c                    ; 4
+        ld ($6800),a            ; 13
+        ld a,($6800)            ; 13
+        rla                     ; 4
+        jr nc,.low              ; 12  = 126
+.high:
+        exx
+        ld a,(hl)
+        inc hl
+        cp d
+        sbc a,a
+        and $20
+        inc hl
+        exx
+        ld b,a
+        add hl,de
+        sbc a,a
+        and $01
+        or b
+        ld b,a
+        nop
+        or c
+        ld ($6800),a
+        ld a,($6800)
+        rla
+        jr c,.high
+        ld a,(latchbase)
+        ld (latchcur),a
+        ld ($6800),a
         ld (acc1),hl
         exx
         ld (acc2),hl

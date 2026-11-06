@@ -1,7 +1,7 @@
 # TENNIS II — GRAND SLAM
 
 Sequel to the VZ200/VZ300 game *TENNIS*, for the Dick Smith VZ300 / VZ200 with the **BennVenn SD loader + 128K**.
-ViBED by BPM 2026. Version 1.1.5. Original code, graphics and music. Nothing from the original game is included.
+ViBED by BPM 2026. Version 1.1.6. Original code, graphics and music. Nothing from the original game is included.
 
 ![showcase](screenshots/TENNIS2_showcase.gif)
 
@@ -104,10 +104,13 @@ In two-player mode, player 1 uses joystick 1 or Q A M , SPACE, and player 2 uses
   - Jingles: start, point, game, set, match, defeat, trophy, change of ends, ON FIRE, hi-score
   - 17 effects, including bounce, net, line call, crowd roar, applause and the ball machine
   - Every racket strike (shot, power drive, serve, net cord) is a short, low, woody "thunk" (60–80 ms, about 380 Hz falling to 160 Hz). The engine roughens the pitch every frame so it sounds like a hit rather than a beep.
-  - A **smash** is a loud POP: a 40 ms crack of dense noise (about three times as loud as a normal hit), then a deep thud.
+  - A **smash** is a loud POP: a 40 ms crack (about three times as loud as a normal hit), then a deep thud.
+  - The crowd is real white noise: a loud roar that dies away over 0.8 s for aces, winners, sets and the match, and crackling applause for other points. The net rattle and the ball machine use the same noise.
+    - How it works: while a noise effect plays, the sound loop switches to a twin with the same 126-cycle timing. In that version channel 2 walks through the game's own code bytes and pulses whenever a byte is below the noise density, so the melody keeps its pitch. The earlier "noise" picked a new random pitch once a frame, so it came out as a string of bleeps.
+    - Crowd sounds wait for the effect channel to be free, so they're no longer lost under a line call or the last bounce.
   - v1.1.5 fixed a bug in the effect table (9-byte entries read at 8-byte steps). Before that, only the plain hit played as designed; the smash in particular came out as a long chirp.
 
-  `media/` has the emulator's speaker output for the title music and a stretch of play, plus `racket_sounds.mp3`, recorded from the emulator: four normal hits, three power drives, four smashes, then 12 seconds of a real rally.
+  `media/` has the emulator's speaker output for the title music and a stretch of play, plus `crowd_sounds.mp3` (three rounds of applause, a roar, then a roar and applause over the title music) and `racket_sounds.mp3`, recorded from the emulator: four normal hits, three power drives, four smashes, then 12 seconds of a real rally.
 
 ## Hardware notes
 
