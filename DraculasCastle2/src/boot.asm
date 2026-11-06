@@ -13,8 +13,8 @@ boot:
             ld (hl),b
             and 1
             push af
-            ld hl,$E800
-            ld de,$E801
+            ld hl,$EE00             ; variables
+            ld de,$EE01
             ld bc,$01FF
             ld (hl),0
             ldir

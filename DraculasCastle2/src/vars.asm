@@ -2,7 +2,7 @@
 ;  vars.asm - RAM layout (not part of the .VZ image)
 ; ===========================================================================
             noemit
-            org $E800
+            org $EE00
 ttab:       ds 8            ; text expansion table (8-aligned)
 frame_count: ds 2
 rng:        ds 2
@@ -86,14 +86,14 @@ n_hit:      ds 1
 vars_game:
             include "gvars.asm"
 vars_end:
-            assert vars_end <= $EA00
+            assert vars_end <= $F000
 SAVE_LEN    equ gstate_end-vars_game
 
 BACK_ADDR   equ $F000       ; 2K back buffer $F000-$F7FF (DOS owns $FA00-$FFFF)
 FLIP        equ $7B00       ; flip table (system area $7800-$7AE7 left for ROM/DOS)
-STACK_TOP   equ $EE00       ; stack $EA00-$EDFF
+STACK_TOP   equ $EE00       ; stack grows down from $EE00 to $E400 (2.5K: the DOS is a deep stack user)
 SECBUF      equ $F800       ; 512-byte SD sector buffer $F800-$F9FF (as 13 Ghosts uses)
-P2BASE      equ $C800       ; area part 2 / monster frames ($C800-$E7FF)
+P2BASE      equ $C800       ; area part 2 / monster frames ($C800-$E3FF)
 VCACHE      equ $D900       ; cutscene viewport cache (1040 bytes)
 MAPS        equ $7C00       ; runtime maps (2 x 256) $7C00-$7DFF
             emit

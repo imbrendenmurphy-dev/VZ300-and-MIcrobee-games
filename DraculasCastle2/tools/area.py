@@ -208,7 +208,7 @@ def build_area(ad, verbose=False):
             pix = obj_sprite(name, d); spr[d] = pix
             put16(p2, ot + oi * 6 + fi * 2, BASE2 + len(p2)); p2 += masked_sprite(pix)
         ref['obj'][oi + 1] = spr
-    assert len(p1) <= 0x1C00 and len(p2) <= 0x2000, (len(p1), len(p2))
+    assert len(p1) <= 0x1C00 and len(p2) <= 0x1C00, (len(p1), len(p2))
     if verbose: print(ad.name, 'part1', len(p1), 'part2', len(p2))
     return bytes(p1), bytes(p2), ref
 

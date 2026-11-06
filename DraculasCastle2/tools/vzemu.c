@@ -400,6 +400,7 @@ static int step(void) {
 static int interrupt_pending(void) { return cur_line() < FS_LINES; }
 
 
+static int dos_stack = 0;
 /* BennVenn DOS model: $5F00 open "NAME" (HL), $5F03 first sector, $5F09 next sector -> (FB80) */
 static void dos_read_sector(void) {
     u16 buf = ram[0xFB80] | (ram[0xFB81] << 8);
@@ -412,6 +413,8 @@ static int dos_trap(void) {
     if (!sddir || !(mapping & 1) || (mapping & 2)) return 0;
     if (PC != 0x5F00 && PC != 0x5F03 && PC != 0x5F09) return 0;
     dos_calls++;
+    /* model a DOS that uses lots of stack: trash dos_stack bytes below SP (after the return address) */
+    for (int q = 1; q <= dos_stack; q++) ram[(u16)(SP - q)] = 0;
     if (PC == 0x5F00) {
         char name[32]; int n = 0; u16 a = (H << 8) | L;
         if (ram[a] == '"') a++;
@@ -421,7 +424,7 @@ static int dos_trap(void) {
         if (sdf) fclose(sdf);
         sdf = fopen(path, "rb");
         ram[0xFB03] = sdf ? 1 : 0; ram[0xFB05] = 0;
-        if (!quiet) printf("[dos] open %s %s frame %d\n", name, sdf ? "ok" : "MISSING", frame_no);
+        if (!quiet) printf("[dos] open %s %s frame %d sp %04X\n", name, sdf ? "ok" : "MISSING", frame_no, SP);
         T += 20000;
     } else dos_read_sector();
     PC = pop();
@@ -454,6 +457,7 @@ int main(int argc, char **argv) {
         else if (!strcmp(argv[i], "-q")) quiet = 1;
         else if (!strcmp(argv[i], "-P")) profiling = 1;
         else if (!strcmp(argv[i], "-s")) sddir = argv[++i];
+        else if (!strcmp(argv[i], "-X")) dos_stack = atoi(argv[++i]);
         else if (!strcmp(argv[i], "-W")) watch = strtol(argv[++i], NULL, 16);
         else if (!strcmp(argv[i], "-M")) memdump = argv[++i];
         else if (!strcmp(argv[i], "-D")) dumpall = atoi(argv[++i]);

@@ -1,5 +1,5 @@
 # DRACULA'S CASTLE II — THE CASTLE AWAKENS
-### Vertical slice v0.2.5 · ViBED by BPM · 2026
+### Vertical slice v0.2.6 · ViBED by BPM · 2026
 Dick Smith VZ300 · BennVenn SD + 128K · Mode 1 (128×64, 4 colours) · all Z80
 
 ## Running it
@@ -98,9 +98,9 @@ $7000-$77FF  VRAM (written only during field sync)
 $7800-$7AE7  ROM/DOS system variables - left alone
 $7B00        flip table          $7C00-$7EFF  runtime maps, seen-bits, event flags
 $8000-$C7FF  code + text + music + maps (the .VZ image, 17K)
-$C800-$E7FF  streamed assets: area decorations/objects, or monster frames + view cache
-$E800-$E9FF  variables           $EA00-$EDFF  stack
-$EE00-$EFFF  free               $F000-$F7FF  back buffer
+$C800-$E3FF  streamed assets: area decorations/objects, or monster frames + view cache
+$E400-$EDFF  stack (2.5K - the BennVenn DOS needs well over 1K of it during file loads)
+$EE00-$EFFF  variables, above the stack so a deep DOS call can't overwrite them               $F000-$F7FF  back buffer
 $F800-$F9FF  SD sector buffer (the same buffer 13 Ghosts gives the DOS)
 $FA00-$FFFF  DOS workspace - left alone
 ```
