@@ -1,0 +1,91 @@
+GHOST HUNTER 3-D  -  THE BIG HAUNT
+for the Dick Smith VZ300 (BennVenn SD loader + 128K RAM)
+ViBED by BPM 2026
+
+The ghosts have moved out of the little one-screen maze and into the
+big house. Ghost Hunter 3-D takes everything from Ghost Hunter 2 into
+full arcade-sized mazes several screens big:
+
+  - the four ghost personalities
+  - power-ups, combos and streaks
+  - bonus rounds, intermissions and the full attract show
+
+The VZ's screen glides smoothly around each maze as you hunt. Ghosts
+lurking off-screen give themselves away as coloured blips at the edge of
+the view. The walls are raised, bas-relief slabs with real depth. When
+everything goes quiet, eyes peep out of the cracks to watch you go by,
+and candles flicker on the stonework.
+
+Six haunted mazes - The Crypt, Haunted Halls, The Graveyard,
+The Catacombs, The Belfry and Misty Manor - plus the Ghost Buffet and
+Pellet Panic bonus rounds and two cartoon intermissions.
+
+Happy haunting!
+
+-----------------------------------------------------------------------
+TECH SPECS
+-----------------------------------------------------------------------
+Machine      Dick Smith VZ300 (VZ200 compatible display), Z80 @ 3.54 MHz
+Needs        BennVenn SD loader + 128K RAM expansion (SRAM banks)
+File         GHOST3.VZ, 26,176 bytes, loads low at $8000-$E63F
+Display      Mode 1, 128x64, 4 colours (CSS0, CSS1 flashes)
+Frame rate   50 fps, no interrupts, synced to the 6847 field sync
+Controls     Q/A/M/, keys or the VZ joystick; P pause, S sound
+             Fire or Space starts a game
+
+Mazes        6 main mazes, 27 cells wide x 31-35 cells tall
+             (162 x 155-175 pixels = about 3.5 screens each),
+             418-478 pellets and 4-6 power pills each, teleporters
+             and tunnels. Pellet Panic bonus maze 27x15.
+             Every maze is machine-checked: fully connected,
+             no dead ends, no 2x2 open areas.
+Cells        6x5 pixels; actors move in pixels, speeds in 8.8 fixed
+             point with 2:3 vertical scaling (VZ pixel aspect)
+Viewport     128 x 58 pixels with a 6-row HUD; camera dead zone;
+             1-pixel steps both ways; teleports and respawns
+             "swoop" the camera across the maze
+Scrolling    The maze lives in SRAM bank A ($4000, port $37=1) as a
+             ring of 58 pixel rows x 168 bytes:
+               - each row is stored 4 times, pre-shifted by 0-3
+                 pixels, so any camera position is a byte copy
+               - map row R lives in ring slot R mod 58
+               - a camera step renders only the one new row, from
+                 tiles, into all 4 phases
+Rendering    Camera moved: the viewport is redrawn by generated,
+             unrolled stack-copy code (POP/PUSH, about 12.8 T-states a
+             byte). It goes in two halves, each followed by the
+             sprites in that half, so it stays ahead of the beam
+             (no tearing, no flicker).
+             Camera still: GH2-style erase/redraw of the sprites
+             only, restoring from the ring.
+             Map edits (pellets, pulsing pills, swirling
+             teleporters, wall decals) re-render just the bytes
+             involved and queue a dirty rectangle.
+Walls        "3-D" slabs lit from the top-left, with front faces
+             where a corridor runs below. 4 styles (stone and brick,
+             haunted wood, hedges, skull ossuary) of 54-59 tiles
+             each, built on the VZ from each cell's 8 neighbours
+             (37 shapes x row parity).
+Decals       15 per maze: eyes that open, look towards the hero and
+             close; candles that flicker. They animate only while
+             the view is still.
+Memory       Main RAM: game code + data; at run time the sprite
+             shift tables, generated copy code, grid and tile pages.
+             SRAM bank A: the 4-phase maze ring (9,744 bytes).
+             SRAM bank B ($4000, port $37=3): the attract world
+             (title, intermissions, hi-score entry, big sprites,
+             title music, full-screen background), copied there at
+             boot.
+             Port $37 is only ever written with 1 or 3.
+Sound        1-bit speaker, GH2 engine: SFX, siren and jingles mixed
+             into each frame's spare time; a new title tune
+             (creeping minor-key march with a walking bass)
+Extras       Intermissions with sparse geometric backdrops drifting
+             diagonally behind the cartoon, repainted every frame
+             between the sprite erase and draw
+Source       About 8,800 lines of Z80 (sjasmplus) + Python tools for
+             the mazes, tiles, sprites, title art and music.
+             Includes a VZ300 test emulator modelling the BennVenn
+             banks, field timing and VRAM writes during the display.
+
+Original Ghost Hunter by Dubois & McNamara.

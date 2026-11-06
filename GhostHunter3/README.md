@@ -6,10 +6,12 @@ The sequel to **Ghost Hunter 2**, which followed the original VZ **Ghost Hunter*
 
 > Work in progress. Progress is saved here as it goes.
 
-![title](screenshots/01_title.png)
+![gameplay](media/gameplay.gif) ![title](media/title.gif)
+
+Title tune: [media/title_music.mp3](media/title_music.mp3) · Full tech specs: [BLURB.txt](BLURB.txt)
 
 ## Load and play
-Copy `release/GHOST3.VZ` to the SD card and load it from the BennVenn menu. It loads low at $8000–$E49D.
+Copy `release/GHOST3.VZ` to the SD card and load it from the BennVenn menu. It loads low at $8000–$E63F.
 
 * **Controls:** Q/A/M/, or joystick. P pauses, S toggles sound. Fire or Space starts a game.
 
@@ -41,6 +43,14 @@ Copy `release/GHOST3.VZ` to the SD card and load it from the BennVenn menu. It l
 
 ## Building
 `src/build.sh` needs `sjasmplus` and Python 3 with Pillow. `tools/vzemu` is the test emulator; it models the BennVenn banks, frame timing and VRAM writes during the display.
+
+## Screens
+| | | |
+|---|---|---|
+| ![](screenshots/01_title.png) | ![](screenshots/03_meet_the_ghosts.png) | ![](screenshots/04_power_ups.png) |
+| ![](screenshots/11_level1_crypt_1.png) | ![](screenshots/12_level2_halls_1.png) | ![](screenshots/13_level3_graveyard_1.png) |
+| ![](screenshots/14_level4_buffet_0.png) | ![](screenshots/15_level5_belfry_1.png) | ![](screenshots/16_level6_manor_1.png) |
+| ![](screenshots/17_level7_catacombs_1.png) | ![](screenshots/18_level8_panic_1.png) | ![](screenshots/05_hall_of_fame.png) |
 
 ## Intermissions
 ![](screenshots/06_intermission_1.png) ![](screenshots/07_intermission_2.png)
