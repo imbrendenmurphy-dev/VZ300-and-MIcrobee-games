@@ -13,7 +13,7 @@ Original code, graphics and music. It's inspired by Robotron but contains nothin
 ## Play it
 
 Copy `release/ROBOGEDN.VZ` to the SD card and run it from the BennVenn SD loader.
-- It's a single type F1 binary. It loads at $8000 (to $DCA9) and runs from $8000. There are no other files.
+- It's a single type F1 binary. It loads at $8000 (to $D84F) and runs from $8000. There are no other files.
 - It needs the **128K expansion** (RAM up to $FFFF, and the card's SRAM at $4000–$67FF).
 - It doesn't call the DOS while running, and it never writes to the SD card.
 
@@ -64,8 +64,8 @@ wave 20 they repeat, faster. Each wave opens with its robots *materialising* lin
 saying what's coming. Destroyed robots shatter apart the same way.
 
 **The arena** is blue, edged with a single 50:50 green/blue dithered line that melts into the VZ's own green
-border. Blue is the background, so the robots' blue parts are drawn
-green (crushers, tanks and so on).
+border. Blue is the background, so the blue parts of every sprite,
+including the logo's shadow and the title discs, are drawn green (crushers, tanks and so on).
 
 **Extras**
 - **Power-ups** from wave 2 on: **3-Way** (triple spread shot for 10 s) and **Shield** (6 s of invulnerability,
@@ -80,7 +80,9 @@ green (crushers, tanks and so on).
   around the edge of the screen in cycling colours, as the Williams "W" discs do on the arcade title. A
   gritty title tune plays.
 - Every information screen (story, robots, controls, high scores, name entry) has a Robotron-style
-  border: four concentric dithered bands whose colours flow through yellow, orange, red, purple and blue.
+  border: four concentric dithered bands whose colours flow through all four VZ colours (green, yellow,
+  red, blue, with dithered mixes between).
+- **Blue background throughout**, framed by the VZ's own green border.
 - **The story so far**, typed out a letter at a time while a human flees a line of droids.
 - **Meet the robots**: the rogues' gallery, each robot materialising in turn.
 - **Controls** page, with your chosen mode highlighted.
@@ -104,8 +106,8 @@ you switch off.
 - Ordinary waves run at a steady 25 fps. The busiest waves (50+ objects) run at a mix of 25 and 16.7 fps
   (about a third of their frames at 25). The materialise effect on the biggest waves is slower for a moment.
 - Sprites are pre-shifted for the 4 pixel positions in a byte. In the arena they're drawn through masks
-  (each byte is a keep-mask plus pixels, read with POP) so they sit cleanly on the blue. The front-end copies are drawn
-  with OR on the green. Text is drawn through masks too. The 4:3 screen's tall pixels are allowed for in
+  (each byte is a keep-mask plus pixels, read with POP) so they sit cleanly on the blue. Text is drawn
+  through masks too. The 4:3 screen's tall pixels are allowed for in
   movement and aiming: vertical speeds are two-thirds of horizontal ones.
 - The screen-copy routines (four unrolled POP/PUSH copies, 7K) are built at start-up in the card's SRAM,
   which keeps the program small. If the SRAM isn't there, the game says so on the screen and stops.
@@ -123,7 +125,7 @@ you switch off.
 | $4800–$640B | screen-copy routines, built at start-up (SRAM bank 1) |
 | $6700–$6746 | saved high scores (SRAM bank 3) |
 | $7000–$77FF | video RAM |
-| $8000–$DCA9 | code and data |
+| $8000–$D84F | code and data |
 | $E800–$EFFF | frame buffer 0 |
 | $F000–$F100, $F1F1 | IM2 vector table, `jp isr` |
 | $F200–$F6FF | variables, objects (64 × 8 bytes), bullets, shots, high scores |

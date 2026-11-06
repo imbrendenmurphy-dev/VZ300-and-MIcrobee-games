@@ -132,20 +132,20 @@ att_frame:
         ld      (banner_t),a
         ld      c,55
         ld      b,9
-        xor     a
+        ld      a,$AA               ; blue
         call    fill_rows
         ld      c,55
         ld      b,1
-        ld      a,$AA
+        ld      a,0                 ; green (keeps the flags)
         call    fill_rows
         ld      c,63
         ld      b,1
-        ld      a,$AA
+        ld      a,0                 ; green (keeps the flags)
         call    fill_rows
         call    ctl_text
         ld      hl,txtbuf
         ld      c,57
-        ld      a,$FF
+        ld      a,$55
         call    text3c
 .nb:    call    present
         call    att_keys
@@ -439,7 +439,7 @@ title_badges:
         ld      a,F_BADGE_Z0
 .v:     add     a,c
         pop     bc
-        call    draw_frame
+        call    draw_frame_g
         pop     bc
         inc     b
         ld      a,b
@@ -474,7 +474,7 @@ scr_title:
         ld      c,23
         ld      a,(gtick)
         and     8
-        ld      a,$AA
+        ld      a,$55
         jr      z,.c1
         ld      a,$FF
 .c1:    call    text2xc
@@ -507,7 +507,7 @@ title_bd:
         call    ctl_text
         ld      hl,txtbuf
         ld      c,40
-        ld      a,$FF
+        xor     a
         call    text3c
         call    opts_line
         jp      bd_end
@@ -538,7 +538,7 @@ opts_line:
         call    strcpy
         ld      hl,txtbuf
         ld      c,52
-        ld      a,$AA
+        ld      a,0                 ; green (keeps the flags)
         jp      text3c
 
 ; draw_logo: ROBOGEDDON flies up as a bunch, then spreads out
@@ -600,7 +600,7 @@ draw_logo:
         ld      hl,logo_letters
         add     hl,de
         ld      a,(hl)
-        call    draw_frame
+        call    draw_frame_g
         pop     bc
         inc     b
         ld      a,b
@@ -657,7 +657,7 @@ scr_story:
         call    bd_begin
         ld      hl,s_story_h
         ld      c,5
-        ld      a,$FF
+        ld      a,$55
         call    text3c
         call    bd_end
         ld      hl,story
@@ -733,7 +733,7 @@ scr_story:
         add     a,F_GRUNT0
 .dd:    ld      b,d
         ld      c,54
-        call    draw_frame
+        call    draw_frame_g
 .cn:    pop     bc
         inc     b
         ld      a,b
@@ -756,7 +756,7 @@ scr_gallery:
         call    bd_begin
         ld      hl,s_meet
         ld      c,5
-        ld      a,$FF
+        ld      a,$55
         call    text2xc
         call    bd_end
 .l:     call    bd_copy
@@ -787,13 +787,13 @@ scr_gallery:
         ld      a,(ix+0)
         ld      b,(ix+1)
         ld      c,(ix+2)
-        call    draw_spread
+        call    draw_spread_g
         jr      .skip
 .bake:  call    bd_open
         ld      a,(ix+0)
         ld      b,(ix+1)
         ld      c,(ix+2)
-        call    draw_frame
+        call    draw_frame_g
         ld      l,(ix+4)
         ld      h,(ix+5)
         ld      b,(ix+3)
@@ -806,7 +806,7 @@ scr_gallery:
         ld      a,(ix+0)            ; and this frame too
         ld      b,(ix+1)
         ld      c,(ix+2)
-        call    draw_frame
+        call    draw_frame_g
         ld      l,(ix+4)
         ld      h,(ix+5)
         ld      b,(ix+3)
@@ -828,7 +828,7 @@ scr_gallery:
         call    bd_open
         ld      hl,s_zap
         ld      c,55
-        ld      a,$AA
+        ld      a,0                 ; green (keeps the flags)
         call    text3c
         call    bd_end
 .nf:    ld      hl,logo_t
@@ -850,7 +850,7 @@ scr_controls:
         call    bd_begin
         ld      hl,s_controls
         ld      c,5
-        ld      a,$FF
+        ld      a,$55
         call    text2xc
         ld      hl,ctl_lines
         ld      c,17
@@ -862,9 +862,9 @@ scr_controls:
         push    bc
         ld      a,d
         and     1
-        ld      a,$AA
+        ld      a,$55               ; headings yellow
         jr      z,.col
-        ld      a,$55
+        ld      a,0                 ; descriptions green
 .col:   ld      b,3
         call    text3
         pop     bc
@@ -945,7 +945,7 @@ hs_show:
         call    bd_begin
         ld      hl,s_hiscores
         ld      c,6
-        ld      a,$FF
+        ld      a,$55
         call    text3c
         ld      b,0
 .e:     ld      a,(hs_pos)
@@ -995,7 +995,7 @@ hs_draw:
         and     1
         ld      a,$55
         jr      z,.pr
-        ld      a,$AA
+        ld      a,0                 ; green (keeps the flags)
 .pr:    ld      hl,txtbuf
         ld      b,8
         jp      text3
@@ -1125,7 +1125,7 @@ enter_name:
         call    text3c
         ld      hl,s_namehelp
         ld      c,48
-        ld      a,$AA
+        ld      a,0                 ; green (keeps the flags)
         call    text3c
         call    bd_end
 .l:     call    bd_copy
@@ -1155,7 +1155,7 @@ enter_name:
         ld      (txtbuf+1),a
         ld      a,(hs_cur)
         cp      b
-        ld      a,$AA
+        ld      a,0                 ; green (keeps the flags)
         jr      nz,.cl
         ld      a,(gtick)
         and     4

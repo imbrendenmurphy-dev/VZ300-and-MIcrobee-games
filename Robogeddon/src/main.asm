@@ -144,9 +144,9 @@ pixtab:
 lmask:  db      $FF,$3F,$0F,$03
 rmask:  db      $C0,$F0,$FC,$FF
 colpat: db      $00,$55,$AA,$FF
-cyc_pat:                ; yellow > orange > red > purple > blue and back
-        db      $55,$77,$FF,$EE,$AA,$EE,$FF,$77
-        db      $55,$DD,$FF,$BB,$AA,$BB,$FF,$DD
+cyc_pat:                ; green > yellow > red > blue > green, dithered between
+        db      $00,$11,$55,$77,$FF,$EE,$AA,$88
+        db      $00,$44,$55,$DD,$FF,$BB,$AA,$22
 ring_cols:
         db      0,1,3,1
 

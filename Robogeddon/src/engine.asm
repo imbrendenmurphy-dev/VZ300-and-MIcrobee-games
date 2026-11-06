@@ -265,7 +265,7 @@ bd_copy:
 ; ---------------------------------------------------------------------
 ; clearing (push-based)
 ; ---------------------------------------------------------------------
-; clear_all: whole back buffer to 0
+; clear_all: whole back buffer to blue
 clear_all:
         ld      a,(drawh)
         add     a,8
@@ -273,7 +273,7 @@ clear_all:
         ld      l,0
         ld      (sp_save),sp
         ld      sp,hl
-        ld      hl,0
+        ld      hl,$AAAA
         ld      b,64
 .l:     di                          ; the interrupt must never push into a cleared row
         rept 16
@@ -444,172 +444,6 @@ rowaddr:
         ret
 
 ; ---------------------------------------------------------------------
-; frame_data: A = frame, B = x -> DE = shifted sprite (w,h,bytes...)
-; ---------------------------------------------------------------------
-frame_data:
-        ld      l,a
-        ld      h,0
-        add     hl,hl
-        add     hl,hl
-        add     hl,hl
-        ld      de,frametab
-        add     hl,de
-        ld      a,b
-        and     3
-        add     a,a
-        add     a,l
-        ld      l,a
-        jr      nc,.n
-        inc     h
-.n:     ld      e,(hl)
-        inc     hl
-        ld      d,(hl)
-        ret
-
-; ---------------------------------------------------------------------
-; draw_frame: A = frame, B = x, C = y  (OR into the back buffer)
-;   keeps IX, IY
-; ---------------------------------------------------------------------
-draw_frame:
-        call    frame_data
-        call    rowaddr
-        ld      a,b
-        rrca
-        rrca
-        and     $3F
-        or      l
-        ld      l,a
-        ld      a,(de)
-        inc     de
-        ld      b,a
-        ld      a,(de)
-        inc     de
-        ld      c,a
-        ld      a,b
-        cp      2
-        jr      z,.w2
-.row:   push    hl
-        ld      a,b
-.byte:  ex      af,af'
-        ld      a,(de)
-        or      (hl)
-        ld      (hl),a
-        inc     de
-        inc     l
-        ex      af,af'
-        dec     a
-        jr      nz,.byte
-        pop     hl
-        ld      a,l
-        add     a,32
-        ld      l,a
-        jr      nc,.n1
-        inc     h
-.n1:    dec     c
-        jr      nz,.row
-        ret
-.w2:    ld      a,(de)
-        or      (hl)
-        ld      (hl),a
-        inc     de
-        inc     l
-        ld      a,(de)
-        or      (hl)
-        ld      (hl),a
-        inc     de
-        ld      a,l
-        add     a,31
-        ld      l,a
-        jr      nc,.n2
-        inc     h
-.n2:    dec     c
-        jr      nz,.w2
-        ret
-
-; ---------------------------------------------------------------------
-; draw_spread: A = frame, B = x, C = y, D = spread k
-;   the sprite's rows drawn k+1 lines apart around its centre, clipped to
-;   clip_top..clip_bot (materialise / shatter effect).  keeps IX, IY
-; ---------------------------------------------------------------------
-draw_spread:
-        ld      (sp_fr),a
-        ld      a,d
-        ld      (sp_kk),a
-        ld      a,b
-        ld      (sp_x),a
-        ld      a,(sp_fr)
-        push    bc
-        call    frame_data
-        pop     bc
-        ld      a,(de)
-        ld      (sp_w),a
-        inc     de
-        ld      a,(de)
-        ld      (sp_h),a
-        inc     de
-        ; ystart = y + h/2 - (h/2)*(k+1)
-        ld      a,(sp_h)
-        srl     a
-        ld      h,a                 ; h/2
-        add     a,c
-        ld      c,a                 ; y + h/2
-        ld      a,(sp_kk)
-        inc     a
-        ld      l,a
-        xor     a
-        ld      b,h
-        inc     b
-        dec     b
-        jr      z,.m2
-.m1:    add     a,l
-        djnz    .m1
-.m2:    ld      b,a
-        ld      a,c
-        sub     b
-        ld      c,a                 ; may wrap "negative" (>=192 treated as off)
-        ld      a,(sp_h)
-        ld      b,a
-.rl:    push    bc
-        ld      a,(clip_top)
-        ld      h,a
-        ld      a,c
-        cp      h
-        jr      c,.skip
-        ld      a,(clip_bot)
-        ld      h,a
-        ld      a,c
-        cp      h
-        jr      nc,.skip
-        call    rowaddr
-        ld      a,(sp_x)
-        rrca
-        rrca
-        and     $3F
-        or      l
-        ld      l,a
-        ld      a,(sp_w)
-        ld      b,a
-.bl:    ld      a,(de)
-        or      (hl)
-        ld      (hl),a
-        inc     de
-        inc     l
-        djnz    .bl
-        jr      .nx
-.skip:  ld      a,(sp_w)
-        add     a,e
-        ld      e,a
-        jr      nc,.nx
-        inc     d
-.nx:    pop     bc
-        ld      a,(sp_kk)
-        inc     a
-        add     a,c
-        ld      c,a
-        djnz    .rl
-        ret
-
-; ---------------------------------------------------------------------
 ; masked game sprites (blue arena): each byte is a (keep-mask, pixels) pair
 ; frame_data_g: A = frame, B = x -> DE ; draw_frame_g / draw_spread_g as above
 ; ---------------------------------------------------------------------
@@ -659,6 +493,8 @@ draw_frame_g:
         cp      2
         jr      z,.w2
         jr      c,.w1
+        cp      4
+        jr      z,.w4
 .w3:    pop     de
         ld      a,(hl)
         and     e
@@ -683,6 +519,37 @@ draw_frame_g:
         inc     h
 .n3:    dec     c
         jr      nz,.w3
+        jr      .done
+.w4:    pop     de                  ; the big logo letters
+        ld      a,(hl)
+        and     e
+        or      d
+        ld      (hl),a
+        inc     l
+        pop     de
+        ld      a,(hl)
+        and     e
+        or      d
+        ld      (hl),a
+        inc     l
+        pop     de
+        ld      a,(hl)
+        and     e
+        or      d
+        ld      (hl),a
+        inc     l
+        pop     de
+        ld      a,(hl)
+        and     e
+        or      d
+        ld      (hl),a
+        ld      a,l
+        add     a,29
+        ld      l,a
+        jr      nc,.n4
+        inc     h
+.n4:    dec     c
+        jr      nz,.w4
         jr      .done
 .w2:    pop     de
         ld      a,(hl)

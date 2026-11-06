@@ -365,7 +365,6 @@ def big_letter(ch):
                 if y == 5 or y == 6:
                     g[y][x] = 1 if (x + y) % 2 == 0 else 3   # dithered blend
     return g
-NGAME = len(FRAMES)      # frames before here also get a masked game copy
 for ch in "ROBGEDN":
     FRAMES.append(('BIG_' + ch, big_letter(ch)))
 
@@ -504,19 +503,10 @@ def main():
         out.append('F_%s equ %d' % (name, i))
     out.append('NUMFRAMES equ %d' % len(FRAMES))
     out.append('')
-    out.append('frametab:')
-    for name, _ in FRAMES:
-        out.append('    dw %s' % ','.join('sp_%s_%d' % (name, s) for s in range(4)))
-    out.append('')
-    total = 0
-    for name, px in FRAMES:
-        for s in range(4):
-            wb, h, data = shifted(px, s)
-            total += 2 + len(data)
-            out.append('sp_%s_%d: db %d,%d,%s' % (name, s, wb, h, ','.join('$%02X' % b for b in data)))
-    out.append('')
-    # masked copies of the game frames for the blue arena: blue -> green,
+    # every frame drawn through a mask on the blue background: blue -> green,
     # stored as (keep-mask, pixels) byte pairs
+    NGAME = len(FRAMES)
+    total = 0
     out.append('NGFRAMES equ %d' % NGAME)
     out.append('gframetab:')
     for name, _ in FRAMES[:NGAME]:
