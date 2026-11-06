@@ -27,7 +27,9 @@ sd_load:
             push ix
             ld a,(dos_map)
             out ($37),a
-            ld hl,SECBUF
+            ld a,3
+            ld (sd_try),a
+.open:      ld hl,SECBUF
             ld (DOS_BUFPTR),hl
             push ix
             pop hl
@@ -37,10 +39,17 @@ sd_load:
             call DOS_OPEN
             ld a,(DOS_STAT1)
             cp 1
-            jr nz,sd_fail
+            jr nz,.retry
             ld a,(DOS_STAT2)
             cp 1
-            jr z,sd_fail
+            jr nz,.opened
+.retry:     ld hl,sd_try
+            dec (hl)
+            jp z,sd_fail
+            ld a,(dos_map)
+            out ($37),a
+            jr .open
+.opened:
             ld a,1
             call DOS_FIRST
 .copy:      ; bc = min(left, 512)
@@ -80,7 +89,7 @@ sd_load:
 .done:      pop ix
             jp bank3
 
-; a missing file is fatal: say which one on a mode 0 screen
+;  a missing file is fatal: say which one, the DOS status and what to check
 sd_fail:    pop ix
             xor a
             ld (LATCH),a
@@ -90,21 +99,69 @@ sd_fail:    pop ix
             ld (hl),$20
             ldir
             ld hl,str_sdfail
-            ld de,VRAM+32*6+2
+            ld de,VRAM+32*3+2
             call .p
             push ix
             pop hl
             inc hl
             inc hl
-            ld de,VRAM+32*8+2
+            ld de,VRAM+32*5+2
             call .p
+            ld hl,str_sdhint
+            ld de,VRAM+32*7+2
+            call .p
+            ; status: FB03 FB05 map
+            ld de,VRAM+32*14+2
+            ld hl,str_sdcode
+            call .p
+            ld a,(DOS_STAT1)
+            call .hx
+            inc de
+            ld a,(DOS_STAT2)
+            call .hx
+            inc de
+            ld a,(dos_map)
+            call .hx
 .h:         jr .h
-.p:         ld a,(hl)
+.p:         push de
+.pl:        ld a,(hl)
+            inc hl
             or a
-            ret z
+            jr z,.pe
+            cp 1
+            jr z,.nl
             and $3F
             ld (de),a
-            inc hl
             inc de
-            jr .p
+            jr .pl
+.nl:        pop de
+            ex de,hl
+            ld bc,32
+            add hl,bc
+            ex de,hl
+            push de
+            jr .pl
+.pe:        pop af                  ; drop line start, keep DE after text
+            ret
+.hx:        push af
+            rrca
+            rrca
+            rrca
+            rrca
+            call .nib
+            pop af
+.nib:       and 15
+            add a,'0'
+            cp '9'+1
+            jr c,.d
+            add a,7
+.d:         and $3F
+            ld (de),a
+            inc de
+            ret
 str_sdfail: db "CAN'T LOAD GAME FILE:",0
+str_sdhint: db "COPY ALL DC2*.DAT FILES AND",1
+            db "DRACULA2.VZ TO THE ROOT OF THE",1
+            db "SD CARD (NOT IN A FOLDER) AND",1
+            db "RUN IT FROM THERE.",0
+str_sdcode: db "DOS STATUS ",0

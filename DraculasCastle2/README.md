@@ -1,13 +1,21 @@
 # DRACULA'S CASTLE II — THE CASTLE AWAKENS
-### Vertical slice v0.2 · ViBED by BPM · 2026
+### Vertical slice v0.2.3 · ViBED by BPM · 2026
 Dick Smith VZ300 · BennVenn SD + 128K · Mode 1 (128×64, 4 colours) · all Z80
 
 ## Running it
-Copy `DRACULA2.VZ` **and all twelve `DC2*.DAT` files** from `release/` to the same place on
-the SD card, then load `DRACULA2.VZ` like any other binary .VZ. It loads at $8000–$C30D
+Copy `DRACULA2.VZ` **and all twelve `DC2*.DAT` files** from `release/` to the **root of the
+SD card** (the same place 13 Ghosts and its `.DAT` files live — not inside a folder), then load `DRACULA2.VZ` like any other binary .VZ. It loads at $8000–$C30D
 and runs from $8000. The game streams its artwork from the `.DAT` files through the
 BennVenn DOS, the same way 13 Ghosts does. If a file is missing it stops with
-`CAN'T LOAD GAME FILE:` and the file's name. If no 128K expansion is present, it prints
+`CAN'T LOAD GAME FILE:`, the file's name and a `DOS STATUS` line (the DOS's $FB03, $FB05
+bytes and the DOS mapping) — note those three numbers down if it happens.
+
+### SD troubleshooting: `SDTEST.VZ`
+`release/SDTEST.VZ` is a 222-byte program that opens `13GHOST1`, `DC2TITLE` and `DC2A0P1`
+exactly the way 13 Ghosts does and prints `OK` or `FAIL` with the same three status bytes.
+Run it from the same place as the game. If 13GHOST1 says OK but DC2TITLE says FAIL, the DC2
+files aren't where the DOS is looking; if both fail, the DOS is looking somewhere else (e.g.
+the folder it was started from). If no 128K expansion is present, it prints
 `NEEDS BENNVENN SD + 128K RAM`.
 
 | File | Contents | Loaded into |
@@ -89,7 +97,8 @@ $7B00        flip table          $7C00-$7EFF  runtime maps, seen-bits, event fla
 $8000-$C7FF  code + text + music + maps (the .VZ image, 17K)
 $C800-$E7FF  streamed assets: area decorations/objects, or monster frames + view cache
 $E800-$E9FF  variables           $EA00-$EDFF  stack
-$EE00-$EFFF  SD sector buffer    $F000-$F7FF  back buffer
+$EE00-$EFFF  free               $F000-$F7FF  back buffer
+$F800-$F9FF  SD sector buffer (the same buffer 13 Ghosts gives the DOS)
 $FA00-$FFFF  DOS workspace - left alone
 ```
 - **SD loading** (`src/sd.asm`). This is the protocol read from the 13 Ghosts loader:
