@@ -107,8 +107,8 @@ title_screen:
         xor SPR_BIGK0^SPR_BIGK1
         ld b,64
         call dl_add
-        ; a squadron of grunts sweeps across (2 keeps the frame inside vblank)
-        ld b,2
+        ; a grunt sweeps across (more would push the frame past vblank)
+        ld b,1
 .sq:    push bc
         ld a,b
         ld c,a
@@ -121,7 +121,7 @@ title_screen:
         add a,c
         add a,c
         add a,c                 ; 24*b
-        add a,a                 ; 48*b: spread the three out
+        add a,a                 ; 48*b: spread them across the screen
         ld c,a
         ld a,(attr_t)
         add a,c
@@ -183,22 +183,32 @@ title_message:
         ld l,a
         push hl
         ld a,1
-        ld (noq),a
+        ld (noq),a              ; draw into BG only, commit below in small pieces
         ld de,$003A
         ld bc,$2005
         ld a,0                  ; green planet
         call fill_rect
-        xor a
-        ld (noq),a
-        ld de,$003A
-        ld bc,$2005
-        call queue_rect
         ld a,3
         ld b,0
         call set_ink
         pop hl
         ld e,58
-        jp print_c
+        call print_c
+        xor a
+        ld (noq),a
+        ; four 8-byte slices, one per frame, keep the title inside vblank
+        ld d,0
+.q:     push de
+        ld e,58
+        ld bc,$0805
+        call queue_rect
+        pop de
+        ld a,d
+        add a,8
+        ld d,a
+        cp 32
+        jr nz,.q
+        ret
 title_msgs: dw tm0,tm1,tm2,tm3
 tm0:    db "PRESS FIRE OR SPACE TO PLAY",0
 tm1:    db "THE SEQUEL TO KAMIKAZE INVADERS",0
@@ -208,11 +218,15 @@ tm3:    db "KEYS 1-4: START AT SECTOR 1-4",0
 ; ---------------------------------------------------------------------
 ; INFO PAGES
 ; ---------------------------------------------------------------------
-; info_page: HL = heading; clears to space and prints it big
+; info_page: HL = heading; clears the BG to space and prints it big.
+; The caller draws the rest, then calls wipe_show to reveal the whole page
+; (so nothing is committed piecemeal and the queue can't overflow).
 info_page:
         push hl
+        call dl_reset
+        call do_frame
         ld a,$AA
-        call wipe_to
+        call cls_bg
         ld a,1
         ld b,2
         call set_ink
@@ -290,6 +304,7 @@ how_to_play:
         call info_page
         ld hl,how_lines
         call info_lines
+        call wipe_show
         ld ix,how_spr
         jp info_wait
 s_how:  db "HOW TO PLAY",0
@@ -309,6 +324,7 @@ enemy_page:
         call info_page
         ld hl,enemy_lines
         call info_lines
+        call wipe_show
         ld ix,enemy_spr
         jp info_wait
 s_enemy: db "THE ENEMY",0
@@ -339,6 +355,7 @@ power_page:
         call info_page
         ld hl,power_lines
         call info_lines
+        call wipe_show
         ld ix,power_spr
         jp info_wait
 s_power: db "CAPSULES",0
@@ -415,6 +432,7 @@ hiscore_screen:
         ld hl,s_play
         ld e,58
         call print_c
+        call wipe_show
         ; a parade of kamikazes along row 50
         ld hl,0
         ld (attr_t),hl
@@ -637,6 +655,7 @@ enter_hiscore:
         djnz .cl
         call grid_draw_all
         call name_draw
+        call wipe_show
         ld hl,3000
         ld (attr_t),hl
 .lp:    call dl_reset
@@ -756,6 +775,7 @@ enter_hiscore:
         ld hl,s_hof
         call info_page
         call draw_hitab
+        call wipe_show
         ld hl,mus_hiscore_0
         ld de,mus_hiscore_1
         call play_music
@@ -882,30 +902,31 @@ s_end:  db "END",0
 ; ---------------------------------------------------------------------
 run_ending:
         call stop_music
+        ld de,$5000             ; bonus first: the HUD updates before the page wipes in
+        call add_score
+        ld de,$5000
+        call add_score
         ld hl,s_end1
         call info_page
         ld hl,end_lines
         call info_lines
+        call wipe_show
         ld hl,mus_ending_0
         ld de,mus_ending_1
         call play_music
-        ld de,$5000
-        call add_score
-        ld de,$5000
-        call add_score
         ld ix,end_spr
         call info_wait
         call stop_music
         ret
 s_end1: db "WELL DONE!",0
 end_lines:
-        db 2,15,0,"THE HIVE IS BROKEN AND THE",0
-        db 2,22,0,"KAMIKAZES SCATTER INTO SPACE.",0
-        db 2,31,1,"COMPLETION BONUS 10000",0
-        db 2,40,0,"BUT ANOTHER FLEET IS COMING...",0
-        db 2,49,3,"NEXT LAP: FASTER AND MEANER!",0
+        db 2,14,0,"THE HIVE IS BROKEN AND THE",0
+        db 2,20,0,"KAMIKAZES SCATTER INTO SPACE.",0
+        db 2,28,1,"COMPLETION BONUS 10000",0
+        db 2,36,0,"BUT ANOTHER FLEET IS COMING...",0
+        db 2,43,3,"NEXT LAP: FASTER AND MEANER!",0
         db $FF
 end_spr:
-        db SPR_BIGK0,4,52
-        db SPR_BIGK1,112,52
+        db SPR_BIGK0,4,53
+        db SPR_BIGK1,112,53
         db $FF

@@ -66,7 +66,7 @@ start:
         call init_sprites
         jp attract
 
-CBUDGET equ 34
+CBUDGET equ 24
 HIENT   equ 8                   ; bytes per hi-score entry: 3 BCD + 5 name
 hitab_init:
         db $02,$00,$00,"BPM  "
@@ -415,7 +415,7 @@ bonus_over:
         ld b,2
         call set_ink
         ld a,(bhits)
-        ld de,$0F31
+        ld de,$1031
         call print_dec2
         ld a,(bhits)
         cp BONUS_N
@@ -539,7 +539,7 @@ s_sclear:   db "SECTOR CLEAR!",0
 s_empty:    db "EMPTY COLUMNS 500",0
 s_gameover: db "GAME OVER",0
 s_bover:    db "KAMIKAZE RAIN OVER",0
-s_hits:     db "HITS    /30",0
+s_hits:     db "HITS   /30",0
 s_perfect:  db "PERFECT 10000",0
 
 ; =====================================================================
@@ -711,7 +711,7 @@ tmpy:   db 0
 tmpd:   db 0
 cnt:    db 0
 lbuf:   ds 16
-tbuf:   ds 12
+tbuf:   ds 24                   ; longest use: "MOTHERSHIP n/4" + 0
 hitab:  ds HIENT*10
 nameb:  ds 6
 hirank: db 0

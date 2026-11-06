@@ -1246,6 +1246,14 @@ update_particles:
         jr c,.kill
         cp 63
         jr nc,.kill
+        ; busy frame? particles still move but only draw while the list is short
+        push hl
+        ld hl,(dlptr)
+        ld a,l
+        sub drawlist&255
+        pop hl
+        cp 4*13
+        jr nc,.d
         call dl_pixel
         jr .d
 .kill:  dec hl
