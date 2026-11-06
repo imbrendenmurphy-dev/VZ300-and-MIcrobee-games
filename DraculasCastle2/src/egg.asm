@@ -13,6 +13,8 @@ forgotten_maze:
             ld de,EGGBUF
             xor a
             call sd_load
+            ld a,1
+            ld (n_lock),a           ; N = north in here
             ; mode 0, green
             xor a
             call set_latch
@@ -71,6 +73,8 @@ forgotten_maze:
             ld b,200
             call wait_frames
             call wait_key
+            xor a
+            ld (n_lock),a
             call reload_part2       ; the egg borrowed the asset RAM
             ; back to 2026 - turned away from the plaque
             ld a,(pdir)

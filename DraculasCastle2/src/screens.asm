@@ -417,26 +417,11 @@ pause_screen:
             cpl
             bit 4,a
             jp nz,title_screen
-            ld a,($68EF)            ; row 4: M SPACE , . . N
-            cpl
-            bit 0,a                 ; N = music toggle
-            jr z,.w
-            ld a,(music_on)
-            xor 1
-            ld (music_on),a
-            ld hl,str_musict
-            call show_msg
-.rel:       call wait_frame
-            ld a,($68EF)
-            cpl
-            bit 0,a
-            jr nz,.rel
-            jr .w
+            jr .w                   ; (N is handled by read_input everywhere)
 .out:       call clear_msg_back
             jp present_msg
 
 str_paused: db " - PAUSED -     P: CONTINUE",1," N: MUSIC ON/OFF  Q: QUIT",0
-str_musict: db "  MUSIC TOGGLED.  P: CONTINUE",0
 
 ; ---------------------------------------------------------------------------
 ; SAVE / LOAD  (SRAM bank 3 @ $6400: magic, checksum, data)

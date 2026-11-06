@@ -80,6 +80,9 @@ sd_bank:    ds 1
 sd_dst:     ds 2
 sd_left:    ds 2
 sd_try:     ds 1
+n_prev:     ds 1
+n_lock:     ds 1
+n_hit:      ds 1
 vars_game:
             include "gvars.asm"
 vars_end:

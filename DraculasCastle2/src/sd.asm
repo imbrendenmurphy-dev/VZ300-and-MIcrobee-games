@@ -37,6 +37,7 @@ sd_load:
             inc hl                  ; -> "NAME"
             ld a,1
             call DOS_OPEN
+            di                      ; the DOS may leave interrupts on (13 Ghosts DIs too)
             ld a,(DOS_STAT1)
             cp 1
             jr nz,.retry
@@ -52,6 +53,7 @@ sd_load:
 .opened:
             ld a,1
             call DOS_FIRST
+            di                      ; the DOS may leave interrupts on (13 Ghosts DIs too)
 .copy:      ; bc = min(left, 512)
             ld hl,(sd_left)
             ld bc,512
@@ -85,6 +87,7 @@ sd_load:
             ld hl,SECBUF
             ld (DOS_BUFPTR),hl
             call DOS_NEXT
+            di                      ; the DOS may leave interrupts on (13 Ghosts DIs too)
             jr .copy
 .done:      pop ix
             jp bank3

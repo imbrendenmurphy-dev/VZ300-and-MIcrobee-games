@@ -485,6 +485,28 @@ read_input:
             set 1,c
 .r4:        ld a,($68EF)            ; M SPACE , - . N  (bit5..bit0)
             cpl
+            ; N toggles the music anywhere (except the 1984 maze, where N means north)
+            ld b,a
+            and $01
+            ld hl,n_prev
+            cp (hl)
+            ld (hl),a
+            jr z,.r4n
+            or a
+            jr z,.r4n
+            ld a,(n_lock)
+            or a
+            jr nz,.r4n
+            ld a,(music_on)
+            xor 1
+            ld (music_on),a
+            ld a,1
+            ld (n_hit),a
+            push bc
+            ld hl,sfx_tick
+            call play_sfx
+            pop bc
+.r4n:       ld a,b
             bit 5,a                 ; M
             jr z,.r4b
             set 5,c

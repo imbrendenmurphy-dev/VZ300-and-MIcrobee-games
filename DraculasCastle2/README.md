@@ -1,5 +1,5 @@
 # DRACULA'S CASTLE II — THE CASTLE AWAKENS
-### Vertical slice v0.2.4 · ViBED by BPM · 2026
+### Vertical slice v0.2.5 · ViBED by BPM · 2026
 Dick Smith VZ300 · BennVenn SD + 128K · Mode 1 (128×64, 4 colours) · all Z80
 
 ## Running it
@@ -36,7 +36,8 @@ the folder it was started from). If no 128K expansion is present, it prints
 | SPACE or RETURN | act: talk, open, search, read | select |
 | M | automap | |
 | E | status & inventory (1 = drink a potion) | |
-| P | pause (N = music on/off, Q = quit to title) | |
+| N | music on/off — works anywhere (title, exploring, battles, menus) | |
+| P | pause (Q = quit to title) | |
 | 1 / 2 | | potion / holy water in the ITEM menu |
 
 The joystick is detected at boot and works on either port (fire = SPACE).

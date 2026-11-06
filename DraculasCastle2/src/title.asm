@@ -17,6 +17,18 @@ title_screen:
             call present_full
 .loop:      call wait_frame
             call read_input
+            ld hl,n_hit             ; N pressed: show the new music setting
+            ld a,(hl)
+            ld (hl),0
+            or a
+            jr z,.nn
+            call draw_title_menu
+            ld c,0
+            ld b,32
+            ld d,51
+            ld e,57
+            call present_rect
+.nn:
             ; thunder & lightning
             ld hl,thunder_t
             dec (hl)
@@ -64,7 +76,7 @@ title_screen:
             jr nz,.right
             bit 4,b
             jr nz,.select
-            jr .loop
+            jp .loop
 .left:      ld a,(menu_sel)
             dec a
             jp p,.ms
