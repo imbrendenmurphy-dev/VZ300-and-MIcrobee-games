@@ -1,7 +1,7 @@
 # HAMBURGER SAM II — THE BURGER RUSH
 
 Sequel to the VZ200/VZ300 game *HAMBURGER SAM* (Dick Smith Electronics), for the Dick Smith
-VZ300 / VZ200 with the **BennVenn SD loader + 128K**. ViBED by BPM 2026. Version 1.0.
+VZ300 / VZ200 with the **BennVenn SD loader + 128K**. ViBED by BPM 2026. Version 1.0.1 (shorter, softer ingredient-drop sound).
 Original code, graphics and music. Nothing from the original game is included.
 
 ![title](screenshots/HAMSAM2_title.gif)

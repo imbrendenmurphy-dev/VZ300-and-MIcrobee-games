@@ -197,7 +197,7 @@ SFX_SPLAT  equ 14
 SFX_CAUGHT equ 15
 sfxtab:
         dw 1800,-150 : db 3,0,1,0,0       ; step on an ingredient
-        dw 2600,-60  : db 14,1,3,0,0      ; ingredient drops
+        dw 1500,-120 : db 6,0,3,0,0       ; ingredient drops: short soft "bloop" down (v1.0.1)
         dw 500,-20   : db 5,2,3,0,0       ; thud on landing
         dw 3000,-180 : db 12,2,4,0,0      ; squash!
         dw 900,0     : db 14,2,3,0,0      ; pepper shake
