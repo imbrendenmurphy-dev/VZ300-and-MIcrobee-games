@@ -4,6 +4,9 @@
 
 init:
         di
+        ld (BOOT_SP),sp         ; what the loader left: the DOS calls use these
+        ld (BOOT_IX),ix
+        ld (BOOT_IY),iy
         ld sp,STACKTOP
         ; boot progress: one yellow band per step, top to bottom. They are
         ; wiped when the title appears; if start-up ever stops, the last
@@ -95,12 +98,22 @@ init:
         ld hl,$ACE1
         ld (seed),hl
         call load_hiscores
+        ld hl,(BOOT_SP)         ; VARS were cleared: copy the saved values in
+        ld (boot_sp),hl
+        ld hl,(BOOT_IX)
+        ld (boot_ix),hl
+        ld hl,(BOOT_IY)
+        ld (boot_iy),hl
+        ld a,1
+        ld (booting),a
         ei
         ld a,5
         call boot_band
-        call ensure_front       ; first SD read
-        ld a,6
+        call ensure_front       ; first SD read: bands 6, 7, then 8 when done
+        ld a,8
         call boot_band
+        xor a
+        ld (booting),a
         jp front_main
 
 ; boot_band: A = step (0-7): paint rows 4A..4A+3 yellow, plus a marker

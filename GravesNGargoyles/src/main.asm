@@ -42,6 +42,9 @@ HUDBUF   equ $7B00      ; 12 rows: 8 top + 4 bottom
 HLUT     equ $7C80
 DOSMAP   equ $7CF0      ; port $37 value that maps the DOS (probed at start-up)
 DOSBUSY  equ $7CF1      ; non-zero while a DOS call is in progress
+BOOT_SP  equ $7CF2      ; loader's SP, IX, IY at entry (kept for DOS calls)
+BOOT_IX  equ $7CF4
+BOOT_IY  equ $7CF6
 YTAB     equ $7D00
 FLIPT    equ $7E00
 FBW      equ 40

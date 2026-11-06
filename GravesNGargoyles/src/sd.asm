@@ -24,6 +24,9 @@ dos_probe:
 
 ; load_pack: HL = pack directory entry -> carry set on failure
 load_pack:
+        ; The DOS is called the way RASTEST (proven on real hardware) does:
+        ; interrupts on (the ISR only waits out field sync while DOSBUSY),
+        ; the DOS's own mapping, and the IX/IY/SP the loader left us.
         di
         ld a,1
         ld (DOSBUSY),a
@@ -39,13 +42,29 @@ load_pack:
         ld (ld_left),bc
         ld (ld_name),hl
         call stop_music
+        push ix
+        push iy
+        ld (ld_sp),sp
+        ld hl,(boot_sp)
+        ld a,h
+        cp $80
+        jr c,.dsp               ; loader stack below the program: use it
+        cp $FA
+        jr c,.osp               ; otherwise stay on ours
+.dsp:   ld sp,hl
+.osp:   ld ix,(boot_ix)
+        ld iy,(boot_iy)
         ld a,(DOSMAP)
         out ($37),a
         ld hl,FB
         ld ($FB80),hl
         ld hl,(ld_name)
         ld a,1
+        ei
         call $5F00
+        di
+        ld a,6
+        call boot_step
         ld a,($FB03)
         cp 1
         jr nz,.err
@@ -55,7 +74,11 @@ load_pack:
         ld hl,FB
         ld ($FB80),hl
         ld a,1
+        ei
         call $5F03
+        di
+        ld a,7
+        call boot_step
 .lp:    ld bc,(ld_left)
         ld a,b
         cp 2
@@ -76,12 +99,17 @@ load_pack:
         jr z,.ok
         ld hl,FB
         ld ($FB80),hl
+        ei
         call $5F09
+        di
         jr .lp
 .ok:    or a
         jr .out
 .err:   scf
-.out:   push af
+.out:   ld sp,(ld_sp)           ; (flags survive)
+        pop iy
+        pop ix
+        push af
         ld a,SRAM_GAME
         out ($37),a
         xor a
@@ -91,6 +119,17 @@ load_pack:
         ld (fieldcnt),a
         pop af
         ei
+        ret
+
+; boot_step: progress band A, only while starting up
+boot_step:
+        push af
+        ld a,(booting)
+        or a
+        jr z,.no
+        pop af
+        jp boot_band
+.no:    pop af
         ret
 
 ; make sure a pack is in memory: HL = directory entry, A = magic byte

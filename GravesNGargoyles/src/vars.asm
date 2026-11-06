@@ -175,9 +175,14 @@ pw_text:    ds 5
 pw_cur:     ds 1
 demo_stage: ds 1
 rl_last:    ds 1
+ld_sp:      ds 2
+booting:    ds 1
+boot_sp:    ds 2
+boot_ix:    ds 2
+boot_iy:    ds 2
 VARS_END:
 FB:         ds FBW*FBROWS
 FB_END:
         dend
-        assert FB_END <= $F9A0       ; leaves room for the stack below $F9F9
+        assert FB_END <= STACKTOP-80  ; leaves room for the stack
         assert LOAD_END <= $FA00

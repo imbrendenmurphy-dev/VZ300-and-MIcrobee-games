@@ -11,7 +11,7 @@ In the kingdom of Dreadmoor, the sorcerer **Morgrave** has stolen the seven **Su
 dead walk the land. Only one knight is awake: **Sir Tinplate**, the least impressive knight
 in the realm, in borrowed tin armour.
 
-### This build (v0.3.2) contains
+### This build (v0.3.3) contains
 
 - **Seven stages**, each its own SD pack (tiles, eight creature sprites, boss, music, text):
 
@@ -115,7 +115,16 @@ The rest of this list describes the engine as first built with stage 1:
 
 Both joysticks work interchangeably (directions read via ports $2C/$29).
 
-### Real-hardware fixes (v0.3.1-v0.3.2)
+### Real-hardware fixes (v0.3.1-v0.3.3)
+
+- **SD calls (v0.3.3).** v0.3.2 no longer reset, but it hung inside the first SD read. The
+  DOS is now called the way RASTEST (proven on the real machine) calls it:
+  - with interrupts enabled (the ISR only waits out field sync while the DOS runs);
+  - with the IX, IY and stack pointer the loader started the game with.
+
+  Extra start-up bands mark each DOS call: band 7 means the file opened, band 8 the first
+  sector arrived, and band 9 the whole file. To make room, the password screen moved into
+  the front-end pack and the ending text into the stage 7 pack.
 
 - **Low RAM (v0.3.2).** On a real VZ300, v0.3.1 reached the first SD read (6 progress bands)
   and then reset. The game had put its IM2 table at $7800, its ISR jump at $7979 and its
@@ -135,7 +144,7 @@ Both joysticks work interchangeably (directions read via ports $2C/$29).
   this, a short ISR is re-entered again and again. The emulator now models this
   level-triggered interrupt (`-E` restores the old one-shot model).
 - **Start-up progress bands.** The screen starts blue and fills with yellow bands from the
-  top. The seventh band means the first SD file loaded; the title then replaces them. If
+  top. The ninth band means the first SD file loaded; the title then replaces them. If
   start-up ever stops, the number of bands shows where:
 
   | Bands | What happened |
@@ -145,8 +154,10 @@ Both joysticks work interchangeably (directions read via ports $2C/$29).
   | 3 | SRAM written and checked (a red third band means the SRAM check failed) |
   | 4 | tables, interrupts and mode 1 set |
   | 5 | the first interrupt arrived |
-  | 6 | about to read the first SD file |
-  | 7 | SD file read |
+  | 6 | about to open the first SD file |
+  | 7 | file opened |
+  | 8 | first sector read |
+  | 9 | whole file read (the title follows) |
 
 ## Technical design
 

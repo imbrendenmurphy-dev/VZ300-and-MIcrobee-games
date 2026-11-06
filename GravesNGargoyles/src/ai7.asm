@@ -238,3 +238,15 @@ w7_mirror:
         xor a
         ld l,1
         jp shoot
+
+; the ending text (shown while this pack is still loaded)
+CARD_END:
+        db 2,0,"THE SEVENTH SUNSTONE BLAZES",0
+        db 10,2,"MORGRAVE CRUMBLES TO DUST AND",0
+        db 17,2,"AT LAST THE SUN RISES OVER",0
+        db 24,2,"DREADMOOR. THE DEAD LIE DOWN.",0
+        db 33,0,"ARISE, SIR TINPLATE,",0
+        db 40,0,"KNIGHT OF THE LONG NIGHT!",0
+        db 51,1,"THE END",0
+        db 58,2,"THANK YOU FOR PLAYING!",0
+        db $FF

@@ -12,6 +12,7 @@
         include "gen/music_front.asm"
         include "gen/gfx_front.asm"
         include "text_front.asm"
+        include "front_pw.asm"
 FRONT_END:
         endsegment
 
