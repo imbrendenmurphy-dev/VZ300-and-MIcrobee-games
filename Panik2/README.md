@@ -7,6 +7,18 @@ ViBED by BPM 2026. All code, graphics and music are original. Nothing from the o
 
 ![gameplay](screenshots/PANIK2_gameplay.gif)
 
+## About the original
+
+*PANIK* (file name `VZ-PANIC`) is a *Space Panic*-style digging game for the VZ.
+
+- **The file:** a one-line BASIC loader (`POKE 30862,0:POKE 30863,128:X=USR(0)`) plus about 3.6K of machine code at $8000.
+- **Screen:** Mode 1 in the green palette, with five floors of yellow-and-blue girders joined by ladders.
+- **Play:** you dig holes, aliens fall in, and you knock them through the floor before your oxygen (5000) runs out. You have three lives.
+- **Levels:** a 9-entry table raises the alien count (4 → 6 → 8), their speed and their toughness.
+- **Controls:** Q/A/M/`,` with SPACE or Z to dig, P/O for sound.
+
+The sequel keeps the controls, the green station look, the dig-trap-bash loop, the oxygen and the three alien grades. It turns the grades into named aliens with longer drops for the tough ones.
+
 ## Play it
 
 Copy `release/PANIK2.VZ` to the SD card and run it from the BennVenn SD menu. It's a single type F1 machine-code file that loads at $8000 (to $D57F) and starts straight away.
