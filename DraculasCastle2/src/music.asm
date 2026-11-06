@@ -110,13 +110,19 @@ snd_tick:
             or a
             jr nz,.sfx
             ld ix,chan3
+            ld a,$20                ; music voice: half swing
+            ld (ml_m3+1),a
+            ld (ml_m3n+1),a
             ld a,(music_on)
             or a
             ld a,(ix+CH_DUTY)
-            jr nz,.m3
+            jr nz,.ch3
             xor a
-.m3:        jr .ch3
-.sfx:       ld ix,chsfx
+            jr .ch3
+.sfx:       ld a,$21                ; sound effect: full swing, stands out over the music
+            ld (ml_m3+1),a
+            ld (ml_m3n+1),a
+            ld ix,chsfx
             ld a,(ix+CH_DUTY)
 .ch3:       ld (ml_d3+1),a
             ld (ml_d3n+1),a

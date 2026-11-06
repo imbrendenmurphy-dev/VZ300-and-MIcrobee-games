@@ -1,5 +1,5 @@
 # DRACULA'S CASTLE II — THE CASTLE AWAKENS
-### Vertical slice v0.2.3 · ViBED by BPM · 2026
+### Vertical slice v0.2.4 · ViBED by BPM · 2026
 Dick Smith VZ300 · BennVenn SD + 128K · Mode 1 (128×64, 4 colours) · all Z80
 
 ## Running it
@@ -83,7 +83,9 @@ The joystick is detected at boot and works on either port (fire = SPACE).
   level.
 - **Music**: 10 tunes on a 3-voice pulse engine (grounds, hall, battle, boss, victory,
   level-up, death, title, the 1984 beeps, ending), plus 21 sound effects on a fourth channel
-  that takes over voice 3.
+  that takes over voice 3. Music drives only one side of the speaker (half volume); sound
+  effects drive both sides so they cut through. Between samples the speaker rests at the
+  same level the player idles at, so there's no frame-rate tick when music is switched off.
 
 ## Architecture
 ```

@@ -27,7 +27,7 @@ def geom():
     s += 'front_rows: db %s\n' % ','.join(map(str, fr))
     write('geom.inc', s)
 
-SAMPLE_T = 204
+SAMPLE_T = 211
 def notes():
     fs = 3546900 / SAMPLE_T
     lines = ['; generated note step table: n=1 -> C1, fs=%.1f Hz' % fs, 'note_steps:']

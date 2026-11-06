@@ -76,6 +76,7 @@ ml_d2:      cp 0                    ; 7
             exx                     ; 4
             sbc a,a                 ; 4
             or e                    ; 4
+            and $20                 ; 7   music voices swing bit 5 only (half volume)
             ld e,a                  ; 4
 ml_j3:      jp ml_tone              ; 10
 ml_tone:
@@ -84,15 +85,15 @@ ml_s3:      ld bc,0                 ; 10
             ld a,ixh                ; 8
 ml_d3:      cp 0                    ; 7
             sbc a,a                 ; 4
+ml_m3:      and $20                 ; 7   $21 for SFX (full swing), $20 for music
             or e                    ; 4
-            and $21                 ; 7
-ml_x1:      xor $09                 ; 7   latch base ^ 1
+ml_x1:      xor $09                 ; 7   latch base (speaker rests with bit0=1, bit5=0)
             ld (LATCH),a            ; 13
             ld a,(FSREAD)           ; 13
             rla                     ; 4
 ml_cond:    jp c,mloop              ; 10
             jp ml_out
-            ; total tone path: 214 T per sample
+            ; total tone path: 211 T per sample (tools/build.py SAMPLE_T)
 
 ml_noise:   ; noise: Galois LFSR (x^16+x^5+x^3+x^2+1) in IX, duty compares low byte
             add ix,ix               ; 15
@@ -102,8 +103,8 @@ ml_noise:   ; noise: Galois LFSR (x^16+x^5+x^3+x^2+1) in IX, duty compares low b
             ld ixl,a                ; 8
 ml_d3n:     cp 0                    ; 7
             sbc a,a                 ; 4
+ml_m3n:     and $20                 ; 7
             or e                    ; 4
-            and $21                 ; 7
 ml_x2:      xor $09                 ; 7
             ld (LATCH),a            ; 13
             ld a,(FSREAD)           ; 13
@@ -115,9 +116,9 @@ ml_cond2:   jp c,mloop              ; 10
 ; set_latch_base: A = base latch value (bit3 mode, bit4 css)
 ; ---------------------------------------------------------------------------
 set_latch:
-            ld (latch_base),a
+            or $01                  ; speaker rest state: bit0=1, bit5=0 - the same
+            ld (latch_base),a       ; level the sample loop idles at, so no frame-rate tick
             ld (LATCH),a
-            xor $01
             ld (ml_x1+1),a
             ld (ml_x2+1),a
             ret
