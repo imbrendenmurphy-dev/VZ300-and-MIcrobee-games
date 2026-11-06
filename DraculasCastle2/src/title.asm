@@ -353,12 +353,12 @@ attract:
             ret nz
             ld a,b
             inc a
-            cp 5
+            cp NUM_MONSTERS+1
             jr nz,.gl
             ret
 .abort:     ret
 
-tour_list:  db 0,8,13,0, 0,2,8,0, 0,8,3,0, 1,8,13,0, 1,8,8,0, 1,2,5,2, $FF
+tour_list:  db 0,8,13,0, 0,2,8,0, 0,8,3,0, 1,8,13,0, 1,8,8,0, 1,2,5,2, 2,8,14,0, 2,11,7,0, $FF
 
 ; show one exploration view with area name; NZ if a key was pressed
 tour_view:
@@ -421,12 +421,18 @@ str_demo:   db "PRESS ANY KEY",0
 ; monster gallery: A = monster id -> NZ if key pressed
 gallery_monster:
             push af
-            ; pick backdrop area: ghosts in the hall, others outdoors
-            cp 3
-            ld a,0
-            jr c,.g
-            ld a,1
-.g:         ld (AREA_RAM+26),a
+            ; the monster's home backdrop (def byte 13)
+            dec a
+            add a,a
+            add a,a
+            add a,a
+            add a,a
+            ld l,a
+            ld h,0
+            ld de,monsters+13
+            add hl,de
+            ld a,(hl)
+            ld (AREA_RAM+26),a
             pop af
             call battle_load
             ld a,(bt_css)
@@ -589,15 +595,13 @@ chapter_end:
             call wait_key
             jp title_screen
 
-end_text:   db "  THE GRAND STAIRCASE RISES",1
-            db "  INTO DARKNESS. HIGH ABOVE,",1
-            db "  SOMETHING LAUGHS SOFTLY...",1,1
-            db 2,3,"   END OF CHAPTER ONE",1
+end_text:   db "  THE STAIR WINDS DOWN INTO",1
+            db "  DARKNESS. FAR BELOW, CHAINS",1
+            db "  RATTLE... AND SOMETHING SINGS.",1,1
+            db 2,3,"   END OF CHAPTER TWO",1
             db 2,1,"  TO BE CONTINUED...",0
 str_time:   db "TIME     ",0
 str_min:    db " MIN",0
 str_kills:  db "GHOULIES ",0
 str_secrets: db "SECRETS  ",0
-str_of2:    db " OF 2",0
 str_treas:  db "TREASURE ",0
-str_of5:    db "/5",0

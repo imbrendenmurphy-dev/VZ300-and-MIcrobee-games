@@ -228,12 +228,44 @@ def gargoyle(frame):
     c.outline(B)
     return c, G
 
+# ----------------------------------------------------------------- GRELL (library boss)
+def grell(frame):
+    c = Canvas()
+    cx, cy = 32, 14 + (frame == 1)
+    # tentacles hanging below, swaying per frame
+    for k in range(7):
+        x0 = cx - 12 + k * 4
+        sway = (k - 3) * 1.2 + (2 if frame == 1 else -2 if frame == 2 else 0) * (1 if k & 1 else -1)
+        pts = [(x0, cy + 8)]
+        for j in range(1, 6):
+            pts.append((x0 + sway * j / 5 + math.sin(j + k + frame) * 1.5, cy + 8 + j * 5))
+        for a, b in zip(pts, pts[1:]): c.line(a[0], a[1], b[0], b[1], (G, Y, 25) if k & 1 else G, 1.6)
+        c.px(int(pts[-1][0]), int(pts[-1][1]) + 1, R)
+    # brain-like body: lumpy ellipse
+    c.ellipse(cx, cy, 17, 12, G)
+    for bx, by, r in ((-9, -5, 5), (0, -8, 6), (9, -5, 5), (-5, 0, 5), (5, 0, 5)):
+        c.ellipse(cx + bx, cy + by, r, r - 1, (G, Y, 25))
+    for bx in (-11, -4, 3, 10):
+        c.line(cx + bx, cy - 8, cx + bx + 2, cy + 2, (G, B, 50) if False else G, 1)
+    # one great eye
+    eo = (frame - 1) * 2
+    c.ellipse(cx, cy - 1, 6, 5, Y)
+    c.ellipse(cx + eo, cy - 1, 3, 3.5, R)
+    c.px(cx + eo, cy - 2, Y)
+    # hooked beak
+    c.poly([(cx - 4, cy + 6), (cx + 4, cy + 6), (cx + 1, cy + 13 + (frame == 2) * 2), (cx - 1, cy + 11)], Y)
+    c.line(cx - 3, cy + 8, cx + 2, cy + 8, R)
+    c.outline(Y)
+    return c, B
+
+HOME_BBG = {'GHOST': 1, 'GARGOYLE': 1, 'GRELL': 2}     # gallery backdrop per monster
 MONSTERS = [
     # name, fn, hp, atk, def, xp, gold, flags, css
     ('BAT', bat, 9, 5, 0, 4, 3, 2, 0),
     ('SKELETON', skeleton, 20, 7, 2, 9, 7, 1, 0),
     ('GHOST', ghost, 18, 7, 1, 11, 8, 4, 1),
     ('GARGOYLE', gargoyle, 60, 8, 4, 45, 60, 8, 0),
+    ('GRELL', grell, 80, 11, 4, 70, 60, 10, 0),
 ]
 
 def frame_bytes(c, key):
@@ -314,6 +346,40 @@ def backdrop_hall():
             chk = (int(math.floor(u)) + (y - 34) // 3) & 1
             col = (B, R, 25) if chk else B
             if abs(x - 64) < 12 + (y - 34) * 2: col = R if abs(x - 64) < 10 + (y - 34) * 2 else Y
+            c.p[y][x] = c.pat(col, x, y)
+    c.line(0, 34, 127, 34, Y)
+    return c
+
+def backdrop_library():
+    c = Canvas(128, 46, B)
+    # wall of bookshelves
+    for y in range(0, 34):
+        for x in range(128):
+            row = y // 8; fy = y % 8
+            if fy == 0: c.p[y][x] = R; continue
+            col = (x + row * 5) // 3
+            n = (col * 2654435761 + row * 97) & 0xFFFF
+            if (x + row * 5) % 3 == 0 or fy < 1 + (n % 3): c.p[y][x] = B; continue
+            c.p[y][x] = (G, Y, R)[n % 3] if (n >> 4) % 7 else B
+    for px_ in range(0, 128, 32):
+        c.rect(px_, 0, px_ + 1, 33, R)
+    # tall window of night sky in the middle
+    c.rect(52, 2, 75, 33, B)
+    c.ellipse(64, 6, 12, 6, B)
+    c.rect(52, 6, 53, 33, Y); c.rect(74, 6, 75, 33, Y); c.rect(63, 4, 64, 33, Y)
+    c.line(54, 18, 73, 18, Y)
+    for sx, sy in ((57, 9), (69, 12), (60, 24), (71, 27), (56, 30)): c.px(sx, sy, Y)
+    # reading tables with candles
+    for tx in (22, 106):
+        c.rect(tx - 14, 30, tx + 14, 32, R); c.rect(tx - 12, 33, tx - 11, 38, R); c.rect(tx + 11, 33, tx + 12, 38, R)
+        c.rect(tx - 2, 26, tx - 1, 29, Y); c.px(tx - 2, 25, R); c.px(tx - 1, 24, Y)
+        c.rect(tx + 4, 28, tx + 9, 29, (G, Y, 50))
+    # floor: wooden boards + green rug
+    for y in range(34, 46):
+        for x in range(128):
+            zz = y - 33
+            col = (R, B, 50) if (x + zz * 3) % 9 else B
+            if abs(x - 64) < 16 + (y - 34) * 2: col = G if abs(x - 64) < 14 + (y - 34) * 2 else Y
             c.p[y][x] = c.pat(col, x, y)
     c.line(0, 34, 127, 34, Y)
     return c

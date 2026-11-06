@@ -510,6 +510,8 @@ str_welcome: db "WELCOME BACK, HUNTER.",0
 ;   1 = skeleton rises from the bones,  2 = gargoyle awakens
 ; ---------------------------------------------------------------------------
 cutscene:
+            or a
+            ret z                   ; 0 = no cutscene
             ld (cs_id),a
             cp 1
             jr z,cs_skeleton

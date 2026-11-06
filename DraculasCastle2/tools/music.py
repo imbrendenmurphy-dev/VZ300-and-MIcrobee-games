@@ -115,6 +115,19 @@ SONGS['ENDING'] = dict(loop=True, ch=[
     "i2 u8 F#4:4 A4:4 | F#4:4 D4:4 | G4:4 A4:4 | F#4:6 r:2",
     "i1 u8 D3:4 A2:4 | D3:4 F#2:4 | G2:4 A2:4 | D3:6 r:2",
 ])
+SONGS['LIBRARY'] = dict(loop=True, ch=[
+    # a dusty minuet: harpsichord lead
+    "i4 u4 E5:1 A5:1 C6:1 B5:2 A5:1 | G#5:2 E5:1 B4:3 | D5:1 F5:1 A5:1 G5:2 F5:1 | E5:4 r:2 | "
+    "C5:1 E5:1 A5:1 G#5:2 A5:1 | B5:2 G#5:1 E5:3 | F5:1 E5:1 D5:1 C5:2 B4:1 | A4:4 r:2 | "
+    "i6 u4 A5:2 r:1 C6:2 r:1 | B5:1 A5:1 G#5:1 A5:3 | F5:2 r:1 A5:2 r:1 | G#5:1 F5:1 E5:1 E5:3 | "
+    "D5:1 E5:1 F5:1 E5:1 D5:1 C5:1 | B4:2 C5:1 D5:3 | C5:1 B4:1 A4:1 G#4:2 B4:1 | A4:6",
+    "i1 u4 [A2:1 E3:1 A3:1]x2 [E2:1 B2:1 E3:1]x2 [D2:1 A2:1 D3:1]x2 [A2:1 E3:1 A3:1]x2 "
+    "[A2:1 E3:1 A3:1]x1 [E2:1 B2:1 E3:1]x2 [D2:1 A2:1 D3:1]x1 [E2:1 B2:1 E3:1]x1 [A2:1 E3:1 A3:1]x2 "
+    "[F2:1 C3:1 F3:1]x2 [E2:1 B2:1 E3:1]x2 [D2:1 A2:1 D3:1]x2 [E2:1 B2:1 E3:1]x2 "
+    "[D2:1 A2:1 D3:1]x1 [G2:1 D3:1 G3:1]x1 [C2:1 G2:1 C3:1]x1 [E2:1 B2:1 E3:1]x1 [E2:1 G#2:1 B2:1]x1 [A2:1 E3:1 A3:1]x1",
+    "i2 u12 A3:1 E3:1 D3:1 A3:1 A3:1 E3:1 D3:1 A3:1 F3:1 E3:1 D3:1 E3:1 D3:1 E3:1 E3:1 A3:1",
+])
+
 SONG_ORDER = ['BATTLE', 'BOSS', 'VICTORY', 'LEVELUP', 'DEATH', 'TITLE', 'MAZE', 'ENDING']
 
 SFX = {

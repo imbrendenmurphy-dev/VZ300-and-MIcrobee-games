@@ -399,9 +399,12 @@ player_damage:
             ld a,(weapon)
             or a
             jr z,.w0
-            ; silver dagger: +3, x1.5 vs undead
-            ld a,c
-            add a,3
+            ; silver dagger: +3 / silver sword: +8, both x1.5 vs undead
+            cp IT_SWORD
+            ld a,3
+            jr nz,.wb
+            ld a,8
+.wb:        add a,c
             ld c,a
             ld ix,(bt_def)
             ld a,(ix+7)

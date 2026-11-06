@@ -1,11 +1,11 @@
 # DRACULA'S CASTLE II — THE CASTLE AWAKENS
-### Vertical slice v0.2.7 · ViBED by BPM · 2026
+### v0.3.0 — Chapters 1 & 2 · ViBED by BPM · 2026
 Dick Smith VZ300 · BennVenn SD + 128K · Mode 1 (128×64, 4 colours) · all Z80
 
 ## Running it
-Copy `DRACULA2.VZ` **and all twelve `DC2*.DAT` files** from `release/` to the **root of the
-SD card** (the same place 13 Ghosts and its `.DAT` files live — not inside a folder), then load `DRACULA2.VZ` like any other binary .VZ. It loads at $8000–$C30D
-and runs from $8000. The game streams its artwork from the `.DAT` files through the
+Copy `DRACULA2.VZ` **and all the `DC2*.DAT` files** (19 of them in v0.3) from `release/` to the **root of the
+SD card** (the same place 13 Ghosts and its `.DAT` files live — not inside a folder), then load `DRACULA2.VZ` like any other binary .VZ. It loads at $8000
+and runs from there. The game streams its artwork from the `.DAT` files through the
 BennVenn DOS, the same way 13 Ghosts does. If a file is missing it stops with
 `CAN'T LOAD GAME FILE:`, the file's name and a `DOS STATUS` line (the DOS's $FB03, $FB05
 bytes and the DOS mapping) — note those three numbers down if it happens.
@@ -21,10 +21,11 @@ the folder it was started from). If no 128K expansion is present, it prints
 | File | Contents | Loaded into |
 |---|---|---|
 | DC2TITLE | title picture | back buffer |
-| DC2A0P1 / DC2A1P1 | grounds / hall walls and backgrounds | SRAM bank 3 $4000 |
-| DC2A0P2 / DC2A1P2 | grounds / hall decorations and objects | $C800 |
-| DC2MON1–4 | bat, skeleton, ghost, gargoyle (3 frames each) | $C800 (during battles) |
-| DC2BBG0 / DC2BBG1 | battle backdrops | SRAM bank 3 $5C00 |
+| DC2AnP1 (n = 0 grounds, 1 hall, 2 library) | walls and backgrounds | SRAM bank 3 $4000 |
+| DC2AnP2 | decorations and objects | $C800 |
+| DC2AnS | the area itself: map, events, exits, its texts and its song | $E400 |
+| DC2MON1–5 | bat, skeleton, ghost, gargoyle, grell (3 frames each) | $C800 (during battles) |
+| DC2BBG0–2 | battle backdrops | SRAM bank 3 $5C00 |
 | DC2EGG | the four 1984 mode 0 screens | $C800 |
 
 ## Controls
@@ -41,6 +42,19 @@ the folder it was started from). If no 128K expansion is present, it prints
 | 1 / 2 | | potion / holy water in the ITEM menu |
 
 The joystick is detected at boot and works on either port (fire = SPACE).
+
+## Chapter 2: The Library (new in v0.3)
+Through the north door of the Great Hall (past the gargoyle) lies the castle library: walls of
+bookshelves, candelabra, a green-rugged reading room and a minuet of its own. Vesper, the
+ghost of the old librarian, tells you where the CRYPT KEY is hidden: in a secret study behind
+a bookshelf in the north-west corridor, guarded by the GRELL (the floating brain from the
+1984 original). A hunched bookseller sells potions, holy water and elixirs (press 1, 2 or 3
+to buy, E to leave). Five lecterns hold lore and jokes, and there's a stone angel to save at.
+The crypt key opens the stair down — the dungeons come in chapter 3.
+
+Also new: elixirs (+10 max HP), the cloak (+3 defence), the silver sword (+8 attack),
+locked doors that say which key they need, and area data streamed from SD so the castle
+can keep growing.
 
 ## What's in the slice
 - **Title screen**: castle silhouette against the moon, dripping logo, lightning flashes with

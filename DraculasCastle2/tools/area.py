@@ -75,7 +75,17 @@ def d_plaque(u, v, z, f):
         return ('plaque', 0)
     return None
 
-DECORS = {'door': d_door, 'gate': d_gate, 'torch': d_torch, 'portrait': d_portrait,
+def d_candles(u, v, z, f):
+    # three-branch candelabra on a wall bracket
+    if 0.47 < u < 0.53 and 0.62 < v < 0.84: return ('iron', 0)
+    if 0.34 < u < 0.66 and 0.82 < v < 0.86: return ('iron', 0)
+    for cu in (0.36, 0.5, 0.64):
+        if abs(u - cu) < 0.025 and 0.86 < v < 0.98: return ('wax', 0)
+        fu = (u - cu) / 0.03; fv = (v - 0.99) / 0.1
+        if 0 <= fv <= 1 and abs(fu) < (1 - fv): return ('flame', 0)
+    return None
+
+DECORS = {'candles': d_candles, 'door': d_door, 'gate': d_gate, 'torch': d_torch, 'portrait': d_portrait,
           'window': d_window, 'stairs': d_stairs, 'plaque': d_plaque}
 
 # extra ramps every material needs for decor
@@ -93,6 +103,7 @@ DECOR_RAMPS = {
     'hair':  [(B, B, 0), (B, B, 0)],
     'glass': [(G, B, .5), (R, B, .25), (Y, B, .5), (B, B, 0)],
     'plaque': [(Y, Y, 0), (Y, R, .5), (R, B, .5), (B, B, 0)],
+    'wax':   [(Y, Y, 0), (Y, B, .25), (Y, B, .5), (B, B, 0)],
 }
 # glass uses idx = pane colour (no fog shift beyond ramp end) -> handled by shade clamp
 
@@ -104,6 +115,7 @@ class AreaDef:
 AREAS = [
     AreaDef('grounds', materials.Grounds(), ['gate', 'door', 'torch'], ['bones', 'grave', 'keeper', 'chest', 'chest_open', 'angel'], [1, 0, 0, 0]),
     AreaDef('hall', materials.Hall(), ['door', 'torch', 'portrait', 'window', 'plaque'], ['armour', 'chest', 'chest_open', 'angel', 'bones', 'gargoyle'], [0, 0, 0, 0]),
+    AreaDef('library', materials.Library(), ['door', 'candles', 'stairs'], ['lectern', 'chest', 'chest_open', 'angel', 'vesper', 'orb', 'bookseller'], [0, 0, 0, 0]),
 ]
 
 # ---------------- encoding ----------------

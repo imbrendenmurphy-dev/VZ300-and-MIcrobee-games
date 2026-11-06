@@ -91,9 +91,9 @@ SAVE_LEN    equ gstate_end-vars_game
 
 BACK_ADDR   equ $F000       ; 2K back buffer $F000-$F7FF (DOS owns $FA00-$FFFF)
 FLIP        equ $7B00       ; flip table (system area $7800-$7AE7 left for ROM/DOS)
-STACK_TOP   equ $EE00       ; stack $E900-$EDFF (1.25K)
-AREA_RAM    equ $E400       ; current area pack (map, events, exits, texts, song) $E400-$E8FF
-AREA_MAX    equ $0500
+STACK_TOP   equ $EE00       ; stack $EA00-$EDFF (1K)
+AREA_RAM    equ $E400       ; current area pack (map, events, exits, texts, song) $E400-$E9FF
+AREA_MAX    equ $0600
 AREA_TEXTS  equ AREA_RAM+20 ; dw local text table
 AREA_SONG   equ AREA_RAM+22 ; dw song header
 SECBUF      equ $F800       ; 512-byte SD sector buffer $F800-$F9FF (as 13 Ghosts uses)

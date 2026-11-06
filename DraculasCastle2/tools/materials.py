@@ -136,3 +136,59 @@ class Hall(Mat):
             return self.shade('carpet', 0, z - 0.4)
         chk = (int(math.floor(wx * 3)) + int(math.floor(z * 3))) & 1
         return self.shade('tileA' if chk else 'tileB', 0, z - 0.4)
+
+class Library(Mat):
+    ramps = {
+        'wood':  ramp((R, Y, .25), (R, R, 0), (R, B, .25), (R, B, .5), (R, B, .75), (B, B, 0)),
+        'dark':  ramp((B, B, 0),),
+        'bk0':   ramp((R, R, 0), (R, B, .25), (R, B, .5), (B, B, 0)),
+        'bk1':   ramp((G, G, 0), (G, B, .25), (G, B, .5), (B, B, 0)),
+        'bk2':   ramp((Y, Y, 0), (Y, B, .25), (Y, B, .5), (B, B, 0)),
+        'bk3':   ramp((Y, R, .5), (R, B, .25), (R, B, .5), (B, B, 0)),
+        'stone': ramp((Y, B, .25), (Y, B, .5), (Y, B, .75), (B, B, 0), (B, B, 0)),
+        'hi':    ramp((Y, Y, 0), (Y, B, .25), (Y, B, .5), (Y, B, .75), (B, B, 0)),
+        'gold':  ramp((Y, Y, 0), (Y, R, .5), (R, R, 0), (R, B, .5), (B, B, 0)),
+        'floor': ramp((R, B, .25), (R, B, .5), (R, B, .75), (B, B, 0)),
+        'rug':   ramp((G, B, .25), (G, B, .5), (G, B, .75), (B, B, 0)),
+        'beam':  ramp((R, B, .5), (R, B, .75), (B, B, 0)),
+    }
+    def wall(self, kind, u, v, z, face):
+        if kind == 'B':  # dark panelled stone
+            if v < 0.5:
+                if v > 0.44: return ('gold', 1)
+                pu = (u * 3) % 1
+                return ('wood', 2) if 0.1 < pu < 0.9 else ('wood', 4)
+            bh = 0.3; row = int(math.floor((v - 0.5) / bh)); off = 0.5 if row & 1 else 0.0
+            bu = u * 2 + off; col = int(math.floor(bu)); fu = bu - col; fv = (v - 0.5) / bh - row
+            if fv < 0.12 or fu < 0.05: return ('dark', 0)
+            if fv > 0.8: return ('hi', 2)
+            return ('stone', 1)
+        # bookshelf: wooden frame, 4 shelves of coloured spines
+        if u < 0.06 or u > 0.94: return ('wood', 1)
+        if v > 1.4: return ('wood', 1)
+        sh = v / 0.35; row = int(sh); fv = sh - row
+        if fv < 0.14: return ('wood', 1) if fv > 0.04 else ('wood', 0)
+        if fv > 0.93: return ('dark', 0)
+        bw = 0.075; uu = u + row * 0.37; col = int(uu / bw)
+        n = h2(col, row, 11)
+        if n < 0.12: return ('dark', 0)       # a gap on the shelf
+        top = 0.6 + h2(col, row, 5) * 0.32   # uneven book heights
+        if fv > top: return ('dark', 0)
+        if uu % bw < 0.018: return ('dark', 0)
+        bk = 'bk%d' % (col % 3 if n < 0.85 else 3)
+        i = 2 if 0.3 < fv < 0.38 else 0      # a dark band across each spine
+        return (bk, i)
+    def bg(self, px, py, variant):
+        if py < HOR:
+            z = floor_z(py, False)
+            if z > 4.0: return (B, B, 0)
+            if (z * 2) % 1 < 0.22: return self.shade('beam', 0, z - 0.5)
+            return (B, B, 0)
+        z = floor_z(py, True)
+        if z > 4.0: return (B, B, 0)
+        wx = (px - CX) / (64.0 / max(z, 0.5))
+        if abs(wx) < 0.3:
+            if abs(wx) > 0.25: return self.shade('gold', 1, z - 0.4)
+            return self.shade('rug', 0 if (int(z * 6) & 1) else 1, z - 0.4)
+        if (z * 5) % 1 < 0.15: return self.shade('floor', 2, z - 0.4)
+        return self.shade('floor', 0, z - 0.4)

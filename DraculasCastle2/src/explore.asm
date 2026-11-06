@@ -11,12 +11,16 @@ EV_STEP     equ 6
 EV_BOSS     equ 7
 EV_ITEM     equ 8
 EV_PLAQUE   equ 9
+EV_SHOP     equ 10
 
 IT_POTION   equ 1
 IT_HOLY     equ 2
 IT_IRONKEY  equ 3
 IT_DAGGER   equ 4
 IT_FIRE     equ 5
+IT_ELIXIR   equ 7
+IT_SWORD    equ 8
+IT_CLOAK    equ 9
 
 
 ; ---------------------------------------------------------------------------
@@ -470,8 +474,8 @@ try_door:
             ld a,(hl)
             or a
             jr nz,.unlock
-            ld a,TX_LOCKED
-            jp show_text
+            ld a,e
+            jp say_locked
 .unlock:    ld a,TX_UNLOCK
             call show_text
 .open:      ; door becomes floor
@@ -525,8 +529,8 @@ try_exit:
             ld a,(hl)
             or a
             jr nz,.unl
-            ld a,TX_LOCKED
-            jp show_text
+            ld a,e
+            jp say_locked
 .unl:       ld a,(ix+7)
             or a
             jr nz,.go
@@ -622,6 +626,8 @@ interact:
             jp z,ev_script
             cp EV_BOSS
             jp z,ev_boss
+            cp EV_SHOP
+            jp z,ev_shop
             ret
 
 ev_sign:    ld a,(ix+2)
@@ -818,9 +824,30 @@ give_item:
             ld hl,spells
             set 0,(hl)
 .nf:        cp IT_DAGGER
+            jr z,.wpn
+            cp IT_SWORD
             jr nz,.nd
-            ld (weapon),a
-.nd:        push af
+.wpn:       ld hl,weapon            ; only ever upgrade
+            cp (hl)
+            jr c,.nd
+            ld (hl),a
+.nd:        cp IT_CLOAK
+            jr nz,.nc
+            ld hl,def
+            inc (hl)
+            inc (hl)
+            inc (hl)
+.nc:        cp IT_ELIXIR
+            jr nz,.ne
+            ld hl,maxhp             ; +10 max HP, fully healed
+            ld a,(hl)
+            add a,10
+            jr c,.ne0
+            ld (hl),a
+.ne0:       ld a,(hl)
+            ld (hp),a
+            ld a,IT_ELIXIR
+.ne:        push af
             ; message "FOUND <ITEM>" (+ count)
             ld hl,msgbuf
             ld de,msgbuf
@@ -1088,6 +1115,9 @@ draw_stats:
             or a
             ld hl,str_stake
             jr z,.ws
+            cp IT_SWORD
+            ld hl,str_sword
+            jr z,.ws
             ld hl,str_dagger
 .ws:        call strcpy_de
             ld hl,statbuf
@@ -1108,6 +1138,7 @@ draw_stats:
 str_lv:     db "LEVEL ",0
 str_stake:  db "STAKE",0
 str_dagger: db "SILVER",0
+str_sword:  db "SWORD",0
 
 ; hp bar under the HP line (y=22, 2 rows), 40px wide
 hp_bar:
@@ -1335,3 +1366,170 @@ text_ptr:
             ld h,(hl)
             ld l,a
             ret
+
+; ---------------------------------------------------------------------------
+; merchant: args = greeting text, up to 3 items for sale (prices in item_price)
+;   keys 1/2/3 buy, anything else leaves
+; ---------------------------------------------------------------------------
+ev_shop:    ld a,(ix+2)
+            push ix
+            call show_text_wait
+            pop ix
+.menu:      push ix
+            ld de,msgbuf
+            ld c,'1'
+.it:        push bc
+            push ix
+            pop hl
+            ld a,c
+            sub '1'-3
+            ld c,a
+            ld b,0
+            add hl,bc               ; -> item id (args 2..4 = ix+3..5)
+            pop bc
+            ld a,(hl)
+            or a
+            jr z,.skip
+            push bc
+            push af
+            ld a,c
+            ld (de),a
+            inc de
+            ld a,':'
+            ld (de),a
+            inc de
+            pop af
+            push af
+            call item_name_hl
+            call strcpy_de
+            ld a,' '
+            ld (de),a
+            inc de
+            pop af
+            call item_price
+            ld l,a
+            ld h,0
+            call num3_left
+            pop bc
+            ld a,c
+            cp '2'
+            ld a,1                  ; line break after item 2
+            jr z,.sep
+            ld a,' '
+.sep:       ld (de),a
+            inc de
+.skip:      inc c
+            ld a,c
+            cp '4'
+            jr nz,.it
+            ld hl,str_shopx
+            call strcpy_de
+            ld hl,msgbuf
+            call show_msg
+            pop ix
+            ; wait for a key: 1/2/3 buy
+.rel:       call wait_frame
+            call read_input
+            ld a,(any_key)
+            or a
+            jr nz,.rel
+.w:         call wait_frame
+            call read_input
+            ld a,($68F7)            ; 4 1 3 - 2 5
+            cpl
+            ld c,0
+            bit 4,a
+            jr nz,.b1
+            bit 1,a
+            jr nz,.b2
+            bit 3,a
+            jr nz,.b3
+            ld a,(keys_new)
+            or a
+            jr z,.w
+            jp clear_msg_show       ; leave
+.b3:        inc c
+.b2:        inc c
+.b1:        push ix
+            pop hl
+            ld b,0
+            add hl,bc
+            inc hl
+            inc hl
+            inc hl
+            ld a,(hl)
+            or a
+            jr z,.w
+            ld b,a                  ; item
+            call item_price
+            ld e,a
+            ld d,0
+            ld hl,(gold)
+            or a
+            sbc hl,de
+            jr c,.poor
+            ld (gold),hl
+            ld a,b
+            ld b,1
+            push ix
+            call give_item
+            call wait_key
+            pop ix
+            jp .menu
+.poor:      push ix
+            ld hl,sfx_tick
+            call play_sfx
+            ld hl,str_poor
+            call show_msg
+            call wait_key
+            pop ix
+            jp .menu
+
+clear_msg_show:
+            call clear_msg_back
+            jp present_msg
+
+; A = item -> A = price (gold)
+item_price: push hl
+            push de
+            ld l,a
+            ld h,0
+            ld de,price_table
+            add hl,de
+            ld a,(hl)
+            pop de
+            pop hl
+            ret
+
+; A = item -> HL = name
+item_name_hl:
+            add a,a
+            ld l,a
+            ld h,0
+            ld bc,item_names
+            add hl,bc
+            ld a,(hl)
+            inc hl
+            ld h,(hl)
+            ld l,a
+            ret
+
+str_shopx:  db " E:LEAVE",0
+str_poor:   db "NOT ENOUGH GOLD!",0
+
+; "LOCKED - YOU NEED THE <item>"  (A = item)
+say_locked: push af
+            ld de,msgbuf
+            ld hl,str_locked
+            call strcpy_de
+            pop af
+            call item_name_hl
+            call strcpy_de
+            ld a,'.'
+            ld (de),a
+            inc de
+            xor a
+            ld (de),a
+            ld hl,msgbuf
+            jp show_msg
+str_locked: db "IT IS LOCKED. YOU NEED THE",1,0

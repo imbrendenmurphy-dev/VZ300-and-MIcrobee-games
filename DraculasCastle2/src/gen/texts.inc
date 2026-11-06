@@ -1,28 +1,26 @@
 ; generated texts
-TX_LOCKED equ 0
-TX_UNLOCK equ 1
-TX_CREAK equ 2
-TX_EMPTY equ 3
-TX_SHRINE equ 4
-TX_SECRET equ 5
-TX_WALL equ 6
-TX_HEDGE equ 7
-TX_HEDGEX equ 8
-TX_GATE equ 9
-TX_PLAQUE equ 10
-TX_NOMP equ 11
-TX_LEARNFIRE equ 12
-TX_DAGGER equ 13
-TX_NOTHING equ 14
-TX_JOKE equ 15
-TX_DEFEAT equ 16
-TX_LEVELUP equ 17
-TX_SAVED equ 18
-TX_NOSAVE equ 19
+TX_UNLOCK equ 0
+TX_CREAK equ 1
+TX_EMPTY equ 2
+TX_SHRINE equ 3
+TX_SECRET equ 4
+TX_WALL equ 5
+TX_HEDGE equ 6
+TX_HEDGEX equ 7
+TX_GATE equ 8
+TX_PLAQUE equ 9
+TX_NOMP equ 10
+TX_LEARNFIRE equ 11
+TX_DAGGER equ 12
+TX_NOTHING equ 13
+TX_JOKE equ 14
+TX_DEFEAT equ 15
+TX_LEVELUP equ 16
+TX_SAVED equ 17
+TX_NOSAVE equ 18
 text_table:
-            dw tx_locked,tx_unlock,tx_creak,tx_empty,tx_shrine,tx_secret,tx_wall,tx_hedge,tx_hedgex,tx_gate,tx_plaque,tx_nomp,tx_learnfire,tx_dagger,tx_nothing,tx_joke,tx_defeat,tx_levelup,tx_saved,tx_nosave
-tx_locked: db 84,72,69,32,68,79,79,82,32,73,83,32,76,79,67,75,69,68,32,84,73,71,72,84,46,1,89,79,85,32,78,69,69,68,32,84,72,69,32,73,82,79,78,32,75,69,89,46,0
-tx_unlock: db 84,72,69,32,73,82,79,78,32,75,69,89,32,84,85,82,78,83,46,46,46,32,67,76,85,78,75,33,1,84,72,69,32,71,82,69,65,84,32,68,79,79,82,32,83,87,73,78,71,83,32,79,80,69,78,46,0
+            dw tx_unlock,tx_creak,tx_empty,tx_shrine,tx_secret,tx_wall,tx_hedge,tx_hedgex,tx_gate,tx_plaque,tx_nomp,tx_learnfire,tx_dagger,tx_nothing,tx_joke,tx_defeat,tx_levelup,tx_saved,tx_nosave
+tx_unlock: db 84,72,69,32,75,69,89,32,84,85,82,78,83,46,46,46,32,67,76,85,78,75,33,1,84,72,69,32,68,79,79,82,32,83,87,73,78,71,83,32,79,80,69,78,46,0
 tx_creak: db 84,72,69,32,68,79,79,82,32,67,82,69,65,75,83,32,79,80,69,78,46,46,46,0
 tx_empty: db 84,72,69,32,67,72,69,83,84,32,73,83,32,69,77,80,84,89,46,0
 tx_shrine: db 65,32,83,84,79,78,69,32,65,78,71,69,76,32,87,69,69,80,83,46,32,89,79,85,32,70,69,69,76,1,82,69,83,84,79,82,69,68,46,32,32,71,65,77,69,32,83,65,86,69,68,46,0
@@ -42,7 +40,7 @@ tx_levelup: db 76,69,86,69,76,32,85,80,33,32,32,89,79,85,32,70,69,69,76,32,83,84
 tx_saved: db 71,65,77,69,32,83,65,86,69,68,46,0
 tx_nosave: db 78,79,32,83,65,86,69,68,32,71,65,77,69,32,70,79,85,78,68,46,0
 item_names:
-            dw in_0,in_1,in_2,in_3,in_4,in_5,in_6,in_7,in_8,in_9
+            dw in_0,in_1,in_2,in_3,in_4,in_5,in_6,in_7,in_8,in_9,in_10
 in_0: db "",0
 in_1: db "POTION",0
 in_2: db "HOLY WATER",0
@@ -51,5 +49,7 @@ in_4: db "SILVER DAGGER",0
 in_5: db "FIRE SCROLL",0
 in_6: db "CRYPT KEY",0
 in_7: db "ELIXIR",0
-in_8: db "SWORD",0
+in_8: db "SILVER SWORD",0
 in_9: db "CLOAK",0
+in_10: db "TOWER KEY",0
+price_table: db 0,15,30,0,0,0,0,90,0,120,0

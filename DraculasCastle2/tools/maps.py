@@ -3,9 +3,9 @@
 from collections import deque
 
 # event types
-EV_SIGN, EV_CHEST, EV_NPC, EV_SCRIPT, EV_SHRINE, EV_STEP, EV_BOSS, EV_ITEM, EV_PLAQUE = 1, 2, 3, 4, 5, 6, 7, 8, 9
+EV_SIGN, EV_CHEST, EV_NPC, EV_SCRIPT, EV_SHRINE, EV_STEP, EV_BOSS, EV_ITEM, EV_PLAQUE, EV_SHOP = 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
 # items
-IT_POTION, IT_HOLY, IT_IRONKEY, IT_DAGGER, IT_FIRE, IT_CRYPTKEY, IT_ELIXIR, IT_SWORD, IT_CLOAK = 1, 2, 3, 4, 5, 6, 7, 8, 9
+IT_POTION, IT_HOLY, IT_IRONKEY, IT_DAGGER, IT_FIRE, IT_CRYPTKEY, IT_ELIXIR, IT_SWORD, IT_CLOAK, IT_TOWERKEY = 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
 
 AREA_MAPS = {}
 
@@ -79,7 +79,7 @@ AREA_MAPS[1] = dict(
     legend={'#': (1, 0), '%': (1, 0), 'R': (2, 0), '.': (0, 0), 'T': (2, 2), 't': (1, 2), 'P': (2, 3), 'W': (1, 4), 'Q': ('secret', 0)},
     door_decor=1, door_kind=1,
     exits={'Y': dict(area=0, x=8, y=2, dir=2, decor=1, kind=2, lock=0),
-           'U': dict(area=98, x=0, y=0, dir=0, decor=1, kind=2, lock=0),
+           'U': dict(area=2, x=8, y=14, dir=0, decor=1, kind=2, lock=0),
            'M': dict(area=99, x=0, y=0, dir=0, decor=5, kind=2, lock=0)},
     events={
         'a': dict(obj=1, type=EV_SIGN, args=['ARMOUR1', 0, 0, 0]),                  # suits of armour
@@ -92,6 +92,55 @@ AREA_MAPS[1] = dict(
     start=(8, 13, 0),
     css=0, song='HALL', encounters=[3, 1, 3], rate=20, intro='INTRO1',
     wall_text='WALL', secret_text='SECRET', bbg=1,
+)
+
+# --------------------------------------------------------------------------
+# AREA 2 : THE LIBRARY
+#   decors: 1 door, 2 candles, 3 stairs
+#   objects: 1 lectern, 2 chest, 3 chest_open, 4 angel, 5 vesper, 6 eye-orb, 7 bookseller
+# --------------------------------------------------------------------------
+AREA_MAPS[2] = dict(
+    name='THE LIBRARY',
+    rows=[
+        "################",
+        "#%%%%%%%%%%%%Z%#",
+        "#%c.gS......%..#",
+        "#%%%%%.####.%a.#",
+        "#......#..#.%T.#",
+        "#.##.#.#..#....#",
+        "#.##.#.#n.#.##.#",
+        "#.##.#.##.#.#..#",
+        "#.......l.....h#",
+        "#%%.%T%...%T%.%#",
+        "#e..%p.....q%.%#",
+        "#%%.%.......%.%#",
+        "#%..%r.v...u%m%#",
+        "#%%.%.......%%%#",
+        "#%%.%%T%.%T%%%%#",
+        "########Y#######",
+    ],
+    legend={'#': (1, 0), '%': (2, 0), '.': (0, 0), 'T': (2, 2), 'S': ('secret', 0)},
+    door_decor=1, door_kind=2,
+    exits={'Y': dict(area=1, x=8, y=2, dir=2, decor=1, kind=2, lock=0),
+           'Z': dict(area=98, x=0, y=0, dir=0, decor=3, kind=2, lock=IT_CRYPTKEY)},
+    events={
+        'c': dict(obj=2, type=EV_CHEST, args=[IT_ELIXIR, 1, 0, 0]),
+        'g': dict(obj=6, type=EV_BOSS, args=[5, 0, IT_CRYPTKEY, 'GRELLTX']),
+        'a': dict(obj=4, type=EV_SHRINE, args=[0, 0, 0, 0]),
+        'n': dict(obj=2, type=EV_CHEST, args=[IT_HOLY, 2, 0, 0]),
+        'l': dict(obj=5, type=EV_NPC, args=['VESPER1', 0, 0, 'VESPER2']),
+        'h': dict(obj=2, type=EV_CHEST, args=[IT_POTION, 2, 0, 0]),
+        'p': dict(obj=1, type=EV_SIGN, args=['BOOK1', 0, 0, 0]),
+        'q': dict(obj=1, type=EV_SIGN, args=['BOOK2', 0, 0, 0]),
+        'r': dict(obj=1, type=EV_SIGN, args=['BOOK3', 0, 0, 0]),
+        'u': dict(obj=1, type=EV_SIGN, args=['BOOK4', 0, 0, 0]),
+        'v': dict(obj=1, type=EV_SIGN, args=['BOOKJOKE', 0, 0, 0]),
+        'e': dict(obj=2, type=EV_CHEST, args=[IT_POTION, 1, 0, 0]),
+        'm': dict(obj=7, type=EV_SHOP, args=['SHOP2', IT_POTION, IT_HOLY, IT_ELIXIR]),
+    },
+    start=(8, 14, 0),
+    css=0, song='LIBRARY', encounters=[3, 1, 3], rate=20, intro='INTRO2',
+    wall_text='SHELF', secret_text='SHELFX', bbg=2,
 )
 
 CHARS = {}
@@ -152,7 +201,7 @@ if __name__ == '__main__':
             print(''.join(('@' if (x, y) == A['start'][:2] else ('o' if (x, y) in seen else A['rows'][y][x])) for x in range(16)))
 
 AREA_RAM = 0xE400
-AREA_MAX = 0x500
+AREA_MAX = 0x600
 
 def all_flags():
     """event flag numbers are global: areas in order, events in order"""
@@ -205,4 +254,8 @@ def pack(ai):
     return out
 
 def asm():
-    return 'NUM_FLAGS equ %d\nNUM_AREAS equ %d\n' % (len(all_flags()), len(AREA_MAPS))
+    secrets = sum(sum(r.count(ch) for r in A['rows']) for A in AREA_MAPS.values()
+                  for ch, v in A['legend'].items() if v[0] == 'secret')
+    chests = sum(1 for A in AREA_MAPS.values() for e in A['events'].values() if e['type'] == EV_CHEST)
+    return ('NUM_FLAGS equ %d\nNUM_AREAS equ %d\nstr_of2: db " OF %d",0\nstr_of5: db "/%d",0\n'
+            % (len(all_flags()), len(AREA_MAPS), secrets, chests))
