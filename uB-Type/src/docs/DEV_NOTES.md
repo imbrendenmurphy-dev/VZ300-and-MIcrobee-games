@@ -76,3 +76,10 @@
 - bench 887276 (st3B 201590/15.1 st5s 166886/16.2 st2B 170452/16.2 st5B 195714/14.3 st1B 152634/17.2) after colwrite single pass + HUD ldi chain.
 - single-pass restore: no gain, reverted.
 - 13:00 user asked for a cockpit + glint. Ship redrawn: sleeker solid hull, canopy with dark window and glint that slides with the 5 bank frames. Found exhaust flame sprites were never in the sprite set (VZ sprmask lacks 'exh' - VZ-TYPE likely never showed it either); mkdata now adds exh*, sprite limit back to 5800, CTAB back in upper vars (vars_end E800). bench 896541 (+1% for the flame).
+- pushed 89146d7 (cockpit, flame); PC copy DS8/zip/ship_cockpit.png done.
+
+## 2026-11-06: overlay via the stack, perf v4
+- ovl_chain now pops the sprite data two lines at a time (SP = data, HL = mask, DE = glyph): 40 T a line instead of 52. Odd line counts enter on the second half of a pair with line 0 preloaded in B (SP = data-1). Interrupts are off throughout the game, so SP is free; ovl_sp keeps the real stack.
+- bench total 896541 -> 889395. perf_v4.txt is the current table.
+- Render check: tools in the scratchpad hashed the shown screen per game frame for 6 scenes against the previous build; identical except the stage 3 and stage 8 boss starfields, which change with code layout alone (a 37-byte pad in the old build gives the same difference), so it is a harness artefact, not the change.
+- Profile of stage 5 now: drawspr_nc set-up about 1,000 T per sprite and about 420 T per row are the largest remaining overheads; colwrite's per-row loop (about 250 T a row, 4 OUTs) and the 3-pass restore are next.

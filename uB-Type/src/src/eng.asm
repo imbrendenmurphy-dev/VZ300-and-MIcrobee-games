@@ -1307,43 +1307,70 @@ ovl:	ld a,(ds_st)
 	ld a,e
 	add a,c
 	ld e,a			; first line drawn
-	ld a,b			; entry: ovl_end - 9n
+	; entry: ovl_end - 13 per pair of lines (+7 for an odd count, which
+	; starts on the second half of a pair)
+	ld a,b
+	inc a
+	srl a			; pairs
+	ld c,a
+	add a,a
+	add a,c
 	add a,a
 	add a,a
-	add a,a
-	add a,b
-	ld l,a
+	add a,c			; 13 * pairs
+	bit 0,b
+	jr z,$+4
+	sub 7			; odd: in at the second half
+	ld c,a
 	ld a,ovl_end&255
-	sub l
+	sub c
 	ld l,a
 	ld a,ovl_end>>8
 	sbc a,0
 	ld h,a
 	ld (.go+1),hl
+	; the data is popped two lines at a time; the mask is read through HL
 	ld hl,(ds_src)
-	push hl
+	ld (ovl_sp),sp
+	bit 0,b
+	jr z,.ev
+	dec hl			; odd: line 0 arrives in B
+	ld sp,hl
+	inc hl
 	ld a,(ds_h)
-	ld c,a
-	ld b,0
-	add hl,bc		; mask
-	exx
-	pop hl			; data
-	exx
+	add a,l
+	ld l,a
+	jr nc,$+3
+	inc h			; mask
+	pop bc
+	jp .go
+.ev:	ld sp,hl
+	ld a,(ds_h)
+	add a,l
+	ld l,a
+	jr nc,$+3
+	inc h			; mask
 .go:	jp ovl_end
 ovl_chain:
-	REPT 16
+	REPT 8
+	pop bc			; 10
+	ld a,(de)		; 7
+	and (hl)		; 7
+	or c			; 4
+	ld (de),a		; 7
+	inc e			; 4
+	inc hl			; 6
 	ld a,(de)
 	and (hl)
-	inc hl
-	exx
-	or (hl)
-	inc hl
-	exx
+	or b
 	ld (de),a
 	inc e
+	inc hl			; = 80 per pair
 	ENDR
 ovl_end:
+	ld sp,(ovl_sp)
 	ret
+ovl_sp	dw 0
 
 ; the cell already has a pool glyph this frame (A = slot+1), HL = its
 ; CSLOT address

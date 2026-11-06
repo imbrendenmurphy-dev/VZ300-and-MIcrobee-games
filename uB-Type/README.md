@@ -28,7 +28,7 @@ A joystick on the parallel port also works.
 - **Display:** 64×16 characters of 8×16 PCG cells (512×256, exactly 4× the VZ300's 128×64).
 - **Scrolling:** smooth and tear-free. The game uses the 6545 start address with two screen pages and pre-shifted glyphs, scrolls one VZ pixel (4 Microbee pixels) per frame as on the VZ, and flips pages in vertical blank.
 - **Gameplay:** VZ-TYPE's own game logic, ported. A frame-by-frame comparison against the original running in a VZ300 model matches on every frame, apart from the frames where a life restarts. Those frames differ only because of how the test harness lines the two machines up.
-- **Graphics:** new artwork for all eight stages (terrain, sprites, capsules, explosions, boss bodies), plus a second glyph set made for monochrome monitors.
+- **Graphics:** new artwork for all eight stages (terrain, sprites, capsules, explosions, boss bodies), plus a second glyph set made for monochrome monitors. The player's ship has a cockpit canopy whose glint slides across as the ship banks up and down, and its engine flame grows with speed.
 - **Front end:**
   - choice of colour or monochrome monitor
   - title with the μB-TYPE logo, glint, starfield and scroller
@@ -41,18 +41,18 @@ A joystick on the parallel port also works.
 
 | Stage | VZ300 start | Microbee start | VZ300 boss | Microbee boss |
 |---|---|---|---|---|
-| 1 Outer Hull | 21.9 | 21.1 | 20.6 | 15.6 |
-| 2 The Hive | 20.5 | 16.0 | 21.1 | 13.0 |
-| 3 Rock Belt | 23.2 | 18.5 | 18.8 | 9.5 |
-| 4 Crystal Vein | 22.3 | 21.7 | 20.6 | 17.3 |
-| 5 Dreadnought | 20.8 | 14.6 | 20.1 | 11.5 |
-| 6 Gut Caverns | 22.4 | 21.9 | 20.9 | 13.1 |
-| 7 Deep Field | 22.5 | 18.2 | 20.9 | 14.1 |
-| 8 The Core | 22.2 | 21.1 | 20.0 | 10.7 |
+| 1 Outer Hull | 22.5 | 21.9 | 22.2 | 17.8 |
+| 2 The Hive | 21.0 | 18.5 | 21.7 | 16.5 |
+| 3 Rock Belt | 22.9 | 21.7 | 20.8 | 16.1 |
+| 4 Crystal Vein | 22.4 | 22.6 | 21.9 | 19.4 |
+| 5 Dreadnought | 20.6 | 15.4 | 20.7 | 14.7 |
+| 6 Gut Caverns | 22.7 | 22.8 | 22.1 | 17.7 |
+| 7 Deep Field | 22.8 | 21.2 | 21.9 | 17.6 |
+| 8 The Core | 22.8 | 22.1 | 21.2 | 15.4 |
 
 Frames per second. Both machines cap at 25 frames per second.
 
-Lighter scenes run at the VZ's speed. Busy scenes and the big bosses are slower, because every sprite cell is rebuilt as a PCG glyph each frame. The details, including how the gameplay, sound and disk were checked, are in `VERIFICATION.md`.
+Lighter scenes run at the VZ's speed. Busy scenes and the bosses are slower (about 75–90% of the VZ's speed), because every sprite cell is rebuilt as a PCG glyph each frame. The details, including how the gameplay, sound and disk were checked, are in `VERIFICATION.md`.
 
 ## Building
 

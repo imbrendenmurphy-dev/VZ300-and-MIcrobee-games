@@ -18,40 +18,45 @@
 
 ## Performance under load
 
-`tools/perfcmp.py` gives both machines the same scripted input (fire held in bursts, the ship weaving up, down, left and right) and the same random seed, with the noise/seed sharing turned off. Each stage is measured twice for 1,000 fields (20 seconds): from the start of the stage, and in the boss fight. Both games cap at 25 frames per second (2 fields per frame).
+`tools/perfcmp.py` gives both machines the same scripted input (fire held in bursts, the ship weaving up, down, left and right) and the same random seed, with the noise/seed sharing turned off. Each stage is measured twice over 400 game frames: from the start of the stage, and in the boss fight. Both games cap at 25 frames per second (2 fields per frame).
 
 | Stage | Part | VZ300 fps | Microbee fps |
 |---|---|---|---|
-| 1 Outer Hull | start | 21.9 | 21.1 |
-| 1 Outer Hull | boss | 20.6 | 15.6 |
-| 2 The Hive | start | 20.5 | 16.0 |
-| 2 The Hive | boss | 21.1 | 13.0 |
-| 3 Rock Belt | start | 23.2 | 18.5 |
-| 3 Rock Belt | boss | 18.8 | 9.5 |
-| 4 Crystal Vein | start | 22.3 | 21.7 |
-| 4 Crystal Vein | boss | 20.6 | 17.3 |
-| 5 Dreadnought | start | 20.8 | 14.6 |
-| 5 Dreadnought | boss | 20.1 | 11.5 |
-| 6 Gut Caverns | start | 22.4 | 21.9 |
-| 6 Gut Caverns | boss | 20.9 | 13.1 |
-| 7 Deep Field | start | 22.5 | 18.2 |
-| 7 Deep Field | boss | 20.9 | 14.1 |
-| 8 The Core | start | 22.2 | 21.1 |
-| 8 The Core | boss | 20.0 | 10.7 |
+| 1 Outer Hull | start | 22.5 | 21.9 |
+| 1 Outer Hull | boss | 22.2 | 17.8 |
+| 2 The Hive | start | 21.0 | 18.5 |
+| 2 The Hive | boss | 21.7 | 16.5 |
+| 3 Rock Belt | start | 22.9 | 21.7 |
+| 3 Rock Belt | boss | 20.8 | 16.1 |
+| 4 Crystal Vein | start | 22.4 | 22.6 |
+| 4 Crystal Vein | boss | 21.9 | 19.4 |
+| 5 Dreadnought | start | 20.6 | 15.4 |
+| 5 Dreadnought | boss | 20.7 | 14.7 |
+| 6 Gut Caverns | start | 22.7 | 22.8 |
+| 6 Gut Caverns | boss | 22.1 | 17.7 |
+| 7 Deep Field | start | 22.8 | 21.2 |
+| 7 Deep Field | boss | 21.9 | 17.6 |
+| 8 The Core | start | 22.8 | 22.1 |
+| 8 The Core | boss | 21.2 | 15.4 |
 
 **Conclusion: μB-TYPE is not yet as fast as the VZ original in busy scenes.**
 
 - Lighter scenes run at the VZ's speed: stages 1, 4, 6 and 8 from the start.
-- Busy scenes run at about 70–80% of the VZ's speed.
-- The big bosses, especially the multi-segment ones, run at 50–80%.
+- Busy scenes run at about 75–90% of the VZ's speed; stage 5 (Dreadnought), the busiest, at about 75%.
+- The bosses run at about 70–90%.
 - When the game is busy it slows down evenly; it doesn't skip frames, and the scrolling stays smooth and tear-free at the lower frame rate.
 
-**Why:** the new sprites are drawn at full PCG resolution, so each one is 4× the VZ's size in both directions. Every sprite cell is rebuilt as a PCG glyph each frame, which costs about 1,500–2,000 T-states per cell all in. A screen with 90+ sprite cells therefore costs more than the VZ's fixed-cost full-screen redraw.
+**Why the gap remains:** the new sprites are drawn at full PCG resolution, so each one is 4× the VZ's size in both directions. Every sprite cell is rebuilt as a PCG glyph each frame, which costs about 1,500–2,000 T-states per cell all in. A screen with 90+ sprite cells therefore costs more than the VZ's fixed-cost full-screen redraw.
 
 **Speed-ups already made:**
 - an unrolled sprite compositor
-- a cache that keeps boss parts' glyphs while the scenery is still (stage 1's boss went from 13.4 to 16.2 fps)
+- a cache that keeps boss parts' glyphs while the scenery is still
 - the sprite-drawing bug fix
+- a faster path for sprite cells over open space
+- sprites over scenery drawn straight into their glyphs, with the sprite data read two lines at a time from the stack
+- self-modifying sprite set-up, a one-pass colour write, and a shorter restore list
+
+Together these took the slowest scenes from 9.5–13 fps to 14.7–16.5 fps (the full history is in `perf_v1.txt` to `perf_v4.txt`).
 
 ## Sound
 

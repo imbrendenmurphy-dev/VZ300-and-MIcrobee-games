@@ -1,0 +1,18 @@
+                       | VZ300 original           | Microbee Premium Plus   
+stage            part  |   fps  25fps   busy mean |   fps  25fps   busy mean
+1 OUTER HULL     start |  22.5    70%      131575 |  21.9    72%       98500
+1 OUTER HULL     boss  |  22.2    65%      136402 |  17.8    35%      138896
+2 THE HIVE       start |  21.0    44%      144483 |  18.5    32%      149540
+2 THE HIVE       boss  |  21.7    57%      141956 |  16.5    34%      164996
+3 ROCK BELT      start |  22.9    81%      124287 |  21.7    76%       76778
+3 ROCK BELT      boss  |  20.8    41%      149057 |  16.1    41%      171625
+4 CRYSTAL VEIN   start |  22.4    70%      132652 |  22.6    79%       96821
+4 CRYSTAL VEIN   boss  |  21.9    65%      136866 |  19.4    61%      128444
+5 DREADNOUGHT    start |  20.6    34%      149867 |  15.4    24%      185055
+5 DREADNOUGHT    boss  |  20.7    36%      150804 |  14.7    26%      188878
+6 GUT CAVERNS    start |  22.7    74%      129780 |  22.8    84%       87134
+6 GUT CAVERNS    boss  |  22.1    59%      138789 |  17.7    52%      145565
+7 DEEP FIELD     start |  22.8    78%      128521 |  21.2    71%       89627
+7 DEEP FIELD     boss  |  21.9    65%      137763 |  17.6    54%      137916
+8 THE CORE       start |  22.8    72%      131898 |  22.1    77%       96455
+8 THE CORE       boss  |  21.2    46%      148108 |  15.4    43%      173213
