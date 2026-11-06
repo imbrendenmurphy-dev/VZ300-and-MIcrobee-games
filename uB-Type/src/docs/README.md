@@ -35,6 +35,7 @@ A joystick on the parallel port also works.
   - hall of fame, how to play and power-ups pages
   - attract mode: the real game on a different stage each time, flown by an autopilot
   - stage intro, game over, name entry, and congratulations after stage 8
+- **Lettering:** all the game's text (HUD, title pages, stage intros, the big headings and the capsule letters) uses a 70s 'future' face redrawn for the 8×16 cell, with its trademark double-width stroke on the lower left of each character.
 - **Music:** VZ-TYPE's two-voice tunes, retimed for 3.375 MHz.
 
 ## Performance so far (emulator, identical gameplay on both machines)

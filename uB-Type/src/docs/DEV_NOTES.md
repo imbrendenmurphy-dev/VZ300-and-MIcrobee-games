@@ -83,3 +83,8 @@
 - bench total 896541 -> 889395. perf_v4.txt is the current table.
 - Render check: tools in the scratchpad hashed the shown screen per game frame for 6 scenes against the previous build; identical except the stage 3 and stage 8 boss starfields, which change with code layout alone (a 37-byte pad in the old build gives the same difference), so it is a harness artefact, not the change.
 - Profile of stage 5 now: drawspr_nc set-up about 1,000 T per sprite and about 420 T per row are the largest remaining overheads; colwrite's per-row loop (about 250 T a row, 4 OUTs) and the 3-pass restore are next.
+
+## 2026-11-06: 70s 'future' font
+- BPM supplied a reference face (squared, rounded outer corners, the left-hand stroke doubled from the middle down). tools/font70.py holds 6 x 9 skeletons; mbfont.glyph57 draws them 2 px wide, 3 px for the lower-left stroke (rows 4-8 of column 0, or '@'), '+' = 1 px, 7-char rows literal (M and W, so the middle stem keeps a gap from the thick left stroke). 7 x 9 at row 3 of the cell.
+- Everything derives from glyph57: font bank (HUD, pages), big font (now 2 x 3 per font pixel with every third line dark, 14 x 27 in the 16 x 32 letter), capsule letters, mu.
+- Screenshot: docs/screenshots/font_70s.png.

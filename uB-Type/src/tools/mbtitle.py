@@ -228,17 +228,19 @@ def title_picture():
 
 # ------------------------------------------------------------------ big font
 def big_font():
-    """2 x 2 cell letters (16 x 32 pixels) from the 5x7 font: each font
-    pixel becomes 3 x 4 with a bevel; returns {char: [g00, g01, g10, g11]}"""
+    """2 x 2 cell letters (16 x 32 pixels) from the game font: each font
+    pixel becomes 2 x 3; returns {char: [g00, g01, g10, g11]}"""
     import mbfont
     out = {}
     chars = ' ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-.!:'
     for ch in chars:
-        # the game font's bold 6 x 10 letter, doubled: 12 x 20 in 16 x 32,
-        # with a dark scanline every fourth line
-        g = np.array(mbfont.glyph57(ch), np.uint8) if ch != ' ' else np.zeros((16, 8), np.uint8)
-        pic = np.kron(g, np.ones((2, 2), np.uint8))
-        pic[3::4, :] = 0
+        # the game font's 7 x 9 letter at 2 x 3: 14 x 27 in 16 x 32, with
+        # every third line dark (each font row keeps two lit lines)
+        g = np.array(mbfont.glyph57(ch, top=0), np.uint8) if ch != ' ' else np.zeros((16, 8), np.uint8)
+        big = np.kron(g[:9, :7], np.ones((3, 2), np.uint8))
+        big[2::3, :] = 0
+        pic = np.zeros((32, 16), np.uint8)
+        pic[3:30, 1:15] = big
         cells = []
         for r in range(2):
             for c in range(2):
