@@ -3,6 +3,10 @@
 Sequel to the VZ200/VZ300 game *PENGUIN* for the Dick Smith VZ300 / VZ200.
 ViBED by BPM 2026. Original code, graphics and music. Nothing from the original game is included.
 
+![showcase](screenshots/PENGUIN2_showcase.gif)
+
+Release blurb with tech specs: [BLURB.md](BLURB.md)
+
 ![title](screenshots/PENGUIN2_title.gif)
 
 ![gameplay](screenshots/PENGUIN2_gameplay.gif)
@@ -121,7 +125,7 @@ cd src
 It uses the superzazu/z80 CPU core (MIT licence, see `LICENSE-z80`).
 
 - `tools/playtest.py` runs a soak test. It pokes test-only RAM flags (`autoplay`, `godmode`, `forceclear`) so the demo AI plays a real game through every stage, bonus round, the intermission and the ending.
-- `tools/media.py` captures the screenshots, GIFs and audio.
+- `tools/media.py` captures the screenshots, GIFs and audio, and `tools/showcase.py` builds the captioned showcase GIF from emulator captures.
 
 ## Testing
 
