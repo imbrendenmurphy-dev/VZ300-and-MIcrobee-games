@@ -100,7 +100,8 @@ $7B00        flip table          $7C00-$7EFF  runtime maps, seen-bits, event fla
 $8000-$C7FF  code + text + music + maps (the .VZ image, 17K)
 $C800-$E3FF  streamed assets: area decorations/objects, or monster frames + view cache
 $E400-$EDFF  stack (2.5K - the BennVenn DOS needs well over 1K of it during file loads)
-$EE00-$EFFF  variables, above the stack so a deep DOS call can't overwrite them               $F000-$F7FF  back buffer
+$EE00-$EFFF  variables, above the stack so a deep DOS call can't overwrite them
+$F000-$F7FF  back buffer
 $F800-$F9FF  SD sector buffer (the same buffer 13 Ghosts gives the DOS)
 $FA00-$FFFF  DOS workspace - left alone
 ```
