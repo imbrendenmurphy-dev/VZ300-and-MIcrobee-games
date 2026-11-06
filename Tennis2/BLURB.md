@@ -1,0 +1,73 @@
+# TENNIS II — GRAND SLAM
+### for the Dick Smith VZ200 / VZ300 — ViBED by BPM 2026
+
+**New balls, please!** The little green tennis court from the VZ is back for the big
+time. The original's charm is all still here: you just run, and the racket swings itself.
+Where the ball meets you decides where it goes. This time there's a whole world tour
+built around it.
+
+Toss it up and time your serve: the higher you strike, the bigger the serve. Watch for
+faults, lets and aces. Hold left or right as you hit to steer the shot. Tap fire for a
+power drive, or **SMASH!** anything floating near the net. Pull back for a lob, push up
+for a cheeky drop shot. The umpire calls every point, from **FIFTEEN-LOVE** through
+**DEUCE** to **BREAK POINT** and **MATCH POINT**. Hit three aces or winners in a row and
+you're **ON FIRE**, with blazing power shots and a flame trail.
+
+The **World Tour** takes you across four surfaces, each with its own colours and bounce:
+
+1. **VZ Open** — fast, low grass
+2. **Paris Clay Cup** — slow, high-bouncing orange clay
+3. **Hard Court Classic** — cyan hard court
+4. **Night Masters** — the blue indoor finale
+
+Each one runs quarter-final, semi-final, final, with a trophy ceremony for the champion.
+Between tournaments there's a **Target Practice** bonus round: a ball machine, twenty
+balls and three cones to hit. Win all four for the **Grand Slam**.
+
+Eight rivals stand in your way, each with a portrait and a playing style:
+- Rookie Rusty
+- Lobby Lou
+- Net Netta
+- Big Serve Bazza
+- Dusty the Wall
+- Rocket Rita
+- The Professor
+- the champion himself, **Mr VZ300**
+
+You can also play an Exhibition against anyone on any court, or go head to head in
+Two Players. Press **C** on the menu to unlock the **Classic 1984** court, a loving
+recreation of the original's stepped green court.
+
+It all wraps up in:
+- a big-logo title screen with two little players rallying
+- a cheeky two-voice title theme and jingles for every point, game, set and match
+- a crowd that roars on your aces and winners
+- WINNER!, ACE! and OUT! pop-ups, and the line judge's flag
+- a ball with a shadow and a puff of dust on every bounce
+- blinds wipes between screens
+- a full attract sequence with a computer v computer demo
+- a Hall of Fame with initials
+
+## Specifications
+
+| | |
+|---|---|
+| **Machine** | Dick Smith VZ300 or VZ200, Z80A at 3.5 MHz |
+| **Memory** | Needs RAM from $7800 to $FFFF, e.g. a BennVenn SD + 128K expansion. Will not run on an unexpanded machine |
+| **Storage** | Loads from SD (BennVenn loader) as a binary .VZ. No other files needed |
+| **File** | `TENNIS2.VZ`, 23.5 KB, loads and autostarts at $8000 |
+| **Display** | Genuine Mode 1 throughout (6847 CG2: 128×64, 4 colours). Both colour sets are used: grass, night and title in CSS0, clay and hard court in CSS1 |
+| **Graphics** | Perspective court with crowd strip and net. Pre-shifted, masked sprites recoloured for each surface and when players change ends. 9 character portraits, title picture, trophy |
+| **Frame rate** | 50 fps, synced to field sync, with all screen writes in the vblank window (no snow) |
+| **Sound** | Two-voice beeper music (title theme, info shuffle, practice loop, Grand Slam march, 10 jingles) and 16 sound effects. Music+SFX / SFX only / off |
+| **Controls** | Keyboard: Q A M , move, SPACE fire. Joysticks 1 and 2, read to suit the VZ joystick interface. Player 2 keys: I J K L + H. P pause, S sound |
+| **Modes** | World Tour (1P), Exhibition (1P), Two Players, Target Practice, plus the hidden Classic 1984 court |
+| **Rules** | Full tennis scoring: deuce/advantage, games, sets, tie-breaks, change of ends. Faults, double faults, lets and aces. Sets of 2, 4 or 6 games |
+| **Content** | 4 tournaments × 3 rounds, 8 computer opponents with their own speed, reach, reactions, accuracy, power, net play, serve and lobbing. 4 surfaces + Classic 1984, 20-ball target practice |
+| **Attract mode** | Title, How to Play, Meet the Tour, computer v computer demo, Hall of Fame |
+| **High scores** | Top 5 tour scores with three-letter initials. Kept in BennVenn SRAM bank 3 with a signature and checksum, so they survive reloading the game but not power-off |
+| **Exit** | Reset or power-cycle |
+| **Language** | 100% Z80 assembly (sjasmplus-compatible), with Python asset and test tools |
+
+*Tennis II is a fan-made sequel to the original VZ game Tennis. It contains none of the
+original's code or graphics.*
