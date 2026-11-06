@@ -42,18 +42,35 @@ def ship(tilt):
     c.put(tx, ty, R_, 3)
     tx, ty = T(2, cy + 3 + 10 * bot)
     c.put(tx, ty, R_, 3)
-    # hull
-    c.poly([T(31.5, cy), T(22, cy - 4.5), T(6, cy - 4.5), T(3, cy - 3), T(3, cy + 3), T(6, cy + 4.5), T(22, cy + 4.5)], W_)
-    # panel line and nose cone
-    for x in range(8, 22, 2):
-        px, py = T(x, cy + 2)
-        c.put(px, py, W_, 1)
-    # canopy
-    for y in range(-3, 1):
-        for x in range(15, 25):
-            if ((x - 20) / 5.0) ** 2 + ((y + 1) / 2.2) ** 2 <= 1:
-                px, py = T(x, cy + y)
-                c.put(px, py, C_, 3 if (x < 19 and y < -1) else 2)
+    # hull: solid, with a shaded underside
+    hull = [T(31.5, cy + 1), T(26, cy - 1.5), T(14, cy - 3.5), T(5, cy - 3.5), T(2, cy - 2), T(2, cy + 3), T(6, cy + 4.5), T(26, cy + 3.5)]
+    c.poly(hull, W_, shade=False, lev=3)
+    for x in range(4, 30):
+        px, py = T(x, cy + 4)
+        if c.col[int(round(py)), int(round(px))]:
+            c.put(px, py, W_, 2)
+    # panel line
+    for x in range(7, 14, 2):
+        px, py = T(x, cy + 1)
+        c.clear(px, py)
+    # cockpit: a canopy bubble on the hull's back with a dark window and
+    # a bright glint that slides along the glass as the ship banks
+    # (towards the rear when climbing, the nose when diving)
+    gx = 17.5 + (tilt + 2) * 1.4
+    for y in range(-9, 0):
+        for x in range(12, 28):
+            fx, fy = x + 0.5, y + 0.5
+            outer = ((fx - 19.5) / 6.5) ** 2 + ((fy + 3.6) / 2.4) ** 2
+            if outer > 1:
+                continue
+            px, py = T(x, cy + y)
+            inner = ((fx - 20.5) / 4.6) ** 2 + ((fy + 3.8) / 1.3) ** 2
+            if inner > 1:
+                c.put(px, py, W_, 3)               # canopy frame
+            elif abs((fx - gx) + (fy + 3.8) * 1.6) < 0.8:
+                c.put(px, py, W_, 3)               # the glint
+            else:
+                c.clear(px, py)                    # dark glass
     # engine block
     c.rect(0, cy - 3 + k * -16, 4, cy + 4 + k * -16, A.GREY, 2)
     return c

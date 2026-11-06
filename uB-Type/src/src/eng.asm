@@ -388,19 +388,30 @@ colwrite:
 	ld a,(cw_bf)
 	ld (hl),a
 	ld hl,(cw_addr)
-.nbf:	; shadows + screen codes
+.nbf:	; shadows and the page, one row at a time
 	ld de,colbuf
 	ld b,PROWS
+	ld a,(pool_bank)
+	or LV_SCREEN
+	ld c,a			; (P_LV value for the screen)
 .w1:	ld a,(de)		; code
 	inc de
 	ld (hl),a		; SHC
 	set 7,h
 	ld (hl),a		; screen
-	ld a,h
-	xor $F0^$58
-	ld h,a
+	ld a,LV_ATTR
+	out (P_LV),a
 	ld a,(de)		; bank
 	inc de
+	ld (hl),a		; attribute
+	ex af,af'
+	ld a,c
+	out (P_LV),a
+	res 7,h
+	ld a,h
+	xor $70^$58
+	ld h,a
+	ex af,af'
 	ld (hl),a		; SHA
 	ld a,h
 	xor $58^$78
@@ -408,7 +419,17 @@ colwrite:
 	ld a,(de)		; colour
 	inc de
 	ld (hl),a		; SHK
-	res 3,h			; back to SHC
+	set 7,h			; F8-FF: colour RAM
+	ex af,af'
+	ld a,COL_ON
+	out (P_COLCTL),a
+	ex af,af'
+	ld (hl),a
+	xor a
+	out (P_COLCTL),a
+	ld a,h
+	and $77			; back to SHC (70-77)
+	ld h,a
 	ld a,l
 	add a,64
 	ld l,a
@@ -416,53 +437,6 @@ colwrite:
 	inc h
 	res 3,h
 .n1:	djnz .w1
-	; attributes
-	ld a,LV_ATTR
-	out (P_LV),a
-	ld hl,(cw_addr)
-	ld de,colbuf+1
-	ld b,PROWS
-.w2:	set 7,h
-	ld a,(de)
-	ld (hl),a
-	res 7,h
-	inc de
-	inc de
-	inc de
-	ld a,l
-	add a,64
-	ld l,a
-	jr nc,.n2
-	inc h
-	res 3,h
-.n2:	djnz .w2
-	ld a,(pool_bank)
-	or LV_SCREEN
-	out (P_LV),a
-	; colours
-	ld a,COL_ON
-	out (P_COLCTL),a
-	ld hl,(cw_addr)
-	ld de,colbuf+2
-	ld b,PROWS
-.w3:	set 7,h
-	set 3,h
-	ld a,(de)
-	ld (hl),a
-	inc de
-	inc de
-	inc de
-	res 7,h
-	res 3,h
-	ld a,l
-	add a,64
-	ld l,a
-	jr nc,.n3
-	inc h
-	res 3,h
-.n3:	djnz .w3
-	xor a
-	out (P_COLCTL),a
 	ret
 tcolp:	; A = tile column 0..63 -> HL = TRING + A*16
 	ld l,a
@@ -1585,9 +1559,7 @@ hud_put:
 	or d
 	ld d,a
 	ld a,(hp_n1)
-	ld c,a
-	ld b,0
-	ldir
+	call ldin
 	ld a,(hp_n1)
 	cp 128
 	ret z
@@ -1598,7 +1570,25 @@ hud_put:
 	ld a,(hp_w)
 	ld d,a
 	ld e,0
-	ldir
+	ld a,c
+; copy A (1-128) bytes HL -> DE with an unrolled LDI chain (16 T a byte)
+ldin:	push hl
+	push de
+	ld l,a
+	ld h,0
+	add hl,hl
+	ex de,hl
+	ld hl,ldin_end
+	or a
+	sbc hl,de		; entry
+	pop de
+	ex (sp),hl
+	ret			; into the chain
+ldin_chain:
+	REPT 128
+	ldi
+	ENDR
+ldin_end:
 	ret
 hp_a	dw 0
 hp_n1	db 0

@@ -222,10 +222,8 @@ BOSSBUF	ds $490
 ; boss-part glyph cache (dcache.asm)
 	ALIGN 256
 CMAP	ds 2048			; cached glyph code per ring cell
-; in the WORK block, after the sprite set (which must end by 5400h):
-CTABA	equ $5400		; boss-part caches, page A (6 x 64)
-CTABB	equ $5580		; page B
-SLOTQ	equ $5700		; pool slot -> queue entry
+CTABA	ds 6*64			; boss-part caches, page A (6 x 64)
+CTABB	ds 6*64			; page B
 vars_end:
 STACKTOP equ $EFFE
 	DISPLAY "vars_end ",/H,vars_end

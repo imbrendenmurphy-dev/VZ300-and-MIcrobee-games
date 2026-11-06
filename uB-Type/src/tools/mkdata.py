@@ -309,7 +309,8 @@ def write_stage(st, sprlib, names):
         put(0x0710 + 0x300, bytes(c[2] for c in cells))
         assert n <= 0x180
         print('  boss', boss['name'], '%dx%d cells' % (boss['ncol'], boss['nrow']), 'glyphs', len(boss['glyphs']))
-    sp = SPR.pack_set(sprlib, names, VG.sprmask(i, L, names)[1], 0x0000, 0x5400)
+    used = VG.sprmask(i, L, names)[1] + [n for n in names if n.startswith('exh')]   # (the ship's engine flame)
+    sp = SPR.pack_set(sprlib, names, used, 0x0000, 0x5800)
     put(0x2000, sp['blob'])
     assert 0x2000 + len(sp['blob']) <= 0x7800
     assert len(blob) <= 0x800
