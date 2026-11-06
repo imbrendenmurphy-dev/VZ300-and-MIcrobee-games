@@ -1,7 +1,9 @@
 # TENNIS II — GRAND SLAM
 
 Sequel to the VZ200/VZ300 game *TENNIS*, for the Dick Smith VZ300 / VZ200 with the **BennVenn SD loader + 128K**.
-ViBED by BPM 2026. Version 1.1.3. Original code, graphics and music. Nothing from the original game is included.
+ViBED by BPM 2026. Version 1.1.4. Original code, graphics and music. Nothing from the original game is included.
+
+![showcase](screenshots/TENNIS2_showcase.gif)
 
 ![title](screenshots/TENNIS2_title.gif)
 
@@ -100,9 +102,10 @@ In two-player mode, player 1 uses joystick 1 or Q A M , SPACE, and player 2 uses
 - **Sound:** the two-voice pin-pulse beeper engine from Ghost Hunter 2 / Penguin 2, with short separated notes for that gritty sound. All tunes are original:
   - Title theme ("Centre Court Strut"), info and bracket shuffle, practice loop, Grand Slam march
   - Jingles: start, point, game, set, match, defeat, trophy, change of ends, ON FIRE, hi-score
-  - 16 effects: racket "pok", power drive, smash, bounce, net, net cord, line call, crowd roar, ball machine, and more
+  - 17 effects, including bounce, net, line call, crowd roar, applause and the ball machine
+  - Every racket strike (shot, power drive, smash, serve, net cord) is a short, low, woody "thunk" (60–100 ms, about 380 Hz falling to 160 Hz). The engine roughens the pitch every frame so it sounds like a hit rather than a beep. These replaced the earlier high, warbling chirps.
 
-  `media/` has the emulator's speaker output for the title music and a stretch of play.
+  `media/` has the emulator's speaker output for the title music and a stretch of play, plus `racket_sounds_before_after.mp3`: the old chirps, then the new thunks (shot, power drive, smash, serve, each twice), modelled from the engine.
 
 ## Hardware notes
 
@@ -157,6 +160,7 @@ cd src
   - `tools/trace.py`: ball and player traces before each point
   - `tools/fuzz.py`: random-input soak
   - `tools/media.py`: screenshots, GIFs and audio
+  - `tools/showcase.py`: the showcase GIF
   - `tools/disorig.py`: disassembles your original TENNIS.VZ (kept only on your PC)
 
 ## Testing

@@ -156,6 +156,8 @@ sound_tick:
         jr z,.plain
         dec a
         jr z,.warble
+        dec a
+        jr nz,.thump
         push hl
         call random
         pop hl
@@ -163,6 +165,12 @@ sound_tick:
         add a,h
         ld h,a
         call random
+        ld l,a
+        jr .plain
+.thump:                         ; woody racket thud: rough low byte of the pitch
+        push hl
+        call random
+        pop hl
         ld l,a
         jr .plain
 .warble:
@@ -178,7 +186,7 @@ sound_tick:
 .ch2:   ld (step2),hl
         ret
 
-;  start, delta, len, mode (0 plain, 1 warble, 2 noise), prio
+;  start, delta, len, mode (0 plain, 1 warble, 2 noise, 3 thump), prio
 SFX_HIT    equ 0
 SFX_POWER  equ 1
 SFX_BOUNCE equ 2
@@ -197,8 +205,8 @@ SFX_SERVE  equ 14
 SFX_CORD   equ 15
 SFX_CLAP   equ 16
 sfxtab:
-        dw 2600,-220 : db 4,0,3,0,0       ; racket "pok"
-        dw 3400,-260 : db 6,1,4,0,0       ; power drive
+        dw 1150,-260 : db 3,3,3,0,0       ; racket "thunk" (~380 -> 160 Hz, 60 ms)
+        dw 1400,-280 : db 4,3,4,0,0       ; power drive: deeper, fuller thunk (80 ms)
         dw 700,-40   : db 3,0,2,0,0       ; bounce
         dw 260,-8    : db 8,2,4,0,0       ; into the net
         dw 1700,0    : db 14,1,5,0,0      ; line judge "OUT!"
@@ -207,10 +215,10 @@ sfxtab:
         dw 1500,-90  : db 3,0,2,0,0       ; menu blip
         dw 900,160   : db 8,0,3,0,0       ; select
         dw 600,-25   : db 10,0,4,0,0      ; fault
-        dw 4200,-320 : db 8,2,5,0,0       ; smash
+        dw 1750,-300 : db 5,3,5,0,0       ; smash: the biggest thump (100 ms)
         dw 2300,0    : db 2,0,1,0,0       ; tick
         dw 800,140   : db 16,1,5,0,0      ; target hit
         dw 300,50    : db 6,2,2,0,0       ; ball machine
-        dw 3000,-200 : db 6,0,4,0,0       ; serve
-        dw 1200,-60  : db 6,1,4,0,0       ; net cord
+        dw 1300,-270 : db 4,3,4,0,0       ; serve thunk
+        dw 900,-120  : db 4,3,4,0,0       ; net cord: a dull clip on the tape
         dw 2600,0    : db 9,2,1,0,0       ; applause

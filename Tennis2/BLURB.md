@@ -41,6 +41,7 @@ recreation of the original's stepped green court.
 It all wraps up in:
 - a big-logo title screen with two little players rallying
 - a cheeky two-voice title theme and jingles for every point, game, set and match
+- a satisfying racket thunk on every shot, deeper for power drives and smashes
 - a crowd of little spectators who leap up, arms in the air, after every point, and do a Mexican wave for aces, winners and sets
 - WINNER!, ACE! and OUT! pop-ups, and the line judge's flag
 - a ball with a shadow and a puff of dust on every bounce
@@ -59,8 +60,9 @@ It all wraps up in:
 | **Display** | Genuine Mode 1 throughout (6847 CG2: 128×64, 4 colours). Both colour sets are used: grass, night and title in CSS0, clay and hard court in CSS1 |
 | **Graphics** | Perspective court with crowd strip and net. Pre-shifted, masked sprites recoloured for each surface and when players change ends. 9 character portraits, title picture, trophy |
 | **Frame rate** | 50 fps, synced to field sync, with all screen writes in the vblank window (no snow) |
+| **Score panel** | Framed panels for each player, scores centred and in the player's own colour |
 | **Effects** | Two-frame animated crowd (bobbing and Mexican wave), bounce puffs, ball shadow, popups. Info screens have a drifting dot backplane (grass or net) that is drawn in vblank and steers clear of text |
-| **Sound** | Two-voice beeper music (title theme, info shuffle, practice loop, Grand Slam march, 10 jingles) and 16 sound effects. Music+SFX / SFX only / off |
+| **Sound** | Two-voice beeper music (title theme, info shuffle, practice loop, Grand Slam march, 10 jingles) and 17 sound effects, with a woody racket "thunk" for every strike. Music+SFX / SFX only / off |
 | **Controls** | Keyboard: Q A M , move, SPACE fire. Joysticks 1 and 2, read to suit the VZ joystick interface. Player 2 keys: I J K L + H. P pause, S sound |
 | **Modes** | World Tour (1P), Exhibition (1P), Two Players, Target Practice, plus the hidden Classic 1984 court |
 | **Rules** | Full tennis scoring: deuce/advantage, games, sets, tie-breaks, change of ends. Faults, double faults, lets and aces. Sets of 2, 4 or 6 games |

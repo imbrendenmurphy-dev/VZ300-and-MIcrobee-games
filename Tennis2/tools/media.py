@@ -110,8 +110,11 @@ tk2 = "100 103 SPACE\n260 263 SPACE\n" + ''.join('%d %d SPACE\n' % (f, f + 2) fo
 reach = sym['pl0'] + 14
 pk = [(300, 'autoplay', 1), (300, 'gamesper', 2), (400, 'tourn', 3), (400, 'round', 2)]
 pk += [(f, reach, 0) for f in range(1100, 6000, 200)]
-run('gs', 9000, keys=tk2, pokes=pk, every=50)
-for n, f in (('13_opponent', 600), ('16_trophy', 3650), ('17_grand_slam', 4400)):
+tro = find(9000, tk2, pk, 'infohook', sym['trophy_anim'], 150, 2)
+gsl = find(12000, tk2, pk, 'infohook', sym['ending_anim'], 200, 2)
+print('trophy', tro, 'grand slam', gsl)
+run('gs', gsl + 10, keys=tk2, pokes=pk, every=50, shots=(tro, gsl))
+for n, f in (('13_opponent', 600), ('16_trophy', tro), ('17_grand_slam', gsl)):
     frame('gs', f).save(os.path.join(SHOTS, 'TENNIS2_%s.png' % n))
 # contact sheet for the README
 fs = sorted(glob.glob(os.path.join(SHOTS, 'TENNIS2_[0-9]*.png')))
