@@ -11,7 +11,7 @@ In the kingdom of Dreadmoor, the sorcerer **Morgrave** has stolen the seven **Su
 dead walk the land. Only one knight is awake: **Sir Tinplate**, the least impressive knight
 in the realm, in borrowed tin armour.
 
-### This build (v0.3.1) contains
+### This build (v0.3.2) contains
 
 - **Seven stages**, each its own SD pack (tiles, eight creature sprites, boss, music, text):
 
@@ -115,7 +115,16 @@ The rest of this list describes the engine as first built with stage 1:
 
 Both joysticks work interchangeably (directions read via ports $2C/$29).
 
-### Real-hardware fixes (v0.3.1)
+### Real-hardware fixes (v0.3.1-v0.3.2)
+
+- **Low RAM (v0.3.2).** On a real VZ300, v0.3.1 reached the first SD read (6 progress bands)
+  and then reset. The game had put its IM2 table at $7800, its ISR jump at $7979 and its
+  stack at $7A00-$7AFF. Those addresses are the ROM's system area (RST vectors, input buffer),
+  which the SD DOS relies on. Now nothing lives below $7AE9:
+  - the IM2 table is at $7F00-$8000, and the program's first byte is $F9, so every vector
+    reads $F9F9;
+  - `jp isr` sits at $F9F9;
+  - the stack runs down from $F9F9 into the free RAM above the frame buffer.
 
 - **Keyboard.** Each keyboard row reads its keys as bits 5..0 in the order they are usually
   listed (checked on a real VZ300: `$68EF` gives M SPACE , - . N). Every key test was mirrored
@@ -176,10 +185,12 @@ $4A80-$54FF  SRAM bank B  ring buffer, phase 2   (logo sprite while in menus)
 $5500-$6068  SRAM bank B  frame blit routine
 $6100-$66FF  SRAM bank B  hero layered class data
 $7000-$77FF  video RAM    rows 0-8 HUD, 9-59 playfield, 60-63 border
-$7800-$7FFF  IM2 table, stack, HUD buffer, lookup tables, DOS mapping flags
+$7800-$7AE8  left alone: ROM/BASIC system area used by the SD DOS
+$7B00-$7FFF  HUD buffer, lookup tables, DOS flags, IM2 table ($7F00-$8000)
 $8000-$CCFF  resident engine, shared graphics, sound, text
 $CD00-$E46C  pack area: GNGFRONT or one of GNGSTAG1-7, loaded from SD
-$E46D-$F908  variables, then the frame buffer
+$E4A5-$F946  variables, then the frame buffer
+$F947-$F9FB  stack (down from $F9F9) and the ISR jump at $F9F9
 $FA00-$FFFF  BennVenn DOS RAM - never touched
 ```
 

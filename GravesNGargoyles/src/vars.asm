@@ -179,5 +179,5 @@ VARS_END:
 FB:         ds FBW*FBROWS
 FB_END:
         dend
-        assert FB_END <= $FA00
+        assert FB_END <= $F9A0       ; leaves room for the stack below $F9F9
         assert LOAD_END <= $FA00

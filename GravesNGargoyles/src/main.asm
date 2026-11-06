@@ -31,9 +31,13 @@ RING2    equ $4A80
 RINGW    equ 48
 TITLEBUF equ $4000
 LOGOBUF  equ $4800      ; logo sprite (mask+data) rebuilt here for the front end
-IM2TAB   equ $7800
-ISRJP    equ $7979
-STACKTOP equ $7B00
+; Nothing may live below $7AE9 here: the SD DOS calls the ROM, which uses
+; the BASIC system area $7800-$7AE8 (RST vectors, input buffer).
+; IM2 table $7F00-$8000: its 257th byte is the first byte of the program,
+; which is therefore $F9 (ld sp,hl) so every vector reads $F9F9.
+IM2TAB   equ $7F00
+ISRJP    equ $F9F9      ; jp isr, just above the stack, below the DOS's RAM
+STACKTOP equ $F9F9      ; stack grows down into the free RAM above the frame buffer
 HUDBUF   equ $7B00      ; 12 rows: 8 top + 4 bottom
 HLUT     equ $7C80
 DOSMAP   equ $7CF0      ; port $37 value that maps the DOS (probed at start-up)
@@ -48,6 +52,7 @@ SRAM_DOS  equ 1            ; port $37: DOS bank (as left by the loader)
 
         include "build_opts.asm"
         org $8000
+        db $F9                  ; ld sp,hl: also the IM2 table's 257th byte
         jp init
 
         include "sys.asm"
