@@ -168,9 +168,23 @@ sound_tick:
         ld l,a
         jr .plain
 .thump:                         ; woody racket thud: rough low byte of the pitch
-        push hl
+        cp 2                    ; A = mode-2: 1 = thump, 2 = pop
+        jr z,.pop
+.thud:  push hl
         call random
         pop hl
+        ld l,a
+        jr .plain
+.pop:                           ; smash: two frames of a dense noise crack, then the thud
+        ld a,(sfxleft)
+        cp 4                    ; first two frames (5 and 4 left)
+        jr c,.thud
+        call random
+        and $3F
+        add a,$18               ; pulses at roughly 3-10 kHz: a sharp, loud crack
+        push af
+        call random
+        pop hl                  ; H = crack pitch
         ld l,a
         jr .plain
 .warble:
@@ -186,7 +200,7 @@ sound_tick:
 .ch2:   ld (step2),hl
         ret
 
-;  start, delta, len, mode (0 plain, 1 warble, 2 noise, 3 thump), prio
+;  start, delta, len, mode (0 plain, 1 warble, 2 noise, 3 thump, 4 pop), prio
 SFX_HIT    equ 0
 SFX_POWER  equ 1
 SFX_BOUNCE equ 2
@@ -205,20 +219,21 @@ SFX_SERVE  equ 14
 SFX_CORD   equ 15
 SFX_CLAP   equ 16
 sfxtab:
-        dw 1150,-260 : db 3,3,3,0,0       ; racket "thunk" (~380 -> 160 Hz, 60 ms)
-        dw 1400,-280 : db 4,3,4,0,0       ; power drive: deeper, fuller thunk (80 ms)
-        dw 700,-40   : db 3,0,2,0,0       ; bounce
-        dw 260,-8    : db 8,2,4,0,0       ; into the net
-        dw 1700,0    : db 14,1,5,0,0      ; line judge "OUT!"
-        dw 500,90    : db 6,0,1,0,0       ; toss
-        dw 1400,0    : db 34,2,1,0,0      ; crowd roar
-        dw 1500,-90  : db 3,0,2,0,0       ; menu blip
-        dw 900,160   : db 8,0,3,0,0       ; select
-        dw 600,-25   : db 10,0,4,0,0      ; fault
-        dw 1750,-300 : db 5,3,5,0,0       ; smash: the biggest thump (100 ms)
-        dw 2300,0    : db 2,0,1,0,0       ; tick
-        dw 800,140   : db 16,1,5,0,0      ; target hit
-        dw 300,50    : db 6,2,2,0,0       ; ball machine
-        dw 1300,-270 : db 4,3,4,0,0       ; serve thunk
-        dw 900,-120  : db 4,3,4,0,0       ; net cord: a dull clip on the tape
-        dw 2600,0    : db 9,2,1,0,0       ; applause
+        dw 1150,-260 : db 3,3,3,0         ; racket "thunk" (~380 -> 160 Hz, 60 ms)
+        dw 1400,-280 : db 4,3,4,0         ; power drive: deeper, fuller thunk (80 ms)
+        dw 700,-40   : db 3,0,2,0         ; bounce
+        dw 260,-8    : db 8,2,4,0         ; into the net
+        dw 1700,0    : db 14,1,5,0        ; line judge "OUT!"
+        dw 500,90    : db 6,0,1,0         ; toss
+        dw 1400,0    : db 34,2,1,0        ; crowd roar
+        dw 1500,-90  : db 3,0,2,0         ; menu blip
+        dw 900,160   : db 8,0,3,0         ; select
+        dw 600,-25   : db 10,0,4,0        ; fault
+        dw 1300,-200 : db 6,4,5,0         ; smash: loud POP - 40 ms crack, then a deep thud (120 ms)
+        dw 2300,0    : db 2,0,1,0         ; tick
+        dw 800,140   : db 16,1,5,0        ; target hit
+        dw 300,50    : db 6,2,2,0         ; ball machine
+        dw 1300,-270 : db 4,3,4,0         ; serve thunk
+        dw 900,-120  : db 4,3,4,0         ; net cord: a dull clip on the tape
+        dw 2600,0    : db 9,2,1,0         ; applause
+        ASSERT $-sfxtab == 17*8, "sfxtab entries must be 8 bytes"

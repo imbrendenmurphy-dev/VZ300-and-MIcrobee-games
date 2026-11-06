@@ -1,7 +1,7 @@
 # TENNIS II — GRAND SLAM
 
 Sequel to the VZ200/VZ300 game *TENNIS*, for the Dick Smith VZ300 / VZ200 with the **BennVenn SD loader + 128K**.
-ViBED by BPM 2026. Version 1.1.4. Original code, graphics and music. Nothing from the original game is included.
+ViBED by BPM 2026. Version 1.1.5. Original code, graphics and music. Nothing from the original game is included.
 
 ![showcase](screenshots/TENNIS2_showcase.gif)
 
@@ -103,9 +103,11 @@ In two-player mode, player 1 uses joystick 1 or Q A M , SPACE, and player 2 uses
   - Title theme ("Centre Court Strut"), info and bracket shuffle, practice loop, Grand Slam march
   - Jingles: start, point, game, set, match, defeat, trophy, change of ends, ON FIRE, hi-score
   - 17 effects, including bounce, net, line call, crowd roar, applause and the ball machine
-  - Every racket strike (shot, power drive, smash, serve, net cord) is a short, low, woody "thunk" (60–100 ms, about 380 Hz falling to 160 Hz). The engine roughens the pitch every frame so it sounds like a hit rather than a beep. These replaced the earlier high, warbling chirps.
+  - Every racket strike (shot, power drive, serve, net cord) is a short, low, woody "thunk" (60–80 ms, about 380 Hz falling to 160 Hz). The engine roughens the pitch every frame so it sounds like a hit rather than a beep.
+  - A **smash** is a loud POP: a 40 ms crack of dense noise (about three times as loud as a normal hit), then a deep thud.
+  - v1.1.5 fixed a bug in the effect table (9-byte entries read at 8-byte steps). Before that, only the plain hit played as designed; the smash in particular came out as a long chirp.
 
-  `media/` has the emulator's speaker output for the title music and a stretch of play, plus `racket_sounds_before_after.mp3`: the old chirps, then the new thunks (shot, power drive, smash, serve, each twice), modelled from the engine.
+  `media/` has the emulator's speaker output for the title music and a stretch of play, plus `racket_sounds.mp3`, recorded from the emulator: four normal hits, three power drives, four smashes, then 12 seconds of a real rally.
 
 ## Hardware notes
 
