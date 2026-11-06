@@ -1,5 +1,5 @@
 ; ============================================================================
-;  DREADMOOR  -  Sir Tinplate's Long Night
+;  GRAVES 'N' GARGOYLES  -  Sir Tinplate's Long Night
 ;  A gothic fantasy arcade platform adventure for the Dick Smith VZ300
 ;  Target: VZ300 + BennVenn SD loader + 128K SRAM.  Mode 1 (128x64 4-colour)
 ;  (c) 2026  ViBED by BPM
@@ -26,6 +26,7 @@ RING0    equ $4000
 RING2    equ $4A80
 RINGW    equ 48
 TITLEBUF equ $4000
+LOGOBUF  equ $4800      ; logo sprite (mask+data) rebuilt here for the front end
 IM2TAB   equ $7800
 ISRJP    equ $7979
 STACKTOP equ $7B00

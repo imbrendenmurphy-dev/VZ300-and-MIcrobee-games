@@ -1,5 +1,5 @@
 #!/bin/sh
-# usage: ./build.sh            release build -> build/DREADMR.VZ
+# usage: ./build.sh            release build -> build/GRAVGARG.VZ
 #        ./build.sh dbg START ARMOUR OWNED CHEAT   -> build/DBG.VZ
 set -e
 cd "$(dirname "$0")"
@@ -9,7 +9,7 @@ if [ "$1" = "dbg" ]; then
   OUT=DBG
 else
   printf "DBG_START equ 16\nDBG_ARMOUR equ 1\nDBG_OWNED equ 1\nDBG_CHEAT equ 0\n" > src/build_opts.asm
-  OUT=DREADMR
+  OUT=GRAVGARG
 fi
 python3 tools/z80asm.py src/main.asm build/$OUT.bin build/$OUT.sym > /dev/null
-python3 tools/mkvz.py build/$OUT.bin build/$OUT.VZ 8000 DREADMOOR
+python3 tools/mkvz.py build/$OUT.bin build/$OUT.VZ 8000 GRAVESNGARGOYLES

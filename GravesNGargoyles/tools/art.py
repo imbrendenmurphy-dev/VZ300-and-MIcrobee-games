@@ -1,4 +1,4 @@
-# DREADMOOR - pixel art definitions (mode 1, 128x64, CSS0: g=green y=yellow b=blue r=red)
+# GRAVES 'N' GARGOYLES - pixel art definitions (mode 1, 128x64, CSS0: g=green y=yellow b=blue r=red)
 # '.' = transparent in sprites. Tiles are 8x8, sprites as listed.
 
 TILES = {}

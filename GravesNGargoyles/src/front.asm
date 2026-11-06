@@ -172,6 +172,7 @@ title_screen:
 
 ; unpack the RLE title art into SRAM
 unpack_title:
+        call unpack_logo
         ld hl,TITLE_RLE
         ld de,TITLEBUF
 .lp:    ld a,(hl)
@@ -195,6 +196,42 @@ unpack_title:
         inc de
         djnz .l2
         jr .lp
+
+; rebuild the logo sprite (mask + data) from its pixel data
+unpack_logo:
+        ld hl,LOGO_DAT
+        ld de,LOGOBUF
+        ld bc,LOGO_W*LOGO_H
+.lp:    push bc
+        ld a,(hl)
+        ld c,a
+        ld b,4
+        ld a,0
+.px:    rlca
+        rlca
+        rlc c
+        rlc c
+        push af
+        ld a,c
+        and 3
+        jr nz,.op
+        pop af
+        or 3
+        jr .nx
+.op:    pop af
+.nx:    djnz .px
+        ld (de),a               ; mask (11 where transparent)
+        inc de
+        ld a,(hl)
+        ld (de),a
+        inc de
+        inc hl
+        pop bc
+        dec bc
+        ld a,b
+        or c
+        jr nz,.lp
+        ret
 
 copy_title:
         ld hl,TITLEBUF
@@ -387,9 +424,9 @@ draw_logo:
         inc l
         ld h,(hl)
         ld l,a
-        ld de,5
+        ld de,LOGO_X
         add hl,de
-        ld de,LOGO_SPR
+        ld de,LOGOBUF
         ld b,LOGO_H
 .r:     push bc
         push hl

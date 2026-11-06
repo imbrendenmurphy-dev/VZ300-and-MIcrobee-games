@@ -1,23 +1,13 @@
-# DREADMOOR — Sir Tinplate's Long Night
+# GRAVES 'N' GARGOYLES — Sir Tinplate's Long Night
 
 A gothic fantasy arcade platform adventure for the Dick Smith VZ300.
 Inspired by Ghosts 'n Goblins and Ghouls 'n Ghosts, without the cruelty.
 Target: VZ300 + BennVenn SD loader + 128K SRAM. Mode 1 (128×64, 4 colours) throughout.
 © 2026 — ViBED by BPM
 
-## Loading
-
-Copy `release/DREADMR.VZ` to the SD card and run it from the BennVenn loader. It loads at
-$8000 and starts by itself. Needs the 128K SRAM expansion.
-
-*(DREADMOOR is the working title.)*
-
-![Title](screenshots/title.png) ![Gallows Hill](screenshots/gallows-hill.png)
-![GRAVEMAW](screenshots/gravemaw.png) ![Gristle the Imp](screenshots/gristle.png)
-
 ## The game
 
-The sorcerer **Morgrave** has stolen the seven **Sunstones**. The sun will not rise and the
+In the kingdom of Dreadmoor, the sorcerer **Morgrave** has stolen the seven **Sunstones**. The sun will not rise and the
 dead walk the land. Only one knight is awake: **Sir Tinplate**, the least impressive knight
 in the realm, in borrowed tin armour.
 
@@ -45,7 +35,7 @@ in the realm, in borrowed tin armour.
   by a shudder) and summons bats. Its health bar replaces the HUD divider.
 - Chests, coins, jewels, potions, weapon pickups, extra lives, random drops.
 - **Front end:** a lightning-lit animated title (castle, flickering windows, bats, ghost,
-  descending gothic logo). There's also a menu, story pages, a "Creatures of the Night"
+  the two-line gothic logo descending). There's also a menu, story pages, a "Creatures of the Night"
   bestiary, a self-playing demo, a hall of heroes, controls and credits pages, stage cards,
   game over with continue countdown, stage clear, and an ending.
 - **Difficulty:** Casual (5 lives, longer invulnerability, weaker boss) / Normal / Expert
@@ -106,11 +96,11 @@ $5500-$6068  SRAM bank B  frame blit routine
 $6100-$66FF  SRAM bank B  hero layered class data
 $7000-$77FF  video RAM    rows 0-8 HUD, 9-59 playfield, 60-63 border
 $7800-$7FFF  IM2 table, stack, HUD buffer, lookup tables
-$8000-$F98B  program + data (the end of the load image becomes variables and frame buffer)
+$8000-$F8D8  program + data (the end of the load image becomes variables and frame buffer)
 ```
 
 Port $37 is set to 3 (SRAM bank B) at start-up. The loader's DOS bank (value 1) isn't
-used yet by this build, which currently uses RAM up to about $FCA0 (see the SD notes).
+used yet by this build, which currently uses RAM up to about $FCF0 (see the SD notes).
 
 ### BennVenn SD DOS interface (decoded from the 13 Ghosts loader)
 
@@ -142,11 +132,10 @@ destination (2), length (2), bank flag (1), then the quoted name (10).
 
 ## Building
 
-Requirements: Python 3 (with Pillow, only for previews) and gcc for the test emulator
-(`gcc -O2 -o emu/vzemu emu/vzemu.c`).
+Requirements: Python 3 (with Pillow, only for previews) and gcc (for the test emulator).
 
 ```
-./build.sh                         # -> build/DREADMR.VZ  (loads at $8000, autoruns)
+./build.sh                         # -> build/GRAVGARG.VZ  (loads at $8000, autoruns)
 ./build.sh dbg START ARM OWNED CHEAT   # test build: start x, armour 0-5, weapon bits, invincible
 ```
 

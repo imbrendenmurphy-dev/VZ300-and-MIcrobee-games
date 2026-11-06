@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate DREADMOOR asm data: gfx, level, music, blit routines, title art."""
+"""Generate GRAVES 'N' GARGOYLES asm data: gfx, level, music, blit routines, title art."""
 import sys, os, random, math
 sys.path.insert(0, os.path.dirname(__file__))
 from art import *
@@ -410,7 +410,7 @@ def gen_title():
         x, y = random.randrange(W), random.randrange(0, 40)
         P[y][x] = 'y'
     # moon at upper right
-    cx, cy, rad = 118, 10, 7
+    cx, cy, rad = 113, 31, 7
     for y in range(H):
         for x in range(W):
             dx = (x - cx); dy = (y - cy) * 1.5
@@ -437,10 +437,10 @@ def gen_title():
     rect(8, 36, 44, 47)                  # curtain wall
     rect(5, 30, 12, 47); rect(40, 30, 47, 47)    # side towers
     rect(19, 24, 33, 36)                 # keep
-    rect(23, 15, 29, 24)                 # spire tower
-    for i in range(6):
-        rect(26 - i // 2 - 1, 9 + i, 26 + i // 2 + 1, 10 + i)
-    P[8][26] = 'r'; P[7][26] = 'y'
+    rect(23, 19, 29, 24)                 # spire tower
+    for i in range(4):
+        rect(26 - i // 2 - 1, 15 + i, 26 + i // 2 + 1, 16 + i)
+    P[14][26] = 'r'; P[13][26] = 'y'
     for (x0, x1, y) in [(5, 12, 30), (40, 47, 30), (19, 33, 24), (8, 44, 36)]:
         for x in range(x0, x1, 2): P[y - 1][x] = 'r'
     rect(4, 29, 13, 30); rect(39, 29, 48, 30)
@@ -450,7 +450,7 @@ def gen_title():
     P[24][8] = 'r'; P[24][43] = 'r'
     # gate
     rect(24, 41, 28, 47, 'b'); rect(25, 40, 27, 41, 'b')
-    wins = [(8, 33), (43, 33), (22, 28), (29, 28), (26, 18), (14, 40), (36, 40), (19, 40), (33, 40)]
+    wins = [(8, 33), (43, 33), (22, 28), (29, 28), (26, 21), (14, 40), (36, 40), (19, 40), (33, 40)]
     for x, y in wins:
         P[y][x] = 'y'; P[y + 1][x] = 'y'
     # graveyard foreground (right)
@@ -470,22 +470,54 @@ def gen_title():
     return P, wins
 
 LOGO_LETTERS = {
- 'D': ['########...','.##....##..','.##.....##.','.##.....##.','.##.....##.','.##.....##.','.##.....##.','.##....##..','########...'],
+ 'G': ['..######...','.##....##..','##.........','##.........','##...####..','##.....##..','##.....##..','.##....##..','..######...'],
  'R': ['########...','.##....##..','.##....##..','.##...##...','.######....','.##..##....','.##...##...','.##....##..','####...###.'],
- 'E': ['#########..','.##.....#..','.##........','.##...#....','.######....','.##...#....','.##........','.##.....#..','#########..'],
  'A': ['....##.....','...####....','..##..##...','..##..##...','.##....##..','.########..','.##....##..','.##....##..','###....###.'],
- 'M': ['##.....##..','###...###..','####.####..','##.###.##..','##..#..##..','##.....##..','##.....##..','##.....##..','###...###..'],
+ 'V': ['###....###.','.##....##..','.##....##..','.##....##..','..##..##...','..##..##...','...####....','...####....','....##.....'],
+ 'E': ['#########..','.##.....#..','.##........','.##...#....','.######....','.##...#....','.##........','.##.....#..','#########..'],
+ 'S': ['..######...','.##....##..','.##........','..###......','....####...','.......##..','.......##..','.##....##..','..######...'],
  'O': ['..#####....','.##...##...','##.....##..','##.....##..','##.....##..','##.....##..','##.....##..','.##...##...','..#####....'],
+ 'Y': ['###...###..','.##...##...','..##.##....','...###.....','....##.....','....##.....','....##.....','....##.....','...####....'],
+ 'L': ['####.......','.##........','.##........','.##........','.##........','.##........','.##........','.##.....#..','#########..'],
 }
-def gen_logo():
-    word = 'DREADMOOR'
-    rows = 9
-    grid = [''] * rows
+SMALL_N = ['.#..#.#..#.', '.#..##.#.#.', '....#.##...', '....#..#...', '....#..#...']   # 'N' with quote marks
+
+def word_grid(word):
+    rows = [''] * 9
     for ch in word:
         g = LOGO_LETTERS[ch]
-        for r in range(rows):
-            grid[r] += g[r][:-1] if ch in 'AM' else g[r][:-1]
-    return grid
+        for r in range(9):
+            rows[r] += g[r]
+    return [r.rstrip('.') for r in rows]
+
+def gen_logo():
+    """Two-line logo: GRAVES 'N' / GARGOYLES -> list of rows of 'y','r','.'"""
+    top = word_grid('GRAVES')
+    bot = word_grid('GARGOYLES')
+    W = max(max(len(r) for r in bot), max(len(r) for r in top) + 13) + 1
+    H = 9 + 2 + 9 + 1
+    canvas = [['.'] * W for _ in range(H)]
+    def stamp(grid, x0, y0, col):
+        for y, row in enumerate(grid):
+            for x, c in enumerate(row):
+                if c == '#':
+                    canvas[y0 + y][x0 + x] = col
+    tw = max(len(r) for r in top) + 13
+    bw = max(len(r) for r in bot)
+    tx = (W - 1 - tw) // 2
+    bx = (W - 1 - bw) // 2
+    # shadows first (red, one pixel right and down), then the yellow letters
+    for grid, x0, y0 in ((top, tx, 0), (bot, bx, 11)):
+        stamp(grid, x0 + 1, y0 + 1, 'r')
+    for grid, x0, y0 in ((top, tx, 0), (bot, bx, 11)):
+        stamp(grid, x0, y0, 'y')
+    # the little 'N' between the words, in red, with a green glint
+    nx = tx + max(len(r) for r in top) + 2
+    for y, row in enumerate(SMALL_N):
+        for x, c in enumerate(row):
+            if c == '#':
+                canvas[2 + y][nx + x] = 'r'
+    return [''.join(r) for r in canvas]
 
 def title_bytes():
     P, wins = gen_title()
@@ -520,31 +552,19 @@ def gen_title_asm():
         L.append('    dw %d\n    db $%02X' % (y * 32 + x // 4, 3 << (6 - 2 * (x % 4))))
     L.append('    dw $FFFF')
     L.append('NWINS equ %d' % len(wins))
-    # logo: red shadow then yellow letters, as a masked sprite 104x9 -> centred
+    # logo: pre-composed two-line masked sprite
     logo = gen_logo()
-    w = len(logo[0])
-    W4 = ((w + 1 + 3) // 4) * 4
-    rows = []
-    for r in range(len(logo) + 1):
-        row = ''
-        for x in range(W4):
-            c = '.'
-            if r < len(logo) and x < w and logo[r][x] == '#':
-                c = 'y'
-                if r in (0,): c = 'y'
-            elif r > 0 and x > 0 and x - 1 < w and logo[r - 1][x - 1] == '#':
-                c = 'r'
-            row += c
-        rows.append(row)
-    # gothic flourish: yellow highlights row 1 dithered with green
-    rows = [r for r in rows]
+    W4 = ((len(logo[0]) + 3) // 4) * 4
+    rows = [r + '.' * (W4 - len(r)) for r in logo]
     SPR = []
     for r in rows:
         k, d = pack(r)
-        for a, b in zip(k, d): SPR += [a, b]
+        SPR += d               # data only; the mask is rebuilt at run time
+    assert 'g' not in ''.join(rows)
     L.append('LOGO_W equ %d' % (W4 // 4))
     L.append('LOGO_H equ %d' % len(rows))
-    L.append('LOGO_SPR:')
+    L.append('LOGO_X equ %d' % (4 + (32 - W4 // 4) // 2))
+    L.append('LOGO_DAT:')
     L += db_lines(SPR)
     open(os.path.join(OUT, 'title.asm'), 'w').write('\n'.join(L) + '\n')
     return P, rows
@@ -564,7 +584,7 @@ if __name__ == '__main__':
             for x in range(128): im.putpixel((x, y), PAL[P[y][x]])
         for y, r in enumerate(logo):
             for x, c in enumerate(r):
-                if c != '.' and x + 4 < 128: im.putpixel((x + 4, y + 2), PAL[c])
+                if c != '.' and x + 16 < 128: im.putpixel((x + 16, y + 2), PAL[c])
         im.resize((512, 192), Image.NEAREST).save('/tmp/claude-0/title_prev.png')
         tl = {}
         for i, n in enumerate(TILE_ORDER): tl[n] = TILES[n]
