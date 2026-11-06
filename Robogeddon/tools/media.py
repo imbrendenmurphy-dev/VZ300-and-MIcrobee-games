@@ -136,3 +136,23 @@ for i, im in enumerate(ims):
     sheet.paste(im, ((i % cols) * 260 + 2, (i // cols) * 196 + 2))
 sheet.save(os.path.join(SHOTS, P + 'screens.png'))
 print('done:', len(names), 'stills')
+
+# ---- showcase GIF: title fly-in, the robots, the computer playing, a mindbot
+#      wave, the high scores (12.5 frames a second)
+run('sc_att', first(5) + 10, every=4)
+run('sc_play', 1100, keys=play_keys(), every=4, pokes=wave_row(0, 14, 5, 3, 7, 0, 0, 3, 3, 3, 6))
+DEMO_E = (DEMO0 + 60) & ~3
+parts = [('sc_att', range(4, 360, 4)),                                   # title
+         ('sc_att', range(first(2) & ~3, (first(2) + 300) & ~3, 4)),     # the robots
+         ('dem', range(DEMO_E, DEMO_E + 720, 4)),                        # demo play
+         ('sc_play', range(300, 1000, 4)),                                # mindbot wave
+         ('sc_att', range(first(3) & ~3, (first(3) + 140) & ~3, 4))]     # high scores
+fr = []
+for name, rng in parts:
+    for n in rng:
+        p = os.path.join(TMP, '%s_%05d.ppm' % (name, n))
+        if os.path.exists(p):
+            fr.append(frame(name, n).resize((384, 288), Image.NEAREST))
+fr[0].save(os.path.join(SHOTS, P + 'showcase.gif'), save_all=True, append_images=fr[1:],
+           duration=80, loop=0, optimize=True)
+print('showcase:', len(fr), 'frames')

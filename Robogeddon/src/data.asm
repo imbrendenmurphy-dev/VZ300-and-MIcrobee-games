@@ -47,6 +47,15 @@ wavetab:
         db 24, 0,16, 0, 3, 0, 3, 3, 3, 3      ; 19 crusher wave
         db 16, 7, 3,14, 0, 0, 3, 3, 4, 3      ; 20 mindbot wave
 
+; ---- easing in.  Per stage: frames skipped in 16 by the free movers (orbs,
+; seekers, mutants), added droid step delay, fastest droid step, frames between
+; droid speed-ups, crusher/mindbot step, tank step, extra seeker fire delay,
+; safe-box growth.  Speeds: stage 3 ~50%, 2 ~70%, 1 ~75%, 0 full.
+ease_tab:
+        db 0, 0, 2, 100, 3, 4,  0, 0    ; 0: wave 11 on
+        db 4, 1, 3, 133, 4, 5, 16, 1    ; 1: waves 6-10, 25% slower
+        db 5, 2, 3, 143, 4, 6, 24, 1    ; 2: waves 3-5, 30% slower
+        db 8, 2, 6, 250, 5, 8, 64, 2    ; 3: waves 1-2, about half speed
 flash_cols:
         db 1, 3, 2, 3
 ; the blue arena's edge: a single 50:50 green/blue line, fading into the

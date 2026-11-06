@@ -1,29 +1,54 @@
 # ROBOGEDDON 2085
-### for the Dick Smith VZ200 / VZ300 with BennVenn SD + 128K — ViBED by BPM 2026
+### Twin-stick robot mayhem for the Dick Smith VZ200 / VZ300 — ViBED by BPM 2026
 
-**The year is 2085, and the machines have turned on us.** One family is left alive, wandering an
-arena full of robots, and only you stand between them and the scrap heap.
+![ROBOGEDDON 2085](screenshots/ROBOGEDDON_showcase.gif)
 
-Run with one stick and blast with the other, Robotron-style. Or play with one stick and hold fire
-to strafe, or with W A S D to move and I J K L to shoot.
+**The year is 2085, and the machines have turned on us.** One family is left alive, wandering an arena
+full of murderous robots, and only you stand between them and the scrap heap.
 
-Twenty waves of mayhem:
-- **Droids** that march at you and speed up the longer you dawdle
-- **Pylons** that kill on touch
-- **Crushers** that can't be stopped, and squash any human they catch
-- **Mindbots** that turn your family into twitching **Mutants** and fire homing missiles
-- **Orbs** that hatch spark-spitting **Seekers**
-- **Factories** that roll out shell-lobbing **Tanks**
+**Move with one stick and blast with the other.** ROBOGEDDON is frantic, arcade-style dual-stick
+action in the spirit of the 1982 classic. You run one way and fire another, carving paths through
+swarms of droids while you dive across the arena to pull the last humans to safety. Every wave
+explodes onto the screen line by line, and every robot you hit shatters apart in a burst of scanlines.
+There's no time to think, only to move and shoot, and to keep moving.
 
-Save the humans for 1000 to 5000 apiece. Grab **3-Way** and **Shield** power-ups. Earn the **Full
-Family Bonus**, and an extra life every 25,000.
+**Twenty waves of mayhem**
+- **Droids** march straight at you, and the longer you take, the faster they come
+- **Pylons** kill on touch
+- **Crushers** can't be stopped. Bullets only knock them back, and they flatten any human they catch
+- **Mindbots** hunt your family, turn them into twitching **Mutants**, and launch homing missiles
+- **Orbs** bounce around hatching spark-spitting **Seekers**
+- **Factories** roll out **Tanks** that lob shells off the walls
 
-It all wraps up in:
-- a big-logo title that flies in as a bunch and spreads out, ringed by travelling V and Z discs, with a gritty title tune
-- arcade-style colour-cycling borders on every information screen
-- a blue arena with a green dithered edge that melts into the VZ's border
-- robots that materialise line by line and shatter apart the same way
-- a typed-out story, a rogues' gallery and a computer-played demo
-- a high-score table with initials, which survives a reset
-- a steady, snow-free 25 frames a second
-- a trainer mode for practice
+Save the humans for 1,000 to 5,000 points apiece. Grab **3-Way** spread-shot and **Shield** power-ups,
+earn the **Full Family Bonus**, and pick up an extra life every 25,000 points. The first ten waves ease
+you in gently; from wave 11 the gloves come off.
+
+**Play it your way**
+- **Dual stick**: two VZ joysticks, one to move and one to aim, the true Robotron way
+- **One stick**: hold fire to shoot and strafe
+- **Keyboard**: W A S D to move, I J K L to shoot
+
+**All the trimmings**
+- A big-logo title that flies in as a bunch and spreads out, ringed by travelling, colour-cycling
+  V and Z discs, with a gritty title tune
+- Arcade-style concentric colour-cycling borders on every information screen
+- A typed-out story, a rogues' gallery, a controls page and a computer-played demo
+- A high-score table with initials and the wave you reached. It's kept in the BennVenn card's memory,
+  so it survives a reset
+- Trainer mode for practice, a pause key, and music + effects / effects only / silent sound modes
+
+**Tech specs**
+| | |
+|---|---|
+| Machine | Dick Smith VZ200 / VZ300 (Z80 at 3.55 MHz), PAL |
+| Needs | BennVenn SD loader + 128K expansion |
+| Display | Mode 1, 128×64, 4 colours: a blue background inside the VZ's green border |
+| Frame rate | Steady 25 fps on normal waves; the busiest waves (50+ robots) mix 25 and 16.7 fps |
+| Snow | None. All video RAM writes happen in vertical blank |
+| Rendering | Double-buffered. An IM2 field-sync interrupt copies each frame to video RAM in two halves, using unrolled POP/PUSH code built at start-up in the card's SRAM. Sprites are pre-shifted and drawn through masks |
+| Objects | Up to 64 robots, humans and effects, plus 12 enemy bullets and 6 player shots |
+| Sound | 1-bit beeper: a phase-accumulator square wave and pitched noise; original title tune and effects |
+| Controls | Dual VZ joysticks, one joystick, or keyboard |
+| File | `ROBOGEDN.VZ`: one 22K type-F1 binary that loads at $8000 |
+| Code | 100% Z80 assembly. Original code, graphics and music |

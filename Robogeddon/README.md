@@ -6,6 +6,8 @@ Original code, graphics and music. It's inspired by Robotron but contains nothin
 
 ![title](screenshots/ROBOGEDDON_title.gif)
 
+![showcase](screenshots/ROBOGEDDON_showcase.gif)
+
 ![gameplay](screenshots/ROBOGEDDON_gameplay.gif)
 
 ![screens](screenshots/ROBOGEDDON_screens.png)
@@ -13,7 +15,7 @@ Original code, graphics and music. It's inspired by Robotron but contains nothin
 ## Play it
 
 Copy `release/ROBOGEDN.VZ` to the SD card and run it from the BennVenn SD loader.
-- It's a single type F1 binary. It loads at $8000 (to $D952) and runs from $8000. There are no other files.
+- It's a single type F1 binary. It loads at $8000 (to $D96F) and runs from $8000. There are no other files.
 - It needs the **128K expansion** (RAM up to $FFFF, and the card's SRAM at $4000–$67FF).
 - It doesn't call the DOS while running, and it never writes to the SD card.
 
@@ -59,9 +61,14 @@ wave, and run into the humans to save them. Each rescue is worth more than the l
 
 Any spark, missile or shell can be shot down for 25 points.
 
-**Easing in.** The first waves are gentler. On waves 1 and 2 every robot moves noticeably slower, the
-droids speed up only every 10 seconds (and never reach full speed), sparks fly at half speed, and the robots
-start further away from you. Waves 3 and 4 are a little slower. From wave 5 it's full speed.
+**Easing in.** The first ten waves are gentler, getting a little tougher as you go:
+
+| Waves | Robot speed | Also |
+|---|---|---|
+| 1–2 | about half speed | sparks at half speed; robots start well away from you; droids top out at a step every 6 frames and speed up only every 10 s |
+| 3–5 | 30% slower | droids top out at a step every 3 frames and speed up every 5.7 s |
+| 6–10 | 25% slower | droids speed up every 5.3 s |
+| 11 on | full speed | droids speed up every 4 s, to a step every 2 frames |
 
 **Waves.** There are 20 hand-made waves: droid swarms, crusher waves, mindbot waves and tank waves. After
 wave 20 they repeat, faster. Each wave opens with its robots *materialising* line by line, with a caption
@@ -129,7 +136,7 @@ you switch off.
 | $4800–$640B | screen-copy routines, built at start-up (SRAM bank 1) |
 | $6700–$6746 | saved high scores (SRAM bank 3) |
 | $7000–$77FF | video RAM |
-| $8000–$D952 | code and data |
+| $8000–$D96F | code and data |
 | $E800–$EFFF | frame buffer 0 |
 | $F000–$F100, $F1F1 | IM2 vector table, `jp isr` |
 | $F200–$F6FF | variables, objects (64 × 8 bytes), bullets, shots, high scores |

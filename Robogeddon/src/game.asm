@@ -215,21 +215,34 @@ start_wave:
         ld      de,wrow
         ld      bc,10
         ldir
-        ; easing in: waves 1-2 ease 2, waves 3-4 ease 1, then none
+        ; easing in: stage 3 = waves 1-2 (about half speed), 2 = waves 3-5
+        ; (30% slower), 1 = waves 6-10 (25% slower), 0 = full speed
         ld      a,(wave)
-        ld      b,2
+        ld      b,3
         cp      3
         jr      c,.ez
         dec     b
-        cp      5
+        cp      6
+        jr      c,.ez
+        dec     b
+        cp      11
         jr      c,.ez
         dec     b
 .ez:    ld      a,b
         ld      (easy),a
         add     a,a
-        add     a,2
-        ld      (droid_min),a       ; fastest the droids get: 6 / 4 / 2 frames
-        ld      a,(easy)            ; safe box: x 42-10e..82+10e, y 22-5e..47+5e
+        add     a,a
+        add     a,a                 ; 8 settings per stage
+        ld      e,a
+        ld      d,0
+        ld      hl,ease_tab
+        add     hl,de
+        ld      de,ez_skip
+        ld      bc,8
+        ldir
+        ld      a,(ez_min)
+        ld      (droid_min),a
+        ld      a,(ez_box)          ; safe box: x 42-10e..82+10e, y 22-5e..47+5e
         ld      b,a
         add     a,a
         add     a,a
@@ -251,7 +264,7 @@ start_wave:
         ; droid speed: frames between steps
         ld      a,(wrow+9)
         ld      b,a
-        ld      a,(easy)
+        ld      a,(ez_dadd)
         add     a,b
         ld      b,a
         ld      a,(wave_lvl)
@@ -408,10 +421,7 @@ spawn_obj:
         call    rnd_n
         add     a,30
         ld      b,a
-        ld      a,(easy)
-        rrca
-        rrca
-        rrca                        ; ease*32
+        ld      a,(ez_seek)         ; seekers hold their fire longer early on
         add     a,b
         ld      (iy+3),a
         ld      (iy+7),0            ; children spawned
@@ -538,12 +548,9 @@ state_step:
         xor     a
         call    start_music
         ret
-.p1:    ; droids speed up every 4 s (7 s on waves 3-4, 10 s on waves 1-2)
-        ld      a,(easy)
-        add     a,low accel_tab
-        ld      l,a
-        ld      h,high accel_tab
-        ld      b,(hl)
+.p1:    ; droids speed up every 4 s (longer in the early waves)
+        ld      a,(ez_accel)
+        ld      b,a
         ld      hl,droid_acc
         inc     (hl)
         ld      a,(hl)
@@ -753,7 +760,7 @@ overlay:
         call    strcpy
         ld      hl,txtbuf
         ld      c,18
-        ld      a,$FF
+        ld      a,$55
         call    text2xc
         ld      hl,s_saved
         ld      de,txtbuf
@@ -763,7 +770,7 @@ overlay:
         call    strcpy
         ld      hl,txtbuf
         ld      c,34
-        ld      a,$55
+        ld      a,0                 ; green
         call    text3c
         ld      a,(fam_lost)
         or      a
@@ -1515,17 +1522,17 @@ mul_sgn:
         sub     d
         ret
 
-; ease_skip: NZ = sit this frame out (half the frames at ease 2, a
-;   quarter at ease 1, none after).  keeps BC, DE, HL
+; ease_skip: NZ = sit this frame out (ez_skip frames in every 16).
+;   keeps BC, DE, HL
 ease_skip:
-        ld      a,(easy)
+        ld      a,(ez_skip)
         or      a
         ret     z
         push    bc
         ld      b,a
         ld      a,(gtick)
-        and     3
-        cp      b                   ; C if (gtick & 3) < ease
+        and     15
+        cp      b                   ; C if (gtick & 15) < frames to skip
         pop     bc
         sbc     a,a                 ; $FF (NZ) if so
         ret
@@ -1593,8 +1600,7 @@ upd_crush:
         call    z,pick_target
         dec     (ix+3)
         jr      nz,.chk
-        ld      a,(easy)
-        add     a,3
+        ld      a,(ez_step)
         ld      (ix+3),a
         inc     (ix+6)
         call    rnd
@@ -1928,10 +1934,7 @@ upd_seek:
         call    rnd_n
         add     a,30
         ld      b,a
-        ld      a,(easy)
-        rrca
-        rrca
-        rrca                        ; ease*32
+        ld      a,(ez_seek)         ; seekers hold their fire longer early on
         add     a,b
         ld      (ix+3),a
         ld      b,(ix+1)
@@ -1963,8 +1966,7 @@ upd_brain:
         call    z,pick_target
         dec     (ix+3)
         jr      nz,.cv
-        ld      a,(easy)
-        add     a,3
+        ld      a,(ez_step)
         ld      (ix+3),a
         inc     (ix+6)
         call    target_xy
@@ -2048,9 +2050,7 @@ upd_tank:
         jr      z,.dr
         dec     (ix+3)
         jr      nz,.dr
-        ld      a,(easy)
-        add     a,a
-        add     a,4
+        ld      a,(ez_tank)
         ld      (ix+3),a
         inc     (ix+6)
         ld      de,$0101
@@ -2304,7 +2304,7 @@ fire_ebul:
         cp      1
         jr      nz,.sl
         ld      a,(easy)
-        cp      2
+        cp      3
         jr      c,.sp               ; sparks: half speed on waves 1-2
 .sl:    sra     b                   ; shells and missiles start slower
         sra     c
