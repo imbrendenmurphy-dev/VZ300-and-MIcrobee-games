@@ -321,9 +321,11 @@ for ch in "STARBLEI":
         data += r
     db(data)
 # letter layout: (char, final byte col, final row)
-LAYOUT = [('S', 7, 2), ('T', 10, 2), ('A', 13, 2), ('R', 16, 2), ('I', 21, 2), ('I', 23, 2)]
+# STAR centred over BLASTER, the "II" after BLASTER so it reads STAR BLASTER II
+LAYOUT = [('S', 10, 2), ('T', 13, 2), ('A', 16, 2), ('R', 19, 2)]
 for i, ch in enumerate("BLASTER"):
-    LAYOUT.append((ch, 5 + 3 * i, 15))
+    LAYOUT.append((ch, 2 + 3 * i, 15))
+LAYOUT += [('I', 26, 15), ('I', 28, 15)]
 L.append("logo_layout:   ; ptr, col, row")
 for (ch, c, r) in LAYOUT:
     L.append("    dw let_%s : db %d,%d" % (ch, c, r))

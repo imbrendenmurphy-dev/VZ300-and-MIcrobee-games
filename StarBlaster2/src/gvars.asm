@@ -74,3 +74,7 @@ lag:    db 0
 sg_a:   db 0
 sg_c:   db 0
 sg_d:   db 0
+bezcol: db 0
+bz_top: dw 0
+bz_l:   db 0
+bz_r:   db 0

@@ -540,19 +540,19 @@ let_I:
     db $3F,$C0,$00,$00,$3F,$C0,$00,$FF,$3F,$C0,$00,$FF,$3F,$C0,$00,$FF
     db $3F,$C0,$00,$FF,$3F,$C0,$00,$FF,$3F,$C0,$C0,$3F,$3F,$C0
 logo_layout:   ; ptr, col, row
-    dw let_S : db 7,2
-    dw let_T : db 10,2
-    dw let_A : db 13,2
-    dw let_R : db 16,2
-    dw let_I : db 21,2
-    dw let_I : db 23,2
-    dw let_B : db 5,15
-    dw let_L : db 8,15
-    dw let_A : db 11,15
-    dw let_S : db 14,15
-    dw let_T : db 17,15
-    dw let_E : db 20,15
-    dw let_R : db 23,15
+    dw let_S : db 10,2
+    dw let_T : db 13,2
+    dw let_A : db 16,2
+    dw let_R : db 19,2
+    dw let_B : db 2,15
+    dw let_L : db 5,15
+    dw let_A : db 8,15
+    dw let_S : db 11,15
+    dw let_T : db 14,15
+    dw let_E : db 17,15
+    dw let_R : db 20,15
+    dw let_I : db 26,15
+    dw let_I : db 28,15
     dw 0
 sintab:   ; 256 entries, signed, amplitude 127
     db $00,$03,$06,$09,$0C,$10,$13,$16,$19,$1C,$1F,$22,$25,$28,$2B,$2E

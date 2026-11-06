@@ -193,14 +193,13 @@ draw_cockpit:
         ld d,0
         ld e,VIEWH
         call fill_rows
-        ld a,$FF                ; red rim
-        ld d,VIEWH
-        ld e,VIEWH+1
-        call fill_rows
         xor a                   ; green panel
-        ld d,VIEWH+1
+        ld d,VIEWH
         ld e,64
         call fill_rows
+        xor a
+        ld (bezcol),a
+        call draw_bezel
         ; radar box: blue interior cols 9..22, rows 52..62, yellow frame
         ld d,52
 .rb:    ld a,d
@@ -219,7 +218,7 @@ draw_cockpit:
         djnz .rbb
         inc d
         ld a,d
-        cp 63
+        cp 62
         jr nz,.rb
         ld a,1
         ld (txtbase),a
@@ -233,7 +232,7 @@ draw_cockpit:
         call pset_both
         pop bc
         push bc
-        ld c,63
+        ld c,62
         ld e,1
         call pset_both
         pop bc
@@ -254,7 +253,7 @@ draw_cockpit:
         pop bc
         inc c
         ld a,c
-        cp 63
+        cp 62
         jr nz,.fv
         ld bc,60*256+52
         ld e,1
@@ -262,10 +261,10 @@ draw_cockpit:
         ld bc,68*256+52
         ld e,1
         call pset_both
-        ld bc,60*256+62
+        ld bc,60*256+61
         ld e,1
         call pset_both
-        ld bc,68*256+62
+        ld bc,68*256+61
         ld e,1
         call pset_both
         ld bc,64*256+57
@@ -348,13 +347,13 @@ hud_tally:
         ld b,0
         call set_ink
         ld hl,s_tally
-        ld de,0*256+46
+        ld de,1*256+47
         call print
         ld a,3
         ld b,0
         call set_ink
         ld hl,quota
-        ld d,4
+        ld d,5
         ld b,4
 .t:     push bc
         push hl
@@ -370,7 +369,7 @@ hud_tally:
 .nf:    ld a,c
         ld l,a
         ld h,0
-        ld e,46
+        ld e,47
         ld b,2
         call print_num
         pop de
@@ -388,7 +387,7 @@ hud_tally:
         ld a,(novas)
         ld l,a
         ld h,0
-        ld de,30*256+46
+        ld de,30*256+47
         ld b,1
         call print_num
         ret
@@ -976,7 +975,7 @@ spawn_tick:
         ld b,a
         ld a,(skill)
         srl a
-        add a,2
+        inc a
         cp b
         jr z,.nofht
         jr c,.nofht
@@ -1066,8 +1065,9 @@ spawn_fighter:
         ld (ix+O_EL+1),a
         ld (ix+O_Z+1),56
         ld a,(skill)
+        ld b,a
         add a,a
-        add a,a
+        add a,b                 ; skill*6
         add a,a
         ld b,a
         ld a,(lap)
@@ -1076,7 +1076,7 @@ spawn_fighter:
         add a,a
         add a,a
         add a,b
-        add a,40
+        add a,24
         neg
         ld (ix+O_VZ),a          ; approach speed
         call random
@@ -1387,7 +1387,7 @@ b_fighter:
         call c,home_in
         call reached
         ret nc
-        ld a,60
+        ld a,35
         jp ram_us
 
 b_ace:
@@ -1435,7 +1435,7 @@ b_ace:
         call home_in
         call reached
         ret nc
-        ld a,90
+        ld a,50
         jp ram_us
 
 b_convoy:
@@ -1458,7 +1458,7 @@ b_convoy:
         call play_sfx
         ld hl,s_landed
         call popup_centre
-        ld a,100
+        ld a,60
         jp lose_energy
 s_landed: db "TROOPS LANDED!",0
 
@@ -1472,7 +1472,7 @@ b_rock:
         add a,6
         cp 13
         ret nc
-        ld a,50
+        ld a,30
         jp ram_us
 
 b_mine:
@@ -1487,7 +1487,7 @@ b_mine:
         call play_sfx
 .nb:    call reached
         ret nc
-        ld a,80
+        ld a,45
         jp ram_us
 
 b_pod:
@@ -1499,7 +1499,7 @@ b_pod:
 b_plasma:
         call reached
         ret nc
-        ld a,40
+        ld a,20
         jp ram_us
 
 b_boss:
@@ -1643,19 +1643,22 @@ ram_us:
         push af
         ld a,SFX_HIT
         call play_sfx
-        call crack_stamp
-        ld a,24
-        ld (crackt),a
+        ld a,16
+        ld (crackt),a           ; bezel flash timer
         ld a,8
         ld (shaket),a
-        ld a,4
+        ld a,2
         ld (flasht),a
+        ld bc,CX*256+CY+10      ; sparks spray up from the dashboard
+        ld a,14
+        call burst
         pop af
         ; damage grows with skill
         ld b,a
         ld a,(skill)
+        ld c,a
         add a,a
-        add a,a
+        add a,c
         add a,b
 lose_energy:
         ld e,a
@@ -1825,7 +1828,7 @@ laser_hit:
         or a
         jr nz,.n
         ld a,(ix+O_HW)
-        add a,2
+        add a,3
         cp l
         jr c,.n
         ld a,(ix+O_SY)
@@ -1834,7 +1837,7 @@ laser_hit:
         neg
 .ay:    ld b,a
         ld a,(ix+O_HH)
-        add a,2
+        add a,3
         cp b
         jr c,.n
         pop bc
@@ -2758,80 +2761,183 @@ draw_sights:
         ld (hl),a
         ret
 
-; cracked canopy after a hit: stamped into BASE (no per-tick cost),
-; wiped again when the timer runs out
-crack_stamp:
-        ld a,(crackt)
-        or a
-        ret nz                  ; already cracked
-        ld a,1
-        ld (psbase),a
-        ld a,VIEWH
-        ld (clipbot),a
-        ld hl,cracktab
-        ld c,0
-.l:     ld a,(hl)
-        cp $FF
-        jr z,.e
-        ld (lx0),a
-        inc hl
-        ld a,(hl)
-        ld (ly0),a
-        inc hl
-        ld a,(hl)
-        ld (lx1),a
-        inc hl
-        ld a,(hl)
-        ld (ly1),a
-        inc hl
-        push hl
-        push bc
-        ld a,c
-        and 1
-        ld (lcol),a
-        call line
-        pop bc
-        inc c
-        pop hl
-        jr .l
-.e:     xor a
-        ld (psbase),a
-        ret
+; bezel timer: flashes red/yellow after a hit; otherwise blinks yellow on
+; the side a close threat is coming from (and ticks)
 crack_tick:
         ld a,(crackt)
         or a
-        ret z
+        jr z,.warn
         dec a
         ld (crackt),a
-        ret nz
-        ; wipe: BASE view back to blue, all view rows re-copied
+        jr z,.norm
+        and 2
+        ld a,4
+        jr z,.set
+        ld a,5
+        jr .set
+.warn:  ld a,(gstate)
+        or a
+        jr nz,.norm
+        call threat_side
+        or a
+        jr z,.norm
+        ld b,a
+        ld a,(tick)
+        and 4
+        jr nz,.norm
+        ld a,b
+        jr .set
+.norm:  xor a
+.set:   ld hl,bezcol
+        cp (hl)
+        ret z
+        ld (hl),a
+        or a
+        jr z,draw_bezel
+        cp 4
+        jr nc,draw_bezel
+        push af
+        ld a,SFX_TICK
+        call play_sfx
+        pop af
+        jr draw_bezel
+
+; threat_side: a fighter/ace/mine/plasma closer than z 9 ->
+; A = 0 none, 1 left, 2 right, 3 ahead
+threat_side:
+        push ix
+        ld ix,OBJS
+        ld b,NOBJ
+        ld c,0
+.o:     ld a,(ix+O_TYPE)
+        cp T_FHT
+        jr z,.t
+        cp T_ACE
+        jr z,.t
+        cp T_MINE
+        jr z,.t
+        cp T_PLASMA
+        jr nz,.n
+.t:     ld a,(ix+O_Z+1)
+        cp 9
+        jr nc,.n
+        push bc
+        call rel_az
+        pop bc
+        ld a,h
+        add a,16
+        cp 33
+        jr nc,.side
+        ld c,3
+        jr .n
+.side:  ld c,1
+        bit 7,h
+        jr nz,.n
+        ld c,2
+.n:     ld de,OSZ
+        add ix,de
+        djnz .o
+        pop ix
+        ld a,c
+        ret
+
+; draw_bezel: 50:50 dithered frame round the dashboard (BASE + BG)
+draw_bezel:
+        ld a,(bezcol)
+        add a,a
+        add a,a
+        ld e,a
         ld d,0
-.r:     ld a,d
+        ld hl,beztab
+        add hl,de
+        ld de,bz_top
+        ld bc,4
+        ldir
+        ld a,(bz_top)
+        ld c,a
+        ld b,a
+        ld a,VIEWH
+        call bez_row
+        ld a,(bz_top+1)
+        ld c,a
+        ld b,a
+        ld a,VIEWH+1
+        call bez_row
+        ld a,(bz_top+1)
+        ld c,a
+        ld b,a
+        ld a,63
+        call bez_row
+        ld d,VIEWH+2
+.sd:    ld a,d
         call bgrow
+        ld a,(bz_l)
+        bit 0,d
+        jr z,.e1
+        rlca
+        rlca
+.e1:    ld (hl),a
         res 3,h
-        ld b,32
-        ld a,$AA
-.b:     ld (hl),a
-        inc l
-        djnz .b
-        ld h,RLO/256
-        ld a,d
-        or $80
+        ld (hl),a
+        set 3,h
+        ld a,l
+        or 31
         ld l,a
-        ld (hl),0
-        set 6,l
-        ld (hl),31
+        ld a,(bz_r)
+        bit 0,d
+        jr z,.e2
+        rlca
+        rlca
+.e2:    ld (hl),a
+        res 3,h
+        ld (hl),a
+        push de
+        ld a,d
+        ld c,0
+        ld b,0
+        call mark
+        pop de
+        push de
+        ld a,d
+        ld c,31
+        ld b,31
+        call mark
+        pop de
         inc d
         ld a,d
-        cp VIEWH
-        jr nz,.r
+        cp 63
+        jr nz,.sd
         ret
-cracktab:
-        db 20,4, 34,12,  34,12, 30,22,  34,12, 48,14,  48,14, 58,6
-        db 30,22, 22,34, 30,22, 44,30,  44,30, 52,40,  44,30, 60,28
-        db 60,28, 74,20, 74,20, 90,24,  90,24, 104,16, 90,24, 96,36
-        db 74,20, 72,8,  104,16, 120,20, 96,36, 110,42
-        db $FF
+; bez_row: A = row, C / B = bytes for even / odd columns
+bez_row:
+        push af
+        call bgrow
+        ld e,16
+.b:     ld (hl),c
+        res 3,h
+        ld (hl),c
+        set 3,h
+        inc l
+        ld (hl),b
+        res 3,h
+        ld (hl),b
+        set 3,h
+        inc l
+        dec e
+        jr nz,.b
+        pop af
+        ld c,0
+        ld b,31
+        jp mark
+; per state: band bytes (row phase A, B), left side, right side
+; dithers: red/yellow $DD/$77, red/blue $EE (rlca twice = next row)
+beztab:
+        db $DD,$77,$EE,$EE      ; normal
+        db $DD,$77,$66,$EE      ; threat left: left side yellow/blue
+        db $DD,$77,$EE,$66      ; threat right
+        db $66,$99,$EE,$EE      ; threat ahead: band yellow/blue
+        db $FF,$FF,$FF,$FF      ; hit flash: red
+        db $55,$55,$55,$55      ; hit flash: yellow
 
 ; banner: two centred lines
 draw_banner:

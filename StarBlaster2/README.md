@@ -56,13 +56,14 @@ Either joystick works: every port of your custom interface is read and combined.
 - **Hyperspace.** You warp into each sector with star streaks and a fanfare. After each clear you refuel (energy tally), then warp out.
 - **Mission complete** after sector 8 gives a 50,000 bonus. Then the Enermy returns: lap 2 is faster, with more fighters.
 - **Supply pods.** Shoot them for +150 energy or an extra NOVA. A NOVA destroys everything on screen.
-- **Damage:**
-  - A hit cracks the canopy, shakes the view and flashes the palette.
+- **The dashboard bezel:** a 50:50 dithered frame (red/yellow band, red/blue sides) runs round the HUD and does the talking:
+  - **Hit:** the bezel flashes red and yellow, the view shakes, sparks spray up from the dashboard and the palette blinks once.
+  - **Threat warning:** when a fighter, ace, mine or plasma bolt gets close, the bezel side it's coming from blinks yellow with a tick, so you know which way to turn. If it's already in view, the top band blinks instead.
   - The low-energy alarm sounds below 150, and the energy readout turns red below 200.
 - **Trainer mode**: energy never runs out, and scores aren't recorded.
 
 **Presentation:**
-- **Title (Mode 1):** the STAR II BLASTER logo letters fly in from all over and land with a flash. A starfield streams behind them, and an Enermy fighter swoops in and gets blasted. The bottom line cycles through the messages.
+- **Title (Mode 1):** the STAR BLASTER II logo letters fly in from all over and land with a flash. A starfield streams behind them, and an Enermy fighter swoops in and gets blasted. The bottom line cycles through the messages.
 - **Attract cycle:** title → Mission Briefing → The Enermy Fleet (gallery with points) → Controls → a computer-played demo of a sector → Hall of Fame. Pages change with blinds wipes, and you can start at any point.
 - **High scores:** 5 entries, with score, sector reached and 3-letter initials. They're kept until power-off.
 - **Sound:** the two-voice pin-pulse beeper engine from Ghost Hunter 2 / Penguin 2, with short, separated notes for that gritty sound. All the tunes are original:
@@ -72,6 +73,14 @@ Either joystick works: every port of your custom interface is read and combined.
   - 14 sound effects: laser, explosions, hit crackle, alarm, pickup, nova, warp, plasma, turret zap…
 
   `media/` has the emulator's speaker output of the title music and a stretch of gameplay.
+
+## Version history
+
+- **v1.1:** easier (see below), a dithered bezel round the HUD replaces the full-screen cracked canopy, directional threat warnings on the bezel, and the logo reads STAR / BLASTER II.
+  - Fighters approach more slowly (skill × 6 instead of × 8) and fewer come at once (1 + skill/2 instead of 2 + skill/2).
+  - Hits cost less: fighters 35, aces 50, mines 45, rocks 30, plasma 20, plus skill × 3; landed troops cost 60.
+  - The laser hit box is a pixel bigger on every side.
+- **v1.0:** first release.
 
 ## Hardware notes
 
