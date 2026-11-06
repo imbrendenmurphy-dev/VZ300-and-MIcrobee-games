@@ -220,7 +220,7 @@ sfxtab:
         dw 1400,120  : db 10,1,3,0,0      ; item appears
         dw 800,140   : db 16,1,5,0,0      ; item collected
         dw 3400,-180 : db 16,1,5,0,0      ; freeze
-        dw 500,60    : db 14,1,2,0,0      ; hatch
+        dw 260,55    : db 6,0,2,0,0       ; hatch: short clean low "bloop" (no warble)
         dw 2300,0    : db 2,0,1,0,0       ; tick
         dw 420,-20   : db 4,0,2,0,0       ; block stops
         dw 260,0     : db 4,2,2,0,0       ; clunk (won't break)
