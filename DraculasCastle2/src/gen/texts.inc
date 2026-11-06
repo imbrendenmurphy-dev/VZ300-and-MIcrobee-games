@@ -40,7 +40,7 @@ tx_levelup: db 76,69,86,69,76,32,85,80,33,32,32,89,79,85,32,70,69,69,76,32,83,84
 tx_saved: db 71,65,77,69,32,83,65,86,69,68,46,0
 tx_nosave: db 78,79,32,83,65,86,69,68,32,71,65,77,69,32,70,79,85,78,68,46,0
 item_names:
-            dw in_0,in_1,in_2,in_3,in_4,in_5,in_6,in_7,in_8,in_9,in_10
+            dw in_0,in_1,in_2,in_3,in_4,in_5,in_6,in_7,in_8,in_9,in_10,in_11
 in_0: db "",0
 in_1: db "POTION",0
 in_2: db "HOLY WATER",0
@@ -52,4 +52,5 @@ in_7: db "ELIXIR",0
 in_8: db "SILVER SWORD",0
 in_9: db "CLOAK",0
 in_10: db "TOWER KEY",0
-price_table: db 0,15,30,0,0,0,0,90,0,120,0
+in_11: db "BELL'S TOLL",0
+price_table: db 0,15,30,0,0,0,0,90,0,120,0,0

@@ -5,7 +5,7 @@ from collections import deque
 # event types
 EV_SIGN, EV_CHEST, EV_NPC, EV_SCRIPT, EV_SHRINE, EV_STEP, EV_BOSS, EV_ITEM, EV_PLAQUE, EV_SHOP = 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
 # items
-IT_POTION, IT_HOLY, IT_IRONKEY, IT_DAGGER, IT_FIRE, IT_CRYPTKEY, IT_ELIXIR, IT_SWORD, IT_CLOAK, IT_TOWERKEY = 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
+IT_POTION, IT_HOLY, IT_IRONKEY, IT_DAGGER, IT_FIRE, IT_CRYPTKEY, IT_ELIXIR, IT_SWORD, IT_CLOAK, IT_TOWERKEY, IT_BELL = 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11
 
 AREA_MAPS = {}
 
@@ -171,7 +171,7 @@ AREA_MAPS[3] = dict(
     legend={'#': (1, 0), '=': (2, 0), '.': (0, 0), 'T': (1, 2), 'S': ('secret', 0)},
     door_decor=1, door_kind=1,
     exits={'U': dict(area=2, x=13, y=2, dir=2, decor=3, kind=1, lock=0),
-           'V': dict(area=98, x=0, y=0, dir=0, decor=3, kind=1, lock=IT_TOWERKEY)},
+           'V': dict(area=4, x=8, y=14, dir=0, decor=3, kind=1, lock=IT_TOWERKEY)},
     events={
         'c': dict(obj=2, type=EV_CHEST, args=[IT_HOLY, 2, 0, 0]),
         'r': dict(obj=1, type=EV_SIGN, args=['TALLY', 0, 0, 0]),
@@ -187,6 +187,49 @@ AREA_MAPS[3] = dict(
     start=(1, 1, 2),
     css=0, song='DUNGEON', encounters=[6, 7, 2], rate=18, intro='INTRO3',
     wall_text='DSTONE', secret_text='DSECRET', bbg=3,
+)
+
+# --------------------------------------------------------------------------
+# AREA 4 : THE CLOCK TOWER
+#   decors: 1 torch, 2 stairs, 3 clock face
+#   objects: 1 bench, 2 chest, 3 chest_open, 4 angel, 5 otto, 6 bell, 7 bat lord
+# --------------------------------------------------------------------------
+AREA_MAPS[4] = dict(
+    name='CLOCK TOWER',
+    rows=[
+        "########X#######",
+        "#..............#",
+        "#.a#######.##k.#",
+        "#.#====C==.==#.#",
+        "#.#=........=#.#",
+        "#.#=.s=====.=#.#",
+        "#.#=.=####=.=#.#",
+        "#.#=.=#..#=.=#.#",
+        "#.#=.=#b.#=.=#.#",
+        "#.#=.=##.#=.=#.#",
+        "#.#=.===B==.=#.#",
+        "#.#=........=#.#",
+        "#.#==.===T===#.#",
+        "#.oT#.##T####c.#",
+        "#..............#",
+        "########Y#######",
+    ],
+    legend={'#': (1, 0), '=': (2, 0), '.': (0, 0), 'T': (1, 1), 'C': (1, 3)},
+    door_decor=2, door_kind=1,
+    exits={'Y': dict(area=3, x=14, y=14, dir=0, decor=2, kind=1, lock=0),
+           'X': dict(area=98, x=0, y=0, dir=0, decor=2, kind=1, lock=IT_BELL)},
+    events={
+        'a': dict(obj=4, type=EV_SHRINE, args=[0, 0, 0, 0]),
+        'k': dict(obj=2, type=EV_CHEST, args=[IT_ELIXIR, 1, 0, 0]),
+        'c': dict(obj=2, type=EV_CHEST, args=[IT_HOLY, 3, 0, 0]),
+        'o': dict(obj=5, type=EV_NPC, args=['OTTO1', IT_POTION, 2, 'OTTO2']),
+        's': dict(obj=1, type=EV_SIGN, args=['BENCH', 0, 0, 0]),
+        'B': dict(obj=7, type=EV_BOSS, args=[10, 0, 0, 'BATLORDTX']),
+        'b': dict(obj=6, type=EV_NPC, args=['BELLRING', IT_BELL, 1, 'BELLDONE']),
+    },
+    start=(8, 14, 0),
+    css=0, song='TOWER', encounters=[1, 9, 3], rate=18, intro='INTRO4',
+    wall_text='TSTONE', secret_text='SECRET', bbg=4,
 )
 
 CHARS = {}

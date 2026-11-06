@@ -235,3 +235,48 @@ class Dungeon(Mat):
         if n > 0.82: return self.shade('water', 0, z - 0.4)
         if (wx * 2.5) % 1 < 0.08 or (z * 2.5) % 1 < 0.08: return (B, B, 0)
         return self.shade('floor', 0, z - 0.4) if n > 0.25 else self.shade('moss', 2, z - 0.4)
+
+class Tower(Mat):
+    ramps = {
+        'plaster': ramp((Y, B, .75), (Y, B, .75), (B, B, 0), (B, B, 0)),
+        'wood':  ramp((R, Y, .25), (R, R, 0), (R, B, .25), (R, B, .5), (R, B, .75), (B, B, 0)),
+        'dark':  ramp((B, B, 0),),
+        'brass': ramp((Y, Y, 0), (Y, R, .5), (R, R, 0), (R, B, .5), (B, B, 0)),
+        'iron':  ramp((R, B, .5), (R, B, .75), (B, B, 0)),
+        'floor': ramp((R, B, .5), (R, B, .75), (B, B, 0)),
+        'beam':  ramp((R, B, .25), (R, B, .5), (R, B, .75), (B, B, 0)),
+    }
+    def wall(self, kind, u, v, z, face):
+        if kind == 'B':  # clockwork: big brass gears on a dark frame
+            cx = [(0.25, 0.45, 0.32), (0.78, 1.05, 0.28), (0.3, 1.25, 0.18)]
+            for gx, gy, r in cx:
+                dx = (u - gx); dy = (v - gy) * 0.75
+                d = math.hypot(dx, dy)
+                if d < r:
+                    ang = math.atan2(dy, dx); teeth = 0.85 + 0.15 * (1 if math.sin(ang * 12) > 0 else 0)
+                    if d > r * teeth: return ('dark', 0)
+                    if d < r * 0.18: return ('iron', 0)
+                    if r * 0.45 < d < r * 0.6 or abs(math.sin(ang * 3)) < 0.12 and d < r * 0.8: return ('brass', 2)
+                    return ('brass', 0 if dx + dy < 0 else 1)
+            if abs(v - 0.8) < 0.04 or u < 0.04 or u > 0.96: return ('iron', 0)
+            return ('dark', 0)
+        # timber-framed plaster: posts, rails and braces
+        if u < 0.08 or u > 0.92: return ('wood', 1)
+        if abs(v - 0.7) < 0.05 or v > 1.38 or v < 0.08: return ('wood', 2)
+        if abs((u - 0.08) - (v - 0.08) * 0.6) < 0.05 and v < 0.7: return ('wood', 2)
+        if abs((0.92 - u) - (v - 0.75) * 0.65) < 0.05 and v > 0.75: return ('wood', 2)
+        n = h2(int(u * 12), int(v * 12), 31)
+        return ('plaster', 0 if n > 0.2 else 2)
+    def bg(self, px, py, variant):
+        if py < HOR:
+            z = floor_z(py, False)
+            if z > 4.0: return (B, B, 0)
+            wx = (px - CX) / (64.0 / max(z, 0.5))
+            if (z * 1.3) % 1 < 0.14: return self.shade('beam', 0, z - 0.3)
+            if abs(wx - 0.3) < 0.02 or abs(wx + 0.45) < 0.02: return self.shade('beam', 1, z - 0.3)   # ropes
+            return (B, B, 0)
+        z = floor_z(py, True)
+        if z > 4.0: return (B, B, 0)
+        wx = (px - CX) / (64.0 / max(z, 0.5))
+        if (wx * 3) % 1 < 0.07: return (B, B, 0)
+        return self.shade('floor', 0, z - 0.4)

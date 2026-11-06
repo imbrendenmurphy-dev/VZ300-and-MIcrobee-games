@@ -140,9 +140,18 @@ SONGS['DUNGEON'] = dict(loop=True, ch=[
     "i8 u6 [r:3 C7:1 r:4]x2 [r:5 G6:1 r:2]x2 [r:3 C7:1 r:4]x2 [r:2 D7:1 r:3 G6:1 r:1]x2",
 ])
 
+SONGS['TOWER'] = dict(loop=True, ch=[
+    # tick-tock ostinato under a stormy, climbing theme in E minor
+    "i0 u3 r:8 B4:2 E5:2 G5:2 B5:2 | A5:3 G5:1 F#5:2 E5:2 F#5:8 | r:8 B4:2 E5:2 G5:2 B5:2 | C6:3 B5:1 A5:2 G5:2 A5:8 | "
+    "G5:2 F#5:2 E5:2 D5:2 E5:4 B4:4 | C5:2 D5:2 E5:2 F#5:2 G5:4 A5:4 | B5:4 A5:2 G5:2 F#5:2 G5:2 A5:2 F#5:2 | E5:16",
+    "i1 u3 [E2:2 B2:2]x8 [C2:2 G2:2]x4 [D2:2 A2:2]x4 [E2:2 B2:2]x4 [C2:2 G2:2]x4 [A1:2 E2:2]x4 [B1:2 F#2:2]x4 [E2:2 B2:2]x4",
+    "i8 u3 [C7:1 r:3 G6:1 r:3]x32",
+])
+
 SONG_ORDER = ['BATTLE', 'BOSS', 'VICTORY', 'LEVELUP', 'DEATH', 'TITLE', 'MAZE', 'ENDING']
 
 SFX = {
+    'bell':    "i6 u6 A2:3 A2:6",
     'step':    "i8 u1 C6:2",
     'turn':    "i4 u1 G6:1",
     'bump':    "i7 u1 s-12 C3:4",

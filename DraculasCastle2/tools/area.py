@@ -85,7 +85,23 @@ def d_candles(u, v, z, f):
         if 0 <= fv <= 1 and abs(fu) < (1 - fv): return ('flame', 0)
     return None
 
-DECORS = {'candles': d_candles, 'door': d_door, 'gate': d_gate, 'torch': d_torch, 'portrait': d_portrait,
+def d_clock(u, v, z, f):
+    # big clock face: roman ticks, two hands at ten to midnight
+    cx, cy, r = 0.5, 0.82, 0.25
+    dx = u - cx; dy = (v - cy) * 0.8
+    d = math.hypot(dx, dy)
+    if d > r: return None
+    if d > r * 0.88: return ('frame', 0)
+    ang = math.atan2(dx, dy)
+    if d > r * 0.72 and (ang * 6 / math.pi) % 1 < 0.14: return ('eyes', 0)
+    for ha, hl in ((-0.52, 0.5), (0.0, 0.8)):
+        ca, sa = math.cos(ha), math.sin(ha)
+        along = dx * sa + dy * ca; perp = abs(dx * ca - dy * sa)
+        if 0 < along < r * hl and perp < 0.025: return ('eyes', 0)
+    if d < 0.03: return ('brass', 0)
+    return ('wax', 0)
+
+DECORS = {'clock': d_clock, 'candles': d_candles, 'door': d_door, 'gate': d_gate, 'torch': d_torch, 'portrait': d_portrait,
           'window': d_window, 'stairs': d_stairs, 'plaque': d_plaque}
 
 # extra ramps every material needs for decor
@@ -104,6 +120,7 @@ DECOR_RAMPS = {
     'glass': [(G, B, .5), (R, B, .25), (Y, B, .5), (B, B, 0)],
     'plaque': [(Y, Y, 0), (Y, R, .5), (R, B, .5), (B, B, 0)],
     'wax':   [(Y, Y, 0), (Y, B, .25), (Y, B, .5), (B, B, 0)],
+    'brass': [(Y, Y, 0), (Y, R, .5), (R, R, 0), (R, B, .5), (B, B, 0)],
 }
 # glass uses idx = pane colour (no fog shift beyond ramp end) -> handled by shade clamp
 
@@ -117,6 +134,7 @@ AREAS = [
     AreaDef('hall', materials.Hall(), ['door', 'torch', 'portrait', 'window', 'plaque'], ['armour', 'chest', 'chest_open', 'angel', 'bones', 'gargoyle'], [0, 0, 0, 0]),
     AreaDef('library', materials.Library(), ['door', 'candles', 'stairs'], ['lectern', 'chest', 'chest_open', 'angel', 'vesper', 'orb', 'bookseller'], [0, 0, 0, 0]),
     AreaDef('dungeon', materials.Dungeon(), ['door', 'torch', 'stairs'], ['bones', 'chest', 'chest_open', 'angel', 'kaspar', 'throne'], [0, 0, 0, 0]),
+    AreaDef('tower', materials.Tower(), ['torch', 'stairs', 'clock'], ['bench', 'chest', 'chest_open', 'angel', 'otto', 'bell', 'batlord'], [0, 0, 0, 0]),
 ]
 
 # ---------------- encoding ----------------

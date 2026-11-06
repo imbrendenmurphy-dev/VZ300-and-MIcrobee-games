@@ -21,6 +21,7 @@ IT_FIRE     equ 5
 IT_ELIXIR   equ 7
 IT_SWORD    equ 8
 IT_CLOAK    equ 9
+IT_BELL     equ 11
 
 
 ; ---------------------------------------------------------------------------
@@ -847,7 +848,12 @@ give_item:
 .ne0:       ld a,(hl)
             ld (hp),a
             ld a,IT_ELIXIR
-.ne:        push af
+.ne:        cp IT_BELL
+            jr nz,.nb
+            ld hl,sfx_bell
+            call play_sfx
+            ld a,IT_BELL
+.nb:        push af
             ; message "FOUND <ITEM>" (+ count)
             ld hl,msgbuf
             ld de,msgbuf

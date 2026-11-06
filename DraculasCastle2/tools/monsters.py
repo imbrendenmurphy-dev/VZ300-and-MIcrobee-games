@@ -337,7 +337,69 @@ def ghoulking(frame):
     c.outline(Y)
     return c, B
 
-HOME_BBG = {'GHOST': 1, 'GARGOYLE': 1, 'GRELL': 2, 'ZOMBIE': 3, 'SLIME': 3, 'GHOUL KING': 3}     # gallery backdrop per monster
+# ----------------------------------------------------------------- KNIGHT (animated armour)
+def knight(frame):
+    c = Canvas()
+    cx = 32; step = (frame - 1)
+    # legs (greaves)
+    c.rect(cx - 7, 30, cx - 3, 42 - step, (Y, B, 25)); c.rect(cx + 3, 30, cx + 7, 42 + step, (Y, B, 25))
+    c.rect(cx - 8, 41 - step, cx - 2, 43 - step, Y); c.rect(cx + 2, 41 + step, cx + 8, 43, Y)
+    # breastplate and tassets
+    c.poly([(cx - 10, 13), (cx + 10, 13), (cx + 9, 26), (cx + 6, 31), (cx - 6, 31), (cx - 9, 26)], Y)
+    c.poly([(cx - 6, 15), (cx + 6, 15), (cx + 4, 27), (cx - 4, 27)], (Y, B, 25))
+    c.line(cx, 15, cx, 28, B)
+    c.rect(cx - 9, 29, cx + 9, 31, R)
+    # pauldrons + arms; sword raised on frame 2
+    c.ellipse(cx - 12, 15, 4, 3, Y); c.ellipse(cx + 12, 15, 4, 3, Y)
+    c.rect(cx - 15, 16, cx - 12, 27, (Y, B, 25))
+    if frame == 2:
+        c.rect(cx + 12, 6, cx + 15, 16, (Y, B, 25))
+        c.rect(cx + 13, -1, cx + 14, 6, Y); c.rect(cx + 10, 5, cx + 17, 6, R)
+    else:
+        c.rect(cx + 12, 16, cx + 15, 27, (Y, B, 25))
+        c.rect(cx + 18, 8, cx + 19, 30, Y); c.rect(cx + 15, 27, cx + 22, 28, R)   # sword held upright
+    # shield
+    c.poly([(cx - 22, 18), (cx - 12, 18), (cx - 12, 30), (cx - 17, 35), (cx - 22, 30)], R)
+    c.line(cx - 17, 20, cx - 17, 32, Y); c.line(cx - 21, 24, cx - 13, 24, Y)
+    # great helm with glowing slit
+    c.rect(cx - 6, 2, cx + 6, 12, Y)
+    c.ellipse(cx, 2, 6, 3, Y)
+    c.rect(cx - 5, 6, cx + 5, 7, B)
+    c.px(cx - 3, 6, R); c.px(cx + 2, 6, R)
+    c.line(cx, 0, cx, -1, R)
+    c.outline(R)
+    return c, G
+
+# ----------------------------------------------------------------- BAT LORD (tower boss)
+def batlord(frame):
+    c = Canvas()
+    up = {0: 1, 1: -1, 2: 0}[frame]
+    cx, cy = 32, 20 + (frame == 2) * 2
+    tip_y = cy - 16 * up if up else cy - 6
+    pts = [(cx - 5, cy - 4), (cx - 14, tip_y + 2), (cx - 22, tip_y - 3), (cx - 31, tip_y + 5 + (7 if up < 0 else 0)),
+           (cx - 27, cy + 8 + 6 * (up < 0)), (cx - 21, cy + 4 + 4 * (up < 0)), (cx - 16, cy + 11 + 4 * (up < 0)),
+           (cx - 11, cy + 5), (cx - 5, cy + 9)]
+    c.poly(pts, (MA, OR, 25))
+    for (ex, ey) in ((cx - 14, tip_y + 2), (cx - 22, tip_y - 3), (cx - 31, tip_y + 5 + (7 if up < 0 else 0))):
+        c.line(cx - 5, cy - 2, ex, ey, OR, 1.0)
+    c.mirror_x(32)
+    c.ellipse(cx, cy + 5, 8, 12, OR)
+    c.ellipse(cx, cy + 7, 4, 8, (OR, MA, 50))
+    c.ellipse(cx, cy - 6, 8, 7, OR)
+    c.poly([(cx - 7, cy - 9), (cx - 9, cy - 20), (cx - 2, cy - 12)], OR)
+    c.poly([(cx + 7, cy - 9), (cx + 9, cy - 20), (cx + 2, cy - 12)], OR)
+    c.poly([(cx - 5, cy - 12), (cx - 3, cy - 16), (cx, cy - 13), (cx + 3, cy - 16), (cx + 5, cy - 12)], CY)  # crown
+    for ex in (cx - 4, cx + 3):
+        c.rect(ex - 1, cy - 8, ex + 1, cy - 6, CY)
+    c.px(cx - 4, cy - 7, MA); c.px(cx + 3, cy - 7, MA)
+    c.rect(cx - 3, cy - 3, cx + 3, cy - 1 + (frame == 2) * 2, MA)
+    c.px(cx - 3, cy - 3, CY); c.px(cx + 3, cy - 3, CY); c.px(cx - 3, cy - 2, CY); c.px(cx + 3, cy - 2, CY)
+    for fx in (-4, 3):
+        c.line(cx + fx, cy + 16, cx + fx + (1 if fx > 0 else -1), cy + 20, CY)
+    c.outline(MA)
+    return c, BU
+
+HOME_BBG = {'GHOST': 1, 'GARGOYLE': 1, 'GRELL': 2, 'ZOMBIE': 3, 'SLIME': 3, 'GHOUL KING': 3, 'KNIGHT': 4, 'BAT LORD': 4}     # gallery backdrop per monster
 MONSTERS = [
     # name, fn, hp, atk, def, xp, gold, flags, css
     ('BAT', bat, 9, 5, 0, 4, 3, 2, 0),
@@ -348,6 +410,8 @@ MONSTERS = [
     ('ZOMBIE', zombie, 32, 10, 3, 16, 10, 1, 0),
     ('SLIME', slime, 26, 9, 6, 14, 12, 0, 0),
     ('GHOUL KING', ghoulking, 120, 14, 6, 120, 100, 9, 1),
+    ('KNIGHT', knight, 40, 13, 8, 24, 18, 0, 0),
+    ('BAT LORD', batlord, 150, 17, 7, 160, 120, 10, 1),
 ]
 
 def frame_bytes(c, key):
@@ -499,6 +563,37 @@ def backdrop_dungeon():
             if ((x // 9) * 7 + (y // 3) * 3) % 13 == 0: col = (G, B, 50)
             c.p[y][x] = c.pat(col, x, y)
     c.line(0, 34, 127, 34, (Y, B, 50))
+    return c
+
+def backdrop_tower():
+    c = Canvas(128, 46, B)
+    # timber-framed walls
+    for y in range(0, 34):
+        for x in range(128):
+            col = (Y, B, 75)
+            if x % 32 < 3 or y in (0, 1, 18, 19): col = R
+            elif abs((x % 32) - 3 - (y - 2) * 0.9) < 1.5 and y < 18: col = R
+            c.p[y][x] = c.pat(col, x, y)
+    # the great clock face in the middle, gears to either side
+    c.ellipse(64, 15, 15, 13, R); c.ellipse(64, 15, 13, 11, Y)
+    for k in range(12):
+        a = k * math.pi / 6
+        c.px(int(64 + 11 * math.sin(a)), int(15 - 9.5 * math.cos(a)), R)
+    c.line(64, 15, 64, 7, R, 1.5); c.line(64, 15, 59, 12, R, 1.5)
+    for gx, gy, r in ((22, 22, 10), (106, 20, 11), (36, 9, 6), (92, 8, 6)):
+        c.ellipse(gx, gy, r, r, Y)
+        for k in range(10):
+            a = k * math.pi / 5
+            c.rect(int(gx + (r + 1) * math.cos(a)) - 1, int(gy + (r + 1) * math.sin(a)) - 1,
+                   int(gx + (r + 1) * math.cos(a)), int(gy + (r + 1) * math.sin(a)), Y)
+        c.ellipse(gx, gy, r * 0.6, r * 0.6, (Y, R, 50)); c.ellipse(gx, gy, r * 0.25, r * 0.25, R)
+    # floorboards
+    for y in range(34, 46):
+        for x in range(128):
+            zz = y - 33
+            u = (x - 64) / (zz * 1.5 + 4)
+            c.p[y][x] = c.pat(B if abs(u - round(u)) < 0.07 else (R, B, 50), x, y)
+    c.line(0, 34, 127, 34, R)
     return c
 
 def backdrop_bytes(c):

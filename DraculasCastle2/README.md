@@ -3,7 +3,7 @@
 Dick Smith VZ300 · BennVenn SD + 128K · Mode 1 (128×64, 4 colours) · all Z80
 
 ## Running it
-Copy `DRACULA2.VZ` **and all the `DC2*.DAT` files** (24 of them in v0.4) from `release/` to the **root of the
+Copy `DRACULA2.VZ` **and all the `DC2*.DAT` files** (26 of them in v0.4) from `release/` to the **root of the
 SD card** (the same place 13 Ghosts and its `.DAT` files live — not inside a folder), then load `DRACULA2.VZ` like any other binary .VZ. It loads at $8000
 and runs from there. The game streams its artwork from the `.DAT` files through the
 BennVenn DOS, the same way 13 Ghosts does. If a file is missing it stops with
