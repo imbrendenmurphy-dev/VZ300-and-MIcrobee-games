@@ -139,6 +139,22 @@ D['roof_l'] = BASE['roof_l']; D['roof_m'] = BASE['roof_m']; D['roof_r'] = BASE['
 D['door_t'] = ['ryyyyyyr', 'rybbbbyr', 'rybbbbyr', 'rybyybyr', 'rybyybyr', 'rybbbbyr', 'rybbbbyr', 'ryyyyyyr']   # lit window
 D['door_b'] = BASE['door_b']
 D['pillar'] = D['block']; D['column'] = D['deco_m']
+def outline(rows, ink):
+    """keep only the edge pixels of shapes: turns busy backdrops into silhouettes"""
+    out = []
+    for y, r in enumerate(rows):
+        o = ''
+        for x, ch in enumerate(r):
+            if ch == 'b':
+                o += 'b'; continue
+            nb = [rows[y + dy][x + dx] if 0 <= y + dy < 8 and 0 <= x + dx < 8 else 'x'
+                  for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))]
+            o += ink if 'b' in nb else ('y' if ch == 'y' else 'b')
+        out.append(o)
+    return out
+D['back_t'] = outline(D['back_t'], 'r')
+D['back_m'] = D['back_m'][:3] + ['bbbbbbbb'] * 5
+D['back_m'] = outline(D['back_m'], 'r')
 theme(3, name='THE DROWNED VILLAGE', css=0, amb=1, tiles=D, stars=0.30,
       card='MIND THE WATER. IT BITES.', boss='LEVIATHAN RISES!')
 
@@ -639,110 +655,14 @@ ROLE_TYPE = {'walker': 1, 'tough': 2, 'flyer': 3, 'floater': 4, 'diver': 5, 'spi
 IT = {'coin': 0, 'jewel': 1, 'armour': 2, 'potion': 3, 'lance': 4, 'dagger': 5, 'axe': 6, 'torchw': 7, 'heart': 8}
 
 def build_level(n, W=176):
+    import levelgen
     th = THEMES[n]
     rnd = random.Random(1000 + n)
-    M = [['sky'] * W for _ in range(7)]
-    ground = [5] * W
-    pit = set()
-    objs = []
-    def o(c, kind, param=0, y=None):
-        if y is None: y = ground[c] * 8
-        objs.append((c, y, OT[kind], param))
-    def put(c, r, t):
-        if 0 <= c < W and 0 <= r < 7: M[r][c] = t
-    # --- terrain: sections from a theme-seeded recipe
-    c = 12
-    sections = ['hill', 'pit', 'struct', 'flat', 'steps', 'pit', 'high', 'hill', 'struct', 'pit', 'flat', 'steps']
-    rnd.shuffle(sections)
-    sections = ['flat'] + sections
-    cps = []
-    while c < 150:
-        s = sections.pop(0) if sections else rnd.choice(['flat', 'pit', 'hill', 'struct'])
-        if s == 'hill':
-            ln = rnd.randint(12, 18)
-            for x in range(c, c + ln): ground[x] = 4
-            for x in range(c + 3, c + ln - 3): ground[x] = 3
-            c += ln + 2
-        elif s == 'pit':
-            ln = rnd.randint(8, 14)
-            for x in range(c, c + ln): pit.add(x)
-            # stepping platforms with gaps
-            x = c + 1
-            while x < c + ln - 1:
-                pl = rnd.randint(2, 3)
-                hy = rnd.choice([3, 4, 4])
-                for k in range(pl):
-                    if x + k < c + ln: put(x + k, hy, 'plat')
-                x += pl + rnd.randint(1, 2)
-            c += ln + 2
-        elif s == 'struct':
-            ln = rnd.randint(8, 11)
-            for x in range(c, c + ln):
-                put(x, 3, 'block'); put(x, 4, 'block')
-                put(x, 2, 'roof_m')
-            put(c, 2, 'roof_l'); put(c + ln - 1, 2, 'roof_r')
-            mid = c + ln // 2
-            put(mid, 3, 'door_t'); put(mid, 4, 'door_b')
-            put(c - 1, 4, 'block_top'); put(c - 2, 4, 'small')
-            c += ln + 3
-        elif s == 'steps':
-            for k in range(4):
-                for x in range(c + k * 2, c + k * 2 + 2):
-                    ground[x] = 5 - min(k, 2)
-            c += 10
-        elif s == 'high':
-            ln = rnd.randint(6, 9)
-            for x in range(c, c + ln): put(x, 2, 'plat')
-            put(c - 1, 4, 'plat_post')
-            c += ln + 2
-        else:   # flat
-            c += rnd.randint(8, 12)
-        if not cps and c > 70: cps.append(c); c += 3
-    if len(cps) < 2: cps.append(min(c, 152))
-    # ground fill
-    for x in range(W):
-        if x in pit:
-            put(x, 6, 'haz' if x % 2 else 'haz2')
-            continue
-        g = ground[x]
-        for r in range(g, 7):
-            if M[r][x] not in ('sky',): continue
-            if r == g:
-                left = ground[x - 1] if x > 0 and (x - 1) not in pit else 9
-                right = ground[x + 1] if x < W - 1 and (x + 1) not in pit else 9
-                put(x, r, 'top_l' if left > g else 'top_r' if right > g else 'top')
-            else:
-                put(x, r, rnd.choice(['fill'] * 6 + ['fill2', 'fill3']))
-    # decorations on the ground (avoid pits, structures)
-    def free(x, r): return 0 <= x < W and M[r][x] == 'sky'
-    for x in range(4, 156):
-        if x in pit or (x - 1) in pit or (x + 1) in pit: continue
-        g = ground[x]
-        roll = rnd.random()
-        if roll < 0.07 and free(x, g - 1) and free(x, g - 2) and free(x, g - 3):
-            put(x, g - 1, 'deco_b'); put(x, g - 2, 'deco_m'); put(x, max(0, g - 4), 'deco_t')
-            if g - 3 >= 0 and free(x, g - 3): put(x, g - 3, 'deco_m')
-        elif roll < 0.13 and free(x, g - 1) and free(x, g - 2):
-            put(x, g - 1, 'sm_b'); put(x, g - 2, 'sm_t')
-        elif roll < 0.18 and free(x, g - 1):
-            put(x, g - 1, 'small')
-        elif roll < 0.26 and free(x, g - 1):
-            put(x, g - 1, 'deco2')
-    # spike patches on flat ground
-    for _ in range(3):
-        x = rnd.randint(20, 140)
-        if all(ground[k] == ground[x] and k not in pit and M[ground[x] - 1][k] == 'sky' for k in range(x, x + 3)):
-            for k in range(x, x + 3): put(k, ground[k], 'spike')
-    # boss arena
-    for x in range(158, W):
-        ground[x] = 5
-        for r in range(0, 5): put(x, r, 'sky')
-        put(x, 5, 'top')
-        put(x, 6, 'fill')
-        if x in pit: pit.discard(x)
-    for x in (158, W - 1):
-        for r in range(1, 5): put(x, r, 'column')
-        put(x, 0, 'roof_m')
+    attr = {t: (1 if t in SOLID else 2 if t in ONEWAY else 3 if t in HAZARD else 0) for t in TILE_ROLES}
+    L = levelgen.build(n, attr)
+    M, ground = L.M, L.ground
+    objs = [tuple(o) for o in L.objs]
+    build_level.last = L
     # backdrop band + stars
     hill = [3 if (math.sin(x * 0.19 + n) + math.sin(x * 0.47 + n * 2)) > 0.5 else 4 for x in range(W)]
     for x in range(W):
@@ -754,56 +674,38 @@ def build_level(n, W=176):
                 M[r][x] = 'back_t'
             elif r <= 2 and rnd.random() < th['stars']:
                 M[r][x] = rnd.choice(['star1', 'star2'])
-    # --- objects
-    cr = CREATURES[n]
-    roles_early = ['walker', 'walker', 'flyer', 'tough', 'diver']
-    roles_late = ['walker', 'tough', 'flyer', 'floater', 'diver', 'spitter', 'tough', 'floater']
-    x = 14
-    while x < 152:
-        role = rnd.choice(roles_early if x < 60 else roles_late)
-        g = ground[x]
-        if x in pit:
-            role = 'flyer'
-        if role in ('walker',):
-            o(x, 'zombie')
-        elif role == 'tough':
-            o(x, 'skel')
-        elif role == 'flyer':
-            o(x, 'bat', 0, rnd.choice([4, 8, 12]))
-        elif role == 'floater':
-            o(x, 'ghost', 0, rnd.choice([8, 16]))
-        elif role == 'diver':
-            o(x, 'crow', 0, max(0, g * 8 - 24))
-        elif role == 'spitter':
-            if x not in pit: o(x, 'plant', 0, g * 8 - 10 + 10)
-        x += rnd.randint(5, 9)
-    # zombie zones, mini-boss, items, chests
-    o(40, 'zzone', 10); o(110, 'zzone', 12)
-    o(124, 'imp', 0, 4)
-    weap = ['dagger', 'axe', 'torchw', 'lance']
-    for i, xc in enumerate([30, 64, 98, 136]):
-        y = ground[xc] * 8 if xc not in pit else 32
-        o(xc, 'chest', IT[weap[(n + i) % 4]] if i % 2 == 0 else IT['armour'], y)
-    for xc in range(18, 150, 13):
-        y = max(4, ground[xc] * 8 - 20) if xc not in pit else 20
-        o(xc, 'item', IT[rnd.choice(['coin', 'coin', 'coin', 'jewel', 'potion'])], y)
-    o(cps[0] if cps[0] not in pit else cps[0] + 2, 'checkpt')
-    o(150, 'checkpt')
-    o(154, 'item', IT['heart'], 20)
-    o(160, 'boss', 0, 0)
-    for (xc, r) in [(30, 1), (90, 1), (159, 0), (174, 0)]:
-        o(xc, 'torch', 0, r * 8)
-    fixed = []
-    for (xc, y, t, p) in objs:
-        if t in (OT['checkpt'], OT['chest'], OT['zombie'], OT['skel'], OT['plant']):
-            if t in (OT['zombie'], OT['plant']) and xc in pit: continue
-            while xc in pit: xc += 1
-            y = ground[xc] * 8
-        fixed.append((xc, y, t, p))
-    objs = sorted(fixed)
     return M, objs
 
 # ------------------------------------------------------------------ emitters
+def dict_map(maplab, colslab, cols):
+    """column-dictionary map: one index byte per column + 8 bytes per unique column"""
+    uniq = []
+    pos = {}
+    for c in cols:
+        if c not in pos:
+            pos[c] = len(uniq); uniq.append(c)
+    assert len(uniq) < 256
+    L = ['%s:   ; %d columns, %d unique' % (maplab, len(cols), len(uniq))]
+    L += db_lines([pos[c] for c in cols])
+    L.append('%s:' % colslab)
+    for c in uniq:
+        L.append('    db ' + hexrow(list(c)))
+    return L
+
+def convert_level1(path):
+    src = open(path).read().split('\n')
+    out = []; i = 0
+    while i < len(src):
+        if src[i].startswith('LEVEL1_MAP:'):
+            cols = []; i += 1
+            while src[i].startswith('    db'):
+                cols.append(tuple(int(x.strip()[1:], 16) for x in src[i].split('db')[1].split(',')))
+                i += 1
+            out += dict_map('LEVEL1_MAP', 'LEVEL1_COLS', cols)
+            continue
+        out.append(src[i]); i += 1
+    open(path, 'w').write('\n'.join(out))
+
 def boss_song(n):
     """copy of the stage 1 boss theme (each pack carries its own), transposed per stage"""
     src = open(os.path.join(os.path.dirname(__file__), '..', 'src', 'gen', 'music_s1.asm')).read().split('\n')
@@ -849,6 +751,8 @@ def stage_asm(n):
         L.append('        dw ' + ','.join(fr[:4]))
     L.append('        dw S%d_HEAD_0,S%d_MINI_0' % (n, n))
     L.append('        db %d,%d,18' % (bs['speed'], bs['volley']))
+    L.append('        dw COLS%s,S%d_LOGIC' % (sfx, n))
+    L.append('        include "../ai%d.asm"' % n)
     # tiles
     L.append('TILES%s:' % sfx)
     for t in TILE_ROLES:
@@ -871,9 +775,8 @@ def stage_asm(n):
     # level
     M, objs = build_level(n)
     idx = {t: i for i, t in enumerate(TILE_ROLES)}
-    L.append('MAP%s:' % sfx)
-    for c in range(176):
-        L.append('    db ' + hexrow([idx[M[r][c]] for r in range(7)] + [0]))
+    cols = [tuple(idx[M[r][c]] for r in range(7)) + (0,) for c in range(176)]
+    L += dict_map('MAP%s' % sfx, 'COLS%s' % sfx, cols)
     L.append('OBJ%s:' % sfx)
     for c, y, t, p in objs:
         L.append('    db %d,%d,%d,%d' % (c, y & 255, t, p))
@@ -908,14 +811,19 @@ def stage1_header():
             "        dw S_PLANT_0,S_PLANT_1,S_PLANT_0,S_PLANT_1",
             "        dw S_IMP_0,S_IMP_1,S_IMP_0,S_IMP_1",
             "        dw S_SKULL_0,S_SKULL_0",
-            "        db 0,3,18"]
+            "        db 0,3,18",
+            "        dw LEVEL1_COLS,S1_LOGIC",
+            "S1_LOGIC: dw o_zombie,o_skel,o_bat,o_ghost,o_crow,o_imp,o_plant"]
 
 def main(out):
+    convert_level1(os.path.join(out, 'level1.asm'))
     open(os.path.join(out, 'stage1_hdr.asm'), 'w').write('\n'.join(stage1_header()) + '\n')
     P = ['; generated: stage packs 2-7']
     previews = {}
     for n in range(2, 8):
         L, M, objs = stage_asm(n)
+        lv = build_level.last
+        print('stage %d: seed %d, %d objects, dropped: %s' % (n, lv.seed, len(objs), lv.report))
         open(os.path.join(out, 'stage%d.asm' % n), 'w').write('\n'.join(L) + '\n')
         previews[n] = (M, objs)
     return previews

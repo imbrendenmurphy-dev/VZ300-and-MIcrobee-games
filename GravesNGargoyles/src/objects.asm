@@ -287,7 +287,12 @@ objs_update:
         ld e,a
         ld d,0
         ld hl,OBJ_LOGIC
-        add hl,de
+        cp 2*8
+        jr nc,.tab
+        ld hl,(lvl_logic)       ; enemies: the stage's own behaviours
+        dec hl
+        dec hl
+.tab:   add hl,de
         ld a,(hl)
         inc hl
         ld h,(hl)
@@ -868,7 +873,147 @@ spawn_fire:
         ld (ix+6),a
         xor a
         ld (fire_dvy),a
+        ld (last_obj),ix
 .out:   pop ix
+        ret
+
+; ---------------------------------------------------------------- shared helpers
+; obj_phys: gravity for jumping enemies. vy in (ix+6) (quarter pixels),
+; feet at y+obj_h. Lands on solid or one-way tiles. Z = standing.
+obj_phys:
+        ld a,(ix+6)
+        sra a
+        sra a
+        add a,(ix+4)
+        ld (ix+4),a
+        ld a,(ix+6)
+        cp 14
+        jr nc,.cap
+        inc a
+        ld (ix+6),a
+.cap:   bit 7,a
+        jr nz,.air              ; rising
+        ld l,(ix+2)
+        ld h,(ix+3)
+        ld de,5
+        add hl,de
+        ld a,(obj_h)
+        add a,(ix+4)
+        ld b,a
+        call tile_at
+        or a
+        jr z,.air
+        cp 3
+        jr z,.air
+        ld a,(obj_h)
+        ld c,a
+        ld a,b
+        and $F8
+        sub c
+        ld (ix+4),a
+        ld (ix+6),0
+        xor a
+        ret
+.air:   or 1
+        ret
+
+; aim_dy: A = (hero_y + 6 - y) / 8 (signed), for aimed shots and dives
+aim_dy: ld a,(hero_y)
+        add a,6
+        sub (ix+4)
+        sra a
+        sra a
+        sra a
+        ret
+
+; shoot: fire from the object's middle in its facing direction.
+; A = extra vy (signed), L = 1 to aim at the hero.  Returns IY = shot (or 0)
+shoot:  ld (fire_dvy),a
+        ld a,(ix+11)
+        ld c,a
+        ld a,(ix+4)
+        add a,3
+        ld b,a
+        ld e,(ix+2)
+        ld d,(ix+3)
+        inc de
+        inc de
+        inc de
+        ld iy,0
+        ld (last_obj),iy
+        call spawn_fire
+        ld a,SFX_THROW_ID
+        call play_sfx
+        ld iy,(last_obj)
+        push iy
+        pop hl
+        ld a,h
+        or l                    ; NZ: IY = the new shot
+        ret
+
+; air_step: 2 px forward unless a wall is ahead (then turn round)
+air_step:
+        ld l,(ix+2)
+        ld h,(ix+3)
+        ld de,11
+        ld a,(ix+11)
+        or a
+        jr z,.r
+        ld de,-2
+.r:     add hl,de
+        ld a,(ix+4)
+        add a,4
+        call tile_at
+        cp 1
+        jp nz,step2
+turn:   ld a,(ix+11)
+        xor 1
+        ld (ix+11),a
+        ret
+
+; toward_y: move y one pixel toward A
+toward_y:
+        cp (ix+4)
+        ret z
+        jr c,.up
+        inc (ix+4)
+        ret
+.up:    dec (ix+4)
+        ret
+
+; place_rel: x = hero_x + DE (kept even and on the map)
+place_rel:
+        ld hl,(hero_x)
+        add hl,de
+        bit 7,h
+        jr z,.ok
+        ld hl,8
+.ok:    ld a,l
+        and $FE
+        ld (ix+2),a
+        ld (ix+3),h
+        ret
+
+; watched: NZ if the hero is facing this object
+watched:
+        ld l,(ix+2)
+        ld h,(ix+3)
+        ld de,(hero_x)
+        or a
+        sbc hl,de               ; C: object is left of the hero
+        ld a,(hero_dir)         ; 0 right, 1 left
+        jr c,.left
+        xor 1
+.left:  or a
+        ret
+
+; tri32: A = triangle wave 0..16..0 from the timer (period 32)
+tri32:  ld a,(ix+8)
+        and 31
+        cp 16
+        ret c
+        neg
+        add a,32
         ret
 
 ; ---------------------------------------------------------------- collisions
@@ -993,6 +1138,8 @@ collide_shots:
         ld a,(ix+0)
         or a
         jr z,.onx
+        bit 7,(ix+1)            ; hidden (teleporting) enemies
+        jr nz,.onx
         call obj_box
         ld a,(obj_flags)
         and F_SHOOT
@@ -1186,6 +1333,8 @@ collide_hero:
         ld a,(ix+0)
         or a
         jr z,.nx
+        bit 7,(ix+1)
+        jr nz,.nx
         call obj_box
         ld a,(obj_flags)
         and F_HARM|F_TOUCH
@@ -1433,6 +1582,8 @@ objs_draw:
         ; hit flash: skip alternate frames
         ld a,(ix+15)
         and 1
+        jr nz,.nx
+        bit 7,(ix+1)            ; hidden
         jr nz,.nx
         ld a,(ix+0)
         add a,a

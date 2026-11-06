@@ -281,6 +281,10 @@ pw_decode:
 play_stage:
         ld hl,(STG_MAP)
         ld (lvl_map),hl
+        ld hl,(STG_COLS)
+        ld (lvl_cols),hl
+        ld hl,(STG_LOGIC)
+        ld (lvl_logic),hl
         ld hl,(STG_W)
         ld (lvl_w),hl
         ld hl,(STG_TILES)

@@ -16,9 +16,14 @@ get_wcol:
         ld c,a                  ; half (0 left byte, 1 right byte)
         srl d
         rr e                    ; tile column
-        ex de,hl
-        call mul8
-        ld de,(lvl_map)
+        ld hl,(lvl_map)
+        add hl,de
+        ld l,(hl)               ; column dictionary index
+        ld h,0
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        ld de,(lvl_cols)
         add hl,de               ; column pointer
         pop de                  ; dest
         ld b,7

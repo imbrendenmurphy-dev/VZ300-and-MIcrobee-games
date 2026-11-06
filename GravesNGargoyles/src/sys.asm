@@ -265,6 +265,7 @@ MCSIZE equ 12
 
 ; HL = song record (dw channel A, dw channel B)
 play_song:
+        push ix                 ; callers may be walking the object table
         di
         ld e,(hl)
         inc hl
@@ -284,6 +285,7 @@ play_song:
         ld (ix+MC_FLOOR),18
         call .start
         ei
+        pop ix
         ret
 .start: ld (ix+MC_PTR),e
         ld (ix+MC_PTR+1),d

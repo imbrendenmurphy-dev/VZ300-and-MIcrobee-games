@@ -122,10 +122,10 @@ static inline uint8_t rd(uint16_t a)
 }
 
 static int watch_lo=-1, watch_hi=-1, watch_n=0; uint16_t cur_pc_for_watch;
- static unsigned long long prof[65536]; static long prof_from=-1; static const char *prof_file; static uint16_t pcring[256]; static uint8_t pcri; static uint16_t pcdump[256]; static int pcdumped;
+ static unsigned long long prof[65536]; static long prof_from=-1; static const char *prof_file; static uint16_t pcring[256]; static uint8_t pcri; static uint16_t bigring[8192], bigix[8192]; static int bigri; static uint16_t pcdump[256]; static int pcdumped;
 static inline void wr(uint16_t a, uint8_t v)
 {
-    if (a >= watch_lo && a <= watch_hi && watch_n < 400000) { watch_n++; fprintf(stderr, "WATCH write %04X=%02X pc=%04X\n", a, v, cur_pc_for_watch); }
+    if (a >= watch_lo && a <= watch_hi && watch_n < 400000) { watch_n++; fprintf(stderr, "WATCH write %04X=%02X pc=%04X IX=%04X\n", a, v, cur_pc_for_watch, rIX); if (getenv("VZ_WTRAIL") && cur_pc_for_watch == strtol(getenv("VZ_WTRAIL"), 0, 16)) { fprintf(stderr, "TRAIL"); for (int q = 0; q < 8192; q++) fprintf(stderr, " %04X:%04X", bigring[(bigri + q) & 8191], bigix[(bigri + q) & 8191]); fprintf(stderr, "\n"); } }
     if (test_mode) { mem[a] = v; return; }
     if (a < 0x4000) return;
     if (a < 0x6800) {
@@ -1192,7 +1192,9 @@ int main(int argc, char **argv)
             t = 4;
             if (!iff1 && !dihalt_field) dihalt_field = field;
         } else {
-            uint16_t pc = rPC; cur_pc_for_watch = pc; pcring[pcri++] = pc;
+            uint16_t pc = rPC; cur_pc_for_watch = pc; pcring[pcri++] = pc; bigring[bigri & 8191] = pc; bigix[bigri & 8191] = rIX; bigri++;
+            { static int ixchk_pc = -2, ixchk_base, ixchk_done; if (ixchk_pc == -2) { const char *e = getenv("VZ_IXCHK"); ixchk_pc = -1; if (e) sscanf(e, "%x:%x", &ixchk_pc, &ixchk_base); }
+              if (pc == ixchk_pc && !ixchk_done && ((rIX - ixchk_base) & 15)) { ixchk_done = 1; fprintf(stderr, "IXCHK field %d IX=%04X trail:", field, rIX); for (int q = 0; q < 256; q++) fprintf(stderr, " %04X", pcring[(uint8_t)(pcri + q)]); fprintf(stderr, "\n"); } }
             if (pc < 0x4000 && !pcdumped) { pcdumped = 1; for (int q = 0; q < 256; q++) pcdump[q] = pcring[(uint8_t)(pcri + q)]; }
             if (pc < 0x4000) {
                 rom_count++;

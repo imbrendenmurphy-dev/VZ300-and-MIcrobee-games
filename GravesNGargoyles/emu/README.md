@@ -31,3 +31,7 @@ Tests (in tests/):
     python3 tests/check_alu.py ./vzemu /tmp/alu.bin   # exhaustive 8-bit ALU/rotate/BIT/DAA flags + random 16-bit
     python3 tests/check_timing.py ./vzemu             # T-states for every opcode, all prefixes, both branch outcomes
     python3 tests/run_func.py                         # assembled programs (uses ../tools/z80asm.py)
+
+Debugging aids: `-W lo:hi` logs every write to that address range with the PC and IX. With
+`VZ_WTRAIL=pc` set, a write made at that PC also prints the last 8192 executed PCs, each with
+its IX value. That trail found `play_song` clobbering IX while the object loop was running.

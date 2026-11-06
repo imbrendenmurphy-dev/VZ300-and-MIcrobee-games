@@ -55,6 +55,9 @@ rp_m1:      ds 1
 ds_skip:    ds 1
 bg_j:       ds 1
 lvl_map:    ds 2
+lvl_cols:   ds 2
+lvl_logic:  ds 2
+last_obj:   ds 2
 lvl_w:      ds 2
 lvl_tiles:  ds 2
 stage_css:  ds 1

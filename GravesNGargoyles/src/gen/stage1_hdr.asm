@@ -12,3 +12,5 @@
         dw S_IMP_0,S_IMP_1,S_IMP_0,S_IMP_1
         dw S_SKULL_0,S_SKULL_0
         db 0,3,18
+        dw LEVEL1_COLS,S1_LOGIC
+S1_LOGIC: dw o_zombie,o_skel,o_bat,o_ghost,o_crow,o_imp,o_plant

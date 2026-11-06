@@ -216,12 +216,16 @@ tile_at:
         sbc hl,de
         pop hl
         jr nc,.solid
+        ld de,(lvl_map)
+        add hl,de
+        ld l,(hl)               ; column dictionary index
+        ld h,0
         add hl,hl
         add hl,hl
         add hl,hl
         ld b,0
         add hl,bc
-        ld de,(lvl_map)
+        ld de,(lvl_cols)
         add hl,de
         ld a,(hl)
         ld (last_tile),a

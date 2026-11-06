@@ -91,6 +91,8 @@ STG_PORT  equ PACK_AREA+90      ; stage card portrait sprite
 STG_BSPD  equ PACK_AREA+92      ; boss speed: 0 normal, 1 fast
 STG_VOLLEY equ PACK_AREA+93     ; boss fireballs per volley
 STG_JAWY  equ PACK_AREA+94      ; boss jaw y offset
+STG_COLS  equ PACK_AREA+95      ; column dictionary (8 bytes per unique column)
+STG_LOGIC equ PACK_AREA+97      ; 7 x dw: behaviour routines for roles 1-7
 PACK_TOP  equ PKMAX7
 
 ; ------------------------------------------------------------------- SRAM blobs
