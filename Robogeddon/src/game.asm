@@ -37,10 +37,10 @@ GS_OVER equ 5
 GS_EXIT equ 6
 
 ; arena limits
-AX0     equ 4
-AX1     equ 124                 ; first x outside
-AY0     equ 11
-AY1     equ 61                  ; first y outside
+AX0     equ 2
+AX1     equ 126                 ; first x outside
+AY0     equ 9
+AY1     equ 63                  ; first y outside
 
 ; ---------------------------------------------------------------------
 ; new_game / play_game
@@ -747,8 +747,8 @@ strcpy:
         jr      strcpy
 
 ; ---------------------------------------------------------------------
-; HUD: the dithered top edge (rows 0-2), scores (rows 3-7), a dithered
-; divider (row 9) and the bottom edge (rows 61-63).  Drawn only when it
+; HUD: the 50:50 green/blue edge line (row 0), scores (rows 1-5), a
+; dithered divider (row 7) and the bottom edge line (row 63).  Drawn only when it
 ; changes, into both buffers.
 ; ---------------------------------------------------------------------
 draw_hud:
@@ -757,40 +757,42 @@ draw_hud:
         ret     z
         dec     a
         ld      (hud_dirty),a
-        ld      hl,dith_top
         ld      c,0
-        call    .rows3
-        ld      c,3
+        ld      b,1
+        ld      a,(dith_top)
+        call    fill_rows
+        ld      c,1
         ld      b,6
         ld      a,$AA
         call    fill_rows
-        ld      c,3
+        ld      c,1
         ld      b,6
         call    put_sides
-        ld      c,9
+        ld      c,7
         ld      b,1
         ld      a,(dith_div)
         call    fill_rows
-        ld      hl,dith_bot
-        ld      c,61
-        call    .rows3
+        ld      c,63
+        ld      b,1
+        ld      a,(dith_bot)
+        call    fill_rows
         ; score
         ld      hl,score
         call    bcd_to_str
         ld      b,1
-        ld      c,3
+        ld      c,1
         ld      a,$55
         call    text3
         ; wave
         ld      hl,s_w
         ld      b,9
-        ld      c,3
+        ld      c,1
         xor     a
         call    text3
         ld      a,(wave)
         call    byte_to_str
         ld      b,10
-        ld      c,3
+        ld      c,1
         xor     a
         call    text3
         ; high score or DEMO
@@ -799,19 +801,19 @@ draw_hud:
         jr      z,.hi
         ld      hl,s_demo
         ld      b,15
-        ld      c,3
+        ld      c,1
         xor     a
         call    text3
         jr      .lv
 .hi:    ld      hl,s_hi
         ld      b,14
-        ld      c,3
+        ld      c,1
         xor     a
         call    text3
         ld      hl,HISC
         call    bcd_to_str
         ld      b,17
-        ld      c,3
+        ld      c,1
         ld      a,$55
         call    text3
 .lv:    ; lives or trainer
@@ -820,7 +822,7 @@ draw_hud:
         jr      z,.l1
         ld      hl,s_trn
         ld      b,24
-        ld      c,3
+        ld      c,1
         ld      a,$55
         jp      text3
 .l1:    ld      a,(lives)
@@ -842,23 +844,10 @@ draw_hud:
         ld      a,31
         sub     b
         ld      b,a
-        ld      c,3
+        ld      c,1
         ld      a,$55
         jp      text3
 
-; .rows3: HL = 3 dither bytes, C = first row: fill three rows
-.rows3: ld      b,3
-.r3:    push    bc
-        push    hl
-        ld      a,(hl)
-        ld      b,1
-        call    fill_rows
-        pop     hl
-        pop     bc
-        inc     hl
-        inc     c
-        djnz    .r3
-        ret
 
 ; ---------------------------------------------------------------------
 ; player

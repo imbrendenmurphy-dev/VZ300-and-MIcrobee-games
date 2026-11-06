@@ -289,9 +289,25 @@ clear_all:
 
 ; clear_arena: the playfield rows (AY0-1 .. AY1-1) to blue, with the green
 ;   dithered edge columns
-ARENA_R0 equ 10
-ARENA_RN equ 51                     ; rows 10..60
+ARENA_R0 equ 8
+ARENA_RN equ 55                     ; rows 8..62
 clear_arena:
+        ; edge bytes for even rows (main set) and odd rows (alternate set)
+        ld      a,(sidetab+1)       ; even: right
+        ld      d,a
+        ld      e,$AA
+        ld      a,(sidetab+0)       ; even: left
+        ld      c,a
+        ld      b,$AA
+        exx
+        ld      a,(sidetab+3)       ; odd: right
+        ld      d,a
+        ld      e,$AA
+        ld      a,(sidetab+2)       ; odd: left
+        ld      c,a
+        ld      b,$AA
+        ld      hl,$AAAA
+        exx
         ld      a,(drawh)
         add     a,(ARENA_R0+ARENA_RN)/8
         ld      h,a
@@ -299,20 +315,34 @@ clear_arena:
         ld      (sp_save),sp
         ld      sp,hl
         ld      hl,$AAAA
-        ld      a,ARENA_RN
-.l:     di                          ; the interrupt must never push into a cleared row
-        rept 16
+        ; row 62 (even) on its own, then 27 pairs (odd, even) down to row 8
+        di
+        push    de
+        rept 14
         push    hl
         endr
+        push    bc
+        ld      a,(ARENA_RN-1)/2
+.l:     di
+        exx
+        push    de
+        rept 14
+        push    hl
+        endr
+        push    bc
+        exx
+        push    de
+        rept 14
+        push    hl
+        endr
+        push    bc
         dec     a
         jr      z,.e
-        ei
-        jr      .l
+        ei                          ; the interrupt can come after the jr, and
+        jr      .l                  ; only pushes into rows still to be cleared
 .e:     ld      sp,(sp_save)
         ei
-        ld      c,ARENA_R0
-        ld      b,ARENA_RN
-        ; fall into put_sides
+        ret
 
 ; put_sides: C = first row, B = rows: the dithered edge bytes (from sidetab)
 put_sides:
@@ -614,31 +644,79 @@ draw_frame_g:
         ld      l,a
         ld      a,(de)
         inc     de
-        ld      b,a
+        ld      b,a                 ; width in bytes (1..3)
         ld      a,(de)
         inc     de
-        ld      c,a
-.row:   push    hl
-        push    bc
-.byte:  ld      a,(de)
-        and     (hl)
-        ld      c,a
-        inc     de
-        ld      a,(de)
-        or      c
+        ld      c,a                 ; rows
+        ; the (keep-mask, pixels) pairs are read with POP: no interrupt
+        ; may push while SP points into the sprite
+        di
+        ld      (sp_save2),sp
+        ex      de,hl
+        ld      sp,hl
+        ex      de,hl
+        ld      a,b
+        cp      2
+        jr      z,.w2
+        jr      c,.w1
+.w3:    pop     de
+        ld      a,(hl)
+        and     e
+        or      d
         ld      (hl),a
-        inc     de
         inc     l
-        djnz    .byte
-        pop     bc
-        pop     hl
+        pop     de
+        ld      a,(hl)
+        and     e
+        or      d
+        ld      (hl),a
+        inc     l
+        pop     de
+        ld      a,(hl)
+        and     e
+        or      d
+        ld      (hl),a
+        ld      a,l
+        add     a,30
+        ld      l,a
+        jr      nc,.n3
+        inc     h
+.n3:    dec     c
+        jr      nz,.w3
+        jr      .done
+.w2:    pop     de
+        ld      a,(hl)
+        and     e
+        or      d
+        ld      (hl),a
+        inc     l
+        pop     de
+        ld      a,(hl)
+        and     e
+        or      d
+        ld      (hl),a
+        ld      a,l
+        add     a,31
+        ld      l,a
+        jr      nc,.n2
+        inc     h
+.n2:    dec     c
+        jr      nz,.w2
+        jr      .done
+.w1:    pop     de
+        ld      a,(hl)
+        and     e
+        or      d
+        ld      (hl),a
         ld      a,l
         add     a,32
         ld      l,a
         jr      nc,.n1
         inc     h
 .n1:    dec     c
-        jr      nz,.row
+        jr      nz,.w1
+.done:  ld      sp,(sp_save2)
+        ei
         ret
 
 draw_spread_g:

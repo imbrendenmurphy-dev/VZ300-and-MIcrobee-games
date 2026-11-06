@@ -20,7 +20,7 @@ static uint8_t keys[8];            // active-high pressed bits per row
 static uint8_t joy[16];            // port low nibble -> active-high bits
 static int fs_low = 0;
 static int cur_line = 0; static long snow_hits = 0; static int snow_frames = 0, snow_lastf = -1; static int snow_first[16]; static int snow_nf = 0;
-static int frame;
+static int frame; static long long fs_t0 = 0; static int fs_pc = 0; static int fs_fr = -1;
 static z80 *gz;
 static int mark_max=0, mark_late=0, mark_hist[8];
 static void snowchk(uint16_t a){ int r=cur_line-FS_LEN-TOPB; if(a>=0x7000&&a<0x7800&&r>=0&&r<192){ snow_hits++; if(snow_lastf!=frame){snow_lastf=frame;snow_frames++; if(getenv("SNOWLOG")) fprintf(stderr,"snowframe %d line %d pc %04X addr %04X sp %04X ret %02X%02X %02X%02X %02X%02X\n",frame,cur_line,gz?gz->pc:0,a,gz->sp,mem[gz->sp+1],mem[gz->sp],mem[gz->sp+3],mem[gz->sp+2],mem[gz->sp+5],mem[gz->sp+4]); if(snow_nf<16)snow_first[snow_nf++]=frame;} } }
@@ -202,6 +202,8 @@ int main(int argc, char **argv) {
       fs_low = line < FS_LEN; cur_line = line;
       long long target = totalcyc + CPF_LINE;
       while ((long long)z.cyc < target) {
+        if (getenv("INTLOG") && line == 0 && fs_t0 == 0 && fs_fr != frame) { fs_t0 = z.cyc; fs_pc = z.pc; fs_fr = frame; }
+        if (getenv("INTLOG") && fs_t0 && (z.pc == 0xF1F1 || z.pc == strtol(getenv("INTPC") ? getenv("INTPC") : "0", 0, 16))) { long long d = z.cyc - fs_t0; if (d > atoi(getenv("INTLOG"))) fprintf(stderr, "int late f%d by %lld (pc at fs %04X)\n", frame, d, fs_pc); fs_t0 = 0; }
         if (fs_low) { if (z.iff1) { z.int_pending = 1; z.int_data = 0xff; } }
         else z.int_pending = 0;
         unsigned long c0 = z.cyc;

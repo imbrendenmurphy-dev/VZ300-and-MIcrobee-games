@@ -178,6 +178,7 @@ drawh_sv:   db 0
 bd_dirty:   db 0
 gtick:      db 0
 sp_save:    dw 0
+sp_save2:   dw 0
 sacc:       dw 0
 sstep:      dw 0
 snoise:     db 0
@@ -215,9 +216,9 @@ numbuf:     ds 8
         ALIGN 16
 dith:                           ; built from dith_t: 8 side bytes, then rows
 sidetab:    ds 8
-dith_top:   ds 3
+dith_top:   ds 1
 dith_div:   ds 1
-dith_bot:   ds 3
+dith_bot:   ds 1
 DITH_N      equ $-dith
 ; input
 joy1:       db 0

@@ -13,7 +13,7 @@ Original code, graphics and music. It's inspired by Robotron but contains nothin
 ## Play it
 
 Copy `release/ROBOGEDN.VZ` to the SD card and run it from the BennVenn SD loader.
-- It's a single type F1 binary. It loads at $8000 (to $DBB1) and runs from $8000. There are no other files.
+- It's a single type F1 binary. It loads at $8000 (to $DCA9) and runs from $8000. There are no other files.
 - It needs the **128K expansion** (RAM up to $FFFF, and the card's SRAM at $4000–$67FF).
 - It doesn't call the DOS while running, and it never writes to the SD card.
 
@@ -63,8 +63,8 @@ Any spark, missile or shell can be shot down for 25 points.
 wave 20 they repeat, faster. Each wave opens with its robots *materialising* line by line, with a caption
 saying what's coming. Destroyed robots shatter apart the same way.
 
-**The arena** is blue, edged with green dithering that fades out into the VZ's own green border, so the
-playfield seems to glow out of the screen. Blue is the background, so the robots' blue parts are drawn
+**The arena** is blue, edged with a single 50:50 green/blue dithered line that melts into the VZ's own green
+border. Blue is the background, so the robots' blue parts are drawn
 green (crushers, tanks and so on).
 
 **Extras**
@@ -94,16 +94,17 @@ you switch off.
 
 ## How it works
 
-- **Mode 1** (128×64, 4 colours). The arena is 120×50 blue pixels inside the dithered edge, with the scores above.
+- **Mode 1** (128×64, 4 colours). The arena is 124×54 blue pixels inside the 1-pixel dithered edge, with the scores above.
 - **Snow-free display at a steady 25 frames a second.** The game draws each frame into one of two
   frame buffers ($E800 and $F800). An IM2 interrupt on field sync (vector table at $F000) copies the
   finished buffer to video RAM with POP/PUSH, top half in one vblank and bottom half in the next. Each half
   takes about 60 of the 81 lines before the picture starts. So video RAM is never touched while the
   picture is drawn. New frames are swapped in at most every second field. A frame that runs long costs 3
   fields rather than 4.
-- The busiest waves (50+ objects) mostly hold 25 fps, dipping now and then to 16.7. The materialise effect on the biggest waves is slower for a moment.
+- Ordinary waves run at a steady 25 fps. The busiest waves (50+ objects) run at a mix of 25 and 16.7 fps
+  (about a third of their frames at 25). The materialise effect on the biggest waves is slower for a moment.
 - Sprites are pre-shifted for the 4 pixel positions in a byte. In the arena they're drawn through masks
-  (each byte is a keep-mask plus pixels) so they sit cleanly on the blue. The front-end copies are drawn
+  (each byte is a keep-mask plus pixels, read with POP) so they sit cleanly on the blue. The front-end copies are drawn
   with OR on the green. Text is drawn through masks too. The 4:3 screen's tall pixels are allowed for in
   movement and aiming: vertical speeds are two-thirds of horizontal ones.
 - The screen-copy routines (four unrolled POP/PUSH copies, 7K) are built at start-up in the card's SRAM,
@@ -122,7 +123,7 @@ you switch off.
 | $4800–$640B | screen-copy routines, built at start-up (SRAM bank 1) |
 | $6700–$6746 | saved high scores (SRAM bank 3) |
 | $7000–$77FF | video RAM |
-| $8000–$DBB1 | code and data |
+| $8000–$DCA9 | code and data |
 | $E800–$EFFF | frame buffer 0 |
 | $F000–$F100, $F1F1 | IM2 vector table, `jp isr` |
 | $F200–$F6FF | variables, objects (64 × 8 bytes), bullets, shots, high scores |

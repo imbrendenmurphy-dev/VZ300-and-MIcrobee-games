@@ -47,19 +47,19 @@ wavetab:
         db 24, 0,16, 0, 3, 0, 3, 3, 3, 3      ; 19 crusher wave
         db 16, 7, 3,14, 0, 0, 3, 3, 4, 3      ; 20 mindbot wave
 
-; the blue arena's green dithered edge: (blue pixels, green-pixel mask)
-; side bytes for rows 0..3 mod 4 (left, right): the green fades from the
-; outside in (100/75/50/25%), into the VZ's green border
 flash_cols:
         db 1, 3, 2, 3
+; the blue arena's edge: a single 50:50 green/blue line, fading into the
+; VZ's green border.  (blue pixels, green-pixel mask)
+; side bytes for rows 0..3 mod 4 (left, right)
 dith_t:
-        db $02,$FC, $80,$3F             ; row 0 mod 4
-        db $08,$F3, $20,$CF             ; row 1
-        db $02,$FC, $80,$3F             ; row 2
-        db $2A,$C0, $A8,$03             ; row 3
-        db $02,$FC, $22,$CC, $8A,$30    ; top rows 0,1,2: 75%, 50%, 25%
-        db $88,$33                      ; divider under the scores
-        db $A2,$0C, $22,$CC, $08,$F3    ; bottom rows 61,62,63: 25%, 50%, 75%
+        db $2A,$C0, $AA,$00             ; even rows: green on the outside pixel
+        db $AA,$00, $A8,$03             ; odd rows: green on the right side
+        db $2A,$C0, $AA,$00
+        db $AA,$00, $A8,$03
+        db $22,$CC                      ; top line
+        db $22,$CC                      ; divider under the scores
+        db $88,$33                      ; bottom line
 
 ; ---- directions: 0 U, 1 UR, 2 R, 3 DR, 4 D, 5 DL, 6 L, 7 UL
 ; pad bits 0 R, 1 L, 2 U, 3 D -> direction ($FF none)
