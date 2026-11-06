@@ -76,7 +76,7 @@ boss_logic:
         ret nz
         ld (ix+1),2
         ld (ix+8),0
-        ld a,MUS_BOSS
+        ld hl,SONG_BOSS
         call play_song
         ret
 .hover: ; patrol high across the arena, bouncing off the edges

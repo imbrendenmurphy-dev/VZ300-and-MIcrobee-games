@@ -1,7 +1,7 @@
 ; ============================================================================
 ;  VARIABLES (not part of the loaded file)
 ; ============================================================================
-        dsect RESIDENT_END
+        dsect PACK_TOP
 VARS:
 HERO_DESC:  ds 6*8
 HC_P0:      ds 96*8
@@ -152,8 +152,13 @@ demo_p:     ds 2
 demo_n:     ds 1
 demo_k:     ds 1
 BLIT_SP:    ds 2
+ld_dest:    ds 2
+ld_left:    ds 2
+ld_name:    ds 2
+pack_ok:    ds 1
 VARS_END:
 FB:         ds FBW*FBROWS
 FB_END:
         dend
-        assert FB_END <= $FFF0
+        assert FB_END <= $FA00
+        assert LOAD_END <= $FA00

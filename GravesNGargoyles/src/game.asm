@@ -133,7 +133,7 @@ play_stage:
         ld a,(demo_mode)
         or a
         jr nz,.nmus
-        ld a,MUS_STAGE1
+        ld hl,SONG_STAGE1
         call play_song
 .nmus:  ld hl,STR_READY
         call banner

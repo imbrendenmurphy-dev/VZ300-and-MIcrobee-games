@@ -113,7 +113,7 @@ class Asm:
             t = nxt()
             if t is None: raise AsmError('bad expression: ' + s)
             if t == '(':
-                v = orx()
+                v = cmpx()
                 if nxt() != ')': raise AsmError('missing ) in ' + s)
                 return v
             if t == '-': return -prim()
@@ -400,8 +400,9 @@ class Asm:
     def define(self, name, val):
         n = name
         if n.startswith('.'): n = self.glob + n
-        if self.pass_no == 1 and n in self.sym and self.sym[n] != val and n not in self.redef:
+        if n in self.defined and self.sym.get(n) != val and n not in self.redef:
             raise AsmError('duplicate symbol ' + name)
+        self.defined.add(n)
         self.sym[n] = val
 
     def run_file(self, path):
@@ -452,6 +453,15 @@ class Asm:
         if mn == 'dsect':
             self.saved_pc = self.pc; self.virtual = True
             self.pc = self.eval(argstr); return
+        if mn == 'segment':
+            name = argstr.strip().strip('"\'')
+            self.seg_stack.append((self.out, self.pc, self.phase_off))
+            self.out = self.segs.setdefault(name, {}) if self.pass_no == 2 else {}
+            self.phase_off = 0
+            return
+        if mn == 'endsegment':
+            self.out, self.pc, self.phase_off = self.seg_stack.pop()
+            return
         if mn == 'phase':
             v = self.eval(argstr)
             self.phase_off = self.pc + self.phase_off - v
@@ -504,13 +514,18 @@ class Asm:
         for it in range(20):
             self.newlong = set()
             self.errors = []
-            for p in (1, 2):
+            passes = [1, 1, 1, 2]       # extra passes let forward references settle
+            for i, p in enumerate(passes):
                 self.pass_no = p
                 self.pc = 0; self.glob = ''
-                if p == 1: self.sym = {}
-                self.out = {}; self.ds_area = set(); self.virtual = False; self.phase_off = 0
+                if i == 0: self.sym = {}
+                before = dict(self.sym)
+                self.defined = set()
+                self.out = {}; self.ds_area = set(); self.virtual = False; self.phase_off = 0; self.segs = {}; self.seg_stack = []
                 self.run_file(path)
                 if self.errors: break
+            if not self.errors and before != self.sym:
+                self.errors.append('symbols did not settle (circular definition?)')
             if self.errors or not self.newlong: break
             self.longjr |= self.newlong
         if self.longjr: print('%d jr relaxed to jp' % len(self.longjr))
@@ -526,6 +541,12 @@ def main():
     data = bytes(a.out.get(i, 0) for i in range(lo, hi + 1))
     with open(outp, 'wb') as f: f.write(data)
     print('assembled %04X-%04X (%d bytes)' % (lo, hi, len(data)))
+    for name, seg in a.segs.items():
+        if not seg: continue
+        slo, shi = min(seg), max(seg)
+        sp = os.path.join(os.path.dirname(outp) or '.', name)
+        with open(sp, 'wb') as f: f.write(bytes(seg.get(i, 0) for i in range(slo, shi + 1)))
+        print('segment %s: %04X-%04X (%d bytes)' % (name, slo, shi, shi - slo + 1))
     if len(sys.argv) > 3:
         with open(sys.argv[3], 'w') as f:
             for k, v in sorted(a.sym.items(), key=lambda kv: kv[1]):

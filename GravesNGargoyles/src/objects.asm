@@ -1395,7 +1395,7 @@ c_heart:
         jr nc,.f
         inc a
         ld (lives),a
-.f:     ld a,MUS_J_ITEM
+.f:
         ld hl,STR_1UP
         call banner
         ld a,SFX_POWER_ID

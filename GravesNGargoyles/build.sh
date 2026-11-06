@@ -13,3 +13,7 @@ else
 fi
 python3 tools/z80asm.py src/main.asm build/$OUT.bin build/$OUT.sym > /dev/null
 python3 tools/mkvz.py build/$OUT.bin build/$OUT.VZ 8000 GRAVESNGARGOYLES
+# SD card set: the .VZ plus its pack files
+mkdir -p build/sd
+cp build/$OUT.VZ build/GNGFRONT.DAT build/GNGSTAG1.DAT build/sd/
+ls -l build/sd | awk 'NR>1{printf "  %-14s %6d\n", $9, $5}'

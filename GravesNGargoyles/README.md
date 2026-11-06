@@ -90,17 +90,31 @@ every frame, which gives the in-game music a gritty 25 Hz texture.
 ### Memory map
 
 ```
-$4000-$4A7F  SRAM bank B  ring buffer, phase 0      (title art while in menus)
-$4A80-$54FF  SRAM bank B  ring buffer, phase 2
+$4000-$4A7F  SRAM bank B  ring buffer, phase 0   (title art while in menus)
+$4A80-$54FF  SRAM bank B  ring buffer, phase 2   (logo sprite while in menus)
 $5500-$6068  SRAM bank B  frame blit routine
 $6100-$66FF  SRAM bank B  hero layered class data
 $7000-$77FF  video RAM    rows 0-8 HUD, 9-59 playfield, 60-63 border
-$7800-$7FFF  IM2 table, stack, HUD buffer, lookup tables
-$8000-$F8D8  program + data (the end of the load image becomes variables and frame buffer)
+$7800-$7FFF  IM2 table, stack, HUD buffer, lookup tables, DOS mapping flags
+$8000-$C7FF  resident engine, shared graphics, sound, text
+$C800-$DF0F  pack area: GNGFRONT or a stage pack, loaded from SD
+$DF10-$F390  variables, then the frame buffer
+$FA00-$FFFF  BennVenn DOS RAM - never touched
 ```
 
-Port $37 is set to 3 (SRAM bank B) at start-up. The loader's DOS bank (value 1) isn't
-used yet by this build, which currently uses RAM up to about $FCF0 (see the SD notes).
+At start-up the program probes the DOS mapping exactly as the 13 Ghosts loader does, then
+maps SRAM bank B (port $37 = 3) for play. Each pack load switches back to the DOS mapping with
+interrupts off, reads 512-byte sectors into the frame buffer and copies them into the pack
+area. The frame buffer is redrawn afterwards anyway. Packs are about 5.5-6K and load in a
+fraction of a second.
+
+### Stage packs
+
+Each pack starts with a magic byte ('F' or 'S' plus the stage number). Packs are
+assembled from the same source tree as the engine (`src/packs.asm`, using the assembler's
+`segment` directive), so the engine refers to pack data by label. A new stage is a new
+segment: its own map, tiles, enemy sprites, boss, music and text, plus stage-specific code if
+it needs any. It's loaded into the same area.
 
 ### BennVenn SD DOS interface (decoded from the 13 Ghosts loader)
 
@@ -120,9 +134,6 @@ destination (2), length (2), bank flag (1), then the quoted name (10).
 
 ### Not yet in this build (next milestones)
 
-- **SD streaming of stage packs** (map, enemy sprite set, music per stage) using the DOS
-  interface above. This needs the RAM at $FA00-$FFFF given back to the DOS, which stage packs
-  make possible by moving stage data out of the resident program.
 - **Save games and high scores on SD.** The calls above only read; a write call still needs to be found.
 - Further stages: Witchwood, the Drowned Village, the Swamp of the Damned, Crystal Deeps,
   Demon Castle, Haunted Sky, and Morgrave's Citadel, each with its own tiles, enemies, boss and
@@ -135,7 +146,7 @@ destination (2), length (2), bank flag (1), then the quoted name (10).
 Requirements: Python 3 (with Pillow, only for previews) and gcc (for the test emulator).
 
 ```
-./build.sh                         # -> build/GRAVGARG.VZ  (loads at $8000, autoruns)
+./build.sh                         # -> build/sd/: GRAVGARG.VZ + GNGFRONT.DAT + GNGSTAG1.DAT
 ./build.sh dbg START ARM OWNED CHEAT   # test build: start x, armour 0-5, weapon bits, invincible
 ```
 
@@ -146,5 +157,7 @@ Requirements: Python 3 (with Pillow, only for previews) and gcc (for the test em
   routines and the RLE-packed title art.
 - `emu/vzemu`: a headless VZ300 test emulator (PAL timing, IM2, BennVenn SRAM banking,
   keyboard and joystick). It also does snow detection, screenshots, a mono preview, WAV capture,
-  a profiler, write watchpoints and a crash PC trail. Snow timing assumes the display starts 94
+  a profiler, write watchpoints and a crash PC trail.
+  `-S folder` emulates the BennVenn DOS calls, serving `NAME.DAT` files from that folder
+  (checked against the real 13 Ghosts loader). Snow timing assumes the display starts 94
   lines after the field-sync interrupt; that needs confirming on real hardware.

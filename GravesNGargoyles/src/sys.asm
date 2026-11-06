@@ -5,6 +5,9 @@
 init:
         di
         ld sp,STACKTOP
+        call dos_probe          ; as the 13 Ghosts loader does
+        xor a
+        ld (DOSBUSY),a
         ld a,SRAM_GAME
         out ($37),a
         ; move the SRAM blobs up from the load image
@@ -108,7 +111,13 @@ build_tables:
 ; ---------------------------------------------------------------- ISR
 isr:
         push af
-        push bc
+        ld a,(DOSBUSY)
+        or a
+        jr z,.go
+        pop af
+        ei
+        reti
+.go:    push bc
         push de
         push hl
         exx
@@ -254,15 +263,9 @@ MC_ATT equ 9
 MC_FLOOR equ 10
 MCSIZE equ 12
 
-; A = song number
+; HL = song record (dw channel A, dw channel B)
 play_song:
         di
-        add a,a
-        add a,a
-        ld e,a
-        ld d,0
-        ld hl,SONGTAB
-        add hl,de
         ld e,(hl)
         inc hl
         ld d,(hl)

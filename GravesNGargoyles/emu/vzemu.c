@@ -121,7 +121,8 @@ static inline uint8_t rd(uint16_t a)
     return mem[a];
 }
 
-static int watch_lo=-1, watch_hi=-1, watch_n=0; uint16_t cur_pc_for_watch; static unsigned long long prof[65536]; static long prof_from=-1; static const char *prof_file; static uint16_t pcring[256]; static uint8_t pcri; static uint16_t pcdump[256]; static int pcdumped;
+static int watch_lo=-1, watch_hi=-1, watch_n=0; uint16_t cur_pc_for_watch;
+ static unsigned long long prof[65536]; static long prof_from=-1; static const char *prof_file; static uint16_t pcring[256]; static uint8_t pcri; static uint16_t pcdump[256]; static int pcdumped;
 static inline void wr(uint16_t a, uint8_t v)
 {
     if (a >= watch_lo && a <= watch_hi && watch_n < 400000) { watch_n++; fprintf(stderr, "WATCH write %04X=%02X pc=%04X\n", a, v, cur_pc_for_watch); }
@@ -526,6 +527,37 @@ static int exec_ed(void)
         }
     }
     return 8;  /* undefined ED: NOP */
+}
+
+/* fake BennVenn DOS (calls at $5F00/$5F03/$5F09, see 13 Ghosts loader) */
+static const char *sd_dir; static FILE *sd_fp; static long sd_calls;
+static int dos_trap(uint16_t pc)
+{
+    char name[64]; int n = 0;
+    uint16_t buf;
+    if (pc == 0x5F00) {
+        uint16_t p = (rH << 8) | rL;
+        if (rd(p) == '"') p++;
+        while (n < 12 && rd(p) != '"' && rd(p) >= 32) name[n++] = rd(p++);
+        name[n] = 0;
+        if (sd_fp) { fclose(sd_fp); sd_fp = 0; }
+        char path[512];
+        snprintf(path, sizeof path, "%s/%s.DAT", sd_dir, name);
+        sd_fp = fopen(path, "rb");
+        mem[0xFB03] = sd_fp ? 1 : 0; mem[0xFB05] = 0;
+        printf("DOS open \"%s\" -> %s (field %ld)\n", name, sd_fp ? "ok" : "NOT FOUND", field);
+        if (sd_fp) fseek(sd_fp, 0, SEEK_SET);
+    } else {
+        buf = mem[0xFB80] | (mem[0xFB81] << 8);
+        uint8_t sec[512]; memset(sec, 0, 512);
+        if (sd_fp) fread(sec, 1, 512, sd_fp);
+        for (int i = 0; i < 512; i++) wr((uint16_t)(buf + i), sec[i]);
+    }
+    sd_calls++;
+    /* return */
+    uint16_t lo = rd(rSP), hi = rd((uint16_t)(rSP + 1)); rSP += 2;
+    rPC = lo | (hi << 8);
+    return pc == 0x5F00 ? 20000 : 44000;   /* ~32 sectors per 20 fields */
 }
 
 static int step(void)
@@ -1084,6 +1116,7 @@ int main(int argc, char **argv)
         else if (!strcmp(a, "-w") && i + 1 < argc) wavfile = argv[++i];
         else if (!strcmp(a, "-i") && i + 1 < argc) script = argv[++i];
         else if (!strcmp(a, "-t") && i + 1 < argc) trace_n = strtol(argv[++i], NULL, 10);
+        else if (!strcmp(a, "-S") && i + 1 < argc) { sd_dir = argv[++i]; }
         else if (!strcmp(a, "-P") && i + 2 < argc) { prof_from = atol(argv[++i]); prof_file = argv[++i]; }
         else if (!strcmp(a, "-W") && i + 1 < argc) { sscanf(argv[++i], "%x:%x", &watch_lo, &watch_hi); }
         else if (!strcmp(a, "-b") && i + 1 < argc && nbps < 32) { bps[nbps] = strtoul(argv[++i], NULL, 16); bphit[nbps++] = 0; }
@@ -1178,6 +1211,7 @@ int main(int argc, char **argv)
             }
             instr_count++;
             prev_pc = pc;
+            if (sd_dir && (pc == 0x5F00 || pc == 0x5F03 || pc == 0x5F09) && (port37 & 3) == 1) t = dos_trap(pc); else
             t = step(); if (prof_from >= 0 && field >= prof_from) prof[pc] += t;
             busy_field += t;
         }

@@ -16,8 +16,12 @@
 ;   $797C-$7AFF  stack
 ;   $7B00-$7BFF  HUD buffer  $7C00 hero colour lookup  $7D00 FB row table
 ;   $7E00-$7EFF  FLIP table
-;   $8000-       program + data (the tail of the load image holds the SRAM
-;                blobs; after start-up that space becomes variables + FB)
+;   $8000-       resident program + data, then the pack area: the front pack
+;                (title, menus) or a stage pack is loaded here from SD.
+;                The tail of the load image holds the SRAM blobs, copied up
+;                at start-up before the first pack is loaded over them.
+;   after packs  variables, then the frame buffer, all below $FA00
+;   $FA00-$FFFF  BennVenn DOS RAM - never touched
 ;   FB           frame buffer 64 rows x 40 bytes (4 margin bytes each side)
 ;
 LATCH    equ $6800
@@ -32,6 +36,8 @@ ISRJP    equ $7979
 STACKTOP equ $7B00
 HUDBUF   equ $7B00      ; 12 rows: 8 top + 4 bottom
 HLUT     equ $7C80
+DOSMAP   equ $7CF0      ; port $37 value that maps the DOS (probed at start-up)
+DOSBUSY  equ $7CF1      ; non-zero while a DOS call is in progress
 YTAB     equ $7D00
 FLIPT    equ $7E00
 FBW      equ 40
@@ -51,15 +57,17 @@ SRAM_DOS  equ 1            ; port $37: DOS bank (as left by the loader)
         include "boss.asm"
         include "game.asm"
         include "front.asm"
+        include "sd.asm"
 
 ; ------------------------------------------------------------------- data
         include "gen/gfx.asm"
-        include "gen/level1.asm"
         include "gen/music.asm"
-        include "gen/title.asm"
         include "gen/blit_lo.asm"
         include "text.asm"
+        include "packs.asm"
 RESIDENT_END:
+PACK_AREA equ (RESIDENT_END+255)&$FF00
+PACK_TOP  equ FRONT_END+(S1_END-FRONT_END)*(S1_END>=FRONT_END)
 
 ; ------------------------------------------------------------------- SRAM blobs
 BLOB1_SRC:

@@ -62,6 +62,7 @@ run_game:
 
 ; ---------------------------------------------------------------- title
 title_screen:
+        call ensure_front
         call stop_music
         call unpack_title
         xor a
@@ -74,7 +75,7 @@ title_screen:
         ld (bat2_x),hl
         ld a,$28
         ld (latch_next),a
-        ld a,MUS_TITLE
+        ld hl,SONG_TITLE
         call play_song
 .lp:    ld hl,(t_t)
         inc hl
@@ -362,11 +363,11 @@ title_bats:
         jr nc,.b2
         ld hl,190
         ld (bat2_x),hl
-.b2:    ld hl,S_BAT_0
+.b2:    ld hl,F_BAT_0
         ld a,(t_t)
         and 4
         jr z,$+5
-        ld hl,S_BAT_1
+        ld hl,F_BAT_1
         push hl
         ld bc,(bat1_x)
         ld a,(t_t)
@@ -399,11 +400,11 @@ title_ghost:
 .on:    ld a,(t_t)
         and 3
         ret z
-        ld hl,S_GHOST_0
+        ld hl,F_GHOST_0
         ld a,(t_t)
         and 8
         jr z,$+5
-        ld hl,S_GHOST_1
+        ld hl,F_GHOST_1
         ld a,(t_t)
         rrca
         rrca
@@ -451,6 +452,7 @@ draw_logo:
 ; ---------------------------------------------------------------- menu
 MENU_N equ 6
 menu_screen:
+        call ensure_front
         call unpack_title
         xor a
         ld (menu_sel),a
@@ -736,6 +738,7 @@ story_page:
         ret
 
 stage_card:
+        call ensure_stage1
         call stop_music
         call build_hero
         call cls_fb
@@ -752,7 +755,7 @@ stage_card:
 
 clear_card:
         call stop_music
-        ld a,MUS_J_CLEAR
+        ld hl,SONG_J_CLEAR
         call play_song
         ld a,$30
         call add_score_k
@@ -777,7 +780,7 @@ ending_card:
 
 ; game over with continue countdown -> A = 1 if continuing
 gameover_card:
-        ld a,MUS_J_OVER
+        ld hl,SONG_J_OVER
         call play_song
         ld a,9
         ld (cont_n),a
@@ -1007,6 +1010,7 @@ hiscore_check:
 ; ---------------------------------------------------------------- attract
 ; returns A = 0 if the player pressed fire (go to menu), 1 when complete
 attract:
+        call ensure_front
         ld a,2
         ld (arm_cur),a
         call build_hero
@@ -1097,6 +1101,7 @@ bestiary:
 
 ; demo: play the stage with recorded input -> NZ if interrupted by a key
 demo_game:
+        call ensure_stage1
         ld hl,1987
         ld (seed),hl
         ld a,(opt_diff)
@@ -1115,7 +1120,7 @@ demo_game:
         call new_game
         ld a,2
         ld (arm_max),a
-        ld a,MUS_STAGE1
+        ld hl,SONG_STAGE1
         call play_song
         call play_stage
         ld b,a
