@@ -710,11 +710,11 @@ choose_item:
 .w:         call wait_frame
             call read_input
             call idle_anim
-            ld a,($68F7)            ; row 3: 4 1 3 . 2 5
+            ld a,($68F7)            ; row 3: 4 1 3 - 2 5 (bit5..bit0)
             cpl
-            bit 1,a
+            bit 4,a                 ; 1
             jr nz,.k1
-            bit 4,a
+            bit 1,a                 ; 2
             jr nz,.k2
             ld a,(keys_new)
             and K_FIRE|K_LEFT|K_RIGHT|K_UP|K_DOWN

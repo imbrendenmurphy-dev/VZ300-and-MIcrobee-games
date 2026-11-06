@@ -462,54 +462,54 @@ K_ITEM      equ 128
 ; read raw keyboard rows -> action bits
 read_input:
             ld c,0
-            ; row 0 ($FE): R Q E . W T  -> W = up(bit4), E = item(bit2)
+            ; VZ matrix: bit5..bit0 per row, e.g. $68FE = R Q E - W T  (T = bit0)
             ld a,($68FE)
             cpl
-            bit 4,a
+            bit 1,a
             jr z,.r0a
             set 0,c
-.r0a:       bit 2,a
+.r0a:       bit 3,a
             jr z,.r1
             set 7,c
-.r1:        ld a,($68FD)            ; F A D CTRL S G
+.r1:        ld a,($68FD)            ; F A D CTRL S G  (bit5..bit0)
             cpl
-            bit 1,a                 ; A
+            bit 4,a                 ; A
             jr z,.r1b
             set 2,c
-.r1b:       bit 2,a                 ; D
+.r1b:       bit 3,a                 ; D
             jr z,.r1c
             set 3,c
-.r1c:       bit 4,a                 ; S
+.r1c:       bit 1,a                 ; S
             jr z,.r4
             set 1,c
-.r4:        ld a,($68EF)            ; M SPACE , . . N
+.r4:        ld a,($68EF)            ; M SPACE , - . N  (bit5..bit0)
             cpl
-            bit 0,a                 ; M
+            bit 5,a                 ; M
             jr z,.r4b
             set 5,c
-.r4b:       bit 1,a                 ; SPACE
+.r4b:       bit 4,a                 ; SPACE
             jr z,.r6
             set 4,c
-.r6:        ld a,($68BF)            ; U P I RET O Y
+.r6:        ld a,($68BF)            ; U P I RET O Y  (bit5..bit0)
             cpl
-            bit 3,a                 ; RETURN
+            bit 2,a                 ; RETURN
             jr z,.r6b
             set 4,c
-.r6b:       bit 2,a                 ; I = up
+.r6b:       bit 3,a                 ; I = up
             jr z,.r6c
             set 0,c
-.r6c:       bit 1,a                 ; P = menu
+.r6c:       bit 4,a                 ; P = menu
             jr z,.r7
             set 6,c
-.r7:        ld a,($687F)            ; J ; K : L H
+.r7:        ld a,($687F)            ; J ; K : L H  (bit5..bit0)
             cpl
-            bit 0,a                 ; J = left
+            bit 5,a                 ; J = left
             jr z,.r7b
             set 2,c
-.r7b:       bit 2,a                 ; K = down
+.r7b:       bit 3,a                 ; K = down
             jr z,.r7c
             set 1,c
-.r7c:       bit 4,a                 ; L = right
+.r7c:       bit 1,a                 ; L = right
             jr z,.joy
             set 3,c
 .joy:       ld a,(joy_ok)

@@ -138,15 +138,15 @@ m0_wait_nesw:
 .w:         call wait_frame
             ld a,($68EF)
             cpl
-            and $20                 ; N
+            and $01                 ; N (bit0)
             jr nz,.ok
             ld a,($68FE)
             cpl
-            and $14                 ; E (bit2), W (bit4)
+            and $0A                 ; E (bit3), W (bit1)
             jr nz,.ok
             ld a,($68FD)
             cpl
-            and $10                 ; S
+            and $02                 ; S (bit1)
             jr z,.w
 .ok:        ld hl,sfx_tick
             jp play_sfx

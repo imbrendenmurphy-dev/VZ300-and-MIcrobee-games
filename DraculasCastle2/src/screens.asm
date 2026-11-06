@@ -317,7 +317,7 @@ status_screen:
             call read_input
             ld a,($68F7)
             cpl
-            bit 1,a                 ; '1' = drink potion
+            bit 4,a                 ; '1' = drink potion
             jr nz,.drink
             ld a,(keys_new)
             and K_ITEM|K_FIRE|K_MAP|K_MENU
@@ -341,7 +341,7 @@ status_screen:
 .rel:       call wait_frame
             ld a,($68F7)
             cpl
-            bit 1,a
+            bit 4,a
             jr nz,.rel
             jp .draw
 
@@ -413,13 +413,13 @@ pause_screen:
             jr nz,.out
             bit 4,a
             jr nz,.out
-            ld a,($68FE)            ; row 0: Q = quit to title
+            ld a,($68FE)            ; row 0: Q = quit to title (bit4)
             cpl
-            bit 1,a
+            bit 4,a
             jp nz,title_screen
             ld a,($68EF)            ; row 4: M SPACE , . . N
             cpl
-            bit 5,a                 ; N = music toggle
+            bit 0,a                 ; N = music toggle
             jr z,.w
             ld a,(music_on)
             xor 1
@@ -429,7 +429,7 @@ pause_screen:
 .rel:       call wait_frame
             ld a,($68EF)
             cpl
-            bit 5,a
+            bit 0,a
             jr nz,.rel
             jr .w
 .out:       call clear_msg_back

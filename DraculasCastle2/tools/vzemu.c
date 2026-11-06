@@ -437,8 +437,9 @@ static JoyEv jev[1024]; static int njev = 0;
 
 static int keyname(const char *s, int *row, int *bit) {
     static const char *names[8][6] = {
-        {"R","Q","E","","W","T"}, {"F","A","D","CTRL","S","G"}, {"V","Z","C","SHIFT","X","B"}, {"4","1","3","","2","5"},
-        {"M","SPACE",",","",".","N"}, {"7","0","8","-","9","6"}, {"U","P","I","RET","O","Y"}, {"J",";","K",":","L","H"} };
+        /* real VZ matrix: index = data bit (bit0 is the LAST key of each row) */
+        {"T","W","","E","Q","R"}, {"G","S","CTRL","D","A","F"}, {"B","X","SHIFT","C","Z","V"}, {"5","2","","3","1","4"},
+        {"N",".","",",","SPACE","M"}, {"6","9","-","8","0","7"}, {"Y","O","RET","I","P","U"}, {"H","L",":","K",";","J"} };
     for (int r = 0; r < 8; r++) for (int b = 0; b < 6; b++) if (names[r][b][0] && !strcmp(names[r][b], s)) { *row = r; *bit = b; return 1; }
     return 0;
 }
