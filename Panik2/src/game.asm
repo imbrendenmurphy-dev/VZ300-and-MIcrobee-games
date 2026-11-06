@@ -380,6 +380,10 @@ respawn:
         inc hl
         djnz .h
         call reset_player
+        xor a
+        ld (result),a           ; the death is dealt with: play on
+        ld (pdig),a
+        ld (prep),a
         ld a,100
         ld (invuln),a
         call hud_o2
