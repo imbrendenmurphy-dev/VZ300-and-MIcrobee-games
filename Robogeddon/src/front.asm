@@ -75,9 +75,9 @@ run_game:
         jp      check_hiscore
 
 game_clip:
-        ld      a,8
+        ld      a,ARENA_R0
         ld      (clip_top),a
-        ld      a,63
+        ld      a,AY1
         ld      (clip_bot),a
         ret
 
@@ -178,30 +178,273 @@ ctl_text:
         ld      l,a
         jp      strcpy
 
-; marquee: rows 0 and 63 run in opposite directions
-marquee:
-        ld      c,0
-        call    rowaddr
+; ---------------------------------------------------------------------
+; cyc_border: Robotron-style concentric dithered bands round the screen,
+; their colours flowing inward.  4 bands: rows 0-3 / 60-63, and 2 pixels
+; each at the sides (bytes 0-1, 30-31).
+; ---------------------------------------------------------------------
+cyc_border:
+        push    ix
+        call    .go
+        pop     ix
+        ret
+.go:    ; this frame's band patterns: cb_p[L] even rows, cb_p[4+L] odd rows
         ld      a,(gtick)
-        call    .row
-        ld      c,63
-        call    rowaddr
-        ld      a,(gtick)
-        neg
-.row:   ld      e,a
-        ld      b,32
-.t:     ld      a,e
-        and     3
-        add     a,low marq_pat
-        push    hl
-        ld      l,a
-        ld      h,high marq_pat
-        ld      a,(hl)
-        pop     hl
+        rra
+        and     7
+        ld      c,a
+        ld      b,0
+        ld      hl,cb_p
+.pl:    ld      a,c
+        sub     b
+        and     7
+        add     a,low cyc_pat
+        ld      e,a
+        ld      d,high cyc_pat
+        ld      a,(de)
         ld      (hl),a
+        ld      a,e
+        add     a,8
+        ld      e,a
+        ld      a,(de)
+        push    hl
         inc     hl
-        inc     e
-        djnz    .t
+        inc     hl
+        inc     hl
+        inc     hl
+        ld      (hl),a
+        pop     hl
+        inc     hl
+        inc     b
+        ld      a,b
+        cp      4
+        jr      c,.pl
+        ; five bytes for each (parity, depth): mid, b0, b1, b30, b31
+        ld      ix,cb_tab
+        ld      hl,cb_p
+        call    .par
+        ld      hl,cb_p+4
+        call    .par
+        ; paint every row
+        ld      c,0
+.row:   ld      a,c
+        cp      32
+        jr      c,.t
+        ld      a,63
+        sub     c
+.t:     cp      4
+        jr      c,.t2
+        ld      a,4
+.t2:    ld      e,a                 ; depth 0..4
+        ld      a,c
+        and     1
+        ld      d,a
+        add     a,a
+        add     a,a
+        add     a,d                 ; parity*5
+        add     a,e
+        ld      l,a
+        add     a,a
+        add     a,a
+        add     a,l                 ; *5
+        ld      e,a
+        ld      d,0
+        ld      hl,cb_tab
+        add     hl,de
+        ex      de,hl               ; DE = entry
+        push    bc
+        call    rowaddr
+        ld      a,(de)
+        ld      b,a                 ; mid
+        inc     de
+        ld      a,(de)
+        ld      (hl),a              ; byte 0
+        inc     l
+        inc     de
+        ld      a,(de)
+        ld      (hl),a              ; byte 1
+        inc     l
+        inc     de
+        ld      a,c
+        cp      4
+        jr      c,.mid
+        cp      60
+        jr      nc,.mid
+        ld      a,l
+        add     a,28
+        ld      l,a
+        jr      .ends
+.mid:   ld      a,b
+        ld      b,28
+.mf:    ld      (hl),a
+        inc     l
+        djnz    .mf
+.ends:  ld      a,(de)
+        ld      (hl),a              ; byte 30
+        inc     l
+        inc     de
+        ld      a,(de)
+        ld      (hl),a              ; byte 31
+        pop     bc
+        inc     c
+        ld      a,c
+        cp      64
+        jr      c,.row
+        ret
+; .par: HL = 4 band bytes for one parity -> 5 entries of 5 bytes at IX
+.par:   ld      d,0                 ; depth
+.pd:    ld      a,3
+        call    .ge
+        ld      (ix+0),a            ; mid = P[min(3,depth)]
+        xor     a
+        call    .ge
+        and     $F0
+        ld      c,a
+        ld      a,1
+        call    .ge
+        ld      b,a                 ; e1
+        and     $0F
+        or      c
+        ld      (ix+1),a            ; b0 = e0 hi | e1 lo
+        ld      a,b
+        and     $F0
+        ld      c,a
+        xor     a
+        call    .ge
+        and     $0F
+        or      c
+        ld      (ix+4),a            ; b31 = e1 hi | e0 lo
+        ld      a,2
+        call    .ge
+        ld      b,a                 ; e2
+        and     $F0
+        ld      c,a
+        ld      a,3
+        call    .ge
+        ld      e,a                 ; e3
+        and     $0F
+        or      c
+        ld      (ix+2),a            ; b1 = e2 hi | e3 lo
+        ld      a,e
+        and     $F0
+        ld      c,a
+        ld      a,b
+        and     $0F
+        or      c
+        ld      (ix+3),a            ; b30 = e3 hi | e2 lo
+        push    de
+        ld      de,5
+        add     ix,de
+        pop     de
+        inc     d
+        ld      a,d
+        cp      5
+        jr      c,.pd
+        ret
+; .ge: A = band n -> A = P[min(n,depth,3)]   (HL = P, D = depth; keeps HL)
+.ge:    cp      d
+        jr      c,.g1
+        ld      a,d
+.g1:    cp      4
+        jr      c,.g2
+        ld      a,3
+.g2:    push    hl
+        add     a,l
+        ld      l,a
+        jr      nc,.g3
+        inc     h
+.g3:    ld      a,(hl)
+        pop     hl
+        ret
+
+; ---------------------------------------------------------------------
+; title_badges: 16 round V and Z discs travel round the edge of the title
+; path: x 0..119 along the top, y 0..58 down the right side, and back round
+; ---------------------------------------------------------------------
+BPATH   equ 2*(119+58)
+title_badges:
+        ld      hl,(badge_pos)
+        inc     hl
+        ld      de,BPATH
+        or      a
+        sbc     hl,de
+        jr      nc,.w
+        add     hl,de
+.w:     ld      (badge_pos),hl
+        ld      b,0
+.l:     push    bc
+        ; p = badge_pos + i*22 (mod BPATH)
+        ld      hl,(badge_pos)
+        ld      de,22
+        inc     b
+        dec     b
+        jr      z,.m0
+.ml:    add     hl,de
+        djnz    .ml
+.m0:    ld      de,BPATH
+        or      a
+        sbc     hl,de
+        jr      nc,.m
+        add     hl,de
+.m:     ; HL = p  -> B = x, C = y
+        ld      de,119
+        or      a
+        sbc     hl,de
+        jr      nc,.r
+        add     hl,de
+        ld      b,l
+        ld      c,0
+        jr      .dr
+.r:     ld      de,58
+        or      a
+        sbc     hl,de
+        jr      nc,.bt
+        add     hl,de
+        ld      b,119
+        ld      c,l
+        jr      .dr
+.bt:    ld      de,119
+        or      a
+        sbc     hl,de
+        jr      nc,.lf
+        add     hl,de
+        ld      a,119
+        sub     l
+        ld      b,a
+        ld      c,58
+        jr      .dr
+.lf:    ld      a,58
+        sub     l
+        ld      c,a
+        ld      b,0
+.dr:    ; V on even discs, Z on odd; the colours cycle along the ring
+        pop     de                  ; D = i
+        push    de
+        push    bc
+        ld      a,(badge_pos)
+        rra
+        rra
+        rra
+        rra
+        and     15
+        add     a,d
+.m3:    sub     3
+        jr      nc,.m3
+        add     a,3
+        ld      c,a
+        ld      a,d
+        and     1
+        ld      a,F_BADGE_V0
+        jr      z,.v
+        ld      a,F_BADGE_Z0
+.v:     add     a,c
+        pop     bc
+        call    draw_frame
+        pop     bc
+        inc     b
+        ld      a,b
+        cp      16
+        jp      c,.l
         ret
 
 ; ---------------------------------------------------------------------
@@ -215,7 +458,7 @@ scr_title:
         call    bd_begin
         call    bd_end
 .l:     call    bd_copy
-        call    marquee
+        call    title_badges
         ld      a,(logo_t)
         cp      42
         jr      nc,.set
@@ -228,7 +471,7 @@ scr_title:
         or      a
         call    nz,title_bd
         ld      hl,s_2085
-        ld      c,21
+        ld      c,23
         ld      a,(gtick)
         and     8
         ld      a,$AA
@@ -239,7 +482,7 @@ scr_title:
         and     8
         jr      z,.adv
         ld      hl,s_start
-        ld      c,52
+        ld      c,46
         ld      a,$55
         call    text3c
 .adv:   ld      hl,logo_t
@@ -258,17 +501,13 @@ title_bd:
         call    bd_begin
         call    draw_logo
         ld      hl,s_vibed
-        ld      c,33
+        ld      c,34
         ld      a,$55
         call    text3c
         call    ctl_text
         ld      hl,txtbuf
         ld      c,40
         ld      a,$FF
-        call    text3c
-        ld      hl,s_modes
-        ld      c,46
-        ld      a,$AA
         call    text3c
         call    opts_line
         jp      bd_end
@@ -298,7 +537,7 @@ opts_line:
         ld      l,a
         call    strcpy
         ld      hl,txtbuf
-        ld      c,57
+        ld      c,52
         ld      a,$AA
         jp      text3c
 
@@ -308,24 +547,26 @@ draw_logo:
 .l:     push    bc
         ld      a,b
         ld      (tmp1),a
-        ; bunch x = 47 + 2i, final x = 4 + 12i
+        ; bunch x = 46 + 2i, final x = 9 + 11i (inside the disc ring)
         add     a,a
-        add     a,47
+        add     a,46
         ld      d,a
         ld      a,b
         add     a,a
+        add     a,a
+        add     a,a
         add     a,b
-        add     a,a
-        add     a,a
-        add     a,4
+        add     a,b
+        add     a,b
+        add     a,9
         ld      e,a
         ld      a,(logo_t)
         cp      18
         jr      nc,.spread
-        ; phase 1: rise from y 46 to 4, at bunch x
+        ; phase 1: rise from y 46 to 7, at bunch x
         call    ease
         ld      l,a
-        ld      a,42
+        ld      a,39
         call    mulfrac
         ld      c,a
         ld      a,46
@@ -352,7 +593,7 @@ draw_logo:
         ld      a,d
         sub     c
 .sx:    ld      b,a
-        ld      c,4
+        ld      c,7
 .draw:  ld      a,(tmp1)
         ld      e,a
         ld      d,0
@@ -414,20 +655,19 @@ scr_story:
         ld      hl,420
         ld      (scr_t),hl
         call    bd_begin
-        call    marquee_bd
         ld      hl,s_story_h
-        ld      c,3
+        ld      c,5
         ld      a,$FF
         call    text3c
         call    bd_end
         ld      hl,story
         ld      (st_ptr),hl
-        ld      a,1
+        ld      a,3
         ld      (st_col),a
-        ld      a,10
+        ld      a,12
         ld      (st_y),a
 .l:     call    bd_copy
-        call    marquee
+        call    cyc_border
         ; type the next letter into the backdrop
         ld      hl,(st_ptr)
         ld      a,(hl)
@@ -437,7 +677,7 @@ scr_story:
         ld      (st_ptr),hl
         or      a
         jr      nz,.chr
-        ld      a,1
+        ld      a,3
         ld      (st_col),a
         ld      a,(st_y)
         add     a,6
@@ -475,8 +715,9 @@ scr_story:
         ld      a,(logo_t)
         sub     c
         and     127
-        cp      120
+        cp      106
         jr      nc,.cn
+        add     a,8
         ld      d,a
         ld      a,b
         or      a
@@ -491,7 +732,7 @@ scr_story:
         and     1
         add     a,F_GRUNT0
 .dd:    ld      b,d
-        ld      c,57
+        ld      c,54
         call    draw_frame
 .cn:    pop     bc
         inc     b
@@ -503,8 +744,6 @@ scr_story:
         ret     c
         jp      .l
 
-marquee_bd:
-        ret
 
 ; ---------------------------------------------------------------------
 ; GALLERY: meet the robots
@@ -516,11 +755,12 @@ scr_gallery:
         ld      (logo_t),a
         call    bd_begin
         ld      hl,s_meet
-        ld      c,1
+        ld      c,5
         ld      a,$FF
         call    text2xc
         call    bd_end
 .l:     call    bd_copy
+        call    cyc_border
         ld      ix,gallery
         ld      b,0
 .e:     push    bc
@@ -587,7 +827,7 @@ scr_gallery:
         jr      nz,.nf
         call    bd_open
         ld      hl,s_zap
-        ld      c,58
+        ld      c,55
         ld      a,$AA
         call    text3c
         call    bd_end
@@ -609,11 +849,11 @@ scr_controls:
         ld      (scr_t),hl
         call    bd_begin
         ld      hl,s_controls
-        ld      c,2
+        ld      c,5
         ld      a,$FF
         call    text2xc
         ld      hl,ctl_lines
-        ld      c,15
+        ld      c,17
         ld      d,0
 .ln:    ld      a,(hl)
         cp      $FF
@@ -625,7 +865,7 @@ scr_controls:
         ld      a,$AA
         jr      z,.col
         ld      a,$55
-.col:   ld      b,1
+.col:   ld      b,3
         call    text3
         pop     bc
         pop     de
@@ -634,13 +874,9 @@ scr_controls:
         add     a,6
         ld      c,a
         jr      .ln
-.dn:    ld      hl,s_keyhelp
-        ld      c,57
-        ld      a,$AA
-        call    text3c
-        call    bd_end
+.dn:    call    bd_end
 .l:     call    bd_copy
-        call    marquee
+        call    cyc_border
         ; the chosen mode's heading flashes red
         ld      a,(gtick)
         and     4
@@ -661,9 +897,9 @@ scr_controls:
         ld      c,a
         add     a,a
         add     a,c                 ; *12
-        add     a,15
+        add     a,17
         ld      c,a
-        ld      b,1
+        ld      b,3
         ld      a,$FF
         call    text3
 .f:     call    att_frame
@@ -708,9 +944,9 @@ scr_hiscores:
 hs_show:
         call    bd_begin
         ld      hl,s_hiscores
-        ld      c,2
+        ld      c,6
         ld      a,$FF
-        call    text2xc
+        call    text3c
         ld      b,0
 .e:     ld      a,(hs_pos)
         cp      b
@@ -724,7 +960,7 @@ hs_show:
         jr      c,.e
         call    bd_end
 .l:     call    bd_copy
-        call    marquee
+        call    cyc_border
         ld      a,(hs_pos)
         cp      8
         jr      nc,.f
@@ -749,7 +985,7 @@ hs_draw:
         ld      c,a
         add     a,a
         add     a,c
-        add     a,15
+        add     a,13
         ld      c,a
         ld      a,(hs_pos)
         cp      b
@@ -893,9 +1129,9 @@ enter_name:
         call    text3c
         call    bd_end
 .l:     call    bd_copy
-        call    marquee
+        call    cyc_border
         ld      hl,s_great
-        ld      c,4
+        ld      c,6
         ld      a,(gtick)
         and     4
         ld      a,$FF

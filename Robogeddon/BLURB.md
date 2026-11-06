@@ -19,7 +19,9 @@ Save the humans for 1000 to 5000 apiece. Grab **3-Way** and **Shield** power-ups
 Family Bonus**, and an extra life every 25,000.
 
 It all wraps up in:
-- a big-logo title that flies in as a bunch and spreads out, with a gritty title tune
+- a big-logo title that flies in as a bunch and spreads out, ringed by travelling V and Z discs, with a gritty title tune
+- arcade-style colour-cycling borders on every information screen
+- a blue arena with a green dithered edge that melts into the VZ's border
 - robots that materialise line by line and shatter apart the same way
 - a typed-out story, a rogues' gallery and a computer-played demo
 - a high-score table with initials, which survives a reset

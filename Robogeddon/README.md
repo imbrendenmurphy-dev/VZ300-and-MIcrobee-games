@@ -13,7 +13,7 @@ Original code, graphics and music. It's inspired by Robotron but contains nothin
 ## Play it
 
 Copy `release/ROBOGEDN.VZ` to the SD card and run it from the BennVenn SD loader.
-- It's a single type F1 binary. It loads at $8000 (to $E0B1) and runs from $8000. There are no other files.
+- It's a single type F1 binary. It loads at $8000 (to $DBB1) and runs from $8000. There are no other files.
 - It needs the **128K expansion** (RAM up to $FFFF, and the card's SRAM at $4000–$67FF).
 - It doesn't call the DOS while running, and it never writes to the SD card.
 
@@ -61,20 +61,26 @@ Any spark, missile or shell can be shot down for 25 points.
 
 **Waves.** There are 20 hand-made waves: droid swarms, crusher waves, mindbot waves and tank waves. After
 wave 20 they repeat, faster. Each wave opens with its robots *materialising* line by line, with a caption
-saying what's coming. Destroyed robots shatter apart the same way. The palette alternates between the
-green and the buff screen every wave, and the wall colour cycles.
+saying what's coming. Destroyed robots shatter apart the same way.
+
+**The arena** is blue, edged with green dithering that fades out into the VZ's own green border, so the
+playfield seems to glow out of the screen. Blue is the background, so the robots' blue parts are drawn
+green (crushers, tanks and so on).
 
 **Extras**
 - **Power-ups** from wave 2 on: **3-Way** (triple spread shot for 10 s) and **Shield** (6 s of invulnerability,
   with a flashing ring; robots that touch you are destroyed). Each pickup is also worth 250.
 - **Full Family Bonus**: 5000 for a wave where you save someone and lose no one.
-- An **extra life** every 25,000. The walls flash when you get one.
+- An **extra life** every 25,000. The arena's edge flashes when you get one.
 - When you die, the robots scatter back to the edges and re-materialise around you.
 
 ## Attract mode and front end
 
-- A big **ROBOGEDDON** logo flies up as a bunch, then spreads out, over marching marquee borders. A gritty
-  title tune plays.
+- A big **ROBOGEDDON** logo flies up as a bunch, then spreads out, while round **V** and **Z** discs travel
+  around the edge of the screen in cycling colours, as the Williams "W" discs do on the arcade title. A
+  gritty title tune plays.
+- Every information screen (story, robots, controls, high scores, name entry) has a Robotron-style
+  border: four concentric dithered bands whose colours flow through yellow, orange, red, purple and blue.
 - **The story so far**, typed out a letter at a time while a human flees a line of droids.
 - **Meet the robots**: the rogues' gallery, each robot materialising in turn.
 - **Controls** page, with your chosen mode highlighted.
@@ -88,7 +94,7 @@ you switch off.
 
 ## How it works
 
-- **Mode 1** (128×64, 4 colours). The arena is 124×54 pixels inside a 2-pixel wall, with a status line on top.
+- **Mode 1** (128×64, 4 colours). The arena is 120×50 blue pixels inside the dithered edge, with the scores above.
 - **Snow-free display at a steady 25 frames a second.** The game draws each frame into one of two
   frame buffers ($E800 and $F800). An IM2 interrupt on field sync (vector table at $F000) copies the
   finished buffer to video RAM with POP/PUSH, top half in one vblank and bottom half in the next. Each half
@@ -96,8 +102,12 @@ you switch off.
   picture is drawn. New frames are swapped in at most every second field. A frame that runs long costs 3
   fields rather than 4.
 - The busiest waves (50+ objects) mostly hold 25 fps, dipping now and then to 16.7. The materialise effect on the biggest waves is slower for a moment.
-- Sprites are pre-shifted for the 4 pixel positions in a byte and drawn with OR. The 4:3 screen's tall
-  pixels are allowed for in movement and aiming: vertical speeds are two-thirds of horizontal ones.
+- Sprites are pre-shifted for the 4 pixel positions in a byte. In the arena they're drawn through masks
+  (each byte is a keep-mask plus pixels) so they sit cleanly on the blue. The front-end copies are drawn
+  with OR on the green. Text is drawn through masks too. The 4:3 screen's tall pixels are allowed for in
+  movement and aiming: vertical speeds are two-thirds of horizontal ones.
+- The screen-copy routines (four unrolled POP/PUSH copies, 7K) are built at start-up in the card's SRAM,
+  which keeps the program small. If the SRAM isn't there, the game says so on the screen and stops.
 - The front-end screens draw their still parts once into a backdrop in the SRAM at $4000, and add only
   what moves each frame.
 - **Sound**: a 16-bit phase accumulator drives the speaker in a square wave (or pitched noise) while the
@@ -109,9 +119,10 @@ you switch off.
 | Address | Use |
 |---|---|
 | $4000–$47FF | front-end backdrop (BennVenn SRAM, bank 1) |
+| $4800–$640B | screen-copy routines, built at start-up (SRAM bank 1) |
 | $6700–$6746 | saved high scores (SRAM bank 3) |
 | $7000–$77FF | video RAM |
-| $8000–$E0B1 | code and data |
+| $8000–$DBB1 | code and data |
 | $E800–$EFFF | frame buffer 0 |
 | $F000–$F100, $F1F1 | IM2 vector table, `jp isr` |
 | $F200–$F6FF | variables, objects (64 × 8 bytes), bullets, shots, high scores |

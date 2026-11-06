@@ -12,10 +12,84 @@
 ; =====================================================================
 
 ; ---------------------------------------------------------------------
-; copy macros: one 16-byte chunk, front buffer -> VRAM
+; the copy routines are built at start-up in the BennVenn SRAM (bank 1),
+; one per buffer half: 64 chunks of  ld sp,src / pop x8 / ld sp,dst+16 /
+; push x8  (16 bytes each, about 13 T-states a byte), then jp isr_done
 ; ---------------------------------------------------------------------
-        MACRO CPYCHUNK src, dst
-        ld      sp,src
+CPYLEN  equ 64*28+3
+cpy0t   equ $4800
+cpy0b   equ cpy0t+CPYLEN
+cpy1t   equ cpy0b+CPYLEN
+cpy1b   equ cpy1t+CPYLEN
+        assert cpy1b+CPYLEN <= SAVEADR, "copy code runs into the records"
+
+gen_copy:
+        ld      hl,cpy0t
+        ld      de,BUF0
+        call    .rt
+        ld      de,BUF0+1024
+        call    .rt
+        ld      de,BUF1
+        call    .rt
+        ld      de,BUF1+1024
+.rt:    ld      bc,VRAM+16
+        ld      a,d
+        and     4                   ; bottom half -> VRAM+1024
+        jr      z,.v
+        ld      b,(VRAM+1024+16)/256
+.v:     ld      a,64
+.ch:    push    af
+        ld      (hl),$31            ; ld sp,src
+        inc     hl
+        ld      (hl),e
+        inc     hl
+        ld      (hl),d
+        inc     hl
+        push    de
+        ld      de,cpy_pops
+        call    .put11
+        ld      (hl),$31            ; ld sp,dst+16
+        inc     hl
+        ld      (hl),c
+        inc     hl
+        ld      (hl),b
+        inc     hl
+        ld      de,cpy_push
+        call    .put11
+        pop     de
+        ex      de,hl
+        push    bc
+        ld      bc,16
+        add     hl,bc
+        pop     bc
+        ex      de,hl
+        push    hl
+        ld      hl,16
+        add     hl,bc
+        ld      b,h
+        ld      c,l
+        pop     hl
+        pop     af
+        dec     a
+        jr      nz,.ch
+        ld      (hl),$C3            ; jp isr_done
+        inc     hl
+        ld      (hl),low isr_done
+        inc     hl
+        ld      (hl),high isr_done
+        inc     hl
+        ret
+.put11: ld      a,11
+.p:     push    af
+        ld      a,(de)
+        ld      (hl),a
+        inc     de
+        inc     hl
+        pop     af
+        dec     a
+        jr      nz,.p
+        ret
+cpy_pops:
         pop     bc
         pop     de
         pop     hl
@@ -25,7 +99,7 @@
         pop     hl
         pop     ix
         pop     iy
-        ld      sp,dst+16
+cpy_push:
         push    iy
         push    ix
         push    hl
@@ -35,16 +109,6 @@
         push    hl
         push    de
         push    bc
-        ENDM
-
-        MACRO CPYHALF srcbase, dstbase
-cpy_n   defl    0
-        DUP     64
-        CPYCHUNK srcbase+cpy_n*16, dstbase+cpy_n*16
-cpy_n   defl    cpy_n+1
-        EDUP
-        jp      isr_done
-        ENDM
 
 ; ---------------------------------------------------------------------
 ; the interrupt
@@ -121,10 +185,6 @@ isr_done:
         ei
         reti
 
-cpy0t:  CPYHALF BUF0, VRAM
-cpy0b:  CPYHALF BUF0+1024, VRAM+1024
-cpy1t:  CPYHALF BUF1, VRAM
-cpy1b:  CPYHALF BUF1+1024, VRAM+1024
 
 ; ---------------------------------------------------------------------
 ; present: hand the finished back buffer over; make sound while waiting
@@ -227,36 +287,97 @@ clear_all:
         ei
         ret
 
-; clear_arena: rows 8..62 to 0 except the 2-pixel side walls
+; clear_arena: the playfield rows (AY0-1 .. AY1-1) to blue, with the green
+;   dithered edge columns
+ARENA_R0 equ 10
+ARENA_RN equ 51                     ; rows 10..60
 clear_arena:
         ld      a,(drawh)
-        add     a,7
+        add     a,(ARENA_R0+ARENA_RN)/8
         ld      h,a
-        ld      l,$E0               ; end of row 62 = row 63 start
+        ld      l,((ARENA_R0+ARENA_RN)&7)*32
         ld      (sp_save),sp
         ld      sp,hl
-        ld      a,(wallpat)
-        and     $0F                 ; pixels 126,127
-        ld      d,a
-        ld      e,0                 ; bytes 30,31 = 0, wall
-        ld      a,(wallpat)
-        and     $F0                 ; pixels 0,1
-        ld      c,a
-        ld      b,0                 ; bytes 0,1 = wall, 0
-        ld      hl,0
-        ld      a,55
-.l:     di
-        push    de
-        rept 14
+        ld      hl,$AAAA
+        ld      a,ARENA_RN
+.l:     di                          ; the interrupt must never push into a cleared row
+        rept 16
         push    hl
         endr
-        push    bc
         dec     a
         jr      z,.e
         ei
         jr      .l
 .e:     ld      sp,(sp_save)
         ei
+        ld      c,ARENA_R0
+        ld      b,ARENA_RN
+        ; fall into put_sides
+
+; put_sides: C = first row, B = rows: the dithered edge bytes (from sidetab)
+put_sides:
+        push    bc
+        call    rowaddr
+        pop     bc
+.r:     ld      a,c
+        and     3
+        add     a,a
+        add     a,low sidetab
+        ld      e,a
+        ld      d,high sidetab
+        ld      a,(de)
+        ld      (hl),a              ; byte 0
+        inc     e
+        ld      a,l
+        or      31
+        ld      l,a
+        ld      a,(de)
+        ld      (hl),a              ; byte 31
+        inc     hl                  ; next row, byte 0
+        inc     c
+        djnz    .r
+        ret
+
+; fill_band: C = first row, B = rows: blue between the edges
+fill_band:
+        push    bc
+        call    rowaddr
+        pop     bc
+.r:     push    bc
+        inc     hl
+        ld      b,30
+.b:     ld      (hl),$AA
+        inc     hl
+        djnz    .b
+        inc     hl
+        pop     bc
+        djnz    .r
+        ret
+
+; build_dither: A = colour for the "green" pixels (0 normally; flashes on a
+;   new life).  dith_t = templates (blue bits, green-pixel mask) -> dith
+build_dither:
+        ld      e,a
+        ld      d,0
+        ld      hl,colpat
+        add     hl,de
+        ld      c,(hl)
+        ld      hl,dith_t
+        ld      de,dith
+        ld      b,DITH_N
+.l:     ld      a,(hl)
+        inc     hl
+        ld      (tmp1),a
+        ld      a,(hl)
+        inc     hl
+        and     c
+        push    hl
+        ld      hl,tmp1
+        or      (hl)
+        pop     hl
+        ld      (de),a
+        inc     de
+        djnz    .l
         ret
 
 ; fill_rows: C = first row, B = count, A = pattern
@@ -459,17 +580,31 @@ draw_spread:
         ret
 
 ; ---------------------------------------------------------------------
-; plot: B = x, C = y, A = colour 0..3 (OR).  keeps BC, IX, IY
+; masked game sprites (blue arena): each byte is a (keep-mask, pixels) pair
+; frame_data_g: A = frame, B = x -> DE ; draw_frame_g / draw_spread_g as above
 ; ---------------------------------------------------------------------
-plot:
-        add     a,a
-        add     a,a
-        ld      e,a
+frame_data_g:
+        ld      l,a
+        ld      h,0
+        add     hl,hl
+        add     hl,hl
+        add     hl,hl
+        ld      de,gframetab
+        add     hl,de
         ld      a,b
         and     3
-        or      e
-        ld      e,a
-        ld      d,high pixtab
+        add     a,a
+        add     a,l
+        ld      l,a
+        jr      nc,.n
+        inc     h
+.n:     ld      e,(hl)
+        inc     hl
+        ld      d,(hl)
+        ret
+
+draw_frame_g:
+        call    frame_data_g
         call    rowaddr
         ld      a,b
         rrca
@@ -478,12 +613,154 @@ plot:
         or      l
         ld      l,a
         ld      a,(de)
-        or      (hl)
+        inc     de
+        ld      b,a
+        ld      a,(de)
+        inc     de
+        ld      c,a
+.row:   push    hl
+        push    bc
+.byte:  ld      a,(de)
+        and     (hl)
+        ld      c,a
+        inc     de
+        ld      a,(de)
+        or      c
+        ld      (hl),a
+        inc     de
+        inc     l
+        djnz    .byte
+        pop     bc
+        pop     hl
+        ld      a,l
+        add     a,32
+        ld      l,a
+        jr      nc,.n1
+        inc     h
+.n1:    dec     c
+        jr      nz,.row
+        ret
+
+draw_spread_g:
+        ld      (sp_fr),a
+        ld      a,d
+        ld      (sp_kk),a
+        ld      a,b
+        ld      (sp_x),a
+        ld      a,(sp_fr)
+        push    bc
+        call    frame_data_g
+        pop     bc
+        ld      a,(de)
+        ld      (sp_w),a
+        inc     de
+        ld      a,(de)
+        ld      (sp_h),a
+        inc     de
+        ld      a,(sp_h)
+        srl     a
+        ld      h,a
+        add     a,c
+        ld      c,a
+        ld      a,(sp_kk)
+        inc     a
+        ld      l,a
+        xor     a
+        ld      b,h
+        inc     b
+        dec     b
+        jr      z,.m2
+.m1:    add     a,l
+        djnz    .m1
+.m2:    ld      b,a
+        ld      a,c
+        sub     b
+        ld      c,a
+        ld      a,(sp_h)
+        ld      b,a
+.rl:    push    bc
+        ld      a,(clip_top)
+        ld      h,a
+        ld      a,c
+        cp      h
+        jr      c,.skip
+        ld      a,(clip_bot)
+        ld      h,a
+        ld      a,c
+        cp      h
+        jr      nc,.skip
+        call    rowaddr
+        ld      a,(sp_x)
+        rrca
+        rrca
+        and     $3F
+        or      l
+        ld      l,a
+        ld      a,(sp_w)
+        ld      b,a
+.bl:    ld      a,(de)
+        and     (hl)
+        ld      c,a
+        inc     de
+        ld      a,(de)
+        or      c
+        ld      (hl),a
+        inc     de
+        inc     l
+        djnz    .bl
+        jr      .nx
+.skip:  ld      a,(sp_w)
+        add     a,a
+        add     a,e
+        ld      e,a
+        jr      nc,.nx
+        inc     d
+.nx:    pop     bc
+        ld      a,(sp_kk)
+        inc     a
+        add     a,c
+        ld      c,a
+        djnz    .rl
+        ret
+
+; ---------------------------------------------------------------------
+; plot: B = x, C = y, A = colour 0..3 (sets the pixel).  keeps BC, IX, IY
+; ---------------------------------------------------------------------
+plot:
+        add     a,a
+        add     a,a
+        ld      e,a
+        ld      a,b
+        and     3
+        ld      d,a
+        or      e
+        ld      e,a
+        call    rowaddr
+        ld      a,b
+        rrca
+        rrca
+        and     $3F
+        or      l
+        ld      l,a
+        push    hl
+        ld      h,high pixtab
+        ld      a,d
+        add     a,12
+        ld      l,a
+        ld      a,(hl)              ; the pixel's bits
+        cpl
+        ld      d,a
+        ld      l,e
+        ld      e,(hl)              ; its new value
+        pop     hl
+        ld      a,(hl)
+        and     d
+        or      e
         ld      (hl),a
         ret
 
 ; ---------------------------------------------------------------------
-; hline: B = x0, D = x1 (incl), C = y, E = colour pattern ($55/$AA/$FF)
+; hline: B = x0, D = x1 (incl), C = y, E = colour pattern ($00/$55/$AA/$FF)
 ; ---------------------------------------------------------------------
 hline:
         push    de
@@ -525,14 +802,9 @@ hline:
         ld      b,a
         ld      a,(hl_rm)
         and     b
-        and     e
-        or      (hl)
-        ld      (hl),a
-        ret
+        jr      .put
 .multi: ld      a,(hl_lm)
-        and     e
-        or      (hl)
-        ld      (hl),a
+        call    .put
         inc     l
         ld      a,(hl_l)
         ld      c,a
@@ -541,14 +813,17 @@ hline:
         dec     a
         jr      z,.last
         ld      b,a
-.mid:   ld      a,e
-        or      (hl)
-        ld      (hl),a
+.mid:   ld      (hl),e
         inc     l
         djnz    .mid
 .last:  ld      a,(hl_rm)
+.put:   ld      c,a                 ; C = the pixels to set
+        cpl
+        and     (hl)
+        ld      d,a
+        ld      a,c
         and     e
-        or      (hl)
+        or      d
         ld      (hl),a
         ret
 
@@ -561,13 +836,20 @@ vline:
         ld      e,a
         ld      a,b
         and     3
+        push    af
         or      e
         ld      e,a
-        push    de
         ld      d,high pixtab
         ld      a,(de)
-        ld      (hl_lm),a
-        pop     de
+        ld      (hl_lm),a           ; value
+        pop     af
+        add     a,12
+        ld      e,a
+        ld      a,(de)
+        cpl
+        ld      (hl_rm),a           ; keep-mask
+        ld      a,(rc_y1)
+        ld      d,a
         call    rowaddr
         ld      a,b
         rrca
@@ -580,10 +862,11 @@ vline:
         inc     a
         ld      b,a
         ld      de,32
-        ld      a,(hl_lm)
+.l:     ld      a,(hl_rm)
+        and     (hl)
         ld      c,a
-.l:     ld      a,c
-        or      (hl)
+        ld      a,(hl_lm)
+        or      c
         ld      (hl),a
         add     hl,de
         djnz    .l
@@ -669,10 +952,16 @@ text3:
         ld      bc,font3
         add     hl,bc
         ld      b,5
-.rw:    ld      a,(txtcol)
-        and     (hl)
+.rw:    ld      a,(hl)              ; letter pixels replace what's there
+        cpl
         ex      de,hl
-        or      (hl)
+        and     (hl)
+        ld      c,a
+        ex      de,hl
+        ld      a,(txtcol)
+        and     (hl)
+        or      c
+        ex      de,hl
         ld      (hl),a
         ld      a,l
         add     a,32
@@ -750,19 +1039,11 @@ text2x:
         ld      bc,font2x
         add     hl,bc
         ld      b,10
-.rw:    ld      a,(txtcol)
-        and     (hl)
-        ex      de,hl
-        or      (hl)
-        ld      (hl),a
-        inc     l
-        ex      de,hl
+.rw:    call    .px
+        inc     e
         inc     hl
-        ld      a,(txtcol)
-        and     (hl)
+        call    .px
         ex      de,hl
-        or      (hl)
-        ld      (hl),a
         ld      a,l
         add     a,31
         ld      l,a
@@ -776,6 +1057,17 @@ text2x:
         inc     e
         pop     hl
         jr      .ch
+.px:    ld      a,(hl)              ; HL = font byte, DE = screen
+        cpl
+        ex      de,hl
+        and     (hl)
+        ld      c,a
+        ex      de,hl
+        ld      a,(txtcol)
+        and     (hl)
+        or      c
+        ld      (de),a
+        ret
 
 text2xc:
         push    af

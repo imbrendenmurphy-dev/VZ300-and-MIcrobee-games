@@ -37,10 +37,10 @@ GS_OVER equ 5
 GS_EXIT equ 6
 
 ; arena limits
-AX0     equ 2
-AX1     equ 126                 ; first x outside
-AY0     equ 9
-AY1     equ 63                  ; first y outside
+AX0     equ 4
+AX1     equ 124                 ; first x outside
+AY0     equ 11
+AY1     equ 61                  ; first y outside
 
 ; ---------------------------------------------------------------------
 ; new_game / play_game
@@ -132,8 +132,7 @@ do_pause:
         call    copy_front_to_back
         ld      c,27
         ld      b,16
-        xor     a
-        call    fill_rows
+        call    fill_band
         ld      hl,s_paused
         ld      c,30
         ld      a,$FF
@@ -254,25 +253,12 @@ start_wave:
         djnz    .ty
         ; player
         call    player_centre
-        ; looks
-        ld      a,(wave)
-        and     1
+        ; looks: blue arena, green dithered edge
         ld      a,MODE1
-        jr      nz,.c0
-        or      CSS1
-.c0:    ld      (next_vmode),a
-        ld      a,(wave)
-        dec     a
-.w3:    cp      3
-        jr      c,.w4
-        sub     3
-        jr      .w3
-.w4:    ld      e,a
-        ld      d,0
-        ld      hl,wallpats
-        add     hl,de
-        ld      a,(hl)
-        ld      (wallpat),a
+        ld      (next_vmode),a
+        xor     a
+        ld      (flash_t),a
+        call    build_dither
         ld      hl,375
         ld      (pick_t),hl
         ld      a,2
@@ -439,19 +425,17 @@ state_step:
         ld      (flash_t),a
         ld      a,2
         ld      (hud_dirty),a
+        ld      a,(flash_t)
+        or      a
+        jr      z,.f0               ; done: back to green
         ld      a,(gtick)
         and     3
         ld      e,a
         ld      d,0
-        ld      hl,wallpats
+        ld      hl,flash_cols
         add     hl,de
         ld      a,(hl)
-        ld      (wallpat),a
-        ld      a,(flash_t)
-        or      a
-        jr      nz,.nf
-        ld      a,$AA
-        ld      (wallpat),a
+.f0:    call    build_dither
 .nf:    ld      a,(gstate)
         cp      GS_MAT
         jr      z,.mat
@@ -702,7 +686,7 @@ overlay:
         jr      nz,.sub
         ld      hl,s_sub_droid
 .sub:   ld      c,26
-        ld      a,$AA
+        xor     a                   ; green
         jp      text3c
 .clr:   call    clear_arena
         ld      hl,s_wave
@@ -738,12 +722,11 @@ overlay:
         ret     z
         ld      hl,s_bonus
         ld      c,42
-        ld      a,$AA
+        xor     a
         jp      text3c
 .ovr:   ld      c,23
         ld      b,16
-        xor     a
-        call    fill_rows
+        call    fill_band
         ld      hl,s_gameover
         ld      c,26
         ld      a,(gtick)
@@ -764,7 +747,9 @@ strcpy:
         jr      strcpy
 
 ; ---------------------------------------------------------------------
-; HUD (rows 0..7 and 63, drawn only when it changes, into both buffers)
+; HUD: the dithered top edge (rows 0-2), scores (rows 3-7), a dithered
+; divider (row 9) and the bottom edge (rows 61-63).  Drawn only when it
+; changes, into both buffers.
 ; ---------------------------------------------------------------------
 draw_hud:
         ld      a,(hud_dirty)
@@ -772,57 +757,62 @@ draw_hud:
         ret     z
         dec     a
         ld      (hud_dirty),a
+        ld      hl,dith_top
         ld      c,0
-        ld      b,7
-        xor     a
+        call    .rows3
+        ld      c,3
+        ld      b,6
+        ld      a,$AA
         call    fill_rows
-        ld      c,7
+        ld      c,3
+        ld      b,6
+        call    put_sides
+        ld      c,9
         ld      b,1
-        ld      a,(wallpat)
+        ld      a,(dith_div)
         call    fill_rows
-        ld      c,63
-        ld      b,1
-        ld      a,(wallpat)
-        call    fill_rows
+        ld      hl,dith_bot
+        ld      c,61
+        call    .rows3
         ; score
         ld      hl,score
         call    bcd_to_str
-        ld      b,0
-        ld      c,1
+        ld      b,1
+        ld      c,3
         ld      a,$55
         call    text3
         ; wave
         ld      hl,s_w
-        ld      b,8
-        ld      c,1
-        ld      a,$AA
+        ld      b,9
+        ld      c,3
+        xor     a
         call    text3
         ld      a,(wave)
         call    byte_to_str
-        ld      b,9
-        ld      c,1
-        ld      a,$AA
+        ld      b,10
+        ld      c,3
+        xor     a
         call    text3
         ; high score or DEMO
         ld      a,(demo)
         or      a
         jr      z,.hi
         ld      hl,s_demo
-        ld      b,14
-        ld      c,1
-        ld      a,$FF
+        ld      b,15
+        ld      c,3
+        xor     a
         call    text3
         jr      .lv
 .hi:    ld      hl,s_hi
-        ld      b,13
-        ld      c,1
-        ld      a,$FF
+        ld      b,14
+        ld      c,3
+        xor     a
         call    text3
         ld      hl,HISC
         call    bcd_to_str
-        ld      b,16
-        ld      c,1
-        ld      a,$FF
+        ld      b,17
+        ld      c,3
+        ld      a,$55
         call    text3
 .lv:    ; lives or trainer
         ld      a,(trainer)
@@ -830,7 +820,7 @@ draw_hud:
         jr      z,.l1
         ld      hl,s_trn
         ld      b,24
-        ld      c,1
+        ld      c,3
         ld      a,$55
         jp      text3
 .l1:    ld      a,(lives)
@@ -838,23 +828,37 @@ draw_hud:
         ret     z
         dec     a
         ret     z                   ; the man in play is not shown
-        cp      7
+        cp      6
         jr      c,.l2
-        ld      a,7
+        ld      a,6
 .l2:    ld      b,a
         ld      hl,txtbuf
-.l3:    ld      (hl),92        ; little man
+.l3:    ld      (hl),92             ; little man
         inc     hl
         djnz    .l3
         ld      (hl),0
         ld      hl,txtbuf
         call    strlen
-        ld      a,32
+        ld      a,31
         sub     b
         ld      b,a
-        ld      c,1
-        ld      a,$FF
+        ld      c,3
+        ld      a,$55
         jp      text3
+
+; .rows3: HL = 3 dither bytes, C = first row: fill three rows
+.rows3: ld      b,3
+.r3:    push    bc
+        push    hl
+        ld      a,(hl)
+        ld      b,1
+        call    fill_rows
+        pop     hl
+        pop     bc
+        inc     hl
+        inc     c
+        djnz    .r3
+        ret
 
 ; ---------------------------------------------------------------------
 ; player
@@ -1083,22 +1087,24 @@ player_draw:
         ld      d,a
         ld      a,(py)
         add     a,7
-        cp      63
+        cp      AY1
         jr      c,.r1
-        ld      a,62
+        ld      a,AY1-1
 .r1:    ld      e,a
         ld      a,(gtick)
         and     3
-        jr      nz,.r2
-        inc     a
-.r2:    call    rect
+        add     a,low ring_cols
+        ld      l,a
+        ld      h,high ring_cols
+        ld      a,(hl)
+        call    rect
 .vis:   call    player_frame
         ld      a,(px)
         ld      b,a
         ld      a,(py)
         ld      c,a
         ld      a,e
-        jp      draw_frame
+        jp      draw_frame_g
 .die:   ; shatter
         ld      hl,(gtimer)
         ld      a,40
@@ -1114,7 +1120,7 @@ player_draw:
         ld      a,(py)
         ld      c,a
         ld      a,e
-        jp      draw_spread
+        jp      draw_spread_g
 
 ; player_frame -> E = frame number (D kept)
 player_frame:
@@ -1276,10 +1282,10 @@ obj_draw:
         or      a
         jr      nz,.sp
         ld      a,(cur_frame)
-        jp      draw_frame
+        jp      draw_frame_g
 .sp:    ld      d,a
         ld      a,(cur_frame)
-        jp      draw_spread
+        jp      draw_spread_g
 
 ; kill_obj: score, count, turn into a shattering explosion
 kill_obj:
@@ -2180,7 +2186,7 @@ upd_expl:
         ld      a,(ix+6)
         ld      b,(ix+1)
         ld      c,(ix+2)
-        jp      draw_spread
+        jp      draw_spread_g
 
 ; ---------------------------------------------------------------------
 ; enemy bullets: 1 spark, 2 bouncing shell, 3 cruise missile
@@ -2431,7 +2437,7 @@ ebul_update:
         add     a,F_SPARK0
 .df:    ld      b,(ix+2)
         ld      c,(ix+4)
-        call    draw_frame
+        call    draw_frame_g
         jr      .n
 .kill:  ld      (ix+0),0
         ld      hl,nebul

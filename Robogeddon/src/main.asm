@@ -80,8 +80,19 @@ start:
         ld      (clip_top),a
         ld      a,63
         ld      (clip_bot),a
-        ld      a,$AA
-        ld      (wallpat),a
+        ; the card's SRAM must be there: it holds the screen-copy code
+        ld      hl,cpy0t
+        ld      (hl),$A5
+        ld      a,(hl)
+        cp      $A5
+        jr      nz,no_sram
+        ld      (hl),$5A
+        ld      a,(hl)
+        cp      $5A
+        jr      nz,no_sram
+        call    gen_copy
+        xor     a
+        call    build_dither
         ld      a,r
         ld      l,a
         ld      h,$B7
@@ -95,6 +106,27 @@ start:
         call    load_records
         ei
         jp      attract
+
+; no_sram: say so on the screen and stop
+no_sram:
+        ld      a,VRAM/256
+        ld      (drawh),a
+        ld      hl,VRAM
+        ld      de,VRAM+1
+        ld      bc,2047
+        ld      (hl),0
+        ldir
+        ld      hl,s_nosram1
+        ld      c,24
+        ld      a,$FF
+        call    text3c
+        ld      hl,s_nosram2
+        ld      c,32
+        ld      a,$AA
+        call    text3c
+.h:     jr      .h
+s_nosram1: db "ROBOGEDDON NEEDS THE",0
+s_nosram2: db "BENNVENN SD + 128K",0
 
         include "engine.asm"
         include "game.asm"
@@ -112,8 +144,11 @@ pixtab:
 lmask:  db      $FF,$3F,$0F,$03
 rmask:  db      $C0,$F0,$FC,$FF
 colpat: db      $00,$55,$AA,$FF
-marq_pat:
-        db      $55,$FF,$AA,$00
+cyc_pat:                ; yellow > orange > red > purple > blue and back
+        db      $55,$77,$FF,$EE,$AA,$EE,$FF,$77
+        db      $55,$DD,$FF,$BB,$AA,$BB,$FF,$DD
+ring_cols:
+        db      0,1,3,1
 
         include "data.asm"
         include "music.inc"
@@ -177,7 +212,13 @@ rc_col:     db 0
 rc_pat:     db 0
 txtcol:     db 0
 numbuf:     ds 8
-wallpat:    db 0
+        ALIGN 16
+dith:                           ; built from dith_t: 8 side bytes, then rows
+sidetab:    ds 8
+dith_top:   ds 3
+dith_div:   ds 1
+dith_bot:   ds 3
+DITH_N      equ $-dith
 ; input
 joy1:       db 0
 joy2:       db 0
@@ -248,6 +289,9 @@ hs_cur:     db 0
 tlimit:     db 0
 att_step:   db 0
 tmp1:       db 0
+cb_p:       ds 8
+cb_tab:     ds 50
+badge_pos:  dw 0
 srok:       db 0
 probe1:     db 0
 probe3:     db 0

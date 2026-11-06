@@ -365,8 +365,33 @@ def big_letter(ch):
                 if y == 5 or y == 6:
                     g[y][x] = 1 if (x + y) % 2 == 0 else 3   # dithered blend
     return g
+NGAME = len(FRAMES)      # frames before here also get a masked game copy
 for ch in "ROBGEDN":
     FRAMES.append(('BIG_' + ch, big_letter(ch)))
+
+# ---------------------------------------------------------------- title badges
+# round discs (9x6 pixels look round on the 4:3 screen) with a V or a Z
+BADGE = {'V': """
+..ccccc..
+.clccclc.
+ccclclccc
+ccclclccc
+.ccclccc.
+..ccccc..
+""", 'Z': """
+..ccccc..
+.clllllc.
+cccccllcc
+ccllccccc
+.clllllc.
+..ccccc..
+"""}
+BADGE_COLS = [(1, 3), (3, 1), (2, 1)]     # disc, letter: yellow/red, red/yellow, blue/yellow
+for letter in 'VZ':
+    for i, (dc, lc) in enumerate(BADGE_COLS):
+        art = BADGE[letter].replace('l', 'L')
+        px = [[{'.': 0, 'c': dc, 'L': lc}[ch] for ch in row.strip()] for row in art.strip().split('\n')]
+        FRAMES.append(('BADGE_%s%d' % (letter, i), px))
 
 # ---------------------------------------------------------------- tiny font 3x5
 F3 = {
@@ -483,17 +508,31 @@ def main():
     for name, _ in FRAMES:
         out.append('    dw %s' % ','.join('sp_%s_%d' % (name, s) for s in range(4)))
     out.append('')
-    # size table: w,h in pixels
-    out.append('framesize:')
-    for name, px in FRAMES:
-        out.append('    db %d,%d' % (len(px[0]), len(px)))
-    out.append('')
     total = 0
     for name, px in FRAMES:
         for s in range(4):
             wb, h, data = shifted(px, s)
             total += 2 + len(data)
             out.append('sp_%s_%d: db %d,%d,%s' % (name, s, wb, h, ','.join('$%02X' % b for b in data)))
+    out.append('')
+    # masked copies of the game frames for the blue arena: blue -> green,
+    # stored as (keep-mask, pixels) byte pairs
+    out.append('NGFRAMES equ %d' % NGAME)
+    out.append('gframetab:')
+    for name, _ in FRAMES[:NGAME]:
+        out.append('    dw %s' % ','.join('gp_%s_%d' % (name, s) for s in range(4)))
+    for name, px in FRAMES[:NGAME]:
+        rec = [[(2 if v == 2 else v) for v in row] for row in px]
+        data_px = [[(0 if v == 2 else v) for v in row] for row in px]
+        mask_px = [[(3 if v else 0) for v in row] for row in px]
+        for s_ in range(4):
+            wb, h, d = shifted(data_px, s_)
+            _, _, m = shifted(mask_px, s_)
+            inter = []
+            for a, b in zip(m, d):
+                inter += [(~a) & 255, b]
+            total += 2 + len(inter)
+            out.append('gp_%s_%d: db %d,%d,%s' % (name, s_, wb, h, ','.join('$%02X' % b for b in inter)))
     out.append('')
     out.append(db_lines('font3', font3_bytes()))
     out.append('')

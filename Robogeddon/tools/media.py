@@ -73,10 +73,22 @@ def play_keys(start=40, rounds=10, trainer=True):
     return '\n'.join(ev) + '\n'
 
 
-# ---- attract cycle + title music
-ATT = {'01_title': 300, '02_story': 1350, '03_gallery': 1930, '04_high_scores': 2350,
-       '05_controls': 3500, '06_demo': 3800}
-run('att', 4200, shots=tuple(ATT.values()), wav=os.path.join(TMP, 'title.wav'))
+# ---- attract cycle + title music: find each screen from the game's own state
+tr = os.path.join(TMP, 'att.trace')
+NF = 5600
+subprocess.run([EMU, VZ, '-frames', str(NF), '-bennvenn', '-out', os.path.join(TMP, 'x'),
+                '-trace', '%x:1:%s' % (sym['att_step'], tr + '.s')], capture_output=True)
+subprocess.run([EMU, VZ, '-frames', str(NF), '-bennvenn', '-out', os.path.join(TMP, 'x'),
+                '-trace', '%x:1:%s' % (sym['demo'], tr + '.d')], capture_output=True)
+st = open(tr + '.s', 'rb').read()
+dm = open(tr + '.d', 'rb').read()
+def first(step):
+    return next(i for i, v in enumerate(st) if v == step)
+ATT = {'01_title': 300, '02_story': first(1) + 650, '03_gallery': first(2) + 560,
+       '04_high_scores': first(3) + 100, '05_controls': first(5) + 100,
+       '06_demo': next(i for i, v in enumerate(dm) if v == 1) + 300}
+DEMO0 = ATT['06_demo'] - 240
+run('att', max(ATT.values()) + 2, shots=tuple(ATT.values()), wav=os.path.join(TMP, 'title.wav'))
 for n, f in ATT.items():
     if os.path.exists(os.path.join(TMP, 'att_%05d.ppm' % f)):
         frame('att', f).save(os.path.join(SHOTS, P + n + '.png'))
@@ -85,8 +97,8 @@ run('tit', 300, every=2)
 gif('tit', range(4, 300, 2), os.path.join(SHOTS, P + 'title.gif'), dur=80)
 
 # ---- the demo (computer player) as a gameplay GIF
-run('dem', 5000, every=2)
-gif('dem', range(3760, 4560, 2), os.path.join(SHOTS, P + 'gameplay.gif'), dur=80)
+run('dem', DEMO0 + 900, every=2)
+gif('dem', range(DEMO0 + 60, DEMO0 + 860, 2), os.path.join(SHOTS, P + 'gameplay.gif'), dur=80)
 
 # ---- waves (wave 1's row swapped for the wave we want, trainer on)
 waves = [

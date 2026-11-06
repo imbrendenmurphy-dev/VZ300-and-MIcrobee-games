@@ -47,8 +47,19 @@ wavetab:
         db 24, 0,16, 0, 3, 0, 3, 3, 3, 3      ; 19 crusher wave
         db 16, 7, 3,14, 0, 0, 3, 3, 4, 3      ; 20 mindbot wave
 
-wallpats:
-        db $AA, $FF, $55, $AA
+; the blue arena's green dithered edge: (blue pixels, green-pixel mask)
+; side bytes for rows 0..3 mod 4 (left, right): the green fades from the
+; outside in (100/75/50/25%), into the VZ's green border
+flash_cols:
+        db 1, 3, 2, 3
+dith_t:
+        db $02,$FC, $80,$3F             ; row 0 mod 4
+        db $08,$F3, $20,$CF             ; row 1
+        db $02,$FC, $80,$3F             ; row 2
+        db $2A,$C0, $A8,$03             ; row 3
+        db $02,$FC, $22,$CC, $8A,$30    ; top rows 0,1,2: 75%, 50%, 25%
+        db $88,$33                      ; divider under the scores
+        db $A2,$0C, $22,$CC, $08,$F3    ; bottom rows 61,62,63: 25%, 50%, 75%
 
 ; ---- directions: 0 U, 1 UR, 2 R, 3 DR, 4 D, 5 DL, 6 L, 7 UL
 ; pad bits 0 R, 1 L, 2 U, 3 D -> direction ($FF none)
@@ -96,10 +107,9 @@ s_snd_all: db "ALL",0
 s_snd_fx:  db "FX",0
 s_snd_off: db "OFF",0
 
-s_ctl:      db "CONTROLS: ",0
+s_ctl:      db "CONTROLS (1-3): ",0
 s_2085:     db "2085",0
 s_vibed:    db "VIBED BY BPM 2026",0
-s_modes:    db "1 DUAL  2 ONE STICK  3 KEYS",0
 s_start:    db "SPACE OR FIRE TO START",0
 s_trn_opt:  db "T TRAINER ",0
 s_on:       db "ON",0
@@ -109,40 +119,39 @@ s_snd_opt:  db "  M SOUND ",0
 s_story_h:  db "- THE STORY SO FAR -",0
 story:
         db "THE YEAR IS 2085.",0
-        db "OUR OWN ROBOTS HAVE TURNED ON",0
-        db "US. THIS IS THE ROBOGEDDON.",0
-        db "ONE FAMILY IS LEFT ALIVE,",0
-        db "AND ONLY YOU STAND BETWEEN",0
-        db "THEM AND THE MACHINES.",0
-        db "BLAST EVERY ROBOT. SAVE THE",0
-        db "HUMANS. AND NEVER STOP MOVING!",0
+        db "OUR OWN ROBOTS HAVE TURNED",0
+        db "ON US: THE ROBOGEDDON.",0
+        db "ONE FAMILY IS LEFT, AND",0
+        db "ONLY YOU CAN SAVE THEM.",0
+        db "BLAST EVERY ROBOT, SAVE THE",0
+        db "HUMANS. NEVER STOP MOVING!",0
         db $FF
 
-s_meet:     db "MEET THE ROBOTS",0
+s_meet:     db "THE ROBOTS",0
 gallery:    ; frame, x, y, text column, text
-        db F_GRUNT0, 4, 15, 4
+        db F_GRUNT0, 9, 17, 4
         dw s_g_droid
-        db F_ELEC1_3, 4, 24, 4
+        db F_ELEC1_3, 9, 25, 4
         dw s_g_pylon
-        db F_HULK0, 3, 32, 4
+        db F_HULK0, 8, 32, 4
         dw s_g_crush
-        db F_SPH1, 4, 42, 4
+        db F_SPH1, 9, 41, 4
         dw s_g_orb
-        db F_ENF0, 4, 51, 4
+        db F_ENF0, 9, 49, 4
         dw s_g_seek
-        db F_BRAIN0, 67, 15, 20
+        db F_BRAIN0, 63, 17, 18
         dw s_g_brain
-        db F_PROG0, 68, 24, 20
+        db F_PROG0, 64, 25, 18
         dw s_g_mut
-        db F_SPH2, 68, 33, 20
+        db F_SPH2, 64, 33, 18
         dw s_g_fact
-        db F_TANK0, 67, 42, 20
+        db F_TANK0, 63, 41, 18
         dw s_g_tank
-        db F_DAD0, 68, 51, 20
+        db F_DAD0, 64, 49, 18
         dw s_g_hum
 s_g_droid:  db "DROID   100",0
 s_g_pylon:  db "PYLON    25",0
-s_g_crush:  db "CRUSHER  ---",0
+s_g_crush:  db "CRUSHER ---",0
 s_g_orb:    db "ORB    1000",0
 s_g_seek:   db "SEEKER  150",0
 s_g_brain:  db "MINDBOT  500",0
@@ -150,23 +159,22 @@ s_g_mut:    db "MUTANT   100",0
 s_g_fact:   db "FACTORY 1000",0
 s_g_tank:   db "TANK     200",0
 s_g_hum:    db "HUMANS 1000+",0
-s_zap:      db "SHOOT THEIR SHOTS FOR 25",0
+s_zap:      db "SHOOT THEIR SHOTS: 25",0
 
 s_controls: db "CONTROLS",0
 ctl_heads:
         dw cl_h1, cl_h2, cl_h3
 ctl_lines:
 cl_h1:  db "1 DUAL STICK",0
-        db "  JOY 1 MOVES, JOY 2 SHOOTS",0
+        db " JOY 1 MOVE, JOY 2 SHOOT",0
 cl_h2:  db "2 ONE STICK",0
-        db "  HOLD FIRE TO SHOOT + STRAFE",0
+        db " HOLD FIRE: SHOOT+STRAFE",0
 cl_h3:  db "3 KEYBOARD",0
-        db "  WASD MOVES, IJKL SHOOTS",0
-        db "KEYS ALSO WORK WITH DUAL STICK",0
+        db " WASD MOVE, IJKL SHOOT",0
+        db "RETURN PAUSE  M SOUND",0
         db $FF
-s_keyhelp:  db "RETURN PAUSE  M SOUND  T TRAINER",0
 
-s_hiscores: db "HIGH SCORES",0
+s_hiscores: db "- ROBOGEDDON HEROES -",0
 s_great:    db "GREAT SCORE!",0
 s_initials: db "ENTER YOUR INITIALS",0
 s_namehelp: db "UP/DOWN LETTER  FIRE NEXT",0
