@@ -211,7 +211,8 @@ blit:
         ld (bl_h),a
         inc de
         call span_of            ; bl_lo / bl_hi
-.row:   ld a,(bl_y)
+.row:   call fs_poll
+        ld a,(bl_y)
         add a,ARENA_TOP
         ld l,a
         call mark_row_obj
@@ -256,12 +257,14 @@ blit:
 wrap_y:
         bit 7,a
         jr nz,.neg
-        cp ARENA_H
+.pos:   cp ARENA_H
         ret c
         sub ARENA_H
-        ret
+        jr .pos
 .neg:   add a,ARENA_H
-        ret
+        bit 7,a
+        jr nz,.neg
+        jr .pos
 
 ; bl_col, bl_w -> bl_lo, bl_hi (whole row if it wraps)
 span_of:
@@ -446,7 +449,8 @@ draw_cloud:
         ld (bl_end),a           ; may exceed 31 (wraps)
         ld a,(ix+CL_Y)
         ld (bl_y),a
-.row:   ld a,(bl_y)
+.row:   call fs_poll
+        ld a,(bl_y)
         add a,ARENA_TOP
         ld l,a
         ld h,DLO/256
@@ -592,22 +596,39 @@ mark_cloud:
         jr nz,.r
         ret
 
-; move clouds by their own speed + the wind; redraw any that shifted
+; move clouds by their own speed + the wind; redraw any that shifted.
+; One cloud per tick (round robin) moves 6 ticks' worth, so at most one
+; cloud box is redrawn per tick.
 move_clouds:
+        ld a,(clrr)
+        inc a
+        cp MAXCL
+        jr c,.r
+        xor a
+.r:     ld (clrr),a
         ld ix,clouds
-        ld b,MAXCL
-.c:     push bc
-        ld a,(ix+CL_ON)
         or a
-        jr z,.n
+        jr z,.c
+        ld b,a
+        ld de,CL_SIZE
+.f:     add ix,de
+        djnz .f
+.c:     ld a,(ix+CL_ON)
+        or a
+        ret z
         ld a,(ix+CL_X+1)
         ld (mc_old),a
-        ld l,(ix+CL_X)
-        ld h,(ix+CL_X+1)
         ld e,(ix+CL_VX)
         ld d,(ix+CL_VX+1)
+        ld hl,(wind)
+        add hl,de               ; speed per tick
+        ld d,h
+        ld e,l
+        add hl,hl
         add hl,de
-        ld de,(wind)
+        add hl,hl               ; * 6
+        ld e,(ix+CL_X)
+        ld d,(ix+CL_X+1)
         add hl,de
         ld a,h
         and 127
@@ -616,7 +637,7 @@ move_clouds:
         ld (ix+CL_X+1),h
         ld a,(mc_old)
         cp h
-        jr z,.n
+        ret z
         ld a,1
         ld (objmark),a
         ld a,(mc_old)
@@ -624,12 +645,7 @@ move_clouds:
         xor a
         ld (objmark),a
         ld a,(ix+CL_X+1)
-        call mark_cloud         ; new box: draw
-.n:     ld de,CL_SIZE
-        add ix,de
-        pop bc
-        djnz .c
-        ret
+        jp mark_cloud           ; new box: draw
 ; force a redraw of cloud IX (fill changed)
 touch_cloud:
         xor a

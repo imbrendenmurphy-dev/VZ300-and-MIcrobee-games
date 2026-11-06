@@ -13,6 +13,8 @@ SPRWORK equ $4000               ; recoloured sprite copies, in the SD card's SRA
 RMAP0   equ $6300               ; recolour tables (theatre map / map with 1<->2 swapped)
 RMAP1   equ $6400
 frames_ram equ $6500            ; frame table with pointers to the copies (NFRAMES*10)
+POPSAVE equ $6690               ; backdrop under the popup line (160 bytes)
+BANSAVE equ $7E00               ; backdrop under the banner (320 bytes; stack stays above)
 DQ      equ $7C00               ; commit queue: rows waiting to be copied (128-entry ring)
 DLO     equ $7D00               ; dirty spans: lo at +0, hi at +$40;
 OLO     equ $7D80               ; erase spans: lo at +$80, hi at +$C0
@@ -95,6 +97,13 @@ latchcur: db 0
 palbase: db 0
 flashtim: db 0
 framecount: dw 0
+tick:   db 0
+kacc:   db 0
+latefs: db 0
+fsprev: db 0
+allowlate: db 0
+lastf:  db 0
+macc:   db 0
 seed:   dw 0
 acc1:   dw 0
 acc2:   dw 0
@@ -163,6 +172,7 @@ cloudfill: db 0
 accfill: db 0
 wind:   dw 0
 ncl:    db 0
+clrr:   db 0
 clouds: ds MAXCL*CL_SIZE
 ; game state
 mode:   db 0
@@ -191,6 +201,12 @@ banner: dw 0
 banner_t: db 0
 popup:  dw 0
 popup_t: db 0
+ban_shown: dw 0
+pop_shown: dw 0
+ban_c0: db 0
+ban_c1: db 0
+pop_c0: db 0
+pop_c1: db 0
 gust_t: db 0
 gust_len: db 0
 gustv:  dw 0

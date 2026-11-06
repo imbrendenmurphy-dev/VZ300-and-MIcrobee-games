@@ -144,13 +144,13 @@ title_screen:
         xor a
         ld (tmsg),a
         call title_msg
-        ld hl,520
+        ld hl,260
         ld (attr_t),hl
-.l:     call do_frame
+.l:     call two_frames
         call update_world
         call draw_world
-        ld a,(framecount)
-        and 127
+        ld a,(tick)
+        and 63
         call z,title_msg
         call check_start
         jr nz,.out
@@ -393,7 +393,7 @@ run_demo:
         ld (quit),a
         inc a
         ld (roundno),a
-        ld hl,1500
+        ld hl,750
         ld (demot),hl
         call play_round_demo
         ld a,$FF
@@ -998,7 +998,7 @@ round_banner:
         jr nz,.set2
         ld bc,s_p1win
 .set2:  ld (banner),bc
-        ld a,140
+        ld a,75
         ld (banner_t),a
         ld a,(mode)
         cp MODE_DEMO
@@ -1373,11 +1373,12 @@ balloon_bust:
         call start_round
         call draw_hud
         call show_b
+        call draw_clouds
         ld a,1
         ld (guns_on),a
         ld hl,s_go
         ld (banner),hl
-        ld a,40
+        ld a,20
         ld (banner_t),a
         call battle_music
 .l:     call game_frame
@@ -1387,7 +1388,7 @@ balloon_bust:
         ld a,(bn_fr)
         inc a
         ld (bn_fr),a
-        cp 50
+        cp 25
         jr c,.nt
         xor a
         ld (bn_fr),a
@@ -1470,7 +1471,7 @@ bonus_spawn:
         dec a
         ld (bn_spt),a
         jp move_balloons
-.sp:    ld a,55
+.sp:    ld a,28
         ld (bn_spt),a
         ld a,(bn_left)
         dec a

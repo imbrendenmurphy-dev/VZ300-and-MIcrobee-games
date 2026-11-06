@@ -21,8 +21,9 @@ static uint8_t joy[16];            // port low nibble -> active-high bits
 static int fs_low = 0;
 static int cur_line = 0; static long snow_hits = 0; static int snow_frames = 0, snow_lastf = -1; static int snow_first[16]; static int snow_nf = 0;
 static int frame;
+static z80 *gz;
 static int mark_max=0, mark_late=0, mark_hist[8];
-static void snowchk(uint16_t a){ int r=cur_line-FS_LEN-TOPB; if(a>=0x7000&&a<0x7800&&r>=0&&r<192){ snow_hits++; if(snow_lastf!=frame){snow_lastf=frame;snow_frames++; if(getenv("SNOWLOG")) fprintf(stderr,"snowframe %d line %d\n",frame,cur_line); if(snow_nf<16)snow_first[snow_nf++]=frame;} } }
+static void snowchk(uint16_t a){ int r=cur_line-FS_LEN-TOPB; if(a>=0x7000&&a<0x7800&&r>=0&&r<192){ snow_hits++; if(snow_lastf!=frame){snow_lastf=frame;snow_frames++; if(getenv("SNOWLOG")) fprintf(stderr,"snowframe %d line %d pc %04X addr %04X sp %04X ret %02X%02X %02X%02X %02X%02X\n",frame,cur_line,gz?gz->pc:0,a,gz->sp,mem[gz->sp+1],mem[gz->sp],mem[gz->sp+3],mem[gz->sp+2],mem[gz->sp+5],mem[gz->sp+4]); if(snow_nf<16)snow_first[snow_nf++]=frame;} } }
 static uint32_t img[H][W];
 
 static long long totalcyc = 0;
@@ -30,6 +31,7 @@ static FILE *wav = NULL; static long wavsamples = 0; static double wavacc = 0;
 static int romwrite_warn = 0;
 static FILE *trf=0; static int tra=0, trl=0;
 static int npk=0; static int pkf[64], pka[64], pkv[64];
+static int span_a = -1, span_b = -1; static long long span_t0 = 0; static long span_hist[64];
 static int watch_pc = -1; static int watch_hits = 0; static long long watch_last = 0;
 static int watch_over = 0; static unsigned long long prof[65536]; static const char *proffile=0; static int prof_from=0;
 static long long watch_min = 1LL<<60, watch_max = 0, watch_sum = 0; static int watch_n = 0;
@@ -173,6 +175,7 @@ int main(int argc, char **argv) {
     else if (!strcmp(argv[i], "-watch")) watch_pc = strtol(argv[++i], 0, 16);
     else if (!strcmp(argv[i], "-prof")) { proffile = argv[++i]; prof_from = atoi(argv[++i]); }
     else if (!strcmp(argv[i], "-dump")) dumpspec = argv[++i];
+    else if (!strcmp(argv[i], "-span")) { sscanf(argv[++i], "%x:%x", &span_a, &span_b); }
     else if (!strcmp(argv[i], "-bennvenn")) bv = 1;
     else if (!strcmp(argv[i], "-loadsram")) { FILE *q = fopen(argv[++i], "rb"); if (q) { fread(bvbank, 1, sizeof bvbank, q); fclose(q); } }
     else if (!strcmp(argv[i], "-savesram")) { bvsave = argv[++i]; }
@@ -185,7 +188,7 @@ int main(int argc, char **argv) {
   memcpy(mem + start, buf + 24, n - 24);
   fprintf(stderr, "loaded type %02X at %04X-%04X\n", type, start, start + n - 25);
   for (int i = 0x7000; i < 0x7800; i++) mem[i] = 0x20 ^ (rand() & 0); // blank
-  z80 z; z80_init(&z);
+  z80 z; z80_init(&z); gz=&z;
   z.read_byte = rd; z.write_byte = wr; z.port_in = pin; z.port_out = pout;
   z.pc = pcov >= 0 ? pcov : start; z.sp = 0x7fff;
   latch = 0;
@@ -204,9 +207,11 @@ int main(int argc, char **argv) {
         unsigned long c0 = z.cyc;
         if (watch_pc >= 0 && z.pc == watch_pc) {
           long long now = z.cyc;
-          if (watch_hits) { long long d = now - watch_last; if (d < watch_min) watch_min = d; if (d > watch_max) watch_max = d; watch_sum += d; watch_n++; if (d > 75000 && d < 1000000) { watch_over++; if (getenv("OVLOG")) fprintf(stderr,"ov f%d %lld\n",frame,d);} }
+          if (watch_hits) { long long d = now - watch_last; if (d < watch_min) watch_min = d; if (d > watch_max) watch_max = d; watch_sum += d; watch_n++; if (getenv("WLOG")) fprintf(stderr,"w f%d %lld\n",frame,d); if (d > 75000 && d < 1000000) { watch_over++; if (getenv("OVLOG")) fprintf(stderr,"ov f%d %lld\n",frame,d);} }
           watch_hits++; watch_last = now;
         }
+        if (z.pc == span_a) span_t0 = z.cyc;
+        if (z.pc == span_b && span_t0) { long long d = z.cyc - span_t0; int k = d / 4000; if (k > 63) k = 63; span_hist[k]++; if (getenv("SPANLOG") && d > atoi(getenv("SPANLOG"))) fprintf(stderr, "span f%d %lld\n", frame, d); span_t0 = 0; }
         uint16_t pc0 = z.pc;
         z80_step(&z);
         if (proffile && frame >= prof_from) prof[pc0] += z.cyc - c0;
@@ -224,6 +229,7 @@ int main(int argc, char **argv) {
       char fn[256]; sprintf(fn, "%s_%05d.ppm", out, frame); save_png(fn);
     }
   }
+  if (span_a >= 0) { fprintf(stderr, "span hist (4K cycles):"); for (int i = 0; i < 64; i++) if (span_hist[i]) fprintf(stderr, " %d:%ld", i * 4, span_hist[i]); fprintf(stderr, "\n"); }
   if (bvsave) { FILE *q = fopen(bvsave, "wb"); fwrite(bvbank, 1, sizeof bvbank, q); fclose(q); }
   if (bv) fprintf(stderr, "bennvenn: %d port $37 writes, final mapping %d\n", bvwrites, bvmap);
   if (proffile) { FILE *pf = fopen(proffile, "wb"); fwrite(prof, 8, 65536, pf); fclose(pf); }

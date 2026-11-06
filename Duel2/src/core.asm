@@ -18,7 +18,37 @@
 ; falling edge (start of vblank). Loop = 126 T (~28.15 kHz).
 ; ---------------------------------------------------------------------
 frame_wait:
-        ld iyl,0
+        xor a
+        ld (latefs),a
+        ld a,($6800)
+        rla
+        jr c,.out               ; not in field sync now
+        ; inside field sync already: was its start counted by fs_poll?
+        ld a,(fsprev)
+        or a
+        jr z,.cnt
+        xor a
+        ld (fsprev),a
+        ld hl,(framecount)
+        inc hl
+        ld (framecount),hl
+.cnt:   ld a,(allowlate)
+        or a
+        jr z,.out
+        ; the game ran a little long: this is our vblank, go straight on
+        ; with a smaller VRAM budget (see commit)
+        xor a
+        ld (allowlate),a
+        inc a
+        ld (latefs),a
+        ld hl,(acc1)
+        exx
+        ld hl,(acc2)
+        exx
+        jr .go2
+.out:   xor a
+        ld (allowlate),a
+.nf:    ld iyl,0
         ld a,(latchcur)
         ld c,a
         ld hl,(acc1)
@@ -65,6 +95,11 @@ frame_wait:
         ld a,($6800)
         rla
         jr c,.high
+        ld de,(framecount)
+        inc de
+        ld (framecount),de
+.go2:   xor a
+        ld (fsprev),a
         ld a,(latchbase)
         ld (latchcur),a
         ld ($6800),a            ; speaker rest + new mode/palette, in vblank
@@ -72,9 +107,27 @@ frame_wait:
         exx
         ld (acc2),hl
         exx
+        ret
+
+; fs_poll: called often during the game's work, so frames are counted even
+; while the game is busy (the start of field sync is a frame boundary)
+fs_poll:
+        ld a,($6800)
+        rla
+        jr c,.hi
+        ld a,(fsprev)
+        or a
+        ret z
+        xor a
+        ld (fsprev),a
+        push hl
         ld hl,(framecount)
         inc hl
         ld (framecount),hl
+        pop hl
+        ret
+.hi:    ld a,1
+        ld (fsprev),a
         ret
 
 ; ---------------------------------------------------------------------
@@ -550,7 +603,10 @@ mark_rect:
 ; olo/ohi) by copying the backdrop over those spans; they become dirty
 restore_old:
         ld l,0
-.row:   ld h,OLO/256
+.row:   ld a,l
+        and 7
+        call z,fs_poll
+        ld h,OLO/256
         set 7,l
         ld a,(hl)               ; olo
         set 6,l
@@ -621,8 +677,12 @@ restore_old:
 ; within the byte budget; picks up where it left off next time
 ; ---------------------------------------------------------------------
 commit:
+        ld a,(latefs)
+        or a
         ld a,(cbudget)
-        ld c,a
+        jr z,.b
+        ld a,18
+.b:     ld c,a
 .next:  ld a,(dq_h)
         ld e,a
         ld a,(dq_tp)

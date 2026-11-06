@@ -331,8 +331,8 @@ save_preview(csheet, "clouds.png")
 
 # ---------------------------------------------------------------- velocity table
 # level 0..5 = throttle settings, 6..7 = turbo, 8 = bullets, 9 = falling drift
-# vertical rows per frame * 256; horizontal is x1.5 (Mode 1 pixels are narrow)
-LEVELS = [78, 98, 118, 138, 158, 178, 205, 228, 520, 52]
+# vertical rows per game tick (25 Hz) * 256; horizontal is x1.5 (Mode 1 pixels are narrow)
+LEVELS = [156, 196, 236, 276, 316, 356, 410, 456, 1040, 104]   # per 25 Hz game tick
 L.append("NLEVELS equ %d" % len(LEVELS))
 L.append("veltab: ; [level][heading] dw vx, vy  (8.8 pixels/frame)")
 for sp in LEVELS:

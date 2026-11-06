@@ -87,11 +87,11 @@ TH_SIZE equ 16
 ; css, map L0..L3, cloud logical colour, clouds, wind, hazard,
 ; dw backdrop, dw name, balloons, heading step, spare
 theatres:
-        db 0,      0,1,2,3, 1, 4,  10, 0 : dw bd_meadow, tn0 : db 1,1,0
-        db CSS1,   1,0,2,3, 1, 5, -18, 0 : dw bd_ocean,  tn1 : db 1,1,0
-        db CSS1,   3,0,2,1, 1, 4,  14, 1 : dw bd_desert, tn2 : db 1,1,0
-        db 0,      2,1,3,0, 3, 5, -10, 2 : dw bd_night,  tn3 : db 1,1,0
-        db 0,      0,1,2,3, 1, 6,   7, 0 : dw bd_classic,tn4 : db 0,2,0
+        db 0,      0,1,2,3, 1, 4,   5, 0 : dw bd_meadow, tn0 : db 1,1,0
+        db CSS1,   1,0,2,3, 1, 5,  -8, 0 : dw bd_ocean,  tn1 : db 1,1,0
+        db CSS1,   3,0,2,1, 1, 4,   6, 1 : dw bd_desert, tn2 : db 1,1,0
+        db 0,      2,1,3,0, 3, 5,  -5, 2 : dw bd_night,  tn3 : db 1,1,0
+        db 0,      0,1,2,3, 1, 6,   4, 0 : dw bd_classic,tn4 : db 0,2,0
 tn0:    db "THE MEADOWS",0
 tn1:    db "THE OCEAN",0
 tn2:    db "THE DESERT",0
@@ -138,6 +138,9 @@ set_theatre:
         ld (accfill),a
         jp load_backdrop
 load_backdrop:  ; backdrop: unpack logical, recolour; fresh clouds
+        ld hl,0
+        ld (ban_shown),hl
+        ld (pop_shown),hl
         ld a,(tmap)
         call fillbyte
         call cls_b
@@ -249,10 +252,10 @@ place_clouds:
 .sh:    ld b,4
         call rand_n
 .sh2:   ld (ix+CL_SHAPE),a
-        ; own drift: -12..+12 /256 px per frame
-        ld b,25
+        ; own drift: -5..+5 /256 px per tick
+        ld b,11
         call rand_n
-        sub 12
+        sub 5
         ld (ix+CL_VX),a
         rla
         sbc a,a
@@ -500,7 +503,7 @@ init_plane:
         ld (ix+P_STATE),1
         ld (ix+P_HP),15
         ld (ix+P_LEVEL),2
-        ld (ix+P_TURND),3
+        ld (ix+P_TURND),2
         ld (ix+P_TURNT),1
         ld (ix+P_THRT),1
         or a
@@ -556,15 +559,15 @@ ai_setup:
         ret
 ; turn delay, think delay, aim, evade, top throttle, hides, leads, hesitates
 ace_style:
-        db 5, 8, 0,  10, 3, 0, 0, 70     ; Rookie Rudy
-        db 4, 7, 1,  20, 4, 0, 0, 50     ; Farmer Fritz
-        db 4, 6, 1,  50, 4, 0, 1, 40     ; Salty Sue
-        db 4, 5, 1,  40, 5, 0, 1, 30     ; Captain Kraken
-        db 3, 5, 1,  80, 5, 0, 1, 26     ; Dune Raider
-        db 3, 4, 0, 110, 5, 0, 1, 18     ; Scorpion
-        db 3, 3, 0, 140, 5, 1, 1, 12     ; Night Owl
-        db 2, 3, 0, 170, 5, 1, 1, 6      ; The Phantom
-        db 4, 6, 1,  60, 4, 0, 1, 30     ; demo / title pilots
+        db 3, 4, 0,  10, 3, 0, 0, 70     ; Rookie Rudy
+        db 3, 4, 1,  20, 4, 0, 0, 50     ; Farmer Fritz
+        db 3, 3, 1,  50, 4, 0, 1, 40     ; Salty Sue
+        db 3, 3, 1,  40, 4, 0, 1, 30     ; Captain Kraken
+        db 2, 3, 1,  80, 5, 0, 1, 26     ; Dune Raider
+        db 2, 2, 1, 110, 5, 0, 1, 18     ; Scorpion
+        db 2, 2, 1, 140, 5, 1, 1, 10     ; Night Owl
+        db 2, 1, 1, 180, 5, 1, 1, 4      ; The Phantom
+        db 2, 3, 1,  60, 4, 0, 1, 30     ; demo / title pilots
 
 ; start_round: planes in place, everything else cleared
 start_round:
@@ -595,7 +598,7 @@ start_round:
         ld (popup_t),a
         ld (gust_len),a
         ld (charge_t),a
-        ld hl,600
+        ld hl,300
         ld (bal_t),hl
         ld a,200
         ld (gust_t),a
@@ -664,13 +667,14 @@ play_round:
         call start_round
         call draw_hud
         call show_b
+        call draw_clouds        ; every row is dirty now: clouds go in everywhere
         ; "ROUND n" then "FIGHT!"
         ld a,(roundno)
         add a,'0'
         ld (s_round+6),a
         ld hl,s_round
         ld (banner),hl
-        ld a,70
+        ld a,40
         ld (banner_t),a
         ld hl,mus_round_0
         ld de,mus_round_1
@@ -684,7 +688,7 @@ play_round:
         jr nz,.intro
         ld hl,s_fight
         ld (banner),hl
-        ld a,35
+        ld a,20
         ld (banner_t),a
         ld a,1
         ld (guns_on),a
@@ -749,7 +753,9 @@ jingle:
 ; =====================================================================
 ;  ONE FRAME
 ; =====================================================================
+; the game runs at a steady 25 Hz: two video frames per tick
 game_frame:
+        call two_frames
         ld a,(mode)
         cp MODE_DEMO
         jr nz,.nd
@@ -761,10 +767,41 @@ game_frame:
         jr nz,.nd
         inc a
         ld (quit),a
-.nd:    call do_frame
-        call sys_keys
+.nd:    call sys_keys
         call update_world
         jp draw_world
+
+; two video frames per game tick; key presses from both are kept
+two_frames:
+        call fs_poll
+        ld a,1
+        ld (allowlate),a        ; only this first wait may use a vblank already begun
+        call do_frame
+        ld a,(framecount)
+        ld hl,lastf
+        sub (hl)
+        cp 2
+        jr nc,.done             ; the tick already took two frames
+        ld a,(keysnew)
+        ld (kacc),a
+        ld a,(mnunew)
+        ld (macc),a
+        call do_frame
+        ld a,(kacc)
+        ld b,a
+        ld a,(keysnew)
+        or b
+        ld (keysnew),a
+        ld a,(macc)
+        ld b,a
+        ld a,(mnunew)
+        or b
+        ld (mnunew),a
+.done:  ld a,(framecount)
+        ld (lastf),a
+        ld hl,tick
+        inc (hl)
+        ret
 
 ; M = sound mode, RETURN = pause (Q quits while paused); demo: any key
 sys_keys:
@@ -859,9 +896,11 @@ update_world:
 .p:     ld ix,pl0
         ld iy,pl1
         call update_plane
+        call fs_poll
         ld ix,pl1
         ld iy,pl0
         call update_plane
+        call fs_poll
         call update_bullets
         call collide
         call update_parts
@@ -884,7 +923,7 @@ update_world:
         ld a,(pl1+P_STATE)
         cp 1
         ret z
-.end:   ld a,170
+.end:   ld a,90
         ld (rend_t),a
         jp round_banner
 
@@ -906,7 +945,7 @@ engine_drone:
         add a,a
         add a,100
         ld l,a
-        ld a,(framecount)
+        ld a,(tick)
         and 2
         add a,l
         ld l,a
@@ -923,8 +962,8 @@ update_plane:
         cp 2
         ret nz
         ; ---- going down: spin, smoke, then blow up and bail out
-        ld a,(framecount)
-        and 3
+        ld a,(tick)
+        and 1
         jr nz,.sp
         ld a,(ix+P_HEAD)
         inc a
@@ -934,9 +973,7 @@ update_plane:
         ld (ix+P_LEVEL),a
         call set_velocity
         call move_plane
-        ld a,(framecount)
-        and 1
-        call z,smoke_puff
+        call smoke_puff
         dec (ix+P_FALLT)
         ret nz
         ld (ix+P_STATE),3
@@ -956,7 +993,7 @@ update_plane:
         ld (chute_x+1),a
         ld a,c
         ld (chute_y+1),a
-        ld a,140
+        ld a,70
         ld (chute_t),a
         ld a,10
         ld (flashtim),a
@@ -1010,7 +1047,7 @@ update_plane:
         jr .mv
 .th:    dec (ix+P_THRT)
         jr nz,.mv
-        ld (ix+P_THRT),10
+        ld (ix+P_THRT),5
         bit 2,c
         jr z,.slow
         ld a,(ix+P_LEVEL)
@@ -1073,9 +1110,9 @@ update_plane:
         dec (ix+P_SMOKET)
         ret p
         cp 3
-        ld a,7
+        ld a,4
         jr nc,.s1
-        ld a,3
+        ld a,2
 .s1:    ld (ix+P_SMOKET),a
         jp smoke_puff
 
@@ -1155,7 +1192,7 @@ move_plane:
 ; fire: IX = plane. One shot from the nose (two with twin guns)
 ; ---------------------------------------------------------------------
 fire:
-        ld (ix+P_FIRET),8
+        ld (ix+P_FIRET),4
         ld a,(ix+P_PWR)
         cp 1
         jr z,.twin
@@ -1164,25 +1201,17 @@ fire:
         call spawn_bullet
         ld a,SFX_GUN
         jp play_sfx
-.twin:  ld (ix+P_FIRET),9
+.twin:  ld (ix+P_FIRET),5
         ld a,(ix+P_HEAD)
         add a,4
         ld c,a
         ld a,4
-        call vel_of             ; sideways offset ~ 1.4 px
+        call vel_of             ; sideways offset ~ 1.2 rows / 1.8 px
         push de
         push hl
-        add hl,hl
-        ex de,hl
-        add hl,hl
-        ex de,hl
         call spawn_bullet
         pop hl
         pop de
-        add hl,hl
-        ex de,hl
-        add hl,hl
-        ex de,hl
         ; negate both
         xor a
         sub e
@@ -1223,11 +1252,10 @@ spawn_bullet:
         ld (iy+BU_VX+1),d
         ld (iy+BU_VY),l
         ld (iy+BU_VY+1),h
-        ; start 2 frames ahead of the plane's centre
+        ; start one tick ahead of the plane's centre
         push hl
         ld l,(ix+P_X)
         ld h,(ix+P_X+1)
-        add hl,de
         add hl,de
         pop de                  ; DE = vy
         ex (sp),hl              ; HL = x offset, stack = x
@@ -1239,7 +1267,6 @@ spawn_bullet:
         ld (iy+BU_X+1),a
         ld l,(ix+P_Y)
         ld h,(ix+P_Y+1)
-        add hl,de
         add hl,de
         pop bc                  ; y offset
         add hl,bc
@@ -1262,7 +1289,7 @@ spawn_bullet:
         add hl,de
         ld (iy+BU_VY),l
         ld (iy+BU_VY+1),h
-        ld (iy+BU_LIFE),21
+        ld (iy+BU_LIFE),11
         ld a,(ix+P_ID)
         ld (iy+BU_OWN),a
         ld a,(ix+P_COL)
@@ -1276,6 +1303,7 @@ update_bullets:
         ld iy,bullets
         ld b,NBUL
 .l:     push bc
+        call fs_poll
         ld a,(iy+BU_LIFE)
         or a
         jr z,.n
@@ -1391,7 +1419,7 @@ damage:                 ; IX = plane, A = hits
         ret nz
         ld a,1
         ld (hud_dirty),a
-        ld (ix+P_FLASH),8
+        ld (ix+P_FLASH),6
         ld a,(ix+P_HP)
         sub b
         jr z,.down
@@ -1401,7 +1429,7 @@ damage:                 ; IX = plane, A = hits
         jp play_sfx
 .down:  ld (ix+P_HP),0
         ld (ix+P_STATE),2
-        ld (ix+P_FALLT),70
+        ld (ix+P_FALLT),40
         ld a,SFX_FALL
         call play_sfx
         ; the winner's points
@@ -1465,7 +1493,7 @@ collide:
         add a,3
         cp 7
         ret nc
-        ld a,60
+        ld a,30
         ld (pl0+P_COLLT),a
         ld (pl1+P_COLLT),a
         ld a,4
@@ -1487,7 +1515,7 @@ collide:
         and 15
         ld (ix+P_HEAD),a
         ld c,a
-        ld a,5
+        ld a,1
         call vel_of
         ld a,(ix+P_X+1)
         add a,d
@@ -1551,7 +1579,7 @@ smoke_puff:
         cp 2
         ld a,(col3)
         jr z,.c
-        ld a,(framecount)
+        ld a,(tick)
         and 4
         ld a,(col3)
         jr z,.c
@@ -1560,7 +1588,7 @@ smoke_puff:
         ld a,(ix+P_HEAD)
         add a,8
         ld c,a
-        ld a,5
+        ld a,0
         call vel_of             ; a little behind
         ld a,(ix+P_X+1)
         add a,d
@@ -1571,8 +1599,8 @@ smoke_puff:
         call wrap_y
         ld c,a
         ld de,0
-        ld hl,-12
-        ld a,26
+        ld hl,-24
+        ld a,13
         call new_part
         pop iy
         ret
@@ -1588,7 +1616,7 @@ sparks:
         ld b,a
         ld a,(ix+P_Y+1)
         ld c,a
-        ld a,10
+        ld a,6
         call new_part
         ld a,(tmpc)
         dec a
@@ -1608,7 +1636,7 @@ debris:
         ld a,(col3)
 .c:     ld (pcol),a
         call rnd_vel
-        ld a,24
+        ld a,12
         call new_part
         pop bc
         ld a,(tmpc)
@@ -1633,6 +1661,7 @@ rnd_vel:
         ld h,a
         ret
 update_parts:
+        call fs_poll
         ld iy,parts
         ld b,NPART
 .l:     ld a,(iy+PA_LIFE)
@@ -1690,7 +1719,11 @@ update_parts:
 ; add_fx: A = kind, B,C = position
 ; ---------------------------------------------------------------------
 add_fx:
-        ld hl,fxs
+        push iy
+        call .a
+        pop iy
+        ret
+.a:     ld hl,fxs
         ld e,NFX
 .f:     push hl
         pop iy
@@ -1770,8 +1803,8 @@ update_balloons:
         jr nz,.move
         call random             ; 0..255
         ld l,a
-        ld h,2
-        ld (bal_t),hl           ; next one in 512..767 frames
+        ld h,1
+        ld (bal_t),hl           ; next one in 256..511 ticks
         call spawn_balloon
 .move:
 move_balloons:
@@ -1817,21 +1850,21 @@ spawn_balloon:
         djnz .f
         ret
 .got:   ld (iy+BA_ON),1
-        ld (iy+BA_T),250
+        ld (iy+BA_T),125
         call random
         and 127
         ld (iy+BA_X+1),a
         ld (iy+BA_Y+1),ARENA_H-1
-        ld b,41
+        ld b,81
         call rand_n
-        sub 20
+        sub 40
         ld (iy+BA_VX),a
         rla
         sbc a,a
         ld (iy+BA_VX+1),a
-        ld b,24
+        ld b,48
         call rand_n
-        add a,40
+        add a,80
         neg
         ld (iy+BA_VY),a
         ld (iy+BA_VY+1),$FF
@@ -1905,11 +1938,11 @@ balloon_prize:
         jr nz,.p3
         ld (ix+P_PWR),2
         ld hl,s_turbo
-.tim:   ld (ix+P_PWRT),$58
-        ld (ix+P_PWRT+1),$02    ; 600 frames
+.tim:   ld (ix+P_PWRT),$2C
+        ld (ix+P_PWRT+1),$01    ; 300 ticks (12 s)
         jr .msg
-.p3:    ld (ix+P_SHIELD),$90
-        ld (ix+P_SHIELD+1),$01  ; 400 frames
+.p3:    ld (ix+P_SHIELD),$C8
+        ld (ix+P_SHIELD+1),$00  ; 200 ticks (8 s)
         ld hl,s_shield
 .msg:   ld (popup),hl
         ld a,(ix+P_ID)
@@ -1917,7 +1950,7 @@ balloon_prize:
         inc hl
         ld (hl),a
         dec hl
-        ld a,70
+        ld a,35
         ld (popup_t),a
         ld hl,mus_power_0
         ld de,mus_power_1
@@ -1938,12 +1971,12 @@ update_chute:
         ret z
         dec a
         ld (chute_t),a
-        cp 139
+        cp 69
         jr nz,.n
         ld a,SFX_CHUTE
         call play_sfx
 .n:     ld hl,(chute_y)
-        ld de,22
+        ld de,44
         add hl,de
         ld a,h
         call wrap_y
@@ -1982,24 +2015,26 @@ gusts:
         dec a
         ld (gust_t),a
         ret nz
-        ld b,200
+        ld b,100
         call rand_n
-        add a,40
+        add a,20
         ld (gust_t),a           ; next gust in 240..440 frames... (plus this one)
-        ld a,130
+        ld a,65
         ld (gust_len),a
         call random
         and 1
-        ld hl,95
+        ld hl,190
         ld de,s_gustr
         jr z,.d
-        ld hl,-95
+        ld hl,-190
         ld de,s_gustl
 .d:     ld (gustv),hl
         add hl,hl
+        sra h
+        rr l
         ld (wind),hl
         ld (popup),de
-        ld a,60
+        ld a,30
         ld (popup_t),a
         ld a,SFX_GUST
         jp play_sfx
@@ -2013,20 +2048,20 @@ lightning:
         dec a
         ld (light_t),a
         ret nz
-        ld b,150
+        ld b,75
         call rand_n
-        add a,90
+        add a,45
         ld (light_t),a
         ; pick a cloud
         ld a,(ncl)
         ld b,a
         call rand_n
         ld (charge_cl),a
-        ld a,64
+        ld a,32
         ld (charge_t),a
         ld hl,s_storm
         ld (popup),hl
-        ld a,50
+        ld a,25
         ld (popup_t),a
         ret
 .charging:
@@ -2036,11 +2071,11 @@ lightning:
         ld a,(charge_t)
         or a
         jr z,.strike
-        and 7
+        and 3
         ret nz
         ; flicker the cloud between yellow and its own colour
         ld a,(charge_t)
-        and 8
+        and 4
         ld a,(cloudfill)
         jr z,.f
         ld a,(col1)
@@ -2048,7 +2083,7 @@ lightning:
 .f:     ld (ix+CL_FILL),a
         call touch_cloud
         ld a,(charge_t)
-        and 15
+        and 7
         ret nz
         ld a,SFX_CHARGE
         jp play_sfx
@@ -2132,6 +2167,9 @@ ai_think:
         ret p
         ld a,(ix+P_THINKD)
         ld (ix+P_THINK),a
+        ld a,(mode)
+        cp MODE_BONUS
+        jp z,ai_balloons
         ld a,(iy+P_STATE)
         cp 1
         jr z,.tgt
@@ -2297,8 +2335,74 @@ ai_think:
 .st:    ld (ix+P_PAD),c
         ret
 
-; HL = 8.8 velocity -> A = HL / 32 (signed), i.e. 8 frames of travel
+; bonus round: chase the nearest balloon
+ai_balloons:
+        ld a,255
+        ld (tmpd),a
+        ld a,1
+        ld (ai_dx),a
+        xor a
+        ld (ai_dy),a
+        push iy
+        ld iy,balloons
+        ld b,NBAL
+.l:     push bc
+        ld a,(iy+BA_ON)
+        or a
+        jr z,.n
+        ld a,(iy+BA_X+1)
+        sub (ix+P_X+1)
+        call wrap_dx
+        ld d,a
+        ld a,(iy+BA_Y+1)
+        sub 3                   ; aim a little ahead (they rise)
+        sub (ix+P_Y+1)
+        call wrap_dy
+        ld e,a
+        call absa
+        ld c,a
+        ld a,d
+        call absa
+        add a,c
+        ld c,a
+        ld a,(tmpd)
+        cp c
+        jr c,.n
+        ld a,c
+        ld (tmpd),a
+        ld a,d
+        ld (ai_dx),a
+        ld a,e
+        ld (ai_dy),a
+.n:     ld de,BASIZE
+        add iy,de
+        pop bc
+        djnz .l
+        pop iy
+        ld a,(ai_dx)
+        ld d,a
+        ld a,(ai_dy)
+        ld e,a
+        call atan16
+        sub (ix+P_HEAD)
+        and 15
+        ld c,4                  ; keep the guns going
+        jr z,.st
+        cp 8
+        ld c,$11
+        jr c,.st
+        ld c,$12
+.st:    ld a,(tmpd)
+        cp 255
+        jr nz,.go
+        ld c,1
+.go:    ld (ix+P_PAD),c
+        ret
+
+; HL = 8.8 velocity -> A = HL / 64 (signed), i.e. 4 ticks of travel
 div32:
+        sra h
+        rr l
         sra h
         rr l
         sra h
@@ -2466,6 +2570,7 @@ atan16:
 ;  DRAWING
 ; =====================================================================
 draw_world:
+        call banner_text
         call restore_old
         ld a,1
         ld (objmark),a
@@ -2538,6 +2643,7 @@ draw_world:
         add iy,de
         pop bc
         djnz .bu
+        call fs_poll
         ; planes
         ld ix,pl0
         call draw_plane
@@ -2558,38 +2664,188 @@ draw_world:
         add iy,de
         pop bc
         djnz .fx
-        ; clouds over the lot
+        ; clouds over the lot, then banner/popup text over the clouds
         call draw_clouds
-        ; banner + popup text
-        call to_f
-        ld a,1
-        ld (objmark),a
-        ld a,(banner_t)
-        or a
-        jr z,.nbn
-        ld a,(col0)
+        ld hl,(ban_shown)
+        ld a,h
+        or l
+        jr z,.nb1
+        ld a,(ban_c0)
+        ld d,a
+        ld a,(ban_c1)
         ld b,a
-        ld a,(col3)
-        call set_ink
-        ld hl,(banner)
         ld e,30
-        call print2_c
-.nbn:   ld a,(popup_t)
-        or a
-        jr z,.npp
-        ld a,(col0)
+        ld c,10
+        call overlay_rows
+.nb1:   ld hl,(pop_shown)
+        ld a,h
+        or l
+        jr z,.np1
+        ld a,(pop_c0)
+        ld d,a
+        ld a,(pop_c1)
         ld b,a
-        ld a,(col1)
-        call set_ink
-        ld hl,(popup)
         ld e,8
-        call print_c
-.npp:   xor a
+        ld c,5
+        call overlay_rows
+.np1:
+        xor a
         ld (objmark),a
         ld a,(hud_dirty)
         or a
         ret z
         jp draw_hud
+
+; banner (big, rows 30-39) and popup (row 8) are printed into the backdrop
+; once, with the rows underneath saved, and put back when they expire
+banner_text:
+        ld a,(banner_t)
+        or a
+        jr z,.boff
+        ld hl,(banner)
+        ld de,(ban_shown)
+        or a
+        sbc hl,de
+        jr z,.pop
+        call .bres
+        ld hl,BBUF+30*32
+        ld de,BANSAVE
+        ld bc,320
+        ldir
+        call to_b
+        ld a,(col0)
+        ld b,a
+        ld a,(col3)
+        call set_ink
+        ld hl,(banner)
+        ld (ban_shown),hl
+        call strlen
+        ld a,16
+        sub b
+        ld (ban_c0),a
+        ld a,16
+        add a,b
+        dec a
+        ld (ban_c1),a
+        ld e,30
+        call print2_c
+        ld de,30
+        ld c,10
+        call b2f_rows
+        jr .pop
+.boff:  call .bres
+.pop:   ld a,(popup_t)
+        or a
+        jr z,.poff
+        ld hl,(popup)
+        ld de,(pop_shown)
+        or a
+        sbc hl,de
+        ret z
+        call .pres
+        ld hl,BBUF+8*32
+        ld de,POPSAVE
+        ld bc,160
+        ldir
+        call to_b
+        ld a,(col0)
+        ld b,a
+        ld a,(col1)
+        call set_ink
+        ld hl,(popup)
+        ld (pop_shown),hl
+        call strlen
+        ld a,32
+        sub b
+        srl a
+        ld (pop_c0),a
+        add a,b
+        dec a
+        ld (pop_c1),a
+        ld e,8
+        call print_c
+        ld de,8
+        ld c,5
+        jp b2f_rows
+.poff:
+.pres:  ld hl,(pop_shown)
+        ld a,h
+        or l
+        ret z
+        ld hl,0
+        ld (pop_shown),hl
+        ld hl,POPSAVE
+        ld de,BBUF+8*32
+        ld bc,160
+        ldir
+        ld de,8
+        ld c,5
+        jp b2f_rows
+.bres:  ld hl,(ban_shown)
+        ld a,h
+        or l
+        ret z
+        ld hl,0
+        ld (ban_shown),hl
+        ld hl,BANSAVE
+        ld de,BBUF+30*32
+        ld bc,320
+        ldir
+        ld de,30
+        ld c,10
+        jp b2f_rows
+
+; overlay_rows: rows E..E+C-1, columns D..B: wherever a dirty span crosses
+; them, copy the backdrop (with the text in it) back over the frame
+overlay_rows:
+.r:     push bc
+        push de
+        ld l,e
+        ld h,DLO/256
+        ld a,(hl)               ; lo
+        set 6,l
+        cp (hl)
+        jr z,.ok
+        jr nc,.n                ; clean row
+.ok:    ; overlap: s = max(lo, D), e = min(hi, B)
+        cp d
+        jr nc,.s
+        ld a,d
+.s:     ld c,a                  ; s
+        ld a,(hl)               ; hi
+        cp b
+        jr c,.e
+        ld a,b
+.e:     sub c
+        jr c,.n
+        inc a
+        push af
+        ld l,e
+        ld h,0
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        ld a,l
+        or c
+        ld l,a
+        ld a,h
+        add a,BBUF/256
+        ld h,a
+        ld d,h
+        set 3,d
+        ld e,l
+        pop af
+        ld c,a
+        ld b,0
+        ldir
+.n:     pop de
+        pop bc
+        inc e
+        dec c
+        jr nz,.r
+        ret
 
 draw_plane:
         ld a,(ix+P_STATE)
@@ -2609,7 +2865,7 @@ draw_plane:
         ld a,(ix+P_SHIELD)
         or (ix+P_SHIELD+1)
         ret z
-        ld a,(framecount)
+        ld a,(tick)
         rrca
         and 15
         ld (tmpa),a
@@ -2617,7 +2873,7 @@ draw_plane:
 .sd:    push bc
         ld a,(tmpa)
         ld c,a
-        ld a,3
+        ld a,0
         call vel_of
         ; offset = v * 8 (about 6 px across, 4 rows)
         ld a,d
