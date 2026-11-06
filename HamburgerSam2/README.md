@@ -6,5 +6,5 @@ nothing from the original game is included.
 
 ![title](screenshots/HAMSAM2_title_logo_preview.png)
 
-Status: assets (bubble-lettered logo, sprites, 8 kitchens + Classic 1984, music) are done;
-the game code is being written. A playable `release/HAMSAM2.VZ` will follow.
+Status: playable work in progress - all 8 kitchens, Order Up! bonus rounds, ending and lap 2 run in the emulator.
+`release/HAMSAM2.VZ` is a playable build; docs, music capture and final testing to follow.

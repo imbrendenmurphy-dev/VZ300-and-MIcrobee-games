@@ -113,15 +113,18 @@ for n, a in (("PEPPER_A", PEPPER_A), ("PEPPER_B", PEPPER_B), ("COFFEE", COFFEE),
              ("ARROW", ARROW)):
     spr(n, a)
 
-L.append("; ---- sprite sources: per row d0,d1,m0,m1 (mask bits 11 = transparent)")
+ONESHIFT = {"SAM_DIZZY", "SAM_UPSIDE", "SAM_CHEER", "SAM_PLATE", "COFFEE", "FRIES", "ICECREAM", "SPATULA", "SPARK_A", "SPARK_B", "ARROW", "PEPPER_A", "PEPPER_B"}
 L.append("NSPR equ %d" % len(SPRS))
 for i, (n, _) in enumerate(SPRS):
     L.append("SPR_%s equ %d" % (n, i))
-L.append("sprsrc:")
+# sprite sources go in their own file, included LAST: at start-up they are copied to
+# STATBG and the shifted sprites are built over the space they loaded into.
+S = ["; ---- sprite sources (relocated to STATBG at start-up): per row d0,d1,m0,m1",
+     "spr_src_start:", "sprsrc:"]
 for n, rows in SPRS:
-    L.append("    dw ss_%s : db %d,0" % (n, len(rows)))
+    S.append("    dw ss_%s-spr_src_start+STATBG : db %d,%d" % (n, len(rows), 1 if n in ONESHIFT else 0))
 for n, rows in SPRS:
-    L.append("ss_%s:" % n)
+    S.append("ss_%s:" % n)
     bs = []
     for r in rows:
         d = [0, 0]; m = [0, 0]
@@ -133,8 +136,11 @@ for n, rows in SPRS:
             else:
                 d[b] |= c << sh
         bs += d + m
-    db(bs)
-L.append("SHIFTSIZE equ %d" % (sum(len(r) * 24 for _, r in SPRS)))
+    for i in range(0, len(bs), 16):
+        S.append("    db " + ",".join("$%02X" % v for v in bs[i:i + 16]))
+S.append("spr_src_end:")
+open(os.path.join(HERE, "sprdata.inc"), "w").write("\n".join(S) + "\n")
+L.append("SHIFTSIZE equ %d" % (sum(len(r) * (6 if n in ONESHIFT else 24) for n, r in SPRS)))
 sheet = [[0] * 160 for _ in range(60)]
 for i, (n, rows) in enumerate(SPRS):
     ox = (i % 16) * 10; oy = (i // 16) * 10
@@ -307,6 +313,11 @@ sh = Image.new("RGB", (3 * w + 20, 3 * h + 20), (40, 40, 40))
 for i, im in enumerate(ims):
     sh.paste(im, ((i % 3) * (w + 10), (i // 3) * (h + 10)))
 sh.resize((sh.width // 2, sh.height // 2)).save(os.path.join(PREV, "kitchens.png"))
+
+# page-aligned VRAM row address table (used by dl_pixel in core.asm)
+L.append("    align 256")
+L.append("rowaddr:")
+L.append("    dw " + ",".join("$%04X" % (0x7000 + y * 32) for y in range(64)))
 
 # ---------------------------------------------------------------- pictures + music
 exec(open(os.path.join(HERE, "pics.py")).read())

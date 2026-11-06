@@ -105,7 +105,10 @@ read_input:
         jr nz,.k3
         set 2,c                 ; RETURN
 .k3:    ld a,($6FFB)
-        bit 1,a
+        bit 3,a
+        jr nz,.k3c
+        set 5,c                 ; C (Hamburger Sam II: Classic 1984 unlock)
+.k3c:   bit 1,a
         jr nz,.k4
         set 3,c                 ; X
 .k4:    ld a,($6FEF)
@@ -351,6 +354,14 @@ flush_queue:
 
 ; commit: copy queued rects within a byte budget (called in vblank)
 commit:
+        ld a,(cbexact)          ; Hamburger Sam II game: budget already worked out
+        or a
+        jr z,.shr
+        ld a,(cbudget)
+        or a
+        ret z                   ; sprites need the whole vblank this frame
+        jr .bs
+.shr:
         ; budget shrinks when the draw list is busy (4 units per entry)
         ld hl,(dlptr)
         ld de,drawlist
@@ -885,7 +896,10 @@ dl_add:
         inc hl
         ld (hl),c
         inc hl
-        ld (hl),0
+        push af
+        ld a,(dltag)            ; Hamburger Sam II: sprite slot tag (0 = none)
+        ld (hl),a
+        pop af
         inc hl
         ld (hl),$FF
         ld (dlptr),hl
@@ -923,6 +937,17 @@ dl_pixel:
 ; render (vblank): commit queued rects, erase old sprites, draw list
 ; ---------------------------------------------------------------------
 render:
+        ld ($7FFE),a            ; timing marker: render start (emulator only; harmless RAM)
+        xor a                   ; debug counters for the emulator (KT page spare bytes)
+        ld ($7DF0),a
+        ld ($7DF1),a
+        ld a,(q_tail)
+        ld hl,q_head
+        sub (hl)
+        and $7F
+        rrca
+        rrca
+        ld ($7DF2),a            ; queued rects
         call commit
         call special_vblank
         ld hl,eraselist
@@ -937,7 +962,18 @@ render:
         inc hl
         ld c,(hl)
         inc hl
+        ld a,(hl)               ; tag
+        inc hl
+        or a
+        jr z,.ek
         push hl
+        ld l,a
+        ld h,KT/256
+        ld a,(hl)               ; kept this frame: leave it on screen
+        pop hl
+        or a
+        jr nz,.e
+.ek:    push hl
         ex de,hl
         ld a,b
         cp 3
@@ -996,6 +1032,148 @@ render:
         jp z,.text
         cp $FD
         jp z,.pixel
+        ld a,(ix+3)
+        or a
+        jp z,.ntag
+        ld l,a
+        ld h,KT/256
+        ld a,(hl)               ; KT_KEEP
+        or a
+        jp z,.t3
+        ; kept: re-list its old erase record, draw nothing
+        ld a,l
+        add a,KT_EA-KT
+        ld l,a
+        ld de,(elptr)
+        ld a,(hl)
+        ld (de),a
+        inc de
+        ld a,l
+        add a,$10
+        ld l,a
+        ld a,(hl)
+        ld (de),a
+        inc de
+        ld a,l
+        add a,$10
+        ld l,a
+        ld a,(hl)
+        ld (de),a
+        inc de
+        ld a,l
+        add a,$10
+        ld l,a
+        ld a,(hl)
+        ld (de),a
+        inc de
+        ld a,(ix+3)
+        ld (de),a
+        inc de
+        ld (elptr),de
+        ld hl,$7DF0
+        inc (hl)
+        jp .next
+; ---- lean path for tagged 8-px game sprites (never clipped)
+.t3:    ld hl,$7DF1
+        inc (hl)
+        ld a,(ix+0)
+        ld l,a
+        ld h,0
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        ld de,shtab
+        add hl,de
+        ld e,(hl)
+        inc hl
+        ld d,(hl)               ; DE = shift-0 data
+        inc hl
+        inc hl
+        ld b,(hl)               ; rows
+        inc hl
+        ld a,(ix+1)
+        and 3
+        jr z,.t3a
+        push bc
+        ld c,(hl)
+        inc hl
+        ld b,(hl)
+        ex de,hl
+.t3s:   add hl,bc
+        dec a
+        jr nz,.t3s
+        ex de,hl
+        pop bc
+.t3a:   ld a,(ix+2)             ; VRAM row address from the table
+        add a,a
+        ld l,a
+        ld h,rowaddr/256
+        ld a,(hl)
+        inc l
+        ld h,(hl)
+        ld l,a
+        ld a,(ix+1)
+        rrca
+        rrca
+        and $3F
+        add a,l
+        ld l,a                  ; HL = VRAM
+        ; erase record (and remember it for keeping)
+        push de
+        ex de,hl
+        ld hl,(elptr)
+        ld (hl),e
+        inc hl
+        ld (hl),d
+        inc hl
+        ld (hl),3
+        inc hl
+        ld (hl),b
+        inc hl
+        ld a,(ix+3)
+        ld (hl),a
+        inc hl
+        ld (elptr),hl
+        ld a,3
+        ld (w_),a
+        ld a,b
+        ld (h_),a
+        ld a,(ix+3)
+        call kt_store
+        ex de,hl                ; HL = VRAM
+        pop de                  ; DE = data
+        ld (savesp),sp
+        ex de,hl
+        ld sp,hl
+        ex de,hl
+.t3r:   pop de
+        ld a,(hl)
+        and e
+        or d
+        ld (hl),a
+        inc l
+        pop de
+        ld a,(hl)
+        and e
+        or d
+        ld (hl),a
+        inc l
+        pop de
+        ld a,(hl)
+        and e
+        or d
+        ld (hl),a
+        ld a,l
+        add a,30
+        ld l,a
+        jr nc,.t3c
+        inc h
+.t3c:   djnz .t3r
+        ld sp,(savesp)
+        jp .next
+.ntag:  ld hl,$7DF1
+        inc (hl)
+        ld a,(ix+0)
         ld l,a
         ld h,0
         add hl,hl
@@ -1057,7 +1235,12 @@ render:
         ld a,(h_)
         ld (hl),a
         inc hl
+        ld a,(ix+3)
+        ld (hl),a
+        inc hl
         ld (elptr),hl
+        or a
+        call nz,kt_store
         pop de
         pop hl
         ld a,(w_)
@@ -1257,6 +1440,27 @@ render:
         ld (hl),0
         ld a,1
         ld ($7FFF),a            ; timing marker (emulator watches this; harmless RAM)
+        ret
+; kt_store: A = tag, DE = VRAM address -> remember this sprite's erase record
+kt_store:
+        push hl
+        add a,KT_EA-KT
+        ld l,a
+        ld h,KT/256
+        ld (hl),e
+        add a,$10
+        ld l,a
+        ld (hl),d
+        add a,$10
+        ld l,a
+        ld a,(w_)
+        ld (hl),a
+        ld a,l
+        add a,$10
+        ld l,a
+        ld a,(h_)
+        ld (hl),a
+        pop hl
         ret
 pixtab: db $3F,$00,$CF,$00,$F3,$00,$FC,$00
         db $3F,$40,$CF,$10,$F3,$04,$FC,$01

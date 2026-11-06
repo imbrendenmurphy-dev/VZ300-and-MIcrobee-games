@@ -21,7 +21,7 @@ static uint8_t joy[16];            // port low nibble -> active-high bits
 static int fs_low = 0;
 static int cur_line = 0; static long snow_hits = 0; static int snow_frames = 0, snow_lastf = -1; static int snow_first[16]; static int snow_nf = 0;
 static int frame;
-static int mark_max=0, mark_late=0, mark_hist[8];
+static int rstart_line=0; static int minsp=0xFFFF; static int mark_max=0, mark_late=0, mark_hist[8];
 static void snowchk(uint16_t a){ int r=cur_line-FS_LEN-TOPB; if(a>=0x7000&&a<0x7800&&r>=0&&r<192){ snow_hits++; if(snow_lastf!=frame){snow_lastf=frame;snow_frames++; if(getenv("SNOWLOG")) fprintf(stderr,"snowframe %d line %d\n",frame,cur_line); if(snow_nf<16)snow_first[snow_nf++]=frame;} } }
 static uint32_t img[H][W];
 
@@ -54,7 +54,8 @@ static void wr(void *u, uint16_t a, uint8_t v) {
   if (a >= 0x6800 && a < 0x7000) { latch = v; return; }
   if (bv && a >= 0x4000 && a < 0x6800) { bvbank[(bvmap >> 1) & 1][a - 0x4000] = v; return; }
   snowchk(a);
-  if (a == 0x7FFF) { if (cur_line > mark_max && cur_line < 200) mark_max = cur_line; if (cur_line >= FS_LEN+TOPB && cur_line < 200) mark_late++; mark_hist[cur_line/16 < 8 ? cur_line/16 : 7]++; }
+  if (a == 0x7FFE) { rstart_line = cur_line; }
+  if (a == 0x7FFF) { if (getenv("LATELOG") && cur_line >= FS_LEN+TOPB && cur_line < 200) fprintf(stderr, "late f%d start %d end %d kept %d drawn %d q %d\n", frame, rstart_line, cur_line, mem[0x7DF0], mem[0x7DF1], mem[0x7DF2]); if (cur_line > mark_max && cur_line < 200) mark_max = cur_line; if (cur_line >= FS_LEN+TOPB && cur_line < 200) mark_late++; mark_hist[cur_line/16 < 8 ? cur_line/16 : 7]++; }
   mem[a] = v;
 }
 static uint8_t pin(z80 *z, uint8_t p) {
@@ -210,6 +211,7 @@ int main(int argc, char **argv) {
         uint16_t pc0 = z.pc;
         z80_step(&z);
         if (proffile && frame >= prof_from) prof[pc0] += z.cyc - c0;
+        if (z.sp >= 0x7800 && z.sp < 0x8000 && z.sp < minsp) minsp = z.sp;
         if (wav) {
           double lv = (((latch >> 5) & 1) - (latch & 1)) * 9000.0;
           wavacc += (z.cyc - c0);
@@ -231,7 +233,7 @@ int main(int argc, char **argv) {
   if (watch_pc >= 0 && watch_n) { fprintf(stderr, "overruns %d\n", watch_over); } if (watch_pc >= 0 && watch_n) fprintf(stderr, "watch %04X hits %d: min %lld max %lld avg %lld cycles (frame=71136)\n", watch_pc, watch_hits, watch_min, watch_max, watch_sum / watch_n);
   fprintf(stderr, "snow: %ld VRAM accesses during active display in %d frames", snow_hits, snow_frames); for(int i=0;i<snow_nf;i++) fprintf(stderr," %d",snow_first[i]); fprintf(stderr,"\n");
   fprintf(stderr, "render end: max line %d (active starts %d), late %d; hist/16 lines:", mark_max, FS_LEN+TOPB, mark_late); for(int i=0;i<8;i++) fprintf(stderr," %d",mark_hist[i]); fprintf(stderr,"\n");
-  fprintf(stderr, "end PC=%04X SP=%04X frames=%d\n", z.pc, z.sp, frames);
+  fprintf(stderr, "end PC=%04X SP=%04X frames=%d minSP=%04X\n", z.pc, z.sp, frames, minsp);
   if (dumpspec) { int a, l; char fn[200]; sscanf(dumpspec, "%x:%x:%199s", &a, &l, fn); FILE *d = fopen(fn, "wb"); fwrite(mem + a, 1, l, d); fclose(d); }
   return 0;
 }

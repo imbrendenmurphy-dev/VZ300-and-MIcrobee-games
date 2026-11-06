@@ -101,7 +101,7 @@ stamp(T, m3, 4 + len(m2[0]) + 6, 19, 2, 1, 3)
 burger(T, 105, 18, 30)
 # subtitle
 w = text_w("- THE BURGER RUSH -", 1, 2)
-big_text(T, "- THE BURGER RUSH -", (128 - w) // 2, 39, 1, 1, 3, None, 2)
+big_text(T, "- THE BURGER RUSH -", (128 - w) // 2, 37, 1, 1, 3, None, 2)
 # chase lane girder (sprites run along y 48..55)
 for x in range(2, 126):
     T[56][x] = 1
@@ -111,5 +111,5 @@ small(T, "VIBED BY BPM 2026", (128 - text_w("VIBED BY BPM 2026", 1)) // 2, 58, 2
 L.append("title_pic:")
 db(packbits(bitmap_to_bytes(T)))
 save_preview(T, "title.png")
-L.append("TITLE_MSG_Y equ 45")
+L.append("TITLE_MSG_Y equ 43")
 L.append("TITLE_RUN_Y equ 55")

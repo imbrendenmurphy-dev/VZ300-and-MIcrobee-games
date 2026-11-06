@@ -70,7 +70,7 @@ KITCHENS = [
          ladders=[[6, 22], [0, 7, 16, 29], [6, 16, 23], [0, 13, 22, 29]],
          cols=[2, 9, 18, 25], pieces=["TLCMB", "TOCMB", "TCOMB", "TLCMB"],
          sam=(60, 4), item=(60, 1), spawns=[(0, 1), (116, 1), (0, 4), (116, 4)],
-         roster="HCEPCH", maxen=6, speed=24),
+         roster="HCEPCH", maxen=5, speed=24),
 ]
 # the Easter egg: a recreation of the 1984 original's kitchen (3 columns, one ingredient per floor)
 CLASSIC = dict(name="CLASSIC 1984", css=0, gcol=1, lcol=1,

@@ -9,11 +9,27 @@
 VRAM    equ $7000
 BGBUF   equ $F800                ; working background (VRAM image)
 STATBG  equ $F000                ; clean kitchen (girders, ladders, plates)
+node    equ $7E00                ; floor/ladder graph, see build_nodes (160)
+dist    equ $7EA0                ; BFS distances, floor*32+cell (160)
+bfsq    equ $7C80                ; BFS ring queue (128, wraps)
+STACKMIN equ $7F40               ; stack lives above here (measured use ~40 bytes)
 STACKTOP equ $7FFE
 MODE1   equ $08
 CSS1    equ $10
 qbuf    equ $7C00               ; 128-byte commit ring (page aligned)
-RMAP    equ $7D00               ; 256-byte recolour table
+RMAP    equ $7D00               ; 256-byte recolour table (start-up only)
+KT      equ $7D00               ; then: kept-sprite tables, 16 tags each
+KT_KEEP equ KT                  ; keep this frame
+KT_PRES equ KT+$10              ; on screen after the last render
+KT_ID   equ KT+$20
+KT_X    equ KT+$30
+KT_Y    equ KT+$40
+KT_EA   equ KT+$50              ; erase record: addr lo, addr hi, w, h
+KN_PRES equ KT+$90              ; this frame's draw list, by tag
+KN_ID   equ KT+$A0
+KN_X    equ KT+$B0
+KN_Y    equ KT+$C0
+KCR     equ KT+$D0              ; changed-rect list (col,row) pairs
 SAVEADR equ $6740               ; records, in BennVenn SRAM bank 3 ($6740-$67BF)
 
         org $8000
@@ -56,6 +72,7 @@ start:
         ld bc,HIT_N*8
         ldir
         call build_sprites
+        call clear_erase        ; RMAP is free now: kept-sprite tables
         call load_records
         jp attract
 
@@ -139,6 +156,10 @@ clear_erase:
         xor a
         ld (eraselist),a
         ld (eraselist+1),a
+        ld hl,KT                ; no kept sprites, nothing on screen
+.c:     ld (hl),a
+        inc l
+        jr nz,.c
         ret
 
 ; =====================================================================
@@ -149,10 +170,11 @@ clear_erase:
         include "game.asm"
         include "front.asm"
         include "data.inc"
-
+        include "sprdata.inc"   ; must be last: overwritten by the shifted sprites
 code_end:
         savebin "hamsam2.bin",start,code_end-start
-shtab   equ code_end
+        assert spr_src_end-spr_src_start <= 2048, "sprite sources too big for STATBG"
+shtab   equ spr_src_start
 SPRWORK equ shtab+NSPR*8
         assert SPRWORK+SHIFTSIZE <= STATBG, "out of memory for sprites"
         display "code+data end: ",/A,code_end, "  sprites end: ",/A,SPRWORK+SHIFTSIZE
@@ -256,7 +278,15 @@ rowd:   ds 6
 dlptr:  dw 0
 elptr:  dw 0
 drawlist: ds 4*16+1
-eraselist: ds 4*16+2
+eraselist: ds 5*16+2
+dltag:  db 0
+kpass:  db 0
+movers: db 0
+kent:   db 0
+kcrend: dw 0
+cbexact: db 0
+kcol:   db 0
+krow:   db 0
 noq:    db 0
 prows:  db 0
 savesp: dw 0
@@ -283,6 +313,23 @@ pieces: ds PSIZE*MAXPC
 ncolpc: ds 4                    ; pieces in each column
 colstk: ds 4                    ; pieces on each plate
 coldone: ds 4
+colfirst: ds 4                  ; (these four must stay together)
+pgfx:   dw 0
+rail0:  db 0
+rail1:  db 0
+rung0:  db 0
+rung1:  db 0
+ymin:   db 0
+ymax:   db 0
+cmoved: db 0
+cnt:    db 0
+pidx:   db 0
+trow:   db 0
+shiftold: db 0
+ai_tp:  db 0
+ai_wpad: db 0
+qhead:  dw 0
+qtail:  dw 0
 burgers: db 0
 drops:  db 0
 enemies: ds ESIZE*MAXEN
@@ -319,6 +366,13 @@ pop_tim: db 0
 pop_x:  db 0
 pop_y:  db 0
 pop_idx: db 0
+bgobjs: ds 4*3
+rr_c0:  db 0
+rr_c1:  db 0
+rr_r0:  db 0
+rr_r1:  db 0
+pop_w:  db 0
+pop_str: dw 0
 spk_tim: db 0
 spk_x:  db 0
 spk_y:  db 0
@@ -335,8 +389,6 @@ ai_lastx: db 0
 ai_lasty: db 0
 ai_stuck: db 0
 ai_tgt: db 0
-dist:   ds 160                  ; BFS distances (floor*32+cell)
-bfsq:   ds 160
 ; front end
 attr_t: dw 0
 tmsg:   db 0

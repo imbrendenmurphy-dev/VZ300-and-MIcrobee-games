@@ -3,6 +3,10 @@
 ;  sprite, from Tennis II) and small helpers
 ; =====================================================================
 build_sprites:
+        ld hl,spr_src_start     ; sources out of the way first
+        ld de,STATBG
+        ld bc,spr_src_end-spr_src_start
+        ldir
         xor a
         ld (bmap),a
         inc a
@@ -51,7 +55,7 @@ build_rmap:
 build_sprites_m:
         ld hl,bmap
         call build_rmap
-        ld ix,sprsrc
+        ld ix,sprsrc-spr_src_start+STATBG
         ld iy,shtab
         ld de,SPRWORK
         ld b,NSPR
