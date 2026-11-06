@@ -148,6 +148,17 @@ SONGS['TOWER'] = dict(loop=True, ch=[
     "i8 u3 [C7:1 r:3 G6:1 r:3]x32",
 ])
 
+SONGS['DRACULA'] = dict(loop=True, ch=[
+    # the Count's chambers: a slow, grand organ march in C minor
+    "i5 u4 C5:4 Eb5:2 G5:2 | F#5:6 G5:2 | Ab5:4 G5:2 F5:2 | Eb5:4 D5:4 | "
+    "C5:4 Eb5:2 G5:2 | C6:6 B5:2 | Ab5:2 G5:2 F5:2 Eb5:2 | D5:6 r:2 | "
+    "Eb5:4 F5:2 G5:2 | Ab5:4 G5:2 F5:2 | G5:4 F5:2 Eb5:2 | D5:4 B4:4 | "
+    "C5:2 D5:2 Eb5:2 F5:2 | G5:4 Ab5:4 | B4:4 D5:4 | C5:8",
+    "i1 u4 [C3:2 G2:2]x2 [D3:2 A2:2]x2 [F2:2 C3:2]x2 [G2:2 D3:2]x2 [C3:2 G2:2]x2 [E2:2 B2:2]x2 [F2:2 C3:2]x2 [G2:2 D3:2]x2 "
+    "[Eb2:2 Bb2:2]x2 [F2:2 C3:2]x2 [C3:2 G2:2]x2 [G2:2 D3:2]x2 [Ab2:2 Eb3:2]x2 [F2:2 C3:2]x2 [G2:2 D3:2]x2 [C3:2 G2:2]x2",
+    "i2 u16 G4:1 A4:1 C5:1 B4:1 G4:1 G4:1 C5:1 B4:1 G4:1 C5:1 C5:1 B4:1 C5:1 C5:1 D5:1 C5:1",
+])
+
 SONG_ORDER = ['BATTLE', 'BOSS', 'VICTORY', 'LEVELUP', 'DEATH', 'TITLE', 'MAZE', 'ENDING']
 
 SFX = {

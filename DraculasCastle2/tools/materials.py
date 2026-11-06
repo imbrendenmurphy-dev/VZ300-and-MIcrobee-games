@@ -280,3 +280,41 @@ class Tower(Mat):
         wx = (px - CX) / (64.0 / max(z, 0.5))
         if (wx * 3) % 1 < 0.07: return (B, B, 0)
         return self.shade('floor', 0, z - 0.4)
+
+class Throne(Mat):
+    ramps = {
+        'marble': ramp((B, B, 0), (B, B, 0)),
+        'vein':  ramp((R, R, 0), (R, B, .5), (R, B, .75), (B, B, 0)),
+        'gold':  ramp((Y, Y, 0), (Y, R, .5), (R, R, 0), (R, B, .5), (B, B, 0)),
+        'velvet': ramp((R, R, 0), (R, B, .25), (R, B, .5), (R, B, .75), (B, B, 0)),
+        'dark':  ramp((B, B, 0),),
+        'floor': ramp((R, B, .5), (R, B, .75), (B, B, 0)),
+        'hi':    ramp((Y, B, .5), (Y, B, .75), (B, B, 0)),
+    }
+    def wall(self, kind, u, v, z, face):
+        if kind == 'B':  # red velvet drapes in folds, gold pelmet
+            if v > 1.3: return ('gold', 1 if v < 1.36 else 0)
+            fold = (u * 7) % 1
+            i = 0 if fold < 0.35 else (1 if fold < 0.6 else 2)
+            return ('velvet', i)
+        # black marble panels with red veins and gold frames
+        pu = (u * 2) % 1
+        if pu < 0.04 or pu > 0.96 or v < 0.08 or abs(v - 0.75) < 0.025 or v > 1.4: return ('gold', 0 if (pu < 0.02 or pu > 0.98 or abs(v - 0.75) < 0.012) else 2)
+        vein = math.sin(u * 13 + v * 7 + math.sin(v * 5) * 2)
+        if abs(vein) < 0.1: return ('vein', 0 if abs(vein) < 0.05 else 1)
+        if h2(int(u * 20), int(v * 20), 41) > 0.985: return ('hi', 0)
+        return ('marble', 0)
+    def bg(self, px, py, variant):
+        if py < HOR:
+            z = floor_z(py, False)
+            if z > 4.0: return (B, B, 0)
+            if (z * 2) % 1 < 0.12: return self.shade('vein', 0, z - 0.5)
+            return (B, B, 0)
+        z = floor_z(py, True)
+        if z > 4.0: return (B, B, 0)
+        wx = (px - CX) / (64.0 / max(z, 0.5))
+        if abs(wx) < 0.26:
+            if abs(wx) > 0.21: return self.shade('gold', 1, z - 0.4)
+            return self.shade('velvet', 0, z - 0.4)
+        chk = (int(math.floor(wx * 2)) + int(math.floor(z * 2))) & 1
+        return self.shade('floor', 0, z - 0.4) if chk else (B, B, 0)

@@ -217,7 +217,7 @@ AREA_MAPS[4] = dict(
     legend={'#': (1, 0), '=': (2, 0), '.': (0, 0), 'T': (1, 1), 'C': (1, 3)},
     door_decor=2, door_kind=1,
     exits={'Y': dict(area=3, x=14, y=14, dir=0, decor=2, kind=1, lock=0),
-           'X': dict(area=98, x=0, y=0, dir=0, decor=2, kind=1, lock=IT_BELL)},
+           'X': dict(area=5, x=8, y=14, dir=0, decor=2, kind=1, lock=IT_BELL)},
     events={
         'a': dict(obj=4, type=EV_SHRINE, args=[0, 0, 0, 0]),
         'k': dict(obj=2, type=EV_CHEST, args=[IT_ELIXIR, 1, 0, 0]),
@@ -230,6 +230,51 @@ AREA_MAPS[4] = dict(
     start=(8, 14, 0),
     css=0, song='TOWER', encounters=[1, 9, 3], rate=18, intro='INTRO4',
     wall_text='TSTONE', secret_text='SECRET', bbg=4,
+)
+
+# --------------------------------------------------------------------------
+# AREA 5 : DRACULA'S TOWER
+#   decors: 1 door, 2 candles, 3 stained glass
+#   objects: 1 coffin, 2 chest, 3 chest_open, 4 angel, 5 portrait-easel, 6 dracula's throne
+# --------------------------------------------------------------------------
+AREA_MAPS[5] = dict(
+    name="DRACULA'S",
+    rows=[
+        "################",
+        "#######Z########",
+        "####p.#.#.q#####",
+        "####...v...#####",
+        "####.......#####",
+        "#######D########",
+        "#..............#",
+        "##W.W#W##W.W#W.#",
+        "###.######.###.#",
+        "#o...a#......#.#",
+        "#.....#.#.##.#.#",
+        "#o....#.#.e#.#.#",
+        "#r...c#.#.##.#.#",
+        "###.###.#.##s#.#",
+        "#..............#",
+        "########Y#######",
+    ],
+    legend={'#': (1, 0), 'W': (2, 3), '.': (0, 0), 'C': (1, 2)},
+    door_decor=1, door_kind=1,
+    exits={'Y': dict(area=4, x=8, y=1, dir=2, decor=1, kind=1, lock=0),
+           'Z': dict(area=98, x=0, y=0, dir=0, decor=1, kind=2, lock=0)},
+    events={
+        'p': dict(obj=5, type=EV_SIGN, args=['PORTRAIT', 0, 0, 0]),
+        'q': dict(obj=2, type=EV_CHEST, args=[IT_HOLY, 3, 0, 0]),
+        'v': dict(obj=6, type=EV_BOSS, args=[11, 0, 0, 'DRACTX']),
+        'o': dict(obj=1, type=EV_SIGN, args=['COFFIN', 0, 0, 0]),
+        'a': dict(obj=4, type=EV_SHRINE, args=[0, 0, 0, 0]),
+        'r': dict(obj=1, type=EV_SIGN, args=['CHAPEL', 0, 0, 0]),
+        'c': dict(obj=2, type=EV_CHEST, args=[IT_ELIXIR, 1, 0, 0]),
+        'e': dict(obj=2, type=EV_CHEST, args=[IT_POTION, 3, 0, 0]),
+        's': dict(obj=5, type=EV_SIGN, args=['LASTNOTE', 0, 0, 0]),
+    },
+    start=(8, 14, 0),
+    css=0, song='DRACULA', encounters=[12, 3, 9], rate=16, intro='INTRO5',
+    wall_text='MARBLE', secret_text='SECRET', bbg=5,
 )
 
 CHARS = {}

@@ -399,7 +399,64 @@ def batlord(frame):
     c.outline(MA)
     return c, BU
 
-HOME_BBG = {'GHOST': 1, 'GARGOYLE': 1, 'GRELL': 2, 'ZOMBIE': 3, 'SLIME': 3, 'GHOUL KING': 3, 'KNIGHT': 4, 'BAT LORD': 4}     # gallery backdrop per monster
+# ----------------------------------------------------------------- DRACULA (final boss)
+def dracula(frame):
+    c = Canvas()
+    cx = 32
+    spread = (4, 14, 10)[frame]
+    # cape: dark outside, blood-red lining shown when spread
+    c.poly([(cx - 8, 10), (cx - 10 - spread, 6 - spread // 3), (cx - 14 - spread, 43), (cx + 14 + spread, 43),
+            (cx + 10 + spread, 6 - spread // 3), (cx + 8, 10)], B)
+    if spread > 6:
+        c.poly([(cx - 9, 12), (cx - 8 - spread, 9), (cx - 11 - spread, 41), (cx - 7, 41)], R)
+        c.poly([(cx + 9, 12), (cx + 8 + spread, 9), (cx + 11 + spread, 41), (cx + 7, 41)], R)
+    # body: black suit, white shirt, red medallion
+    c.poly([(cx - 7, 12), (cx + 7, 12), (cx + 6, 43), (cx - 6, 43)], B)
+    c.poly([(cx - 3, 12), (cx + 3, 12), (cx + 1, 26), (cx - 1, 26)], Y)
+    c.ellipse(cx, 18, 1.5, 1.5, R)
+    # high collar
+    c.poly([(cx - 9, 13), (cx - 13, 1), (cx - 6, 8)], R); c.poly([(cx + 9, 13), (cx + 13, 1), (cx + 6, 8)], R)
+    # head: pale face, widow's peak, red eyes, fangs
+    hy = 6 - (frame == 2)
+    c.ellipse(cx, hy, 5.5, 6.5, Y)
+    c.poly([(cx - 6, hy - 2), (cx - 5, hy - 7), (cx, hy - 8), (cx + 5, hy - 7), (cx + 6, hy - 2), (cx, hy - 4)], B)
+    c.rect(cx - 3, hy - 1, cx - 2, hy, R); c.rect(cx + 2, hy - 1, cx + 3, hy, R)
+    if frame == 2:
+        c.rect(cx - 2, hy + 3, cx + 2, hy + 4, R); c.px(cx - 2, hy + 5, Y); c.px(cx + 2, hy + 5, Y)
+    else:
+        c.line(cx - 2, hy + 3, cx + 2, hy + 3, R); c.px(cx - 1, hy + 4, Y); c.px(cx + 1, hy + 4, Y)
+    # hands (claws) at the cape edges
+    for sx in (-1, 1):
+        hx = cx + sx * (11 + spread); c.ellipse(hx, 12 - spread // 3, 2.5, 2.5, Y)
+        for k in range(3): c.px(hx + sx * 2, 10 - spread // 3 + k * 2, Y)
+    c.outline(Y)
+    c.p = [[T] * W for _ in range(4)] + c.p[:-4]        # sit him lower so the whole head shows
+    return c, G
+
+# ----------------------------------------------------------------- VAMPIRE BRIDE
+def bride(frame):
+    c = Canvas()
+    cx = 32; sway = (0, 2, -2)[frame]
+    # flowing white gown
+    c.poly([(cx - 7, 14), (cx + 7, 14), (cx + 15 + sway, 43), (cx - 15 + sway, 43)], Y)
+    for k in range(-12, 13, 6): c.line(cx + k // 3, 18, cx + k + sway, 43, (Y, B, 25))
+    # long black hair framing a pale face
+    c.ellipse(cx, 8, 8, 9, B)
+    c.poly([(cx - 8, 8), (cx - 11 + sway, 26), (cx - 5, 20)], B); c.poly([(cx + 8, 8), (cx + 11 + sway, 26), (cx + 5, 20)], B)
+    c.ellipse(cx, 9, 4.5, 5.5, Y)
+    c.px(cx - 2, 8, R); c.px(cx + 2, 8, R)
+    c.line(cx - 1, 12, cx + 1, 12, R)
+    if frame == 2: c.px(cx - 1, 13, Y); c.px(cx + 1, 13, Y)
+    # arms reaching
+    ay = 18 - (frame == 2) * 4
+    c.line(cx - 6, 16, cx - 17, ay, Y, 1.6); c.line(cx + 6, 16, cx + 17, ay, Y, 1.6)
+    c.px(cx - 18, ay - 1, R); c.px(cx + 18, ay - 1, R)
+    c.ellipse(cx, 15, 1.5, 1.2, R)          # a ruby at the throat
+    c.outline(R)
+    return c, G
+
+PROPER = {'DRACULA'}          # no 'THE' / 'A' before these names
+HOME_BBG = {'GHOST': 1, 'GARGOYLE': 1, 'GRELL': 2, 'ZOMBIE': 3, 'SLIME': 3, 'GHOUL KING': 3, 'KNIGHT': 4, 'BAT LORD': 4, 'DRACULA': 5, 'BRIDE': 5}     # gallery backdrop per monster
 MONSTERS = [
     # name, fn, hp, atk, def, xp, gold, flags, css
     ('BAT', bat, 9, 5, 0, 4, 3, 2, 0),
@@ -407,11 +464,13 @@ MONSTERS = [
     ('GHOST', ghost, 18, 7, 1, 11, 8, 4, 1),
     ('GARGOYLE', gargoyle, 60, 8, 4, 45, 60, 8, 0),
     ('GRELL', grell, 80, 11, 4, 70, 60, 10, 0),
-    ('ZOMBIE', zombie, 32, 10, 3, 16, 10, 1, 0),
-    ('SLIME', slime, 26, 9, 6, 14, 12, 0, 0),
-    ('GHOUL KING', ghoulking, 120, 14, 6, 120, 100, 9, 1),
-    ('KNIGHT', knight, 40, 13, 8, 24, 18, 0, 0),
-    ('BAT LORD', batlord, 150, 17, 7, 160, 120, 10, 1),
+    ('ZOMBIE', zombie, 34, 14, 4, 16, 10, 1, 0),
+    ('SLIME', slime, 28, 12, 8, 14, 12, 0, 0),
+    ('GHOUL KING', ghoulking, 140, 20, 7, 120, 100, 9, 1),
+    ('KNIGHT', knight, 46, 22, 12, 26, 18, 0, 0),
+    ('BAT LORD', batlord, 180, 26, 9, 160, 120, 10, 1),
+    ('DRACULA', dracula, 255, 34, 12, 255, 255, 9, 0),
+    ('BRIDE', bride, 48, 26, 8, 30, 20, 1, 0),
 ]
 
 def frame_bytes(c, key):
@@ -594,6 +653,36 @@ def backdrop_tower():
             u = (x - 64) / (zz * 1.5 + 4)
             c.p[y][x] = c.pat(B if abs(u - round(u)) < 0.07 else (R, B, 50), x, y)
     c.line(0, 34, 127, 34, R)
+    return c
+
+def backdrop_throne():
+    c = Canvas(128, 46, B)
+    # black marble wall with red banners
+    for y in range(0, 34):
+        for x in range(128):
+            c.p[y][x] = R if (abs(math.sin(x * 0.21 + y * 0.13 + math.sin(y * 0.3) * 2)) < 0.05) else B
+    for bx in (12, 36, 92, 116):
+        c.rect(bx - 6, 0, bx + 6, 26, R)
+        c.poly([(bx - 6, 26), (bx + 6, 26), (bx, 31)], R)
+        c.rect(bx - 6, 0, bx + 6, 1, Y)
+        c.ellipse(bx, 12, 3, 3, Y); c.ellipse(bx, 12, 1.5, 1.5, R)       # dragon sigil
+    # great window with the blood moon
+    c.rect(52, 2, 75, 30, (R, B, 25)); c.ellipse(64, 4, 12, 6, (R, B, 25))
+    c.ellipse(64, 14, 7, 7, R); c.ellipse(66, 12, 2, 2, (R, Y, 25))
+    c.rect(52, 4, 53, 30, Y); c.rect(74, 4, 75, 30, Y); c.rect(63, 3, 64, 30, Y); c.line(54, 20, 73, 20, Y)
+    # the throne
+    c.rect(56, 22, 71, 33, R); c.rect(58, 24, 69, 30, B); c.rect(54, 30, 73, 33, Y)
+    c.px(56, 21, Y); c.px(71, 21, Y)
+    # floor: red carpet up the middle, checker either side
+    for y in range(34, 46):
+        for x in range(128):
+            zz = y - 33
+            u = (x - 64) / (zz * 1.6 + 6)
+            chk = (int(math.floor(u)) + (y - 34) // 3) & 1
+            col = (R, B, 50) if chk else B
+            if abs(x - 64) < 9 + (y - 34) * 2: col = R if abs(x - 64) < 7 + (y - 34) * 2 else Y
+            c.p[y][x] = c.pat(col, x, y)
+    c.line(0, 34, 127, 34, Y)
     return c
 
 def backdrop_bytes(c):

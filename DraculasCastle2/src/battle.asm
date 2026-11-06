@@ -108,8 +108,7 @@ battle_run:
             ; "A ... APPEARS!"
             ld de,msgbuf
             ld hl,str_a
-            call strcpy_de
-            call mon_name_de
+            call art_name_de
             ld hl,str_appears
             call strcpy_de
             call bt_message
@@ -515,7 +514,7 @@ reload_part2:
             jp reload_p2_hl
 
 ; level-up table: XP needed for levels 2..9
-xp_table:   dw 10,25,45,75,110,160,220,300,9999
+xp_table:   dw 10,25,45,75,110,160,220,300,390,500,630,780,950,1150,1400,9999
 
 check_levelup:
             ld a,(lvl)
@@ -894,7 +893,11 @@ bt_message:
 mon_name_msg:
             ld de,msgbuf
             ld hl,str_the
-            call strcpy_de
+; HL = article: copied unless the monster has a proper name (def byte 14)
+art_name_de:
+            ld ix,(bt_def)
+            bit 0,(ix+14)
+            call z,strcpy_de
 mon_name_de:
             ld ix,(bt_def)
             ld l,(ix+0)

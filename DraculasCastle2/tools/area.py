@@ -135,6 +135,7 @@ AREAS = [
     AreaDef('library', materials.Library(), ['door', 'candles', 'stairs'], ['lectern', 'chest', 'chest_open', 'angel', 'vesper', 'orb', 'bookseller'], [0, 0, 0, 0]),
     AreaDef('dungeon', materials.Dungeon(), ['door', 'torch', 'stairs'], ['bones', 'chest', 'chest_open', 'angel', 'kaspar', 'throne'], [0, 0, 0, 0]),
     AreaDef('tower', materials.Tower(), ['torch', 'stairs', 'clock'], ['bench', 'chest', 'chest_open', 'angel', 'otto', 'bell', 'batlord'], [0, 0, 0, 0]),
+    AreaDef('dracula', materials.Throne(), ['door', 'candles', 'window'], ['coffin', 'chest', 'chest_open', 'angel', 'easel', 'throne2'], [0, 0, 0, 0]),
 ]
 
 # ---------------- encoding ----------------

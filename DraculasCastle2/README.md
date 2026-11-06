@@ -1,9 +1,9 @@
 # DRACULA'S CASTLE II — THE CASTLE AWAKENS
-### v0.4.0 — Chapters 1 to 3 · ViBED by BPM · 2026
+### v1.0.0 — the complete castle, chapters 1 to 5 · ViBED by BPM · 2026
 Dick Smith VZ300 · BennVenn SD + 128K · Mode 1 (128×64, 4 colours) · all Z80
 
 ## Running it
-Copy `DRACULA2.VZ` **and all the `DC2*.DAT` files** (26 of them in v0.4) from `release/` to the **root of the
+Copy `DRACULA2.VZ` **and all the `DC2*.DAT` files** (38 of them) from `release/` to the **root of the
 SD card** (the same place 13 Ghosts and its `.DAT` files live — not inside a folder), then load `DRACULA2.VZ` like any other binary .VZ. It loads at $8000
 and runs from there. The game streams its artwork from the `.DAT` files through the
 BennVenn DOS, the same way 13 Ghosts does. If a file is missing it stops with
@@ -21,11 +21,11 @@ the folder it was started from). If no 128K expansion is present, it prints
 | File | Contents | Loaded into |
 |---|---|---|
 | DC2TITLE | title picture | back buffer |
-| DC2AnP1 (n = 0 grounds, 1 hall, 2 library, 3 dungeons) | walls and backgrounds | SRAM bank 3 $4000 |
+| DC2AnP1 (n = 0 grounds, 1 hall, 2 library, 3 dungeons, 4 clock tower, 5 Dracula's tower) | walls and backgrounds | SRAM bank 3 $4000 |
 | DC2AnP2 | decorations and objects | $C800 |
 | DC2AnS | the area itself: map, events, exits, its texts and its song | $E400 |
-| DC2MON1–8 | bat, skeleton, ghost, gargoyle, grell, zombie, slime, Ghoul King (3 frames each) | $C800 (during battles) |
-| DC2BBG0–3 | battle backdrops | SRAM bank 3 $5C00 |
+| DC2MON1–12 | bat, skeleton, ghost, gargoyle, grell, zombie, slime, Ghoul King, knight, Bat Lord, Dracula, bride (3 frames each) | $C800 (during battles) |
+| DC2BBG0–5 | battle backdrops | SRAM bank 3 $5C00 |
 | DC2EGG | the four 1984 mode 0 screens | $C800 |
 
 ## Controls
@@ -59,7 +59,23 @@ Kaspar, a prisoner who still does business through the bars, sells potions, holy
 the CLOAK (+3 defence). A heap of bones in the catacombs rises as you approach; a loose stone
 hides an old armoury with the SILVER SWORD (+8 attack, extra damage to the undead). On his
 throne of skulls in the south-east sits the GHOUL KING, who holds the TOWER KEY. The tower
-stair leads to chapter 4: the Clock Tower.
+stair leads up to the Clock Tower.
+
+## Chapter 4: The Clock Tower (new in v1.0)
+Timber-and-plaster walls, whole walls of turning brass gears, a great clock face, rafters and
+ropes, a tick-tock storm theme. Bats, ghosts and suits of animated armour (KNIGHTS) patrol a
+ring of corridors around the clockwork. Otto, the clockmaker's ghost, explains: only the great
+bell wakes the Count, and only the bell opens his door. The BAT LORD guards the bell chamber
+at the heart of the mechanism. Ring the bell (BOOOONG!) to gain the BELL'S TOLL.
+
+## Chapter 5: Dracula's Tower (new in v1.0)
+Black marble veined with red, velvet drapes, stained glass, a red carpet to the throne and a
+grand organ march. Vampire brides, ghosts and knights; a ruined chapel with empty coffins and
+the last stone angel; and behind a heavy door, DRACULA himself, who remembers the boy who came
+to his gate in 1984 with ten silver stakes. Defeat him to see the ending.
+
+Balance: 16 levels now (XP 10 … 1400). Fire, holy water and the silver sword all hurt the
+Count more than plain steel, and he hits hard — bring potions and elixirs.
 
 Also new: elixirs (+10 max HP), the cloak (+3 defence), the silver sword (+8 attack),
 locked doors that say which key they need, and area data streamed from SD so the castle
@@ -170,9 +186,8 @@ $FA00-$FFFF  DOS workspace - left alone
   has one.
 - **Real-hardware checks still to do**: SD load timing, joystick detection with your
   interface (it reads ports $2E/$2D/$2B/$27/$2C/$29), and music volume.
-- **Next**: with assets on SD, the .VZ has room for the full castle. Next up are more areas
-  (library, dungeons, catacombs, clock tower, Dracula's tower), more monsters, a merchant, and
-  the remaining story.
+- **Room to grow**: the .VZ still has ~1.4K free and each area is loaded from SD, so more areas,
+  monsters or a harder second quest could be added later.
 
 ## Building
 ```

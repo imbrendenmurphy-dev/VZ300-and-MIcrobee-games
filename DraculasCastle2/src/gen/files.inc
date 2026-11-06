@@ -44,7 +44,16 @@ f_dc2a4p2: dw 4968
 f_dc2a4s: dw 1304
             db 34,"DC2A4S",34,0
 
-area_files: dw f_dc2a0p1,f_dc2a0p2,f_dc2a0s,f_dc2a1p1,f_dc2a1p2,f_dc2a1s,f_dc2a2p1,f_dc2a2p2,f_dc2a2s,f_dc2a3p1,f_dc2a3p2,f_dc2a3s,f_dc2a4p1,f_dc2a4p2,f_dc2a4s
+f_dc2a5p1: dw 5384
+            db 34,"DC2A5P1",34,0
+
+f_dc2a5p2: dw 5008
+            db 34,"DC2A5P2",34,0
+
+f_dc2a5s: dw 908
+            db 34,"DC2A5S",34,0
+
+area_files: dw f_dc2a0p1,f_dc2a0p2,f_dc2a0s,f_dc2a1p1,f_dc2a1p2,f_dc2a1s,f_dc2a2p1,f_dc2a2p2,f_dc2a2s,f_dc2a3p1,f_dc2a3p2,f_dc2a3s,f_dc2a4p1,f_dc2a4p2,f_dc2a4s,f_dc2a5p1,f_dc2a5p2,f_dc2a5s
 monsters:
             dw mname_0
             db 9,5,0,4,3,2,0,3
@@ -67,25 +76,33 @@ monsters:
             dw f_dc2mon5
             db 2,2,0,0
             dw mname_5
-            db 32,10,3,16,10,1,0,3
+            db 34,14,4,16,10,1,0,3
             dw f_dc2mon6
             db 2,3,0,0
             dw mname_6
-            db 26,9,6,14,12,0,0,3
+            db 28,12,8,14,12,0,0,3
             dw f_dc2mon7
             db 2,3,0,0
             dw mname_7
-            db 120,14,6,120,100,9,1,3
+            db 140,20,7,120,100,9,1,3
             dw f_dc2mon8
             db 2,3,0,0
             dw mname_8
-            db 40,13,8,24,18,0,0,3
+            db 46,22,12,26,18,0,0,3
             dw f_dc2mon9
             db 0,4,0,0
             dw mname_9
-            db 150,17,7,160,120,10,1,3
+            db 180,26,9,160,120,10,1,3
             dw f_dc2mon10
             db 0,4,0,0
+            dw mname_10
+            db 255,34,12,255,255,9,0,3
+            dw f_dc2mon11
+            db 0,5,1,0
+            dw mname_11
+            db 48,26,8,30,20,1,0,3
+            dw f_dc2mon12
+            db 0,5,0,0
 f_dc2mon1: dw 2112
             db 34,"DC2MON1",34,0
 
@@ -116,6 +133,12 @@ f_dc2mon9: dw 2112
 f_dc2mon10: dw 2112
             db 34,"DC2MON10",34,0
 
+f_dc2mon11: dw 2112
+            db 34,"DC2MON11",34,0
+
+f_dc2mon12: dw 2112
+            db 34,"DC2MON12",34,0
+
 mname_0: db "BAT",0
 mname_1: db "SKELETON",0
 mname_2: db "GHOST",0
@@ -126,7 +149,9 @@ mname_6: db "SLIME",0
 mname_7: db "GHOUL KING",0
 mname_8: db "KNIGHT",0
 mname_9: db "BAT LORD",0
-NUM_MONSTERS equ 10
+mname_10: db "DRACULA",0
+mname_11: db "BRIDE",0
+NUM_MONSTERS equ 12
 f_dc2bbg0: dw 1472
             db 34,"DC2BBG0",34,0
 
@@ -142,7 +167,10 @@ f_dc2bbg3: dw 1472
 f_dc2bbg4: dw 1472
             db 34,"DC2BBG4",34,0
 
-bbg_files: dw f_dc2bbg0,f_dc2bbg1,f_dc2bbg2,f_dc2bbg3,f_dc2bbg4
+f_dc2bbg5: dw 1472
+            db 34,"DC2BBG5",34,0
+
+bbg_files: dw f_dc2bbg0,f_dc2bbg1,f_dc2bbg2,f_dc2bbg3,f_dc2bbg4,f_dc2bbg5
 f_title: dw 2048
             db 34,"DC2TITLE",34,0
 

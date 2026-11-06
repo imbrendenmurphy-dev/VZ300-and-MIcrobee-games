@@ -68,7 +68,7 @@ def sd_files():
         s.append('            dw mname_%d' % i)
         s.append('            db %d,%d,%d,%d,%d,%d,%d,3' % (hp, at, df, xp, gold, flags, css))
         s.append('            dw f_dc2mon%d' % (i + 1))
-        s.append('            db %d,%d,0,0' % (key, M.HOME_BBG.get(name, 0)))
+        s.append('            db %d,%d,%d,0' % (key, M.HOME_BBG.get(name, 0), 1 if name in M.PROPER else 0))
         monfiles.append(dat('DC2MON%d' % (i + 1), frames)); total += len(frames)
     s += monfiles
     for i, (name, *_r) in enumerate(M.MONSTERS): s.append('mname_%d: db "%s",0' % (i, name))
@@ -78,7 +78,8 @@ def sd_files():
     s.append(dat('DC2BBG2', M.backdrop_bytes(M.backdrop_library())))
     s.append(dat('DC2BBG3', M.backdrop_bytes(M.backdrop_dungeon())))
     s.append(dat('DC2BBG4', M.backdrop_bytes(M.backdrop_tower())))
-    s.append('bbg_files: dw f_dc2bbg0,f_dc2bbg1,f_dc2bbg2,f_dc2bbg3,f_dc2bbg4')
+    s.append(dat('DC2BBG5', M.backdrop_bytes(M.backdrop_throne())))
+    s.append('bbg_files: dw f_dc2bbg0,f_dc2bbg1,f_dc2bbg2,f_dc2bbg3,f_dc2bbg4,f_dc2bbg5')
     c = title_art.title_screen()
     raw = bytes(sum((c.p[y][xb * 4 + i] & 3) << (6 - 2 * i) for i in range(4)) for y in range(64) for xb in range(32))
     s.append(dat('DC2TITLE', raw).replace('f_dc2title', 'f_title'))
