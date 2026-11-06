@@ -1,1 +1,1 @@
-DEBUG equ 0
+DEBUG equ 1

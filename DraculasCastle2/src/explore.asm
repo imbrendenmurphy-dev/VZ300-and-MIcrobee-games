@@ -18,8 +18,6 @@ IT_IRONKEY  equ 3
 IT_DAGGER   equ 4
 IT_FIRE     equ 5
 
-EXPLORED    equ $7E00           ; 2 x 32 bytes seen-bits
-FLAGS       equ $7E40           ; event flags (bytes)
 
 ; ---------------------------------------------------------------------------
 ; new game
@@ -31,9 +29,9 @@ new_game:
             ld bc,vars_end-vars_game-1
             ld (hl),0
             ldir
-            ld hl,EXPLORED
-            ld de,EXPLORED+1
-            ld bc,$FF
+            ld hl,PSTATE
+            ld de,PSTATE+1
+            ld bc,$2FF
             ld (hl),0
             ldir
             ld a,1
@@ -55,48 +53,79 @@ new_game:
             ld (gold),hl
             ld a,1
             ld (items+IT_POTION),a
-            ; runtime maps from compressed originals
-            xor a
-            call reset_map
-            ld a,1
-            call reset_map
-            ; start
+            ; start at the grounds' start position (px = $FF: use the area's start)
             xor a
             ld (cur_area),a
-            call area_start_pos
-            call set_checkpoint
+            dec a
+            ld (px),a
             ld a,1
             ld (show_intro),a
             call enter_area
             jp explore_loop
 
-; A = area -> decompress its map into MAPS + area*256
-reset_map:
-            push af
-            call area_info_ptr
-            ld e,(hl)
-            inc hl
-            ld d,(hl)
-            pop af
-            add a,MAPS/256
-            ex de,hl
-            ld d,a
-            ld e,0
-            jp lz_unpack
-
-; HL = area_info entry for area A
+; HL = info of the loaded area (the pack in AREA_RAM)
 area_info_ptr:
+            ld hl,AREA_RAM
+            ret
+
+; build MAPBUF from the pack's compressed map, then clear the cells this
+; area has had opened (doors, secrets) - OPENED + area*32, bit n = cell n
+build_map:
+            ld hl,(AREA_RAM)
+            ld de,MAPBUF
+            call lz_unpack
+            call opened_base
+            ld de,MAPBUF
+            ld c,32
+.b:         ld a,(hl)
+            inc hl
+            ld b,8
+.bit:       rra
+            jr nc,.n
+            ex de,hl
+            ld (hl),0
+            ex de,hl
+.n:         inc de
+            djnz .bit
+            dec c
+            jr nz,.b
+            ret
+
+; HL = OPENED + cur_area*32
+opened_base:
+            ld a,(cur_area)
+            add a,a
+            add a,a
+            add a,a
+            add a,a
+            add a,a
             ld l,a
-            ld h,0
-            add hl,hl
-            add hl,hl
-            ld e,l
-            ld d,h
-            add hl,hl
-            add hl,hl
-            add hl,de               ; *20
-            ld de,area_info
-            add hl,de
+            ld h,OPENED/256
+            ret
+
+; remember that map cell L (index y*16+x) is open for good
+mark_open:
+            ld a,l
+            and 7
+            ld b,a
+            ld a,l
+            rrca
+            rrca
+            rrca
+            and $1F
+            ld c,a
+            call opened_base
+            ld a,l
+            add a,c
+            ld l,a
+            ld a,1
+            inc b
+.s:         dec b
+            jr z,.d
+            add a,a
+            jr .s
+.d:         or (hl)
+            ld (hl),a
             ret
 
 area_start_pos:
@@ -129,7 +158,17 @@ set_checkpoint:
 ; enter_area: load assets for cur_area, set up tables, draw everything
 ; ---------------------------------------------------------------------------
 enter_area:
+            ; blank screen while loading
+            call fade_out
             ld a,(cur_area)
+            call load_area          ; p1 + p2 + pack, builds MAPBUF
+            ld a,(px)
+            inc a
+            jr nz,.pos
+            call area_start_pos
+            call set_checkpoint
+.pos:       ld hl,0
+            ld (cur_song),hl        ; area songs share an address: always restart
             call area_info_ptr
             inc hl
             inc hl
@@ -171,13 +210,8 @@ enter_area:
             ldir
             ld a,(hl)
             ld (area_intro),a
-            ld a,(cur_area)
-            add a,MAPS/256
+            ld a,MAPBUF/256
             ld (map_page),a
-            ; blank screen while loading
-            call fade_out
-            ld a,(cur_area)
-            call load_area
             ld a,(area_music)
             call play_music
             call mark_seen
@@ -446,6 +480,7 @@ try_door:
             ld a,(ahead_y)
             call cell_addr
             ld (hl),0
+            call mark_open
             ld hl,sfx_door
             call play_sfx
             ld a,TX_CREAK
@@ -551,27 +586,20 @@ interact:
             cp 1
             ld a,TX_WALL
             jr nz,.w
-            ld a,(cur_area)
-            or a
-            ld a,TX_HEDGE
-            jr z,.w
-            ld a,TX_WALL
+            ld a,(AREA_RAM+24)      ; the area's own wall text
 .w:         jp show_text
 .secret:    ld a,(ahead_x)
             ld c,a
             ld a,(ahead_y)
             call cell_addr
             ld (hl),0
+            call mark_open
             ld hl,secrets
             inc (hl)
             ld hl,sfx_secret
             call play_sfx
-            ld a,(cur_area)
-            or a
-            ld a,TX_HEDGEX
-            jr z,.sx
-            ld a,TX_SECRET
-.sx:        call show_text
+            ld a,(AREA_RAM+25)      ; the area's own secret text
+            call show_text
             call render_view
             jp present_view
 .floor:     ld a,(ahead_cell)
@@ -1232,15 +1260,7 @@ show_text_x:
             ld a,e
             ld (st_waitlast),a
             ld a,d
-            add a,a
-            ld l,a
-            ld h,0
-            ld de,text_table
-            add hl,de
-            ld a,(hl)
-            inc hl
-            ld h,(hl)
-            ld l,a
+            call text_ptr
 .page:      ; copy one page into msgbuf
             ld de,msgbuf
 .cp:        ld a,(hl)
@@ -1277,10 +1297,13 @@ show_text_x:
             jr .page
 
 play_music:
-            ; A = song number (0 = none)
+            ; A = song number (0 = none, $80 = the area pack's own song)
             or a
             jp z,stop_song
-            dec a
+            jp p,.tab
+            ld hl,(AREA_SONG)
+            jr .chk
+.tab:       dec a
             add a,a
             ld l,a
             ld h,0
@@ -1290,9 +1313,25 @@ play_music:
             inc hl
             ld h,(hl)
             ld l,a
-            ld de,(cur_song)
+.chk:       ld de,(cur_song)
             or a
             sbc hl,de
             ret z                   ; already playing
             add hl,de
             jp play_song
+
+; HL = text A (0-127 global table, 128+ the area pack's local table)
+text_ptr:
+            ld de,text_table
+            or a
+            jp p,.g
+            ld de,(AREA_TEXTS)
+.g:         add a,a
+            ld l,a
+            ld h,0
+            add hl,de
+            ld a,(hl)
+            inc hl
+            ld h,(hl)
+            ld l,a
+            ret

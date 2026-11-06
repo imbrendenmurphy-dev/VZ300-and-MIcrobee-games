@@ -21,7 +21,7 @@ secrets:    ds 1
 treasure:   ds 1
 steps:      ds 1
 play_time:  ds 3
-visited:    ds 4
+visited:    ds 8
 gstate_end:
 ; ---- not needed in saves but cleared on new game ----
 show_intro: ds 1

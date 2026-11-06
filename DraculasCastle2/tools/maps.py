@@ -47,7 +47,8 @@ AREA_MAPS[0] = dict(
         'g': dict(obj=4, type=EV_CHEST, args=[IT_HOLY, 2, 0, 0]),
     },
     start=(8, 14, 0),
-    css=0, music=1, encounters=[1, 1, 2], rate=22, intro='INTRO0',
+    css=0, song='GROUNDS', encounters=[1, 1, 2], rate=22, intro='INTRO0',
+    wall_text='HEDGE', secret_text='HEDGEX', bbg=0,
 )
 
 # --------------------------------------------------------------------------
@@ -89,7 +90,8 @@ AREA_MAPS[1] = dict(
         'e': dict(obj=4, type=EV_SHRINE, args=[0, 0, 0, 0]),
     },
     start=(8, 13, 0),
-    css=0, music=2, encounters=[3, 1, 3], rate=20, intro='INTRO1',
+    css=0, song='HALL', encounters=[3, 1, 3], rate=20, intro='INTRO1',
+    wall_text='WALL', secret_text='SECRET', bbg=1,
 )
 
 CHARS = {}
@@ -149,31 +151,58 @@ if __name__ == '__main__':
         for y in range(16):
             print(''.join(('@' if (x, y) == A['start'][:2] else ('o' if (x, y) in seen else A['rows'][y][x])) for x in range(16)))
 
-def asm():
-    from texts import TEXT_IDS
+AREA_RAM = 0xE400
+AREA_MAX = 0x500
+
+def all_flags():
+    """event flag numbers are global: areas in order, events in order"""
+    fl = {}; n = 0
+    for ai in sorted(AREA_MAPS):
+        _, events, _ = compile_area(ai)
+        for k in range(len(events)): fl[(ai, k)] = n; n += 1
+    assert n <= 256
+    return fl
+
+def pack(ai):
+    """the area pack: everything about an area except its graphics, built for AREA_RAM"""
+    from texts import text_id, AT, encode
     from lz2 import compress_opt as lz_compress
-    out = ['; generated maps']
-    flag = 0
-    for ai in sorted(AREA_MAPS):
-        A = AREA_MAPS[ai]
-        cells, events, exits = compile_area(ai)
-        out.append('map%d_lz: db %s' % (ai, ','.join(map(str, lz_compress(cells)))))
-        out.append('events%d:' % ai)
-        for ev in events:
-            args = [TEXT_IDS[a] if isinstance(a, str) else a for a in ev['args']]
-            out.append('            db %d,%d,%d,%d,%d,%d,%d,0' % (ev['obj'], ev['type'], args[0], args[1], args[2], args[3], flag))
-            flag += 1
-        out.append('exits%d:' % ai)
-        for ex in exits:
-            out.append('            db %d,%d,%d,%d,%d,%d,%d,0' % (ex['area'], ex['x'], ex['y'], ex['dir'], ex['decor'], ex['kind'], ex['lock']))
-        out.append('aname%d: db "%s",0' % (ai, A['name']))
-    out.append('area_info:')
-    for ai in sorted(AREA_MAPS):
-        A = AREA_MAPS[ai]
-        enc = A['encounters']
-        sx, sy, sd = A['start']
-        out.append('            dw map%d_lz,events%d,exits%d,aname%d' % (ai, ai, ai, ai))
-        out.append('            db %d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d' % (A['door_decor'], A['door_kind'], A['css'], A['music'], sx, sy, sd, A['rate'], enc[0], enc[1], enc[2], TEXT_IDS[A['intro']]))
-    out.append('AREA_INFO_SIZE equ 20')
-    out.append('NUM_FLAGS equ %d' % flag)
-    return '\n'.join(out) + '\n'
+    import music
+    A = AREA_MAPS[ai]; flags = all_flags()
+    cells, events, exits = compile_area(ai)
+    tid = lambda n: text_id(n, ai)
+    hdr = 27
+    body = bytearray(); fix = {}
+    def put(label, data): fix[label] = AREA_RAM + hdr + len(body); body.extend(data)
+    put('map', lz_compress(cells))
+    ev = bytearray()
+    for k, e in enumerate(events):
+        args = [tid(a) if isinstance(a, str) else a for a in e['args']]
+        ev += bytes([e['obj'], e['type'], args[0], args[1], args[2], args[3], flags[(ai, k)], 0])
+    put('events', ev)
+    ex = bytearray()
+    for e in exits: ex += bytes([e['area'], e['x'], e['y'], e['dir'], e['decor'], e['kind'], e['lock'], 0])
+    put('exits', ex)
+    put('name', A['name'].encode() + b'\0')
+    local = list(AT.get(ai, {}))
+    tt_at = AREA_RAM + hdr + len(body)
+    tdata = [encode(AT[ai][n]) for n in local]
+    addr = tt_at + 2 * len(local); tt = bytearray()
+    for d in tdata: tt += bytes([addr & 255, addr >> 8]); addr += len(d)
+    put('texts', tt + b''.join(tdata))
+    song = A.get('song')
+    if song: put('song', music.song_bytes(song, AREA_RAM + hdr + len(body)))
+    sx, sy, sd = A['start']; enc = A['encounters']
+    w = lambda v: bytes([v & 255, v >> 8])
+    head = (w(fix['map']) + w(fix['events']) + w(fix['exits']) + w(fix['name']) +
+            bytes([A['door_decor'], A['door_kind'], A['css'], 0x80 if song else A['music'], sx, sy, sd, A['rate'],
+                   enc[0], enc[1], enc[2], tid(A['intro'])]) +
+            w(fix['texts']) + w(fix.get('song', 0)) +
+            bytes([tid(A.get('wall_text', 'WALL')), tid(A.get('secret_text', 'SECRET')), A.get('bbg', 0)]))
+    assert len(head) == hdr
+    out = head + bytes(body)
+    assert len(out) <= AREA_MAX, ('pack too big', ai, len(out))
+    return out
+
+def asm():
+    return 'NUM_FLAGS equ %d\nNUM_AREAS equ %d\n' % (len(all_flags()), len(AREA_MAPS))

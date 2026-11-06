@@ -5,13 +5,19 @@ f_dc2a0p1: dw 6424
 f_dc2a0p2: dw 6946
             db 34,"DC2A0P2",34,0
 
+f_dc2a0s: dw 911
+            db 34,"DC2A0S",34,0
+
 f_dc2a1p1: dw 5384
             db 34,"DC2A1P1",34,0
 
 f_dc2a1p2: dw 6246
             db 34,"DC2A1P2",34,0
 
-area_files: dw f_dc2a0p1,f_dc2a0p2,f_dc2a1p1,f_dc2a1p2
+f_dc2a1s: dw 575
+            db 34,"DC2A1S",34,0
+
+area_files: dw f_dc2a0p1,f_dc2a0p2,f_dc2a0s,f_dc2a1p1,f_dc2a1p2,f_dc2a1s
 monsters:
             dw mname_0
             db 9,5,0,4,3,2,0,3

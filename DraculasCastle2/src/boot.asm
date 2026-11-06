@@ -18,8 +18,8 @@ boot:
             ld bc,$01FF
             ld (hl),0
             ldir
-            ld hl,MAPS
-            ld de,MAPS+1
+            ld hl,MAPBUF
+            ld de,MAPBUF+1
             ld bc,$03FF
             ld (hl),0
             ldir
@@ -66,15 +66,10 @@ no_sram:    ; no expansion: say so on the (mode 0) text screen
 .h:         jr .h
 str_nosram: db "  NEEDS BENNVENN SD + 128K RAM",0
 
-; load_area: A = area number. part 1 -> SRAM bank 3 $4000, part 2 -> main RAM P2BASE
+; load_area: A = area number. part 1 -> SRAM bank 3 $4000, part 2 -> main RAM P2BASE,
+; pack (map, events, exits, texts, song) -> AREA_RAM; then builds MAPBUF
 load_area:
-            push af
-            add a,a
-            add a,a
-            ld e,a
-            ld d,0
-            ld hl,area_files
-            add hl,de
+            call area_files_ptr
             push hl
             ld e,(hl)
             inc hl
@@ -85,7 +80,34 @@ load_area:
             ld a,1
             call sd_load
             pop hl
-            pop af
+            push hl
+            ld de,4
+            add hl,de
+            ld e,(hl)
+            inc hl
+            ld d,(hl)
+            push de
+            pop ix
+            ld de,AREA_RAM
+            xor a
+            call sd_load
+            pop hl
+            call reload_p2_hl
+            jp build_map
+
+; HL = area_files entry (p1, p2, pack) for area A
+area_files_ptr:
+            ld l,a
+            ld h,0
+            add hl,hl
+            ld e,l
+            ld d,h
+            add hl,hl
+            add hl,de               ; *6
+            ld de,area_files
+            add hl,de
+            ret
+
 reload_p2_hl:
             inc hl
             inc hl

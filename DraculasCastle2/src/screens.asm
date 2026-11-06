@@ -427,7 +427,7 @@ str_paused: db " - PAUSED -     P: CONTINUE",1," N: MUSIC ON/OFF  Q: QUIT",0
 ; SAVE / LOAD  (SRAM bank 3 @ $6400: magic, checksum, data)
 ; ---------------------------------------------------------------------------
 SAVE_AT     equ $6400
-SAVE_MAGIC  equ $D2C2
+SAVE_MAGIC  equ $D2C3
 
 save_game:
             call bank3
@@ -437,8 +437,8 @@ save_game:
             ld de,SAVE_AT+4
             ld bc,SAVE_LEN
             ldir
-            ld hl,MAPS
-            ld bc,$300              ; maps + seen + flags
+            ld hl,PSTATE
+            ld bc,$300              ; opened + seen + flags
             ldir
             call save_sum
             ld (SAVE_AT+2),hl
@@ -481,7 +481,7 @@ load_game:
             ld de,vars_game
             ld bc,SAVE_LEN
             ldir
-            ld de,MAPS
+            ld de,PSTATE
             ld bc,$300
             ldir
             or a

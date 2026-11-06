@@ -50,11 +50,14 @@ def sd_files():
     s = ['; generated SD file table']
     total = 0
     names = []
+    import maps
     for i, ad in enumerate(area.AREAS):
         p1, p2, ref = area.build_area(ad)
-        s.append(dat('DC2A%dP1' % i, p1)); s.append(dat('DC2A%dP2' % i, p2)); total += len(p1) + len(p2)
-        names.append('f_dc2a%dp1,f_dc2a%dp2' % (i, i))
-        print('area %-8s part1 %5d  part2 %5d' % (ad.name, len(p1), len(p2)))
+        pk = maps.pack(i)
+        s.append(dat('DC2A%dP1' % i, p1)); s.append(dat('DC2A%dP2' % i, p2)); s.append(dat('DC2A%dS' % i, pk))
+        total += len(p1) + len(p2) + len(pk)
+        names.append('f_dc2a%dp1,f_dc2a%dp2,f_dc2a%ds' % (i, i, i))
+        print('area %-8s part1 %5d  part2 %5d  pack %4d' % (ad.name, len(p1), len(p2), len(pk)))
     s.append('area_files: dw %s' % ','.join(names))
     s.append('monsters:')
     monfiles = []

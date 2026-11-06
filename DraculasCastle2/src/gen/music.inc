@@ -11,37 +11,15 @@ instruments:
             db 60,9,0,1
             db 40,0,40,0
 song_table:
-            dw song_grounds,song_hall,song_battle,song_boss,song_victory,song_levelup,song_death,song_title,song_maze,song_ending
-MUS_GROUNDS equ 1
-MUS_HALL equ 2
-MUS_BATTLE equ 3
-MUS_BOSS equ 4
-MUS_VICTORY equ 5
-MUS_LEVELUP equ 6
-MUS_DEATH equ 7
-MUS_TITLE equ 8
-MUS_MAZE equ 9
-MUS_ENDING equ 10
-song_grounds: dw grounds_c0,grounds_c1,grounds_c2
-grounds_c0: db 128,107,46,49,53,51,49,48,119,45,107,46,49,53,58,56,54,119,53,107,54,53,51,49,48,49,119,51,107,53,49,48,45,145,36,46,107,0
-            db 254
-            dw grounds_c0
-grounds_c1: db 129,119,22,29,22,17,22,29,25,29,27,22,20,32,29,17,145,36,22,107,0
-            db 254
-            dw grounds_c1
-grounds_c2: db 134,145,48,0,107,65,145,36,0,145,48,0,107,61,145,36,0,145,48,0,107,63,145,36,0,145,48,0,107,60,119,0,107,57
-            db 254
-            dw grounds_c2
-song_hall: dw hall_c0,hall_c1,hall_c2
-hall_c0: db 128,122,51,104,54,53,51,122,50,53,113,51,46,42,145,54,41,122,51,104,54,53,51,113,50,51,53,54,53,51,145,45,51,104,0
-            db 254
-            dw hall_c0
-hall_c1: db 129,113,27,34,34,22,29,29,27,34,34,22,26,29,27,34,34,22,29,29,23,30,30,27,34,39
-            db 254
-            dw hall_c1
-hall_c2: db 130,145,54,0,0,42,41,0,46,47,46
-            db 254
-            dw hall_c2
+            dw song_battle,song_boss,song_victory,song_levelup,song_death,song_title,song_maze,song_ending
+MUS_BATTLE equ 1
+MUS_BOSS equ 2
+MUS_VICTORY equ 3
+MUS_LEVELUP equ 4
+MUS_DEATH equ 5
+MUS_TITLE equ 6
+MUS_MAZE equ 7
+MUS_ENDING equ 8
 song_battle: dw battle_c0,battle_c1,battle_c2
 battle_c0: db 128,103,48,53,56,99,55,53,103,51,48,46,48,49,53,56,58,107,60,99,58,111,55,103,48,53,56,99,55,53,103,51,55,58,99,56,55,103,53,56,61,99,60,58,119,60,103,0
             db 254
@@ -134,4 +112,4 @@ sfx_thunder: db 131,111,37,136,125,37,255
 sfx_rattle: db 136,97,61,0,61,0,61,98,0,97,61,255
 sfx_sting: db 132,144,246,255,107,58,255
 sfx_gameover: db 137,103,37,99,0,103,32,99,0,103,29,99,0,127,25,255
-; music+sfx bytes: 1139
+; music+sfx bytes: 956

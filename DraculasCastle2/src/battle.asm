@@ -68,7 +68,7 @@ battle_load:
             call sd_load
             call build_masks
             ; backdrop from SD into SRAM bank 3
-            ld a,(cur_area)
+            ld a,(AREA_RAM+26)      ; the area's battle backdrop
             add a,a
             ld l,a
             ld h,0
@@ -508,12 +508,7 @@ battle_exit:
 
 reload_part2:
             ld a,(cur_area)
-            add a,a
-            add a,a
-            ld e,a
-            ld d,0
-            ld hl,area_files
-            add hl,de
+            call area_files_ptr
             jp reload_p2_hl
 
 ; level-up table: XP needed for levels 2..9

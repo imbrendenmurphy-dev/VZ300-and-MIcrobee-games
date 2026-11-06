@@ -115,7 +115,7 @@ SONGS['ENDING'] = dict(loop=True, ch=[
     "i2 u8 F#4:4 A4:4 | F#4:4 D4:4 | G4:4 A4:4 | F#4:6 r:2",
     "i1 u8 D3:4 A2:4 | D3:4 F#2:4 | G2:4 A2:4 | D3:6 r:2",
 ])
-SONG_ORDER = ['GROUNDS', 'HALL', 'BATTLE', 'BOSS', 'VICTORY', 'LEVELUP', 'DEATH', 'TITLE', 'MAZE', 'ENDING']
+SONG_ORDER = ['BATTLE', 'BOSS', 'VICTORY', 'LEVELUP', 'DEATH', 'TITLE', 'MAZE', 'ENDING']
 
 SFX = {
     'step':    "i8 u1 C6:2",
@@ -168,3 +168,16 @@ def asm():
 
 if __name__ == '__main__':
     a = asm(); print(a.splitlines()[-1])
+
+
+def song_bytes(name, base):
+    """an area song as a relocatable blob at address base: header (3 dw) + channels"""
+    S = SONGS[name]
+    chans = [compile_channel(ch) for ch in S['ch']]
+    out = bytearray(6); addr = base + 6; ptrs = []
+    for d in chans:
+        ptrs.append(addr)
+        blob = bytearray(d) + (bytes([254, addr & 255, addr >> 8]) if S['loop'] else bytes([255]))
+        out += blob; addr += len(blob)
+    for k, a in enumerate(ptrs): out[k * 2] = a & 255; out[k * 2 + 1] = a >> 8
+    return bytes(out)

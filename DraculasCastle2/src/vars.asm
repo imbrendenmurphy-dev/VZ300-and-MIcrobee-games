@@ -91,9 +91,17 @@ SAVE_LEN    equ gstate_end-vars_game
 
 BACK_ADDR   equ $F000       ; 2K back buffer $F000-$F7FF (DOS owns $FA00-$FFFF)
 FLIP        equ $7B00       ; flip table (system area $7800-$7AE7 left for ROM/DOS)
-STACK_TOP   equ $EE00       ; stack grows down from $EE00 to $E400 (2.5K: the DOS is a deep stack user)
+STACK_TOP   equ $EE00       ; stack $E900-$EDFF (1.25K)
+AREA_RAM    equ $E400       ; current area pack (map, events, exits, texts, song) $E400-$E8FF
+AREA_MAX    equ $0500
+AREA_TEXTS  equ AREA_RAM+20 ; dw local text table
+AREA_SONG   equ AREA_RAM+22 ; dw song header
 SECBUF      equ $F800       ; 512-byte SD sector buffer $F800-$F9FF (as 13 Ghosts uses)
 P2BASE      equ $C800       ; area part 2 / monster frames ($C800-$E3FF)
 VCACHE      equ $D900       ; cutscene viewport cache (1040 bytes)
-MAPS        equ $7C00       ; runtime maps (2 x 256) $7C00-$7DFF
+MAPBUF      equ $7C00       ; current area's map (256)
+OPENED      equ $7D00       ; per area 32 bytes: doors/secrets opened (8 areas)
+EXPLORED    equ $7E00       ; per area 32 bytes: seen-bits (8 areas)
+FLAGS       equ $7F00       ; event flags (bytes, 256)
+PSTATE      equ $7D00       ; persistent per-area state saved with the game: $7D00-$7FFF
             emit

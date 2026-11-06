@@ -365,47 +365,30 @@ tour_view:
             xor a
             ld (tour_tmp),a
             ld a,(cur_area)
-            push af
-            call area_info_ptr
-            pop af
-            ; minimal area setup (maps from originals)
-            ld a,(cur_area)
-            call reset_map
-            ld a,(cur_area)
-            add a,MAPS/256
+            call load_area          ; p1 + p2 + pack, builds MAPBUF
+            ld a,MAPBUF/256
             ld (map_page),a
-            ld a,(cur_area)
-            call area_info_ptr
-            ld de,8
-            add hl,de
+            ld hl,AREA_RAM+2
+            ld e,(hl)
+            inc hl
+            ld d,(hl)
+            inc hl
+            ld (area_events),de
+            ld e,(hl)
+            inc hl
+            ld d,(hl)
+            inc hl
+            ld (area_exits),de
+            ld e,(hl)
+            inc hl
+            ld d,(hl)
+            inc hl
+            ld (area_name),de
             ld a,(hl)
             ld (area_door_decor),a
             inc hl
             ld a,(hl)
             ld (area_door_kind),a
-            ld a,(cur_area)
-            call area_info_ptr
-            ld de,4
-            add hl,de
-            ld e,(hl)
-            inc hl
-            ld d,(hl)
-            ld (area_exits),de
-            inc hl
-            ld e,(hl)
-            inc hl
-            ld d,(hl)
-            ld (area_name),de
-            ld a,(cur_area)
-            call area_info_ptr
-            inc hl
-            inc hl
-            ld e,(hl)
-            inc hl
-            ld d,(hl)
-            ld (area_events),de
-            ld a,(cur_area)
-            call load_area
             ld a,$AA
             call cls_back
             call render_view
@@ -443,7 +426,7 @@ gallery_monster:
             ld a,0
             jr c,.g
             ld a,1
-.g:         ld (cur_area),a
+.g:         ld (AREA_RAM+26),a
             pop af
             call battle_load
             ld a,(bt_css)
