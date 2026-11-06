@@ -53,7 +53,7 @@ map_screen:
             call print_centre
             ld hl,map_legend
             ld c,17
-            ld d,14
+            ld d,10
             call print_at
             ld a,(area_css)
             call set_css

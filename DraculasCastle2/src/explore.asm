@@ -1217,7 +1217,7 @@ show_msg:
             call text_colors
             pop hl
             ld c,0
-            ld d,54
+            ld d,53
             call print_at
             jp present_msg
 
@@ -1269,7 +1269,7 @@ show_text_x:
             call text_colors
             ld a,'>'
             ld c,31
-            ld d,58
+            ld d,59
             call draw_char
             call present_msg
             call wait_key
