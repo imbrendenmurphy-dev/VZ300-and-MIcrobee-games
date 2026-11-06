@@ -32,16 +32,26 @@ fb_fill:
 ; ---------------------------------------------------------------- run game
 run_game:
         call new_game
-        call story_card
+        ld a,(cur_stage)
+        cp 1
+        call z,story_card       ; the story only when starting from the beginning
 .stage: call stage_card
         call play_stage
+        push af
+        call css_reset
+        pop af
         or a
         jr z,.clear
         cp 1
         jr z,.over
         ret
-.clear: call clear_card
-        call ending_card
+.clear: call clear_card         ; advances cur_stage, shows the password
+        ld a,(cur_stage)
+        cp 8
+        jr nc,.end
+        call stage_reset
+        jr .stage
+.end:   call ending_card
         jp hiscore_check
 .over:  call gameover_card      ; A = 1 continue
         or a
@@ -450,7 +460,7 @@ draw_logo:
         ret
 
 ; ---------------------------------------------------------------- menu
-MENU_N equ 6
+MENU_N equ 7
 menu_screen:
         call ensure_front
         call unpack_title
@@ -516,8 +526,13 @@ menu_screen:
         call .tick
         ld a,(menu_sel)
         or a
-        jr nz,.n1
+        jr nz,.n0
         ret                     ; start
+.n0:    dec a
+        jr nz,.n1
+        call password_screen
+        ret nc                  ; valid password: start the game
+        jp .lp
 .n1:    cp 1
         jr nz,.n2
         ld a,(opt_diff)
@@ -552,6 +567,9 @@ menu_item:
         ld a,b
         or a
         ld hl,STR_M_START
+        ret z
+        dec a
+        ld hl,STR_M_PASS
         ret z
         cp 1
         jr nz,.i2
@@ -738,16 +756,16 @@ story_page:
         ret
 
 stage_card:
-        call ensure_stage1
+        call ensure_stage
         call stop_music
         call build_hero
         call cls_fb
-        ld hl,CARD_STAGE1
+        ld hl,(STG_CARD)
         call card_text
-        ; the boss portrait in miniature: a skull
-        ld hl,S_SKULL_0
-        ld bc,60
-        ld a,32
+        ; a portrait of the stage's guardian
+        ld hl,(STG_PORT)
+        ld bc,58
+        ld a,22
         ld e,0
         call draw_spr
         ld hl,150
@@ -762,14 +780,44 @@ clear_card:
         call cls_fb
         ld hl,CARD_CLEAR
         call card_text
+        ; "SUNSTONE n OF 7"
+        ld hl,STR_SUNOF
+        ld de,text_buf
+        ld bc,STR_SUNOF_END-STR_SUNOF
+        ldir
+        ld a,(cur_stage)
+        add a,'0'
+        ld (text_buf+9),a
+        ld hl,text_buf
+        ld c,17
+        ld a,(col_grn)
+        call text_fbc
         ld hl,score
         call bcd_to_str
         ld hl,num_buf
-        ld c,40
+        ld c,33
         ld a,(col_yel)
         call text_fbc
-        ld hl,250
+        ld hl,cur_stage
+        inc (hl)
+        ld a,(hl)
+        cp 8
+        jr nc,.wait
+        ; the password for the next stage
+        call pw_encode
+        ld hl,STR_PWIS
+        ld c,45
+        ld a,(col_grn)
+        call text_fbc
+        ld hl,pw_text
+        ld c,54
+        ld a,(col_red)
+        call text_fbc
+.wait:  ld hl,400
         jp card_wait
+STR_SUNOF:   db "SUNSTONE n OF 7",0
+STR_SUNOF_END:
+STR_PWIS:    db "PASSWORD FOR THE NEXT STAGE",0
 
 ending_card:
         call cls_fb
@@ -1007,6 +1055,207 @@ hiscore_check:
         ld (hl),a
         jr .ent
 
+; ---------------------------------------------------------------- password
+; four letters: up/down choose, left/right move, fire on the last checks it.
+; Letters can also be typed.  Returns NC when valid (pw_ok set), C if
+; abandoned or wrong.
+password_screen:
+        xor a
+        ld (pw_cur),a
+        ld hl,pw_idx
+        ld (hl),a
+        inc hl
+        ld (hl),a
+        inc hl
+        ld (hl),a
+        inc hl
+        ld (hl),a
+        ld (t_t),a
+.lp:    ld hl,t_t
+        inc (hl)
+        call menu_bg
+        ld hl,STR_PWTITLE
+        ld c,14
+        ld a,(col_yel)
+        call text_fbc
+        ; the four letters, spaced out
+        ld hl,pw_idx
+        ld de,text_buf
+        ld b,4
+.mk:    push hl
+        ld a,(hl)
+        ld l,a
+        ld h,0
+        push de
+        ld de,PW_ALPHA
+        add hl,de
+        pop de
+        ld a,(hl)
+        ld (de),a
+        inc de
+        ld a,' '
+        ld (de),a
+        inc de
+        pop hl
+        inc hl
+        djnz .mk
+        dec de
+        xor a
+        ld (de),a
+        ld hl,text_buf
+        ld c,28
+        ld a,(col_red)
+        call text_fbc
+        ; cursor (blinks)
+        ld a,(t_t)
+        and 8
+        jr z,.nc
+        ld a,(pw_cur)
+        add a,a
+        add a,a
+        add a,a                 ; 8 px per letter pair
+        add a,49
+        ld b,a
+        ld c,35
+        ld hl,STR_CURSOR
+        ld a,(col_yel)
+        call text_fb
+.nc:    ld hl,STR_PWHELP
+        ld c,46
+        ld a,(col_grn)
+        call text_fbc
+        call show_full
+        call read_input
+        ld a,(pw_cur)
+        ld e,a
+        ld d,0
+        ld hl,pw_idx
+        add hl,de
+        ; a typed letter takes priority (P Q A W are also control keys)
+        push hl
+        call read_letter        ; A = new ascii key or 0
+        pop hl
+        or a
+        jr z,.nokey
+        ld c,a
+        ld de,PW_ALPHA
+        ld b,0
+.f:     ld a,(de)
+        cp c
+        jr z,.typed
+        inc de
+        inc b
+        ld a,b
+        cp 32
+        jr c,.f
+        jp .lp
+.nokey: ld a,(keys_new)
+        bit K_UP,a
+        jr nz,.up
+        bit K_DOWN,a
+        jr nz,.dn
+        bit K_LEFT,a
+        jr nz,.lf
+        bit K_RIGHT,a
+        jr nz,.rt
+        and (1<<K_FIRE)|(1<<K_SWAP)
+        jr nz,.fire
+        jp .lp
+.typed: ld (hl),b
+        call .tick
+        jr .rt
+.up:    ld a,(hl)
+        inc a
+        and 31
+        ld (hl),a
+        call .tick
+        jp .lp
+.dn:    ld a,(hl)
+        dec a
+        and 31
+        ld (hl),a
+        call .tick
+        jp .lp
+.lf:    ld a,(pw_cur)
+        or a
+        jp z,.lp
+        dec a
+        ld (pw_cur),a
+        jp .lp
+.rt:    ld a,(pw_cur)
+        cp 3
+        jp nc,.lp
+        inc a
+        ld (pw_cur),a
+        jp .lp
+.fire:  ld a,(pw_cur)
+        cp 3
+        jr c,.rt
+        call pw_decode
+        jr c,.bad
+        ld a,1
+        ld (pw_ok),a
+        ld a,SFX_SELECT_ID
+        call play_sfx
+        xor a                   ; A = 0 (start the game), NC
+        ret
+.bad:   call menu_bg
+        ld hl,STR_PWBAD
+        ld c,30
+        ld a,(col_red)
+        call text_fbc
+        ld hl,60
+        call card_wait
+        scf
+        ret
+.tick:  ld a,SFX_SELECT_ID
+        jp play_sfx
+
+; read_letter -> A = ascii of a newly pressed letter/digit key, else 0
+read_letter:
+        ld hl,KEYCHARS
+        ld de,$68FE
+        ld c,0                  ; found
+.row:   ld a,(de)
+        cpl
+        ld b,6
+.bit:   rrca
+        jr nc,.nx
+        push af
+        ld a,(hl)
+        or a
+        jr z,.nf
+        ld c,a
+.nf:    pop af
+.nx:    inc hl
+        djnz .bit
+        rlc e
+        ld a,e
+        cp $FE
+        jr nz,.row
+        ld a,(rl_last)
+        cp c
+        ld a,c
+        ld (rl_last),a
+        jr nz,.new
+        xor a
+        ret
+.new:   ld a,c
+        ret
+KEYCHARS:
+        db "RQE",0,"WT"
+        db "FAD",0,"SG"
+        db "VZC",0,"XB"
+        db "413",0,"25"
+        db "M",0,0,0,0,"N"
+        db "708",0,"96"
+        db "UPI",0,0,"Y"
+        db "J",0,"K",0,"LH"
+
+STR_PWTITLE: db "ENTER PASSWORD",0
+STR_PWHELP:  db "TYPE IT, OR USE THE STICK",0
+STR_PWBAD:   db "THAT IS NOT A PASSWORD",0
+
 ; ---------------------------------------------------------------- attract
 ; returns A = 0 if the player pressed fire (go to menu), 1 when complete
 attract:
@@ -1101,7 +1350,15 @@ bestiary:
 
 ; demo: play the stage with recorded input -> NZ if interrupted by a key
 demo_game:
-        call ensure_stage1
+        ; each demo shows the next stage in turn
+        ld a,(demo_stage)
+        inc a
+        cp 8
+        jr c,$+4
+        ld a,1
+        ld (demo_stage),a
+        ld (cur_stage),a
+        call ensure_stage
         ld hl,1987
         ld (seed),hl
         ld a,(opt_diff)
@@ -1118,11 +1375,16 @@ demo_game:
         ld hl,700
         ld (demo_t),hl
         call new_game
+        ld a,(demo_stage)
+        ld (cur_stage),a
         ld a,2
         ld (arm_max),a
-        ld hl,SONG_STAGE1
+        ld hl,(STG_SONG)
         call play_song
         call play_stage
+        push af
+        call css_reset
+        pop af
         ld b,a
         xor a
         ld (demo_mode),a

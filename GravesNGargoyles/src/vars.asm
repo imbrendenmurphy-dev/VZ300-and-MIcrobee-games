@@ -56,6 +56,9 @@ ds_skip:    ds 1
 bg_j:       ds 1
 lvl_map:    ds 2
 lvl_w:      ds 2
+lvl_tiles:  ds 2
+stage_css:  ds 1
+lvl_tattr:  ds 2
 ds_y:       ds 1
 ds_flags:   ds 1
 ds_row:     ds 1
@@ -156,6 +159,19 @@ ld_dest:    ds 2
 ld_left:    ds 2
 ld_name:    ds 2
 pack_ok:    ds 1
+cur_stage:  ds 1
+pw_ok:      ds 1
+pw_stage:   ds 1
+pw_arm:     ds 1
+pw_owned:   ds 1
+pw_wl:      ds 1
+pw_diff:    ds 1
+pw_bits:    ds 3
+pw_idx:     ds 4
+pw_text:    ds 5
+pw_cur:     ds 1
+demo_stage: ds 1
+rl_last:    ds 1
 VARS_END:
 FB:         ds FBW*FBROWS
 FB_END:

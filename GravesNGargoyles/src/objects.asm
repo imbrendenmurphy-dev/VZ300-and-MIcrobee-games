@@ -748,7 +748,15 @@ o_item:
         inc (ix+6)
         bit 7,(ix+6)
         ret nz
-        ld l,(ix+2)
+        ; past the apex: keep falling (vy 0 means resting), cap the speed
+        ld a,(ix+6)
+        cp 16
+        jr c,.sp
+        ld (ix+6),16
+.sp:    or a
+        jr nz,.fall
+        ld (ix+6),1
+.fall:  ld l,(ix+2)
         ld h,(ix+3)
         ld de,4
         add hl,de
@@ -1479,7 +1487,7 @@ d_zombie:
         ld a,14
         sub b
         add a,(ix+4)
-        ld hl,S_ZOMBIE_0
+        ld hl,(STG_SPR+0)
         ld e,(ix+2)
         ld d,(ix+3)
         ld c,(ix+11)
@@ -1503,30 +1511,36 @@ d_zombie:
         ld c,a
         pop af
         jp part_burst
-.walk:  ld hl,S_ZOMBIE_0
+.walk:  ld hl,(STG_SPR+0)
         ld a,8
         call anim2
         jr z,dobj
-        ld hl,S_ZOMBIE_1
+        ld hl,(STG_SPR+2)
         jr dobj
 
-d_skel: ld a,(ix+1)
-        or a
-        ld hl,S_SKEL_0
-        jr z,$+5
-        ld hl,S_SKEL_2
+d_skel: ld a,(ix+1)               ; 0 whole, 1 headless
+        add a,a
+        add a,a
+        ld e,a
         ld a,8
         call anim2
-        jr z,dobj
-        ld de,6
+        jr z,$+4
+        inc e
+        inc e
+        ld d,0
+        ld hl,STG_SPR+8
         add hl,de
+        ld a,(hl)
+        inc hl
+        ld h,(hl)
+        ld l,a
         jr dobj
 
-d_bat:  ld hl,S_BAT_0
+d_bat:  ld hl,(STG_SPR+16)
         ld a,4
         call anim2
         jr z,dobj
-        ld hl,S_BAT_1
+        ld hl,(STG_SPR+18)
         jr dobj
 
 d_ghost:
@@ -1538,36 +1552,36 @@ d_ghost:
         add a,3
         or a
         ret z
-        ld hl,S_GHOST_0
+        ld hl,(STG_SPR+24)
         ld a,8
         call anim2
         jr z,dobj
-        ld hl,S_GHOST_1
+        ld hl,(STG_SPR+26)
         jr dobj
 
-d_crow: ld hl,S_CROW_0
+d_crow: ld hl,(STG_SPR+32)
         ld a,(ix+1)
         or a
         jr z,dobj
         ld a,2
         call anim2
         jr z,dobj
-        ld hl,S_CROW_1
+        ld hl,(STG_SPR+34)
         jr dobj
 
-d_imp:  ld hl,S_IMP_0
+d_imp:  ld hl,(STG_SPR+48)
         ld a,4
         call anim2
         jr z,dobj
-        ld hl,S_IMP_1
+        ld hl,(STG_SPR+50)
         jr dobj
 
 d_plant:
-        ld hl,S_PLANT_0
+        ld hl,(STG_SPR+40)
         ld a,(ix+8)
         cp 50
         jr c,dobj
-        ld hl,S_PLANT_1
+        ld hl,(STG_SPR+42)
         jr dobj
 
 d_chest:
@@ -1639,7 +1653,7 @@ d_fire: ld hl,S_FIREBALL_0
         jr dobj
 
 d_skull:
-        ld hl,S_SKULL_0
+        ld hl,(STG_HEAD)
         jr dobj
 
 d_sun:  ld hl,S_SUNSTONE_0

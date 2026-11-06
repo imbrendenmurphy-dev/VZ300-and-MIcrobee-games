@@ -26,13 +26,6 @@ new_game:
         ld (wlevel+1),a
         ld (wlevel+2),a
         ld (wlevel+3),a
-        ld hl,kept
-        ld de,kept+1
-        ld bc,31
-        ld (hl),0
-        ldir
-        ld hl,DBG_START
-        ld (check_x),hl
         ld a,DBG_ARMOUR
         ld (arm_max),a
         ld (arm_cur),a
@@ -40,19 +33,263 @@ new_game:
         ld (owned),a
         ld a,DBG_CHEAT
         ld (cheat),a
-        ld a,$FF
-        ld (check_obj),a
+        ld a,DBG_STAGE
+        ld (cur_stage),a
+        ; a password entered from the menu overrides the defaults
+        ld a,(pw_ok)
+        or a
+        jr z,.np
+        xor a
+        ld (pw_ok),a
+        ld a,(pw_stage)
+        ld (cur_stage),a
+        ld a,(pw_arm)
+        ld (arm_max),a
+        ld (arm_cur),a
+        ld a,(pw_owned)
+        ld (owned),a
+        ld a,(pw_diff)
+        ld (opt_diff),a
+        ld a,(pw_wl)
+        ld hl,wlevel
+        ld b,4
+.wl:    rrca
+        ld (hl),0
+        jr nc,$+4
+        ld (hl),1
+        inc hl
+        djnz .wl
+.np:    call stage_reset
         jp build_hero
 START_LIVES: db 5,3,3
+
+; fresh stage: forget kept objects and checkpoints
+stage_reset:
+        ld hl,kept
+        ld de,kept+1
+        ld bc,31
+        ld (hl),0
+        ldir
+        ld hl,DBG_START
+        ld (check_x),hl
+        ld a,$FF
+        ld (check_obj),a
+        ret
+
+; ---------------------------------------------------------------- passwords
+; 20 bits in 4 characters: stage-1 (3), armour (3), difficulty (2),
+; weapons owned (4), weapons enchanted (4), checksum (4).  Scrambled by
+; the checksum so neighbouring stages look nothing alike.
+PW_ALPHA: db "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+
+; pw_sum: D,E -> A = 4-bit checksum (keeps D,E)
+pw_sum: ld a,e
+        add a,a
+        add a,e
+        add a,d
+        add a,7
+        ld c,a
+        rrca
+        rrca
+        rrca
+        rrca
+        xor c
+        and 15
+        ret
+
+; pw_encode: current progress (cur_stage = stage to play) -> pw_text
+pw_encode:
+        ld a,(cur_stage)
+        dec a
+        and 7
+        ld d,a
+        ld a,(arm_max)
+        and 7
+        add a,a
+        add a,a
+        add a,a
+        or d
+        ld d,a
+        ld a,(opt_diff)
+        rrca
+        rrca
+        and $C0
+        or d
+        ld d,a
+        ld hl,wlevel+3
+        ld b,4
+        ld c,0
+.w:     ld a,(hl)
+        dec hl
+        cp 1
+        ccf
+        rl c
+        djnz .w
+        ld a,c
+        rlca
+        rlca
+        rlca
+        rlca
+        ld e,a
+        ld a,(owned)
+        and 15
+        or e
+        ld e,a
+        call pw_sum
+        ld (pw_bits+2),a
+        ld c,a
+        rlca
+        rlca
+        rlca
+        rlca
+        ld b,a                  ; chk<<4
+        or c
+        xor $A5
+        xor e
+        ld (pw_bits),a
+        ld a,b
+        xor $3C
+        xor d
+        ld (pw_bits+1),a
+        ld hl,pw_text
+        ld b,4
+.ch:    push bc
+        ld a,(pw_bits)
+        and 31
+        ld e,a
+        ld d,0
+        push hl
+        ld hl,PW_ALPHA
+        add hl,de
+        ld a,(hl)
+        pop hl
+        ld (hl),a
+        inc hl
+        ld b,5
+.sh:    push hl
+        ld hl,pw_bits+2
+        srl (hl)
+        dec hl
+        rr (hl)
+        dec hl
+        rr (hl)
+        pop hl
+        djnz .sh
+        pop bc
+        djnz .ch
+        ld (hl),0
+        ret
+
+; pw_decode: pw_idx[0..3] (alphabet indexes) -> NC and pw_* set if valid
+pw_decode:
+        xor a
+        ld (pw_bits),a
+        ld (pw_bits+1),a
+        ld (pw_bits+2),a
+        ld hl,pw_idx+3
+        ld b,4
+.c:     push bc
+        ld b,5
+.sh:    push hl
+        ld hl,pw_bits
+        sla (hl)
+        inc hl
+        rl (hl)
+        inc hl
+        rl (hl)
+        pop hl
+        djnz .sh
+        ld a,(pw_bits)
+        or (hl)
+        ld (pw_bits),a
+        dec hl
+        pop bc
+        djnz .c
+        ld a,(pw_bits+2)
+        cp 16
+        ccf
+        ret c
+        ld c,a
+        rlca
+        rlca
+        rlca
+        rlca
+        ld b,a
+        or c
+        xor $A5
+        ld e,a
+        ld a,(pw_bits)
+        xor e
+        ld e,a
+        ld a,b
+        xor $3C
+        ld d,a
+        ld a,(pw_bits+1)
+        xor d
+        ld d,a
+        call pw_sum
+        ld c,a
+        ld a,(pw_bits+2)
+        cp c
+        scf
+        ret nz
+        ld a,d
+        and 7
+        cp 7
+        ccf
+        ret c                   ; stage 8 does not exist
+        inc a
+        ld (pw_stage),a
+        ld a,d
+        rrca
+        rrca
+        rrca
+        and 7
+        or a
+        scf
+        ret z
+        cp 6
+        ccf
+        ret c
+        ld (pw_arm),a
+        ld a,d
+        rlca
+        rlca
+        and 3
+        cp 3
+        ccf
+        ret c
+        ld (pw_diff),a
+        ld a,e
+        and 15
+        scf
+        ret z
+        ld (pw_owned),a
+        ld a,e
+        rrca
+        rrca
+        rrca
+        rrca
+        and 15
+        ld (pw_wl),a
+        or a                    ; NC: valid
+        ret
 
 ; ---------------------------------------------------------------- stage
 ; play the stage from the current checkpoint. Returns A: 0 = cleared,
 ; 1 = game over, 2 = quit (demo ended / player escaped)
 play_stage:
-        ld hl,LEVEL1_MAP
+        ld hl,(STG_MAP)
         ld (lvl_map),hl
-        ld hl,LEVEL1_W
+        ld hl,(STG_W)
         ld (lvl_w),hl
+        ld hl,(STG_TILES)
+        ld (lvl_tiles),hl
+        ld hl,(STG_TATTR)
+        ld (lvl_tattr),hl
+        ; stage colour set
+        ld a,(STG_CSS)
+        ld (stage_css),a
 .respawn:
         call objs_clear
         xor a
@@ -99,7 +336,7 @@ play_stage:
         call cam_target
         ld (cam_x),hl
         ; skip level objects that are behind the camera
-        ld hl,LEVEL1_OBJ
+        ld hl,(STG_OBJ)
         xor a
         ld (lvl_obji),a
 .sk:    ld a,(hl)
@@ -133,7 +370,7 @@ play_stage:
         ld a,(demo_mode)
         or a
         jr nz,.nmus
-        ld hl,SONG_STAGE1
+        ld hl,(STG_SONG)
         call play_song
 .nmus:  ld hl,STR_READY
         call banner
@@ -204,7 +441,11 @@ play_stage:
         ret
 .died:  ld a,(demo_mode)
         or a
-        jr nz,.quit
+        jr z,.ndd
+        ld hl,0
+        ld (demo_t),hl          ; a death ends the demo normally
+        jr .quit
+.ndd:
         ld a,(lives)
         dec a
         ld (lives),a
@@ -347,14 +588,29 @@ fx_palette:
         and 2
         jr z,.n
         ld b,$10
-.n:     ld a,(latch)
+.n:     ld a,(stage_css)
+        xor b
+        ld b,a
+        ld a,(latch)
         and $EF
         or b
         ld (latch_next),a
         ret
 
+; back to the standard colour set (front end, cards)
+css_reset:
+        xor a
+        ld (stage_css),a
+        ld a,(latch)
+        and $EF
+        ld (latch_next),a
+        ret
+
 ; random ambient lightning over the graveyard
 ambient:
+        ld a,(STG_AMB)
+        or a
+        ret z
         ld a,(boss_on)
         or a
         ret nz

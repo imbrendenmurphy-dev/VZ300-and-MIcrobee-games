@@ -67,7 +67,31 @@ SRAM_DOS  equ 1            ; port $37: DOS bank (as left by the loader)
         include "packs.asm"
 RESIDENT_END:
 PACK_AREA equ (RESIDENT_END+255)&$FF00
-PACK_TOP  equ FRONT_END+(S1_END-FRONT_END)*(S1_END>=FRONT_END)
+; stage pack header (fixed offsets, see tools/stages.py)
+STG_NUM   equ PACK_AREA+1
+STG_MAP   equ PACK_AREA+2
+STG_W     equ PACK_AREA+4
+STG_OBJ   equ PACK_AREA+6
+STG_TILES equ PACK_AREA+8
+STG_TATTR equ PACK_AREA+10
+STG_SONG  equ PACK_AREA+12
+STG_BSONG equ PACK_AREA+14
+STG_MOON  equ PACK_AREA+16
+STG_BTOP  equ PACK_AREA+18
+STG_BJAW  equ PACK_AREA+20
+STG_BHP   equ PACK_AREA+22      ; 3 bytes: casual, normal, expert
+STG_SUMMON equ PACK_AREA+25     ; object type summoned in phase 2
+STG_CSS   equ PACK_AREA+26      ; $00 or $10 colour set
+STG_AMB   equ PACK_AREA+27      ; ambient lightning on/off
+STG_CARD  equ PACK_AREA+28
+STG_BNAME equ PACK_AREA+30
+STG_SPR   equ PACK_AREA+32      ; 7 roles x 4 frames (dw)
+STG_HEAD  equ PACK_AREA+88
+STG_PORT  equ PACK_AREA+90      ; stage card portrait sprite
+STG_BSPD  equ PACK_AREA+92      ; boss speed: 0 normal, 1 fast
+STG_VOLLEY equ PACK_AREA+93     ; boss fireballs per volley
+STG_JAWY  equ PACK_AREA+94      ; boss jaw y offset
+PACK_TOP  equ PKMAX7
 
 ; ------------------------------------------------------------------- SRAM blobs
 BLOB1_SRC:

@@ -20,17 +20,17 @@ STR_CURSOR:  db "-",0
 
 CARD_CLEAR:
         db 8,0,"SUNSTONE RECOVERED!",0
-        db 18,2,"1 OF 7",0
-        db 28,2,"STAGE BONUS 30000",0
+        db 25,2,"STAGE BONUS 30000",0
         db $FF
 CARD_END:
-        db 4,0,"THE FIRST SUNSTONE GLOWS.",0
-        db 12,2,"BEYOND THE HILL LIE THE",0
-        db 19,2,"WITCHWOOD, THE DROWNED VILLAGE",0
-        db 26,2,"THE SWAMP OF THE DAMNED, THE",0
-        db 33,2,"CRYSTAL DEEPS... AND MORGRAVE.",0
-        db 46,0,"TO BE CONTINUED...",0
-        db 56,0,"THANK YOU FOR PLAYING!",0
+        db 2,0,"THE SEVENTH SUNSTONE BLAZES",0
+        db 10,2,"MORGRAVE CRUMBLES TO DUST AND",0
+        db 17,2,"AT LAST THE SUN RISES OVER",0
+        db 24,2,"DREADMOOR. THE DEAD LIE DOWN.",0
+        db 33,0,"ARISE, SIR TINPLATE,",0
+        db 40,0,"KNIGHT OF THE LONG NIGHT!",0
+        db 51,1,"THE END",0
+        db 58,2,"THANK YOU FOR PLAYING!",0
         db $FF
 CARD_OVER:
         db 14,0,"GAME OVER",0

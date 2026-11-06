@@ -227,7 +227,7 @@ tile_at:
         ld (last_tile),a
         ld l,a
         ld h,0
-        ld de,TATTR
+        ld de,(lvl_tattr)
         add hl,de
         ld a,(hl)
         ret

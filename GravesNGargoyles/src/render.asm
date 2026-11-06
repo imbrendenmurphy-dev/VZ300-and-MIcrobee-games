@@ -32,13 +32,10 @@ get_wcol:
         add hl,hl
         add hl,hl
         add hl,hl
-        ld a,c
-        add a,TILES&255
-        ld c,a
-        ld a,TILES>>8
-        adc a,0
-        ld b,a
-        add hl,bc               ; tile gfx + half
+        ld b,0
+        add hl,bc               ; + half
+        ld bc,(lvl_tiles)
+        add hl,bc               ; tile gfx
         ld bc,2
         ldi
         inc hl
@@ -551,7 +548,10 @@ draw_world:
 ; ---------------------------------------------------------------- moon
 ; drawn only over pure sky bytes, so scenery passes in front of it
 draw_moon:
-        ld hl,S_MOON_0
+        ld hl,(STG_MOON)
+        ld a,h
+        or l
+        ret z
         inc hl
         ld b,(hl)               ; rows
         inc hl

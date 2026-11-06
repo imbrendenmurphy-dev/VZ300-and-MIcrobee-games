@@ -128,8 +128,30 @@ ensure_front:
         ld a,'F'
         jp ensure_pack
 
-ensure_stage1:
-        ld hl,PK_STAGE1
+; make sure the pack for cur_stage (1-7) is in memory
+ensure_stage:
+        ld a,(PACK_AREA)
+        cp 'S'
+        jr nz,.load
+        ld a,(STG_NUM)
+        ld b,a
+        ld a,(cur_stage)
+        cp b
+        jr z,.have
+.load:  xor a
+        ld (PACK_AREA),a        ; force a reload
+.have:  ld a,(cur_stage)
+        dec a
+        ld l,a
+        add a,a                 ; *2
+        add a,l                 ; *3
+        add a,a                 ; *6
+        add a,l                 ; *7
+        add a,a                 ; *14
+        ld e,a
+        ld d,0
+        ld hl,PK_STAGES
+        add hl,de
         ld a,'S'
         jp ensure_pack
 

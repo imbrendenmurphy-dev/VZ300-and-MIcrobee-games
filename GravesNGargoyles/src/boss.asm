@@ -53,7 +53,7 @@ boss_logic:
         ld a,(opt_diff)
         ld e,a
         ld d,0
-        ld hl,BOSS_HP
+        ld hl,STG_BHP
         add hl,de
         ld a,(hl)
         ld (boss_hp),a
@@ -63,7 +63,7 @@ boss_logic:
         call stop_music
         ld a,SFX_THUNDER_ID
         call play_sfx
-        ld hl,STR_BOSS
+        ld hl,(STG_BNAME)
         jp banner
 .rise:  ld a,8
         ld (shake_t),a
@@ -76,7 +76,7 @@ boss_logic:
         ret nz
         ld (ix+1),2
         ld (ix+8),0
-        ld hl,SONG_BOSS
+        ld hl,(STG_BSONG)
         call play_song
         ret
 .hover: ; patrol high across the arena, bouncing off the edges
@@ -233,11 +233,15 @@ boss_logic:
         ld (ix+2),l
         ld (ix+3),h
         ld (ix+4),16
-        ld (ix+6),-12
+        ld (ix+6),-8
         ld (ix+11),0
         ret
 
-.speed: ; movement mask: every 2nd frame, every frame in phase 2
+.speed: ; movement mask: every 2nd frame, every frame in phase 2 or fast bosses
+        ld a,(STG_BSPD)
+        or a
+        ld a,0
+        ret nz
         ld a,(boss_hp)
         ld b,a
         ld a,(boss_hpmax)
@@ -250,7 +254,8 @@ boss_logic:
 
 .fire3: ld a,SFX_KILL_ID
         call play_sfx
-        ld b,3
+        ld a,(STG_VOLLEY)
+        ld b,a
 .fl:    ld a,b
         push af
         ld l,(ix+2)
@@ -275,7 +280,8 @@ boss_logic:
 .bat:   push ix
         call obj_alloc
         jr nc,.bo
-        ld (ix+0),OT_BAT
+        ld a,(STG_SUMMON)
+        ld (ix+0),a
         ld (ix+9),1
         ld (ix+1),1
         ld (ix+12),4
@@ -304,7 +310,6 @@ face_hero_b:
         ld c,1
         ret
 
-BOSS_HP: db 14,20,28
 
 ; is the boss vulnerable (jaw open)? -> NZ
 boss_vuln:
@@ -422,14 +427,16 @@ boss_draw:
         ret z
         ; jaw
         ld a,(ix+4)
-        add a,18
+        ld b,a
+        ld a,(STG_JAWY)
+        add a,b
         add a,(ix+12)
-        ld hl,S_BJAW_0
+        ld hl,(STG_BJAW)
         ld e,(ix+2)
         ld d,(ix+3)
         ld c,0
         call draw_world
-        ld hl,S_BSKULL_0
+        ld hl,(STG_BTOP)
         ld e,(ix+2)
         ld d,(ix+3)
         ld c,0
