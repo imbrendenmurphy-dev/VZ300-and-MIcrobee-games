@@ -33,10 +33,13 @@ page:
         ld (palbase),a
         call dl_reset
         call do_frame
-        xor a
-        call cls_bg
         ld a,1
         ld (noq),a
+        ld (texttrans),a        ; see-through text (the specks pass behind it)
+        ld (specks_on),a
+        ld de,$0000
+        ld bc,$2040
+        call tex_rect
         ld a,1
         ld b,0
         call set_ink
@@ -99,6 +102,7 @@ page_wait:
         ld a,h
         or l
         call nz,.call
+        call speck_tick
         call do_frame
         pop bc
         call check_start
@@ -135,6 +139,9 @@ unlock_classic:
 ; TITLE: bubble logo, rotating messages, a chase along the counter
 ; ---------------------------------------------------------------------
 title_screen:
+        xor a
+        ld (specks_on),a
+        ld (cbexact),a
         ld a,MODE1
         ld (palbase),a
         call dl_reset
@@ -155,7 +162,7 @@ title_screen:
         call title_msg
         ld hl,0
         ld (attr_t),hl
-        ld a,14                 ; chase sprites + message: spread the commit
+        ld a,8                  ; chase sprites + message: spread the commit
         ld (cbudget),a
 .l:     call dl_reset
         call title_chase
@@ -195,11 +202,6 @@ title_msg:
         ld de,TITLE_MSG_Y
         ld bc,$2005
         call fill_rect
-        xor a
-        ld (noq),a
-        ld de,TITLE_MSG_Y
-        ld bc,$2005
-        call queue_rect
         ld a,(tmsg)
         ld hl,tmsgs
         call idx_word
@@ -210,6 +212,19 @@ title_msg:
         ld a,2
 .c:     ld e,TITLE_MSG_Y
         call text_c
+        xor a
+        ld (noq),a
+        ld d,0                  ; queue it as narrow strips (light per-frame commits)
+.q:     push de
+        ld e,TITLE_MSG_Y
+        ld bc,$0405
+        call queue_rect
+        pop de
+        ld a,d
+        add a,4
+        ld d,a
+        cp 32
+        jr nz,.q
         ld a,(tmsg)
         inc a
         cp NTMSG
@@ -272,10 +287,6 @@ title_chase:
         ld a,(tmpb)
         add a,SPR_PICKLE_A_L
         ld c,40
-        call .put
-        ld a,(tmpb)
-        add a,SPR_CHILLI_A_L
-        ld c,52
         jr .put
 .r2:    ; rightwards: the gang flees, Sam peppers them
         ld a,SPR_HOTDOG_STUN
@@ -284,18 +295,11 @@ title_chase:
         ld a,SPR_EGG_STUN
         ld c,40
         call .put
-        ld a,SPR_PICKLE_STUN
+        ld a,SPR_CHILLI_STUN
         ld c,28
         call .put
-        ld a,(framecount)
-        and 4
-        rrca
-        rrca
-        add a,SPR_PEPPER_A
-        ld c,16
-        call .put
         ld a,SPR_SAM_THROW
-        ld c,4
+        ld c,10
 .put:   ; A = sprite, C = offset; screen x = ch_x - 64 + offset (skip if off screen)
         ld e,a
         ld a,(ch_x)
@@ -378,6 +382,9 @@ meet_menu:
         call page
         ld hl,meet_t
         call .rows
+        xor a
+        ld (framecount),a
+        call meet_anim
         call wipe_show
         ld hl,mus_info_0
         ld de,mus_info_1
@@ -390,6 +397,9 @@ meet_menu:
         call page
         ld hl,good_t
         call .rows
+        xor a
+        ld (framecount),a
+        call good_anim
         call wipe_show
         ld bc,300
         ld hl,good_anim
@@ -456,52 +466,62 @@ gd2:    db "1000 POINTS",0
 gn3:    db "GOLDEN SPATULA - NEW!",0
 gd3:    db "STUNS THE LOT! 1500",0
 meet_anim:
-        ld a,SPR_HOTDOG_A
-        jr anim4
-good_anim:
-        ld a,SPR_COFFEE
-        ld (tmpa),a
-        ld c,13
-        ld b,4
-.l:     push bc
-        ld b,8
-        ld a,(tmpa)
-        call spr_put
-        pop bc
-        ld a,c
-        add a,12
-        ld c,a
-        ld a,(tmpa)
-        inc a
-        ld (tmpa),a
-        djnz .l
-        ret
-anim4:  ; A = first enemy sprite: the four chasers walking on the spot
-        ld (tmpa),a
+        ld a,(framecount)       ; repaint the walkers every 8 frames (no sprites)
+        and 7
+        ret nz
         ld a,(framecount)
         and 8
         rrca
         rrca
+        ld b,a                  ; 0 / 2: walk frame
+        ld a,SPR_HOTDOG_A
+        add a,b
+        ld c,6                  ; step between characters
+        jr paint4
+good_anim:
+        ld a,(framecount)
+        and 63
+        ret nz                  ; static: paint once in a while (first frame paints)
+        ld a,SPR_COFFEE
+        ld c,1
+; paint4: A = first sprite id, C = id step -> four icons at col 2, rows 13/25/37/49
+paint4:
+        ld (tmpa),a
+        ld a,c
         ld (tmpb),a
-        ld c,13
+        ld e,13
         ld b,4
 .l:     push bc
+        push de
+        ld d,2
+        ld bc,$0308
+        push de
+        call tex_rect
+        pop de
         ld a,(tmpa)
+        call bg_icon
+        pop de
+        ld a,e
+        add a,12
         ld e,a
         ld a,(tmpb)
-        add a,e
-        ld b,8
-        call spr_put
-        pop bc
-        ld a,c
-        add a,12
-        ld c,a
+        ld b,a
         ld a,(tmpa)
-        add a,6
+        add a,b
         ld (tmpa),a
+        pop bc
         djnz .l
         ret
-
+; bg_icon: A = sprite id, D = col, E = row -> paint unshifted into BG (queued by caller)
+bg_icon:
+        push iy
+        ld iy,bgtmp
+        ld (iy+1),a
+        ld (iy+2),d
+        ld (iy+3),e
+        call bgobj_paint
+        pop iy
+        ret
 ; ---------------------------------------------------------------------
 ; DEMO: the autopilot cooks a random kitchen
 ; ---------------------------------------------------------------------
@@ -710,6 +730,13 @@ enter_hiscore:
         ld hl,1800
         ld (attr_t),hl
 .loop:  call dl_reset
+        ld a,1
+        ld (noq),a
+        ld de,$0B1E
+        ld bc,$0A0A
+        call tex_rect
+        xor a
+        ld (noq),a
         ld a,3
         ld b,0
         call set_ink
@@ -780,6 +807,7 @@ enter_hiscore:
 .nr:    ld a,(keysnew)
         and 4
         jr nz,.done
+        call speck_tick
         call do_frame
         ld hl,(attr_t)
         dec hl
@@ -863,6 +891,7 @@ main_menu:
         ld b,a
         ld a,SPR_SAM_A
         call spr_put
+        call speck_tick
         call do_frame
         ld a,(keysnew)
         and $20
@@ -981,16 +1010,10 @@ menu_sound:
 
 menu_draw:
         ld a,1
-        ld (noq),a
-        xor a
+        ld (noq),a              ; one queued rect for the lot (below)
         ld de,$040E
         ld bc,$1C30
-        call fill_rect
-        xor a
-        ld (noq),a
-        ld de,$040E
-        ld bc,$1C30
-        call queue_rect
+        call tex_rect
         ld a,1
         ld hl,mi0
         ld de,$0610
@@ -1006,7 +1029,7 @@ menu_draw:
         ld (nameb+1),a
         ld a,3
         ld hl,nameb
-        ld de,$161C
+        ld de,$171C
         call text
         ld a,(classic)
         or a
@@ -1030,7 +1053,12 @@ menu_draw:
         ld a,2
         ld hl,mhelp
         ld e,59
-        jp text_c
+        call text_c
+        xor a
+        ld (noq),a
+        ld de,$040E
+        ld bc,$1C32
+        jp queue_rect
 s_menu: db "MAIN MENU",0
 mi0:    db "PLAY FROM KITCHEN 1",0
 mi1:    db "START AT KITCHEN",0
@@ -1175,7 +1203,7 @@ game_over:
         jp stop_music
 over_anim:
         ld a,SPR_SAM_DIZZY
-        ld bc,$3A06
+        ld bc,$3A36
         jp spr_put
 s_over: db "GAME OVER",0
 s_dead: db "ALL COOKS DEAD",0
@@ -1213,14 +1241,19 @@ print_bcd2:
 ; ---------------------------------------------------------------------
 OU_PIECES equ 24
 order_up:
+        xor a
+        ld (specks_on),a
+        ld (cbexact),a
         ld a,MODE1
         ld (palbase),a
         call dl_reset
         call do_frame
-        xor a
-        call cls_bg
         ld a,1
         ld (noq),a
+        ld (texttrans),a
+        ld de,$0000
+        ld bc,$2040
+        call tex_rect
         ld a,1
         ld b,0
         call set_ink
@@ -1602,8 +1635,7 @@ clear_both:
         push bc
         ld a,1
         ld (noq),a
-        xor a
-        call fill_rect
+        call tex_rect
         xor a
         ld (noq),a
         pop bc
@@ -1637,6 +1669,13 @@ bg_to_stat:
         jr nz,.r
         ret
 ou_hud:
+        ld a,1
+        ld (noq),a
+        ld de,$1C00
+        ld bc,$0205
+        call tex_rect
+        xor a
+        ld (noq),a
         ld a,(ou_n)
         ld b,0
         ld c,a
@@ -1842,3 +1881,144 @@ save_records:
         ld a,1
         out ($37),a
         ret
+
+; ---------------------------------------------------------------------
+; speck_tick: the salt (yellow) and pepper (blue) planes drift past each
+; other in a shaker rhythm - shake-shake-shake ... pause.  Specks are
+; drawn as single pixels in vblank and slip behind anything already on
+; the page.  Also sets the commit budget for the frame.
+; ---------------------------------------------------------------------
+speck_tick:
+        ld a,(specks_on)
+        or a
+        ret z
+        ; budget: what the sprites already listed leave over
+        ld hl,(dlptr)
+        ld de,drawlist
+        or a
+        sbc hl,de
+        srl l
+        srl l                   ; sprites listed
+        ld a,l
+        add a,a
+        add a,l
+        add a,a
+        add a,a                 ; *12
+        ld b,a
+        ld a,20
+        sub b
+        jr c,.b0
+        cp 4
+        jr nc,.b1
+.b0:    ld a,4
+.b1:    ld (cbudget),a
+        ld a,1
+        ld (cbexact),a
+        ; rhythm: three shakes of 8 frames, 2 apart, then a pause (64-frame bar)
+        xor a
+        ld (tmpx),a             ; x jitter
+        ld a,(framecount)
+        and 63
+        cp 30
+        jr nc,.still
+        ld b,10
+.m10:   sub b
+        jr nc,.m10
+        add a,b
+        cp 8
+        jr nc,.still
+        ld a,(framecount)
+        and 2
+        dec a                   ; +1 / -1
+        ld (tmpx),a
+        ld a,(framecount)
+        and 1
+        jr nz,.still
+        ld hl,salt_off
+        inc (hl)
+        ld hl,pep_off
+        inc (hl)
+.still: ld ix,spk_tab
+        ld c,0
+.l:     ld a,c
+        cp SPK_N/2
+        ld a,(tmpx)
+        jr nc,.pep
+        ; salt: drifts right, jiggles with the shake
+        ld e,a
+        ld a,(salt_off)
+        add a,(ix+0)
+        add a,e
+        and 127
+        ld b,a
+        ld a,(ix+1)
+        sub e
+        ld d,1
+        jr .put
+.pep:   ; pepper: drifts left, jiggles the other way
+        ld e,a
+        ld a,(pep_off)
+        ld d,a
+        ld a,(ix+0)
+        sub d
+        sub e
+        and 127
+        ld b,a
+        ld a,(ix+1)
+        add a,e
+        ld d,2
+.put:   push bc
+        ld c,a
+        ; only where the page is bare background
+        push de
+        ld a,c
+        call bgrow
+        ld a,b
+        rrca
+        rrca
+        and $3F
+        add a,l
+        ld l,a
+        ld a,b
+        and 3
+        ld e,a
+        ld d,0
+        push hl
+        ld hl,spk_mask
+        add hl,de
+        ld a,(hl)
+        pop hl
+        and (hl)
+        jr nz,.sk2
+        push de                 ; keep clear of anything drawn: this byte and its
+        dec hl                  ; neighbours, two rows up and down
+        ld de,-64
+        add hl,de
+        ld e,5
+        xor a
+.cr:    or (hl)
+        inc hl
+        or (hl)
+        inc hl
+        or (hl)
+        push de
+        ld de,30
+        add hl,de
+        pop de
+        dec e
+        jr nz,.cr
+        pop de
+        or a
+.sk2:   pop de
+        jr nz,.skip
+        ld e,d
+        call dl_pixel
+.skip:  pop bc
+        inc ix
+        inc ix
+        inc c
+        ld a,c
+        cp SPK_N
+        jr nz,.l
+        ret
+spk_mask: db $C0,$30,$0C,$03

@@ -144,6 +144,8 @@ play_kitchen:
         ld (pop_w),a
         ld (pop_tim),a
         call bgobjs_reset
+        xor a
+        ld (texttrans),a        ; kitchens: solid HUD/popups
         call draw_kitchen
         call setup_round
         call clear_erase
@@ -292,17 +294,30 @@ game_frame:
         ret
 
 do_pause:
-        call clear_erase        ; the frozen scene stays on screen
         ld a,SFX_BLIP
         call play_sfx
+        ; the HUD line says so (through the BG + commit queue, snow-free)
+        ld a,1
+        ld (noq),a
+        ld de,$0000
+        ld bc,$2006
+        xor a
+        call fill_rect
+        ld a,1
+        ld b,0
+        call set_ink
+        ld hl,s_paused
+        ld e,0
+        call print_c
+        xor a
+        ld (noq),a
+        ld de,$0000
+        ld bc,$2006
+        call queue_rect
 .l:     call dl_reset
-        ld a,(framecount)
-        and 16
-        jr z,.n
-        ld bc,$0D1C
-        ld e,P_PAUSED
-        call dl_text
-.n:     call do_frame
+        call draw_sprites_frozen
+        call keep_compute
+        call do_frame
         ld a,(keysnew)
         bit 3,a
         ld a,R_QUIT
@@ -310,7 +325,24 @@ do_pause:
         ld a,(keysnew)
         bit 1,a
         jr z,.l
+        xor a
+        ld (keysnew),a          ; don't let this P pause us again
+        ld a,2
+        ld (hudflag),a
         ld a,$FF
+        ret
+s_paused: db "PAUSED - P TO GO ON, X TO QUIT",0
+; same sprites as last frame, nothing moves
+draw_sprites_frozen:
+        ld a,(pop_tim)          ; let draw_sprites do the work, popup clock held
+        push af
+        ld a,(spk_tim)
+        push af
+        call draw_sprites
+        pop af
+        ld (spk_tim),a
+        pop af
+        ld (pop_tim),a
         ret
 
 cycle_sound:
@@ -634,6 +666,9 @@ sam_hit:
         ld a,(godmode)
         or a
         ret nz
+        ld a,(mode)
+        cp 2
+        ret z                   ; the demo cook can't be caught
         ld iy,enemies
         ld b,MAXEN
 .l:     ld a,(iy+E_ST)
@@ -1295,7 +1330,7 @@ draw_sprites:
         ld b,a
         ld a,(tmpa)
         call spr_put
-.ns:    xor a
+.ns:    ld a,8                  ; back to the default (lean path, never kept)
         ld (dltag),a
         jp pop_tick
 

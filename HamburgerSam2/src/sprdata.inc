@@ -9,7 +9,7 @@ sprsrc:
     dw ss_SAM_THROW_L-spr_src_start+STATBG : db 8,0
     dw ss_SAM_CLIMB_A-spr_src_start+STATBG : db 8,0
     dw ss_SAM_CLIMB_B-spr_src_start+STATBG : db 8,0
-    dw ss_SAM_FRONT-spr_src_start+STATBG : db 8,0
+    dw ss_SAM_FRONT-spr_src_start+STATBG : db 8,1
     dw ss_SAM_CHEER-spr_src_start+STATBG : db 8,1
     dw ss_SAM_DIZZY-spr_src_start+STATBG : db 8,1
     dw ss_SAM_PLATE-spr_src_start+STATBG : db 8,1

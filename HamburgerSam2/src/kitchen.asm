@@ -21,6 +21,8 @@ LV_ROST  equ 28
 LV_FMAP  equ 34
 PLATE    equ 5                  ; "floor" 5 = the plate
 
+rivtab:  db 0,3,1,1               ; girder colour -> rivet / rung colour
+shadtab: db 0,2,3,2               ; girder colour -> shadow dots
 ; bgrow: A = row -> HL = BGBUF + row*32   (DE preserved)
 bgrow:
         ld l,a
@@ -132,6 +134,46 @@ load_kitchen:
         add a,a
         add a,a
         ld (rung1),a            ; c<<6|c<<4|c<<2
+        ; texture: rivets every other cell, dotted shadow under the girders,
+        ; ladder rungs in the rivet colour
+        ld a,(lvh+LV_GB)
+        and 3
+        ld c,a                  ; girder colour
+        ld hl,rivtab
+        call idx_byte
+        ld b,a                  ; rivet colour
+        add a,a
+        add a,a
+        add a,a
+        add a,a
+        ld d,a                  ; rc<<4
+        ld a,(lvh+LV_GB)
+        and $CF
+        or d
+        ld (girriv),a
+        ld a,c
+        ld hl,shadtab
+        call idx_byte
+        ld e,a
+        add a,a
+        add a,a
+        add a,a
+        add a,a
+        add a,e
+        add a,a
+        add a,a                 ; sc*$44: pixels 0 and 2
+        ld (girshad),a
+        ld a,b
+        add a,a
+        add a,a
+        add a,b
+        add a,a
+        add a,a
+        add a,b                 ; rc*21
+        ld (rung0),a
+        add a,a
+        add a,a
+        ld (rung1),a
         ld a,(lvh+LV_CSS)
         or MODE1
         ld (palbase),a
@@ -298,8 +340,19 @@ draw_kitchen:
 .gi:    rla
         jr nc,.g0
         push af
+        push de
+        bit 0,e                 ; odd cells carry a rivet
         ld a,(lvh+LV_GB)
+        jr z,.gp
+        ld a,(girriv)
+.gp:    ld (hl),a
+        ld de,32                ; dotted shadow on the row below
+        add hl,de
+        ld a,(girshad)
         ld (hl),a
+        or a
+        sbc hl,de
+        pop de
         pop af
 .g0:    inc hl
         dec e
@@ -738,23 +791,6 @@ piece_ix:
         pop ix
         ret
 
-redraw_column:
-        ld a,(tmpc)
-        ld hl,colfirst
-        call idx_byte
-        call piece_ix
-        ld a,(tmpc)
-        ld hl,ncolpc
-        call idx_byte
-        ld b,a
-.l:     push bc
-        call draw_piece
-        ld de,PSIZE
-        add ix,de
-        pop bc
-        djnz .l
-        ret
-
 ; one frame of fall for IX
 fall_step:
         ld a,1
@@ -1154,6 +1190,13 @@ hud_digit:
 ; popups: A = x pixel, E = popup string index
 ; ---------------------------------------------------------------------
 popup_at:
+        push af
+        ld a,(specks_on)        ; not on information pages (e.g. the ending's 1UP)
+        or a
+        jr z,.go
+        pop af
+        ret
+.go:    pop af
         push de
         push af
         call pop_remove         ; one at a time

@@ -601,6 +601,9 @@ putchar:
         or $88
         ld h,a
 .v:     pop de
+        ld a,(texttrans)        ; Hamburger Sam II: see-through text on textured pages
+        or a
+        jr nz,.tr
         ld b,5
 .row:   ld a,(de)
         inc de
@@ -618,6 +621,33 @@ putchar:
         pop de
         djnz .row
         ret
+.tr:    ld b,5
+.trw:   ld a,(de)
+        inc de
+        push de
+        push hl
+        ld e,a
+        ld d,0
+        ld hl,pixmask8
+        add hl,de
+        ld c,(hl)               ; set pixels
+        ld hl,inktab
+        add hl,de
+        ld a,(hl)
+        and c
+        ld d,a                  ; ink, set pixels only
+        ld a,c
+        cpl
+        pop hl
+        and (hl)
+        or d
+        ld (hl),a
+        ld de,32
+        add hl,de
+        pop de
+        djnz .trw
+        ret
+pixmask8: db $00,$0C,$30,$3C,$C0,$CC,$F0,$FC
 
 ; scraddr: D = column, E = row -> HL = VRAM + row*32 + col
 scraddr:
@@ -788,6 +818,9 @@ putchar2:
         push bc
         push de
         ld c,a
+        ld a,(texttrans)
+        or a
+        jr nz,.tr
         ld a,(ink_bg)
         ld e,a
         ld a,(ink_fg)
@@ -807,6 +840,45 @@ putchar2:
         ld (hl),c
         dec l
         add hl,de
+        pop de
+        pop bc
+        djnz .row
+        ret
+.tr:    ; see-through: mask = glyph pixels, data = ink on those pixels
+        ld de,$0300
+        call dbl_byte_left
+        ld (dblm),a
+        call dbl_byte_right
+        ld (dblm+1),a
+        ld a,(ink_fg)
+        ld d,a
+        ld e,0
+        call dbl_byte_left
+        ld (dbld),a
+        call dbl_byte_right
+        ld (dbld+1),a
+        ld b,2
+.t2:    push bc
+        ld a,(dblm)
+        cpl
+        and (hl)
+        ld c,a
+        ld a,(dbld)
+        or c
+        ld (hl),a
+        inc l
+        ld a,(dblm+1)
+        cpl
+        and (hl)
+        ld c,a
+        ld a,(dbld+1)
+        or c
+        ld (hl),a
+        dec l
+        ld de,32
+        add hl,de
+        pop bc
+        djnz .t2
         pop de
         pop bc
         djnz .row
@@ -849,6 +921,12 @@ dbl_byte_right:
         ld a,b
         pop bc
         ret
+
+; tex_rect: D col, E row, B width, C height -> clear to the page background (+ queue)
+; (the salt and pepper are animated specks drawn by speck_tick)
+tex_rect:
+        xor a
+        jp fill_rect
 
 ; fill_rect: D col, E row, B width, C height, A byte -> BG + queue
 fill_rect:
@@ -973,7 +1051,20 @@ render:
         pop hl
         or a
         jr nz,.e
-.ek:    push hl
+.ek:    ld a,b
+        dec a
+        jr nz,.ek2
+        ld a,c
+        dec a
+        jr nz,.ek2              ; 1x1 (a speck/pixel): quick restore
+        ld a,d
+        or $88
+        ld b,a
+        ld c,e
+        ld a,(bc)
+        ld (de),a
+        jp .e
+.ek2:   push hl
         ex de,hl
         ld a,b
         cp 3
@@ -1369,6 +1460,8 @@ render:
         inc hl
         ld (hl),5
         inc hl
+        ld (hl),0               ; untagged
+        inc hl
         ld (elptr),hl
         pop de
         pop hl
@@ -1409,6 +1502,8 @@ render:
         ld (hl),1
         inc hl
         ld (hl),1
+        inc hl
+        ld (hl),0               ; untagged
         inc hl
         ld (elptr),hl
         ld a,(ix+3)

@@ -113,7 +113,7 @@ for n, a in (("PEPPER_A", PEPPER_A), ("PEPPER_B", PEPPER_B), ("COFFEE", COFFEE),
              ("ARROW", ARROW)):
     spr(n, a)
 
-ONESHIFT = {"SAM_DIZZY", "SAM_UPSIDE", "SAM_CHEER", "SAM_PLATE", "COFFEE", "FRIES", "ICECREAM", "SPATULA", "SPARK_A", "SPARK_B", "ARROW", "PEPPER_A", "PEPPER_B"}
+ONESHIFT = {"SAM_FRONT", "SAM_DIZZY", "SAM_UPSIDE", "SAM_CHEER", "SAM_PLATE", "COFFEE", "FRIES", "ICECREAM", "SPATULA", "SPARK_A", "SPARK_B", "ARROW", "PEPPER_A", "PEPPER_B"}
 L.append("NSPR equ %d" % len(SPRS))
 for i, (n, _) in enumerate(SPRS):
     L.append("SPR_%s equ %d" % (n, i))
@@ -313,6 +313,19 @@ sh = Image.new("RGB", (3 * w + 20, 3 * h + 20), (40, 40, 40))
 for i, im in enumerate(ims):
     sh.paste(im, ((i % 3) * (w + 10), (i // 3) * (h + 10)))
 sh.resize((sh.width // 2, sh.height // 2)).save(os.path.join(PREV, "kitchens.png"))
+
+# salt and pepper specks for the information screens: base positions of two planes
+import random
+rnd = random.Random(1984)
+pts = []
+while len(pts) < 24:
+    x, y = rnd.randrange(128), rnd.randrange(15, 62)
+    if any(abs(x - a) < 12 and abs(y - b) < 5 for a, b in pts):
+        continue
+    pts.append((x, y))
+L.append("SPK_N equ %d" % len(pts))
+L.append("spk_tab:")
+db([v for p in pts for v in p])
 
 # page-aligned VRAM row address table (used by dl_pixel in core.asm)
 L.append("    align 256")

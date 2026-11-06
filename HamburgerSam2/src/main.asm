@@ -9,6 +9,9 @@
 VRAM    equ $7000
 BGBUF   equ $F800                ; working background (VRAM image)
 STATBG  equ $F000                ; clean kitchen (girders, ladders, plates)
+DLBUF   equ $EE00                ; draw list (40 entries) and erase list
+drawlist equ DLBUF
+eraselist equ DLBUF+$A4
 node    equ $7E00                ; floor/ladder graph, see build_nodes (160)
 dist    equ $7EA0                ; BFS distances, floor*32+cell (160)
 bfsq    equ $7C80                ; BFS ring queue (128, wraps)
@@ -72,6 +75,8 @@ start:
         ld bc,HIT_N*8
         ldir
         call build_sprites
+        ld a,8
+        ld (dltag),a            ; all sprites take the lean 8-px path (tags 1-7: game)
         call clear_erase        ; RMAP is free now: kept-sprite tables
         call load_records
         jp attract
@@ -175,8 +180,11 @@ code_end:
         savebin "hamsam2.bin",start,code_end-start
         assert spr_src_end-spr_src_start <= 2048, "sprite sources too big for STATBG"
 shtab   equ spr_src_start
-SPRWORK equ shtab+NSPR*8
-        assert SPRWORK+SHIFTSIZE <= STATBG, "out of memory for sprites"
+; the pre-shifted sprites live in the BennVenn SD loader's SRAM (bank 1 at $4000-$67FF,
+; the mapping the loader leaves; the DOS copy there is overwritten - as Cybernoid v1.1 did)
+SPRWORK equ $4000
+        assert SPRWORK+SHIFTSIZE <= $6700, "sprites too big for the SRAM window"
+        assert shtab+NSPR*8 <= DLBUF, "out of memory"
         display "code+data end: ",/A,code_end, "  sprites end: ",/A,SPRWORK+SHIFTSIZE
 
 ; =====================================================================
@@ -239,6 +247,13 @@ ink_fg: db 0
 ink_bg: db 0
 inktab: ds 8
 textdirect: db 0
+specks_on: db 0
+salt_off: db 0
+bgtmp:  ds 4
+pep_off: db 0
+texttrans: db 0
+dblm:   dw 0
+dbld:   dw 0
 popcol: db 0
 popbg:  db 0
 cbudget: db 0
@@ -277,8 +292,6 @@ shiftend: dw 0
 rowd:   ds 6
 dlptr:  dw 0
 elptr:  dw 0
-drawlist: ds 4*16+1
-eraselist: ds 5*16+2
 dltag:  db 0
 kpass:  db 0
 movers: db 0
@@ -319,6 +332,8 @@ rail0:  db 0
 rail1:  db 0
 rung0:  db 0
 rung1:  db 0
+girriv: db 0
+girshad: db 0
 ymin:   db 0
 ymax:   db 0
 cmoved: db 0
@@ -394,7 +409,7 @@ attr_t: dw 0
 tmsg:   db 0
 infohook: dw 0
 hiptr:  dw 0
-nameb:  ds 6
+nameb:  ds 8                  ; (7 used by print_bcd2)
 hitab:  ds HIT_N*8
 hpos:   db 0
 hrow:   db 0

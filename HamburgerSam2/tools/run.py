@@ -18,6 +18,9 @@ cmd = [os.path.join(root, "tools", "vzemu", "vzemu"), os.path.join(root, "releas
 for a in args[1:]:
     f, rest = a.split(":", 1)
     name, val = rest.split("=")
-    cmd += ["-poke", "%s:%s:%x" % (f, sym[name], int(val, 0))]
+    off = 0
+    if "+" in name:
+        name, o = name.split("+"); off = int(o, 0)
+    cmd += ["-poke", "%s:%x:%x" % (f, int(sym[name], 16) + off, int(val, 0))]
 cmd += extra
 sys.exit(subprocess.call(cmd))

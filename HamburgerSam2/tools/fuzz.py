@@ -2,7 +2,7 @@
 """Random-input soak: mashes keys/joysticks for N frames, reports snow, render timing, stack."""
 import os, random, subprocess, sys, tempfile, struct
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sym = {l.split()[1]: int(l.split()[0], 16) for l in open(os.path.join(ROOT, 'build', 'tennis2.sym'))}
+sym = {l.split()[1]: int(l.split()[0], 16) for l in open(os.path.join(ROOT, 'build', 'hamsam2.sym'))}
 seed = int(sys.argv[1]) if len(sys.argv) > 1 else 1
 frames = int(sys.argv[2]) if len(sys.argv) > 2 else 60000
 random.seed(seed)
@@ -17,7 +17,7 @@ while f < frames and len(ev) < 4000:
 kf = os.path.join(tempfile.gettempdir(), 'fuzz%d.txt' % seed)
 open(kf, 'w').write('\n'.join(ev) + '\n')
 tr = os.path.join(tempfile.gettempdir(), 'fuzzsp%d.bin' % seed)
-r = subprocess.run([os.path.join(ROOT, 'tools', 'vzemu', 'vzemu'), os.path.join(ROOT, 'build', 'TENNIS2.VZ'),
+r = subprocess.run([os.path.join(ROOT, 'tools', 'vzemu', 'vzemu'), os.path.join(ROOT, 'release', 'HAMSAM2.VZ'),
                     '-frames', str(frames), '-keys', kf, '-bennvenn',
                     '-trace', '%x:2:%s' % (sym['mode'], tr)], capture_output=True, text=True)
 d = open(tr, 'rb').read()
