@@ -201,15 +201,14 @@ starcol	ds 1
 colbuf	ds 3*PROWS
 	ALIGN 16
 BGBUF	ds 16
-QA	ds 5*270
-QB	ds 5*270
+QA	ds 2*270
+QB	ds 2*270
 STQA	ds 3*13+2
 STQB	ds 3*13+2
 	ALIGN 256
 HUDC	ds 256			; codes (128 used), page aligned
 HUDA	ds 256
 HUDK	ds 256
-HUDDIF	ds 128
 hudndif	ds 1
 hudall	ds 1
 hudlastA ds 2
@@ -223,11 +222,13 @@ BOSSBUF	ds $490
 ; boss-part glyph cache (dcache.asm)
 	ALIGN 256
 CMAP	ds 2048			; cached glyph code per ring cell
-CTABA	ds 512			; boss-part caches, page A (8 x 64)
-CTABB	ds 512			; page B
-SLOTQ	ds 256			; pool slot -> queue entry
+; in the WORK block, after the sprite set (which must end by 5400h):
+CTABA	equ $5400		; boss-part caches, page A (6 x 64)
+CTABB	equ $5580		; page B
+SLOTQ	equ $5700		; pool slot -> queue entry
 vars_end:
 STACKTOP equ $EFFE
+	DISPLAY "vars_end ",/H,vars_end
 	ASSERT vars_end <= $EE00
 
 	DISPLAY "code end: ",/H,code_end,"  vars end: ",/H,vars_end

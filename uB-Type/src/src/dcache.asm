@@ -10,7 +10,7 @@
 ;  CSLOT = 254 marks a cell holding a cached glyph; CMAP gives its code,
 ;  so a bullet passing over a gun is composed onto the gun.
 ; =====================================================================
-DC_ENT	equ 8
+DC_ENT	equ 6
 DC_MAXC	equ 11
 
 ; the cache table of the page being drawn -> HL
@@ -136,21 +136,16 @@ ds_cached:
 	ld hl,(qptr)
 	ld de,(dc_q0)
 	or a
-	sbc hl,de		; 5 * cells
+	sbc hl,de		; 2 * cells
 	ld a,l
-	ld b,0
-.d5:	or a
-	jr z,.dd
-	sub 5
-	inc b
-	jr .d5
-.dd:	ld a,b
+	srl a
 	cp DC_MAXC+1
 	ret nc
 	or a
 	ret z
 	ld (dch_n),a
-	; the entry: key, stamp, count, queue entries
+	; the entry: key, stamp, count, then per cell SHC address, code,
+	; bank, colour (read back from the page)
 	ld de,(dc_ent)
 	ld hl,dc_key
 	ldi
@@ -166,19 +161,48 @@ ds_cached:
 	inc de
 	inc de
 	ld hl,(dc_q0)
-	ld c,l			; (B = 0 from the count; BC = 5n below)
 	ld a,(dch_n)
 	ld b,a
-	add a,a
-	add a,a
-	add a,b
-	ld c,a
-	ld b,0
-	push bc
-	ldir
-	pop bc
+.rb:	ld c,(hl)
+	inc hl
+	ld a,(hl)
+	inc hl
+	push hl
+	ld h,a
+	ld l,c			; SHC address
+	ex de,hl
+	ld (hl),e
+	inc hl
+	ld (hl),d
+	inc hl
+	ex de,hl		; HL = SHC address, DE -> entry
+	set 7,h
+	ld a,(hl)		; code
+	ld (de),a
+	inc de
+	ld a,LV_ATTR
+	out (P_LV),a
+	ld a,(hl)		; bank
+	ld (de),a
+	inc de
+	ld a,(pool_bank)
+	or LV_SCREEN
+	out (P_LV),a
+	set 3,h
+	ld a,COL_ON
+	out (P_COLCTL),a
+	ld a,(hl)		; colour
+	ld (de),a
+	inc de
+	xor a
+	out (P_COLCTL),a
+	pop hl
+	djnz .rb
 	; their glyphs into the mirror (for compositing over them later)
-	ld hl,(dc_q0)
+	ld hl,(dc_ent)
+	ld de,8
+	add hl,de
+	push hl
 	ld a,(dch_n)
 	ld b,a
 .m:	push bc
@@ -193,7 +217,7 @@ ds_cached:
 	pop bc
 	djnz .m
 	; and the cell map
-	ld hl,(dc_q0)
+	pop hl
 	ld a,(dch_n)
 	ld b,a
 	jp dc_mark
@@ -236,7 +260,7 @@ dc_mirror:
 	MEMV BLK_WORK
 	ret
 
-; a cached part again: queue its entries. HL = entry
+; a cached part again: put its cells on the page. HL = entry
 dc_replay:
 	inc hl
 	inc hl
@@ -250,21 +274,24 @@ dc_replay:
 	add hl,de
 	push hl
 	ld b,a
-	add a,a
-	add a,a
-	add a,b
-	ld c,a
-	ld b,0
-	ld de,(qptr)
-	push de
-	ldir
-	ld (qptr),de
-	ld a,(dch_n)
-	ld hl,qcount
-	add a,(hl)
-	ld (hl),a
-	pop hl			; the entries just queued
-	pop de
+.r:	push bc
+	ld e,(hl)
+	inc hl
+	ld d,(hl)
+	inc hl
+	ld a,(hl)		; code
+	inc hl
+	ld b,(hl)		; bank
+	inc hl
+	ld c,(hl)		; colour
+	inc hl
+	push hl
+	ex de,hl
+	call scrput
+	pop hl
+	pop bc
+	djnz .r
+	pop hl			; the entries
 	ld a,(dch_n)
 	ld b,a
 	; fall into dc_mark

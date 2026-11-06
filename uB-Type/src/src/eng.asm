@@ -119,9 +119,6 @@ restore:
 	inc hl
 	ld d,(hl)
 	inc hl
-	inc hl
-	inc hl
-	inc hl
 	ld a,(de)		; SHC
 	set 7,d
 	ld (de),a		; screen
@@ -140,9 +137,6 @@ restore:
 .p2:	ld e,(hl)
 	inc hl
 	ld a,(hl)
-	inc hl
-	inc hl
-	inc hl
 	inc hl
 	xor $70^$58
 	ld d,a
@@ -166,9 +160,6 @@ restore:
 .p3:	ld e,(hl)
 	inc hl
 	ld d,(hl)
-	inc hl
-	inc hl
-	inc hl
 	inc hl
 	set 3,d
 	ld a,(de)		; SHK
@@ -752,103 +743,126 @@ drawspr_nc:
 	push iy
 	push hl
 	pop ix			; descriptor
-	ld (ds_x),bc		; (C = y, B = x)
 	bit 0,b
 	jr z,.v0
 	ld de,5
 	add hl,de
 	ld a,(hl)
-.v0:	ld (ds_w),a
+.v0:	ld (.wv+1),a		; W
 	inc hl
 	ld e,(hl)
 	inc hl
 	ld d,(hl)
 	inc hl
-	ld (ds_dat),de
+	ld (.dat+1),de		; data of column 0
 	ld e,(hl)
 	inc hl
 	ld d,(hl)		; colour table
 	ld a,(ix+10)
 	ld (ds_h),a
-	ld a,(ix+11)
-	ld (ds_h2),a
+	ld (.hh+1),a
 	; colour table for this vertical offset: + yo*hcm
 	ld a,c
 	and 3
-	ld (ds_yo),a
+	add a,a
+	add a,a
+	ld (.yo4+1),a		; 4yo
 	jr z,.y0
-	ld l,a
+	rrca
+	rrca
+	push bc
+	ld b,a
 	xor a
 .ym:	add a,(ix+12)
-	dec l
-	jr nz,.ym
+	djnz .ym
+	pop bc
 	add a,e
 	ld e,a
 	jr nc,.y0
 	inc d
-.y0:	ld (ds_ct),de
-	; columns: first one on screen, clip both sides
-	ld a,(ds_x+1)
+.y0:	; columns: first one on screen, clip both sides
+	ld a,b
 	srl a
 	sub 16			; col0
+	ld l,0			; j0
 	jp p,.c0
-	neg			; clipped on the left: j0 = -col0
-	ld (ds_j0),a
+	neg
+	ld l,a			; clipped on the left
 	xor a
-	jr .c1
-.c0:	ld c,a
-	xor a
-	ld (ds_j0),a
-	ld a,c
-.c1:	cp SCOLS
+.c0:	cp SCOLS
 	jp nc,.out		; wholly off the right-hand side
-	ld (ds_sc0),a
-	ld c,a
-	ld a,SCOLS
-	sub c
-	ld c,a			; room on the right
-	ld a,(ds_j0)
-	ld l,a
-	ld a,(ds_w)
+	ld (.sc0+1),a
+	neg
+	add a,SCOLS
+	ld h,a			; room on the right
+.wv:	ld a,0			; W
 	sub l
 	jp c,.out
 	jp z,.out
-	cp c
+	cp h
 	jr c,$+3
-	ld a,c
-	ld (ds_jn),a
-	; left clip: skip j0 columns of data and colour
+	ld a,h
+	ld (.jn+1),a		; columns drawn
 	ld a,l
 	or a
 	jr z,.nj
+	; left clip: skip j0 columns of data and colour
+	push bc
 	ld b,a
-	ld hl,(ds_dat)
+	push de
+	ld hl,(.dat+1)
 	ld e,(ix+11)
 	ld d,0
 .jm:	add hl,de
 	djnz .jm
-	ld (ds_dat),hl
-	ld a,(ds_j0)
+	ld (.dat+1),hl
+	pop hl			; colour table
 	ld b,a
-	ld hl,(ds_ct)
 	ld e,(ix+13)
 .cm:	add hl,de
 	djnz .cm
-	ld (ds_ct),hl
-.nj:	ld a,(ix+13)
+	ex de,hl
+	pop bc
+.nj:	ld (.ct+2),de		; colour table of the first column drawn
+	ld a,(ix+13)
 	ld (.cs+1),a
-	; rows
-	ld a,(ds_x)
+	ld a,(ix+11)
+	ld (.h2+1),a
+	ld hl,fcell
+	ld a,(caching)
+	or a
+	jr z,$+5
+	ld hl,cellsave
+	ld (.jcall+1),hl
+	; rows: row0 = y/4 - 4 (signed), nk = (H + 4yo + 15) / 16
+	ld a,c
 	srl a
 	srl a
 	sub 4
 	ld (ds_row0),a
-	ld a,(ds_yo)
-	add a,a
-	add a,a
-	ld (ds_yo4),a
+	; SHC address of (row0, sc0)
+	ld l,a
+	rla
+	sbc a,a
+	ld h,a
+	add hl,hl
+	add hl,hl
+	add hl,hl
+	add hl,hl
+	add hl,hl
+	add hl,hl
+.sc0:	ld de,0			; (sc0, patched; D stays 0)
+	add hl,de
+	ld de,(pstart)
+	add hl,de
+	ld a,h
+	and 7
+	or $70
+	ld h,a
+	ld (ds_ra),hl
+	ld a,(.yo4+1)
 	ld c,a
-	ld a,(ix+10)		; H
+	ld a,(ix+10)
 	add a,c
 	add a,15
 	rrca
@@ -859,45 +873,19 @@ drawspr_nc:
 	ld (ds_nk),a
 	xor a
 	ld (ds_k),a
-.krow:	ld a,(ds_row0)
-	ld hl,ds_k
-	add a,(hl)
-	jp m,.knext
-	cp PROWS
-	jp nc,.out
-	; SHC address of the first cell drawn on this row
-	rrca
-	rrca			; row*64: high bits in A, low in carry chain
-	ld l,a
-	and $3F
-	ld h,a
-	ld a,l
-	and $C0
-	ld l,a			; HL = row*64
-	ld a,(ds_sc0)
-	add a,l
-	ld l,a
-	ld de,(pstart)
-	add hl,de
-	res 3,h
-	ld (ds_ra),hl
-	; first sprite line in this cell: st = 16k - 4yo
-	ld a,(ds_k)
-	add a,a
-	add a,a
-	add a,a
-	add a,a
-	ld hl,ds_yo4
-	sub (hl)
-	ld (ds_st),a
+	; ---- row k: st = 16k - 4yo (negative on the first row: zt = -st)
+.yo4:	ld a,0
+	neg
+.krow:	ld (ds_st),a
 	ld c,0			; zt
-	jr nc,.pos
-	neg			; k = 0, yo > 0: blank lines on top
+	or a
+	jp p,.pos
+	neg
 	ld c,a
 	xor a
-.pos:	ld (ds_s0),a		; s0
+.pos:	ld (.s0+1),a		; s0
 	ld e,a
-	ld a,(ds_h)
+.hh:	ld a,0			; H
 	sub e			; lines left in the sprite
 	ld b,a
 	ld a,16
@@ -906,10 +894,17 @@ drawspr_nc:
 	jr c,$+3
 	ld a,b			; n
 	ld b,a
+	; row on screen?
+	ld a,(ds_row0)
+	ld hl,ds_k
+	add a,(hl)
+	jp m,.knext
+	cp PROWS
+	jp nc,.out
+	; patch the fill/copy entries from the aligned tables
 	ld a,16
 	sub c
 	sub b			; zb
-	; patch the fill/copy entries from the aligned tables
 	add a,a
 	ld l,a
 	ld h,ZENT>>8
@@ -917,7 +912,7 @@ drawspr_nc:
 	inc l
 	ld h,(hl)
 	ld l,a
-	ld (cell.zb+1),hl
+	ld (fcell.zb+1),hl
 	ld a,c
 	add a,a
 	ld l,a
@@ -926,7 +921,7 @@ drawspr_nc:
 	inc l
 	ld h,(hl)
 	ld l,a
-	ld (cell.zt+1),hl
+	ld (fcell.zt+1),hl
 	ld a,b
 	add a,a
 	add a,LENT-ZENT
@@ -936,40 +931,28 @@ drawspr_nc:
 	inc l
 	ld h,(hl)
 	ld l,a
-	ld (cell.ld+1),hl
+	ld (fcell.ld+1),hl
 	; first column: source = dat + s0, colour = ct + k
-	ld hl,(ds_dat)
-	ld a,(ds_s0)
-	add a,l
-	ld l,a
-	jr nc,$+3
-	inc h
+.dat:	ld hl,0
+.s0:	ld de,0			; (s0, patched; D stays 0)
+	add hl,de
 	ex de,hl		; DE = source
-	ld hl,(ds_ct)
 	ld a,(ds_k)
-	add a,l
-	ld l,a
-	jr nc,$+3
-	inc h
-	push hl
-	pop iy			; IY = colour entry
-	ld a,(ds_jn)
-	ld b,a
+.ct:	ld iy,0
+	add a,iyl
+	ld iyl,a
+	jr nc,$+4
+	inc iyh			; IY = colour entry
+.jn:	ld b,0
 	ld hl,(ds_ra)
 .jcol:	ld a,(iy+0)
 	inc a
 	jr z,.jsk		; FFh: nothing in this cell
 	dec a
-	push bc
-	push de
-	push hl
-	call cell
-	pop hl
-	pop de
-	pop bc
+.jcall:	call fcell		; (cell itself while a boss part is cached)
 .jsk:	inc hl
 	res 3,h
-	ld a,(ds_h2)
+.h2:	ld a,0			; (2H, patched)
 	add a,e
 	ld e,a
 	jr nc,$+3
@@ -980,13 +963,26 @@ drawspr_nc:
 	jr nc,$+4
 	inc iyh
 	djnz .jcol
-.knext:	ld a,2
+.knext:	ld hl,(ds_ra)		; next row
+	ld de,64
+	add hl,de
+	res 3,h
+	ld (ds_ra),hl
+	ld a,2
 	call sndsvc
 	ld hl,ds_k
 	inc (hl)
 	ld a,(ds_nk)
 	cp (hl)
-	jp nz,.krow
+	jr z,.out
+	ld a,(hl)		; st = 16k - 4yo
+	add a,a
+	add a,a
+	add a,a
+	add a,a
+	ld hl,.yo4+1
+	sub (hl)
+	jp .krow
 .out:	pop iy
 	pop ix
 	ret
@@ -1008,6 +1004,135 @@ ZENT:	dw zfill_end,zfill_end-2,zfill_end-4,zfill_end-6,zfill_end-8,zfill_end-10,
 	dw zfill_end-16,zfill_end-18,zfill_end-20,zfill_end-22,zfill_end-24,zfill_end-26,zfill_end-28,zfill_end-30,zfill_end-32
 LENT:	dw ldi_end,ldi_end-2,ldi_end-4,ldi_end-6,ldi_end-8,ldi_end-10,ldi_end-12,ldi_end-14
 	dw ldi_end-16,ldi_end-18,ldi_end-20,ldi_end-22,ldi_end-24,ldi_end-26,ldi_end-28,ldi_end-30,ldi_end-32
+
+; ---------------------------------------------------------------------
+;  fcell: the common case, a sprite cell over open space, without the
+;  generic cell's bookkeeping. A = ink, HL = SHC address, DE = column
+;  source; keeps HL, DE, B, IY. Anything else goes to cell.
+; ---------------------------------------------------------------------
+fcell:	ld (cl_ink),a
+	ld a,h
+	xor $70^$60
+	ld h,a
+	ld a,(hl)		; CSLOT
+	or a
+	jr nz,.g1
+	ld a,h
+	xor $60^$58
+	ld h,a
+	ld a,(hl)		; SHA: background bank
+	or a
+	jr nz,.g2
+	ld a,h
+	xor $58^$70
+	ld h,a
+	ld a,(hl)		; SHC: background code
+	cp BLANK_CODE
+	jr nz,.g3
+	ld a,(pool_slot)
+	inc a
+	ret z			; pool full
+	ld (pool_slot),a
+	ld c,a
+	ld a,h
+	xor $70^$60
+	ld h,a
+	ld (hl),c		; CSLOT = slot + 1
+	xor $60^$70
+	ld h,a
+	; the glyph
+	push bc			; (the caller's count)
+	push de			; (the column source)
+	ld (fc_addr),hl
+	ex de,hl
+	ld de,(pool_dst)
+	call fcell_copy
+	; on to the page: code, attribute (bank), colour
+	ld hl,(fc_addr)
+	set 7,h			; screen
+	ld a,(pool_code)
+	ld (hl),a
+	ld a,LV_ATTR
+	out (P_LV),a
+	ld a,(pool_bank)
+	ld (hl),a
+	or LV_SCREEN
+	out (P_LV),a
+	set 3,h			; colour
+	ld a,COL_ON
+	out (P_COLCTL),a
+	ld a,(cl_ink)
+	ld (hl),a
+	xor a
+	out (P_COLCTL),a
+	; and its address into the page's restore list
+	ld hl,(qptr)
+	ld a,(fc_addr)
+	ld (hl),a
+	inc hl
+	ld a,(fc_addr+1)
+	ld (hl),a
+	inc hl
+	ld (qptr),hl
+	ld hl,qcount
+	inc (hl)
+	; next pool glyph
+	ld hl,(pool_dst)
+	ld a,l
+	add a,16
+	ld l,a
+	jr nc,$+3
+	inc h
+	ld (pool_dst),hl
+	ld hl,pool_code
+	inc (hl)
+	call z,fc_bank
+	pop de
+	pop bc
+	ld hl,(fc_addr)
+	ret
+.g1:	ld a,h
+	xor $60^$70
+	ld h,a
+	jr .gen
+.g2:	ld a,h
+	xor $58^$70
+	ld h,a
+.g3:
+.gen:	ld a,(cl_ink)
+cellsave:	; the generic cell, keeping HL DE B
+	push bc
+	push de
+	push hl
+	call cell
+	pop hl
+	pop de
+	pop bc
+	ret
+
+fc_bank:	; into the page's second pool bank
+	ld (hl),$80
+	ld hl,PCGWIN
+	ld (pool_dst),hl
+	ld a,(pool_bank)
+	inc a
+	ld (pool_bank),a
+	or LV_SCREEN
+	out (P_LV),a
+	ret
+
+; copy a sprite column into the glyph at DE: zt blank lines, n lines from
+; HL, zb blank lines (entries patched per row by drawspr)
+fcell_copy:
+	xor a
+fcell.zt:
+	call zfill_end
+fcell.ld:
+	call ldi_end
+	xor a
+fcell.zb:
+	call zfill_end
+	ret
 
 ; ---------------------------------------------------------------------
 ;  one sprite cell: HL = SHC address, A = ink, (ds_src) = column source.
@@ -1080,12 +1205,8 @@ cell:	ld (cl_ink),a
 	ld h,a
 	push hl
 	ld de,(pool_dst)
-	xor a
-.zt:	call zfill_end
 	ld hl,(ds_src)
-.ld:	call ldi_end
-	xor a
-.zb:	call zfill_end
+	call fcell_copy
 	pop de
 	ld c,0			; black paper
 	jr .q
@@ -1101,9 +1222,10 @@ cell:	ld (cl_ink),a
 	ld (cl_pap),a
 	res 3,h
 	push hl
-.comp:	call bg_fetch
+.comp:	ld de,(pool_dst)
+	call bg_fetch		; background glyph straight into the pool glyph
 	ld de,(pool_dst)
-	call compose
+	call ovl		; and the sprite over it
 	pop de
 	ld a,(cl_pap)
 	ld c,a
@@ -1125,34 +1247,15 @@ cell:	ld (cl_ink),a
 	ld h,a
 	or 1
 	ret
-.q:	; queue entry: SHC address, code, bank, colour
-	ld a,(caching)
-	or a
-	jr nz,.qn
-	ld a,(pool_slot)
-	dec a
-	ld l,a
-	ld h,SLOTQ>>8
-	ld a,(qcount)
-	ld (hl),a		; slot -> its queue entry
-.qn:	ld hl,(qptr)
-	ld (hl),e
-	inc hl
-	ld (hl),d
-	inc hl
-	ld a,(pool_code)
-	ld (hl),a
-	inc hl
-	ld a,(pool_bank)
-	ld (hl),a
-	inc hl
+.q:	; DE = SHC address, C = paper: on to the page, address listed
+	ex de,hl
 	ld a,(cl_ink)
 	or c
-	ld (hl),a
-	inc hl
-	ld (qptr),hl
-	ld hl,qcount
-	inc (hl)
+	ld c,a
+	ld a,(pool_bank)
+	ld b,a
+	ld a,(pool_code)
+	call scrput
 	; next pool glyph
 	ld hl,(pool_dst)
 	ld de,16
@@ -1172,7 +1275,7 @@ cell:	ld (cl_ink),a
 	ret
 
 ; background glyph (cl_bgb bank, cl_bgc code) from the mirror block -> BGBUF
-bg_fetch:
+bg_fetch:	; (cl_bgb bank, cl_bgc code) from the mirror -> glyph at DE
 	ld a,(cl_bgb)
 	add a,a
 	add a,a
@@ -1196,19 +1299,16 @@ bg_fetch:
 	and $F0
 	ld l,a
 	MEMV BLK_MIRROR
-	ld de,BGBUF
 	REPT 16
 	ldi
 	ENDR
 	MEMV BLK_WORK
 	ret
 
-; BGBUF + sprite column -> PCG at DE (a glyph: 16-aligned). Cell lines
-; 0..zt-1 and zt+n..15 keep the background; lines zt.. show (background
-; AND mask) OR data. The sprite lines run through an unrolled chain
-; entered n lines from its end (56 T-states a line).
-compose:
-	ld a,(ds_st)
+
+; overlay the current sprite column onto the glyph at DE in place:
+; (glyph AND mask) OR data on the sprite's lines only (52 T a line)
+ovl:	ld a,(ds_st)
 	ld c,0			; zt
 	or a
 	jp p,.p
@@ -1226,94 +1326,56 @@ compose:
 	sub l			; lines left in the sprite
 	cp b
 	jr nc,$+3
-	ld b,a			; n = min(room, left)
+	ld b,a			; n
 	ld a,b
-	ld (cp_n),a
-	; background above the sprite
-	ld a,c
 	or a
-	jr z,.nt
-	push bc
-	ld b,0
-	ld hl,BGBUF
-	ldir
-	pop bc
-.nt:	ld a,b
-	or a
-	jr z,.bot0
-	push iy
-	; chain entry: cmp_end - 10n
+	ret z
+	ld a,e
+	add a,c
+	ld e,a			; first line drawn
+	ld a,b			; entry: ovl_end - 9n
 	add a,a
+	add a,a
+	add a,a
+	add a,b
 	ld l,a
-	add a,a
-	add a,a
-	add a,l			; 10n
-	ld l,a
-	ld a,cmp_end&255
+	ld a,ovl_end&255
 	sub l
 	ld l,a
-	ld a,cmp_end>>8
+	ld a,ovl_end>>8
 	sbc a,0
 	ld h,a
 	ld (.go+1),hl
-	; pointers: BC background, HL mask, HL' data, DE' destination
-	ld a,c
-	add a,BGBUF&255
-	ld c,a
-	ld b,BGBUF>>8
 	ld hl,(ds_src)
 	push hl
-	push de
 	ld a,(ds_h)
-	ld e,a
-	ld d,0
-	add hl,de
-	exx
-	pop de
-	pop hl
-	exx
-.go:	call cmp_end
-	exx
-	push de
-	exx
-	pop de
-	ld h,b
-	ld l,c			; background below
-	pop iy
-	jr .bot
-.bot0:	ld hl,BGBUF
-	ld a,c
-	add a,l
-	ld l,a
-.bot:	ld a,e
-	and 15
-	ret z
-	neg
-	add a,16
 	ld c,a
 	ld b,0
-	ldir
-	ret
-cmp_chain:
+	add hl,bc		; mask
+	exx
+	pop hl			; data
+	exx
+.go:	jp ovl_end
+ovl_chain:
 	REPT 16
-	ld a,(bc)
-	inc c
+	ld a,(de)
 	and (hl)
 	inc hl
 	exx
 	or (hl)
 	inc hl
+	exx
 	ld (de),a
 	inc e
-	exx
 	ENDR
-cmp_end:
+ovl_end:
 	ret
-cp_n	db 0
 
-; the cell already has a pool glyph this frame (A = slot+1)
+; the cell already has a pool glyph this frame (A = slot+1), HL = its
+; CSLOT address
 cell_over:
-	dec a
+	ld (co_addr),hl
+	sub 2			; (A = CSLOT + 1 = slot + 2)
 	ld c,a			; slot
 	rlca
 	and 1
@@ -1332,46 +1394,62 @@ cell_over:
 	add hl,hl
 	ld de,PCGWIN
 	add hl,de
-	push hl
-	ld de,BGBUF
-	REPT 16
-	ldi
-	ENDR
-	pop de
-	push ix
-	call compose
-	pop ix
+	ex de,hl
+	call ovl		; the sprite over the glyph, in place
 	ld a,(pool_bank)
 	or LV_SCREEN
 	out (P_LV),a
 	xor a
 	ld (dch_ok),a		; (caching: this cell can't be kept)
-	; the sprite on top gives the cell its colour: entry = qbase + 5*n + 4
-	ld l,c
-	ld h,SLOTQ>>8
-	ld l,(hl)		; n = this slot's queue entry
-	ld h,0
-	ld e,l
-	ld d,h
-	add hl,hl
-	add hl,hl
-	add hl,de
-	ld de,(qbase)
-	add hl,de
-	inc hl
-	inc hl
-	inc hl
-	inc hl
+	; the sprite on top gives the cell its ink
+	ld hl,(co_addr)
+	ld a,h
+	or $F8			; CSLOT 60-67 -> colour RAM F8-FF
+	ld h,a
+	ld a,COL_ON
+	out (P_COLCTL),a
 	ld a,(hl)
 	and $F0
 	ld b,a
 	ld a,(cl_ink)
 	or b
 	ld (hl),a
+	xor a
+	out (P_COLCTL),a
+	ret
+co_addr	dw 0
+
+; HL = SHC address: A = code, B = bank, C = colour onto the page, and the
+; address into the page's restore list (keeps HL)
+scrput:	push hl
+	set 7,h
+	ld (hl),a
+	ld a,LV_ATTR
+	out (P_LV),a
+	ld (hl),b
+	ld a,(pool_bank)
+	or LV_SCREEN
+	out (P_LV),a
+	set 3,h
+	ld a,COL_ON
+	out (P_COLCTL),a
+	ld (hl),c
+	xor a
+	out (P_COLCTL),a
+	pop de
+	ld hl,(qptr)
+	ld (hl),e
+	inc hl
+	ld (hl),d
+	inc hl
+	ld (qptr),hl
+	ld hl,qcount
+	inc (hl)
+	ex de,hl
 	ret
 
 ; ---------------------------------------------------------------------
-;  write the queued cells to the page: codes, attributes, colours
+;  remember how many cells this page's restore list holds
 ; ---------------------------------------------------------------------
 apply_queue:
 	ld a,(qcount)
@@ -1381,62 +1459,9 @@ apply_queue:
 	ld a,b
 	jr nz,.b
 	ld (qnA),a
-	jr .c
-.b:	ld (qnB),a
-.c:	or a
-	ret z
-	ld (aq_n),a
-	ld hl,(qbase)
-.p1:	ld e,(hl)
-	inc hl
-	ld d,(hl)
-	inc hl
-	set 7,d
-	ld a,(hl)
-	ld (de),a
-	inc hl
-	inc hl
-	inc hl
-	djnz .p1
-	ld a,LV_ATTR
-	out (P_LV),a
-	ld hl,(qbase)
-	ld a,(aq_n)
-	ld b,a
-.p2:	ld e,(hl)
-	inc hl
-	ld d,(hl)
-	inc hl
-	set 7,d
-	inc hl
-	ld a,(hl)
-	ld (de),a
-	inc hl
-	inc hl
-	djnz .p2
-	ld a,LV_SCREEN
-	out (P_LV),a
-	ld a,COL_ON
-	out (P_COLCTL),a
-	ld hl,(qbase)
-	ld a,(aq_n)
-	ld b,a
-.p3:	ld e,(hl)
-	inc hl
-	ld d,(hl)
-	inc hl
-	set 7,d
-	set 3,d
-	inc hl
-	inc hl
-	ld a,(hl)
-	ld (de),a
-	inc hl
-	djnz .p3
-	xor a
-	out (P_COLCTL),a
 	ret
-aq_n	db 0
+.b:	ld (qnB),a
+	ret
 
 ; ---- enemy bullet (VZ bul2): B = x+32, C = y+16
 bul2:	ld a,(frame)
@@ -1496,7 +1521,32 @@ hud_put:
 	jr nz,.mv
 	ld a,(hudall)
 	or a
-	ret z			; not moved, nothing new
+	jr nz,.mv
+	; not moved, nothing new - but the last HUD cell is shared with the
+	; other page's first cell when the pages are a column apart, so
+	; it is put back every time
+	ld hl,(hp_a)
+	ld de,127
+	add hl,de
+	ld a,h
+	and 7
+	or $F0
+	ld h,a
+	ld a,(HUDC+127)
+	ld (hl),a
+	ld a,LV_ATTR
+	out (P_LV),a
+	ld (hl),BK_FONT
+	ld a,LV_SCREEN
+	out (P_LV),a
+	set 3,h
+	ld a,COL_ON
+	out (P_COLCTL),a
+	ld a,(HUDK+127)
+	ld (hl),a
+	xor a
+	out (P_COLCTL),a
+	ret
 .mv:	ld hl,HUDC
 	ld a,$F0
 	call .copy
@@ -1562,25 +1612,12 @@ hud_diff:
 	ret
 
 ; ---- sprite drawing variables
-ds_w	db 0
 ds_h	db 0
-ds_h2	db 0
-ds_hcm	db 0
-ds_dat	dw 0
-ds_ct	dw 0
-ds_yo	db 0
-ds_yo4	db 0
-ds_sc0	db 0
-ds_j0	db 0
-ds_jn	db 0
 ds_row0	db 0
 ds_nk	db 0
 ds_k	db 0
 ds_ra	dw 0
 ds_st	db 0
-ds_s0	db 0
-ds_x	dw 0
-ds_zb	db 0
 ds_src	dw 0
 cl_ink	db 0
 cl_bgb	db 0
@@ -1595,3 +1632,4 @@ qbase	dw 0
 qcount	db 0
 qslot0	db 0
 caching	db 0
+fc_addr	dw 0

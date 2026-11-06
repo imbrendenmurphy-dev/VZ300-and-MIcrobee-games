@@ -127,23 +127,15 @@ bc_queue:
 	ld h,a
 	ld l,e
 	ld (hl),255		; boss body here
-	ld hl,(qptr)
-	ld (hl),e
-	inc hl
-	ld (hl),d
-	inc hl
-	ld (hl),c
-	inc hl
+	ex de,hl		; HL = SHC address
+	ld a,c			; code
+	ld c,b			; colour
+	ld b,a
 	ld a,(bc_bank)
-	ld (hl),a
-	inc hl
-	ld (hl),b
-	inc hl
-	ld (qptr),hl
-	ld hl,qcount
-	inc (hl)
-	ld hl,qslot0
-	inc (hl)
+	ld e,a
+	ld a,b			; code
+	ld b,e			; bank
+	call scrput
 	or 1			; NZ: (keeps the caller's 'call z' from running)
 	ret
 

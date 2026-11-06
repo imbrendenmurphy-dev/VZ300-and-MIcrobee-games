@@ -19,7 +19,22 @@ from mbee import FRAME_T
 VZFILE = '/home/claude/work/orig/VZTYPE.VZ'
 VZSYM = '/home/claude/work/vzbuild/sym.txt'
 NAMES = ['OUTER HULL', 'THE HIVE', 'ROCK BELT', 'CRYSTAL VEIN', 'DREADNOUGHT', 'GUT CAVERNS', 'DEEP FIELD', 'THE CORE']
-NF = 1000           # 50 Hz fields measured
+NG = 400            # game frames measured (input follows game frames, so
+                    # the gameplay is the same however fast a machine runs)
+
+
+class GameClock:
+    """counts game frames from the game's 8-bit frame counter"""
+    def __init__(self, peek, addr):
+        self.peek, self.addr = peek, addr
+        self.last = peek(addr)
+        self.n = 0
+
+    def tick(self):
+        v = self.peek(self.addr)
+        self.n += (v - self.last) & 255
+        self.last = v
+        return self.n
 
 
 def keys_at(f):
@@ -72,8 +87,35 @@ def mb(stage, boss):
     pp.poke(S['rseed'], 0x34)
     pp.poke(S['rseed'] + 1, 0x12)
     pp.run_frames(20)
-    busy, per, _ = measure.frame_stats(pp, NF, lambda p, f: setattr(p, 'keys', keys_at(f)))
+    busy, per = mb_run(pp, NG)
     return summarise(busy, [p / FRAME_T for p in per])
+
+
+def mb_run(pp, ng, profile=False):
+    S = pp.S
+    clk = GameClock(pp.peek, S['frame'])
+    pp.watch(S['flip'])
+    pp.watch(S['waitframe'])
+    pp.events()
+    if profile:
+        pp.profile(True)
+    while clk.tick() < ng:
+        pp.keys = keys_at(clk.n)
+        pp.run_frames(1)
+    ev = pp.events()
+    starts = [t for t, pc in ev if pc == S['flip']]
+    waits = [t for t, pc in ev if pc == S['waitframe']]
+    busy = []
+    for s in starts:
+        w = [x for x in waits if x > s]
+        if w:
+            busy.append(w[0] - s)
+    per = [b - a for a, b in zip(starts, starts[1:])]
+    if profile:
+        prof = pp.prof()
+        pp.profile(False)
+        return busy, per, prof
+    return busy, per
 
 
 def vz(stage, boss):
@@ -96,8 +138,9 @@ def vz(stage, boss):
     v.watch(S['blit'])
     v.watch(S['waitframe'])
     v.events()
-    for f in range(NF):
-        v.keys = keys_at(f)
+    clk = GameClock(v.peek, S['frame'])
+    while clk.tick() < NG:
+        v.keys = keys_at(clk.n)
         v.run_fields(1)
     ev = v.events()
     blits = [t for t, p in ev if p == S['blit']]
