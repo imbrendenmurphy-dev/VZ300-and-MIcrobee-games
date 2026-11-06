@@ -13,6 +13,7 @@ MODE1   equ $08
 CSS1    equ $10
 qbuf    equ $7C00               ; 128-byte commit ring (page aligned)
 RMAP    equ $7D00               ; 256-byte recolour table
+tex_list equ $7E00              ; info-screen texture: 2 x 32 x (address, byte), below the stack
 SAVEADR equ $67C0               ; records, in BennVenn SRAM bank 3
 
         org $8000
@@ -44,7 +45,7 @@ start:
         ld (seed),hl
         ld a,2
         ld (soundmode),a
-        ld a,28
+        ld a,24
         ld (cbudget),a
         ld a,4
         ld (gamesper),a
@@ -123,9 +124,14 @@ wipe_show:
         cp 8
         jr nz,.p
         call flush_queue
-        ld a,28
+        ld a,24
         ld (cbudget),a
-        ret
+        ld a,(tex_want)         ; an information page: start its backplane texture
+        or a
+        ret z
+        xor a
+        ld (tex_want),a
+        jp tex_start
 
 clear_erase:
         xor a
@@ -254,7 +260,30 @@ s_name: dw 0
 s_pad:  db 0
 surface: db 0
 crowdtim: db 0
-crowdflip: db 0
+crowdmode: db 0
+crowdph: db 0
+crowdsel: db 0
+crowdfn: dw 0
+crowdbuf_a: ds 4*27
+crowdbuf_b: ds 4*27
+; info-screen backplane texture
+tex_want: db 0
+tex_first: db 0
+tex_seq: db 0
+tex_kind: db 0
+tex_vx: db 0
+tex_vy: db 0
+tex_ax: db 0
+tex_ay: db 0
+tex_ox: db 0
+tex_oy: db 0
+tex_x:  db 0
+tex_mode: db 0
+tex_n0: db 0
+tex_n1: db 0
+tex_phase: db 0
+tex_rowend: db 0
+tex_hl: dw 0
 ; game set-up
 mode:   db 0
 intour: db 0

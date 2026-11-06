@@ -30,6 +30,23 @@ def run(name, frames, keys="", shots=(), every=0, pokes=(), wav=None):
     subprocess.run(a, capture_output=True)
 
 
+def find(frames, keys, pokes, var, value, after, size=1):
+    # first frame where memory variable == value (traced each frame), plus 'after' frames
+    kf = os.path.join(TMP, 'find.keys')
+    open(kf, 'w').write(keys)
+    tr = os.path.join(TMP, 'find.bin')
+    a = [EMU, VZ, '-frames', str(frames), '-keys', kf, '-trace', '%x:%d:%s' % (sym[var], size, tr)]
+    for (f, sv, v) in pokes:
+        a += ['-poke', '%d:%x:%x' % (f, sym[sv] if isinstance(sv, str) else sv, v)]
+    subprocess.run(a, capture_output=True)
+    d = open(tr, 'rb').read()
+    for i in range(0, len(d), size):
+        v = d[i] if size == 1 else d[i] | d[i + 1] << 8
+        if v == value:
+            return i // size + after
+    return None
+
+
 def frame(name, n):
     # 4:3 like the user's screen: the 256x192 picture plus a little border
     im = Image.open(os.path.join(TMP, '%s_%05d.ppm' % (name, n))).crop((24, 18, 296, 222))
@@ -48,9 +65,10 @@ def mp3(wav, out, secs):
 
 AUTO = [(430, 'autoplay', 1), (430, 'gamesper', 2)]
 # attract pages
-run('att', 5000, shots=(400, 1040, 1500, 1750, 2000, 2250, 4800))
+hof = find(9000, "", [], 'infohook', sym['hof_anim'], 120, 2)
+run('att', hof + 10, shots=(400, 1040, 1500, 1750, 2000, 2250, hof))
 for n, f in (('01_title', 400), ('03_how_to_play', 1040), ('04_meet_the_tour', 1500), ('05_meet_the_tour2', 2250),
-             ('15_hall_of_fame', 4800)):
+             ('15_hall_of_fame', hof)):
     frame('att', f).save(os.path.join(SHOTS, 'TENNIS2_%s.png' % n))
 run('tit', 760, every=3, wav=os.path.join(TMP, 'title.wav'))
 gif('tit', 60, 700, 3, os.path.join(SHOTS, 'TENNIS2_title.gif'))
@@ -82,9 +100,10 @@ frame('classic', 2700).save(os.path.join(SHOTS, 'TENNIS2_11_classic_1984.png'))
 # tour: bracket, opponent card, practice, trophy (opponent can't reach anything so we win fast)
 tk = "100 103 SPACE\n260 263 SPACE\n" + ''.join('%d %d SPACE\n' % (f, f + 2) for f in range(500, 60000, 450))
 reach = sym['pl0'] + 14
-run('tour', 26000, keys=tk, pokes=AUTO + [(f, 'pl0', 0) for f in ()], every=50)
+prac = find(40000, tk, AUTO, 'mode', 4, 900)
+run('tour', max(prac + 60, 10000), keys=tk, pokes=AUTO, every=50, shots=(prac,))
 print('tour frames', len(glob.glob(os.path.join(TMP, 'tour_*.ppm'))))
-for n, f in (('12_bracket', 400), ('14_target_practice', 17600)):
+for n, f in (('12_bracket', 400), ('14_target_practice', prac)):
     frame('tour', f).save(os.path.join(SHOTS, 'TENNIS2_%s.png' % n))
 # trophy + Grand Slam: jump to the Night Masters final and stop the opponent reaching anything
 tk2 = "100 103 SPACE\n260 263 SPACE\n" + ''.join('%d %d SPACE\n' % (f, f + 2) for f in (500, 900))

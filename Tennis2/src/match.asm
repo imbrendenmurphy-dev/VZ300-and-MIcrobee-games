@@ -456,7 +456,6 @@ serve_setup:
         inc a
         ld (pl0+P_HITOK),a
         ld (pl1+P_HITOK),a
-        call crowd_settle
         ; side: deuce when the points played so far are even
         ld a,(pts)
         ld b,a
@@ -1994,14 +1993,19 @@ point_won:
         ld (iy+P_POSE),FR_SAD
         ld (iy+P_STREAK),0
         ld (iy+P_FIRE),0
-        ; crowd + streaks on aces and winners
+        ; the crowd: a wave and a roar for aces and winners, applause for the rest
         ld a,(pt_reason)
         cp R_ACE
         jr z,.great
         cp R_WINNER
-        jr nz,.plain
-.great: ld a,32
+        jr z,.great
+        ld a,26
         call crowd_cheer
+        ld a,SFX_CLAP
+        call play_sfx
+        jr .plain
+.great: ld a,110
+        call crowd_wave
         ld a,SFX_CROWD
         call play_sfx
         call ctl_cpu
@@ -2212,6 +2216,8 @@ game_won:
         jp change_ends
 
 game_banner:
+        ld a,70
+        call crowd_cheer
         call aw_ix
         ld hl,mus_game_0
         ld de,mus_game_1
@@ -2255,6 +2261,8 @@ set_won:
         ld de,$0500
         call aw_human_pts
         call aw_ix
+        ld a,110
+        call crowd_wave
         ld hl,mus_set_0
         ld de,mus_set_1
         call jingle
@@ -2290,8 +2298,8 @@ match_won:
         ld e,(ix+P_LNAME)
         ld d,(ix+P_LNAME+1)
         call banner
-        ld a,60
-        call crowd_cheer
+        ld a,150
+        call crowd_wave
         ld b,150
         jp hold
 

@@ -30,9 +30,13 @@ attract:
         call stop_music
         jp main_menu
 
-; plain CSS0 page: clear to green, big heading HL at row 2 in red
+; plain CSS0 page: clear to green, big heading HL at row 2 in red.
+; A drifting dot texture (grass or net) starts behind it once it is revealed.
 page:
         push hl
+        call tex_off
+        ld a,1
+        ld (tex_want),a
         ld a,MODE1
         ld (palbase),a
         call dl_reset
@@ -118,6 +122,7 @@ page_wait:
 ; ---------------------------------------------------------------------
 ; TITLE
 title_screen:
+        call tex_off
         ld a,SURF_GRASS
         call set_surface
         ld a,MODE1
@@ -163,7 +168,7 @@ title_screen:
         jr nz,.loop
         xor a
 .out:   push af
-        ld a,28
+        ld a,24
         ld (cbudget),a
         call stop_music
         pop af
@@ -2306,3 +2311,287 @@ save_records:
         ld a,1
         out ($37),a
         ret
+
+; ---------------------------------------------------------------------
+; Backplane texture for the information screens: a sparse lattice of dots
+; (grass tufts or a net mesh) drifting in a different direction on each
+; screen. Dots live only in VRAM, drawn in vblank only on bytes that are
+; plain background both in the BG buffer and on screen, so text, pictures
+; and sprites always sit on top. 64 dots: 8 across x 8 down, wrapping.
+tex_start:
+        ld hl,tex_seq
+        inc (hl)
+        ld a,(hl)
+        and 1
+        ld (tex_kind),a
+        ld a,(hl)
+        and 7
+        add a,a
+        ld hl,tex_dirs
+        call idx_ptr
+        ld a,(hl)
+        ld (tex_vx),a
+        inc hl
+        ld a,(hl)
+        ld (tex_vy),a
+        xor a
+        ld (tex_ax),a
+        ld (tex_ay),a
+        ld b,32
+        call rand_n
+        ld (tex_ox),a
+        ld b,8
+        call rand_n
+        ld (tex_oy),a
+        ld a,1
+        ld (tex_first),a
+        xor a
+        ld (tex_phase),a
+        ld (tex_n0),a
+        ld (tex_n1),a
+        ld hl,tex_vblank
+        ld (vbhook),hl
+        ret
+tex_off:
+        xor a
+        ld (tex_want),a
+        ld hl,vb_none
+        ld (vbhook),hl
+        ret
+; directions, in 1/16 pixel per frame (x, y) - 64 dots: 8 across x 8 down
+tex_dirs:
+        db 13,4,  -9,6,  5,-8,  -14,-3,  15,0,  -4,9,  10,-7,  -8,-5
+; grass: per-row scatter so it doesn't look like a grid
+tex_jit: db 0,19,7,26,13,3,22,10
+
+tex_vblank:
+        ld a,(cfirst)           ; the commit queue copied something this frame:
+        or a                    ; leave the rest of vblank to it
+        ret z
+        ld a,(q_head)
+        ld b,a
+        ld a,(q_tail)
+        cp b
+        ret nz
+        ld a,(tex_phase)
+        or a
+        jr nz,.half2
+        ld a,(tex_first)
+        or a
+        jr nz,.go
+        ; move (checked every other frame; speeds are per 2 frames)
+        ld a,(tex_vx)
+        ld b,a
+        ld a,(tex_ax)
+        add a,b
+        call tex_axis
+        ld (tex_ax),a
+        ld d,c
+        ld a,(tex_vy)
+        ld b,a
+        ld a,(tex_ay)
+        add a,b
+        call tex_axis
+        ld (tex_ay),a
+        ld a,(tex_ox)
+        add a,d
+        ld (tex_ox),a
+        ld a,(tex_oy)
+        add a,c
+        ld (tex_oy),a
+        ld a,d
+        or c
+        ret z                   ; not a whole pixel yet
+.go:    xor a
+        ld (tex_first),a
+        inc a
+        ld (tex_phase),a
+        ; top half: rows 0-3
+        ld hl,tex_list
+        ld a,(tex_n0)
+        call tex_erase
+        ld b,0
+        ld de,tex_list
+        call tex_draw
+        ld (tex_n0),a
+        ret
+.half2: xor a
+        ld (tex_phase),a
+        ld hl,tex_list+96
+        ld a,(tex_n1)
+        call tex_erase
+        ld b,4
+        ld de,tex_list+96
+        call tex_draw
+        ld (tex_n1),a
+        ret
+; A = accumulator -> A wrapped, C = whole-pixel step (-1, 0, +1)
+tex_axis:
+        ld c,0
+        bit 7,a
+        jr nz,.neg
+        cp 16
+        ret c
+        sub 16
+        inc c
+        ret
+.neg:   cp -15
+        ret nc
+        add a,16
+        dec c
+        ret
+
+; erase: HL = list, A = count. Put back the bytes under our dots (if still ours).
+tex_erase:
+        or a
+        ret z
+        ld b,a
+.e:     ld e,(hl)
+        inc hl
+        ld d,(hl)
+        inc hl
+        ld a,(de)
+        cp (hl)
+        inc hl
+        jr nz,.s
+        ld a,d
+        or $88                  ; VRAM $70xx -> BG buffer $F8xx
+        ld d,a
+        ld a,(de)
+        res 7,d
+        res 3,d
+        ld (de),a
+.s:     djnz .e
+        ret
+
+; draw: B = first row (0 or 4), DE = list -> A = dots drawn.
+; In each row 8 dots, 4 bytes apart, all with the same pattern.
+tex_draw:
+        exx
+        ld c,0                  ; count (alternate set: DE' = list, C' = count)
+        exx
+        push de
+        exx
+        pop de
+        exx
+        ld a,b
+        add a,4
+        ld (tex_rowend),a
+.row:   push bc
+        ld a,b
+        add a,a
+        add a,a
+        add a,a
+        ld c,a
+        ld a,(tex_oy)
+        add a,c
+        and 63
+        add a,a
+        ld l,a
+        ld h,0
+        ld de,rowaddr
+        add hl,de
+        ld e,(hl)
+        inc hl
+        ld d,(hl)               ; DE = VRAM row start
+        ld a,(tex_kind)
+        or a
+        jr nz,.net
+        ld a,b
+        ld hl,tex_jit
+        call idx_byte
+        jr .xs
+.net:   ld a,b
+        and 1
+        rrca
+        rrca
+        rrca
+        rrca                    ; (row & 1) * 16
+.xs:    ld hl,tex_ox
+        add a,(hl)              ; x of the first dot
+        ld b,a
+        and 3
+        ld c,a
+        ld a,(tex_kind)
+        add a,a
+        add a,a
+        add a,c
+        ld hl,tex_dotb
+        call idx_byte
+        ld c,a                  ; C = dot pattern
+        ld a,b
+        rrca
+        rrca
+        and 3                   ; byte column of the first dot (0..3)
+        or e
+        ld l,a
+        ld h,d
+        ld a,e
+        ld e,a                  ; E = row start (low byte)
+        ld b,8
+.d:     ld a,(hl)
+        or a
+        jr nz,.n                ; something on screen here
+        set 7,h
+        set 3,h
+        or (hl)                 ; plain background in the page...
+        dec l
+        or (hl)                 ; ...and either side (keeps clear of text)
+        inc l
+        inc l
+        or (hl)
+        dec l
+        ld (tex_hl),hl
+        ld de,-64               ; ...and two rows above and below
+        add hl,de
+        or (hl)
+        ld de,32
+        add hl,de
+        or (hl)
+        add hl,de
+        add hl,de
+        or (hl)
+        add hl,de
+        or (hl)
+        ld hl,(tex_hl)
+        res 7,h
+        res 3,h
+        or a
+        jr nz,.n
+        ld (hl),c
+        ld a,l                  ; note it for the erase
+        exx
+        ld (de),a
+        inc de
+        exx
+        ld a,h
+        exx
+        ld (de),a
+        inc de
+        exx
+        ld a,c
+        exx
+        ld (de),a
+        inc de
+        inc c
+        exx
+.n:     ld a,l
+        add a,4
+        xor l
+        and $1F
+        xor l                   ; L = row part of L | (col + 4) & 31
+        ld l,a
+        djnz .d
+        pop bc
+        inc b
+        ld a,(tex_rowend)
+        cp b
+        jp nz,.row
+        exx
+        ld a,c
+        exx
+        ret
+; grass: a two-pixel blue tuft; net: one yellow knot
+tex_dotb:
+        db $A0,$28,$0A,$02
+        db $40,$10,$04,$01

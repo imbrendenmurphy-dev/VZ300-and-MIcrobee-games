@@ -195,6 +195,7 @@ SFX_CONE   equ 12
 SFX_FEED   equ 13
 SFX_SERVE  equ 14
 SFX_CORD   equ 15
+SFX_CLAP   equ 16
 sfxtab:
         dw 2600,-220 : db 4,0,3,0,0       ; racket "pok"
         dw 3400,-260 : db 6,1,4,0,0       ; power drive
@@ -212,3 +213,4 @@ sfxtab:
         dw 300,50    : db 6,2,2,0,0       ; ball machine
         dw 3000,-200 : db 6,0,4,0,0       ; serve
         dw 1200,-60  : db 6,1,4,0,0       ; net cord
+        dw 2600,0    : db 9,2,1,0,0       ; applause

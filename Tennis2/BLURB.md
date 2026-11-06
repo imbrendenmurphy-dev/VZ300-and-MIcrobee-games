@@ -41,10 +41,10 @@ recreation of the original's stepped green court.
 It all wraps up in:
 - a big-logo title screen with two little players rallying
 - a cheeky two-voice title theme and jingles for every point, game, set and match
-- a crowd that roars on your aces and winners
+- a crowd of little spectators who leap up, arms in the air, after every point, and do a Mexican wave for aces, winners and sets
 - WINNER!, ACE! and OUT! pop-ups, and the line judge's flag
 - a ball with a shadow and a puff of dust on every bounce
-- blinds wipes between screens
+- blinds wipes between screens, and drifting grass or net dot textures behind every information screen
 - a full attract sequence with a computer v computer demo
 - a Hall of Fame with initials
 
@@ -55,10 +55,11 @@ It all wraps up in:
 | **Machine** | Dick Smith VZ300 or VZ200, Z80A at 3.5 MHz |
 | **Memory** | Needs RAM from $7800 to $FFFF, e.g. a BennVenn SD + 128K expansion. Will not run on an unexpanded machine |
 | **Storage** | Loads from SD (BennVenn loader) as a binary .VZ. No other files needed |
-| **File** | `TENNIS2.VZ`, 23.5 KB, loads and autostarts at $8000 |
+| **File** | `TENNIS2.VZ`, 24.2 KB, loads and autostarts at $8000 |
 | **Display** | Genuine Mode 1 throughout (6847 CG2: 128×64, 4 colours). Both colour sets are used: grass, night and title in CSS0, clay and hard court in CSS1 |
 | **Graphics** | Perspective court with crowd strip and net. Pre-shifted, masked sprites recoloured for each surface and when players change ends. 9 character portraits, title picture, trophy |
 | **Frame rate** | 50 fps, synced to field sync, with all screen writes in the vblank window (no snow) |
+| **Effects** | Two-frame animated crowd (bobbing and Mexican wave), bounce puffs, ball shadow, popups. Info screens have a drifting dot backplane (grass or net) that is drawn in vblank and steers clear of text |
 | **Sound** | Two-voice beeper music (title theme, info shuffle, practice loop, Grand Slam march, 10 jingles) and 16 sound effects. Music+SFX / SFX only / off |
 | **Controls** | Keyboard: Q A M , move, SPACE fire. Joysticks 1 and 2, read to suit the VZ joystick interface. Player 2 keys: I J K L + H. P pause, S sound |
 | **Modes** | World Tour (1P), Exhibition (1P), Two Players, Target Practice, plus the hidden Classic 1984 court |

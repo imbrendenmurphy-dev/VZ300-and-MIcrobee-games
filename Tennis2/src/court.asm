@@ -238,7 +238,20 @@ court_to_bg:
         ld a,h
         or a
         jr nz,.r
-        ret
+        ; the two crowd frames in this surface's colours
+        ld hl,crowd_a
+        ld de,crowdbuf_a
+        ld b,4*27*2
+.c:     push de
+        ld e,(hl)
+        ld d,RMAP/256
+        ld a,(de)
+        pop de
+        ld (de),a
+        inc hl
+        inc de
+        djnz .c
+        jp tex_off
 
 ; court_show: full court + panel, revealed with blinds
 court_show:
@@ -263,7 +276,6 @@ court_restore:
         ld a,1
         ld (noq),a
         call hud_draw
-        call crowd_reset
         xor a
         ld (noq),a
         ld de,$0712
@@ -614,9 +626,22 @@ print2_dec:
         jp print2
 
 ; ---------------------------------------------------------------------
-; crowd: the strip along the top cheers by flipping colours (XOR $AA)
+; crowd: 27 little spectators along the top, one per screen byte.
+; Two frames (sitting / jumping with arms up), recoloured per surface into
+; crowdbuf_a / crowdbuf_b by court_to_bg.
+;   crowd_cheer: everyone bobs up and down (alternate spectators out of step)
+;   crowd_wave:  a Mexican wave sweeps across the stand and back
 crowd_cheer:    ; A = frames
         ld (crowdtim),a
+        xor a
+        ld (crowdmode),a
+        ret
+crowd_wave:     ; A = frames
+        ld (crowdtim),a
+        ld a,1
+        ld (crowdmode),a
+        xor a
+        ld (crowdph),a
         ret
 crowd_tick:
         ld a,(crowdtim)
@@ -624,40 +649,112 @@ crowd_tick:
         ret z
         dec a
         ld (crowdtim),a
-        and 3
+        jr z,crowd_idle         ; finished: everyone sits down
+        and 1
+        ret nz                  ; animate every other frame
+        ld a,(q_head)           ; and only when nothing else is waiting to be copied
+        ld b,a
+        ld a,(q_tail)
+        cp b
         ret nz
-        ld a,(crowdflip)
-        xor 1
-        ld (crowdflip),a
-crowd_xor:
-        ld hl,BGBUF+5
-        ld c,4
-.r:     ld b,27
-        push hl
-.b:     ld a,(hl)
-        xor $AA
-        ld (hl),a
-        inc hl
-        djnz .b
+        ld hl,crowdph
+        inc (hl)
+        ld a,(crowdmode)
+        or a
+        jr nz,.wave
+        ; bobbing: spectator c is up when (c + phase/2) is odd
+        ld a,(crowdph)
+        srl a
+        ld (crowdsel),a
+        ld hl,crowd_up_bob
+        jr crowd_draw
+.wave:  ; wave crest moves 1 spectator per step, there and back (0..26..0)
+        ld a,(crowdph)
+        cp 27
+        jr c,.w1
+        ld b,a
+        ld a,53
+        sub b
+        jr nc,.w1
+        xor a
+        ld (crowdph),a
+.w1:    ld (crowdsel),a
+        ld hl,crowd_up_wave
+        jr crowd_draw
+crowd_idle:
+        ld hl,crowd_up_none
+; crowd_draw: HL = test routine (C = spectator 0..26 -> NZ if standing)
+crowd_draw:
+        ld (crowdfn),hl
+        ld de,BGBUF+5
+        ld hl,crowdbuf_a
+        ld c,0
+.col:   push hl
+        push de
+        call .test
+        pop de
         pop hl
-        ld de,32
-        add hl,de
-        dec c
-        jr nz,.r
+        push hl
+        jr z,.down
+        ld a,4*27
+        add a,l
+        ld l,a
+        jr nc,.down
+        inc h
+.down:  push de
+        ld b,4
+.r:     ld a,(hl)
+        ld (de),a
+        ld a,27
+        add a,l
+        ld l,a
+        jr nc,.r1
+        inc h
+.r1:    ld a,32
+        add a,e
+        ld e,a
+        jr nc,.r2
+        inc d
+.r2:    djnz .r
+        pop de
+        pop hl
+        inc hl
+        inc de
+        inc c
+        ld a,c
+        cp 27
+        jr nz,.col
         ld de,$0500
         ld bc,$1B04
         jp queue_rect
+.test:  ld hl,(crowdfn)
+        jp (hl)
+crowd_up_none:
+        xor a
+        ret
+crowd_up_bob:
+        ld a,(crowdsel)
+        add a,c
+        and 1
+        ret
+crowd_up_wave:  ; within 2 of the crest
+        ld a,(crowdsel)
+        sub c
+        call abs_a
+        cp 3
+        ld a,1
+        jr c,.y
+        xor a
+.y:     or a
+        ret
 crowd_reset:
         xor a
         ld (crowdtim),a
-        ld (crowdflip),a
         ret
-crowd_settle:   ; make sure the crowd ends unflipped
-        xor a
-        ld (crowdtim),a
-        ld a,(crowdflip)
+crowd_settle:   ; make sure everyone is sitting
+        ld a,(crowdtim)
         or a
         ret z
         xor a
-        ld (crowdflip),a
-        jr crowd_xor
+        ld (crowdtim),a
+        jp crowd_idle

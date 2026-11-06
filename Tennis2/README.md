@@ -1,7 +1,7 @@
 # TENNIS II — GRAND SLAM
 
 Sequel to the VZ200/VZ300 game *TENNIS*, for the Dick Smith VZ300 / VZ200 with the **BennVenn SD loader + 128K**.
-ViBED by BPM 2026. Version 1.0. Original code, graphics and music. Nothing from the original game is included.
+ViBED by BPM 2026. Version 1.1. Original code, graphics and music. Nothing from the original game is included.
 
 ![title](screenshots/TENNIS2_title.gif)
 
@@ -9,10 +9,12 @@ ViBED by BPM 2026. Version 1.0. Original code, graphics and music. Nothing from 
 
 ![screens](screenshots/TENNIS2_screens.png)
 
+![info screen backplane](screenshots/TENNIS2_info_backplane.gif)
+
 ## Play it
 
 Copy `release/TENNIS2.VZ` to the SD card and run it from the BennVenn SD loader.
-- It's a single type F1 binary. It loads at $8000 (to $DDDC) and runs from $8000. There are no other files.
+- It's a single type F1 binary. It loads at $8000 (to $E0DC) and runs from $8000. There are no other files.
 - It needs the **128K expansion** (RAM up to $FFFF).
 
 ### Controls
@@ -86,7 +88,14 @@ In two-player mode, player 1 uses joystick 1 or Q A M , SPACE, and player 2 uses
 **Presentation:**
 - **Title screen (Mode 1):** a big TENNIS II logo and two little players rallying on a perspective court, with rotating messages underneath.
 - **Attract cycle:** title → How to Play → Meet the Tour → a computer v computer demo on a random surface → Hall of Fame. Start works at any point.
-- **In game:** the crowd strip cheers on aces and winners, popups (WINNER!, ACE!, OUT!, SMASH!, BULLSEYE!) appear by the ball, and banner calls show over the far court.
+- **In game:** a stand of 27 little spectators reacts to every point.
+  - They bob up and down, arms in the air, with applause for an ordinary point.
+  - A Mexican wave sweeps across the stand and back, with a roar, for aces, winners, sets and the match.
+  - They bob through every game call.
+  - Popups (WINNER!, ACE!, OUT!, SMASH!, BULLSEYE!) appear by the ball, and banner calls show over the far court.
+- **Information screens** (How to Play, Meet the Tour, menus, bracket, opponent cards, trophy, Hall of Fame and the rest) have a sparse dot backplane drifting behind them.
+  - It alternates between grass tufts and a net mesh, and drifts in a different direction on each screen.
+  - Dots only appear on plain background, two rows clear of text, so the words stay crisp. Sprites pass in front.
 - **Hall of Fame:** 5 entries with 3-letter initials.
 - **Sound:** the two-voice pin-pulse beeper engine from Ghost Hunter 2 / Penguin 2, with short separated notes for that gritty sound. All tunes are original:
   - Title theme ("Centre Court Strut"), info and bracket shuffle, practice loop, Grand Slam march
@@ -105,11 +114,12 @@ In two-player mode, player 1 uses joystick 1 or Q A M , SPACE, and player 2 uses
   | Range | Use |
   |---|---|
   | $67C0–$67FF, SRAM **bank 3** | Hall of Fame + options + Classic unlock (signature + checksum) |
-  | $7800–$7ADF | variables |
+  | $7800–$7BC6 | variables |
   | $7C00–$7DFF | VRAM commit queue, recolour table |
+  | $7E00–$7EBF | info-screen backplane dot lists |
   | $7FFE | stack (grows down) |
-  | $8000–$DDDC | code and data (the .VZ, 24,029 bytes) |
-  | $DDDD–$F126 | sprite table + shifted, recoloured sprites (built at run time) |
+  | $8000–$E0DC | code and data (the .VZ, 24,797 bytes) |
+  | $E0DD–$F426 | sprite table + shifted, recoloured sprites (built at run time) |
   | $F800–$FFFF | background buffer |
 
 - **Records:** kept in SRAM bank 3 (`OUT ($37),3`), so they survive reloading the game but not power-off.
@@ -117,6 +127,8 @@ In two-player mode, player 1 uses joystick 1 or Q A M , SPACE, and player 2 uses
   - At start-up the game probes the bank switch: it writes one byte, checks it, then restores it. It only saves if bank 1 is untouched and bank 3 holds the byte. Otherwise saving is simply off.
   - The mapping is always put back to 1 (the DOS) straight afterwards.
 - **Snow-free drawing:** VRAM is written only in the vblank window after field sync, through the Penguin 2 commit queue (now able to split rectangles too big for one frame) and POP-drawn sprites. Popup text goes into the backdrop and is restored afterwards, so it costs nothing in vblank.
+  - The crowd animation only steps when the queue is empty.
+  - The info-screen backplane writes its dots straight to VRAM in vblank, half the lattice per frame, and only on frames when the queue copied nothing. Its dots never enter the background buffer.
 - **Joysticks:**
   - Joystick 1 is read on $2E/$2D/$2C. Joystick 2 is read on $2B/$27, with its directions also from $29 (as your interface needs).
   - In 1-player games, either stick or the keyboard works.
@@ -153,11 +165,11 @@ Tested **in the emulator only:**
 - A full World Tour through to the Grand Slam ending and the trophy ceremonies.
 - A tour loss → initials → Hall of Fame.
 - Records saved to and reloaded from the emulated SRAM bank 3. With no card, the probe disables saving and changes nothing.
-- 4 × 60,000 frames of random input over every mode: no crashes, no stack growth, and no VRAM access during the visible picture apart from the start-up screen clear. All drawing finished before the picture starts (latest: scanline 78 of 81).
+- Random input over every mode: 4 × 60,000 frames for v1.0, and 4 × 40,000 more after adding the crowd animation and backplane (v1.1). No crashes, no stack growth, and no VRAM access during the visible picture apart from the start-up screen clear. All drawing finished by scanline 81, where the picture starts in the emulator. That's a tight margin; see below.
 - Computer v computer soaks average about 7 shots per point. A random key-masher returned 18 balls in one exhibition.
 
 **Not yet checked on real hardware:**
-- the real machine's top-border length (the emulator assumes 25 lines; drawing ends at most ~3 lines before the picture starts)
+- the real machine's top-border length (the emulator assumes 25 lines; at its busiest, drawing ends right at the first picture line)
 - the SRAM bank-3 records save
 - speaker volume and joystick feel on your interface
 - the sprite build when switching surfaces (about a quarter of a second, during which the screen holds)
