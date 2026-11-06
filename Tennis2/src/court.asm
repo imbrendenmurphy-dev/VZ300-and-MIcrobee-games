@@ -52,7 +52,7 @@ sprites_for_ends:
         ldir
         ld a,(pl0+P_END)
         or a
-        ret z                   ; team A (pl0) is far: default
+        jp z,build_sprites      ; team A (pl0) is far: default colours (still rebuild!)
         ld a,(s_sprmap+3)
         ld (bmap+2),a
         ld a,(s_sprmap+2)

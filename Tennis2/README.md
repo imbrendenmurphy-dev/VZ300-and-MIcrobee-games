@@ -1,7 +1,7 @@
 # TENNIS II — GRAND SLAM
 
 Sequel to the VZ200/VZ300 game *TENNIS*, for the Dick Smith VZ300 / VZ200 with the **BennVenn SD loader + 128K**.
-ViBED by BPM 2026. Version 1.1. Original code, graphics and music. Nothing from the original game is included.
+ViBED by BPM 2026. Version 1.1.1. Original code, graphics and music. Nothing from the original game is included.
 
 ![title](screenshots/TENNIS2_title.gif)
 
