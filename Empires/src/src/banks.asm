@@ -39,8 +39,9 @@ blk_port:
         ret
 
 ; tile_addr: B = y, C = x -> HL = terrain byte (object byte = HL + OBJOFF)
-; switches the lower window to the right band.  Preserves BC, DE.
-tile_addr:
+; switches the lower window to the right band.  Preserves A, BC, DE.
+tile_addr:                      ; preserves A (callers rely on it, as before banking)
+        push af
         ld a,b
         rlca
         rlca
@@ -57,6 +58,7 @@ tile_addr:
         and 3Fh
         ld h,a
         ld l,c
+        pop af
         ret
 
 ; map_home: make sure a map band is mapped (after using other blocks)

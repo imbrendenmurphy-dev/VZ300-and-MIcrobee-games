@@ -85,6 +85,8 @@ overrides (unexplored land is solid black). Switching mode only changes attribut
 instant, and the simulation is identical in both. Monochrome cells use white-on-black so they are maximum contrast
 whatever the composite output does with colour.
 
+**Lettering.** All game text uses an original Roman inscriptional font (`art/romanfont.py`): 7×9-pixel square capitals with thick stems, hairlines and serifs, and small capitals for lowercase, stored as 128 glyphs in PCG bank 4 (bank 12 for mono) so it replaces the character ROM everywhere in the game. The title is set in Roman capitals rendered from Latin Modern Roman Bold into 32×33-pixel blocks, cut with marble veins, on a dark stone tablet with its own edge pieces (outlined in monochrome).
+
 **Animation.** Water (shore, river and sea — 20 characters, 4 frames), windmill sails, chimney smoke and the town
 hall flag animate by redefining PCG characters, so every copy on screen animates for one write.
 
@@ -94,7 +96,7 @@ hall flag animate by redefining PCG characters, so every copy on screen animates
 |---|---|
 | block 0, 8000–EFFF | Engine: all code that touches the map, screen shadow planes, variables, stack (22K used of 28K) |
 | blocks 8–11 (lower window) | World map, banded: row stride 256, 64 rows per block, terrain at 0000h, objects at 4000h. 128×128 uses 2 blocks, 256×256 uses 4 |
-| block 16 at 4000h | PCG patterns (colour + mono) and animation frames |
+| block 16 at 4000h | PCG patterns (colour + mono, incl. the Roman font) and animation frames (16,066 of 16,384 bytes) |
 | block 17 at 0000h | Overlay code: start-up choice, title logo and menu, help |
 | block 18 | Snapshot of CP/M's 8000–EFFF, so EMPIRES can return to `A>` |
 | block 19 | Snapshot of the engine while CP/M does a disk job |

@@ -293,13 +293,14 @@ put_gc:
 
 ; ---- text -----------------------------------------------------------
 ; puts: HL = 0-terminated string, DE = offset, A = colour.  Returns DE after.
-puts:   ld (txtcol),a
+puts:   ld (txtcol),a           ; text uses the Roman font in PCG bank FONT_BANK
 .lp:    ld a,(hl)
         or a
         ret z
         push hl
+        or 80h
         ld h,a
-        ld l,0
+        ld l,FONT_BANK
         ld a,(txtcol)
         call put_cell
         pop hl
@@ -331,8 +332,9 @@ cell_off:
 
 ; putch: A=char at DE with txtcol, DE++
 putch:  push hl
+        or 80h
         ld h,a
-        ld l,0
+        ld l,FONT_BANK
         ld a,(txtcol)
         call put_cell
         pop hl

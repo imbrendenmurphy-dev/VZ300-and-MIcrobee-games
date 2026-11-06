@@ -69,7 +69,7 @@ title_menu:
         ld b,5
         ld c,24
         ld hl,txt_living
-        ld a,C_TITLE
+        ld a,COL(BYELLOW,BLACK)
         call puts_at
         call draw_menu
         ld b,23
@@ -178,6 +178,33 @@ title_menu:
         ret
 
 draw_bigtitle:
+        ; stone tablet behind the letters: rows 0-4, columns 21-58
+        ld b,0
+.tr:    ld c,21
+.tc:    push bc
+        call cell_off
+        pop bc
+        push bc
+        call tab_glyph          ; HL = G for this cell, or 0 = plain stone
+        ld a,h
+        or l
+        jr z,.ts
+        ld a,COL(DGREY,BLACK)
+        call put_g
+        jr .tn
+.ts:    ld a,' '
+        ld hl,txtcol
+        ld (hl),COL(DGREY,DGREY)
+        call putch
+.tn:    pop bc
+        inc c
+        ld a,c
+        cp 59
+        jr nz,.tc
+        inc b
+        ld a,b
+        cp 5
+        jr nz,.tr
         ld hl,bigword
         ld a,23
         ld (bg_x),a
@@ -235,7 +262,41 @@ draw_bigtitle:
         pop hl
         inc hl
         jr .l
-bigcols: db COL(WHITE,BLACK),COL(BYELLOW,BLACK),COL(BRED,BLACK)
+bigcols: db COL(WHITE,DGREY),COL(WHITE,DGREY),COL(GREY,DGREY)
+; tablet edge glyph for B = row, C = column -> HL (0 = inside)
+tab_glyph:
+        ld a,b
+        or a
+        jr z,.top
+        cp 4
+        jr z,.bot
+        ld a,c
+        cp 21
+        ld hl,G_TAB_L
+        ret z
+        cp 58
+        ld hl,G_TAB_R
+        ret z
+        ld hl,0
+        ret
+.top:   ld a,c
+        cp 21
+        ld hl,G_TAB_TL
+        ret z
+        cp 58
+        ld hl,G_TAB_TR
+        ret z
+        ld hl,G_TAB_T
+        ret
+.bot:   ld a,c
+        cp 21
+        ld hl,G_TAB_BL
+        ret z
+        cp 58
+        ld hl,G_TAB_BR
+        ret z
+        ld hl,G_TAB_B
+        ret
 bigword: db G_BIG_E-256,G_BIG_M-256,G_BIG_P-256,G_BIG_I-256,G_BIG_R-256,G_BIG_E-256,G_BIG_S-256,0
 
 draw_menu:

@@ -471,27 +471,14 @@ assert UI_END<=384, UI_END
 # ---------------------------------------------------------------- bank 3: title letters
 pad_to(384)
 title_first=len(chars)
-BIG={
-'E':['#######.','##......','##......','##......','######..','##......','##......','##......','##......','#######.','........'],
-'M':['##....##','###..###','########','##.##.##','##....##','##....##','##....##','##....##','##....##','##....##','........'],
-'P':['######..','##...##.','##....##','##...##.','######..','##......','##......','##......','##......','##......','........'],
-'I':['.######.','...##...','...##...','...##...','...##...','...##...','...##...','...##...','...##...','.######.','........'],
-'R':['######..','##...##.','##....##','##...##.','######..','##.##...','##..##..','##...##.','##....##','##....##','........'],
-'S':['.######.','##....##','##......','##......','.######.','......##','......##','......##','##....##','.######.','........'],
-}
-# scale 4x horizontally, 3x vertically -> 32 x 33 px (4 chars x 3 rows), with bevel highlight
+import sys as _sys, os as _os
+_sys.path.insert(0,_os.path.dirname(_os.path.abspath(__file__)))
+from romantitle import letter_bitmap, marble
+from romanfont import glyph_rows
+# Roman capitals carved in marble: 32 x 33 px per letter (4 chars x 3 rows)
 title_glyph={}
-for letter,g in BIG.items():
-    W=32; Hh=33
-    big=[[0]*W for _ in range(Hh)]
-    for y in range(Hh):
-        for x in range(W):
-            sy=y//3; sx=x//4
-            if g[sy][sx]=='#': big[y][x]=1
-    # carve 1px vertical groove pattern for texture: darken every 4th col on lower third rows
-    for y in range(Hh):
-        for x in range(W):
-            if big[y][x] and (y%3==2) and x%4==3: big[y][x]=0
+for li,letter in enumerate('EMPIRS'):
+    big=marble(letter_bitmap(letter), li*7+3)
     cells=[]
     for cy in range(3):
         for cx in range(4):
@@ -500,10 +487,28 @@ for letter,g in BIG.items():
                 v=0
                 for xx in range(8): v=(v<<1)|big[cy*11+yy][cx*8+xx]
                 rows.append(v)
-            cells.append(add('BIG_%s_%d_%d'%(letter,cy,cx),rows,BYELLOW,BLACK))
+            cells.append(add('BIG_%s_%d_%d'%(letter,cy,cx),rows,WHITE,DGREY))
     title_glyph[letter]=cells[0]
+# stone tablet edges (fg = tablet stone, bg = black); mono: a 1px outline
+def tab(name, filled, outline):
+    add('TAB_'+name, rows_from(filled), DGREY, BLACK, mono=rows_from(outline))
+F8='########'; Z8='........'
+tab('T',  [Z8]*5+['########']*6,           [Z8]*5+['########']+[Z8]*5)
+tab('B',  ['########']*5+[Z8]*6,           [Z8]*4+['########']+[Z8]*6)
+tab('L',  ['.....###']*11,                 ['.....#..']*11)
+tab('R',  ['###.....']*11,                 ['..#.....']*11)
+tab('TL', [Z8]*5+['.......#','......##','.....###','.....###','.....###','.....###'], [Z8]*5+['.......#','......#.','.....#..','.....#..','.....#..','.....#..'])
+tab('TR', [Z8]*5+['#.......','##......','###.....','###.....','###.....','###.....'], [Z8]*5+['#.......','.#......','..#.....','..#.....','..#.....','..#.....'])
+tab('BL', ['.....###','.....###','.....###','......##','.......#']+[Z8]*6, ['.....#..','.....#..','.....#..','......#.','.......#']+[Z8]*6)
+tab('BR', ['###.....','###.....','###.....','##......','#.......']+[Z8]*6, ['..#.....','..#.....','..#.....','.#......','#.......']+[Z8]*6)
 TITLE_END=len(chars)
 assert TITLE_END<=512
+# ---------------------------------------------------------------- bank 4: Roman text font (G = 512 + ASCII)
+pad_to(512)
+font_first=len(chars)
+for code in range(128):
+    add('FONT_%d'%code, glyph_rows(chr(code)), WHITE, BLACK)
+FONT_END=len(chars)
 
 NCH=len(chars)
 
@@ -542,6 +547,7 @@ emit('G_BRIDGEH equ %d'%bridge_h)
 emit('G_BRIDGEV equ %d'%bridge_v)
 emit('G_UI equ %d'%ui_first)
 emit('G_TITLE equ %d'%title_first)
+emit('FONT_BANK equ %d'%(font_first>>7))
 for k,v in title_glyph.items(): emit('G_BIG_%s equ %d'%(k,v))
 
 def dbrows(lst):
