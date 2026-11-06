@@ -16,7 +16,7 @@ Copy `release/GHOST3.VZ` to the SD card and load it from the BennVenn menu. It l
 * **Controls:** Q/A/M/, or joystick. P pauses, S toggles sound. Fire or Space starts a game.
 
 ## What's new
-* **Big scrolling mazes.** There are six hand-designed mazes plus a Pellet Panic bonus maze. All of them are checked for connectivity, dead ends and 2×2 open areas.
+* **Big scrolling mazes.** There are six hand-designed mazes plus a Pellet Panic bonus maze. Power pills come at the same ratio as GH2, about 1 per 24 pellets (18–20 per big maze). All of them are checked for connectivity, dead ends and 2×2 open areas.
   * The Crypt
   * Haunted Halls
   * The Graveyard

@@ -976,7 +976,7 @@ burstcol: db 0
 telep:  dw 0
 energp: dw 0
 tele_list: ds 8
-energ_list: ds 16
+energ_list: ds 48
 popups: ds 12
 particles: ds 12*8
 actors: ds 16*5

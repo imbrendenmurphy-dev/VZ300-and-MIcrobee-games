@@ -35,8 +35,9 @@ Controls     Q/A/M/, keys or the VZ joystick; P pause, S sound
 
 Mazes        6 main mazes, 27 cells wide x 31-35 cells tall
              (162 x 155-175 pixels = about 3.5 screens each),
-             418-478 pellets and 4-6 power pills each, teleporters
-             and tunnels. Pellet Panic bonus maze 27x15.
+             404-464 pellets and 18-20 power pills each (about 1 per
+             24 pellets, the same ratio as Ghost Hunter 2), teleporters
+             and tunnels. Pellet Panic bonus maze 27x15 (8 pills).
              Every maze is machine-checked: fully connected,
              no dead ends, no 2x2 open areas.
 Cells        6x5 pixels; actors move in pixels, speeds in 8.8 fixed

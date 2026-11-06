@@ -328,7 +328,7 @@ code_to_id:
         inc hl
         ld (pellets),hl
         ld a,(nener)
-        cp 8
+        cp 24
         jr nc,.e1
         ld e,a
         inc a
@@ -1651,14 +1651,18 @@ map_to_dl:
 ; of the walls and candles flicker) - only while the view is still
 ; ---------------------------------------------------------------------
 animate_map:
-        ld a,(nener)
-        or a
-        jr z,.ne
-        ld c,a
+        ; power pills: frame slot s (0..15) refreshes pills s and s+16
         ld a,(framecount)
         and 15
-        cp c
-        jr nc,.ne               ; frame slot k animates energiser k
+        push af
+        call .pill
+        pop af
+        add a,16
+        call .pill
+        jr .ne
+.pill:  ld hl,nener
+        cp (hl)
+        ret nc
         add a,a
         ld e,a
         ld d,0
@@ -1672,14 +1676,14 @@ animate_map:
         cp T_ENERG0*4
         jr z,.e0
         cp T_ENERG1*4
-        jr nz,.ne
+        ret nz                  ; eaten
 .e0:    ld a,(framecount)
         and 16
         ld a,T_ENERG0*4
         jr z,.e1
         ld a,T_ENERG1*4
 .e1:    cp (hl)
-        jr z,.ne
+        ret z
         ld (hl),a
         ld a,1
         ld e,3
