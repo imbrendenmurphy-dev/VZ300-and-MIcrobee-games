@@ -24,12 +24,12 @@ MF_BOSS     equ 8
 ; battle: A = monster id -> A = 0 won, 1 fled, 2 died
 ; ---------------------------------------------------------------------------
 battle:
-            ld hl,bt_loaded
-            ld a,(hl)
-            ld (hl),0
+            ld a,(bt_loaded)        ; a cutscene may have loaded the monster already
             or a
             ld a,(battle_boss)
             call z,battle_load
+            xor a                   ; always consumed here, so the next battle loads afresh
+            ld (bt_loaded),a
             jp battle_run
 
 ; load monster definition, graphics (bank 1) and backdrop (bank 3)
