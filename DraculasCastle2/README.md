@@ -1,9 +1,9 @@
 # DRACULA'S CASTLE II — THE CASTLE AWAKENS
-### v0.3.0 — Chapters 1 & 2 · ViBED by BPM · 2026
+### v0.4.0 — Chapters 1 to 3 · ViBED by BPM · 2026
 Dick Smith VZ300 · BennVenn SD + 128K · Mode 1 (128×64, 4 colours) · all Z80
 
 ## Running it
-Copy `DRACULA2.VZ` **and all the `DC2*.DAT` files** (19 of them in v0.3) from `release/` to the **root of the
+Copy `DRACULA2.VZ` **and all the `DC2*.DAT` files** (24 of them in v0.4) from `release/` to the **root of the
 SD card** (the same place 13 Ghosts and its `.DAT` files live — not inside a folder), then load `DRACULA2.VZ` like any other binary .VZ. It loads at $8000
 and runs from there. The game streams its artwork from the `.DAT` files through the
 BennVenn DOS, the same way 13 Ghosts does. If a file is missing it stops with
@@ -21,11 +21,11 @@ the folder it was started from). If no 128K expansion is present, it prints
 | File | Contents | Loaded into |
 |---|---|---|
 | DC2TITLE | title picture | back buffer |
-| DC2AnP1 (n = 0 grounds, 1 hall, 2 library) | walls and backgrounds | SRAM bank 3 $4000 |
+| DC2AnP1 (n = 0 grounds, 1 hall, 2 library, 3 dungeons) | walls and backgrounds | SRAM bank 3 $4000 |
 | DC2AnP2 | decorations and objects | $C800 |
 | DC2AnS | the area itself: map, events, exits, its texts and its song | $E400 |
-| DC2MON1–5 | bat, skeleton, ghost, gargoyle, grell (3 frames each) | $C800 (during battles) |
-| DC2BBG0–2 | battle backdrops | SRAM bank 3 $5C00 |
+| DC2MON1–8 | bat, skeleton, ghost, gargoyle, grell, zombie, slime, Ghoul King (3 frames each) | $C800 (during battles) |
+| DC2BBG0–3 | battle backdrops | SRAM bank 3 $5C00 |
 | DC2EGG | the four 1984 mode 0 screens | $C800 |
 
 ## Controls
@@ -50,7 +50,16 @@ ghost of the old librarian, tells you where the CRYPT KEY is hidden: in a secret
 a bookshelf in the north-west corridor, guarded by the GRELL (the floating brain from the
 1984 original). A hunched bookseller sells potions, holy water and elixirs (press 1, 2 or 3
 to buy, E to leave). Five lecterns hold lore and jokes, and there's a stone angel to save at.
-The crypt key opens the stair down — the dungeons come in chapter 3.
+The crypt key opens the stair down to the dungeons.
+
+## Chapter 3: The Dungeons (new in v0.4)
+Wet, mossy stone, barred cells, chains and puddles — and a mournful dungeon theme. Zombies,
+slimes and skeletons roam (the zombie and slime are more creatures from the 1984 original).
+Kaspar, a prisoner who still does business through the bars, sells potions, holy water and
+the CLOAK (+3 defence). A heap of bones in the catacombs rises as you approach; a loose stone
+hides an old armoury with the SILVER SWORD (+8 attack, extra damage to the undead). On his
+throne of skulls in the south-east sits the GHOUL KING, who holds the TOWER KEY. The tower
+stair leads to chapter 4: the Clock Tower.
 
 Also new: elixirs (+10 max HP), the cloak (+3 defence), the silver sword (+8 attack),
 locked doors that say which key they need, and area data streamed from SD so the castle

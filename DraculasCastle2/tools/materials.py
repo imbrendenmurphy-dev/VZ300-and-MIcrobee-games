@@ -192,3 +192,46 @@ class Library(Mat):
             return self.shade('rug', 0 if (int(z * 6) & 1) else 1, z - 0.4)
         if (z * 5) % 1 < 0.15: return self.shade('floor', 2, z - 0.4)
         return self.shade('floor', 0, z - 0.4)
+
+class Dungeon(Mat):
+    ramps = {
+        'stone': ramp((Y, B, .25), (Y, B, .5), (Y, B, .75), (B, B, 0), (B, B, 0)),
+        'hi':    ramp((Y, Y, 0), (Y, B, .25), (Y, B, .5), (B, B, 0)),
+        'dark':  ramp((B, B, 0),),
+        'moss':  ramp((G, B, .25), (G, B, .5), (G, B, .75), (B, B, 0)),
+        'slime': ramp((G, G, 0), (G, B, .25), (G, B, .5), (B, B, 0)),
+        'bar':   ramp((Y, R, .5), (R, R, 0), (R, B, .5), (B, B, 0)),
+        'floor': ramp((Y, B, .75), (Y, B, .75), (B, B, 0), (B, B, 0)),
+        'water': ramp((G, B, .5), (G, B, .75), (B, B, 0)),
+        'beam':  ramp((R, B, .5), (R, B, .75), (B, B, 0)),
+    }
+    def wall(self, kind, u, v, z, face):
+        if kind == 'B':  # iron bars over a dark cell
+            if v > 1.36 or v < 0.06: return ('bar', 1)
+            if abs(v - 1.1) < 0.04: return ('bar', 0)
+            bu = (u * 6) % 1
+            if bu < 0.22: return ('bar', 0 if bu < 0.1 else 1)
+            return ('dark', 0)
+        # big rough blocks, moss low down, slime drips
+        bh = 0.36; row = int(math.floor(v / bh)); off = 0.37 if row & 1 else 0.0
+        bu = u * 1.5 + off; col = int(math.floor(bu)); fu = bu - col; fv = v / bh - row
+        n = h2(col, row, 21)
+        if fv < 0.1 or fu < 0.05: return ('dark', 0)
+        drip = h2(int(u * 9), 0, 22)
+        if drip > 0.8 and (u * 9) % 1 < 0.3 and v > 1.4 - drip * 0.9: return ('slime', 1)
+        if v < 0.3 + n * 0.25: return ('moss', 0 if fv > 0.5 else 1)
+        if fv > 0.82: return ('hi', 2)
+        return ('stone', 1 + (1 if n < 0.3 else 0))
+    def bg(self, px, py, variant):
+        if py < HOR:
+            z = floor_z(py, False)
+            if z > 3.5: return (B, B, 0)
+            if (z * 1.5) % 1 < 0.15: return self.shade('beam', 1, z - 0.3)
+            return (B, B, 0)
+        z = floor_z(py, True)
+        if z > 4.0: return (B, B, 0)
+        wx = (px - CX) / (64.0 / max(z, 0.5))
+        n = h2(int(wx * 3 + 50), int(z * 3), 23)
+        if n > 0.82: return self.shade('water', 0, z - 0.4)
+        if (wx * 2.5) % 1 < 0.08 or (z * 2.5) % 1 < 0.08: return (B, B, 0)
+        return self.shade('floor', 0, z - 0.4) if n > 0.25 else self.shade('moss', 2, z - 0.4)

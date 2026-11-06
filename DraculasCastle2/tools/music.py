@@ -18,8 +18,11 @@ def note_num(tok):
 
 def expand(s):
     import re
+    s = re.sub(r'\](?!x\d)', ']x1', s)          # a bare [ ... ] plays once
     while '[' in s:
+        n = s
         s = re.sub(r'\[([^\[\]]*)\]x(\d+)', lambda m: ' '.join([m.group(1)] * int(m.group(2))), s)
+        assert s != n, 'unbalanced [ ] in song'
     return s.split()
 
 def compile_channel(s, loop=True):
@@ -126,6 +129,15 @@ SONGS['LIBRARY'] = dict(loop=True, ch=[
     "[F2:1 C3:1 F3:1]x2 [E2:1 B2:1 E3:1]x2 [D2:1 A2:1 D3:1]x2 [E2:1 B2:1 E3:1]x2 "
     "[D2:1 A2:1 D3:1]x1 [G2:1 D3:1 G3:1]x1 [C2:1 G2:1 C3:1]x1 [E2:1 B2:1 E3:1]x1 [E2:1 G#2:1 B2:1]x1 [A2:1 E3:1 A3:1]x1",
     "i2 u12 A3:1 E3:1 D3:1 A3:1 A3:1 E3:1 D3:1 A3:1 F3:1 E3:1 D3:1 E3:1 D3:1 E3:1 E3:1 A3:1",
+])
+
+SONGS['DUNGEON'] = dict(loop=True, ch=[
+    # slow and heavy: a prisoner's lament over a dragging bass
+    "i2 u6 r:2 D5:2 F5:1 E5:1 D5:2 C#5:2 | D5:3 A4:3 r:2 | r:2 Bb4:2 C5:1 D5:1 E5:2 F5:2 | E5:6 r:2 | "
+    "r:2 F5:2 G5:1 F5:1 E5:2 D5:2 | C#5:3 E5:3 A4:2 | Bb4:2 A4:1 G4:1 A4:2 C#5:2 | D5:6 r:2",
+    "i1 u6 [D2:2 r:1 D2:1 A1:2 r:2]x2 [Bb1:2 r:1 Bb1:1 F1:2 r:2] [A1:2 r:1 A1:1 E1:2 r:2] "
+    "[D2:2 r:1 D2:1 A1:2 r:2] [A1:2 r:1 A1:1 C#2:2 r:2] [G1:2 r:1 G1:1 A1:2 r:2] [D2:2 r:1 D2:1 A1:2 r:2]",
+    "i8 u6 [r:3 C7:1 r:4]x2 [r:5 G6:1 r:2]x2 [r:3 C7:1 r:4]x2 [r:2 D7:1 r:3 G6:1 r:1]x2",
 ])
 
 SONG_ORDER = ['BATTLE', 'BOSS', 'VICTORY', 'LEVELUP', 'DEATH', 'TITLE', 'MAZE', 'ENDING']

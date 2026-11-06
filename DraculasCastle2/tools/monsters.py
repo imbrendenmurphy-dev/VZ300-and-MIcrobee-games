@@ -258,7 +258,86 @@ def grell(frame):
     c.outline(Y)
     return c, B
 
-HOME_BBG = {'GHOST': 1, 'GARGOYLE': 1, 'GRELL': 2}     # gallery backdrop per monster
+# ----------------------------------------------------------------- ZOMBIE
+def zombie(frame):
+    c = Canvas()
+    cx = 32 + (frame - 1)
+    lean = (frame - 1) * 2
+    # legs
+    c.poly([(cx - 7, 30), (cx - 2, 30), (cx - 3 - lean, 43), (cx - 8 - lean, 43)], R)
+    c.poly([(cx + 2, 30), (cx + 7, 30), (cx + 8 + lean, 43), (cx + 3 + lean, 43)], R)
+    c.rect(cx - 9 - lean, 42, cx - 2 - lean, 43, Y); c.rect(cx + 2 + lean, 42, cx + 9 + lean, 43, Y)
+    # ragged torso
+    c.poly([(cx - 10, 13), (cx + 10, 13), (cx + 9, 31), (cx + 5, 33), (cx + 1, 30), (cx - 4, 33), (cx - 9, 31)], (R, Y, 25))
+    c.poly([(cx - 3, 14), (cx + 3, 14), (cx + 1, 24), (cx - 1, 24)], G)        # rotten skin showing
+    # arms reaching forward
+    ay = 15 + (frame == 2) * -3
+    c.poly([(cx - 10, 14), (cx - 24, ay + 2), (cx - 25, ay + 6), (cx - 9, 20)], R)
+    c.poly([(cx + 10, 14), (cx + 24, ay + 4), (cx + 25, ay + 8), (cx + 9, 20)], R)
+    for hx, hy in ((cx - 27, ay + 3), (cx + 27, ay + 5)):
+        c.ellipse(hx, hy, 3, 2.5, G)
+        for k in range(3): c.px(hx + (-3 if hx < cx else 3), hy - 1 + k, G)
+    # head tilted
+    hx = cx + (frame - 1) * 2
+    c.ellipse(hx, 7, 7, 7, G)
+    c.ellipse(hx - 3, 6, 2, 2, R); c.ellipse(hx + 3, 6, 2, 2, R)
+    c.px(hx - 3, 6, Y); c.px(hx + 3, 6, Y)
+    c.rect(hx - 3, 10, hx + 3, 11, R)
+    for k in range(-2, 3, 2): c.px(hx + k, 10, Y)
+    c.line(hx - 6, 1, hx - 2, 3, Y); c.line(hx + 1, 0, hx + 5, 2, Y)      # wisps of hair
+    c.outline(Y)
+    return c, B
+
+# ----------------------------------------------------------------- SLIME
+def slime(frame):
+    c = Canvas()
+    cx = 32; squash = (0, 3, -3)[frame]
+    ry = 13 - squash; rx = 21 + squash
+    c.ellipse(cx, 43 - ry, rx, ry, G)
+    c.rect(cx - rx, 40, cx + rx, 43, G)
+    c.ellipse(cx - 6, 43 - ry * 1.4, 6, 4, (G, Y, 25))
+    # bubbles and a few swallowed bones
+    c.ellipse(cx + 8, 36 - squash, 3, 3, (G, Y, 50)); c.ellipse(cx - 12, 38, 2, 2, (G, Y, 50))
+    c.line(cx - 4, 39, cx + 4, 37, Y); c.px(cx - 5, 39, Y); c.px(cx + 5, 37, Y)
+    # eyes on stalks
+    for ex in (-6, 6):
+        top = 43 - ry * 2 - 4 - (frame == 1) * 2
+        c.line(cx + ex, 43 - ry * 1.6, cx + ex + ex // 3, top, G, 1.2)
+        c.ellipse(cx + ex + ex // 3, top, 3, 3, Y)
+        c.px(cx + ex + ex // 3, top, R)
+    # drips
+    for dx in (-15, -2, 11):
+        c.line(cx + dx, 43, cx + dx, 44, G)
+    c.outline(Y)
+    return c, B
+
+# ----------------------------------------------------------------- GHOUL KING (dungeon boss)
+def ghoulking(frame):
+    c = Canvas()
+    cx = 32; crouch = (0, 1, -1)[frame]
+    # cloak
+    c.poly([(cx - 14, 14 + crouch), (cx + 14, 14 + crouch), (cx + 20, 43), (cx - 20, 43)], (R, Y, 25))
+    c.poly([(cx - 6, 16 + crouch), (cx + 6, 16 + crouch), (cx + 8, 43), (cx - 8, 43)], G)
+    for k in range(5): c.line(cx - 6 + k * 3, 20 + crouch, cx - 7 + k * 3.5, 42, (G, R, 50))   # ribs
+    # long arms with claws
+    ay = 18 + crouch + (frame == 2) * -6
+    c.poly([(cx - 13, 16 + crouch), (cx - 26, ay + 10), (cx - 24, ay + 13), (cx - 10, 22 + crouch)], G)
+    c.poly([(cx + 13, 16 + crouch), (cx + 26, ay + 10), (cx + 24, ay + 13), (cx + 10, 22 + crouch)], G)
+    for sx in (-1, 1):
+        for k in range(3): c.line(cx + sx * 25, ay + 12, cx + sx * (27 + k), ay + 16 + k, Y)
+    # head: long skull-like face, glowing eyes, fangs
+    hy = 9 + crouch
+    c.ellipse(cx, hy, 7, 8, G)
+    c.ellipse(cx - 3, hy - 1, 2.2, 2, R); c.ellipse(cx + 3, hy - 1, 2.2, 2, R)
+    c.px(cx - 3, hy - 1, Y); c.px(cx + 3, hy - 1, Y)
+    c.rect(cx - 3, hy + 4, cx + 3, hy + 5, R)
+    c.px(cx - 2, hy + 6, Y); c.px(cx + 2, hy + 6, Y)
+    c.poly([(cx - 9, 6), (cx - 4, 6), (cx - 2, 1), (cx, 4), (cx + 2, 1), (cx + 4, 6), (cx + 9, 6), (cx + 8, 3), (cx - 8, 3)], Y)  # crown
+    c.px(cx, 2, R)
+    c.outline(Y)
+    return c, B
+
+HOME_BBG = {'GHOST': 1, 'GARGOYLE': 1, 'GRELL': 2, 'ZOMBIE': 3, 'SLIME': 3, 'GHOUL KING': 3}     # gallery backdrop per monster
 MONSTERS = [
     # name, fn, hp, atk, def, xp, gold, flags, css
     ('BAT', bat, 9, 5, 0, 4, 3, 2, 0),
@@ -266,6 +345,9 @@ MONSTERS = [
     ('GHOST', ghost, 18, 7, 1, 11, 8, 4, 1),
     ('GARGOYLE', gargoyle, 60, 8, 4, 45, 60, 8, 0),
     ('GRELL', grell, 80, 11, 4, 70, 60, 10, 0),
+    ('ZOMBIE', zombie, 32, 10, 3, 16, 10, 1, 0),
+    ('SLIME', slime, 26, 9, 6, 14, 12, 0, 0),
+    ('GHOUL KING', ghoulking, 120, 14, 6, 120, 100, 9, 1),
 ]
 
 def frame_bytes(c, key):
@@ -382,6 +464,41 @@ def backdrop_library():
             if abs(x - 64) < 16 + (y - 34) * 2: col = G if abs(x - 64) < 14 + (y - 34) * 2 else Y
             c.p[y][x] = c.pat(col, x, y)
     c.line(0, 34, 127, 34, Y)
+    return c
+
+def backdrop_dungeon():
+    c = Canvas(128, 46, B)
+    # rough stone wall
+    for y in range(0, 34):
+        for x in range(128):
+            row = y // 7; off = 5 if row & 1 else 0
+            mortar = (y % 7 == 0) or ((x + off) % 14 == 0)
+            if mortar: c.p[y][x] = B
+            else: c.p[y][x] = c.pat((Y, B, 75), x, y) if (x * 3 + y * 5 + row) % 11 else Y
+            if y > 24 and not mortar and (x * 7 + y) % 5 < 2: c.p[y][x] = c.pat((G, B, 50), x, y)
+    # three barred cells
+    for ax in (20, 64, 108):
+        c.rect(ax - 12, 6, ax + 12, 33, B)
+        c.ellipse(ax, 7, 12, 5, B)
+        for bx in range(ax - 11, ax + 12, 4): c.rect(bx, 4, bx, 33, R)
+        c.line(ax - 12, 12, ax + 12, 12, R); c.line(ax - 12, 30, ax + 12, 30, R)
+    # a skeleton slumped in the middle cell, chains on the walls
+    c.ellipse(64, 24, 2, 2, Y); c.rect(63, 26, 65, 29, Y); c.line(61, 27, 59, 30, Y); c.line(67, 27, 69, 30, Y)
+    for chx in (42, 86):
+        for k in range(8): c.px(chx + (k & 1), 8 + k * 2, Y); c.px(chx, 9 + k * 2, R)
+    # torches
+    for tx in (40, 88):
+        c.rect(tx, 22, tx + 1, 26, R); c.rect(tx - 1, 19, tx + 2, 21, Y); c.px(tx, 17, Y); c.px(tx + 1, 18, R)
+    # wet flagstone floor with puddles
+    for y in range(34, 46):
+        for x in range(128):
+            zz = y - 33
+            u = (x - 64) / (zz * 1.4 + 5)
+            joint = (y - 34) % 4 == 0 or abs(u - round(u)) < 0.06
+            col = B if joint else (Y, B, 75)
+            if ((x // 9) * 7 + (y // 3) * 3) % 13 == 0: col = (G, B, 50)
+            c.p[y][x] = c.pat(col, x, y)
+    c.line(0, 34, 127, 34, (Y, B, 50))
     return c
 
 def backdrop_bytes(c):

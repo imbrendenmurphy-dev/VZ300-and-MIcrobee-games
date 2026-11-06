@@ -358,7 +358,7 @@ attract:
             ret
 .abort:     ret
 
-tour_list:  db 0,8,13,0, 0,2,8,0, 0,8,3,0, 1,8,13,0, 1,8,8,0, 1,2,5,2, 2,8,14,0, 2,11,7,0, $FF
+tour_list:  db 0,8,13,0, 0,2,8,0, 0,8,3,0, 1,8,13,0, 1,8,8,0, 1,2,5,2, 2,8,14,0, 2,11,7,0, 3,1,1,2, 3,7,6,0, $FF
 
 ; show one exploration view with area name; NZ if a key was pressed
 tour_view:
@@ -595,10 +595,10 @@ chapter_end:
             call wait_key
             jp title_screen
 
-end_text:   db "  THE STAIR WINDS DOWN INTO",1
-            db "  DARKNESS. FAR BELOW, CHAINS",1
-            db "  RATTLE... AND SOMETHING SINGS.",1,1
-            db 2,3,"   END OF CHAPTER TWO",1
+end_text:   db "  THE TOWER STAIR CLIMBS INTO",1
+            db "  THE STORM. HIGH ABOVE, A",1
+            db "  GREAT CLOCK BEGINS TO TICK...",1,1
+            db 2,3,"   END OF CHAPTER THREE",1
             db 2,1,"  TO BE CONTINUED...",0
 str_time:   db "TIME     ",0
 str_min:    db " MIN",0

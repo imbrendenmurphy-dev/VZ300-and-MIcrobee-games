@@ -122,7 +122,7 @@ AREA_MAPS[2] = dict(
     legend={'#': (1, 0), '%': (2, 0), '.': (0, 0), 'T': (2, 2), 'S': ('secret', 0)},
     door_decor=1, door_kind=2,
     exits={'Y': dict(area=1, x=8, y=2, dir=2, decor=1, kind=2, lock=0),
-           'Z': dict(area=98, x=0, y=0, dir=0, decor=3, kind=2, lock=IT_CRYPTKEY)},
+           'Z': dict(area=3, x=1, y=1, dir=2, decor=3, kind=2, lock=IT_CRYPTKEY)},
     events={
         'c': dict(obj=2, type=EV_CHEST, args=[IT_ELIXIR, 1, 0, 0]),
         'g': dict(obj=6, type=EV_BOSS, args=[5, 0, IT_CRYPTKEY, 'GRELLTX']),
@@ -141,6 +141,52 @@ AREA_MAPS[2] = dict(
     start=(8, 14, 0),
     css=0, song='LIBRARY', encounters=[3, 1, 3], rate=20, intro='INTRO2',
     wall_text='SHELF', secret_text='SHELFX', bbg=2,
+)
+
+# --------------------------------------------------------------------------
+# AREA 3 : THE DUNGEONS & CATACOMBS
+#   decors: 1 door, 2 torch, 3 stairs
+#   objects: 1 bones, 2 chest, 3 chest_open, 4 angel, 5 kaspar, 6 ghoul throne
+# --------------------------------------------------------------------------
+AREA_MAPS[3] = dict(
+    name='DUNGEONS',
+    rows=[
+        "#U##############",
+        "#..............#",
+        "#.#c#r######a#.#",
+        "#.##########=#.#",
+        "#.#####=######.#",
+        "#.##=#=m==#=##.#",
+        "#..............#",
+        "#.Tx##=#=#S#=#.#",
+        "#.#...##.....#.#",
+        "#.###.##=....#.#",
+        "#.#T#.##....k#.#",
+        "#.e##.########.#",
+        "#.....########f#",
+        "#...........g..#",
+        "#############d.#",
+        "##############V#",
+    ],
+    legend={'#': (1, 0), '=': (2, 0), '.': (0, 0), 'T': (1, 2), 'S': ('secret', 0)},
+    door_decor=1, door_kind=1,
+    exits={'U': dict(area=2, x=13, y=2, dir=2, decor=3, kind=1, lock=0),
+           'V': dict(area=98, x=0, y=0, dir=0, decor=3, kind=1, lock=IT_TOWERKEY)},
+    events={
+        'c': dict(obj=2, type=EV_CHEST, args=[IT_HOLY, 2, 0, 0]),
+        'r': dict(obj=1, type=EV_SIGN, args=['TALLY', 0, 0, 0]),
+        'a': dict(obj=4, type=EV_SHRINE, args=[0, 0, 0, 0]),
+        'm': dict(obj=5, type=EV_SHOP, args=['KASPAR', IT_POTION, IT_HOLY, IT_CLOAK]),
+        'x': dict(obj=1, type=EV_SCRIPT, args=[2, 1, IT_POTION, 'BONES3']),
+        'k': dict(obj=2, type=EV_CHEST, args=[IT_SWORD, 1, 0, 0]),
+        'e': dict(obj=2, type=EV_CHEST, args=[IT_ELIXIR, 1, 0, 0]),
+        'f': dict(obj=2, type=EV_CHEST, args=[IT_POTION, 2, 0, 0]),
+        'g': dict(obj=6, type=EV_BOSS, args=[8, 0, IT_TOWERKEY, 'GHOULTX']),
+        'd': dict(obj=1, type=EV_SIGN, args=['TOWERSIGN', 0, 0, 0]),
+    },
+    start=(1, 1, 2),
+    css=0, song='DUNGEON', encounters=[6, 7, 2], rate=18, intro='INTRO3',
+    wall_text='DSTONE', secret_text='DSECRET', bbg=3,
 )
 
 CHARS = {}
