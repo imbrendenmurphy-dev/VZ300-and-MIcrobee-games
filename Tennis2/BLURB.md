@@ -55,7 +55,7 @@ It all wraps up in:
 | **Machine** | Dick Smith VZ300 or VZ200, Z80A at 3.5 MHz |
 | **Memory** | Needs RAM from $7800 to $FFFF, e.g. a BennVenn SD + 128K expansion. Will not run on an unexpanded machine |
 | **Storage** | Loads from SD (BennVenn loader) as a binary .VZ. No other files needed |
-| **File** | `TENNIS2.VZ`, 24.2 KB, loads and autostarts at $8000 |
+| **File** | `TENNIS2.VZ`, 24.5 KB, loads and autostarts at $8000 |
 | **Display** | Genuine Mode 1 throughout (6847 CG2: 128×64, 4 colours). Both colour sets are used: grass, night and title in CSS0, clay and hard court in CSS1 |
 | **Graphics** | Perspective court with crowd strip and net. Pre-shifted, masked sprites recoloured for each surface and when players change ends. 9 character portraits, title picture, trophy |
 | **Frame rate** | 50 fps, synced to field sync, with all screen writes in the vblank window (no snow) |

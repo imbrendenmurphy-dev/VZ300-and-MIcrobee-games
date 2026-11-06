@@ -374,6 +374,7 @@ hud_draw:
         ld (noq),a
         call hud_draw2
         call hud_centre
+        call hud_bezel
         pop af
         ld (noq),a
         or a
@@ -428,17 +429,45 @@ hud_centre:
 .n:     dec c
         jr nz,.r
         ret
+; hud_bezel: a 1-pixel frame in the court-line colour: left edge at x 0, the
+; divider at x 19 is the right edge, lines along rows 0 and 63, and a middle
+; line at row 31 between the two players (not in practice, which is one box).
+hud_bezel:
+        ld a,(s_bgmap+1)
+        call colbyte_a
+        ld e,a                  ; a full byte of line colour
+        and $C0
+        ld d,a                  ; just x 0
+        ld hl,BGBUF
+        ld b,64
+.v:     ld a,(hl)
+        and $3F
+        or d
+        ld (hl),a
+        ld a,l
+        add a,32
+        ld l,a
+        jr nc,.n
+        inc h
+.n:     djnz .v
+        ld hl,BGBUF
+        call .h
+        ld hl,BGBUF+63*32
+        call .h
+        ld a,(mode)
+        cp MODE_PRACTICE
+        ret z
+        ld hl,BGBUF+31*32
+.h:     ld b,5                  ; x 0-19 (x 19 is the divider, same colour)
+.hb:    ld (hl),e
+        inc l
+        djnz .hb
+        ret
 hud_draw2:
         ld a,(s_bgmap)
         call colbyte_a
         ld de,$0000
         ld bc,$0440
-        call fill_rect
-        ld a,(s_bgmap+1)
-        call colbyte_a
-        and $CC
-        ld de,$001F
-        ld bc,$0401
         call fill_rect
         ld a,(mode)
         cp MODE_PRACTICE
@@ -472,26 +501,47 @@ hud_ink:        ; ink in IX's team colour on the court colour
         ld a,(s_sprmap+3)
 .a:     jp set_ink
 
+; Rows are centred inside each half of the bezel (top interior rows 1-30,
+; bottom 32-62). With sets shown the block is 28 rows tall, without it 22.
 hud_one_top:
         call hud_ink
-        call hud_name_at        ; E = row
-        db 0
-        ld e,6
+        ld a,(setsneed)
+        cp 2
+        jr nc,.sets
+        call hud_name_at
+        db 5
+        ld e,11
         call hud_points
-        ld e,18
+        ld e,22
+        jp hud_games
+.sets:  call hud_name_at
+        db 2
+        ld e,8
+        call hud_points
+        ld e,19
         call hud_games
-        ld e,24
+        ld e,25
         jp hud_sets
 hud_one_bottom:
         call hud_ink
-        ld e,34
-        call hud_sets
-        ld e,40
+        ld a,(setsneed)
+        cp 2
+        jr nc,.sets
+        ld e,36
         call hud_games
-        ld e,47
+        ld e,42
         call hud_points
         call hud_name_at
-        db 59
+        db 53
+        ret
+.sets:  ld e,33
+        call hud_sets
+        ld e,39
+        call hud_games
+        ld e,45
+        call hud_points
+        call hud_name_at
+        db 56
         ret
 
 ; name + serve marker; the row follows the call as an inline byte
@@ -625,23 +675,23 @@ hud_practice:
         ld b,c
         call set_ink
         ld hl,s_balls
-        ld de,$0001
+        ld de,$0006
         call print
         ld a,(pr_balls)
         ld de,$000C
         call print2_dec
         ld hl,s_hits
-        ld de,$0019
+        ld de,$001A
         call print
         ld a,(pr_hits)
-        ld de,$0024
+        ld de,$0020
         call print2_dec
         ld hl,s_pts
-        ld de,$0031
+        ld de,$002E
         call print
         ld hl,pr_score
         ld b,2
-        ld de,$003A
+        ld de,$0034
         jp print_bcd
 s_balls: db "BALL",0
 s_hits:  db "HITS",0

@@ -1,7 +1,7 @@
 # TENNIS II — GRAND SLAM
 
 Sequel to the VZ200/VZ300 game *TENNIS*, for the Dick Smith VZ300 / VZ200 with the **BennVenn SD loader + 128K**.
-ViBED by BPM 2026. Version 1.1.2. Original code, graphics and music. Nothing from the original game is included.
+ViBED by BPM 2026. Version 1.1.3. Original code, graphics and music. Nothing from the original game is included.
 
 ![title](screenshots/TENNIS2_title.gif)
 
@@ -14,7 +14,7 @@ ViBED by BPM 2026. Version 1.1.2. Original code, graphics and music. Nothing fro
 ## Play it
 
 Copy `release/TENNIS2.VZ` to the SD card and run it from the BennVenn SD loader.
-- It's a single type F1 binary. It loads at $8000 (to $E0DC) and runs from $8000. There are no other files.
+- It's a single type F1 binary. It loads at $8000 (to $E1DC) and runs from $8000. There are no other files.
 - It needs the **128K expansion** (RAM up to $FFFF).
 
 ### Controls
@@ -114,19 +114,19 @@ In two-player mode, player 1 uses joystick 1 or Q A M , SPACE, and player 2 uses
   | Range | Use |
   |---|---|
   | $67C0–$67FF, SRAM **bank 3** | Hall of Fame + options + Classic unlock (signature + checksum) |
-  | $7800–$7BC6 | variables |
+  | $7800–$7BCC | variables |
   | $7C00–$7DFF | VRAM commit queue, recolour table |
   | $7E00–$7EBF | info-screen backplane dot lists |
   | $7FFE | stack (grows down) |
-  | $8000–$E0DC | code and data (the .VZ, 24,797 bytes) |
-  | $E0DD–$F426 | sprite table + shifted, recoloured sprites (built at run time) |
+  | $8000–$E1DC | code and data (the .VZ, 25,053 bytes) |
+  | $E1DD–$F526 | sprite table + shifted, recoloured sprites (built at run time) |
   | $F800–$FFFF | background buffer |
 
 - **Records:** kept in SRAM bank 3 (`OUT ($37),3`), so they survive reloading the game but not power-off.
   - Your BIX bank tests showed that port $37 values 1 and 3 hold separate data. The block sits at the very top of the bank, clear of Dracula's Castle II's save slot.
   - At start-up the game probes the bank switch: it writes one byte, checks it, then restores it. It only saves if bank 1 is untouched and bank 3 holds the byte. Otherwise saving is simply off.
   - The mapping is always put back to 1 (the DOS) straight afterwards.
-- **Score panel:** drawn in byte columns, then slid 2 pixels right (nibble rotate, RRD) so it sits centred between the border and the divider and never merges with the Mode 1 border colour.
+- **Score panel:** drawn in byte columns, then slid 2 pixels right (nibble rotate, RRD) so it sits centred between the border and the divider. A 1-pixel bezel in the court-line colour frames each player's half, and the scores are centred top to bottom inside it, with or without the sets row. On clay and hard court (CSS1) the bezel is the same buff as the screen border, so there the panels show as plain coloured blocks.
 - **Snow-free drawing:** VRAM is written only in the vblank window after field sync, through the Penguin 2 commit queue (now able to split rectangles too big for one frame) and POP-drawn sprites. Popup text goes into the backdrop and is restored afterwards, so it costs nothing in vblank.
   - The crowd animation only steps when the queue is empty.
   - The info-screen backplane writes its dots straight to VRAM in vblank, half the lattice per frame, and only on frames when the queue copied nothing. Its dots never enter the background buffer.
