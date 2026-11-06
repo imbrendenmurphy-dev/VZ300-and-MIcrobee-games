@@ -385,7 +385,7 @@ play_stage:
         call nz,pause_game
         ; music toggle (S)
         ld a,($68FD)
-        bit 4,a
+        bit 1,a                 ; S
         jr nz,.nos
         ld a,(s_held)
         or a

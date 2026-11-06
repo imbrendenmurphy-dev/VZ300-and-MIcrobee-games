@@ -35,3 +35,7 @@ Tests (in tests/):
 Debugging aids: `-W lo:hi` logs every write to that address range with the PC and IX. With
 `VZ_WTRAIL=pc` set, a write made at that PC also prints the last 8192 executed PCs, each with
 its IX value. That trail found `play_song` clobbering IX while the object loop was running.
+
+Interrupts are level-triggered as on the real VZ: INT is held for the 56 lines of field sync,
+and an ISR that re-enables interrupts too early is re-entered. `-E` selects the old one-shot
+model. The keyboard rows use the real hardware bit order (bit 5 is the first key listed).

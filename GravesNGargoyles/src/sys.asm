@@ -5,7 +5,21 @@
 init:
         di
         ld sp,STACKTOP
+        ; boot progress: one yellow band per step, top to bottom. They are
+        ; wiped when the title appears; if start-up ever stops, the last
+        ; band shows how far it got (a red band marks a failed check).
+        ld a,$28
+        ld (LATCH),a
+        ld hl,VRAM
+        ld de,VRAM+1
+        ld bc,$7FF
+        ld (hl),$AA
+        ldir
+        ld a,0
+        call boot_band
         call dos_probe          ; as the 13 Ghosts loader does
+        ld a,1
+        call boot_band
         xor a
         ld (DOSBUSY),a
         ld a,SRAM_GAME
@@ -19,6 +33,26 @@ init:
         ld de,$6100
         ld bc,BLOB2_END-$6100
         ldir
+        ; check the SRAM really holds what was copied
+        ld hl,BLOB1_SRC
+        ld de,$5500
+        ld bc,BLOB1_END-$5500
+.ck:    ld a,(de)
+        cp (hl)
+        jr nz,.bad
+        inc hl
+        inc de
+        dec bc
+        ld a,b
+        or c
+        jr nz,.ck
+        ld a,2
+        call boot_band
+        jr .ok
+.bad:   ld a,2
+        call boot_fail
+.stop:  jr .stop
+.ok:
         ; clear variables
         ld hl,VARS
         ld de,VARS+1
@@ -43,22 +77,16 @@ init:
         ld (latch),a
         ld (latch_next),a
         ld (LATCH),a
+        ld a,3
+        call boot_band
         call cls_fb
-        ; clear the screen in quarters, each inside vertical blank
+        ; the first interrupt
         ei
-        ld hl,VRAM
-        ld b,4
-.vc:    push bc
         halt
-        ld (hl),$AA
-        ld d,h
-        ld e,l
-        inc de
-        ld bc,$1FF
-        ldir
-        inc hl
-        pop bc
-        djnz .vc
+        ld a,4
+        call boot_band
+        halt
+        halt
         di
         ld a,1
         ld (opt_sound),a
@@ -68,7 +96,44 @@ init:
         ld (seed),hl
         call load_hiscores
         ei
+        ld a,5
+        call boot_band
+        call ensure_front       ; first SD read
+        ld a,6
+        call boot_band
         jp front_main
+
+; boot_band: A = step (0-7): paint rows 4A..4A+3 yellow, plus a marker
+boot_band:
+        ld c,$55
+        jr boot_paint
+boot_fail:
+        ld c,$FF
+boot_paint:
+        push hl
+        push de
+        push bc
+        ld l,a
+        ld h,0
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        add hl,hl               ; *128
+        ld de,VRAM
+        add hl,de
+        ld (hl),c
+        ld d,h
+        ld e,l
+        inc de
+        ld bc,127
+        ldir
+        pop bc
+        pop de
+        pop hl
+        ret
 
 ; ---------------------------------------------------------------- tables
 build_tables:
@@ -114,6 +179,7 @@ isr:
         ld a,(DOSBUSY)
         or a
         jr z,.go
+        call fs_wait
         pop af
         ei
         reti
@@ -169,9 +235,19 @@ isr:
         pop hl
         pop de
         pop bc
+        call fs_wait
         pop af
         ei
         reti
+
+; The VZ's interrupt is level-triggered: the line stays low for the whole
+; field sync (56 lines), so interrupts may only be re-enabled after it ends
+; (bit 7 of the latch reads 1 once field sync is over)
+fs_wait:
+        ld a,(LATCH)
+        rla
+        jr nc,fs_wait
+        ret
 
 ; ---------------------------------------------------------------- frame sync
 ; mark the frame buffer complete; play audio until it has been shown and at
@@ -444,36 +520,38 @@ read_input:
         jp nz,demo_input
         ld c,0
         ; keyboard (active low)
+        ; Each row reads its keys as bits 5..0 in the order usually listed
+        ; (checked on real hardware: $68EF gives M SPACE , - . N = bits 5..0)
         ld a,($68BF)            ; row A6: U P I RET O Y
-        bit 4,a
+        bit 1,a                 ; O
         jr nz,$+4
         set K_LEFT,c
-        bit 1,a
+        bit 4,a                 ; P
         jr nz,$+4
         set K_RIGHT,c
-        bit 3,a
+        bit 2,a                 ; RETURN
         jr nz,$+4
         set K_SWAP,c
         ld a,($68FE)            ; row A0: R Q E - W T
-        bit 1,a
+        bit 4,a                 ; Q
         jr nz,$+4
         set K_UP,c
-        bit 4,a
+        bit 1,a                 ; W
         jr nz,$+4
         set K_SWAP,c
         ld a,($68FD)            ; row A1: F A D CTRL S G
-        bit 1,a
+        bit 4,a                 ; A
         jr nz,$+4
         set K_DOWN,c
         ld a,($68EF)            ; row A4: M SPACE , - . N
-        bit 1,a
+        bit 4,a                 ; SPACE
         jr nz,$+4
         set K_FIRE,c
-        bit 0,a
+        bit 5,a                 ; M
         jr nz,$+4
         set K_MAGIC,c
         ld a,($687F)            ; row A7: J ; K : L H
-        bit 5,a
+        bit 0,a                 ; H
         jr nz,$+4
         set K_PAUSE,c
         ; joysticks (either joystick works)

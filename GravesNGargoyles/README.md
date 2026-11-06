@@ -11,7 +11,7 @@ In the kingdom of Dreadmoor, the sorcerer **Morgrave** has stolen the seven **Su
 dead walk the land. Only one knight is awake: **Sir Tinplate**, the least impressive knight
 in the realm, in borrowed tin armour.
 
-### This build (v0.3) contains
+### This build (v0.3.1) contains
 
 - **Seven stages**, each its own SD pack (tiles, eight creature sprites, boss, music, text):
 
@@ -114,6 +114,30 @@ The rest of this list describes the engine as first built with stage 1:
 | S | | music on/off |
 
 Both joysticks work interchangeably (directions read via ports $2C/$29).
+
+### Real-hardware fixes (v0.3.1)
+
+- **Keyboard.** Each keyboard row reads its keys as bits 5..0 in the order they are usually
+  listed (checked on a real VZ300: `$68EF` gives M SPACE , - . N). Every key test was mirrored
+  before, so O and P were swapped and SPACE, Q, A and M read the wrong keys. This is now fixed,
+  and the test emulator uses the same map.
+- **Interrupts.** The VZ's interrupt line stays low for the whole field sync (56 lines), so the
+  ISR now waits for bit 7 of the latch (field sync over) before re-enabling interrupts. Without
+  this, a short ISR is re-entered again and again. The emulator now models this
+  level-triggered interrupt (`-E` restores the old one-shot model).
+- **Start-up progress bands.** The screen starts blue and fills with yellow bands from the
+  top. The seventh band means the first SD file loaded; the title then replaces them. If
+  start-up ever stops, the number of bands shows where:
+
+  | Bands | What happened |
+  |---|---|
+  | 1 | started |
+  | 2 | SD DOS mapping probed |
+  | 3 | SRAM written and checked (a red third band means the SRAM check failed) |
+  | 4 | tables, interrupts and mode 1 set |
+  | 5 | the first interrupt arrived |
+  | 6 | about to read the first SD file |
+  | 7 | SD file read |
 
 ## Technical design
 

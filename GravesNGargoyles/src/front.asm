@@ -1242,15 +1242,15 @@ read_letter:
         ret
 .new:   ld a,c
         ret
-KEYCHARS:
-        db "RQE",0,"WT"
-        db "FAD",0,"SG"
-        db "VZC",0,"XB"
-        db "413",0,"25"
-        db "M",0,0,0,0,"N"
-        db "708",0,"96"
-        db "UPI",0,0,"Y"
-        db "J",0,"K",0,"LH"
+KEYCHARS:                       ; per row, bits 0..5 (bit 0 = last key listed)
+        db "T","W",0,"E","Q","R"
+        db "G","S",0,"D","A","F"
+        db "B","X",0,"C","Z","V"
+        db "5","2",0,"3","1","4"
+        db "N",0,0,0,0,"M"
+        db "6","9",0,"8","0","7"
+        db "Y",0,0,"I","P","U"
+        db "H","L",0,"K",0,"J"
 
 STR_PWTITLE: db "ENTER PASSWORD",0
 STR_PWHELP:  db "TYPE IT, OR USE THE STICK",0

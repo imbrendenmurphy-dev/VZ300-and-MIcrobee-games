@@ -759,6 +759,7 @@ static int accept_irq(void)
     return 13;
 }
 
+static int level_int = 1;   /* real VZ: INT is held low for the whole field sync */
 static void reset_cpu(void)
 {
     rA = rF = rB = rC = rD = rE = rH = rL = 0;
@@ -902,15 +903,17 @@ static int selftest_timing(void)
 /* ------------------------------------------------------------------ */
 /* Keys / input script                                                 */
 typedef struct { const char *name; int row; int bit; } KeyDef;
+/* row bit = 5 - position in the row as usually listed: checked on real hardware
+   ($68EF reads M SPACE , - . N as bits 5..0) */
 static const KeyDef keydefs[] = {
-    {"R", 0, 0}, {"Q", 0, 1}, {"E", 0, 2}, {"W", 0, 4}, {"T", 0, 5},
-    {"F", 1, 0}, {"A", 1, 1}, {"D", 1, 2}, {"CTRL", 1, 3}, {"S", 1, 4}, {"G", 1, 5},
-    {"V", 2, 0}, {"Z", 2, 1}, {"C", 2, 2}, {"SHIFT", 2, 3}, {"X", 2, 4}, {"B", 2, 5},
-    {"4", 3, 0}, {"1", 3, 1}, {"3", 3, 2}, {"2", 3, 4}, {"5", 3, 5},
-    {"M", 4, 0}, {"SPACE", 4, 1}, {"COMMA", 4, 2}, {"PERIOD", 4, 4}, {"N", 4, 5},
-    {"7", 5, 0}, {"0", 5, 1}, {"8", 5, 2}, {"MINUS", 5, 3}, {"9", 5, 4}, {"6", 5, 5},
-    {"U", 6, 0}, {"P", 6, 1}, {"I", 6, 2}, {"RETURN", 6, 3}, {"O", 6, 4}, {"Y", 6, 5},
-    {"J", 7, 0}, {"SEMI", 7, 1}, {"K", 7, 2}, {"COLON", 7, 3}, {"L", 7, 4}, {"H", 7, 5},
+    {"R", 0, 5}, {"Q", 0, 4}, {"E", 0, 3}, {"W", 0, 1}, {"T", 0, 0},
+    {"F", 1, 5}, {"A", 1, 4}, {"D", 1, 3}, {"CTRL", 1, 2}, {"S", 1, 1}, {"G", 1, 0},
+    {"V", 2, 5}, {"Z", 2, 4}, {"C", 2, 3}, {"SHIFT", 2, 2}, {"X", 2, 1}, {"B", 2, 0},
+    {"4", 3, 5}, {"1", 3, 4}, {"3", 3, 3}, {"2", 3, 1}, {"5", 3, 0},
+    {"M", 4, 5}, {"SPACE", 4, 4}, {"COMMA", 4, 3}, {"PERIOD", 4, 1}, {"N", 4, 0},
+    {"7", 5, 5}, {"0", 5, 4}, {"8", 5, 3}, {"MINUS", 5, 2}, {"9", 5, 1}, {"6", 5, 0},
+    {"U", 6, 5}, {"P", 6, 4}, {"I", 6, 3}, {"RETURN", 6, 2}, {"O", 6, 1}, {"Y", 6, 0},
+    {"J", 7, 5}, {"SEMI", 7, 4}, {"K", 7, 3}, {"COLON", 7, 2}, {"L", 7, 1}, {"H", 7, 0},
     /* joystick pseudo-rows: 8 = joy1, 9 = joy2, 10 = arm */
     {"J1UP", 8, 0}, {"J1DOWN", 8, 1}, {"J1LEFT", 8, 2}, {"J1RIGHT", 8, 3}, {"J1FIRE", 8, 4},
     {"J1ARM", 10, 4},
@@ -1113,6 +1116,7 @@ int main(int argc, char **argv)
         }
         else if (!strcmp(a, "-p") && i + 1 < argc) prefix = argv[++i];
         else if (!strcmp(a, "-m")) mono = 1;
+        else if (!strcmp(a, "-E")) level_int = 0;   /* old one-shot interrupt model */
         else if (!strcmp(a, "-w") && i + 1 < argc) wavfile = argv[++i];
         else if (!strcmp(a, "-i") && i + 1 < argc) script = argv[++i];
         else if (!strcmp(a, "-t") && i + 1 < argc) trace_n = strtol(argv[++i], NULL, 10);
@@ -1182,7 +1186,7 @@ int main(int argc, char **argv)
         instr_abs_t = total_t + ft;
         int irq_ok = !ei_just;
         ei_just = 0;
-        if (irq_ok && iff1 && cur_line < FS_LINES && !irq_acked) {
+        if (irq_ok && iff1 && cur_line < FS_LINES && (level_int || !irq_acked)) {
             t = accept_irq();
             irq_acked = 1;
             irq_fields++;
