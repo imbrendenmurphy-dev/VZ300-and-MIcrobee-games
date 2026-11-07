@@ -55,6 +55,7 @@ sfx_grow:   ld hl,fx_grow
 snd_frame:
         xor a
         ld (snd_type),a
+        ld (snd_sub),a
         ld a,(sound_on)
         or a
         ret z
@@ -109,6 +110,10 @@ snd_frame:
         ld a,(hl)
         inc hl
         ld (mu_ptr),hl
+        ld b,a
+        and 80h
+        ld (mu_bass),a          ; bit 7 in a tune: a bass note (octave down)
+        ld a,b
         and 7Fh
         ld (mu_left),a
         ld (mu_len),a
@@ -119,7 +124,14 @@ snd_frame:
         ret z                   ; last frame of every note is silent
         ld a,(mu_per)
         ld b,a
-        ld a,(mu_soft)
+        ld a,(mu_bass)
+        or a
+        jr z,.mtop
+        ld a,1                  ; bass: a square wave sounding every other period
+        ld (snd_sub),a
+        ld c,20h
+        jr snd_set
+.mtop:  ld a,(mu_soft)
         or a
         jr z,.mnorm
         ; squelch: the pulse width sweeps 1/2 -> 1/8 -> back every 8 frames
@@ -224,8 +236,15 @@ play_until:
         jr .hi
 .hi0:   ld a,(snd_hi)
         ld b,a
-.hi:    ld a,SPK_ON
-        out (P_PIOB),a
+.hi:    ld a,(snd_sub)
+        or a
+        jr z,.hn
+        ld a,(snd_tg)           ; sub-octave: every other pulse stays silent
+        xor 40h
+        ld (snd_tg),a
+        jr .ho
+.hn:    ld a,SPK_ON
+.ho:    out (P_PIOB),a
         ld c,0
 .t1:    in a,(P_CRTCA)          ; 11
         and 20h                 ; 7

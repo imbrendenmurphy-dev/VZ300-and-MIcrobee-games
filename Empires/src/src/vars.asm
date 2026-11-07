@@ -35,6 +35,9 @@ mu_len:     db 0
 mu_per:     db 0
 mu_on:      db 0
 mu_soft:    db 0
+mu_bass:    db 0
+snd_sub:    db 0
+snd_tg:     db 60h
 dos_colour: db 0
 title_played: db 0
 quit_flag:  db 0
