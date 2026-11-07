@@ -17,7 +17,7 @@ sfx:    ld (fx_ptr),hl
         xor a
         ld (fx_left),a
         ret
-music_soft:                     ; the same, played quietly with no attack
+music_soft:                     ; the same, with the squelchy sweeping tone
         call music_start
         ld a,1
         ld (mu_soft),a
@@ -121,9 +121,23 @@ snd_frame:
         ld b,a
         ld a,(mu_soft)
         or a
-        ld c,40h                ; soft: 1/16 pulse throughout
-        jr nz,snd_set
+        jr z,.mnorm
+        ; squelch: the pulse width sweeps 1/2 -> 1/8 -> back every 8 frames
+        ; (a filter "wah"), and odd frames detune by one count for grit
         ld a,(mu_len)
+        sub (hl)
+        and 7
+        ld e,a
+        ld d,0
+        ld hl,sq_tab
+        add hl,de
+        ld c,(hl)
+        ld a,(frames)
+        and 1
+        add a,b
+        ld b,a
+        jr snd_set
+.mnorm: ld a,(mu_len)
         dec a
         cp (hl)                 ; first frame of the note: a little attack
         ld c,80h
@@ -141,6 +155,8 @@ snd_set:
         ret
 .tone:  ld a,b
         srl a
+        bit 5,c                 ; 1/2: a full square
+        jr nz,.w
         srl a
         bit 7,c
         jr nz,.w
@@ -159,6 +175,8 @@ snd_set:
         ld a,1
         ld (snd_type),a
         ret
+
+sq_tab: db 20h,20h,80h,80h,0,0,80h,80h  ; squelch: pulse width per frame
 
 ; ---- frame wait = sound + mouse --------------------------------------
 wait_frame:
