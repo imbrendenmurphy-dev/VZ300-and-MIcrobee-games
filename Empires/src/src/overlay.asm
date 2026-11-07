@@ -2106,7 +2106,7 @@ goal_end:
         ld a,COL(BMAGENTA,BLACK)
         call put_centre
         call present_all
-        ld hl,mus_title
+        ld hl,mus_march
         call music_start
         call wait_release
 .lp:    call wait_frame
