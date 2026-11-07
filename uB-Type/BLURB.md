@@ -33,6 +33,33 @@ A lone fighter takes on eight stages of biomechanical trouble, each ending in a 
 | **Disk** | `UBTYPE.DS8` (800K DS80). Boots to the CP/M `A>` prompt; type `UBTYPE`. No shell needed |
 | **Controls** | Q A O P or cursor keys, SPACE to fire and charge, M or Z for the pod, H to pause. Joystick on the parallel port |
 
+## Memory
+
+μB-TYPE uses 704K of the Premium Plus's RAM: 22 memory blocks of 32K. The loader briefly needs blocks up to 27 while it reads the disk, which is why it needs a 1MB machine.
+
+| Block | Holds |
+|---|---|
+| 0 | The game: about 16K of Z80 code from 8000h, then its tables, variables and stack up to EC00h. This block stays in the top half of memory |
+| 1 | The front end: title, pages, intros, name entry and music, copied in when needed |
+| 2 | Work block: screen shadows, cell slots, the stage's scroll tables and its sprite set |
+| 3 | A RAM mirror of every programmable character, for compositing sprites over scenery |
+| 4 | Shared graphics: font, HUD and stars |
+| 5 | Title artwork |
+| 8–23 | Two blocks per stage: one of character graphics and level data, one of tables, sprites and boss art |
+
+The 32K of PCG RAM is 16 banks of 128 characters:
+
+| PCG banks | Holds |
+|---|---|
+| 0–1 | Font, HUD, stars and ready-made bullets |
+| 2–5 | Terrain, stored twice (as drawn and shifted 4 pixels) for smooth scrolling |
+| 6 | Parallax backdrop |
+| 7–9 | The boss's body |
+| 10–13 | Sprite characters: 256 for each screen page |
+| 14–15 | Cached boss-part characters, one bank per page |
+
+The front end borrows banks 2–9 for the title artwork, and each stage reloads them.
+
 ## The conversion
 
 - **No bitmap.** The Premium Plus draws everything from programmable characters, so every 8×16 cell a sprite touches is rebuilt as a fresh character each frame: background copied out, sprite masked in. Two pools of 256 spare characters, one per screen page, keep the frame being built apart from the one on show.
