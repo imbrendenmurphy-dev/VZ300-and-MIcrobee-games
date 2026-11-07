@@ -1,7 +1,7 @@
 # TENNIS II — GRAND SLAM
 
 Sequel to the VZ200/VZ300 game *TENNIS*, for the Dick Smith VZ300 / VZ200 with the **BennVenn SD loader + 128K**.
-ViBED by BPM 2026. Version 1.1.6. Original code, graphics and music. Nothing from the original game is included.
+ViBED by BPM 2026. Version 1.1.7. Original code, graphics and music. Nothing from the original game is included.
 
 ![showcase](screenshots/TENNIS2_showcase.gif)
 
@@ -16,7 +16,7 @@ ViBED by BPM 2026. Version 1.1.6. Original code, graphics and music. Nothing fro
 ## Play it
 
 Copy `release/TENNIS2.VZ` to the SD card and run it from the BennVenn SD loader.
-- It's a single type F1 binary. It loads at $8000 (to $E1DC) and runs from $8000. There are no other files.
+- It's a single type F1 binary. It loads at $8000 (to $E2DC) and runs from $8000. There are no other files.
 - It needs the **128K expansion** (RAM up to $FFFF).
 
 ### Controls
@@ -90,7 +90,9 @@ In two-player mode, player 1 uses joystick 1 or Q A M , SPACE, and player 2 uses
 **Presentation:**
 - **Title screen (Mode 1):** a big TENNIS II logo and two little players rallying on a perspective court, with rotating messages underneath.
 - **Attract cycle:** title → How to Play → Meet the Tour → a computer v computer demo on a random surface → Hall of Fame. Start works at any point.
-- **In game:** a stand of 27 little spectators reacts to every point.
+- **In game:** a stand of 54 little spectators in two staggered tiers reacts to every point.
+  - The back row sits higher and peeks out between the front row, with the odd empty seat.
+  - Heads and shirts are scattered at random across the three colours that aren't the stand background, so each surface gets its own mix.
   - They bob up and down, arms in the air, with applause for an ordinary point.
   - A Mexican wave sweeps across the stand and back, with a roar, for aces, winners, sets and the match.
   - They bob through every game call.
@@ -122,12 +124,13 @@ In two-player mode, player 1 uses joystick 1 or Q A M , SPACE, and player 2 uses
   | Range | Use |
   |---|---|
   | $67C0–$67FF, SRAM **bank 3** | Hall of Fame + options + Classic unlock (signature + checksum) |
-  | $7800–$7BCC | variables |
+  | $7800–$7AFA | variables |
   | $7C00–$7DFF | VRAM commit queue, recolour table |
   | $7E00–$7EBF | info-screen backplane dot lists |
   | $7FFE | stack (grows down) |
-  | $8000–$E1DC | code and data (the .VZ, 25,053 bytes) |
-  | $E1DD–$F526 | sprite table + shifted, recoloured sprites (built at run time) |
+  | $8000–$E2DC | code and data (the .VZ, 25,309 bytes) |
+  | $E2DD–$F625 | sprite table + shifted, recoloured sprites (built at run time) |
+  | $F686–$F7FF | the two crowd frames in the surface's colours |
   | $F800–$FFFF | background buffer |
 
 - **Records:** kept in SRAM bank 3 (`OUT ($37),3`), so they survive reloading the game but not power-off.
@@ -136,7 +139,7 @@ In two-player mode, player 1 uses joystick 1 or Q A M , SPACE, and player 2 uses
   - The mapping is always put back to 1 (the DOS) straight afterwards.
 - **Score panel:** drawn in byte columns, then slid 2 pixels right (nibble rotate, RRD) so it sits centred between the border and the divider. A 1-pixel bezel in the court-line colour frames each player's half, and the scores are centred top to bottom inside it, with or without the sets row. On clay and hard court (CSS1) the bezel is the same buff as the screen border, so there the panels show as plain coloured blocks.
 - **Snow-free drawing:** VRAM is written only in the vblank window after field sync, through the Penguin 2 commit queue (now able to split rectangles too big for one frame) and POP-drawn sprites. Popup text goes into the backdrop and is restored afterwards, so it costs nothing in vblank.
-  - The crowd animation only steps when the queue is empty.
+  - The crowd animation only steps when the queue is empty, and is copied in two slices so it never overruns vblank.
   - The info-screen backplane writes its dots straight to VRAM in vblank, half the lattice per frame, and only on frames when the queue copied nothing. Its dots never enter the background buffer.
 - **Joysticks:**
   - Joystick 1 is read on $2E/$2D/$2C. Joystick 2 is read on $2B/$27, with its directions also from $29 (as your interface needs).

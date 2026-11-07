@@ -197,36 +197,49 @@ for k, v in (("YFAR", YFAR), ("YNEAR", YNEAR), ("YNET", YNET), ("YSF", YSF), ("Y
     L.append("%s equ %d" % (k, v))
 
 
-# crowd: 27 spectators, one per 4-px byte, across x 20..127 (rows 0-3, logical colours)
-# frame A sitting, frame B jumping with arms up. bg = 2 (surround), heads 1, bodies 3 (some 1)
+# crowd: two staggered tiers, 54 spectators, across x 20..127 (rows 0..CROWD_H-1).
+# Each screen byte holds a front-row spectator (px 0-1) and a back-row one (px 2-3),
+# so a byte column can sit or jump on its own. Crowd colours: 0 = stand background,
+# 1..3 = the three other colours of the surface (mapped at run time), picked at random.
+# Frame A sitting, frame B jumping with an arm up.
 import random as _cr
-_cr.seed(11)
-CROWD_A = [[2] * 108 for _ in range(4)]
-CROWD_B = [[2] * 108 for _ in range(4)]
+_cr.seed(2026)
+CROWD_H = 7
+CROWD_A = [[0] * 108 for _ in range(CROWD_H)]
+CROWD_B = [[0] * 108 for _ in range(CROWD_H)]
+
+
+def _person(F, cols, h, head, body, top, rows, jump, hand_row):
+    a, b = cols
+    hx = a if h == 0 else b
+    ox = b if h == 0 else a
+    if jump:
+        top -= 1
+        F[hand_row][ox] = head          # an arm thrown up beside the head
+    F[top][hx] = head
+    for y in range(top + 1, top + 1 + rows):
+        F[y][a] = body
+        F[y][b] = body
+
+
 for i in range(27):
-    x = i * 4 + 1
-    head, body = (1, 3) if (i * 5) % 7 else (3, 1)
-    tall = _cr.random() < 0.35
-    hx = x + (1 if _cr.random() < 0.5 else 0)
-    # sitting (tall ones sit a row higher)
-    top = 0 if tall else 1
-    CROWD_A[top][hx] = head
-    for y in range(top + 1, 4):
-        CROWD_A[y][x] = body
-        CROWD_A[y][x + 1] = body
-    # jumping: up in the air, arms raised
-    CROWD_B[0][x - 1] = head
-    CROWD_B[0][hx] = head
-    CROWD_B[0][x + 2] = head
-    CROWD_B[1][x] = body
-    CROWD_B[1][x + 1] = body
-    CROWD_B[2][x] = body
-    CROWD_B[2][x + 1] = body
+    x = i * 4
+    # front row: px 0-1, head on row 3, three rows of body
+    fh, fb = _cr.sample((1, 2, 3), 2)
+    side = _cr.randrange(2)
+    for F, j in ((CROWD_A, False), (CROWD_B, True)):
+        _person(F, (x, x + 1), side, fh, fb, 3, 3, j, 1)
+    # back row: px 2-3, sits higher (head on row 1, two rows of body showing); some empty seats
+    if _cr.random() < 0.88:
+        bh, bb = _cr.sample((1, 2, 3), 2)
+        side = _cr.randrange(2)
+        for F, j in ((CROWD_A, False), (CROWD_B, True)):
+            _person(F, (x + 2, x + 3), side, bh, bb, 1, 2, j, 0)
 
 
 def crowd_bytes(F):
     out = []
-    for y in range(4):
+    for y in range(CROWD_H):
         for bx in range(27):
             v = 0
             for k in range(4):
@@ -296,12 +309,9 @@ def court_pic(style):
         P[yn][x] = 1
     for y in range(yn - 4, yn + 1):
         P[y][a] = 1; P[y][b] = 1
-    # crowd strip along the top (frame A: sitting) + advertising board
-    for y in range(4):
-        for x in range(20, 128):
-            P[y][x] = CROWD_A[y][x - 20]
+    # crowd stand along the top (drawn at run time in its own colours) + advertising board
     for x in range(20, 128):
-        P[4][x] = 1
+        P[CROWD_H][x] = 1
     return P
 
 
@@ -313,11 +323,12 @@ for n, P in COURTS:
     save_preview([[{0: 0, 1: 1, 2: 0, 3: 2}[c] for c in r] for r in P], "court_%s_grass.png" % n)
     save_preview([[{0: 3, 1: 0, 2: 3, 3: 2}[c] for c in r] for r in P], "court_%s_clay.png" % n, CSS1)
 
-L.append("crowd_a: ; 27 bytes x 4 rows, logical colours")
+L.append("CROWD_H equ %d" % CROWD_H)
+L.append("crowd_a: ; 27 bytes x CROWD_H rows, crowd colours")
 db(crowd_bytes(CROWD_A))
 L.append("crowd_b:")
 db(crowd_bytes(CROWD_B))
-save_preview([[{0: 0, 1: 1, 2: 0, 3: 3}[c] for c in r] for r in CROWD_A + [[1] * 108] + CROWD_B], "crowd.png", sx=8, sy=12)
+save_preview([[{0: 0, 1: 1, 2: 2, 3: 3}[c] for c in r] for r in CROWD_A + [[1] * 108] + CROWD_B], "crowd.png", sx=8, sy=12)
 
 # projection tables (page aligned): screen row and x-scale for each world Y
 L.append("    align 256")

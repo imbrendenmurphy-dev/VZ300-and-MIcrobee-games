@@ -168,7 +168,9 @@ code_end:
         savebin "tennis2.bin",start,code_end-start
 shtab   equ code_end
 SPRWORK equ shtab+NSPR*8
-        assert SPRWORK+SHIFTSIZE <= BGBUF, "out of memory for sprites"
+crowdbuf_a equ BGBUF-2*CROWD_H*27     ; the two crowd frames in this surface's colours
+crowdbuf_b equ crowdbuf_a+CROWD_H*27
+        assert SPRWORK+SHIFTSIZE <= crowdbuf_a, "out of memory for sprites"
         display "code+data end: ",/A,code_end, "  sprites end: ",/A,SPRWORK+SHIFTSIZE
 
 ; =====================================================================
@@ -266,8 +268,7 @@ crowdmode: db 0
 crowdph: db 0
 crowdsel: db 0
 crowdfn: dw 0
-crowdbuf_a: ds 4*27
-crowdbuf_b: ds 4*27
+crowdmap: ds 4                  ; crowd colour map: stand background + the other three colours
 ; info-screen backplane texture
 tex_want: db 0
 tex_first: db 0

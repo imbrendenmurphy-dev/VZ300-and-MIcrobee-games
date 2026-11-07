@@ -238,11 +238,28 @@ court_to_bg:
         ld a,h
         or a
         jr nz,.r
-        ; the two crowd frames in this surface's colours
+        ; the crowd's own colours: 0 = the stand (surround), 1-3 = the other three
+        ld a,(s_bgmap+2)
+        ld (crowdmap),a
+        ld c,a
+        ld hl,crowdmap+1
+        ld b,0
+.m:     ld a,b
+        cp c
+        jr z,.m1
+        ld (hl),a
+        inc hl
+.m1:    inc b
+        ld a,b
+        cp 4
+        jr nz,.m
+        ld hl,crowdmap
+        call build_rmap
         ld hl,crowd_a
         ld de,crowdbuf_a
-        ld b,4*27*2
-.c:     push de
+        ld bc,CROWD_H*27*2
+.c:     push bc
+        push de
         ld e,(hl)
         ld d,RMAP/256
         ld a,(de)
@@ -250,7 +267,13 @@ court_to_bg:
         ld (de),a
         inc hl
         inc de
-        djnz .c
+        pop bc
+        dec bc
+        ld a,b
+        or c
+        jr nz,.c
+        ld hl,crowd_up_none     ; everyone seated, straight into the backdrop
+        call crowd_fill
         jp tex_off
 
 ; court_show: full court + panel, revealed with blinds
@@ -714,7 +737,7 @@ print2_dec:
         jp print2
 
 ; ---------------------------------------------------------------------
-; crowd: 27 little spectators along the top, one per screen byte.
+; crowd: 54 little spectators in two staggered tiers, a front and a back one per screen byte.
 ; Two frames (sitting / jumping with arms up), recoloured per surface into
 ; crowdbuf_a / crowdbuf_b by court_to_bg.
 ;   crowd_cheer: everyone bobs up and down (alternate spectators out of step)
@@ -773,6 +796,15 @@ crowd_idle:
         ld hl,crowd_up_none
 ; crowd_draw: HL = test routine (C = spectator 0..26 -> NZ if standing)
 crowd_draw:
+        call crowd_fill
+        ld de,$0500             ; in two slices, no bigger than the old one-row stand,
+        ld bc,$1B04             ; so a crowd step never crowds out the vblank budget
+        call queue_rect
+        ld de,$0504
+        ld bc,$1B00+CROWD_H-4
+        jp queue_rect
+; crowd_fill: the crowd into the backdrop only
+crowd_fill:
         ld (crowdfn),hl
         ld de,BGBUF+5
         ld hl,crowdbuf_a
@@ -784,13 +816,13 @@ crowd_draw:
         pop hl
         push hl
         jr z,.down
-        ld a,4*27
+        ld a,CROWD_H*27
         add a,l
         ld l,a
         jr nc,.down
         inc h
 .down:  push de
-        ld b,4
+        ld b,CROWD_H
 .r:     ld a,(hl)
         ld (de),a
         ld a,27
@@ -812,9 +844,7 @@ crowd_draw:
         ld a,c
         cp 27
         jr nz,.col
-        ld de,$0500
-        ld bc,$1B04
-        jp queue_rect
+        ret
 .test:  ld hl,(crowdfn)
         jp (hl)
 crowd_up_none:
