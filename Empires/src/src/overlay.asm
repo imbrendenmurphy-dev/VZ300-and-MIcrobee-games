@@ -443,9 +443,9 @@ help_text:
         db C_DIM,"",0
         db C_GOOD,"MOVE   mouse, arrows, W A S D or joystick (SHIFT = faster)",0
         db C_GOOD,"BUILD  SPACE or RETURN places the selected tool at the cursor",0
-        db C_GOOD,"TOOLS  1 ROAD  2 HUT  3 FARM  4 WOODCUTTER  5 QUARRY  6 WELL",0
-        db C_GOOD,"       7 MARKET  8 WINDMILL  9 WATCHTOWER  0 CLEAR    TAB cycles",0
-        db C_GOOD,"VIEW   M world map    C colour/monochrome    H this help",0
+        db C_GOOD,"TOOLS  1-0 pick a building, TAB or right button the next one, B more",0
+        db C_GOOD,"       buildings.  A padlock means your scholars must discover it first",0
+        db C_GOOD,"VIEW   M world map    C colour/monochrome    H this help   R research",0
         db C_GOOD,"TIME   P pause    < slower    > faster    ESC leave world",0
         db C_GOOD,"DISK   F save or load your world (3 slots on the game disk)",0
         db C_DIM,"",0
@@ -648,3 +648,290 @@ txt_fm_keys:  db "S THEN 1-3 SAVES     L THEN 1-3 LOADS     ESC BACK",0
 txt_fm_keys2: db "1-3 LOADS THAT WORLD     ESC BACK",0
 txt_fm_which_s: db "SAVE INTO WHICH SLOT?  1, 2 OR 3   (ESC BACK)",0
 txt_fm_which_l: db "LOAD WHICH SLOT?  1, 2 OR 3   (ESC BACK)",0
+
+; ---- research screen (R) ------------------------------------------------
+; Lists every technology with its state.  Up/down (or the mouse) move the
+; marker, SPACE / RETURN / left button study it, A-M pick directly.
+research_screen:
+        ld a,(cur_tech)
+        cp 0FFh
+        jr nz,.s
+        xor a
+.s:     ld (rs_sel),a
+.redraw:
+        ld a,C_TEXT
+        call shadow_clear
+        ld b,0
+        ld c,2
+        ld hl,txt_rs_title
+        ld a,C_MSG
+        call puts_at
+        ld b,1
+        ld c,2
+        ld hl,txt_rs_rate
+        ld a,C_TEXT
+        call puts_at
+        ld a,C_MSG
+        ld (txtcol),a
+        ld hl,(rp_week)
+        call putnum
+        ld hl,txt_rs_rate2
+        ld a,C_TEXT
+        call puts
+        ld b,2
+        ld c,2
+        ld hl,txt_rs_head
+        ld a,C_DIM
+        call puts_at
+        xor a
+.row:   ld (rs_i),a
+        call rs_line
+        ld a,(rs_i)
+        inc a
+        cp NTECH
+        jr nz,.row
+        ld b,18
+        ld c,2
+        ld hl,txt_rs_help
+        ld a,C_DIM
+        call puts_at
+        ld b,19
+        ld c,2
+        ld hl,txt_rs_help2
+        ld a,C_DIM
+        call puts_at
+        call present_all
+        call wait_release
+.lp:    call wait_frame
+        call scan_keys
+        call mouse_frame
+        ld a,(frames)
+        and 7
+        call z,animate
+        ld a,KB_ESC
+        call key_hit
+        jp nz,.out
+        ld a,KB_RESEARCH
+        call key_hit
+        jp nz,.out
+        ld a,(ms_mu)
+        or a
+        jr nz,.up
+        ld a,KB_UP
+        call key_hit
+        jr nz,.up
+        ld a,32                 ; cursor up key
+        call key_hit
+        jr nz,.up
+        ld a,(ms_md)
+        or a
+        jr nz,.dn
+        ld a,KB_DOWN
+        call key_hit
+        jr nz,.dn
+        ld a,34
+        call key_hit
+        jr nz,.dn
+        ld a,(ms_click)
+        bit 1,a
+        jr nz,.pick
+        ld a,KB_SPACE
+        call key_hit
+        jr nz,.pick
+        ld a,KB_RET
+        call key_hit
+        jr nz,.pick
+        ; letters A-M choose a row directly
+        ld b,0
+.lt:    ld a,b
+        inc a                   ; key code: A = 1
+        push bc
+        call key_test
+        pop bc
+        jr nz,.let
+        inc b
+        ld a,b
+        cp NTECH
+        jr nz,.lt
+        jr .lp
+.let:   ld a,b
+        ld (rs_sel),a
+        call wait_release
+        jr .pick
+.up:    ld a,(rs_sel)
+        or a
+        jr z,.lp
+        dec a
+        jr .mv
+.dn:    ld a,(rs_sel)
+        inc a
+        cp NTECH
+        jr nc,.lp
+.mv:    ld (rs_sel),a
+        call sfx_click
+        jp .redraw
+.pick:  ld a,(rs_sel)
+        call tech_available
+        jr z,.no
+        ld a,(rs_sel)
+        ld (cur_tech),a
+        call sfx_tool
+        jp .redraw
+.no:    call sfx_error
+        jp .lp
+.out:   call sfx_click
+        jp wait_release
+
+; one line of the list: row 3 + index
+rs_line:
+        ld a,(rs_i)
+        add a,3
+        ld b,a
+        ld c,1
+        call cell_off
+        ; marker
+        ld a,C_MSG
+        ld (txtcol),a
+        ld a,(rs_i)
+        ld hl,rs_sel
+        cp (hl)
+        ld a,' '
+        jr nz,.m
+        ld a,'>'
+.m:     call putch
+        ld a,(rs_i)             ; letter
+        add a,'A'
+        ld hl,txtcol
+        ld (hl),C_DIM
+        call putch
+        ld a,' '
+        call putch
+        ld a,(rs_i)             ; name
+        add a,a
+        ld l,a
+        ld h,0
+        push de
+        ld de,tech_name
+        add hl,de
+        ld e,(hl)
+        inc hl
+        ld d,(hl)
+        ex de,hl
+        pop de
+        ld a,(rs_i)
+        call has_tech
+        ld a,C_GOOD
+        jr nz,.nc
+        ld a,(rs_i)
+        call tech_available
+        ld a,C_TEXT
+        jr nz,.nc
+        ld a,C_DIM
+.nc:    call puts
+        ; status column at 22
+        ld a,(rs_i)
+        add a,3
+        ld b,a
+        ld c,22
+        call cell_off
+        ld a,(rs_i)
+        call has_tech
+        jr z,.nk
+        ld hl,txt_rs_known
+        ld a,C_GOOD
+        call puts
+        jp .desc
+.nk:    ld a,(rs_i)
+        ld hl,cur_tech
+        cp (hl)
+        jr nz,.ns
+        ; studying: bar of 10 + points/cost
+        ld hl,txt_rs_study
+        ld a,C_MSG
+        call puts
+        call rs_cost            ; HL = cost
+        push hl
+        ld a,C_MSG
+        ld (txtcol),a
+        ld hl,(rpoints)
+        call putnum
+        ld a,'/'
+        call putch
+        pop hl
+        call putnum
+        jr .desc
+.ns:    ld a,(rs_i)
+        call tech_available
+        jr z,.lk
+        ld hl,txt_rs_ready
+        ld a,C_TEXT
+        call puts
+        call rs_cost
+        ld a,C_TEXT
+        ld (txtcol),a
+        call putnum
+        jr .desc
+.lk:    ld hl,txt_rs_needs
+        ld a,C_DIM
+        call puts
+.desc:  ; what it gives, column 44
+        ld a,(rs_i)
+        add a,3
+        ld b,a
+        ld c,44
+        call cell_off
+        ld a,(rs_i)
+        add a,a
+        ld l,a
+        ld h,0
+        push de
+        ld de,rs_descs
+        add hl,de
+        ld e,(hl)
+        inc hl
+        ld d,(hl)
+        ex de,hl
+        pop de
+        ld a,C_DIM
+        jp puts
+rs_cost:
+        ld a,(rs_i)
+        add a,a
+        ld l,a
+        ld h,0
+        push de
+        ld de,tech_cost
+        add hl,de
+        ld e,(hl)
+        inc hl
+        ld d,(hl)
+        ex de,hl
+        pop de
+        ret
+
+rs_sel: db 0
+rs_i:   db 0
+rs_descs: dw rd0,rd1,rd2,rd3,rd4,rd5,rd6,rd7,rd8,rd9,rd10,rd11,rd12
+rd0:    db "FARMS",0
+rd1:    db "ROADS, HUTS, WOODCUTTERS, TOWERS",0
+rd2:    db "QUARRIES AND WELLS",0
+rd3:    db "WINDMILLS",0
+rd4:    db "MARKETS",0
+rd5:    db "MINES (GOLD AND STONE)",0
+rd6:    db "SCHOOLS (RESEARCH)",0
+rd7:    db "EVERY BUILDING A WEEK FASTER",0
+rd8:    db "HARBOURS",0
+rd9:    db "HOSPITALS (GROWTH)",0
+rd10:   db "TEMPLES (HAPPINESS)",0
+rd11:   db "UNIVERSITIES (RESEARCH)",0
+rd12:   db "THE GRAND FORUM - A WONDER",0
+txt_rs_title: db "RESEARCH  -  WHAT SHOULD YOUR SCHOLARS STUDY?",0
+txt_rs_rate:  db "YOUR SCHOLARS MAKE ",0
+txt_rs_rate2: db " POINTS A WEEK",0
+txt_rs_head:  db "  TECHNOLOGY          PROGRESS              GIVES YOU",0
+txt_rs_known: db "KNOWN",0
+txt_rs_study: db "STUDYING ",0
+txt_rs_ready: db "READY - COST ",0
+txt_rs_needs: db "LOCKED",0
+txt_rs_help:  db "UP / DOWN OR LETTERS A - M CHOOSE.  SPACE, RETURN OR LEFT BUTTON STUDIES IT.",0
+txt_rs_help2: db "LOCKED IDEAS NEED EARLIER ONES.  SCHOOLS SPEED RESEARCH.  ESC OR R: BACK",0

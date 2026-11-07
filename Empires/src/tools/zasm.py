@@ -336,8 +336,11 @@ class Assembler:
             if mn.startswith('=') and mn!='=': rest=mn[1:]+' '+rest
             if not label: raise AsmError('equ without label')
             name=s.full(label)
-            if not name.startswith('.') and not label.startswith('.'): pass
-            s.syms[name]=s.ev(rest,need=True)
+            val=s.ev(rest,need=True)
+            if name in s.equ_seen and s.equ_seen[name]!=(s.curkey) and s.syms.get(name)!=val:
+                raise AsmError('symbol %s redefined (was %s, now %s)'%(name,s.syms.get(name),val))
+            s.equ_seen[name]=s.curkey
+            s.syms[name]=val
             return
         if label:
             if not label.startswith('.'): s.lastglobal=label
@@ -401,7 +404,7 @@ class Assembler:
         for p in range(1,20):
             s.passno=1 if p==1 else 2
             s.pc=0; s.out={}; s.lastglobal=''; s.defined=set(); s.changed=False; s.minaddr=None
-            s.dispoff=0; s.out_owner={}
+            s.dispoff=0; s.out_owner={}; s.equ_seen={}
             s.unresolved=False
             s.saves=[]
             s.assemble_file(fname)

@@ -160,6 +160,8 @@ want_done: db 0
 want_grow: db 0
 want_warn: db 0
 want_jingle: db 0
+want_research: db 0
+dirty_tools: db 0
 animf:  db 0
 animt:  db 0
 af4:    db 0
@@ -210,6 +212,11 @@ speed: db 0
 lastspeed: db 0
 tickc: db 0
 tool: db 0
+tpage: db 0
+cur_tech: db 0
+forum_done: db 0
+techs: dw 0
+rpoints: dw 0
 nbld: db 0
 viewx: db 0
 viewy: db 0
@@ -245,6 +252,14 @@ SCOL:   ds SCRSIZE
 
 ; save/load
 svc_sp:   dw 0
+tb_t:     db 0
+nschool:  db 0
+nuniv:    db 0
+nhosp:    db 0
+ntemple:  db 0
+nforum:   db 0
+rp_week:  dw 0
+msgbuf:   ds 96
 fm_mode:  db 0
 fm_slot:  db 0
 fm_act:   db 0

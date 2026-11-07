@@ -71,7 +71,17 @@ O_WELL    equ 12
 O_MARKET  equ 13
 O_MILL    equ 14
 O_TOWER   equ 15
-O_COUNT   equ 16
+O_MINE    equ 16
+O_SCHOOL  equ 17
+O_HARBOUR equ 18
+O_HOSPITAL equ 19
+O_TEMPLE  equ 20
+O_UNIV    equ 21
+O_FORUM_TL equ 22
+O_FORUM_TR equ 23
+O_FORUM_BL equ 24
+O_FORUM_BR equ 25
+O_COUNT   equ 26
 BUILDING  equ 80h
 
 ; tools
@@ -80,7 +90,9 @@ NTOOLS    equ 10
 ; keyboard matrix codes (6545 light-pen scan; A=1..Z=26, '0'=32..'9'=41)
 K_A equ 1
 K_C equ 3
+K_B equ 2
 K_D equ 4
+K_E equ 5
 K_F equ 6
 K_G equ 7
 K_H equ 8
@@ -92,7 +104,9 @@ K_M equ 13
 K_N equ 14
 K_P equ 16
 K_Q equ 17
+K_R equ 18
 K_S equ 19
+K_V equ 22
 K_W equ 23
 K_X equ 24
 K_Y equ 25

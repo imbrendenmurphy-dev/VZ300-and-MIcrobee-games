@@ -6,21 +6,30 @@ MAXBLD  equ 220
 BREC    equ 4                   ; type, x, y, progress
 
 ; ---------------- tables ----------------
+; object ids:   0 none  1 road  2-5 town hall  6 hut  7 house  8 manor
+;   9 farm 10 woodcutter 11 quarry 12 well 13 market 14 mill 15 tower
+;  16 mine 17 school 18 harbour 19 hospital 20 temple 21 university
+;  22-25 the Grand Forum (2x2)
 bld_g:  db 0, 0, G_TC_TL_L, G_TC_TR_L, G_TC_BL_L, G_TC_BR_L
         db G_HUT_L, G_HOUSE_L, G_MANOR_L, G_FARM_L, G_WOOD_L, G_QUARRY_L
         db G_WELL_L, G_MARKET_L, G_WINDMILL_L, G_TOWER_L
+        db G_MINE_L, G_SCHOOL_L, G_HARBOUR_L, G_HOSPITAL_L, G_TEMPLE_L, G_UNIV_L
+        db G_FORUM_TL_L, G_FORUM_TR_L, G_FORUM_BL_L, G_FORUM_BR_L
 ; build time (weeks) per object
-bld_time: db 0,1,0,0,0,0, 2,3,4,3,3,4, 2,5,5,4
+bld_time: db 0,1,0,0,0,0, 2,3,4,3,3,4, 2,5,5,4,  4,4,5,6,6,8, 30,0,0,0
 ; workers needed per object
-bld_jobs: db 0,0,0,0,0,0, 0,0,0,2,2,2, 0,2,1,1
+bld_jobs: db 0,0,0,0,0,0, 0,0,0,2,2,2, 0,2,1,1,  2,1,2,2,1,3, 0,0,0,0
 ; housing per object
-bld_house: db 0,0,6,0,0,0, 4,8,14,0,0,0, 0,0,0,0
+bld_house: db 0,0,6,0,0,0, 4,8,14,0,0,0, 0,0,0,0, 0,0,0,0,0,0, 0,0,0,0
 ; reveal radius per object (on completion)
-bld_view: db 0,0,7,0,0,0, 3,3,3,3,3,3, 3,4,3,9
+bld_view: db 0,0,7,0,0,0, 3,3,3,3,3,3, 3,4,3,9,  3,3,8,3,4,4, 6,0,0,0
 ; territory radius
-bld_terr: db 0,0,7,0,0,0, 4,4,5,4,4,4, 4,5,4,9
+bld_terr: db 0,0,7,0,0,0, 4,4,5,4,4,4, 4,5,4,9,  4,4,5,5,6,6, 9,0,0,0
 
+; ---- tools: 17, shown ten to a page ----
+NTOOL   equ 17
 tool_obj: db O_ROAD,O_HUT,O_FARM,O_WOOD,O_QUARRY,O_WELL,O_MARKET,O_MILL,O_TOWER,0
+          db O_MINE,O_SCHOOL,O_HARBOUR,O_HOSPITAL,O_TEMPLE,O_UNIV,O_FORUM_TL
 ; cost: wood, stone, gold
 tool_cost:
         db 0,1,1        ; road
@@ -33,15 +42,51 @@ tool_cost:
         db 15,6,10      ; windmill
         db 6,12,8       ; tower
         db 0,0,1        ; clear
+        db 10,4,10      ; mine
+        db 14,10,15     ; school
+        db 20,8,20      ; harbour
+        db 12,20,30     ; hospital
+        db 10,30,30     ; temple
+        db 20,40,60     ; university
+        db 120,200,250  ; the Grand Forum
 tool_icon:
         dw G_TI_ROAD_L,G_TI_HUT_L,G_TI_FARM_L,G_TI_WOOD_L,G_TI_QUARRY_L
         dw G_TI_WELL_L,G_TI_MARKET_L,G_TI_MILL_L,G_TI_TOWER_L,G_TI_CLEAR_L
+        dw G_TI_MINE_L,G_TI_SCHOOL_L,G_TI_HARBOUR_L,G_TI_HOSPITAL_L,G_TI_TEMPLE_L
+        dw G_TI_UNIV_L,G_TI_FORUM_L
 tool_name:
         dw tn0,tn1,tn2,tn3,tn4,tn5,tn6,tn7,tn8,tn9
+        dw tn10,tn11,tn12,tn13,tn14,tn15,tn16
 obj_name:
         dw on0,on1,on2,on2,on2,on2,on6,on7,on8,tn2,tn3,tn4,tn5,tn6,tn7,tn8
+        dw tn10,tn11,tn12,tn13,tn14,tn15,tn16,tn16,tn16,tn16
 tool_hint:
         dw th0,th1,th2,th3,th4,th5,th6,th7,th8,th9
+        dw th10,th11,th12,th13,th14,th15,th16
+; research needed for each tool
+tool_tech: db TK_FOREST,TK_FOREST,TK_AGRI,TK_FOREST,TK_MASON,TK_MASON,TK_TRADE,TK_MILL,TK_FOREST,TK_FOREST
+           db TK_MINING,TK_WRITING,TK_NAV,TK_MED,TK_ARCH,TK_PHIL,TK_FORUM
+
+; ---- technologies ----
+TK_AGRI  equ 0
+TK_FOREST equ 1
+TK_MASON equ 2
+TK_MILL  equ 3
+TK_TRADE equ 4
+TK_MINING equ 5
+TK_WRITING equ 6
+TK_ENG   equ 7
+TK_NAV   equ 8
+TK_MED   equ 9
+TK_ARCH  equ 10
+TK_PHIL  equ 11
+TK_FORUM equ 12
+NTECH   equ 13
+tech_cost: dw 0,0,20,30,40,45,40,70,70,90,110,140,200
+tech_req:  dw 0,0,0,1<<TK_AGRI,1<<TK_MASON,1<<TK_MASON,0,(1<<TK_MASON)|(1<<TK_MINING)
+           dw 1<<TK_TRADE,1<<TK_WRITING,(1<<TK_ENG)|(1<<TK_TRADE),(1<<TK_WRITING)|(1<<TK_ARCH)
+           dw (1<<TK_ARCH)|(1<<TK_PHIL)
+tech_name: dw tk0,tk1,tk2,tk3,tk4,tk5,tk6,tk7,tk8,tk9,tk10,tk11,tk12
 season_name:
         dw sn0,sn1,sn2,sn3
 fx_seasons: dw fx_spring,fx_summer,fx_autumn,fx_winter
@@ -67,6 +112,14 @@ new_game:
         ld (week),a
         ld (nbld),a
         ld (tool),a
+        ld (tpage),a
+        ld (forum_done),a
+        ld hl,(1<<TK_AGRI)|(1<<TK_FOREST)
+        ld (techs),hl
+        ld hl,0
+        ld (rpoints),hl
+        ld a,TK_MASON           ; the scholars start on masonry
+        ld (cur_tech),a
         ld (msgtimer),a
         ld (tickc),a
         ld (overview),a
@@ -286,7 +339,11 @@ draw_msg:
         ld a,(msgcol)
         ld b,MSGROW
         ld c,1
+        bit 7,h
+        jr nz,.ram
         call puts_at_far
+        jr .p
+.ram:   call puts_at
         jr .p
 .hint:  ld hl,msg_hint
         ld a,C_DIM
@@ -466,9 +523,8 @@ draw_toolbar:
         ld c,2
         ld a,C_PANEL
         call shadow_clear_rows
-        ld b,0
+        ld b,0                  ; slot 0-9
 .t:     push bc
-        ; offset TOOLROW*80 + i*3
         ld a,b
         add a,a
         add a,b
@@ -477,7 +533,14 @@ draw_toolbar:
         call cell_off
         pop bc
         push bc
-        ld a,b
+        call slot_tool          ; A = tool in this slot, C if none
+        ld hl,G_TI_BLANK_L
+        jr c,.ic
+        ld (tb_t),a
+        call tool_unlocked
+        ld hl,G_TI_LOCK_L
+        jr z,.ic
+        ld a,(tb_t)
         add a,a
         ld l,a
         ld h,0
@@ -489,15 +552,17 @@ draw_toolbar:
         ld d,(hl)
         ex de,hl                ; HL = G
         pop de
-        call put_gc
+.ic:    call put_gc
         inc hl
         inc de
         call put_gc
-        ; highlight selected
+        ; highlight the selected tool (inverted icon: shows in mono too)
         pop bc
         push bc
-        ld a,(tool)
-        cp b
+        call slot_tool
+        jr c,.nh
+        ld hl,tool
+        cp (hl)
         jr nz,.nh
         dec de
         call .swap
@@ -506,9 +571,9 @@ draw_toolbar:
 .nh:    pop bc
         inc b
         ld a,b
-        cp NTOOLS
+        cp 10
         jr nz,.t
-        ; number labels on info row are drawn by draw_info; tool name + cost
+        ; tool name + cost
         ld b,TOOLROW
         ld c,31
         call cell_off
@@ -596,7 +661,7 @@ draw_toolbar:
         ld h,(hl)
         ld l,a
         ld b,TOOLROW
-        ld c,54
+        ld c,57
         ld a,COL(BCYAN,BLUE)
         call puts_at_far
         ld b,TOOLROW
@@ -679,7 +744,47 @@ draw_info:
         ld hl,txt_building
         ld a,COL(BYELLOW,BLUE)
         call puts_far
-.xy:    ld b,INFOROW
+.xy:    ld b,INFOROW            ; research in progress, column 57
+        ld c,57
+        call cell_off
+        ld a,(cur_tech)
+        cp 0FFh
+        jr z,.rx
+        add a,a
+        ld l,a
+        ld h,0
+        push de
+        ld de,tech_name
+        add hl,de
+        ld e,(hl)
+        inc hl
+        ld d,(hl)
+        ex de,hl
+        pop de
+        ld a,COL(BGREEN,BLUE)
+        call puts_far
+        ld a,' '
+        call putch
+        ld a,COL(WHITE,BLUE)
+        ld (txtcol),a
+        ld hl,(rpoints)
+        call putnum
+        ld a,'/'
+        call putch
+        ld a,(cur_tech)
+        add a,a
+        ld l,a
+        ld h,0
+        push de
+        ld de,tech_cost
+        add hl,de
+        ld e,(hl)
+        inc hl
+        ld d,(hl)
+        ex de,hl
+        pop de
+        call putnum
+.rx:    ld b,INFOROW
         ld c,1
         jp present_rows
 
@@ -695,10 +800,73 @@ terr_name:                      ; A = terrain id -> HL = name
         djnz .l
         ret
 
+; slot B (0-9) of the current page -> A = tool, carry if the slot is empty
+slot_tool:
+        ld a,(tpage)
+        or a
+        ld a,b
+        jr z,.p
+        add a,10
+.p:     cp NTOOL
+        ccf
+        ret
+; tool A unlocked? -> NZ if yes
+tool_unlocked:
+        push hl
+        push de
+        ld e,a
+        ld d,0
+        ld hl,tool_tech
+        add hl,de
+        ld a,(hl)
+        pop de
+        pop hl
+; has_tech: A = technology -> NZ if known
+has_tech:
+        push hl
+        push bc
+        ld hl,(techs)
+        ld b,a
+        inc b
+.s:     dec b
+        jr z,.t
+        srl h
+        rr l
+        jr .s
+.t:     ld a,l
+        and 1
+        pop bc
+        pop hl
+        ret
+; select tool A and show its page
+select_tool:
+        ld (tool),a
+        cp 10
+        ld a,0
+        jr c,.p
+        inc a
+.p:     ld (tpage),a
+        call draw_toolbar
+        call draw_info
+        jp sfx_tool
+
 ; ---------------- placement ----------------
 ; check_place: tool in (tool), B,C -> Z ok ; NZ with HL = error message
 check_place:
-        call tile_addr
+        ld a,(tool)
+        call tool_unlocked
+        jr nz,.unl
+        ; locked: "YOUR SCHOLARS MUST FIRST DISCOVER <tech>."
+        ld a,(tool)
+        ld e,a
+        ld d,0
+        ld hl,tool_tech
+        add hl,de
+        ld a,(hl)
+        call tech_msg_err
+        or 1
+        ret
+.unl:   call tile_addr
         ld a,(hl)
         bit 7,a
         jr nz,.expl
@@ -768,8 +936,42 @@ check_place:
         ld hl,err_wood
         jr z,.fail
         jr .cost
-.nq:    cp 4                    ; quarry: hills/rock/mountain within 2
-        jr nz,.cost
+.nq:    cp 10                   ; mine: on hills or rock
+        jr nz,.nmi
+        ld a,(ptr)
+        cp T_HILLS
+        jp z,.cost
+        cp T_ROCK
+        jp z,.cost
+        ld hl,err_mine
+        jr .fail
+.nmi:   cp 12                   ; harbour: land beside sea water
+        jr nz,.nhb
+        xor a
+        ld (nbmode),a
+        call neighbours         ; nb_* = 1 where land
+        ld a,(nb_n)
+        ld hl,nb_s
+        and (hl)
+        ld hl,nb_w
+        and (hl)
+        ld hl,nb_e
+        and (hl)
+        ld hl,err_harbour
+        jr nz,.fail             ; land all round
+        jp .cost
+.nhb:   cp 16                   ; the Forum: one only, 2x2 of open land
+        jr nz,.nfo
+        ld a,(forum_done)
+        or a
+        ld hl,err_forum2
+        jr nz,.fail
+        call forum_site
+        ld hl,err_forum
+        jr nz,.fail
+        jp .cost
+.nfo:   cp 4                    ; quarry: hills/rock/mountain within 2
+        jp nz,.cost
         ld a,T_HILLS
         ld (cnt_t1),a
         ld a,T_ROCK
@@ -799,6 +1001,9 @@ check_place:
         cp O_HUT
         ld hl,err_tc
         jr c,.fail
+        cp O_FORUM_TL
+        ld hl,err_wonder
+        jr nc,.fail
         jr .cost
 .cl1:   or a
         jr nz,.cost             ; road
@@ -841,6 +1046,116 @@ check_place:
         ret
 .poor:  ld hl,err_poor
         or 1
+        ret
+
+; forum_set: B,C = top-left, A = O_FORUM_TL (+ BUILDING bit): set all four, redraw
+forum_set:
+        push bc
+        call .one               ; top-left
+        inc a
+        inc c
+        call .one               ; top-right
+        inc a
+        dec c
+        inc b
+        call .one               ; bottom-left
+        inc a
+        inc c
+        call .one               ; bottom-right
+        pop bc
+        ret
+.one:   call set_obj
+        push af
+        push bc
+        call refresh_tile
+        pop bc
+        pop af
+        ret
+
+; forum_site: B,C = top-left -> Z if the 2x2 block is open, empty land
+forum_site:
+        push bc
+        call .one
+        jr nz,.x
+        inc c
+        call .one
+        jr nz,.x
+        inc b
+        call .one
+        jr nz,.x
+        dec c
+        call .one
+.x:     pop bc
+        ret
+.one:   ld a,c
+        call cpw
+        jr nc,.no
+        ld a,b
+        call cph
+        jr nc,.no
+        call tile_addr
+        ld a,(hl)
+        bit 7,a
+        jr z,.no                ; unexplored
+        and 1Fh
+        cp T_GRASS
+        jr z,.ok
+        cp T_MEADOW
+        jr z,.ok
+        cp T_FIELD
+        jr z,.ok
+        cp T_BEACH
+        jr nz,.no
+.ok:    call oget
+        or a
+        ret
+.no:    or 1
+        ret
+
+; tech_msg_err: A = technology -> HL = msgbuf "<prefix><name>."
+tech_msg_err:
+        ld hl,err_lock
+        jr tech_msg
+tech_msg_done:
+        ld hl,msg_tech
+; tech_msg: HL = prefix text (overlay block), A = technology -> HL = msgbuf
+tech_msg:
+        push af
+        call far_str            ; prefix -> txtbuf
+        ld de,msgbuf
+.c1:    ld a,(hl)
+        ld (de),a
+        or a
+        jr z,.n
+        inc hl
+        inc de
+        jr .c1
+.n:     pop af
+        push de
+        add a,a
+        ld l,a
+        ld h,0
+        ld de,tech_name
+        add hl,de
+        ld a,(hl)
+        inc hl
+        ld h,(hl)
+        ld l,a
+        call far_str
+        pop de
+.c2:    ld a,(hl)
+        ld (de),a
+        or a
+        jr z,.e
+        inc hl
+        inc de
+        jr .c2
+.e:     ld a,'.'
+        ld (de),a
+        inc de
+        xor a
+        ld (de),a
+        ld hl,msgbuf
         ret
 
 tool_costp:
@@ -980,7 +1295,18 @@ do_place:
         call refresh_around
         call sfx_click
         ret
-.bld:   push af
+.bld:   cp O_FORUM_TL
+        jr nz,.b1
+        ; the Forum: four tiles, one record
+        ld a,O_FORUM_TL|BUILDING
+        call forum_set
+        ld a,O_FORUM_TL|BUILDING
+        call add_record
+        call sfx_build
+        ld hl,msg_started
+        ld a,C_MSG
+        jp set_msg
+.b1:    push af
         or BUILDING
         call set_obj
         pop af
@@ -1122,6 +1448,11 @@ sim_tick:
         ld (nwell),a
         ld (nmarket),a
         ld (ntower),a
+        ld (nschool),a
+        ld (nuniv),a
+        ld (nhosp),a
+        ld (ntemple),a
+        ld (nforum),a
         ld hl,0
         ld (dfood),hl
         ld (dwood),hl
@@ -1149,8 +1480,16 @@ sim_tick:
         ld d,0
         ld hl,bld_time
         add hl,de
+        ld a,TK_ENG             ; engineering builds a week faster
+        call has_tech
+        ld a,(hl)
+        jr z,.t1
+        cp 2
+        jr c,.t1
+        dec a
+.t1:    ld e,a
         ld a,(ix+3)
-        cp (hl)
+        cp e
         jp c,.next
         ; completed
         ld a,(ix+0)
@@ -1236,7 +1575,45 @@ sim_tick:
         ld hl,ntower
         inc (hl)
         jr .next
-.w6:    cp O_MILL
+.w6:    cp O_MINE               ; ore: gold and a little stone
+        jr nz,.w7
+        ld hl,(dgold)
+        ld de,3
+        add hl,de
+        ld (dgold),hl
+        ld hl,(dstone)
+        inc hl
+        ld (dstone),hl
+        jp .next
+.w7:    cp O_HARBOUR            ; fishing and sea trade
+        jr nz,.w8
+        ld hl,(dfood)
+        ld de,4
+        add hl,de
+        ld (dfood),hl
+        ld hl,(dgold)
+        inc hl
+        inc hl
+        ld (dgold),hl
+        jp .next
+.w8:    ld hl,nschool
+        cp O_SCHOOL
+        jr z,.cnt
+        ld hl,nuniv
+        cp O_UNIV
+        jr z,.cnt
+        ld hl,nhosp
+        cp O_HOSPITAL
+        jr z,.cnt
+        ld hl,ntemple
+        cp O_TEMPLE
+        jr z,.cnt
+        ld hl,nforum
+        cp O_FORUM_TL
+        jr nz,.w9
+.cnt:   inc (hl)
+        jp .next
+.w9:    cp O_MILL
         jr nz,.next
         ld a,(season)
         cp 3
@@ -1336,7 +1713,11 @@ sim_tick:
         jr c,.happy
         push hl
         ld c,6
-        call div_hl_c
+        ld a,(nhosp)            ; a hospital doubles the growth
+        or a
+        jr z,.gd
+        ld c,3
+.gd:    call div_hl_c
         inc hl
         ex de,hl                ; DE = growth
         pop hl                  ; HL = room
@@ -1378,6 +1759,30 @@ sim_tick:
 .h3:    add a,a
         add a,b
         ld b,a
+        ld a,(ntemple)          ; temples +8 each (up to 3)
+        cp 3
+        jr c,.ht
+        ld a,3
+.ht:    add a,a
+        add a,a
+        add a,a
+        add a,b
+        ld b,a
+        ld a,(nhosp)            ; hospitals +4 each (up to 2)
+        cp 2
+        jr c,.hh
+        ld a,2
+.hh:    add a,a
+        add a,a
+        add a,b
+        ld b,a
+        ld a,(nforum)           ; the Grand Forum +15
+        or a
+        jr z,.hf
+        ld a,b
+        add a,15
+        ld b,a
+.hf:
         ; food surplus bonus
         ld hl,(food)
         ld de,(pop)
@@ -1423,13 +1828,144 @@ sim_tick:
         ld a,-1
 .h8:    add a,c
         ld (happy),a
-.h9:    call evolve_houses
+.h9:    call research_week
+        call evolve_houses
         call random_event
         ld a,1
         ld (dirty_status),a
         ret
 
 farm_factor: db 1,2,3,0
+
+; ---- research: points each week = 1 + people/16 + 2 per school + 4 per university
+research_week:
+        ld hl,(pop)
+        ld c,16
+        call div_hl_c
+        inc hl
+        ld a,(nschool)
+        add a,a
+        ld e,a
+        ld d,0
+        add hl,de
+        ld a,(nuniv)
+        add a,a
+        add a,a
+        ld e,a
+        add hl,de
+        ld (rp_week),hl
+        ld a,(cur_tech)
+        cp 0FFh
+        call z,pick_research
+        ld a,(cur_tech)
+        cp 0FFh
+        ret z                   ; everything is known
+        ld de,(rp_week)
+        ld hl,(rpoints)
+        add hl,de
+        ld (rpoints),hl
+        ; done?
+        ld a,(cur_tech)
+        add a,a
+        ld e,a
+        ld d,0
+        push hl
+        ld hl,tech_cost
+        add hl,de
+        ld e,(hl)
+        inc hl
+        ld d,(hl)
+        pop hl
+        or a
+        sbc hl,de
+        ret c
+        ld (rpoints),hl         ; points left over carry into the next study
+        ld a,(cur_tech)
+        call learn_tech
+        ld a,(cur_tech)
+        call tech_msg_done
+        ld a,C_GOOD
+        call set_msg
+        ld a,0FFh
+        ld (cur_tech),a
+        call pick_research
+        ld a,1
+        ld (want_research),a
+        ret
+
+; learn_tech: A = technology -> its bit set in techs
+learn_tech:
+        ld b,a
+        ld hl,1
+        inc b
+.s:     dec b
+        jr z,.d
+        add hl,hl
+        jr .s
+.d:     ld de,(techs)
+        ld a,l
+        or e
+        ld l,a
+        ld a,h
+        or d
+        ld h,a
+        ld (techs),hl
+        ld a,1
+        ld (dirty_tools),a
+        ret
+
+; tech_available: A = technology -> NZ if not known and its requirements are met
+tech_available:
+        push hl
+        push de
+        push bc
+        ld c,a
+        call has_tech
+        jr nz,.no
+        ld a,c
+        add a,a
+        ld e,a
+        ld d,0
+        ld hl,tech_req
+        add hl,de
+        ld e,(hl)
+        inc hl
+        ld d,(hl)               ; DE = needed bits
+        ld hl,(techs)
+        ld a,e
+        and l
+        cp e
+        jr nz,.no
+        ld a,d
+        and h
+        cp d
+        jr nz,.no
+        or 1
+        jr .x
+.no:    xor a
+.x:     pop bc
+        pop de
+        pop hl
+        ret
+
+; pick_research: the cheapest available technology (or FF)
+pick_research:
+        ld a,0FFh
+        ld (cur_tech),a
+        ld b,0
+.l:     ld a,b
+        push bc
+        call tech_available
+        pop bc
+        jr z,.n
+        ld a,b
+        ld (cur_tech),a         ; costs rise with the index: first is cheapest
+        ret
+.n:     inc b
+        ld a,b
+        cp NTECH
+        jr nz,.l
+        ret
 
 div_hl_c:                       ; HL = HL / C
         push de
@@ -1451,7 +1987,22 @@ complete_building:
         ld c,(ix+1)
         ld b,(ix+2)
         ld a,(ix+0)
-        call set_obj
+        cp O_FORUM_TL
+        jr nz,.cb
+        ld a,O_FORUM_TL
+        call forum_set
+        ld a,1
+        ld (forum_done),a
+        ld a,6
+        call reveal
+        ld a,1
+        ld (dirty_view),a
+        ld hl,msg_forum
+        ld a,C_GOOD
+        call set_msg
+        ld hl,fx_victory
+        jp sfx
+.cb:    call set_obj
         ; reveal around
         ld e,a
         ld d,0
@@ -2416,7 +2967,20 @@ game_loop:
         xor a
         ld (want_warn),a
         call sfx_warn
-.s4:    ld a,(want_jingle)
+.s4:    ld a,(want_research)
+        or a
+        jr z,.s4b
+        xor a
+        ld (want_research),a
+        ld hl,fx_research
+        call sfx
+.s4b:   ld a,(dirty_tools)
+        or a
+        jr z,.s4c
+        xor a
+        ld (dirty_tools),a
+        call draw_toolbar
+.s4c:   ld a,(want_jingle)
         or a
         jr z,.s5
         xor a
@@ -2640,7 +3204,7 @@ handle_keys:
         call cursor_on_hw
         ld a,1
         ld (dirty_status),a
-.k1:    ; tool selection keys 1-9,0
+.k1:    ; tool selection keys 1-9,0 (slots of the current page)
         ld b,0
 .tk:    ld a,b
         add a,KB_1
@@ -2648,32 +3212,44 @@ handle_keys:
         call key_hit
         pop bc
         jr z,.tn
-        ld a,b
-        ld (tool),a
-        call draw_toolbar
-        call draw_info
-        call sfx_click
+        call slot_tool
+        jr c,.k2
+        call select_tool
         jr .k2
 .tn:    inc b
         ld a,b
-        cp NTOOLS
+        cp 10
         jr nz,.tk
-.k2:    ld a,(ms_click)
+.k2:    ld a,KB_PAGE
+        call key_hit
+        jr z,.k2b
+        ld a,(tpage)
+        xor 1
+        ld b,a
+        ld a,0
+        jr z,.pg
+        ld a,10
+.pg:    call select_tool
+.k2b:   ld a,(ms_click)
         bit 0,a
         jr nz,.tab
         ld a,KB_TAB
         call key_hit
         jr z,.k3
-.tab:
-        ld a,(tool)
-        inc a
-        cp NTOOLS
-        jr c,.tb
+.tab:   ld a,(tool)             ; next tool that has been unlocked
+        ld b,NTOOL
+.tl:    inc a
+        cp NTOOL
+        jr c,.tc
         xor a
-.tb:    ld (tool),a
-        call draw_toolbar
-        call draw_info
-        call sfx_click
+.tc:    push af
+        call tool_unlocked
+        jr nz,.tu
+        pop af
+        djnz .tl
+        jr .k3
+.tu:    pop af
+        call select_tool
 .k3:    ld a,KB_MAP
         call key_hit
         jr z,.k4
@@ -2726,7 +3302,14 @@ handle_keys:
         ld (speed),a
         ld a,1
         ld (dirty_status),a
-.k8:    ld a,KB_FILE
+.k8:    ld a,KB_RESEARCH
+        call key_hit
+        jr z,.k8a
+        call cursor_off_hw
+        ld hl,research_screen
+        call ovl_call
+        call redraw_all
+.k8a:   ld a,KB_FILE
         call key_hit
         jr z,.k8b
         call cursor_off_hw

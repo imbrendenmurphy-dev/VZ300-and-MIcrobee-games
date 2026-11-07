@@ -689,7 +689,8 @@ flush_cells2:
 ; swap this shows on a monochrome monitor too (the mono output carries
 ; only pixels).  Colour mode uses the colour set (bank 0), mono mode the
 ; mono set (bank 8); the cell colours are left as they are.
-CUR_CODE equ 80h+G_CURSOR
+CUR_CODE equ 80h+(G_CURSOR&7Fh)
+CUR_BANK equ G_CURSOR>>7
 
 cursor_off_hw:
         ld a,(curshown)
@@ -768,13 +769,14 @@ cursor_on_hw:
         inc hl
         inc de
         djnz .cp
-.put:   ; write it to the cursor character of the same set (bank 0 or 8)
+.put:   ; write it to the cursor character of the same set (colour / mono)
         ld a,(cu_bank)
         and 8
+        add a,CUR_BANK
         ld (cu_set),a
         or EXT_ON
         out (P_EXT),a
-        ld a,G_CURSOR
+        ld a,G_CURSOR&7Fh
         add a,c
         ld l,a
         ld h,0

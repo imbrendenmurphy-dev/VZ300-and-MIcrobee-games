@@ -18,15 +18,15 @@ on2:    db "TOWN HALL",0
 on6:    db "HUT",0
 on7:    db "HOUSE",0
 on8:    db "MANOR",0
-th0:    db "ROADS LINK; BRIDGE RIVERS",0
-th1:    db "HOMES 4; GROWS INTO HOUSE",0
-th2:    db "PLOUGHS GRASS INTO FIELDS",0
-th3:    db "TIMBER FROM NEARBY FOREST",0
-th4:    db "STONE FROM HILLS AND ROCK",0
-th5:    db "WATER: HAPPIER, HOMES GROW",0
-th6:    db "TRADE GOLD; MANORS NEED IT",0
-th7:    db "+FOOD EXCEPT IN WINTER",0
-th8:    db "SEES FAR, WIDENS LANDS",0
+th0:    db "ROADS; BRIDGE RIVERS",0
+th1:    db "HOMES 4; GROWS TO HOUSE",0
+th2:    db "PLOUGHS GRASS TO FIELDS",0
+th3:    db "TIMBER FROM FORESTS",0
+th4:    db "STONE FROM HILLS, ROCK",0
+th5:    db "WATER: HOMES GROW",0
+th6:    db "TRADE GOLD; MANORS",0
+th7:    db "+FOOD BUT NOT IN WINTER",0
+th8:    db "SEES FAR, MORE LAND",0
 th9:    db "FELL, DRAIN, DEMOLISH",0
 sn0:    db "SPRING",0
 sn1:    db "SUMMER",0
@@ -79,3 +79,39 @@ msg_gen1: db "SHAPING THE CONTINENTS...",0
 msg_gen2: db "RAISING THE MOUNTAINS...",0
 msg_gen3: db "CARVING RIVERS...",0
 msg_gen4: db "PLANTING FORESTS...",0
+tn10:   db "MINE      ",0
+tn11:   db "SCHOOL    ",0
+tn12:   db "HARBOUR   ",0
+tn13:   db "HOSPITAL  ",0
+tn14:   db "TEMPLE    ",0
+tn15:   db "UNIVERSITY",0
+tn16:   db "THE FORUM ",0
+th10:    db "ON HILLS: GOLD, STONE",0
+th11:    db "FASTER RESEARCH",0
+th12:    db "ON SHORE: FOOD, GOLD",0
+th13:    db "TOWN GROWS FASTER",0
+th14:    db "PEOPLE ARE HAPPIER",0
+th15:    db "MUCH FASTER RESEARCH",0
+th16:    db "A WONDER OF THE WORLD",0
+tk0:    db "AGRICULTURE",0
+tk1:    db "FORESTRY",0
+tk2:    db "MASONRY",0
+tk3:    db "MILLING",0
+tk4:    db "TRADE",0
+tk5:    db "MINING",0
+tk6:    db "WRITING",0
+tk7:    db "ENGINEERING",0
+tk8:    db "NAVIGATION",0
+tk9:    db "MEDICINE",0
+tk10:   db "ARCHITECTURE",0
+tk11:   db "PHILOSOPHY",0
+tk12:   db "THE GRAND FORUM",0
+err_lock:     db "YOUR SCHOLARS MUST FIRST DISCOVER ",0
+err_mine:     db "MINES MUST BE DUG INTO HILLS OR ROCK.",0
+err_harbour:  db "A HARBOUR MUST BE BUILT ON THE SHORE, BESIDE THE SEA.",0
+err_forum:    db "THE FORUM NEEDS A CLEAR 2 X 2 SITE OF OPEN LAND.",0
+err_forum2:   db "YOUR PEOPLE HAVE ALREADY BUILT THE GRAND FORUM.",0
+err_wonder:   db "THE GRAND FORUM CANNOT BE DEMOLISHED.",0
+msg_tech:     db "YOUR SCHOLARS HAVE DISCOVERED ",0
+msg_forum:    db "THE GRAND FORUM IS COMPLETE! A WONDER OF THE WORLD.",0
+txt_res:      db "STUDYING ",0
