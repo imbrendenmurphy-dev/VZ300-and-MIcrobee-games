@@ -19,5 +19,4 @@ Controls
   A joystick on the parallel port works too.
 
 Converted from VZ-TYPE for the VZ300.
-Directed and playtested by BPM.
-Code, graphics and music by Claude (Anthropic). 2026.
+VIBED BY BPM 2026.

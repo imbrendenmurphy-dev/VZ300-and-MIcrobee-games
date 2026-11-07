@@ -1179,10 +1179,6 @@ draw_page:
 	ld c,$0E
 	ld a,7
 	call ctext
-	ld hl,s_cred2
-	ld c,$0E
-	ld a,8
-	call ctext
 	ld a,HZ_R0
 	ld b,2
 	call tpic

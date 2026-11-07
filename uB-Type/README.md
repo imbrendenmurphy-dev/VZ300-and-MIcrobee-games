@@ -2,7 +2,7 @@
 
 μB-TYPE is the Microbee Premium Plus conversion of **VZ-TYPE**, BPM's original R-Type-inspired horizontal shooter for the VZ300.
 
-Directed and playtested by BPM. Code, graphics and music by Claude (Anthropic).
+VIBED BY BPM 2026.
 
 **Status: playable from the disk image, still being optimised.** So far it has been tested only in an emulator (the Premium Plus model in `src/tools/emu`), not on real hardware.
 

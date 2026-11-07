@@ -1,5 +1,5 @@
 # μB-TYPE
-### for the Microbee Premium Plus. ViBED by BPM, 2026
+### for the Microbee Premium Plus. VIBED BY BPM 2026
 
 **The VZ300's own R-Type-style blaster has landed on the Microbee, at four times the resolution in both directions.**
 
@@ -78,4 +78,4 @@ All of this kept the full-resolution art. Lighter scenes now run at the VZ's spe
 So far μB-TYPE has been tested only in an emulator: a Premium Plus model written for the project, which boots the real Microbee boot ROM. It hasn't yet run on real hardware. The full test results are in `VERIFICATION.md`.
 
 ---
-*Directed and playtested by BPM. Code, graphics and music by Claude (Anthropic). Converted from VZ-TYPE for the Dick Smith VZ300.*
+*VIBED BY BPM 2026. Converted from VZ-TYPE for the Dick Smith VZ300.*

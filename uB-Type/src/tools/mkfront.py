@@ -178,8 +178,7 @@ def build():
         db(text_codes(s) + [0])
 
     S('s_sub', 'A MICROBEE PREMIUM PLUS SHOOT-EM-UP')
-    S('s_cred1', 'DIRECTED AND PLAYTESTED BY BPM')
-    S('s_cred2', 'CODE, GRAPHICS AND MUSIC BY CLAUDE')
+    S('s_cred1', 'VIBED BY BPM 2026')
     S('s_conv', 'CONVERTED FROM VZ-TYPE FOR THE VZ300')
     S('s_hi', 'HI SCORE ')
     S('s_press', 'PRESS SPACE OR FIRE TO PLAY')
@@ -226,8 +225,8 @@ def build():
     msg = ('~B-TYPE ... EIGHT STAGES OF BIOMECHANICAL MAYHEM ON THE MICROBEE PREMIUM PLUS ... '
            'HOLD FIRE TO CHARGE YOUR BEAM, LAUNCH THE POD TO SHIELD YOUR SHIP OR SEND IT AHEAD TO CLEAR THE WAY ... '
            'RED CAPSULES SPREAD, BLUE CAPSULES LANCE, YELLOW CAPSULES CROSSFIRE ... '
-           'CONVERTED FROM VZ-TYPE FOR THE DICK SMITH VZ300 ... DIRECTED AND PLAYTESTED BY BPM, '
-           'CODE GRAPHICS AND MUSIC BY CLAUDE ... 2026 ... GOOD LUCK PILOT ...')
+           'CONVERTED FROM VZ-TYPE FOR THE DICK SMITH VZ300 ... VIBED BY BPM 2026 ... '
+           'GOOD LUCK PILOT ...')
     emit('scroll_txt:')
     db(text_codes(' ' * 64 + msg + ' ' * 64) + [0])
     # default hall of fame (BCD score, initials, 2 spare)

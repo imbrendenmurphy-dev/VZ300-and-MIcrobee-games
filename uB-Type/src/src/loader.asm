@@ -54,7 +54,7 @@ start:      ld sp,$A7F0
             jp main
 
 m_title:    DB 13,10,"uB-TYPE for the Microbee Premium Plus",13,10
-            DB "Directed and playtested by BPM - code, graphics and music by Claude",13,10,"$"
+            DB "VIBED BY BPM 2026",13,10,"$"
 m_tpa:      DB "Needs a CP/M with a TPA above B000h.",13,10,"$"
 
 reloc:
