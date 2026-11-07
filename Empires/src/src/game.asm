@@ -437,7 +437,15 @@ draw_status:
         call putnum
         ld a,'%'
         call putch
-        ; speed
+        ; mouse: an arrow once valid mouse packets have arrived
+        ld a,(ms_ok)
+        or a
+        jr z,.nm
+        ld de,75
+        ld hl,G_RI_ARROW
+        ld a,COL(WHITE,BLUE)
+        call put_g
+.nm:    ; speed
         ld de,78
         ld a,(speed)
         ld hl,G_RI_PAUSE
@@ -623,11 +631,11 @@ draw_toolbar:
         ld b,TOOLROW
         ld c,1
         jp present_rows
-.swap:  push hl
-        ld hl,SCOL
+.swap:  push hl                 ; selected tool: inverted copy of its icon
+        ld hl,SCHR
         add hl,de
         ld a,(hl)
-        call swapnib
+        add a,TI_INV
         ld (hl),a
         pop hl
         ret
@@ -2041,10 +2049,10 @@ draw_overview:
         add a,c
         ld c,a
         call cell_off
-        ld hl,SCOL
+        ld hl,SCHR              ; box: inverted copy of the overview glyph
         add hl,de
         ld a,(hl)
-        call swapnib
+        add a,OV_INV
         ld (hl),a
         pop bc
 .ni:    inc c
@@ -2323,6 +2331,7 @@ game_loop:
         ld (animt),a
         call animate
 .na:    call handle_keys
+        call cursor_tick
         ld a,(quit_flag)
         or a
         ret nz
@@ -2428,6 +2437,14 @@ game_loop:
 ; ---------------- input ----------------
 handle_keys:
         call mouse_frame
+        ld a,(ms_ok)            ; first mouse packet: show the mouse icon
+        ld hl,ms_seen
+        cp (hl)
+        jr z,.msn
+        ld (hl),a
+        ld a,1
+        ld (dirty_status),a
+.msn:
         ; movement with auto-repeat
         ld a,KB_UP
         call key_down

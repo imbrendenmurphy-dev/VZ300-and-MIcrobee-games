@@ -23,6 +23,10 @@ pr_off:     dw 0
 pr_len:     dw 0
 numbuf:     ds 8
 ms_idle:    db 0
+ms_bitn:    db 110
+ms_half:    db 55
+ms_frameN:  dw 0
+ms_seen:    db 0
 ms_ok:      db 0
 ms_btn:     db 0
 ms_obtn:    db 0
@@ -102,6 +106,10 @@ dv_c:   db 0
 cursor_bc: dw 0
 curoff: dw 0
 curshown: db 0
+cu_code: db 0
+cu_bank: db 0
+cu_set:  db 0
+cu_buf:  ds 11
 ; game
 overview: db 0
 loopn:  db 0

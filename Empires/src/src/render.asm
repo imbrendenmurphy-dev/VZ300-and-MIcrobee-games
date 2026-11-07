@@ -504,32 +504,30 @@ scroll_view:
         ld a,(sc_nb)
         bit 7,a
         jr nz,.right
-        ; left: dst=row, src=row+n, len=80-n
-        ld e,a
-        ld d,0
-        push hl
-        add hl,de
-        pop de                  ; DE = dst, HL = src
-        ld a,COLS
-        sub e
+        ; left: dst = row, src = row + n, length = 80 - n
         ld c,a
         ld b,0
+        ld d,h
+        ld e,l                  ; DE = dst
+        add hl,bc               ; HL = src
+        ld a,COLS
+        sub c
+        ld c,a                  ; BC = 80 - n
         ldir
         pop de
         ret
-.right: neg                     ; n
-        ld e,a
-        ld d,0
-        ld bc,COLS-1
-        add hl,bc               ; HL = row end
-        push hl
-        or a
-        sbc hl,de               ; src = end - n
-        pop de                  ; dst = end
-        ld a,COLS
-        sub e
+.right: neg
         ld c,a
-        ld b,0
+        ld b,0                  ; BC = n
+        ld de,COLS-1
+        add hl,de               ; HL = row end
+        ld d,h
+        ld e,l                  ; DE = dst = row end
+        or a
+        sbc hl,bc               ; HL = src = row end - n
+        ld a,COLS
+        sub c
+        ld c,a                  ; BC = 80 - n
         lddr
         pop de
         ret
@@ -685,7 +683,14 @@ flush_cells2:
         pop de
         ret
 
-; ---- tile cursor: nibble-swapped colours on the two cells ----
+; ---- tile cursor ---------------------------------------------------
+; The two cells under the cursor are shown with two reserved PCG
+; characters holding inverted copies of their patterns.  Unlike a colour
+; swap this shows on a monochrome monitor too (the mono output carries
+; only pixels).  Colour mode uses the colour set (bank 0), mono mode the
+; mono set (bank 8); the cell colours are left as they are.
+CUR_CODE equ 80h+G_CURSOR
+
 cursor_off_hw:
         ld a,(curshown)
         or a
@@ -693,15 +698,9 @@ cursor_off_hw:
         xor a
         ld (curshown),a
         ld de,(curoff)
-        call .rest
-        inc de
-.rest:  ld hl,SCOL
-        add hl,de
-        ld a,(hl)
-        jp hw_colour
+        jp flush_cells2         ; shadow -> hardware for both cells
 
 cursor_on_hw:
-        ; offset of cursor tile on screen
         ld a,(cury)
         ld b,a
         ld a,(viewy)
@@ -720,24 +719,110 @@ cursor_on_hw:
         ld (curoff),de
         ld a,1
         ld (curshown),a
-        call .inv
+        ld c,0
+        call .one
         inc de
-.inv:   ld hl,SCOL
+        ld c,1
+        call .one
+        ld a,EXT_ON
+        out (P_EXT),a
+        ret
+.one:   ; DE = cell offset, C = 0 / 1 (which cursor character)
+        push de
+        ld hl,SCHR
         add hl,de
         ld a,(hl)
-        call swapnib
-        ld c,a
-        ; blink-free but always visible: if fg==bg use bright white/black
+        ld (cu_code),a
+        ld hl,SATR
+        add hl,de
+        ld a,(hl)
         and 0Fh
-        ld b,a
-        ld a,c
-        rrca
-        rrca
-        rrca
-        rrca
-        and 0Fh
-        cp b
-        ld a,c
-        jr nz,.ok
-        ld a,COL(BLACK,WHITE)
-.ok:    jp hw_colour
+        ld (cu_bank),a
+        ; source pattern (11 rows) from PCG, inverted into cu_buf
+        ld hl,cu_buf
+        ld b,11
+        ld a,(cu_code)
+        bit 7,a
+        jr nz,.pcg
+.blank: ld (hl),0FFh            ; ROM character: show a solid block
+        inc hl
+        djnz .blank
+        jr .put
+.pcg:   ld a,(cu_bank)
+        or EXT_ON
+        out (P_EXT),a
+        ld a,(cu_code)
+        and 7Fh
+        ld l,a
+        ld h,0
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        ld de,HIRAM
+        add hl,de               ; HL = pattern in the PCG window
+        ld de,cu_buf
+.cp:    ld a,(hl)
+        cpl
+        ld (de),a
+        inc hl
+        inc de
+        djnz .cp
+.put:   ; write it to the cursor character of the same set (bank 0 or 8)
+        ld a,(cu_bank)
+        and 8
+        ld (cu_set),a
+        or EXT_ON
+        out (P_EXT),a
+        ld a,G_CURSOR
+        add a,c
+        ld l,a
+        ld h,0
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        ld de,HIRAM
+        add hl,de
+        ex de,hl
+        ld hl,cu_buf
+        push bc
+        ld bc,11
+        ldir
+        pop bc
+        ld a,EXT_ON
+        out (P_EXT),a
+        ; point the hardware cell at it
+        pop de
+        push de
+        ld hl,SCRN
+        add hl,de
+        ld a,CUR_CODE
+        add a,c
+        ld (hl),a
+        ld a,EXT_ATTR
+        out (P_EXT),a
+        ld a,(cu_set)
+        ld (hl),a
+        ld a,EXT_ON
+        out (P_EXT),a
+        pop de
+        ret
+
+; called every frame by the game loop: steady while moving, otherwise a
+; slow blink (on 26 frames, off 6) so the cursor is easy to find
+cursor_tick:
+        ld a,(rep)
+        or a
+        jr nz,.on
+        ld a,(frames)
+        and 31
+        cp 26
+        jp nc,cursor_off_hw
+.on:    ld a,(curshown)
+        or a
+        jp z,cursor_on_hw
+        ld a,(frames)
+        and 7                   ; refresh now and then: the cells may have changed
+        ret nz
+        jp cursor_on_hw

@@ -18,7 +18,7 @@ static long long tstates, frame_start; static int spk_toggles; static u8 last_b;
 static int halted_exit=0;
 static u8 cpm_ref[0x7000];
 /* serial mouse: queued bytes, 7N1 at 1200 baud, bit4: mark=0 (idle), space=1 */
-#define BIT_T 2812
+static long long BIT_T=2812;
 static u8 sq[4096]; static long long sqt[4096]; static int sqn=0, sqh=0; static long long ser_until=0;
 static int ser_inv=0;
 static int serial_level(void){
@@ -36,7 +36,7 @@ static int serial_level(void){
   return ser_inv;
 }
 static void ser_send(u8 b){ long long t=tstates; if(sqn>sqh && sqt[sqn-1]+9*BIT_T>t) t=sqt[sqn-1]+9*BIT_T+BIT_T/3; sq[sqn]=b; sqt[sqn]=t; sqn++; } static long long instr_count;
-#define FRAME_T 67500
+static long long FRAME_T=67500;
 
 /* ---- memory ---- */
 static int vidwin(u16 a){ if(!vidon) return 0; if(vid8000) return a>=0x8000&&a<0x9000; return a>=0xF000; }
@@ -343,6 +343,7 @@ static void shot(const char *fn){
 
 int main(int argc,char**argv){
   if(argc<2){ fprintf(stderr,"usage: beeemu prog.com < script\n"); return 1; }
+  if(getenv("BEE_SPEED")){ int k=atoi(getenv("BEE_SPEED")); FRAME_T*=k; BIT_T*=k; }
   for(int i=0;i<256;i++){ int b=0; for(int k=0;k<8;k++) b^=(i>>k)&1; parity[i]=b?0:FP; }
   FILE *f=fopen(argv[1],"rb"); if(!f){perror(argv[1]);return 1;}
   size_t n=fread(ram+0x100,1,0xD000,f); fclose(f);

@@ -32,5 +32,12 @@ TIPS
   and widen your lands. Explore to find ancient ruins.
 
 MOUSE.COM
-  A test for the serial mouse. Type MOUSE, move the mouse and press
-  its buttons: each packet is shown. Any key returns to A>.
+  Type MOUSE to test the serial mouse.  It shows the CPU clock, then
+  twice a second how often each input bit of the two PIO ports changed:
+  moving the mouse should make B4 count (B7 always counts - it is the
+  screen frame signal).  Each mouse packet it decodes is printed with
+  its movement and buttons.  Keys 2 and 5 switch PIO B outputs 2 and 5
+  on and off, in case your mouse takes its power from those lines.
+  Any other key returns to A>.
+  In EMPIRES a small arrow appears at the top right of the screen once
+  the mouse has been heard.

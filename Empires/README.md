@@ -33,7 +33,7 @@ The loader fills the expanded RAM (dots show progress). Choose **C** for a colou
 | ESC | leave the world (Y/N) |
 
 ## Status
-Tested in the project's own Premium model (screenshots); not yet run on real hardware. Microsoft serial mouse support added: run `MOUSE` from the disk to check yours. Worlds live in the 1MB banked RAM (up to 256×256), worlds save to and load from the game disk (3 slots), and ESC on the title returns cleanly to `A>`. Next: technology, rival civilisations, scenarios, victory conditions.
+First real-hardware test (Premium Plus, amber monitor) found a sideways-scrolling bug and an invisible cursor in monochrome: both fixed. Developed in the project's own Premium model. Microsoft serial mouse support: run `MOUSE` from the disk to check yours (it shows line activity on every port bit and each decoded packet). Worlds live in the 1MB banked RAM (up to 256×256), worlds save to and load from the game disk (3 slots), and ESC on the title returns cleanly to `A>`. Next: technology, rival civilisations, scenarios, victory conditions.
 
 ## Folders
 - `release/`: the bootable disk image and the program on its own

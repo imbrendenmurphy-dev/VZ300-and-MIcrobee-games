@@ -9,12 +9,80 @@
 ;  The idle (mark) level is measured at start-up, so either line polarity
 ;  works.  One bit = 3,375,000 / 1200 = 2812 T-states.
 ; ===================================================================
-MS_BIT  equ 210                 ; djnz count: 77 T loop + 13*(n-1)+8 = 2802 T
-MS_HALF equ 104                 ; first sample lands 1.5 bits after the edge
+MS_BIT  equ 110                 ; default bit delay at 3.375 MHz (25 * 110 + 69 = 2819 T)
+MS_HALF equ 55                  ; first sample lands 1.5 bits after the edge
+
+; ---- calibrate the bit timing against the screen's 50 Hz frame -------
+; The 6545 frame (313 lines x 64 us = 20.03 ms) does not depend on the CPU
+; clock, so counting a fixed 48 T-state loop over one frame gives
+; N = T-states per frame / 48.  One bit at 1200 baud = frame / 24 = 2N T,
+; so the delay count is (2N - 69) / 25 (fits 8 bits up to about 7 MHz).
+; Call with interrupts off.
+ms_calib:
+        ld a,MS_BIT
+        ld (ms_bitn),a
+        ld a,MS_HALF
+        ld (ms_half),a
+        ld hl,0
+        ld (ms_frameN),hl
+        ld bc,0                 ; leave vblank (with a timeout)
+.s1:    in a,(P_CRTCA)
+        and 20h
+        jr z,.s2
+        dec bc
+        ld a,b
+        or c
+        jr nz,.s1
+        ret                     ; no frame flag: keep the defaults
+.s2:    ld bc,0                 ; wait for vblank to start
+.s3:    in a,(P_CRTCA)
+        and 20h
+        jr nz,.go
+        dec bc
+        ld a,b
+        or c
+        jr nz,.s3
+        ret
+.go:    ld hl,0
+.p1:    in a,(P_CRTCA)          ; 11  count through the blanking ...
+        and 20h                 ; 7
+        jr z,.p2                ; 7
+        inc hl                  ; 6
+        ld b,0                  ; 7
+        jp .p1                  ; 10  = 48
+.p2:    in a,(P_CRTCA)          ; 11  ... and through the visible part
+        and 20h                 ; 7
+        jr nz,.dn               ; 7
+        inc hl                  ; 6
+        ld b,0                  ; 7
+        jp .p2                  ; 10  = 48
+.dn:    ld (ms_frameN),hl
+        add hl,hl               ; 2N
+        ld de,-69
+        add hl,de
+        ret nc                  ; nonsense: keep the defaults
+        ld bc,25
+        ld de,0
+.dv:    or a
+        sbc hl,bc
+        jr c,.dd
+        inc de
+        jr .dv
+.dd:    ld a,d
+        or a
+        ret nz                  ; too slow a frame count for 8 bits: keep defaults
+        ld a,e
+        cp 20
+        ret c                   ; implausible: keep defaults
+        ld (ms_bitn),a
+        srl a
+        ld (ms_half),a
+        ret
 
 ; measure the idle level: sample the line for ~20 ms; if it never moves
 ; the idle level is whatever it reads.  ms_ok = 0 until a valid packet.
 mouse_init:
+        call ms_calib
         in a,(P_PIOB)
         and 10h
         ld (ms_idle),a
@@ -117,7 +185,13 @@ mouse_poll:
 ; wait for the next start bit (up to ~3 bit times), then receive it.
 ; returns C set on timeout.
 ms_next:
-        ld de,120               ; 120 * ~70 T ~ 3 bit times
+        ld a,(ms_bitn)          ; timeout ~ 10 bit times at any CPU speed
+        ld e,a
+        ld d,0
+        ex de,hl
+        add hl,hl
+        add hl,hl
+        ex de,hl
 .w:     in a,(P_PIOB)
         and 10h
         ld hl,ms_idle
@@ -133,24 +207,37 @@ ms_rx_go:
         jp ms_rx
 
 ; receive one byte; entered just after the start edge was seen -> A
-ms_rx:  ld b,MS_HALF
-.h:     djnz .h
+; bit delay counts (ms_bitn / ms_half) come from the calibration
+ms_rx:  ld a,(ms_bitn)
+        ld h,a
+        ld a,(ms_half)
+        ld b,a
+.h:     nop
+        nop
+        nop
+        djnz .h
         ld c,0
         ld d,7
-.bit:   ld b,MS_BIT
-.d:     djnz .d
-        in a,(P_PIOB)
-        and 10h
-        ld e,a
-        ld a,(ms_idle)
-        xor e                   ; 0 when the line is at mark (= data bit 1)
-        sub 1                   ; carry if mark
-        rr c
-        dec d
-        jr nz,.bit
+.bit:   ld b,h                  ; 4
+.d:     nop                     ; 4
+        nop                     ; 4
+        nop                     ; 4
+        djnz .d                 ; 13/8  -> 25 * b - 5
+        in a,(P_PIOB)           ; 11
+        and 10h                 ; 7
+        ld e,a                  ; 4
+        ld a,(ms_idle)          ; 13
+        xor e                   ; 4
+        sub 1                   ; 7   carry if mark (= data bit 1)
+        rr c                    ; 8
+        dec d                   ; 4
+        jr nz,.bit              ; 12  -> one bit = 25 * b + 69 T-states
         ; stop bit must be mark, else we locked on mid-byte: framing error
-        ld b,MS_BIT
-.s:     djnz .s
+        ld b,h
+.s:     nop
+        nop
+        nop
+        djnz .s
         in a,(P_PIOB)
         and 10h
         ld e,a

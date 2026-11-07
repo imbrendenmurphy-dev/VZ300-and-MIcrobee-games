@@ -277,7 +277,7 @@ reg_terrain(T_RUINS, ruins_tile, 1, GREY, GREEN, 130)
 
 # fog (unexplored)
 FOG=['#...............','........#.......','................','....#.......#...','................','..........#.....','.#..............','......#.........','..............#.','...#............','.........#......']
-fog_g=add_tile('FOG',FOG,DGREY,BLACK,mono16=['.'*16]*11)
+fog_g=add_tile('FOG',FOG,DGREY,BLACK,mono16=['................','................','....#...........','................','................','................','................','............#...','................','................','................'])
 # explored-but-unknown edge? keep simple.
 
 # ---- roads: index = base + side*8 + n*4 + s*2 + e(arm toward outer side)
@@ -394,6 +394,8 @@ for f in range(3):
     smoke_frames[house_l+1].append(rows_from([''.join(r)[8:16] for r in tile2]))
 
 assert len(chars)<=256, len(chars)
+cursor_g=add('CURSOR_L',[0]*11,WHITE,BLACK)
+add('CURSOR_R',[0]*11,WHITE,BLACK)
 MAP_END=len(chars)
 
 # ---------------------------------------------------------------- bank 2: UI
@@ -465,6 +467,15 @@ ti('CLEAR',['................','..........##....','.........####...','........##
 ti('INFO',['................','.......##.......','.......##.......','................','......###.......','.......##.......','.......##.......','.......##.......','......####......','................','................'],BCYAN)
 ti('MAP',['................','.##############.','.#....##......#.','.#..######....#.','.#.########...#.','.#..######..#.#.','.#....##...###..','.#..........#..#','.##############.','................','................'],BGREEN)
 
+OV_FIRST=min(OV.values()); OV_LAST=max(OV.values())
+TI_FIRST=min(TI.values()); TI_LAST=max(TI.values())+1
+inv_src=[]
+OVI_FIRST=len(chars)
+for g in range(OV_FIRST,OV_LAST+1):
+    c=chars[g]; add('INV_'+c['name'],[(~r)&255 for r in c['rows']],c['fg'],c['bg']); inv_src.append((len(chars)-1,g))
+TII_FIRST=len(chars)
+for g in range(TI_FIRST,TI_LAST+1):
+    c=chars[g]; add('INV_'+c['name'],[(~r)&255 for r in c['rows']],c['fg'],c['bg']); inv_src.append((len(chars)-1,g))
 UI_END=len(chars)
 assert UI_END<=384, UI_END
 
@@ -514,6 +525,7 @@ NCH=len(chars)
 
 # ---------------------------------------------------------------- mono derivation
 def mono_rows(c):
+    if c.get('inv_mono') is not None: return c['inv_mono']
     if c['mono'] is not None: return c['mono']
     inv = c['monoinv']
     if inv is None: inv = lum(c['bg']) > lum(c['fg'])
@@ -528,6 +540,7 @@ def mono_frames(g,frames):
     if inv is None: inv = lum(c['bg'])>lum(c['fg'])
     return [[(~r)&255 for r in f] if inv else f for f in frames]
 
+for d,src in inv_src: chars[d]['inv_mono']=[(~r)&255 for r in mono_rows(chars[src])]
 # ---------------------------------------------------------------- emit
 out=[]
 def emit(s): out.append(s)
@@ -546,6 +559,9 @@ emit('G_DEEP equ %d'%deep_first)
 emit('G_BRIDGEH equ %d'%bridge_h)
 emit('G_BRIDGEV equ %d'%bridge_v)
 emit('G_UI equ %d'%ui_first)
+emit('G_CURSOR equ %d'%cursor_g)
+emit('OV_INV equ %d'%(OVI_FIRST-OV_FIRST))
+emit('TI_INV equ %d'%(TII_FIRST-TI_FIRST))
 emit('G_TITLE equ %d'%title_first)
 emit('FONT_BANK equ %d'%(font_first>>7))
 for k,v in title_glyph.items(): emit('G_BIG_%s equ %d'%(k,v))
