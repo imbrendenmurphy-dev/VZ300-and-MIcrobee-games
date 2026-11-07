@@ -35,20 +35,16 @@ disk_job:
         ; swap: engine -> BLK_GAME, CP/M back, jump to the loader
         di
         ld (svc_sp),sp
-        ld a,(lowport)
-        or 8                    ; video window off: F000-FFFF is RAM
-        out (P_MEM),a
-        ld hl,svc_stub
-        ld de,0F000h
+        ld hl,svc_stub          ; runs in unseen screen RAM, window on
+        ld de,STUB
         ld bc,svc_stub_end-svc_stub
         ldir
         ld a,(p_cpm_port)
-        ld (0F000h+svc_cpm-svc_stub),a
-        jp 0F000h
-svc_stub:                       ; runs at F000h
+        ld (STUB+svc_cpm-svc_stub),a
+        jp STUB
+svc_stub:
         ld a,BLK_GAME
         call blk_port
-        or 8
         out (P_MEM),a
         ld hl,8000h
         ld de,0
@@ -56,7 +52,6 @@ svc_stub:                       ; runs at F000h
         ldir                    ; engine (with its stack) -> BLK_GAME
         ld a,BLK_CPM
         call blk_port
-        or 8
         out (P_MEM),a
         ld hl,0
         ld de,8000h
@@ -64,15 +59,18 @@ svc_stub:                       ; runs at F000h
         ldir                    ; CP/M's memory back
         db 3Eh
 svc_cpm: db 0
-        or 8
+        and 0E7h                ; window stays at F000h: we are running in it
         out (P_MEM),a
         jp SVC_DISK
 svc_stub_end:
+        assert svc_stub_end-svc_stub <= 120, "svc stub too long"
 
 ; the loader comes back here (8006h) with the engine restored
 svc_resume:
         ld sp,(svc_sp)
         call map_home           ; video window on, map band back
+        call video_init         ; CP/M's BIOS may have changed the video ports
+        call present_all
         ld a,(8005h)            ; result from the loader
         ld (sv_res),a
         ret

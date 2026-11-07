@@ -29,3 +29,8 @@ for k in ('scen', 'nrivals', 'goal_done'): print(k, a[sym[k]], b[sym[k]])
 for bk in (8, 9):
     x = open('sv_a%d.bin' % bk, 'rb').read(); y = open('sv_b%d.bin' % bk, 'rb').read()
     print('block', bk, 'differ', sum(1 for i in range(32768) if x[i] != y[i]))
+# hidden RAM (CP/M BIOS under the video window) must never be written
+r = run(['frames 60'] + tap(3) + ['frames 340'] + tap(33) + ['frames 30'] + tap(52) + ['frames 1500']
+        + tap(6) + ['frames 30'] + tap(19) + ['frames 30'] + tap(33) + ['frames 600', 'hidden']
+        + tap(10) + ['frames 30'] + tap(25) + ['frames 200'] + tap(48) + ['frames 200', 'hidden'])
+print([l for l in r.split('\n') if 'hidden' in l or 'Thanks' in l or 'exit' in l.lower()])

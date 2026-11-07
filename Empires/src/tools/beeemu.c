@@ -48,8 +48,11 @@ static u8 rd(u16 a){
   if(banked){ if(vidwin(a)) return rdv(vaddr(a)); return a<0x8000? blocks[lowblk][a]: blocks[0][a-0x8000]; }
   return rdv(a);
 }
+static long hidden_writes=0; static unsigned hidden_pc=0; extern unsigned short cur_pc_for_hidden;
+static int ser_bit=4;
 static void wr(u16 a,u8 v){
-  if(banked){ if(vidwin(a)) { wrv(vaddr(a),v); return; } if(a<0x8000) blocks[lowblk][a]=v; else blocks[0][a-0x8000]=v; return; }
+  if(banked){ if(vidwin(a)) { wrv(vaddr(a),v); return; }
+    if(a>=0xF000){ if(!hidden_writes++) hidden_pc=cur_pc_for_hidden; } if(a<0x8000) blocks[lowblk][a]=v; else blocks[0][a-0x8000]=v; return; }
   wrv(a,v);
 }
 static u8 rdv(u16 a){
@@ -74,7 +77,7 @@ static u8 inport(u8 p){
                  if(code>=0&&code<64&&keys[code]) s|=0x40;
                  if(in_vblank()) s|=0x20; return s; }
     case 0x0D: return crtc[crtc_idx&31];
-    case 0x02: return 0x08 | (in_vblank()?0x80:0) | (serial_level()?0x10:0);
+    case 0x02: return (ser_bit==4? 0x08:0) | (in_vblank()?0x80:0) | (serial_level()? (1<<ser_bit):0);
   }
   return 0xFF;
 }
@@ -95,6 +98,7 @@ static void outport(u8 p,u8 v){
 /* ---- CPU ---- */
 static u8 A,F,B,C,D,E,H,L,A_,F_,B_,C_,D_,E_,H_,L_,I,R,IFF;
 static u16 IX,IY,SP,PC;
+unsigned short cur_pc_for_hidden;
 #define FC 1
 #define FN 2
 #define FP 4
@@ -239,7 +243,7 @@ static int exec_idx(u16 *ixp){
 
 static u16 hist[64]; static int histp;
 static int step(void){
-  hist[histp++&63]=PC;
+  hist[histp++&63]=PC; cur_pc_for_hidden=PC;
   if(!banked || lowblk==cpm_block){
     if(PC==0x0005){ bdos(); PC=pop(); return 10; }
     if(PC==0x0000){ trap_exit=1; return 4; }
@@ -391,6 +395,8 @@ int main(int argc,char**argv){
       fprintf(stderr,"callt %04X: %lld T (%.2f frames)\n",a,tstates-t0,(double)(tstates-t0)/FRAME_T); }
     else if(!strcmp(cmd,"mouse")){ int dx=0,dy=0,l=0,r=0; sscanf(line,"%*s %d %d %d %d",&dx,&dy,&l,&r);
       u8 b1=0x40|(l?0x20:0)|(r?0x10:0)|(((dy>>6)&3)<<2)|((dx>>6)&3); ser_send(b1); ser_send(dx&0x3F); ser_send(dy&0x3F); }
+    else if(!strcmp(cmd,"serbit")){ sscanf(line,"%*s %d",&ser_bit); }
+    else if(!strcmp(cmd,"hidden")){ fprintf(stderr,"hidden RAM writes: %ld (first at PC %04X)\n",hidden_writes,hidden_pc); }
     else if(!strcmp(cmd,"serinv")){ sscanf(line,"%*s %d",&ser_inv); }
     else if(!strcmp(cmd,"blk")){ int b=0; sscanf(line,"%*s %d %399s",&b,arg); FILE*m=fopen(arg,"wb"); fwrite(blocks[b],1,32768,m); fclose(m); }
     else if(!strcmp(cmd,"bank")){ fprintf(stderr,"port50=%02X lowblk=%d video=%d\n",p50,lowblk,vidon); }

@@ -133,3 +133,20 @@ switch, quit to menu and exit to DOS.
 - Joystick — port not yet confirmed.
 - Done in milestone 3: technology tree, rival peoples (src/rivals.asm, 3 records of 16 bytes in the saved state, objects 20h-37h on the map), envoys screen, seven scenarios, five victories and defeat (overlay: scen_screen, goal_check monthly via ovl_call, goals_screen, goal_end).
 - Still to do: regional view, terrain shaping, ships.
+
+## CP/M's BIOS under the video window (found on real hardware, Nov 2026)
+The 128K CP/M BIOS on the boot tracks keeps part of its code in the RAM at
+F000-FFFF that is hidden under the video window (it switches port 50h to 0Ch
+or 14h to run it).  Earlier builds ran their swap stubs there with the window
+off, which destroyed that code: the first save/load on a real Premium Plus
+hung.  All stubs (loader final stage, disk-service and return stubs, exit to
+DOS) now run in the unseen end of screen RAM (STUB = F780h, window on), and
+the emulator counts any write to the hidden RAM (`hidden` command).
+After a disk job the engine re-applies its video ports (the BIOS changes
+port 1Ch) and redraws.
+
+## Serial mouse line
+The user's interface brings the mouse in on PIO B bit 3, not bit 4.  Every
+place that tests the line is patched at run time (ms_sites / ms_setmask);
+the game listens on bit 4 at first and switches to bit 3 when that line is
+the busy one, learning its idle level from a quiet stretch of 12 bit times.

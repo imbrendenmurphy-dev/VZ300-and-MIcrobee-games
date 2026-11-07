@@ -102,8 +102,10 @@ title_load:
         jr menu
 
 ; ---- back to DOS: clean screen, then restore CP/M's memory from its
-; snapshot with a stub at F000h (video window off), and return to the
-; loader's resident code in CP/M's own block.
+; snapshot with a stub in the unseen end of screen RAM (STUB, video window
+; on), and return to the loader's resident code in CP/M's own block.
+; The RAM hidden under the video window (F000-FFFF with the window off)
+; holds part of CP/M's BIOS, so it must never be written.
 exit_dos:
         ld a,(dos_colour)
         call shadow_clear
@@ -116,20 +118,17 @@ exit_dos:
         out (P_PIOB),a
         call pio_restore
         di
-        ld a,(lowport)
-        or 8                    ; video window off: F000-FFFF is RAM
-        out (P_MEM),a
+        call map_home           ; video window on
         ld hl,exit_stub
-        ld de,0F000h
+        ld de,STUB
         ld bc,exit_stub_end-exit_stub
         ldir
         ld a,(p_cpm_port)
-        ld (0F000h+exit_cpm-exit_stub),a
-        jp 0F000h
+        ld (STUB+exit_cpm-exit_stub),a
+        jp STUB
 exit_stub:                      ; position independent
         ld a,BLK_CPM
         call blk_port
-        or 8
         out (P_MEM),a
         ld hl,0
         ld de,8000h
@@ -138,10 +137,11 @@ exit_stub:                      ; position independent
         db 3Eh                  ; ld a,n
 exit_cpm:
         db 0
-        or 8
-        out (P_MEM),a           ; lower window = CP/M's block, video still off
+        and 0E7h                ; keep the video window on (at F000h) while we run in it
+        out (P_MEM),a           ; lower window = CP/M's block
         jp 0103h                ; loader: svc_exit
 exit_stub_end:
+        assert exit_stub_end-exit_stub <= 120, "exit stub too long"
 
 ; PIO port A all inputs (joystick, parallel-port devices), as The Lantern
 ; Deep sets it; CP/M leaves it as the printer output port.

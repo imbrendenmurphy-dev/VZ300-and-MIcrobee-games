@@ -82,12 +82,23 @@ ms_calib:
 ; measure the idle level: sample the line for ~20 ms; if it never moves
 ; the idle level is whatever it reads.  ms_ok = 0 until a valid packet.
 mouse_init:
+        ld a,10h
+        ld (ms_mask),a
+        call ms_setmask
+        xor a
+        ld (ms_cand),a
+        ld (ms_other),a
+        in a,(P_PIOB)
+        and 18h
+        ld (ms_last),a
         call ms_calib
         in a,(P_PIOB)
+ms_s1 equ $+1
         and 10h
         ld (ms_idle),a
         ld bc,3000
 .l:     in a,(P_PIOB)
+ms_s2 equ $+1
         and 10h
         ld hl,ms_idle
         cp (hl)
@@ -99,6 +110,7 @@ mouse_init:
         or c
         jr nz,.l
         in a,(P_PIOB)
+ms_s3 equ $+1
         and 10h
         ld (ms_idle),a
         xor a
@@ -113,6 +125,7 @@ mouse_init:
 ; poll: called from the frame-wait loop.  Fast exit when the line is idle.
 mouse_poll:
         in a,(P_PIOB)
+ms_s4 equ $+1
         and 10h
         ld hl,ms_idle
         cp (hl)
@@ -193,6 +206,7 @@ ms_next:
         add hl,hl
         ex de,hl
 .w:     in a,(P_PIOB)
+ms_s5 equ $+1
         and 10h
         ld hl,ms_idle
         cp (hl)
@@ -224,6 +238,7 @@ ms_rx:  ld a,(ms_bitn)
         nop                     ; 4
         djnz .d                 ; 13/8  -> 25 * b - 5
         in a,(P_PIOB)           ; 11
+ms_s6 equ $+1
         and 10h                 ; 7
         ld e,a                  ; 4
         ld a,(ms_idle)          ; 13
@@ -239,6 +254,7 @@ ms_rx:  ld a,(ms_bitn)
         nop
         djnz .s
         in a,(P_PIOB)
+ms_s7 equ $+1
         and 10h
         ld e,a
         ld a,(ms_idle)
@@ -258,6 +274,7 @@ ms_rx:  ld a,(ms_bitn)
 MS_STEPX equ 12
 MS_STEPY equ 12
 mouse_frame:
+        call ms_detect
         xor a
         ld (ms_click),a
         ld (ms_mu),a
@@ -351,4 +368,100 @@ mouse_frame:
         ld hl,0
         or a
         sbc hl,de
+        ret
+
+; ---- which input bit carries the mouse? ---------------------------------
+; The usual serial input is PIO B bit 4, but some interfaces bring the
+; mouse in on bit 3.  Every place that tests the line is listed in
+; ms_sites (a 0-terminated table each program provides) and patched here.
+ms_setmask:                     ; A = bit mask (0 = stop listening)
+        push hl
+        push de
+        push bc
+        ld c,a
+        ld hl,ms_sites
+.l:     ld e,(hl)
+        inc hl
+        ld d,(hl)
+        inc hl
+        ld a,d
+        or e
+        jr z,.x
+        ld a,c
+        ld (de),a
+        jr .l
+.x:     pop bc
+        pop de
+        pop hl
+        ret
+
+; is the line (mask ms_cand) quiet for 12 bit times?  NC, A = its level
+; (a byte always has a start and a stop bit within 10 bits, so a quiet
+; stretch can only be the idle, mark level).  C if it moved.
+ms_quiet:
+        ld a,(ms_cand)
+        ld c,a
+        in a,(P_PIOB)
+        and c
+        ld e,a
+        ld d,48                 ; quarter bits
+.q:     ld a,(ms_half)
+        srl a
+        ld b,a
+.w:     nop
+        nop
+        nop
+        djnz .w
+        in a,(P_PIOB)
+        and c
+        cp e
+        scf
+        ret nz
+        dec d
+        jr nz,.q
+        ld a,e
+        or a
+        ret
+
+; once a frame until the mouse has been heard: if the other line (bit 3
+; or bit 4) is the busy one, switch to it and learn its idle level
+ms_detect:
+        ld a,(ms_ok)
+        or a
+        ret nz
+        ld a,(ms_cand)
+        or a
+        jr nz,.idle
+        in a,(P_PIOB)
+        and 18h
+        ld b,a
+        ld hl,ms_last
+        xor (hl)
+        ld (hl),b
+        ld b,a
+        ld a,(ms_mask)
+        cpl
+        and b
+        and 18h
+        ret z
+        ld hl,ms_other
+        inc (hl)
+        ld a,(hl)
+        cp 4
+        ret c
+        ld (hl),0
+        ld a,(ms_mask)
+        xor 18h
+        ld (ms_cand),a
+        xor a                   ; not listening until the idle level is known
+        ld (ms_idle),a
+        call ms_setmask
+.idle:  call ms_quiet
+        ret c                   ; data passing: try again next frame
+        ld (ms_idle),a
+        ld a,(ms_cand)
+        ld (ms_mask),a
+        call ms_setmask
+        xor a
+        ld (ms_cand),a
         ret

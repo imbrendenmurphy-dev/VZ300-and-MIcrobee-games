@@ -47,6 +47,10 @@ pr_off:     dw 0
 pr_len:     dw 0
 numbuf:     ds 8
 txtbuf:     ds 96
+ms_mask:    db 10h
+ms_cand:    db 0
+ms_other:   db 0
+ms_last:    db 0
 ms_idle:    db 0
 ms_bitn:    db 110
 ms_half:    db 55
@@ -296,3 +300,5 @@ rle_len:  db 0
 
         ds 256
 stacktop:
+
+ms_sites: dw ms_s1,ms_s2,ms_s3,ms_s4,ms_s5,ms_s6,ms_s7,sn_s1,sn_s2,sn_s3,sn_s4,0

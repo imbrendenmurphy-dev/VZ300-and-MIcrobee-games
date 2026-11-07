@@ -113,12 +113,45 @@ loop:   ld c,6                  ; key?
         ld a,b
         or c
         jr nz,.s
-        ; ---- phase 2: capture raw serial bytes on B4 (~ 0.35 s) ----
+        ; ---- which line is the mouse on?  the busier of B3 and B4 ----
+        ld a,(cntB+4)           ; B3 changes
+        ld b,a
+        ld a,(cntB+3)           ; B4 changes
+        ld c,a
+        cp b
+        jr c,.b3
+        cp 4
+        jr c,.same
+        ld a,10h
+        jr .pick
+.b3:    ld a,b
+        cp 4
+        jr c,.same
+        ld a,08h
+.pick:  ld hl,ms_mask
+        cp (hl)
+        jr z,.same
+        ld (ms_cand),a
+        ld b,200                ; find a quiet moment: that level is idle
+.qt:    push bc
+        call ms_quiet
+        pop bc
+        jr nc,.got
+        djnz .qt
+        jr .same
+.got:   ld (ms_idle),a
+        ld a,(ms_cand)
+        ld (ms_mask),a
+        call ms_setmask
+.same:  xor a
+        ld (ms_cand),a
+        ; ---- phase 2: capture raw serial bytes on that line (~ 0.35 s) ----
         xor a
         ld (nraw),a
         ld bc,12000
 .m:     push bc
         in a,(P_PIOB)
+mt_s1 equ $+1
         and 10h
         ld hl,ms_idle
         cp (hl)
@@ -150,6 +183,14 @@ loop:   ld c,6                  ; key?
         jp z,loop
         ; print the bytes, then any Microsoft packets in them
         ld de,t_raw
+        call print
+        ld a,(ms_mask)
+        cp 08h
+        ld e,'3'
+        jr z,.ln
+        ld e,'4'
+.ln:    call pch
+        ld de,t_raw2
         call print
         ld hl,rawbuf
         ld a,(nraw)
@@ -437,11 +478,12 @@ t_unknown: db "not measured (no frame flag)$"
 t_mhz:   db " MHz$"
 t_bit:   db "   serial bit delay: $"
 t_idle:  db "   serial line idle level (B4): $"
-t_head:  db 13,10,13,10,"Changes seen on each input bit (moving the mouse should make B4 count;",13,10
+t_head:  db 13,10,13,10,"Changes seen on each input bit (moving the mouse should make B4 or B3 count;",13,10
          db "B7 always counts - it is the screen frame signal):",13,10
          db "B7 B6 B5 B4 B3 B2 B1 B0 | A7 A6 A5 A4 A3 A2 A1 A0",13,10,"$"
 t_pkt:   db "  mouse packet:$"
-t_raw:   db 13,10,"serial bytes: $"
+t_raw:   db 13,10,"serial bytes on B$"
+t_raw2:  db ": $"
 t_dx:    db "   dx $"
 t_dy:    db "   dy $"
 t_left:  db "   LEFT$"
@@ -457,6 +499,10 @@ lastA:   db 0
 cntB:    ds 8
 cntA:    ds 8
         include "mouse.asm"
+ms_mask:    db 10h
+ms_cand:    db 0
+ms_other:   db 0
+ms_last:    db 0
 ms_idle:    db 0
 ms_bitn:    db 110
 ms_half:    db 55
@@ -475,3 +521,5 @@ ms_mu:      db 0
 ms_md:      db 0
 ms_ml:      db 0
 ms_mr:      db 0
+
+ms_sites: dw ms_s1,ms_s2,ms_s3,ms_s4,ms_s5,ms_s6,ms_s7,mt_s1,0

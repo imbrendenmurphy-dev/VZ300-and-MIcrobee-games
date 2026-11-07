@@ -220,6 +220,7 @@ play_until:
         cp d
         ret nz
         in a,(P_PIOB)
+sn_s1 equ $+1
         and 10h
         cp e
         jr z,.s
@@ -251,6 +252,7 @@ play_until:
         cp d                    ; 4
         jr nz,.save             ; 7
         in a,(P_PIOB)           ; 11
+sn_s2 equ $+1
         and 10h                 ; 7
         cp e                    ; 4
         call nz,.mouse          ; 10
@@ -265,6 +267,7 @@ play_until:
         cp d
         jr nz,.save
         in a,(P_PIOB)
+sn_s3 equ $+1
         and 10h
         cp e
         call nz,.mouse
@@ -291,6 +294,7 @@ play_until:
         cp d
         ret nz
         in a,(P_PIOB)
+sn_s4 equ $+1
         and 10h
         cp e
         call nz,.mouse

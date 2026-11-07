@@ -153,3 +153,5 @@ C_MSG     equ COL(BYELLOW,BLACK)
 C_WARN    equ COL(BRED,BLACK)
 C_GOOD    equ COL(BGREEN,BLACK)
 C_TITLE   equ COL(BCYAN,BLACK)
+
+STUB      equ 0F780h          ; unseen end of screen RAM: swap stubs run here (window on)

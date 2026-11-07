@@ -22,6 +22,7 @@ BLK_SAVE  equ 21                ; 21-24: save-file staging
 N_BLOCKS  equ 25                ; blocks 0..24 must all exist
 DMA       equ 0A800h            ; record buffer in upper TPA
 UP_LEN    equ 7000h             ; engine image 8000-EFFF
+STUB      equ 0F780h            ; unseen end of screen RAM (video window on)
 
         org 0100h
         jp start
@@ -36,7 +37,7 @@ d_len:   ds 3                   ; 0117: bytes (save: to write; load: read)
 d_res:   db 0                   ; 011A: 0 ok, 1 no file, 2 write-protected, 3 no room, 4 disk full
 
 svc_disk:
-        ld sp,0400h
+        ld sp,0E00h             ; free RAM above the loader in CP/M's block
         ld a,(cpm_port)
         out (P_MEM),a
         ei
@@ -47,7 +48,7 @@ svc_disk:
         jp disk_main
 
 svc_exit:
-        ld sp,0400h
+        ld sp,0E00h
         ld a,(cpm_port)
         out (P_MEM),a           ; CP/M's lower block and video window back
         ei
@@ -124,19 +125,22 @@ main:   di
         ld c,9
         call BDOS
         di
-        ; final stage runs at F000h in block 0 with the video window off
+        ; final stage runs in the unseen end of screen RAM (video window on):
+        ; the RAM under the window holds part of CP/M's BIOS
+        xor a
+        out (P_LV),a            ; plain screen RAM at F000-F7FF
         ld a,(r_cpm_port)
-        or 8
+        and 0E7h                ; window on, at F000h
         out (P_MEM),a
         ld hl,final_src
-        ld de,0F000h
+        ld de,STUB
         ld bc,final_end-final_start
         ldir
         ld a,(r_cpm_port)
         ld (f_cpm),a
         ld a,(r_cpm_block)
         ld (f_blk),a
-        jp 0F000h
+        jp STUB
 
 files:  db BLK_STAGE,00h,"EMPIRES UP "
         db BLK_OVL,  00h,"EMPIRES OVL"
@@ -600,19 +604,22 @@ dk_heads:                       ; record 0 of SAVE1-3.EMP -> staging block offse
 
 dk_res: ld (d_res),a
 dk_done:
-        ; back to the engine: re-snapshot CP/M, restore the engine (stub at F000h)
+        ; back to the engine: re-snapshot CP/M, restore the engine (stub in
+        ; unseen screen RAM, video window on)
         di
         ld a,(cpm_port)
         ld (r_cpm_port),a
-        or 8
+        and 0E7h
         out (P_MEM),a
+        xor a
+        out (P_LV),a
         ld hl,ret_src
-        ld de,0F000h
+        ld de,STUB
         ld bc,ret_end-ret_start
         ldir
         ld a,(d_res)
         ld (rt_res),a
-        jp 0F000h
+        jp STUB
 recs:   dw 0
 
 cur_blk:    db 0
@@ -634,9 +641,9 @@ reloc_end:
 ; Final stage: copied to F000h, runs with the video window off.
 ; ---------------------------------------------------------------------
 final_src:
-        disp 0F000h
+        disp STUB
 final_start:
-fstage: ld sp,0FFF0h
+fstage: ld sp,STUB+80h
         ; snapshot CP/M's upper memory
         ld a,BLK_CPM
         call fb_port
@@ -673,16 +680,18 @@ fb_port: ld b,a
         rlca
         rlca
         or c
-        or 0Ch
+        or 04h                  ; ROMs off, video window on (we run in it)
         ret
 f_cpm:  db 0
 f_blk:  db 0
 final_end:
         ent
+        assert final_end-final_start <= 120, "final stage too long"
 
 ret_src:
-        disp 0F000h
+        disp STUB
 ret_start:
+        ld sp,STUB+80h
         ld a,BLK_CPM
         call fb_port2
         out (P_MEM),a
@@ -711,10 +720,11 @@ fb_port2: ld b,a
         rlca
         rlca
         or c
-        or 0Ch
+        or 04h
         ret
 ret_end:
         ent
+        assert ret_end-ret_start <= 120, "return stub too long"
 phys_end:
         assert phys_end <= 0F00h, "loader too long for the signature at 0F00h"
         org 0F00h
