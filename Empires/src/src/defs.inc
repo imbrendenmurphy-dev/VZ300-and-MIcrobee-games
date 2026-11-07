@@ -12,6 +12,8 @@ P_EXT     equ 1Ch        ; bit7 ext graphics, bit4 attr RAM, bits3-0 PCG bank at
 P_CRTCA   equ 0Ch        ; 6545 address / status (b7 update, b6 lpen, b5 vblank)
 P_CRTCD   equ 0Dh
 P_PIOB    equ 02h        ; bit6 = speaker
+P_PIOAC   equ 01h        ; PIO A control
+P_PIOBC   equ 03h        ; PIO B control
 P_PIOA    equ 00h        ; joystick (active low: b0 up b1 down b2 left b3 right b7 fire)
 P_ROMLAT  equ 0Bh        ; 1 while scanning the keyboard (as the boot ROM/BIOS do)
 EXT_ON    equ 80h

@@ -16,6 +16,12 @@
         ld de,t_hello
         call print
         di
+        ld a,0CFh               ; PIO A: mode 3, all inputs (joystick / parallel devices)
+        out (P_PIOAC),a
+        ld a,0FFh
+        out (P_PIOAC),a
+        ld a,07h
+        out (P_PIOAC),a
         call mouse_init         ; calibrates and finds the line's idle level
         ld a,(pb_out)
         out (P_PIOB),a
@@ -107,59 +113,146 @@ loop:   ld c,6                  ; key?
         ld a,b
         or c
         jr nz,.s
-        ; ---- phase 2: listen for mouse packets (~ 0.2 s) ----
+        ; ---- phase 2: capture raw serial bytes on B4 (~ 0.35 s) ----
         xor a
-        ld (ms_ok),a
+        ld (nraw),a
         ld bc,12000
 .m:     push bc
-        call mouse_poll
-        pop bc
-        ld a,(ms_ok)
-        or a
-        jr nz,.pkt
+        in a,(P_PIOB)
+        and 10h
+        ld hl,ms_idle
+        cp (hl)
+        jr z,.mn
+        call ms_rx              ; start bit seen: receive one byte (C = framing error)
+        jr nc,.ok
+        ld a,0FFh               ; show a framing error as FF
+.ok:    ld e,a
+        ld a,(nraw)
+        cp 24
+        jr nc,.mn
+        ld hl,rawbuf
+        add a,l
+        ld l,a
+        jr nc,.nc
+        inc h
+.nc:    ld (hl),e
+        ld hl,nraw
+        inc (hl)
+.mn:    pop bc
         dec bc
         ld a,b
         or c
         jr nz,.m
         ei
         call status
+        ld a,(nraw)
+        or a
+        jp z,loop
+        ; print the bytes, then any Microsoft packets in them
+        ld de,t_raw
+        call print
+        ld hl,rawbuf
+        ld a,(nraw)
+        ld b,a
+.pr:    push bc
+        push hl
+        ld a,(hl)
+        call phex
+        call space
+        pop hl
+        pop bc
+        inc hl
+        djnz .pr
+        ld de,t_crlf
+        call print
+        ld hl,rawbuf
+        ld a,(nraw)
+        ld b,a
+.pk:    ld a,b
+        cp 3
+        jp c,loop
+        ld a,(hl)
+        cp 0FFh
+        jr z,.skip
+        bit 6,a                 ; first byte of a packet has bit 6 set
+        jr z,.skip
+        inc hl
+        ld a,(hl)
+        dec hl
+        bit 6,a
+        jr nz,.skip
+        push bc
+        push hl
+        call packet
+        pop hl
+        pop bc
+        inc hl
+        inc hl
+        dec b
+        dec b
+.skip:  inc hl
+        djnz .pk
         jp loop
-.pkt:   ei
-        call status
+
+; decode the packet at HL and print it
+packet: ld a,(hl)
+        ld (ms_b1),a
+        inc hl
+        ld a,(hl)
+        ld (ms_b2),a
+        inc hl
+        ld a,(hl)
+        ld (ms_b3),a
         ld de,t_pkt
         call print
-        ld a,(ms_b1)
-        call phex
-        call space
+        ld a,(ms_b1)            ; dx = X7 X6 (b1 bits 1-0) : b2 bits 5-0
+        rrca
+        rrca
+        and 0C0h
+        ld b,a
         ld a,(ms_b2)
-        call phex
-        call space
-        ld a,(ms_b3)
-        call phex
+        and 3Fh
+        or b
+        ld l,a
+        rla
+        sbc a,a
+        ld h,a
+        push hl
         ld de,t_dx
         call print
-        ld hl,(ms_ax)
+        pop hl
         call psdec
+        ld a,(ms_b1)            ; dy = Y7 Y6 (b1 bits 3-2) : b3 bits 5-0
+        rlca
+        rlca
+        rlca
+        rlca
+        and 0C0h
+        ld b,a
+        ld a,(ms_b3)
+        and 3Fh
+        or b
+        ld l,a
+        rla
+        sbc a,a
+        ld h,a
+        push hl
         ld de,t_dy
         call print
-        ld hl,(ms_ay)
+        pop hl
         call psdec
-        ld a,(ms_btn)
-        bit 1,a
+        ld a,(ms_b1)
+        bit 5,a
         jr z,.nl
         ld de,t_left
         call print
-.nl:    ld a,(ms_btn)
-        bit 0,a
+.nl:    ld a,(ms_b1)
+        bit 4,a
         jr z,.nr
         ld de,t_right
         call print
 .nr:    ld de,t_crlf
-        call print
-        ld hl,0
-        ld (ms_ax),hl
-        ld (ms_ay),hl
-        jp loop
+        jp print
 
 key:    cp '2'
         jr z,.k2
@@ -167,6 +260,8 @@ key:    cp '2'
         jr z,.k5
         ld a,20h                ; leave the serial line at mark, speaker off
         out (P_PIOB),a
+        ld a,0Fh                ; PIO A back to output mode for the printer
+        out (P_PIOAC),a
         ld de,t_bye
         call print
         rst 0
@@ -332,8 +427,11 @@ mul16:  ; HL = HL * DE (low 16 bits)
         ret
 
 t_hello: db 13,10,"EMPIRES serial mouse and port test",13,10
-         db "Move the mouse and press its buttons.  2 / 5 toggle PIO B bits 2 and 5",13,10
-         db "(mouse power).  Any other key returns to A>.",13,10,"$"
+         db "Move the mouse and press its buttons.  A Microsoft mouse on the serial",13,10
+         db "port should make B4 count and show serial bytes.  If B4 stays at 00,",13,10
+         db "the mouse may need power from the port: press 2 and/or 5 to switch",13,10
+         db "PIO B outputs 2 (DTR) and 5 (TXD), then move it again.  A mouse that",13,10
+         db "has just been powered usually sends 4D ('M').  Other keys quit.",13,10,"$"
 t_cpu:   db "CPU clock: $"
 t_unknown: db "not measured (no frame flag)$"
 t_mhz:   db " MHz$"
@@ -342,7 +440,8 @@ t_idle:  db "   serial line idle level (B4): $"
 t_head:  db 13,10,13,10,"Changes seen on each input bit (moving the mouse should make B4 count;",13,10
          db "B7 always counts - it is the screen frame signal):",13,10
          db "B7 B6 B5 B4 B3 B2 B1 B0 | A7 A6 A5 A4 A3 A2 A1 A0",13,10,"$"
-t_pkt:   db 13,10,"mouse packet $"
+t_pkt:   db "  mouse packet:$"
+t_raw:   db 13,10,"serial bytes: $"
 t_dx:    db "   dx $"
 t_dy:    db "   dy $"
 t_left:  db "   LEFT$"
@@ -351,6 +450,8 @@ t_out:   db "PIO B output now $"
 t_bye:   db 13,10,"$"
 t_crlf:  db 13,10,"$"
 pb_out:  db 20h
+nraw:    db 0
+rawbuf:  ds 24
 lastB:   db 0
 lastA:   db 0
 cntB:    ds 8

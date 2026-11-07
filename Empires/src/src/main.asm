@@ -38,6 +38,7 @@ start:  ld sp,stacktop
         ld a,1
         ld (sound_on),a
         call video_init
+        call pio_setup
         ld a,20h                ; serial TXD at mark, speaker off
         out (P_PIOB),a
         call mouse_init
@@ -111,6 +112,7 @@ exit_dos:
         out (P_COL),a
         ld a,20h
         out (P_PIOB),a
+        call pio_restore
         di
         ld a,(lowport)
         or 8                    ; video window off: F000-FFFF is RAM
@@ -138,6 +140,21 @@ exit_cpm:
         out (P_MEM),a           ; lower window = CP/M's block, video still off
         jp 0103h                ; loader: svc_exit
 exit_stub_end:
+
+; PIO port A all inputs (joystick, parallel-port devices), as The Lantern
+; Deep sets it; CP/M leaves it as the printer output port.
+pio_setup:
+        ld a,0CFh               ; mode 3 (bit control)
+        out (P_PIOAC),a
+        ld a,0FFh               ; every bit an input
+        out (P_PIOAC),a
+        ld a,07h                ; no interrupts from port A
+        out (P_PIOAC),a
+        ret
+pio_restore:                    ; back to mode 0 (output) for the printer
+        ld a,0Fh
+        out (P_PIOAC),a
+        ret
 
 txt_building_world: db "BUILDING A NEW WORLD",0
 
