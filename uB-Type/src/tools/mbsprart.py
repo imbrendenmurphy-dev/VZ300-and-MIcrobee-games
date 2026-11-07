@@ -46,7 +46,9 @@ def ship(tilt):
     tx, ty = T(2, cy + 2 + 6.5 * bot)
     c.put(tx, ty, R_, 3)
     # hull: a long, thin dart with a needle nose and a shaded underside
-    hull = [T(31.5, cy + 0.5), T(25, cy - 1), T(14, cy - 2.5), T(4, cy - 2.5), T(2, cy - 1.5),
+    # (the top line rises gently into a low canopy fairing over x 14-24)
+    hull = [T(31.5, cy + 0.5), T(27, cy - 0.5), T(24, cy - 2.5), T(20, cy - 3.6), T(16, cy - 3.4),
+            T(13, cy - 2.5), T(4, cy - 2.5), T(2, cy - 1.5),
             T(2, cy + 2), T(5, cy + 3), T(25, cy + 2)]
     c.poly(hull, W_, shade=False, lev=3)
     for x in range(4, 28):
@@ -60,21 +62,15 @@ def ship(tilt):
     # cockpit: a canopy bubble on the hull's back with a dark window and
     # a bright glint that slides along the glass as the ship banks
     # (towards the rear when climbing, the nose when diving)
-    gx = 16.5 + (tilt + 2) * 1.8
-    for y in range(-7, 0):
-        for x in range(12, 28):
-            fx, fy = x + 0.5, y + 0.5
-            outer = ((fx - 20) / 6.5) ** 2 + ((fy + 3.5) / 1.8) ** 2
-            if outer > 1:
-                continue
-            px, py = T(x, cy + y)
-            if y == -4 and 15 <= x <= 24:
-                if abs(fx - gx) < 1.0:
-                    c.put(px, py, W_, 3)           # the glint
-                else:
-                    c.clear(px, py)                # the window slit
-            else:
-                c.put(px, py, W_, 3)               # canopy frame
+    # cockpit: a window slit set into the fairing, with a bright glint that
+    # slides along it as the ship banks (rear when climbing, nose when diving)
+    gx = 16.5 + (tilt + 2) * 1.6
+    for x in range(15, 24):
+        px, py = T(x, cy - 2)
+        if abs(x + 0.5 - gx) < 1.0:
+            c.put(px, py, W_, 3)                   # the glint
+        else:
+            c.clear(px, py)                        # dark glass
     # engine block
     c.rect(0, cy - 2 + k * -16, 3, cy + 3 + k * -16, A.GREY, 2)
     return c

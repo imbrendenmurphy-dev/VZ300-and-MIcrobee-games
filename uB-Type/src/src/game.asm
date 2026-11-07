@@ -1158,14 +1158,27 @@ firedir:
 	ld (bulslow),a
 	pop af
 	ret
-bslow:	; all enemy bullets fly at ~5/8 of the table speed
+bslow:	; all enemy bullets fly at ~5/8 of the table speed...
+	ld c,a
+	ld a,(bulslow)
+	or a
+	jr z,.n
+	ld a,(thin)
+	or a
+	jr z,.n
+	ld a,c			; ...except turret bullets when thinning
+	sra a			; (Microbee): 5/4, so they leave the
+	sra a			; turret instead of scrolling with it
+	add a,c
+	ret
+.n:	ld a,c
 	sra a
 	ld c,a
 	sra a
 	sra a
 	add a,c
 	ret
-bulslow	db 0
+bulslow	db 0			; 1 while a turret fires
 lastbul	dw 0			; the bullet firedir fired last (0 = none)
 ; aimed bullet from B,C toward the player
 fireaim:
@@ -1175,7 +1188,7 @@ fireaim:
 	push bc
 	call aimdir
 	pop bc
-	jr firedir
+	jp firedir
 ; direction index 0..15 from (B,C) toward player centre
 aimdir:	ld a,(px)
 	add a,4

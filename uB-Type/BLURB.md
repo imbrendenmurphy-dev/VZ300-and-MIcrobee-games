@@ -3,7 +3,7 @@
 
 **The VZ300's own R-Type-style blaster has landed on the Microbee, at four times the resolution in both directions.**
 
-μB-TYPE is the Premium Plus conversion of **VZ-TYPE**, BPM's original horizontally scrolling shoot-'em-up for the Dick Smith VZ300. The game underneath is VZ-TYPE's own: the same stages, enemy waves, bosses, weapons and hit boxes, thinned for the Microbee (fewer ordinary enemies, one bullet at a time from each turret, at most five enemy bullets at once, and kamikaze darts that don't always aim true) to keep it flowing and fair on a keyboard. The VZ's chunky 128×64 playfield has been redrawn from scratch at the Microbee's full 512×256, in character graphics.
+μB-TYPE is the Premium Plus conversion of **VZ-TYPE**, BPM's original horizontally scrolling shoot-'em-up for the Dick Smith VZ300. The game underneath is VZ-TYPE's own: the same stages, enemy waves, bosses, weapons and hit boxes, thinned for the Microbee (fewer ordinary enemies, one faster bullet at a time from each turret, at most five enemy bullets at once, and kamikaze darts that don't always aim true) to keep it flowing and fair on a keyboard. The VZ's chunky 128×64 playfield has been redrawn from scratch at the Microbee's full 512×256, in character graphics.
 
 You pilot a lone fighter through eight stages of biomechanical trouble:
 
@@ -21,7 +21,7 @@ Hold fire to charge a beam that ploughs through whole formations. Shoot down car
 - **+** speeds the ship up.
 - **H** brings a pair of helper satellites.
 
-Your ship is a slim swept dart with a cockpit window whose glint slides along as it banks. Its engine flame grows as you speed up.
+Your ship is a slim swept dart with a cockpit window set into a low fairing, whose glint slides along as it banks. Its engine flame grows as you speed up.
 
 It all comes wrapped in:
 - a striped μB-TYPE logo with a travelling glint, a starfield and a scroller

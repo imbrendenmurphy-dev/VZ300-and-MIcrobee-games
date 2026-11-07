@@ -21,22 +21,22 @@
 
 `tools/perfcmp.py` gives both machines the same scripted input (fire held in bursts, the ship weaving up, down, left and right) and the same random seed, with the noise/seed sharing turned off. Each stage is measured twice over 400 game frames: from the start of the stage, and in the boss fight. Both games cap at 25 frames per second (2 fields per frame). The Microbee runs as shipped, with thinning on.
 
-**Thinned for the Microbee.** To cut slowdown and suit keyboard play (BPM's call), μB-TYPE: keeps about 9 in 16 ordinary enemies, and 9/16 of each swimming formation; lets each gun turret have only one bullet in the air; fires one enemy shot in three less; allows at most 5 enemy bullets at once (the VZ allows 12); keeps boss minion waves smaller; and aims the kamikaze darts one or two compass points off. Power-up carriers, reactor nodes and bosses are never thinned. Stage 1 also loses its round floating blocks, which sat in the flight path.
+**Thinned for the Microbee.** To cut slowdown and suit keyboard play (BPM's call), μB-TYPE: keeps about 9 in 16 ordinary enemies, and 9/16 of each swimming formation; lets each gun turret have only one bullet in the air, fired faster (5/4 of the table speed instead of 5/8) so it leaves the turret instead of scrolling along with it; fires one enemy shot in three less; allows at most 5 enemy bullets at once (the VZ allows 12); keeps boss minion waves smaller; and aims the kamikaze darts one or two compass points off. Power-up carriers, reactor nodes and bosses are never thinned. Stage 1 also loses its round floating blocks, which sat in the flight path.
 
 | Stage | Part | VZ300 fps | Microbee fps |
 |---|---|---|---|
 | 1 Outer Hull | start | 22.5 | 22.5 |
-| 1 Outer Hull | boss | 22.2 | 19.2 |
+| 1 Outer Hull | boss | 22.2 | 19.3 |
 | 2 The Hive | start | 21.0 | 23.2 |
 | 2 The Hive | boss | 21.7 | 18.2 |
-| 3 Rock Belt | start | 22.9 | 22.4 |
+| 3 Rock Belt | start | 22.9 | 22.5 |
 | 3 Rock Belt | boss | 20.8 | 17.4 |
 | 4 Crystal Vein | start | 22.4 | 22.9 |
-| 4 Crystal Vein | boss | 21.9 | 19.3 |
-| 5 Dreadnought | start | 20.6 | 19.3 |
+| 4 Crystal Vein | boss | 21.9 | 19.2 |
+| 5 Dreadnought | start | 20.6 | 19.5 |
 | 5 Dreadnought | boss | 20.7 | 16.0 |
-| 6 Gut Caverns | start | 22.7 | 22.9 |
-| 6 Gut Caverns | boss | 22.1 | 18.5 |
+| 6 Gut Caverns | start | 22.7 | 22.8 |
+| 6 Gut Caverns | boss | 22.1 | 18.6 |
 | 7 Deep Field | start | 22.8 | 21.8 |
 | 7 Deep Field | boss | 21.9 | 19.1 |
 | 8 The Core | start | 22.8 | 22.9 |
@@ -45,9 +45,9 @@
 **Conclusion: μB-TYPE is not yet as fast as the VZ original in busy scenes.**
 
 - Lighter scenes run at the VZ's speed: stages 1, 4, 6 and 8 from the start.
-- Every stage runs at or near the VZ's speed from the start; stage 5 (Dreadnought), the busiest, at about 94%.
+- Every stage runs at or near the VZ's speed from the start; stage 5 (Dreadnought), the busiest, at about 95%.
 - The bosses run at about 75–90%: the boss bodies themselves are the cost.
-- The thinning made the biggest difference where enemy bullets piled up. Turret bullets are slow and long-lived, and each turret used to keep about four in the air; with one each, stage 5 went from about 7.7 enemy bullets on screen to under 1, and its start from 15.4 to 19.3 fps.
+- The thinning made the biggest difference where enemy bullets piled up. Turret bullets are slow and long-lived, and each turret used to keep about four in the air; with one each, stage 5 went from about 7.7 enemy bullets on screen to under 1, and its start from 15.4 to 19.5 fps.
 - When the game is busy it slows down evenly; it doesn't skip frames, and the scrolling stays smooth and tear-free at the lower frame rate.
 
 **Why the gap remains:** the new sprites are drawn at full PCG resolution, so each one is 4× the VZ's size in both directions. Every sprite cell is rebuilt as a PCG glyph each frame, which costs about 1,500–2,000 T-states per cell all in. A screen with 90+ sprite cells therefore costs more than the VZ's fixed-cost full-screen redraw.

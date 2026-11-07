@@ -105,3 +105,4 @@
 - Ship: slim dart (hull +-2.5, wings span +-8.5, solid), canopy = 3 rows with a 1-row window slit, glint slides with tilt.
 - 4:3 roundness (AR 1.5): pod, sat, sprd, ebul, capsule ellipses ry = rx / 1.5; block corner tiles are quarter-ellipses 16 x 10.7.
 - perf_v6: starts 19.3-23.2, bosses 16.0-19.3.
+- (later) Turret bullets were too slow to leave their turret: all enemy bullets fly at 5/8 table speed (15/16 px a frame) and turrets scroll at 1 px a frame. bslow now gives turret bullets (bulslow = 1) 5/4 when thin. Cockpit: no bubble; the hull's top line rises into a low fairing (x 13-27) with a 1-row window slit at cy-2 and the glint.
