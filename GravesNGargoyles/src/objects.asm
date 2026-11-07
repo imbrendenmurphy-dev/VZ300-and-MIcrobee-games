@@ -1411,8 +1411,7 @@ obj_touch:
         ld (check_x),hl
         ld a,(ix+14)
         ld (check_obj),a
-        ld a,(arm_max)
-        ld (arm_cur),a
+        call arm_full
         call build_hero
         ld a,SFX_CHECK_ID
         call play_sfx
@@ -1476,7 +1475,7 @@ c_armour:
         ld a,(arm_max)
         cp b
         jr z,.up
-        ld (arm_cur),a          ; repair
+        call set_arm            ; repair
         ld hl,STR_REPAIR
         call banner
         jp build_hero
@@ -1484,7 +1483,7 @@ c_armour:
         jr nc,.max
         inc a
         ld (arm_max),a
-        ld (arm_cur),a
+        call set_arm
         call build_hero
         ; banner with the new armour name
         ld a,(arm_cur)

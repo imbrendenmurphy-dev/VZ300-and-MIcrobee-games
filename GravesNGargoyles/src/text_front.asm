@@ -33,11 +33,12 @@ STORY2:
         db 45,2,"WRONG?",0
         db $FF
 STORY3:
-        db 6,0,"WIN BETTER ARMOUR.",0
-        db 14,0,"FIND MIGHTIER WEAPONS.",0
-        db 22,0,"BRING BACK THE DAWN!",0
-        db 34,2,"(AND TRY TO KEEP",0
-        db 41,2,"YOUR TROUSERS ON)",0
+        db 4,0,"WIN BETTER ARMOUR.",0
+        db 11,0,"FIND MIGHTIER WEAPONS.",0
+        db 18,0,"BRING BACK THE DAWN!",0
+        db 27,2,"EACH SUIT TAKES FIVE KNOCKS",0
+        db 34,1,"- WATCH THE RED BAR -",0
+        db 42,2,"(AND KEEP YOUR TROUSERS ON)",0
         db $FF
 CARD_CTRL:
         db 2,0,"CONTROLS",0

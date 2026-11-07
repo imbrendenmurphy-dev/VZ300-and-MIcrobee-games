@@ -644,6 +644,92 @@ menu_bg:
         ret
 
 ; ---------------------------------------------------------------- cards
+; clear FB for a card: sky with a sparse dotted graveyard drifting slowly
+; up and left behind it (a 32x32 tile of single dots, repeated 4x2)
+cls_card:
+        call cls_fb
+        ld a,(col_sky)
+        ld (txt_op),a
+        ld hl,bg_t
+        inc (hl)
+        ld a,(hl)
+        rrca
+        and 31
+        ld (cc_ox+1),a
+        ld a,(hl)
+        rrca
+        rrca
+        and 31
+        ld (cc_oy+1),a
+        ld hl,DOTS
+        ld b,NDOTS
+cc_dot: push bc
+        ld a,(hl)
+        inc hl
+cc_ox:  add a,0
+        and 31
+        ld c,a                  ; x in tile
+        ld a,(hl)
+        inc hl
+cc_oy:  add a,0
+        and 31                  ; y in tile
+        push hl
+        ld l,a
+        ld h,0
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        ld d,h
+        ld e,l
+        add hl,hl
+        add hl,hl
+        add hl,de               ; y*40
+        ld a,c
+        rrca
+        rrca
+        and 7
+        add a,4
+        ld e,a
+        ld d,FB>>8
+        add hl,de               ; FB is page aligned
+        ld a,c
+        and 3
+        ld e,a
+        ld d,0
+        push hl
+        ld hl,DMASK
+        add hl,de
+        ld c,(hl)
+        pop hl
+        ld b,2
+.row:   push hl
+        ld e,4
+.col:   ld a,(hl)
+        and c                   ; a colour-0 dot
+        ld (hl),a
+        ld a,l
+        add a,8
+        ld l,a
+        jr nc,$+3
+        inc h
+        dec e
+        jr nz,.col
+        pop hl
+        ld de,32*FBW
+        add hl,de
+        djnz .row
+        pop hl
+        pop bc
+        djnz cc_dot
+        ret
+DMASK:  db $3F,$CF,$F3,$FC
+; tile dots (x,y): a tall stone with a cross, a small stone, a little dust
+DOTS:   db 6,5, 8,5, 5,7, 9,7, 7,8, 5,9, 9,9
+        db 3,11, 5,11, 7,11, 9,11, 11,11
+        db 21,21, 20,23, 22,23, 20,25, 22,25
+        db 19,27, 21,27, 23,27
+        db 28,4, 13,18, 2,24
+NDOTS   equ ($-DOTS)/2
 ; card_text: HL = list of (row, colour index, string) terminated by $FF
 ; colour index: 0 yellow 1 red 2 green
 card_text:
@@ -678,10 +764,17 @@ card_text:
         jr .lp
 CARDCOL: dw col_yel,col_red,col_grn
 
-; wait for fire (or timeout B*?) on the current FB; HL = timeout frames
+; show a card until fire or timeout: HL = timeout frames, DE = routine that
+; draws the card (redrawn every frame over the panning graveyard backdrop)
 card_wait:
         ld (cw_t),hl
-.lp:    call show_full
+        ld (cw_draw),de
+.lp:    call cls_card
+        ld hl,.drawn
+        push hl
+        ld hl,(cw_draw)
+        jp (hl)
+.drawn: call show_full
         call read_input
         ld a,(keys_new)
         and (1<<K_FIRE)|(1<<K_SWAP)
@@ -709,7 +802,7 @@ story_page:
         ld (sp_txt),hl
         xor a
         ld (t_t),a
-.lp:    call cls_fb
+.lp:    call cls_card
         ld hl,(sp_txt)
         call card_text
         ; ground strip
@@ -760,17 +853,17 @@ stage_card:
         call ensure_stage
         call stop_music
         call build_hero
-        call cls_fb
-        ld hl,(STG_CARD)
+        ld de,.d
+        ld hl,150
+        jp card_wait
+.d:     ld hl,(STG_CARD)
         call card_text
         ; a portrait of the stage's guardian
         ld hl,(STG_PORT)
         ld bc,58
         ld a,22
         ld e,0
-        call draw_spr
-        ld hl,150
-        jp card_wait
+        jp draw_spr
 
 clear_card:
         call stop_music
@@ -778,8 +871,15 @@ clear_card:
         call play_song
         ld a,$30
         call add_score_k
-        call cls_fb
-        ld hl,CARD_CLEAR
+        ld hl,cur_stage
+        inc (hl)
+        ld a,(hl)
+        cp 8
+        call c,pw_encode        ; the password for the next stage
+        ld de,.d
+        ld hl,400
+        jp card_wait
+.d:     ld hl,CARD_CLEAR
         call card_text
         ; "SUNSTONE n OF 7"
         ld hl,STR_SUNOF
@@ -787,7 +887,7 @@ clear_card:
         ld bc,STR_SUNOF_END-STR_SUNOF
         ldir
         ld a,(cur_stage)
-        add a,'0'
+        add a,'0'-1
         ld (text_buf+9),a
         ld hl,text_buf
         ld c,17
@@ -799,13 +899,9 @@ clear_card:
         ld c,33
         ld a,(col_yel)
         call text_fbc
-        ld hl,cur_stage
-        inc (hl)
-        ld a,(hl)
+        ld a,(cur_stage)
         cp 8
-        jr nc,.wait
-        ; the password for the next stage
-        call pw_encode
+        ret nc
         ld hl,STR_PWIS
         ld c,45
         ld a,(col_grn)
@@ -813,19 +909,17 @@ clear_card:
         ld hl,pw_text
         ld c,54
         ld a,(col_red)
-        call text_fbc
-.wait:  ld hl,400
-        jp card_wait
+        jp text_fbc
 STR_SUNOF:   db "SUNSTONE n OF 7",0
 STR_SUNOF_END:
 STR_PWIS:    db "PASSWORD FOR THE NEXT STAGE",0
 
 ending_card:
-        call cls_fb
-        ld hl,CARD_END
-        call card_text
+        ld de,.d
         ld hl,500
         jp card_wait
+.d:     ld hl,CARD_END
+        jp card_text
 
 ; game over with continue countdown -> A = 1 if continuing
 gameover_card:
@@ -835,7 +929,7 @@ gameover_card:
         ld (cont_n),a
         ld a,50
         ld (cont_t),a
-.lp:    call cls_fb
+.lp:    call cls_card
         ld hl,CARD_OVER
         call card_text
         ld a,(cont_n)
@@ -866,288 +960,20 @@ gameover_card:
         jr .lp
 
 controls_card:
-        call cls_fb
         ld hl,CARD_CTRL
-        call card_text
-        ld hl,600
-        jp card_wait
-
+        jr text_card
 credits_card:
-        call cls_fb
         ld hl,CARD_CRED
-        call card_text
+text_card:
+        ld (cw_list),hl
+        ld de,.d
         ld hl,600
         jp card_wait
+.d:     ld hl,(cw_list)
+        jp card_text
 
 ; ---------------------------------------------------------------- high scores
 ; table: 5 entries x (3 BCD score + 3 initials)
-hiscore_card:
-        call cls_fb
-        ld hl,STR_HIGH
-        ld c,4
-        ld a,(col_yel)
-        call text_fbc
-        ld ix,hiscores
-        ld b,5
-        ld c,16
-.lp:    push bc
-        push bc
-        push ix
-        pop hl
-        call bcd_to_str
-        ; "AAA 000000"
-        ld a,(ix+3)
-        ld (text_buf),a
-        ld a,(ix+4)
-        ld (text_buf+1),a
-        ld a,(ix+5)
-        ld (text_buf+2),a
-        ld a,' '
-        ld (text_buf+3),a
-        ld (text_buf+4),a
-        ld hl,num_buf
-        ld de,text_buf+5
-        ld bc,8
-        ldir
-        pop bc
-        ld hl,text_buf
-        ld a,c
-        cp 16
-        ld a,(col_grn)
-        jr nz,$+5
-        ld a,(col_yel)
-        call text_fbc
-        ld de,6
-        add ix,de
-        pop bc
-        ld a,c
-        add a,8
-        ld c,a
-        djnz .lp
-        ld hl,400
-        jp card_wait
-
-; insert the current score if it qualifies, entering initials
-hiscore_check:
-        ; find position
-        ld ix,hiscores
-        ld b,0
-.f:     ld a,(score)
-        cp (ix+0)
-        jr c,.nx
-        jr nz,.ins
-        ld a,(score+1)
-        cp (ix+1)
-        jr c,.nx
-        jr nz,.ins
-        ld a,(score+2)
-        cp (ix+2)
-        jr c,.nx
-        jr z,.nx
-        jr .ins
-.nx:    ld de,6
-        add ix,de
-        inc b
-        ld a,b
-        cp 5
-        jr c,.f
-        ret
-.ins:   ; shift entries down
-        push ix
-        ld a,4
-        sub b
-        jr z,.ns
-        ld c,a
-        ld b,0
-        ld hl,0
-        ld de,6
-.ml:    add hl,de
-        dec c
-        jr nz,.ml
-        ld b,h
-        ld c,l
-        ld hl,hiscores+4*6-1
-        ld de,hiscores+5*6-1
-        lddr
-.ns:    pop ix
-        ld a,(score)
-        ld (ix+0),a
-        ld a,(score+1)
-        ld (ix+1),a
-        ld a,(score+2)
-        ld (ix+2),a
-        ld a,'A'
-        ld (ix+3),a
-        ld (ix+4),a
-        ld (ix+5),a
-        ; enter initials
-        ld c,0
-.ent:   push bc
-        call cls_fb
-        ld hl,STR_NEWHI
-        ld c,10
-        ld a,(col_yel)
-        call text_fbc
-        ld hl,STR_ENTER
-        ld c,20
-        ld a,(col_grn)
-        call text_fbc
-        ld a,(ix+3)
-        ld (text_buf),a
-        ld a,(ix+4)
-        ld (text_buf+1),a
-        ld a,(ix+5)
-        ld (text_buf+2),a
-        xor a
-        ld (text_buf+3),a
-        ld hl,text_buf
-        ld c,34
-        ld a,(col_yel)
-        call text_fbc
-        pop bc
-        push bc
-        ; cursor under the current letter
-        ld a,c
-        add a,14
-        ld b,a
-        ld c,41
-        ld hl,STR_CURSOR
-        ld a,(col_grn)
-        call text_fb
-        call show_full
-        call read_input
-        pop bc
-        push ix
-        pop hl
-        ld de,3
-        add hl,de
-        ld e,c
-        add hl,de
-        ld a,(keys_new)
-        bit K_UP,a
-        jr nz,.up
-        bit K_RIGHT,a
-        jr nz,.up
-        bit K_DOWN,a
-        jr nz,.dn
-        bit K_LEFT,a
-        jr nz,.dn
-        and (1<<K_FIRE)|(1<<K_SWAP)
-        jr z,.ent
-        ld a,SFX_SELECT_ID
-        call play_sfx
-        inc c
-        ld a,c
-        cp 3
-        jr c,.ent
-        jp hiscore_card
-.up:    ld a,(hl)
-        inc a
-        cp 'Z'+1
-        jr c,$+4
-        ld a,'A'
-        ld (hl),a
-        jr .ent
-.dn:    ld a,(hl)
-        dec a
-        cp 'A'
-        jr nc,$+4
-        ld a,'Z'
-        ld (hl),a
-        jr .ent
-
-; ---------------------------------------------------------------- attract
-; returns A = 0 if the player pressed fire (go to menu), 1 when complete
-attract:
-        call ensure_front
-        ld a,2
-        ld (arm_cur),a
-        call build_hero
-        ld hl,STORY1
-        call story_page
-        jr nz,.pressed
-        call bestiary
-        jr nz,.pressed
-        call demo_game
-        jr nz,.pressed
-        call hiscore_card
-        ld a,1
-        ret
-.pressed:
-        xor a
-        ret
-
-; enemy gallery
-bestiary:
-        ld hl,BEAST
-        ld (bs_p),hl
-.next:  ld hl,(bs_p)
-        ld a,(hl)
-        inc hl
-        or (hl)
-        jr z,.done
-        xor a
-        ld (t_t),a
-.lp:    call cls_fb
-        ld hl,STR_BEAST
-        ld c,4
-        ld a,(col_yel)
-        call text_fbc
-        ld hl,(bs_p)
-        ld e,(hl)
-        inc hl
-        ld d,(hl)               ; sprite frame 0
-        inc hl
-        ld c,(hl)
-        inc hl
-        ld b,(hl)               ; frame 1
-        inc hl
-        push hl
-        ld a,(t_t)
-        and 8
-        jr z,.f0
-        ld e,c
-        ld d,b
-.f0:    ex de,hl
-        ld bc,58
-        ld a,14
-        ld e,0
-        call draw_spr
-        pop hl
-        push hl
-        ld c,38
-        ld a,(col_grn)
-        call text_fbc
-        pop hl
-.sk:    ld a,(hl)
-        inc hl
-        or a
-        jr nz,.sk
-        push hl
-        ld c,46
-        ld a,(col_yel)
-        call text_fbc
-        call show_full
-        call read_input
-        pop hl
-        ld a,(keys_new)
-        and (1<<K_FIRE)|(1<<K_SWAP)
-        ret nz
-        ld a,(t_t)
-        inc a
-        ld (t_t),a
-        cp 60
-        jr c,.lp
-        ; advance past the second string
-.sk2:   ld a,(hl)
-        inc hl
-        or a
-        jr nz,.sk2
-        ld (bs_p),hl
-        jr .next
-.done:  xor a
-        ret
-
 ; demo: play the stage with recorded input -> NZ if interrupted by a key
 demo_game:
         ; each demo shows the next stage in turn

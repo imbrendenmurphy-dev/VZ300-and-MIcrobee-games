@@ -298,6 +298,7 @@ play_stage:
         call objs_clear
         xor a
         ld (hero_dead),a
+        ld (txt_op),a
         ld (life_lost),a
         ld (stage_clear),a
         ld (cam_lock),a
@@ -314,8 +315,7 @@ play_stage:
         ld (fire_dvy),a
         ld a,30
         ld (invuln),a
-        ld a,(arm_max)
-        ld (arm_cur),a
+        call arm_full
         ; hero on the ground at the checkpoint
         ld hl,(check_x)
         ld (hero_x),hl

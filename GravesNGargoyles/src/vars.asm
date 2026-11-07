@@ -102,6 +102,11 @@ hero_dead:  ds 1
 invuln:     ds 1
 throw_t:    ds 1
 hurt_t:     ds 1
+hero_hp:    ds 1
+cw_draw:    ds 2
+cw_list:    ds 2
+txt_op:     ds 1
+bg_t:       ds 1
 crouch:     ds 1
 on_ground:  ds 1
 moving:     ds 1

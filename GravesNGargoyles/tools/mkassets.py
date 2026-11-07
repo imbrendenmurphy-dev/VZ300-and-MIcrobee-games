@@ -335,7 +335,13 @@ def gen_music():
     bass = ('D2 2 A2 2 D3 2 A2 2 ' * 4 + 'F2 2 C3 2 F3 2 C3 2 ' * 2 + 'A2 2 E3 2 A3 2 E3 2 ' * 2 +
             'Bb2 2 F3 2 Bb3 2 F3 2 ' * 2 + 'G2 2 D3 2 G3 2 D3 2 ' * 2 + 'A2 2 E3 2 A3 2 E3 2 ' * 4 +
             'D2 2 A2 2 D3 2 A2 2 ' * 2 + 'A2 2 C#3 2 E3 2 A2 2 ' * 2 + 'D2 2 A2 2 D3 2 A2 2 ' * 4)
-    songs['TITLE'] = (seq(mel, u), seq(bass, u))
+    # thinned to dinks too: melody blips, and the bass arpeggio reduced to
+    # one soft low blip per half bar (root, then fifth)
+    t = bass.split()
+    pairs = [(t[i], int(t[i+1])) for i in range(0, len(t), 2)]
+    thin = ' '.join('%s %d' % (pairs[i][0], pairs[i][1] + pairs[i+1][1]) for i in range(0, len(pairs), 2))
+    u = 5
+    songs['TITLE'] = (dinks(mel, u, 4), dinks(thin, u, 6))
     # In-game music is slow and suspenseful: every note is a short 'dink'
     # followed by silence, so the game logic runs between blips and nothing
     # gets chopped (the beeper only sounds in the CPU's idle time).

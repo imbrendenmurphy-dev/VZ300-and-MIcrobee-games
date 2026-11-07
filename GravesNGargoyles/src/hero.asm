@@ -647,6 +647,8 @@ hero_hit:
         ld a,(cheat)
         or a
         ret nz
+        call hp_take            ; five hits to each armour level
+        jr nz,.bruise
         ld a,(arm_cur)
         or a
         jr z,hero_die
@@ -679,6 +681,7 @@ hero_hit:
         ld a,(hero_y)
         call part_burst
         call spawn_pieces
+.bruise:
         ld a,10
         ld (hurt_t),a
         ld a,(opt_diff)

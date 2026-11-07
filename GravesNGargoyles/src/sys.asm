@@ -685,6 +685,8 @@ memcpy: ldir
         ret
 
 cls_fb:
+        xor a
+        ld (txt_op),a
         ld hl,FB
         ld de,FB+1
         ld bc,FBROWS*FBW-1

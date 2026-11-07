@@ -9,8 +9,9 @@
 ;   $4000-$4A7F  SRAM bank B  background ring, phase 0 (56 rows x 48 bytes)
 ;   $4A80-$54FF  SRAM bank B  background ring, phase 2 (shifted 2 pixels)
 ;                (the title art is unpacked here while the front end runs)
-;   $5500-$60FF  SRAM bank B  frame blit routine (copied there at start-up)
-;   $6100-$66FF  SRAM bank B  hero layered class data
+;   $5500-$60FF  SRAM bank B  frame blit routine + high score code (copied
+;                there at start-up)
+;   $6100-$67FF  SRAM bank B  hero layered class data, attract code
 ;   $7000-$77FF  video RAM (rows 0-7 HUD, rows 8-63 playfield)
 ;   $7800-$7900  IM2 vector table (257 x $79) -> ISR stub at $7979
 ;   $797C-$7AFF  stack
@@ -58,6 +59,7 @@ SRAM_DOS  equ 1            ; port $37: DOS bank (as left by the loader)
         include "sys.asm"
         include "render.asm"
         include "hero.asm"
+        include "health.asm"
         include "objects.asm"
         include "boss.asm"
         include "game.asm"
@@ -104,11 +106,14 @@ PACK_TOP  equ PKMAX7
 BLOB1_SRC:
         phase $5500
         include "gen/blit_pf.asm"
+        include "front_hi.asm"
 BLOB1_END:
         dephase
 BLOB2_SRC:
         phase $6100
         include "gen/herocls.asm"
+        include "front_att.asm"
+        include "health_hud.asm"
 BLOB2_END:
         dephase
 LOAD_END:

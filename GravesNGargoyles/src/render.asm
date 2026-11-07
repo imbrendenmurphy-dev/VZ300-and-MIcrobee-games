@@ -741,7 +741,10 @@ text_fb:
         ex de,hl
         ld a,FBW
         ld (txt_stride),a
-        ld a,1
+        ld a,(txt_op)           ; cards draw text opaque over their backdrop
+        or a
+        jr nz,$+3
+        inc a
         ld (txt_bg),a
         pop hl
         pop af
@@ -960,7 +963,8 @@ hud_draw:
         pop bc
         inc b
         jr .ap
-.apd:   ; row 7: divider or boss health bar
+.apd:   call hp_hud
+        ; row 7: divider or boss health bar
         ld hl,HUDBUF+7*32
         ld a,(boss_hp)
         or a
