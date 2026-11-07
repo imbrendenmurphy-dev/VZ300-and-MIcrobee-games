@@ -1,5 +1,5 @@
 # DRACULA'S CASTLE II — THE CASTLE AWAKENS
-### v1.0.0 — the complete castle, chapters 1 to 5 · ViBED by BPM · 2026
+### v1.0.1 — the complete castle, chapters 1 to 5 · ViBED by BPM · 2026
 Dick Smith VZ300 · BennVenn SD + 128K · Mode 1 (128×64, 4 colours) · all Z80
 
 ## Running it
@@ -80,6 +80,12 @@ Count more than plain steel, and he hits hard — bring potions and elixirs.
 Also new: elixirs (+10 max HP), the cloak (+3 defence), the silver sword (+8 attack),
 locked doors that say which key they need, and area data streamed from SD so the castle
 can keep growing.
+
+## Changes in v1.0.1
+- Automap redrawn for real CRTs: explored floor is now solid green (the old yellow/blue dither
+  showed as stripes), walls solid red, doors solid yellow, objects a red dot, unexplored blue.
+- Your marker is a yellow arrow pointing the way you face, blinking against the floor, and the
+  legend shows the actual map tiles beside each label. The map always uses colour set 0.
 
 ## What's in the slice
 - **Title screen**: castle silhouette against the moon, dripping logo, lightning flashes with

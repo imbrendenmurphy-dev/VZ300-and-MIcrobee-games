@@ -23,10 +23,11 @@ map_screen:
             add a,a
             ld d,a
             call back_addr
-            ld a,(mc_pat)
+            ld a,(mc_pat2)          ; rows 0 and 3 = edge, rows 1-2 = middle
             ld de,32
             ld (hl),a
             add hl,de
+            ld a,(mc_pat)
             ld (hl),a
             add hl,de
             ld (hl),a
@@ -55,7 +56,8 @@ map_screen:
             ld c,17
             ld d,10
             call print_at
-            ld a,(area_css)
+            call map_icons
+            xor a                   ; the map always uses colour set 0
             call set_css
             call draw_player_arrow
             call present_full
@@ -78,11 +80,44 @@ map_screen:
             jr z,.wait
             jp draw_explore_screen
 
-map_legend: db 2,1,"> YOU",1,1
-            db 2,0,"] DOOR",1,1
-            db 2,3,"] WALL",1,1
-            db 2,1,"$ OBJECT",1,1
-            db 2,0,"M: BACK",0
+map_legend: db 2,1,"  YOU",1,1
+            db "  DOOR",1,1
+            db "  WALL",1,1
+            db "  OBJECT",1,1
+            db "M: BACK",0
+
+; legend icons: the same 4x4 cells the map uses, at byte column 17
+map_icons:  ld hl,map_icon_tab
+            ld d,11
+            ld b,4
+.i:         push bc
+            push de
+            push hl
+            ld c,17
+            call back_addr
+            pop de
+            ld b,4
+.r:         ld a,(de)
+            ld (hl),a
+            inc de
+            push de
+            ld de,32
+            add hl,de
+            pop de
+            djnz .r
+            ex de,hl
+            pop de
+            ld a,d
+            add a,12
+            ld d,a
+            pop bc
+            djnz .i
+            ret
+map_icon_tab:
+            db $04,$55,$55,$04      ; you (facing east)
+            db $55,$55,$55,$55      ; door
+            db $FF,$FF,$FF,$FF      ; wall
+            db $00,$3C,$3C,$00      ; object
 
 ; map_cell_byte: C=x B=y -> A = top rows byte, mc_pat2 = bottom row byte
 map_cell_byte:
@@ -108,7 +143,7 @@ map_cell_byte:
             ld a,$FF
             ld (mc_pat2),a
             ret
-.door:      ld a,$00                ; green
+.door:      ld a,$55                ; solid yellow
             ld (mc_pat2),a
             ret
 .floor:     ld a,e
@@ -124,13 +159,12 @@ map_cell_byte:
             pop bc
             or a
             jr z,.plain
-            ld a,$69                ; yellow/blue speckle = object
+            xor a                   ; object: red dot on green floor
             ld (mc_pat2),a
-            ld a,$96
+            ld a,$3C
             ret
-.plain:     ld a,$66                ; floor: blue/yellow light
+.plain:     xor a                   ; floor: solid green
             ld (mc_pat2),a
-            ld a,$66
             ret
 
 draw_player_arrow:
@@ -144,7 +178,7 @@ draw_player_arrow:
             ld a,(map_blink)
             and 16
             jr z,.on
-            ld a,$66
+            xor a                   ; blink off = floor
             ld (hl),a
             ld de,32
             add hl,de
@@ -174,11 +208,11 @@ draw_player_arrow:
             pop de
             djnz .r
             ret
-; 4x4 arrows (red on yellow) per direction N E S W
-arrows:     db $7D,$FF,$7D,$7D
-            db $5D,$FF,$FF,$5D
-            db $7D,$7D,$FF,$7D
-            db $75,$FF,$FF,$75
+; 4x4 arrows (yellow on green floor) per direction N E S W
+arrows:     db $14,$55,$14,$14
+            db $04,$55,$55,$04
+            db $14,$14,$55,$14
+            db $10,$55,$55,$10
 
 ; ---------------------------------------------------------------------------
 ; STATUS / ITEMS
