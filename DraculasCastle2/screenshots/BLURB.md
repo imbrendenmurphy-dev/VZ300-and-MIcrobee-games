@@ -45,6 +45,7 @@ maze and all, for a faithful (and fatal) trip down memory lane.
 | Code | 100% hand-written Z80 assembly, about 7,000 lines, built with custom Python tools (assembler, art generators, map compiler and LZ compressor) |
 | Program | DRACULA2.VZ: 17.0 KB, loads at $8000 |
 | Data | 38 .DAT files (about 113 KB) loaded from the SD card on demand through the BennVenn DOS, the same way 13 Ghosts does |
+| RAM used | About 39 KB at its peak: 30.2 KB of main RAM ($7B00–$F9FF) plus 8.5 KB of the expansion's banked SRAM (bank 3), on top of the VZ's 2 KB video RAM. The other ~113 KB of game data stays on the SD card until it's needed (see the breakdown below) |
 | Memory | Area walls and battle backdrops sit in SRAM bank 3. Decorations, monster frames and each area's pack (map, events, texts, song) sit in upper RAM. The DOS workspace and BASIC system area are never touched |
 | Renderer | First-person view built from pre-rendered, byte-aligned wall faces and masked side sprites, with occlusion culling, distance fog via dithered colour ramps, and mirrored right-hand walls |
 | Video | Every screen update is copied to video RAM during vertical sync, so there's no VZ "snow" |
@@ -54,6 +55,26 @@ maze and all, for a faithful (and fatal) trip down memory lane.
 | Saves | Checksummed save slot in expansion SRAM |
 | Testing | Developed in a custom headless VZ300 emulator with scripted playthroughs from start to THE END, then playtested on a real VZ300 with a BennVenn SD + 128K. Fixes from the hardware testing: SD file loading, a quieter speaker mix, the music toggle, battle sprites and a clearer automap |
 | Version | 1.0.1 (November 2026) |
+
+## RAM breakdown
+| Where | What | Bytes |
+|---|---|---|
+| $7000–$77FF | Video RAM (screen) | 2,048 |
+| $7B00–$7FFF | Mirror table, current map, opened doors, explored map, event flags | 1,280 |
+| $8000–$C268 | The program (DRACULA2.VZ: code, text, music, maps) | 17,002 |
+| $C800–$E3FF | Current area's decorations and objects, or monster frames during battles | 7,168 |
+| $E400–$E9FF | Current area pack: map, events, exits, texts and song | 1,536 |
+| $EA00–$EDFF | Stack | 1,024 |
+| $EE00–$EF8B | Game variables | 396 |
+| $F000–$F7FF | Back buffer (each frame is drawn here, then copied to the screen) | 2,048 |
+| $F800–$F9FF | SD sector buffer | 512 |
+| Bank 3 $4000–$591F | Current area's wall faces and backgrounds (up to 6,424) | 6,424 |
+| Bank 3 $5C00–$61BF | Battle backdrop | 1,472 |
+| Bank 3 $6400– | Saved game | 817 |
+| **Total** | | **≈ 41 KB, including video RAM** |
+
+The BASIC system area ($7800–$7AFF) and the BennVenn DOS's own workspace ($FA00–$FFFF and
+SRAM bank 1) are never touched, so file loading through the DOS stays reliable.
 
 *Requires a VZ300 with the BennVenn SD loader and 128K expansion. Copy DRACULA2.VZ
 and all DC2\*.DAT files to the root of the SD card and run DRACULA2.VZ.*
