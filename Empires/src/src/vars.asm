@@ -9,6 +9,13 @@ ovcol:      db 0
 ov_x:       db 0
 ov_y:       db 0
 ovtown:     ds 22*8
+ovriv:      ds 22*8
+opt_rivals: db 0FFh
+pr_r:       db 0
+pr_try:     db 0
+ri_cur:     db 0
+ri_try:     db 0
+tcol:       db 0
 frames:     dw 0
 mono:       db 0
 sound_on:   db 1
@@ -217,6 +224,8 @@ cur_tech: db 0
 forum_done: db 0
 techs: dw 0
 rpoints: dw 0
+nrivals: db 0
+rivals: ds 3*16
 nbld: db 0
 viewx: db 0
 viewy: db 0

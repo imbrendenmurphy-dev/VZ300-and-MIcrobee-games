@@ -167,6 +167,7 @@ pio_restore:                    ; back to mode 0 (output) for the printer
         include "game.asm"
         include "titleup.asm"
         include "save.asm"
+        include "rivals.asm"
         include "art.inc"
         include "vars.asm"
 engine_end:

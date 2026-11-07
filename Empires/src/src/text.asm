@@ -115,3 +115,17 @@ err_wonder:   db "THE GRAND FORUM CANNOT BE DEMOLISHED.",0
 msg_tech:     db "YOUR SCHOLARS HAVE DISCOVERED ",0
 msg_forum:    db "THE GRAND FORUM IS COMPLETE! A WONDER OF THE WORLD.",0
 txt_res:      db "STUDYING ",0
+err_rival:    db "THAT LAND BELONGS TO A RIVAL PEOPLE.",0
+msg_meet:     db "YOUR EXPLORERS HAVE MET ",0
+msg_war:      db "WAR! ANGERED, THE RIVALS MARCH: ",0
+msg_peace:    db "PEACE IS MADE WITH ",0
+msg_repel:    db "YOUR WATCHTOWERS TURNED BACK RAIDERS FROM ",0
+msg_raid:     db "RAIDERS STOLE GOLD AND FOOD! THEY CAME FROM ",0
+rn0:    db "THE ETRUSCANS",0
+rn1:    db "THE SAMNITES",0
+rn2:    db "THE GAULS",0
+rn3:    db "THE SABINES",0
+rn4:    db "THE VOLSCI",0
+rn5:    db "THE GREEKS",0
+rn6:    db "THE CELTS",0
+rn7:    db "THE CARTHAGINIANS",0

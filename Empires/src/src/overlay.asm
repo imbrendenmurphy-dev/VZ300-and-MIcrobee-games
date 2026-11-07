@@ -448,6 +448,7 @@ help_text:
         db C_GOOD,"VIEW   M world map    C colour/monochrome    H this help   R research",0
         db C_GOOD,"TIME   P pause    < slower    > faster    ESC leave world",0
         db C_GOOD,"DISK   F save or load your world (3 slots on the game disk)",0
+        db C_GOOD,"PEOPLE E envoys: gifts, trade and alliances with the peoples you meet",0
         db C_DIM,"",0
         db C_TEXT,"FOOD   Farms plough the grass around them into fields. Fields yield",0
         db C_TEXT,"       most in autumn and nothing in winter - store food for the snow!",0
@@ -935,3 +936,382 @@ txt_rs_ready: db "READY - COST ",0
 txt_rs_needs: db "LOCKED",0
 txt_rs_help:  db "UP / DOWN OR LETTERS A - M CHOOSE.  SPACE, RETURN OR LEFT BUTTON STUDIES IT.",0
 txt_rs_help2: db "LOCKED IDEAS NEED EARLIER ONES.  SCHOOLS SPEED RESEARCH.  ESC OR R: BACK",0
+
+; ---- envoys / diplomacy screen (E) ---------------------------------------
+envoy_screen:
+        xor a
+        ld (en_sel),a
+        ld hl,txt_en_hint
+        ld (en_res),hl
+.redraw:
+        ld a,C_TEXT
+        call shadow_clear
+        ld b,0
+        ld c,2
+        ld hl,txt_en_title
+        ld a,C_MSG
+        call puts_at
+        ld b,2
+        ld c,2
+        ld hl,txt_en_head
+        ld a,C_DIM
+        call puts_at
+        ld a,(nrivals)
+        or a
+        jr nz,.has
+        ld b,4
+        ld c,4
+        ld hl,txt_en_none
+        ld a,C_TEXT
+        call puts_at
+        jr .acts
+.has:   xor a
+.row:   ld (en_i),a
+        call en_line
+        ld a,(en_i)
+        inc a
+        ld hl,nrivals
+        cp (hl)
+        jr nz,.row
+.acts:  ld hl,txt_en_a1
+        ld b,10
+        call .act
+        ld hl,txt_en_a2
+        ld b,11
+        call .act
+        ld hl,txt_en_a3
+        ld b,12
+        call .act
+        ld hl,txt_en_a4
+        ld b,14
+        call .act
+        ld b,16                 ; result of the last action
+        ld c,4
+        ld hl,(en_res)
+        ld a,C_MSG
+        call puts_at
+        ld b,19
+        ld c,2
+        ld hl,txt_en_gold
+        ld a,C_TEXT
+        call puts_at
+        ld a,C_MSG
+        ld (txtcol),a
+        ld hl,(gold)
+        call putnum
+        call present_all
+        call wait_release
+.lp:    call wait_frame
+        call scan_keys
+        call mouse_frame
+        ld a,(frames)
+        and 7
+        call z,animate
+        ld a,KB_ESC
+        call key_hit
+        jp nz,.out
+        ld a,KB_ENVOY
+        call key_hit
+        jp nz,.out
+        ld a,(ms_mu)
+        or a
+        jr nz,.up
+        ld a,KB_UP
+        call key_hit
+        jr nz,.up
+        ld a,32
+        call key_hit
+        jr nz,.up
+        ld a,(ms_md)
+        or a
+        jr nz,.dn
+        ld a,KB_DOWN
+        call key_hit
+        jr nz,.dn
+        ld a,34
+        call key_hit
+        jr nz,.dn
+        ld a,(nrivals)
+        or a
+        jr z,.lp
+        ld a,7                  ; G: gift
+        call key_test
+        jp nz,en_gift
+        ld a,(ms_click)
+        bit 1,a
+        jp nz,en_gift
+        ld a,20                 ; T: trade
+        call key_test
+        jp nz,en_trade
+        ld a,1                  ; A: alliance
+        call key_test
+        jp nz,en_ally
+        jr .lp
+.up:    ld a,(en_sel)
+        or a
+        jr z,.lp
+        dec a
+        jr .mv
+.dn:    ld a,(en_sel)
+        inc a
+        ld hl,nrivals
+        cp (hl)
+        jr nc,.lp
+.mv:    ld (en_sel),a
+        call sfx_click
+        jp .redraw
+.out:   call sfx_click
+        jp wait_release
+.act:   ld c,4
+        ld a,C_TEXT
+        jp puts_at
+
+; after an action: show the result and redraw
+en_done:
+        ld (en_res),hl
+        call wait_release
+        jp envoy_screen.redraw
+
+; the selected rival -> IX; Z if not met yet
+en_rival:
+        ld a,(en_sel)
+        call riv_ix
+        ld a,(ix+R_STAT)
+        or a
+        ret
+
+en_gift:
+        call en_rival
+        ld hl,txt_en_unmet
+        jr z,.r
+        ld hl,(gold)
+        ld de,25
+        or a
+        sbc hl,de
+        ex de,hl
+        ld hl,txt_en_poor
+        jr c,.r
+        ld (gold),de
+        ld a,(ix+R_PERS)
+        cp P_TRADER
+        ld a,16
+        jr z,.g
+        ld a,12
+.g:     call riv_att
+        call sfx_tool
+        ld hl,txt_en_thanks
+.r:     jr en_done
+
+en_trade:
+        call en_rival
+        ld hl,txt_en_unmet
+        jr z,.r
+        ld a,(ix+R_STAT)
+        cp ST_TRADE
+        ld hl,txt_en_already
+        jr nc,.r2               ; already trading or allied, or at war
+        ld a,(nmarket)
+        or a
+        ld hl,txt_en_market
+        jr z,.r
+        ld a,(ix+R_PERS)        ; how friendly must they be?
+        ld b,20
+        cp P_ISOLATE
+        jr nz,.t1
+        ld b,40
+.t1:    cp P_WARLIKE
+        jr nz,.t2
+        ld b,50
+.t2:    ld a,(ix+R_ATT)
+        bit 7,a
+        ld hl,txt_en_refuse
+        jr nz,.r
+        cp b
+        jr c,.r
+        ld (ix+R_STAT),ST_TRADE
+        ld a,5
+        call riv_att
+        call sfx_done
+        ld hl,txt_en_traded
+.r:     jr en_done
+.r2:    cp ST_WAR
+        jr nz,.r
+        ld hl,txt_en_atwar
+        jr .r
+
+en_ally:
+        call en_rival
+        ld hl,txt_en_unmet
+        jr z,.r
+        ld a,(ix+R_STAT)
+        cp ST_ALLY
+        ld hl,txt_en_already
+        jr z,.r
+        cp ST_TRADE
+        ld hl,txt_en_needtrade
+        jr nz,.r
+        ld a,(ix+R_PERS)
+        ld b,60
+        cp P_ISOLATE
+        jr nz,.a1
+        ld b,80
+.a1:    cp P_WARLIKE
+        jr nz,.a2
+        ld b,75
+.a2:    ld a,(ix+R_ATT)
+        bit 7,a
+        ld hl,txt_en_refuse
+        jr nz,.r
+        cp b
+        jr c,.r
+        ld (ix+R_STAT),ST_ALLY
+        ld hl,fx_research
+        call sfx
+        ld hl,txt_en_allied
+.r:     jp en_done
+
+; one line of the table
+en_line:
+        ld a,(en_i)
+        add a,4
+        ld b,a
+        ld c,1
+        call cell_off
+        ld a,C_MSG
+        ld (txtcol),a
+        ld a,(en_i)
+        ld hl,en_sel
+        cp (hl)
+        ld a,' '
+        jr nz,.m
+        ld a,'>'
+.m:     call putch
+        ld a,(en_i)
+        call riv_ix
+        ld a,(ix+R_STAT)
+        or a
+        jr nz,.known
+        inc de
+        ld hl,txt_en_unknown
+        ld a,C_DIM
+        jp puts
+.known: inc de
+        ld a,(ix+R_NAME)
+        ld hl,riv_names
+        call en_ptr
+        ld a,C_TEXT
+        call puts
+        ld a,(en_i)             ; temperament at 22
+        add a,4
+        ld b,a
+        ld c,22
+        call cell_off
+        ld a,(ix+R_PERS)
+        ld hl,en_pers
+        call en_ptr
+        ld a,C_TEXT
+        call puts
+        ld a,(en_i)             ; size at 37
+        add a,4
+        ld b,a
+        ld c,37
+        call cell_off
+        ld a,C_TEXT
+        ld (txtcol),a
+        ld l,(ix+R_POP)
+        ld h,(ix+R_POP+1)
+        call putnum
+        ld a,(en_i)             ; putnum uses IX
+        call riv_ix
+        ld a,(en_i)             ; feeling at 45
+        add a,4
+        ld b,a
+        ld c,45
+        call cell_off
+        ld a,(ix+R_ATT)
+        ld hl,txt_en_f5
+        ld c,C_GOOD
+        cp 60
+        jr c,.f4p
+        bit 7,a
+        jr z,.fp
+.f4p:   ld hl,txt_en_f4
+        cp 20
+        jr c,.f3p
+        bit 7,a
+        jr z,.fp
+.f3p:   ld c,C_TEXT
+        ld hl,txt_en_f3
+        bit 7,a
+        jr z,.fp
+        cp -10
+        jr nc,.fp
+        ld c,C_WARN
+        ld hl,txt_en_f2
+        cp -40
+        jr nc,.fp
+        ld hl,txt_en_f1
+.fp:    ld a,c
+        call puts
+        ld a,(en_i)             ; treaty at 60
+        add a,4
+        ld b,a
+        ld c,60
+        call cell_off
+        ld a,(ix+R_STAT)
+        ld hl,en_stat
+        call en_ptr
+        ld a,C_MSG
+        jp puts
+; HL = table of pointers, A = index -> HL = entry
+en_ptr: add a,a
+        add a,l
+        ld l,a
+        jr nc,.n
+        inc h
+.n:     ld a,(hl)
+        inc hl
+        ld h,(hl)
+        ld l,a
+        ret
+
+en_sel: db 0
+en_i:   db 0
+en_res: dw 0
+en_pers: dw ep0,ep1,ep2,ep3,ep4
+ep0:    db "TRADERS",0
+ep1:    db "BUILDERS",0
+ep2:    db "SCHOLARS",0
+ep3:    db "WARLIKE",0
+ep4:    db "ISOLATED",0
+en_stat: dw es0,es1,es2,es3,es4
+es0:    db "-",0
+es1:    db "PEACE",0
+es2:    db "TRADE",0
+es3:    db "ALLIANCE",0
+es4:    db "WAR",0
+txt_en_f1: db "HOSTILE",0
+txt_en_f2: db "WARY",0
+txt_en_f3: db "NEUTRAL",0
+txt_en_f4: db "FRIENDLY",0
+txt_en_f5: db "LOYAL",0
+txt_en_title: db "ENVOYS  -  YOUR DEALINGS WITH OTHER PEOPLES",0
+txt_en_head:  db "  PEOPLE              TEMPERAMENT    SIZE    FEELING        TREATY",0
+txt_en_none:  db "THIS WORLD HAS NO OTHER PEOPLES.",0
+txt_en_unknown: db "AN UNKNOWN PEOPLE  (EXPLORE TO FIND THEM)",0
+txt_en_a1:    db "G  SEND A GIFT OF 25 GOLD - THEY WILL THINK BETTER OF YOU",0
+txt_en_a2:    db "T  PROPOSE TRADE (YOU NEED A MARKET; THEY MUST BE FRIENDLY): GOLD",0
+txt_en_a3:    db "A  PROPOSE AN ALLIANCE (AFTER TRADE; THEY MUST BE LOYAL): LEARNING",0
+txt_en_a4:    db "UP / DOWN CHOOSE A PEOPLE.    ESC OR E RETURNS TO YOUR TOWN.",0
+txt_en_hint:  db "WARLIKE PEOPLES MAY RAID.  TWO WATCHTOWERS TURN RAIDERS BACK.",0
+txt_en_gold:  db "YOUR TREASURY: ",0
+txt_en_unmet: db "YOU HAVE NOT MET THAT PEOPLE YET.",0
+txt_en_poor:  db "YOU CANNOT AFFORD A GIFT.",0
+txt_en_thanks: db "YOUR GIFT IS RECEIVED WITH THANKS.",0
+txt_en_already: db "YOU ALREADY HAVE THAT AGREEMENT.",0
+txt_en_market: db "YOU NEED A MARKET BEFORE YOU CAN TRADE.",0
+txt_en_refuse: db "THEY REFUSE. THEY DO NOT TRUST YOU ENOUGH YET - TRY GIFTS.",0
+txt_en_traded: db "AGREED! CARAVANS WILL BRING GOLD EVERY MONTH.",0
+txt_en_atwar: db "YOU ARE AT WAR. GIFTS MAY BRING PEACE.",0
+txt_en_needtrade: db "FIRST AGREE TO TRADE WITH THEM.",0
+txt_en_allied: db "AN ALLIANCE! THEIR SCHOLARS WILL SHARE THEIR LEARNING.",0

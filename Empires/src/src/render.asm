@@ -193,6 +193,8 @@ tile_look:
         jr nz,.scaff
         cp O_ROAD
         jr z,.road
+        cp O_RIVAL
+        jr nc,.robj
         ; building: G from bld_g table
         ld e,a
         ld d,0
@@ -217,6 +219,52 @@ tile_look:
         ret
 .scaff: ld a,G_SCAFF_L
         jr .bg
+.robj:  ; rival building: its own shape, in its people's colour
+        sub O_RIVAL
+        ld e,a
+        rrca
+        rrca
+        rrca
+        and 3
+        ld l,a
+        ld h,0
+        ld de,riv_colour
+        add hl,de
+        ld a,(hl)
+        ld (tcol),a
+        ld a,(hl)               ; (keep E: recompute type below)
+        call tile_addr          ; HL -> terrain; object = +OBJOFF
+        ld de,OBJOFF
+        add hl,de
+        ld a,(hl)
+        sub O_RIVAL
+        and 7
+        ld e,a
+        ld d,0
+        ld hl,rbld_g
+        add hl,de
+        ld a,(hl)
+        ld (tL),a
+        inc a
+        ld (tR),a
+        dec a
+        ld e,a
+        ld d,0
+        ld hl,char_col
+        add hl,de
+        ld a,(hl)
+        call .rc
+        ld (cL),a
+        inc hl
+        ld a,(hl)
+        call .rc
+        ld (cR),a
+        ret
+.rc:    and 0F0h                ; keep the ground colour, people's colour on top
+        ld e,a
+        ld a,(tcol)
+        or e
+        jp season_bg
 .road:  ld a,(tterr)
         cp 3
         jr c,.bridge

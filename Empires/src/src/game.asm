@@ -879,6 +879,9 @@ check_place:
         call in_territory
         ld hl,err_terr
         ret nz
+        call in_rival_land
+        ld hl,err_rival
+        ret nz
         ld a,(tool)
         cp 9
         jp z,.clear
@@ -1829,6 +1832,7 @@ sim_tick:
 .h8:    add a,c
         ld (happy),a
 .h9:    call research_week
+        call riv_week
         call evolve_houses
         call random_event
         ld a,1
@@ -2428,6 +2432,7 @@ draw_overview:
         srl a
         ld (ovcol),a
         call ov_mark_towns
+        call ov_mark_rivals
         ld a,(mono)
         ld (ov_mono),a
         xor a
@@ -2474,6 +2479,13 @@ draw_overview:
 .xo:    ld c,a
         call tile_addr
         ld a,(hl)
+        push af
+        call ov_is_rival        ; peoples you have met show even in the fog
+        jr z,.nr
+        pop af
+        ld a,G_OV_RIVAL-256
+        jr .put
+.nr:    pop af
         bit 7,a
         jr nz,.k
         ld a,G_OV_FOG-256
@@ -2696,6 +2708,17 @@ ov_bitaddr:
         djnz .s
         ret
 ; NZ if the current overview cell (ov_e, ov_d) has a settlement
+ov_is_rival:
+        push de
+        ld a,(ov_e)
+        ld e,a
+        ld a,(ov_d)
+        call ov_bitaddr
+        ld de,ovriv-ovtown
+        add hl,de
+        and (hl)
+        pop de
+        ret
 ov_is_town:
         push de
         ld a,(ov_e)
@@ -2708,6 +2731,8 @@ ov_is_town:
 
 legend: db G_OV_TOWN-256,0
         db "TOWN",0
+        db G_OV_RIVAL-256,0
+        db "RIVAL",0
         db G_OV_GRASS-256,0
         db "LAND",0
         db G_OV_FOREST-256,0
@@ -3309,7 +3334,14 @@ handle_keys:
         ld hl,research_screen
         call ovl_call
         call redraw_all
-.k8a:   ld a,KB_FILE
+.k8a:   ld a,KB_ENVOY
+        call key_hit
+        jr z,.k8e
+        call cursor_off_hw
+        ld hl,envoy_screen
+        call ovl_call
+        call redraw_all
+.k8e:   ld a,KB_FILE
         call key_hit
         jr z,.k8b
         call cursor_off_hw

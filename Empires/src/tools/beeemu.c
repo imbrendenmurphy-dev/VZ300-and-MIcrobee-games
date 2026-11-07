@@ -397,6 +397,7 @@ int main(int argc,char**argv){
     else if(!strcmp(cmd,"profile")){ sscanf(line,"%*s %d",&a); static unsigned prof2[65536]; memset(prof2,0,sizeof prof2);
       long long end=tstates+(long long)a*FRAME_T; while(tstates<end && !trap_exit && !halted_exit){ u16 p0=PC; int t=step(); prof2[p0]+=t; tstates+=t; }
       FILE*pf=fopen("../build/prof.bin","wb"); if(!pf) pf=fopen("build/prof.bin","wb"); fwrite(prof2,4,65536,pf); fclose(pf); fprintf(stderr,"profiled %d frames, PC=%04X\n",a,PC); }
+    else if(!strcmp(cmd,"bor")){ int b,ad,vv; sscanf(line,"%*s %d %x %x",&b,&ad,&vv); blocks[b][ad&32767]|=vv; }
     else if(!strcmp(cmd,"poke")){ char *q=line; int ad,vv; q+=5; ad=strtol(q,&q,16); while(*q){ while(*q==' ')q++; if(!*q||*q=='\n') break; vv=strtol(q,&q,16); wr(ad++,vv); } }
     else if(!strcmp(cmd,"spklog")){ sscanf(line,"%*s %399s",arg); FILE*w=fopen(arg,"wb"); fwrite(spk_t,sizeof(long long),spk_n,w); fclose(w); }
     else if(!strcmp(cmd,"wavstart")){ wav_from=tstates; }

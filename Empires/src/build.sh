@@ -3,6 +3,7 @@
 set -e
 cd "$(dirname "$0")"
 mkdir -p build
+python3 art/mksound.py
 python3 art/mkart.py
 cd src
 python3 ../tools/zasm.py main.asm ../build/main.bin ../build/empires.sym

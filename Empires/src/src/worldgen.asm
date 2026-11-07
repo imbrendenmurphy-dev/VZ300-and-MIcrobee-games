@@ -573,6 +573,7 @@ generate_world:
         cp 4
         jr nz,.cb
         call find_start
+        call place_rivals
         ld a,40
         jp gen_bar
 
