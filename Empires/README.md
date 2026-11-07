@@ -1,20 +1,58 @@
-# EMPIRES : The Living World
+# EMPIRES : THE LIVING WORLD
+### A civilisation and city-building game for the Microbee Premium Plus
+**VIBED BY BPM 2026**
 
-An original civilisation and city-building game for the Microbee Premium Plus. Lead a handful of settlers from a lonely town hall to a thriving city in a procedurally generated world, learn thirteen arts from farming to philosophy, deal with rival peoples by gift, trade and alliance, and win by prosperity, science, culture, diplomacy or dominion: plough fields, fell forests, build roads and bridges, and watch huts grow into houses and manors as the seasons turn the land from spring green to autumn gold to winter white. Colour and monochrome display modes.
+From a lonely town hall to the light of the world.
 
-**Milestone 3** · VIBED BY BPM 2026
+A handful of settlers, a patch of grass and a river. Plough fields and fell forests,
+lay roads and bridge rivers, and watch your huts grow into houses and your houses
+into manors. Each year the seasons sweep across the land, from spring green and
+summer gold to the reds of autumn and winter's white silence, when the farms lie
+fallow and only the wise have stored enough grain.
 
-![title](screenshots/title.png)
+Set your scholars to thirteen arts, from Agriculture to Philosophy, and raise mines,
+harbours, schools, temples, hospitals, a university and, at last, the Grand Forum.
+You are not alone. Other peoples build their own towns beyond the hills: traders,
+builders, scholars, the isolated and the warlike. Send envoys with gifts, agree
+trade, forge alliances, and keep your watchtowers manned against raiders.
 
-![town in autumn](screenshots/town-colour.png)
+Choose one of seven tales, from the gentle First Settlement to the vast Age of
+Discovery, and find your own path to greatness: prosperity, science, culture,
+diplomacy or dominion. Conquest is never needed.
 
-![choose your tale](screenshots/scenarios.png)
+Every world is new. Every season matters. Every empire begins with a single hut.
 
-![a rival town](screenshots/rival-town.png)
+![showcase](screenshots/EMPIRES_showcase.gif)
 
-![envoys](screenshots/envoys.png)
+| | | |
+|---|---|---|
+| ![](screenshots/01-title.png) | ![](screenshots/02-title-amber.png) | ![](screenshots/03-choose-your-tale.png) |
+| ![](screenshots/06-spring.png) | ![](screenshots/07-summer.png) | ![](screenshots/08-autumn.png) |
+| ![](screenshots/09-winter.png) | ![](screenshots/10-amber-monochrome.png) | ![](screenshots/11-world-map.png) |
+| ![](screenshots/12-research.png) | ![](screenshots/14-envoys.png) | ![](screenshots/15-goals.png) |
+| ![](screenshots/17-rival-town.png) | ![](screenshots/18-victory.png) | ![](screenshots/19-how-to-play.png) |
 
-![goals](screenshots/goals.png)
+## Tech specs
+
+| | |
+|---|---|
+| **Machine** | Microbee Premium Plus, 1 MB RAM (uses 25 × 32 KB banks, 800 KB) |
+| **Media** | One DS80 disk (`EMPIRES.DS8`, 800 KB). Boots straight to `A>`; type `EMPIRES` |
+| **Display** | 80 × 24 PCG character screen, 8 × 11 cells (640 × 264 pixels). 697 custom characters across 16 PCG banks |
+| **Colour and mono** | Full colour, or a separately drawn monochrome character set for green or amber monitors; switch any time with `C` |
+| **Lettering** | Carved marble title and a Roman typeface replacing the Microbee font throughout |
+| **Worlds** | Procedural: 128 × 128 or 256 × 256 tiles, five world types (Balanced, Islands, Continental, Frontier, Harsh), rivers, coasts and ancient ruins, held in banked RAM with fast scrolling |
+| **Simulation** | Weekly economy of food, wood, stone and gold. 17 building tools, 26 kinds of tile object, houses that evolve, four seasons that recolour the land, random events |
+| **Technology** | 13 arts, each unlocking buildings or bonuses; schools and universities speed research |
+| **Rivals** | Up to three AI peoples with their own towns, territory, five temperaments, attitude, trade, alliances, war and raids |
+| **Scenarios** | Free Play plus six tales: The First Settlement, The Great Island, The Divided Continent, The Lost Valley, The Age of Discovery, The Great Empire |
+| **Victory** | Prosperity, science, culture, diplomacy or dominion. Play on after winning |
+| **Controls** | Microsoft serial mouse (1200 baud, decoded in software; finds the right input line and polarity itself and calibrates to the CPU clock), keyboard or joystick |
+| **Sound** | 1-bit beeper played between video frames, so nothing waits for it: gritty title music with a sub-octave bass line, a victory march, 18 effects |
+| **Saving** | Three save slots on the game disk, compressed and checksummed (about 7 KB each) |
+| **Code** | All Z80 assembly: 26.9 KB engine, 12.9 KB overlay, 17 KB of art, 3.6 KB loader |
+| **Tested** | On a real Premium Plus with an amber monitor: play, mouse, save and load all confirmed |
+| **Extras** | `MOUSE.COM` serial-port and mouse tester on the disk |
 
 ## You need
 - Microbee Premium Plus with 1MB RAM
@@ -45,8 +83,7 @@ The loader fills the expanded RAM (dots show progress). Choose **C** for a colou
 | ESC | leave the world (Y/N) |
 
 ## Status
-First real-hardware test (Premium Plus, amber monitor) found a sideways-scrolling bug and an invisible cursor in monochrome: both fixed. Developed in the project's own Premium model. Microsoft serial mouse support: run `MOUSE` from the disk to check yours (it shows line activity on every port bit and each decoded packet). Worlds live in the 1MB banked RAM (up to 256×256), worlds save to and load from the game disk (3 slots), and ESC on the title returns cleanly to `A>`. Milestone 3 adds the technology tree, rival peoples with diplomacy and raids, seven scenarios, five victories and defeat, a gentler start and new softer sound.
-
+Finished and tested on a real Premium Plus (amber monitor): play, serial mouse, save and load confirmed. Developed alongside a Premium emulator.
 ## Folders
 - `release/`: the bootable disk image and the program on its own
 - `src/`: Z80 source, Python art and test tools, `build.sh`, `DESIGN.md` (hardware findings, memory map, status)

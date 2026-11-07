@@ -98,6 +98,11 @@ ovl_call:
 .back:  pop af
         ld (lowport),a
         out (P_MEM),a
+        ld hl,keys_hit          ; key presses that closed a screen are used up
+        ld b,5
+.c:     ld (hl),0
+        inc hl
+        djnz .c
         ret
 
 ; clear the whole map (all bands): terrain 0 (deep water, unexplored), no objects
