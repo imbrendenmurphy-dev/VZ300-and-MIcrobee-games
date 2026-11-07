@@ -55,6 +55,7 @@ It all wraps up in:
 |---|---|
 | **Machine** | Dick Smith VZ300 or VZ200, Z80A at 3.5 MHz |
 | **Memory** | Needs RAM from $7800 to $FFFF, e.g. a BennVenn SD + 128K expansion. Will not run on an unexpanded machine |
+| **RAM used** | About 34 KB: all but 96 bytes of $7800–$FFFF. Code and data 24.7 KB, sprites built at run time 4.8 KB, court backdrop buffer 2 KB, variables, draw queue, stack and crowd frames 2.4 KB. Plus the 2 KB of video RAM, and a 64-byte save block in SRAM bank 3 |
 | **Storage** | Loads from SD (BennVenn loader) as a binary .VZ. No other files needed |
 | **File** | `TENNIS2.VZ`, 24.7 KB, loads and autostarts at $8000 |
 | **Display** | Genuine Mode 1 throughout (6847 CG2: 128×64, 4 colours). Both colour sets are used: grass, night and title in CSS0, clay and hard court in CSS1 |
