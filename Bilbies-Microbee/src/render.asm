@@ -786,7 +786,8 @@ ds_fcol:
 	ld sp,(ds_ptr)
 .jmp:	jp 0
 ds_fnext:
-.snd8:	SND 27
+.snd8:	call vschk
+	SND 27
 	ld hl,(ds_ptr)
 ds_fnext0:
 	inc iy

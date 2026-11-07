@@ -208,7 +208,11 @@ hud_update:
 	inc de
 	inc de
 	djnz .sk
-.st:	call vschk		; status line: what's under the cursor, out, in, time
+.st:	ld a,(hud_alt)		; the status line every other frame (12.5 a second:
+	xor 1			;  it changes no faster)
+	ld (hud_alt),a
+	ret z
+	call vschk		; status line: what's under the cursor, out, in, time
 .snd2:	SND 5
 	ld hl,hud_sbuf
 	ld b,62
@@ -235,13 +239,15 @@ hud_update:
 	inc de
 	pop af
 	call fmt_num
-.snd14:	SND 10
+.snd14:	call vschk
+	SND 10
 .nh:	ld de,hud_sbuf+20
 	ld hl,s_out
 	call strcpy
 	call count_out
 	call fmt_num
-.snd15:	SND 40
+.snd15:	call vschk
+	SND 40
 	ld de,hud_sbuf+32
 	ld hl,s_in
 	call strcpy
@@ -262,7 +268,8 @@ hud_update:
 	ld a,(v_ncrt)
 	call div16_8		; HL / A -> A
 	call fmt_num
-.snd16:	SND 27
+.snd16:	call vschk
+	SND 27
 	ld a,'%'
 	ld (de),a
 	ld de,hud_sbuf+46
@@ -273,7 +280,8 @@ hud_update:
 	call div16_8		; A = minutes, C = seconds
 	push bc
 	call fmt_num
-.snd17:	SND 26
+.snd17:	call vschk
+	SND 26
 	ld a,'-'
 	ld (de),a
 	inc de

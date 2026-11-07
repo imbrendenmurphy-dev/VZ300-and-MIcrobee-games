@@ -41,9 +41,25 @@
   - Music on/off setting, saved.
 - **Documents.** README, verification report, handover.
 
+## 2026-11-07 (after the first real-hardware run)
+
+- **Real hardware result.** It runs on the user's Premium Plus with the
+  amber monitor. The title was choppy; the attract gameplay was fine.
+- **Title fixed.** The music could play past an uncounted frame edge.
+  The wait loops now count the edge first, and with music on the title
+  draws at 12.5 fps, so the music gets over half the time.
+- **Speed.**
+  - The original's blocker test scanned all 40 creature slots for every
+    walker step. It now scans only the slots in use, with a tighter loop
+    and the same results (checked on all 24 levels).
+  - The status line is rebuilt every other frame instead of every frame.
+  - In mono, the bilbies' cells are no longer recoloured, since mono
+    inks are always bright.
+  - More frame-edge checks in long stretches.
+
 ## Next
 
-- Test on the real Premium Plus: boot from SD, mouse, joystick, sound,
-  amber mono monitor.
+- On the real Premium Plus: saving, mouse, joystick, sound, the title
+  after the fix.
 - Speed on the 30–40 bilby levels.
 - The yellow-ledge clash.

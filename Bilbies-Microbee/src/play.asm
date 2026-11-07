@@ -68,8 +68,12 @@ level_start:
 	ld de,v_lh
 	ld bc,13
 	ldir			; lh hx.w hy ex.w ey brick wy wx0.w wx1.w
+	ld a,(monomode)		; mono: bright ink on dark paper everywhere, so the
+	or a			; bilbies show without recolouring their cells
+	ld a,0
+	jr nz,.spk
 	ld a,(WHDR+LH_SPRINK)
-	ld (sprink),a
+.spk:	ld (sprink),a
 	ld a,(WHDR+LH_NSTEEL)
 	ld (v_nsteel),a
 	ld hl,WHDR+LH_STEEL
@@ -231,6 +235,11 @@ play_level:
 	jr c,.hs
 	inc a
 .hs:	ld (heavy),a
+	ld a,(v_title)		; the title with music: draw on game updates only,
+	ld hl,mus_on		; so the music gets most of the time
+	and (hl)
+	jr z,.nh
+	ld (heavy),a
 .nh:	ld a,2
 	call waitfields
 	ld a,(rpage)
@@ -273,7 +282,8 @@ save_prev:
 	ex de,hl
 	dec a
 	jr nz,.l
-.snd20:	SND 90
+.snd20:	call vschk
+	SND 90
 	ret
 
 ; ---- the clock (as the original: two fields a loop)
@@ -734,7 +744,8 @@ read_controls:
 	ld hl,KEYMAP
 	ld bc,0			; B = kb_now, C = ct_now
 .k:
-.snd12:	SND 7
+.snd12:	call vschk
+	SND 7
 	ld a,(hl)
 	cp $FF
 	jr z,.kd

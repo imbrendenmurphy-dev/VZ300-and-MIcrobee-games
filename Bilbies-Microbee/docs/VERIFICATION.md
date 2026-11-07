@@ -1,10 +1,19 @@
 # Verification report
 
-All testing was done in an emulator model of the Premium Plus, written for
-this project (`tools/emu/mbee.c`, `tools/emu/z80.c`). **Nothing has been
-run on real Microbee hardware yet.** The model follows uBee512's
-behaviour for the parts the game uses, but it is not uBee512. Real
-hardware is the final test.
+Most testing was done in an emulator model of the Premium Plus, written
+for this project (`tools/emu/mbee.c`, `tools/emu/z80.c`). The model
+follows uBee512's behaviour for the parts the game uses, but it is not
+uBee512.
+
+**Real hardware (7 Nov 2026).** The user's Premium Plus, loading the disk
+image from SD, with an amber mono monitor:
+
+- The disk boots, `BILBIES` loads, and the mono picture and HUD display
+  correctly.
+- The attract-mode gameplay ran fine.
+- The title was very choppy. In the model, a third of the title frames
+  took 3 fields instead of 2 while music played. This is fixed: with
+  music on, the title now draws at a steady 12.5 frames a second.
 
 ## Tested in the model
 
@@ -18,16 +27,18 @@ hardware is the final test.
 | Joystick, keyboard | Keys read through the 6545 light-pen scan; joystick on PIO A | used by the tests above |
 | Mono | Renders with its own mono art (screenshots) | `run.boot(..., mono=True)` |
 | Sound effects | All 11 effects sound. Tones from 180 Hz to 1.5 kHz are within about 10% of the VZ pitches; the highest (the 1.9 kHz clink) is about a third flat | `sndtest.py`, `sfxwav.py` (`build/sfx.wav`) |
-| Music | Plays on the title (about 40% of the time; the scene runs in between, as on the VZ), and in the menus and jingles | `build/title_music.wav` |
+| Music | Plays on the title about half the time (the scene runs in between, as on the VZ; the title draws at 12.5 fps while music plays), and in the menus and jingles | `build/title_music.wav` |
 
 ## Speed
 
 The game is meant to run at 12.5 updates a second (4 fields each). In
-the model:
+the model, after the speed work of 7 Nov:
 
-- Levels with up to 20 bilbies run at 4.0–4.5 fields an update, 90–100% of
-  full speed.
-- Levels 21–24 (30–40 bilbies) run at 4.4–6.0, about 67–90%.
+| Levels | Fields an update, colour | Fields an update, mono | Speed |
+|---|---|---|---|
+| 1–20 | 4.0–4.5 | about the same | 90–100% |
+| 21–22 | 4.4–4.7 | 4.4–4.6 | about 87% |
+| 23–24 (30–40 bilbies) | 5.2–5.4 | about 5.1 | about 77% |
 
 The game logic never skips, so it plays correctly but slows down when
 the screen is busy. When it falls behind, it draws fewer in-between
@@ -35,9 +46,8 @@ frames.
 
 ## Not tested
 
-- Real hardware: the timing of the 6545 blanking bit, the WD2793
-  details (write protect, bounded waits), the mouse adapter's DTR/CTS
-  behaviour, and the speaker sound.
+- On real hardware, not yet tried: saving (including write protect), the
+  mouse, the joystick, sound, and colour monitors.
 - A real DS80 drive. The image layout matches the Microbee's DS80 format
   used by the boot ROM in the model; the user loads images from SD.
 - Joystick hardware variants.

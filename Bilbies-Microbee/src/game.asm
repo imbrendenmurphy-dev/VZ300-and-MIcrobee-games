@@ -486,32 +486,51 @@ in_water:
 
 ; NZ if a blocker stops a walker stepping to DE (direction B), row C
 blocked:
+        ; (Microbee: the same test, a faster scan: only the slots released
+        ; so far, which are filled in order, with nothing pushed per slot)
         ld a,(v_nblock)
+        or a
+        ret z
+        ld a,(v_released)
         or a
         ret z
         push ix
         push bc
         push de
+        ld (bk_nx),de
+        ld (bk_dr),bc
+        ld b,a
         ld iy,CRT
-        ld a,NCRT
-.l:     push af
-        ld a,(iy+C_ST)
+        ld de,CSZ
+.l:     ld a,(iy+C_ST)
         cp ST_BLOCK
-        jr nz,.n
+        jr z,.chk
+.n:     add iy,de
+        djnz .l
+        pop de
+        pop bc
+        pop ix
+        xor a                   ; Z: not blocked
+        ret
+.chk:   ld a,(bk_dr)            ; C: row
+        ld c,a
         ld a,(iy+C_Y)
         sub c
         add a,3
         cp 7
         jr nc,.n
         ; t = nx - bx
+        ld hl,(bk_nx)
+        ld c,(iy+C_XL)
+        ld a,(iy+C_XH)
         push de
-        ex de,hl
-        ld e,(iy+C_XL)
-        ld d,(iy+C_XH)
+        ld e,c
+        ld d,a
         or a
         sbc hl,de
         pop de
-        bit 7,b
+        ld a,(bk_dr+1)          ; B: direction
+        bit 7,a
         jr nz,.left
         inc hl
         inc hl                  ; moving right: nx in bx-2..bx
@@ -521,23 +540,10 @@ blocked:
         ld a,l
         cp 3
         jr nc,.n
-        pop af
         pop de
         pop bc
         pop ix
         or 1
-        ret
-.n:     push de
-        ld de,CSZ
-        add iy,de
-        pop de
-        pop af
-        dec a
-        jr nz,.l
-        pop de
-        pop bc
-        pop ix
-        xor a
         ret
 
 ; ===========================================================================

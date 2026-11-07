@@ -197,18 +197,20 @@ vschk:	in a,(P_CRTCA)
 waitfields:
 	ld b,a
 .w:	push bc
-	ld a,(mus_on)
-	or a
-	jr z,.nm
-	call mus_wait
-	jr .wm
-.nm:	call vschk
-.snd9:	SND 5
-.wm:	pop bc
+	call vschk		; count the edge first: the music must never play
+.snd9:	SND 5			; across one it hasn't counted
+	pop bc
 	ld a,(vcount)
 	cp b
-	jr c,.w
-	sub b			; keep any extra field (at most one) for the next frame
+	jr nc,.done
+	ld a,(mus_on)
+	or a
+	jr z,.w
+	push bc
+	call mus_wait
+	pop bc
+	jr .w
+.done:	sub b			; keep any extra field (at most one) for the next frame
 	cp 2
 	jr c,.k
 	ld a,1
@@ -218,17 +220,16 @@ waitfields:
 ; wait for one vertical blanking edge
 vsync1:	xor a
 	ld (vcount),a
-.l:	ld a,(mus_on)
-	or a
-	jr z,.nm
-	call mus_wait
-	jr .m
-.nm:	call vschk
+.l:	call vschk
 .snd10:	SND 2
-.m:	ld a,(vcount)
+	ld a,(vcount)
+	or a
+	jp nz,snd_menu
+	ld a,(mus_on)
 	or a
 	jr z,.l
-	jp snd_menu
+	call mus_wait
+	jr .l
 
 ; show page A (0/1) from the next field on
 show_page:

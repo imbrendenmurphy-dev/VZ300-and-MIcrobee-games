@@ -438,6 +438,14 @@ mn_end:	ld a,iyh
 	in a,(P_CRTCA)		; (in the blanking now? then until it ends first)
 	and $20
 	jr z,.s
+	ld a,(vblast)		; (but a blanking not yet counted: stop at once,
+	or a			;  the wait loop counts it)
+	jr nz,.cnt
+	ld sp,(mf_sp)
+	pop iy
+	pop ix
+	ret
+.cnt:
 	ex af,af'
 	ld a,$CA		; jp z,mt_end
 	ld hl,mt_end

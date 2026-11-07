@@ -213,6 +213,9 @@ sfx_on	db 0
 sv_error	db 0
 sv_sec	db 0
 sv_st	db 0
+bk_nx	dw 0
+hud_alt	db 0
+bk_dr	dw 0
 ub_src	db 0
 ub_dst	db 0
 ub_tab	ds 18
