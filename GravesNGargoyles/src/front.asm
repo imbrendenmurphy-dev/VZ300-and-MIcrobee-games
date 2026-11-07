@@ -431,6 +431,7 @@ draw_logo:
         add a,a
         ld l,a
         ld h,YTAB>>8
+        set 7,l                 ; YTAB is at $7D80
         ld a,(hl)
         inc l
         ld h,(hl)

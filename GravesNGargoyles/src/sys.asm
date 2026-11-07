@@ -98,12 +98,6 @@ init:
         ld hl,$ACE1
         ld (seed),hl
         call load_hiscores
-        ld hl,(BOOT_SP)         ; VARS were cleared: copy the saved values in
-        ld (boot_sp),hl
-        ld hl,(BOOT_IX)
-        ld (boot_ix),hl
-        ld hl,(BOOT_IY)
-        ld (boot_iy),hl
         ld a,1
         ld (booting),a
         ei

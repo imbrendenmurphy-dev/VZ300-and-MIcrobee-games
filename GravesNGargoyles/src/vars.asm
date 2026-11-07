@@ -177,12 +177,14 @@ demo_stage: ds 1
 rl_last:    ds 1
 ld_sp:      ds 2
 booting:    ds 1
-boot_sp:    ds 2
-boot_ix:    ds 2
-boot_iy:    ds 2
 VARS_END:
-FB:         ds FBW*FBROWS
-FB_END:
         dend
-        assert FB_END <= STACKTOP-80  ; leaves room for the stack
+; frame buffer $EE00-$F7FF (page aligned). During SD loads it is the DOS's
+; 2.5K stack. $F800-$F9FF is the DOS sector buffer, as 13 Ghosts and
+; Dracula's Castle II use it; $FA00 up belongs to the DOS.
+FB       equ $EE00
+FB_END   equ FB+FBW*FBROWS
+SECBUF   equ $F800
+        assert VARS_END <= FB
+        assert FB_END <= SECBUF
         assert LOAD_END <= $FA00

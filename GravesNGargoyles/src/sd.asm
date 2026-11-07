@@ -24,9 +24,9 @@ dos_probe:
 
 ; load_pack: HL = pack directory entry -> carry set on failure
 load_pack:
-        ; The DOS is called the way RASTEST (proven on real hardware) does:
-        ; interrupts on (the ISR only waits out field sync while DOSBUSY),
-        ; the DOS's own mapping, and the IX/IY/SP the loader left us.
+        ; The DOS is called exactly as 13 Ghosts and Dracula's Castle II call it
+        ; on the real machine: sector buffer $F800, a deep stack (the DOS needs
+        ; well over 1K), and DI after every call (the DOS may enable them).
         di
         ld a,1
         ld (DOSBUSY),a
@@ -42,25 +42,14 @@ load_pack:
         ld (ld_left),bc
         ld (ld_name),hl
         call stop_music
-        push ix
-        push iy
         ld (ld_sp),sp
-        ld hl,(boot_sp)
-        ld a,h
-        cp $80
-        jr c,.dsp               ; loader stack below the program: use it
-        cp $FA
-        jr c,.osp               ; otherwise stay on ours
-.dsp:   ld sp,hl
-.osp:   ld ix,(boot_ix)
-        ld iy,(boot_iy)
+        ld sp,FB_END            ; the frame buffer is the DOS's stack now
         ld a,(DOSMAP)
         out ($37),a
-        ld hl,FB
+        ld hl,SECBUF
         ld ($FB80),hl
         ld hl,(ld_name)
         ld a,1
-        ei
         call $5F00
         di
         ld a,6
@@ -71,10 +60,7 @@ load_pack:
         ld a,($FB05)
         cp 1
         jr z,.err
-        ld hl,FB
-        ld ($FB80),hl
         ld a,1
-        ei
         call $5F03
         di
         ld a,7
@@ -85,7 +71,7 @@ load_pack:
         jr c,.part
         ld bc,$200
 .part:  push bc
-        ld hl,FB
+        ld hl,SECBUF
         ld de,(ld_dest)
         ldir
         ld (ld_dest),de
@@ -97,9 +83,8 @@ load_pack:
         ld a,h
         or l
         jr z,.ok
-        ld hl,FB
+        ld hl,SECBUF
         ld ($FB80),hl
-        ei
         call $5F09
         di
         jr .lp
@@ -107,14 +92,11 @@ load_pack:
         jr .out
 .err:   scf
 .out:   ld sp,(ld_sp)           ; (flags survive)
-        pop iy
-        pop ix
         push af
         ld a,SRAM_GAME
         out ($37),a
         xor a
         ld (DOSBUSY),a
-        xor a
         ld (frame_ready),a
         ld (fieldcnt),a
         pop af
