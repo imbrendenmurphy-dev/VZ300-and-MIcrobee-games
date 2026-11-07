@@ -26,6 +26,11 @@ new_game:
         ld (wlevel+1),a
         ld (wlevel+2),a
         ld (wlevel+3),a
+        ld (prev_w),a
+        ld hl,AMMO_GIVE
+        ld de,ammo
+        ld bc,4
+        ldir
         ld a,DBG_ARMOUR
         ld (arm_max),a
         ld (arm_cur),a

@@ -13,6 +13,7 @@
         include "gen/gfx_front.asm"
         include "text_front.asm"
         include "front_pw.asm"
+        include "front_bats.asm"
 FRONT_END:
         endsegment
 

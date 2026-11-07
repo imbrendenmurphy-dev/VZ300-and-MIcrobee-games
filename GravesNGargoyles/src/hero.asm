@@ -771,6 +771,44 @@ weapon_next:
         ld (hud_need),a
         ret
 
+; one throw used: when a weapon runs out it is lost (with its enchantment)
+; and the knight goes back to the weapon he held before, or the lance
+use_ammo:
+        ld a,(weapon)
+        or a
+        ret z                   ; the lance never runs out
+        ld e,a
+        ld d,0
+        ld hl,ammo
+        add hl,de
+        ld a,1
+        ld (hud_need),a
+        dec (hl)
+        ret nz
+        ld hl,wlevel
+        add hl,de
+        ld (hl),d
+        ld b,e
+        ld a,1
+.m:     add a,a
+        djnz .m                 ; A = 1 << weapon
+        cpl
+        ld hl,owned
+        and (hl)
+        ld (hl),a
+        ld a,(prev_w)
+        ld (weapon),a
+        ld b,a
+        inc b
+        ld a,(hl)
+.c:     rrca
+        djnz .c
+        ret c                   ; still have the previous one
+        xor a
+        ld (weapon),a
+        ret
+AMMO_GIVE: db 0,60,30,25        ; throws per pickup: lance, daggers, axes, torches
+
 hero_attack:
         ; magic by key
         ld a,(keys_new)
@@ -874,7 +912,7 @@ throw:
         ld a,(weapon)
         cp W_AXE
         jr nz,.nax
-        ld (ix+5),-12
+        ld (ix+5),-10
 .nax:   cp W_TORCH
         jr nz,.nto
         ld (ix+5),-8
@@ -882,6 +920,7 @@ throw:
         ld (throw_t),a
         ld a,SFX_THROW_ID
         call play_sfx
+        call use_ammo
         ; upgraded daggers: a second dagger, angled
         ld a,(weapon)
         cp W_DAGGER
@@ -975,7 +1014,8 @@ shots_update:
         sra a
         add a,(ix+3)
         ld (ix+3),a
-        inc (ix+5)
+        inc (ix+5)              ; double gravity: a short lob that lands
+        inc (ix+5)              ; on screen, about 50 pixels away
         ld a,(ix+0)
         cp 4
         jr nz,.straight

@@ -11,7 +11,7 @@ In the kingdom of Dreadmoor, the sorcerer **Morgrave** has stolen the seven **Su
 dead walk the land. Only one knight is awake: **Sir Tinplate**, the least impressive knight
 in the realm, in borrowed tin armour.
 
-### This build (v0.3.12) contains
+### This build (v0.3.13) contains
 
 - **Seven stages**, each its own SD pack (tiles, eight creature sprites, boss, music, text):
 
@@ -169,6 +169,15 @@ Both joysticks work interchangeably (directions read via ports $2C/$29).
   knight in his trousers, took five knocks before it breaks (three since v0.3.12). A red bar of
   segments at the right of the HUD counts them down. When it empties, a piece of armour
   flies off and the bar refills. Checkpoints, a new life and an armour pickup all refill it.
+- **Weapons run out (v0.3.13).** The lance is unlimited, but each chest weapon now comes with
+  a supply of throws: 60 daggers, 30 axes or 25 torches. Finding the same weapon again
+  enchants it and adds that many more, up to 99. The number left shows next to the weapon
+  icon on the HUD (red when the weapon is enchanted). When a weapon runs out it is gone,
+  enchantment and all, and the knight goes back to the weapon he held before he picked it
+  up, or to the lance. Weapons from a password come with a full supply.
+- **Lobs that land on screen (v0.3.13).** Axes and torches used to fly in a high arc about 96
+  pixels long, landing off screen. They now have double gravity and a lower launch: an axe
+  comes down about 60 pixels ahead and a torch a little nearer, right among the enemies.
 - **Rebalanced for weapons (v0.3.12).** Now that chests reliably give weapons, each suit of
   armour takes **three** knocks instead of five, and the bosses are back to their v0.4 hit
   counts (Casual / Normal / Expert): Gravemaw 11/15/21, the Hungry Oak 12/17/23, Leviathan

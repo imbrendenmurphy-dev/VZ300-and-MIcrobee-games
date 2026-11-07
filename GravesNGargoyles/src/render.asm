@@ -905,7 +905,34 @@ hud_draw:
         ld d,0
         ld hl,wlevel
         add hl,de
+        ld c,(hl)               ; enchanted?
+        ld hl,ammo
+        add hl,de
         ld a,(hl)
+        or a
+        jr z,.lance
+        ld b,'0'-1              ; throws left, two digits
+.dg:    inc b
+        sub 10
+        jr nc,.dg
+        add a,'0'+10
+        ld hl,num_buf
+        ld (hl),b
+        inc hl
+        ld (hl),a
+        inc hl
+        ld (hl),0
+        dec hl
+        dec hl
+        ld a,c
+        or a
+        ld a,(col_yel)
+        jr z,$+5
+        ld a,(col_red)
+        ld bc,$0601
+        call text_hud
+        jr .nolv
+.lance: ld a,c
         or a
         jr z,.nolv
         ld hl,STR_STAR

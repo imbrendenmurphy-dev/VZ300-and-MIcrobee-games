@@ -1515,8 +1515,14 @@ c_axe:  ld a,W_AXE
         jr c_weapon
 c_torch: ld a,W_TORCH
 c_weapon:
-        ld (weapon),a
-        ld e,a
+        ld hl,weapon
+        cp (hl)
+        jr z,.same
+        ld c,(hl)
+        ld (hl),a
+        ld hl,prev_w
+        ld (hl),c
+.same:  ld e,a
         ld d,0
         ld b,a
         inc b
@@ -1528,7 +1534,21 @@ c_weapon:
         rlca
         jr .sh
 .sd:    ld b,a
-        and c
+        and c                   ; Z = a new weapon
+        ; more throws for it (a new one starts from none), up to 99
+        ld hl,AMMO_GIVE
+        add hl,de               ; (ADD HL keeps Z)
+        ld a,(hl)
+        ld hl,ammo
+        add hl,de
+        jr z,.set
+        add a,(hl)
+        cp 100
+        jr c,.set
+        ld a,99
+.set:   ld (hl),a
+        ld a,c
+        and b
         jr z,.new
         ; already owned: enchant it
         ld hl,wlevel
