@@ -193,18 +193,21 @@ SFX_CLANG  equ 11
 SFX_LAND   equ 12
 SFX_ZAP    equ 13
 sfxtab:
-        ; start, delta, len, mode, prio, pad
-        dw 3600,-260 : db 6,0,2,0,0       ; laser pew
-        dw 260,-6    : db 12,2,4,0,0      ; explosion (noise)
-        dw 400,-8    : db 30,2,6,0,0      ; big explosion
-        dw 120,0     : db 20,2,7,0,0      ; we are hit (crackle)
-        dw 1800,0    : db 6,1,3,0,0       ; low energy alarm
-        dw 900,150   : db 14,1,5,0,0      ; pickup
-        dw 4000,-120 : db 30,2,6,0,0      ; nova
-        dw 200,90    : db 40,1,4,0,0      ; warp whoosh
-        dw 700,-30   : db 8,1,3,0,0       ; enemy plasma
-        dw 1500,-90  : db 4,0,1,0,0       ; menu blip
-        dw 2300,0    : db 2,0,1,0,0       ; tally tick
-        dw 2600,-20  : db 6,1,3,0,0       ; deflected clang
-        dw 300,-6    : db 25,1,5,0,0      ; troops landed
-        dw 2000,200  : db 8,1,3,0,0       ; turret zap
+        ; 8 bytes each: dw start, dw delta, db len, mode, prio, pad
+        ; (v1.2: was 9 bytes per entry while play_sfx indexes by 8, so every
+        ;  effect after the laser played garbage - e.g. a 5-second chirp)
+        ; modes: 0 clean tone sweep, 2 noise. No warble (too sparkly).
+        dw 3600,-260 : db 6,0,2,0         ; laser pew
+        dw 260,-6    : db 10,2,4,0        ; explosion (noise)
+        dw 400,-8    : db 18,2,6,0        ; big explosion
+        dw 120,0     : db 12,2,7,0        ; we are hit (crackle)
+        dw 1800,0    : db 4,0,3,0         ; low energy alarm
+        dw 900,150   : db 8,0,5,0         ; pickup (rising)
+        dw 4000,-120 : db 20,2,6,0        ; nova
+        dw 300,60    : db 20,0,4,0        ; warp whoosh (rising)
+        dw 700,-30   : db 6,0,3,0         ; enemy plasma
+        dw 1500,-90  : db 3,0,1,0         ; menu blip
+        dw 2300,0    : db 2,0,1,0         ; tally / warning tick
+        dw 2600,-20  : db 4,0,3,0         ; deflected clang
+        dw 300,-6    : db 12,0,5,0        ; troops landed (low drone)
+        dw 2000,200  : db 6,0,3,0         ; turret zap

@@ -70,12 +70,13 @@ Either joystick works: every port of your custom interface is read and combined.
   - title march, in-game patrol loop and boss theme
   - jingles: warp-in fanfare, sector clear, game over, high score
   - mission-complete theme and an info-pages tune
-  - 14 sound effects: laser, explosions, hit crackle, alarm, pickup, nova, warp, plasma, turret zap…
+  - 14 short sound effects: laser, explosions, hit crackle, alarm, pickup, nova, warp, plasma, turret zap…
 
   `media/` has the emulator's speaker output of the title music and a stretch of gameplay.
 
 ## Version history
 
+- **v1.2:** sound effects fixed. The effects table had 9 bytes per entry, but the player looks entries up 8 bytes apart, so every effect after the laser played the wrong sound (the long, chirpy, lingering one was the warning tick reading garbage). Effects are now short clean sweeps or noise, with no warble.
 - **v1.1:** easier (see below), a dithered bezel round the HUD replaces the full-screen cracked canopy, directional threat warnings on the bezel, and the logo reads STAR / BLASTER II.
   - Fighters approach more slowly (skill × 6 instead of × 8) and fewer come at once (1 + skill/2 instead of 2 + skill/2).
   - Hits cost less: fighters 35, aces 50, mines 45, rocks 30, plasma 20, plus skill × 3; landed troops cost 60.
