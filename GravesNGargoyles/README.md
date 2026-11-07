@@ -11,7 +11,7 @@ In the kingdom of Dreadmoor, the sorcerer **Morgrave** has stolen the seven **Su
 dead walk the land. Only one knight is awake: **Sir Tinplate**, the least impressive knight
 in the realm, in borrowed tin armour.
 
-### This build (v0.3.4) contains
+### This build (v0.3.5) contains
 
 - **Seven stages**, each its own SD pack (tiles, eight creature sprites, boss, music, text):
 
@@ -153,21 +153,15 @@ Both joysticks work interchangeably (directions read via ports $2C/$29).
   ISR now waits for bit 7 of the latch (field sync over) before re-enabling interrupts. Without
   this, a short ISR is re-entered again and again. The emulator now models this
   level-triggered interrupt (`-E` restores the old one-shot model).
-- **Start-up progress bands.** The screen starts blue and fills with yellow bands from the
-  top. The ninth band means the first SD file loaded; the title then replaces them. If
-  start-up ever stops, the number of bands shows where:
-
-  | Bands | What happened |
-  |---|---|
-  | 1 | started |
-  | 2 | SD DOS mapping probed |
-  | 3 | SRAM written and checked (a red third band means the SRAM check failed) |
-  | 4 | tables, interrupts and mode 1 set |
-  | 5 | the first interrupt arrived |
-  | 6 | about to open the first SD file |
-  | 7 | file opened |
-  | 8 | first sector read |
-  | 9 | whole file read (the title follows) |
+- **Start-up screen (v0.3.5).** The progress bands are gone. Start-up now shows a text screen
+  ("GRAVES 'N' GARGOYLES / VIBED BY BPM 2026 / SUMMONING THE DEAD...") while the first file
+  loads. A missing 128K SRAM is reported on screen.
+- **Smoother music (v0.3.5).** The ISR used to sit silent while it waited for field sync to
+  end, which chopped the music 50 times a second. It now keeps the tone loop running through
+  that wait. Notes also decay to a fuller pulse width (14-16% instead of 5-7%), so they sound
+  less thin and scratchy.
+- **Readable graves (v0.3.5).** Gallows Hill's tombstones are now dark slabs with a pale
+  stone outline and an engraved cross, instead of green on green.
 
 ## Technical design
 

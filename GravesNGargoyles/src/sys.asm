@@ -4,25 +4,15 @@
 
 init:
         di
-        ld (BOOT_SP),sp         ; what the loader left: the DOS calls use these
-        ld (BOOT_IX),ix
-        ld (BOOT_IY),iy
         ld sp,STACKTOP
-        ; boot progress: one yellow band per step, top to bottom. They are
-        ; wiped when the title appears; if start-up ever stops, the last
-        ; band shows how far it got (a red band marks a failed check).
-        ld a,$28
+        ld a,$28                ; mode 1, CSS 0, speaker bit 5 set (silent)
         ld (LATCH),a
-        ld hl,VRAM
+        ld hl,VRAM              ; blue screen while starting up
         ld de,VRAM+1
         ld bc,$7FF
         ld (hl),$AA
         ldir
-        ld a,0
-        call boot_band
         call dos_probe          ; as the 13 Ghosts loader does
-        ld a,1
-        call boot_band
         xor a
         ld (DOSBUSY),a
         ld a,SRAM_GAME
@@ -36,6 +26,13 @@ init:
         ld de,$6100
         ld bc,BLOB2_END-$6100
         ldir
+        ; clear variables
+        ld hl,VARS
+        ld de,VARS+1
+        ld bc,VARS_END-VARS-1
+        ld (hl),0
+        ldir
+        call build_tables
         ; check the SRAM really holds what was copied
         ld hl,BLOB1_SRC
         ld de,$5500
@@ -49,20 +46,6 @@ init:
         ld a,b
         or c
         jr nz,.ck
-        ld a,2
-        call boot_band
-        jr .ok
-.bad:   ld a,2
-        call boot_fail
-.stop:  jr .stop
-.ok:
-        ; clear variables
-        ld hl,VARS
-        ld de,VARS+1
-        ld bc,VARS_END-VARS-1
-        ld (hl),0
-        ldir
-        call build_tables
         ; IM2 vector table
         ld hl,IM2TAB
         ld de,IM2TAB+1
@@ -76,21 +59,9 @@ init:
         ld a,IM2TAB>>8
         ld i,a
         im 2
-        ld a,$28                ; mode 1, CSS 0, speaker bit5 set (silent)
+        ld a,$28
         ld (latch),a
         ld (latch_next),a
-        ld (LATCH),a
-        ld a,3
-        call boot_band
-        call cls_fb
-        ; the first interrupt
-        ei
-        halt
-        ld a,4
-        call boot_band
-        halt
-        halt
-        di
         ld a,1
         ld (opt_sound),a
         ld (opt_diff),a
@@ -98,49 +69,40 @@ init:
         ld hl,$ACE1
         ld (seed),hl
         call load_hiscores
-        ld a,1
-        ld (booting),a
+        ld hl,BOOT_TEXT
+        call boot_text
         ei
-        ld a,5
-        call boot_band
-        call ensure_front       ; first SD read: bands 6, 7, then 8 when done
-        ld a,8
-        call boot_band
-        xor a
-        ld (booting),a
+        call ensure_front       ; first SD read
         jp front_main
+.bad:   ld hl,BOOT_NOSRAM
+        call boot_text
+.stop:  jr .stop
 
-; boot_band: A = step (0-7): paint rows 4A..4A+3 yellow, plus a marker
-boot_band:
-        ld c,$55
-        jr boot_paint
-boot_fail:
-        ld c,$FF
-boot_paint:
+; boot_text: card text (HL) on a blue screen, copied straight to video RAM
+boot_text:
         push hl
-        push de
-        push bc
-        ld l,a
-        ld h,0
-        add hl,hl
-        add hl,hl
-        add hl,hl
-        add hl,hl
-        add hl,hl
-        add hl,hl
-        add hl,hl               ; *128
-        ld de,VRAM
-        add hl,de
-        ld (hl),c
-        ld d,h
-        ld e,l
-        inc de
-        ld bc,127
-        ldir
-        pop bc
-        pop de
+        call cls_fb
         pop hl
+        call card_text
+        ld hl,FB+4
+        ld de,VRAM
+        ld a,64
+.row:   ld bc,32
+        ldir
+        ld bc,FBW-32
+        add hl,bc
+        dec a
+        jr nz,.row
         ret
+
+BOOT_TEXT:
+        db 14,0,"GRAVES 'N' GARGOYLES",0
+        db 23,2,"VIBED BY BPM 2026",0
+        db 44,1,"SUMMONING THE DEAD...",0
+        db $FF
+BOOT_NOSRAM:
+        db 28,1,"NEEDS 128K SRAM",0
+        db $FF
 
 ; ---------------------------------------------------------------- tables
 build_tables:
@@ -242,7 +204,7 @@ isr:
         pop hl
         pop de
         pop bc
-        call fs_wait
+        call fs_audio           ; keep the music going until field sync ends
         pop af
         ei
         reti
@@ -333,6 +295,66 @@ audio_run:
         ld (LATCH),a
         ret
 
+; fs_audio: the audio loop, run inside the ISR until field sync ends
+; (same 129 T sample loop as audio_run, so the pitch doesn't change)
+fs_audio:
+        push bc
+        push de
+        push hl
+        ld a,(latch)
+        or $20
+        and $FE
+        ld c,a
+        ld a,(out1_duty)
+        ld b,a
+        ld hl,(acc1)
+        ld de,(out1_step)
+        exx
+        push bc
+        push de
+        push hl
+        ld a,(latch)
+        or $20
+        and $FE
+        ld c,a
+        ld a,(out2_duty)
+        ld b,a
+        ld hl,(acc2)
+        ld de,(out2_step)
+        exx
+.lp:    add hl,de
+        ld a,h
+        add a,b
+        sbc a,a
+        and $21
+        xor c
+        ld (LATCH),a
+        exx
+        add hl,de
+        ld a,h
+        add a,b
+        sbc a,a
+        and $21
+        xor c
+        ld (LATCH),a
+        exx
+        ld a,(LATCH)            ; bit 7 = 1 once field sync is over
+        rla
+        jp nc,.lp
+        ld (acc1),hl
+        exx
+        ld (acc2),hl
+        pop hl
+        pop de
+        pop bc
+        exx
+        ld a,c
+        ld (LATCH),a
+        pop hl
+        pop de
+        pop bc
+        ret
+
 ; ---------------------------------------------------------------- music
 ; channel struct (MCH1/MCH2): +0 ptr  +2 start  +4 dur  +5 active  +6 step
 ;                             +8 duty  +9 attack  +10 floor
@@ -356,16 +378,16 @@ play_song:
         inc hl
         push hl
         ld ix,MCH1
-        ld (ix+MC_ATT),64
-        ld (ix+MC_FLOOR),12
+        ld (ix+MC_ATT),72
+        ld (ix+MC_FLOOR),32
         call .start
         pop hl
         ld e,(hl)
         inc hl
         ld d,(hl)
         ld ix,MCH2
-        ld (ix+MC_ATT),80
-        ld (ix+MC_FLOOR),18
+        ld (ix+MC_ATT),88
+        ld (ix+MC_FLOOR),40
         call .start
         ei
         pop ix

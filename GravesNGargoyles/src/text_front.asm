@@ -1,6 +1,6 @@
 ; front-end text (lives in the front pack)
 STR_PRESS:   db "PRESS FIRE",0
-STR_COPY:    db "@ 2026 VIBED BY BPM",0
+STR_COPY:    db "VIBED BY BPM 2026",0
 STR_MENUTITLE: db "GRAVES 'N' GARGOYLES",0
 STR_M_START: db "START GAME",0
 STR_M_PASS:  db "PASSWORD",0
@@ -53,7 +53,7 @@ CARD_CRED:
         db 4,0,"GRAVES 'N' GARGOYLES",0
         db 12,2,"SIR TINPLATE'S LONG NIGHT",0
         db 24,2,"CODE, ART AND MUSIC",0
-        db 31,0,"VIBED BY BPM",0
+        db 31,0,"VIBED BY BPM 2026",0
         db 43,2,"FOR THE DICK SMITH VZ300",0
         db 50,2,"BENNVENN SD + 128K",0
         db 58,0,"@ 2026",0

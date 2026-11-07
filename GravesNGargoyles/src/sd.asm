@@ -52,8 +52,6 @@ load_pack:
         ld a,1
         call $5F00
         di
-        ld a,6
-        call boot_step
         ld a,($FB03)
         cp 1
         jr nz,.err
@@ -63,8 +61,6 @@ load_pack:
         ld a,1
         call $5F03
         di
-        ld a,7
-        call boot_step
 .lp:    ld bc,(ld_left)
         ld a,b
         cp 2
@@ -103,16 +99,6 @@ load_pack:
         ei
         ret
 
-; boot_step: progress band A, only while starting up
-boot_step:
-        push af
-        ld a,(booting)
-        or a
-        jr z,.no
-        pop af
-        jp boot_band
-.no:    pop af
-        ret
 
 ; make sure a pack is in memory: HL = directory entry, A = magic byte
 ensure_pack:

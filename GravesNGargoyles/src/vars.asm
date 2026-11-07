@@ -176,7 +176,6 @@ pw_cur:     ds 1
 demo_stage: ds 1
 rl_last:    ds 1
 ld_sp:      ds 2
-booting:    ds 1
 VARS_END:
         dend
 ; frame buffer $EE00-$F7FF (page aligned). During SD loads it is the DOS's

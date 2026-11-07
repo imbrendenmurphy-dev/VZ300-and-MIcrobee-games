@@ -28,8 +28,8 @@ tile('grass_r', ['gbgbbbbb','ggggggbb','gyggrggb','rgrgrgrg','grgrgrgr','rbrrrbr
 tile('stone', ['ggggggbg','gyyyygbg','gyggggbg','gggggggg','bbgbbbbb','ggggbggg','yggggbgy','ggggggbg'])
 tile('stone_top',['ygyygyyg','gggggggg','gyggggbg','gggggggg','bbgbbbbb','ggggbggg','yggggbgy','ggggggbg'])
 # gravestones (solid)
-tile('grave_t', ['bbggggbb','bggyyggb','ggyggbgg','ggyggbgg','gggggbgg','ggbgggbg','gggbbggg','ggggggbg'])
-tile('grave_b', ['ggggggbg','ggbbbggg','gggggggg','gbgbbbgg','ggggggbg','gggggggg','gbggggbg','gggggggg'])
+tile('grave_t', ['bbyyyybb','byybbyyb','ybbyybbr','ybyyyybr','ybbyybbr','ybbyybbr','ybbbbbbr','ybbbbbbr'])   # stone outline, dark face
+tile('grave_b', ['ybbbbbbr','ybrbbrbr','ybbbbbbr','ybbbbbbr','yrrrrrrr','yrrrrrrr','gyggyggg','gggggggg'])
 tile('cross_t', ['bbbggbbb','bbbgybbb','bgggggbb','bgyyygbb','bbbggbbb','bbbgybbb','bbbggbbb','bbbggbbb'])
 tile('cross_b', ['bbbggbbb','bbbgybbb','bbbggbbb','bbbggbbb','bbggggbb','bggyyggb','gggggggg','rgrgrgrg'])
 # dead tree (background, not solid)
