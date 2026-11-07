@@ -1,6 +1,8 @@
 # μB-TYPE
 ### for the Microbee Premium Plus. VIBED BY BPM 2026
 
+**μB-TYPE? Is it a typing tutor for the Microbee? No!** It's VZ-TYPE, the home-grown R-Type-style blaster from the Dick Smith VZ300, rebuilt for the Premium Plus. So put down the touch-typing course and get your fingers on Q, A, O, P and SPACE.
+
 **The VZ300's own R-Type-style blaster has landed on the Microbee, at four times the resolution in both directions.**
 
 ![μB-TYPE: the title, the attract pages and a run through the stages and bosses](showcase/ubtype_showcase.gif)
