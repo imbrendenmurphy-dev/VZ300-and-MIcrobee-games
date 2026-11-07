@@ -131,4 +131,5 @@ switch, quit to menu and exit to DOS.
 
 **Not in this milestone (planned):**
 - Joystick — port not yet confirmed.
-- Technology tree, rival civilisations, diplomacy, scenarios, victory conditions, regional view, terrain shaping, harbours/ships.
+- Done in milestone 3: technology tree, rival peoples (src/rivals.asm, 3 records of 16 bytes in the saved state, objects 20h-37h on the map), envoys screen, seven scenarios, five victories and defeat (overlay: scen_screen, goal_check monthly via ovl_call, goals_screen, goal_end).
+- Still to do: regional view, terrain shaping, ships.

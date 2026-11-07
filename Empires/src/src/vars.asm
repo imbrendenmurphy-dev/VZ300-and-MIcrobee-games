@@ -167,6 +167,7 @@ want_done: db 0
 want_grow: db 0
 want_warn: db 0
 want_jingle: db 0
+want_goal: db 0
 want_research: db 0
 dirty_tools: db 0
 animf:  db 0
@@ -226,6 +227,9 @@ techs: dw 0
 rpoints: dw 0
 nrivals: db 0
 rivals: ds 3*16
+scen: db 0
+goal_done: db 0
+nexpl: dw 0
 nbld: db 0
 viewx: db 0
 viewy: db 0

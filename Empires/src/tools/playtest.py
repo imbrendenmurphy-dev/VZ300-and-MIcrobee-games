@@ -7,7 +7,7 @@ os.chdir(os.path.join(os.path.dirname(os.path.abspath(__file__)),'..','build'))
 EMU='../tools/beeemu'; COM='EMPIRES.COM'
 sym={l.split()[1]:int(l.split()[0],16) for l in open('empires.sym')}
 W=112
-PRE=["frames 60","key 3 1","frames 6","key 3 0","frames %d"%int(os.environ.get("TW","300")),"key 33 1","frames 6","key 33 0","frames 1500"]
+PRE=["frames 60","key 3 1","frames 6","key 3 0","frames %d"%int(os.environ.get("TW","300")),"key 33 1","frames 6","key 33 0","frames 30","key 52 1","frames 6","key 52 0","frames 1500"]
 def run(lines):
     r=subprocess.run([EMU,COM,'banked'],input='\n'.join(lines)+'\n',capture_output=True,text=True)
     return r.stderr

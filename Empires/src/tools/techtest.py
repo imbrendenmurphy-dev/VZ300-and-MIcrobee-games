@@ -12,7 +12,7 @@ def tap(k, n=1, hold=6, gap=6):
     for _ in range(n):
         o += ['key %d 1' % k, 'frames %d' % hold, 'key %d 0' % k, 'frames %d' % gap]
     return o
-PRE = ['frames 60'] + tap(3) + ['frames %d' % TW] + tap(33) + ['frames 1500']
+PRE = ['frames 60'] + tap(3) + ['frames %d' % TW] + tap(33) + ['frames 30'] + tap(52) + ['frames 1500']
 def run(lines):
     return subprocess.run(['../tools/beeemu', 'EMPIRES.COM', 'banked'], input='\n'.join(lines) + '\n',
                           capture_output=True, text=True).stderr
@@ -49,7 +49,7 @@ if s:
         for b in (0, 1): used.add((s[0] + a, s[1] + b))
 print('start', (sx, sy), 'plan', plan)
 def poke16(name, v): return 'poke %04X %02X %02X' % (sym[name], v & 255, v >> 8)
-L = list(PRE) + [poke16('techs', 0x1FFF), poke16('wood', 3000), poke16('stone', 3000), poke16('gold', 3000),
+L = list(PRE) + ['poke %04X 1F' % sym['goal_done'], poke16('techs', 0x1FFF), poke16('wood', 3000), poke16('stone', 3000), poke16('gold', 3000),
                  poke16('pop', 60), poke16('food', 3000), 'frames 2'] + tap(2) + ['frames 4']  # B: page 2
 cx, cy = sx, sy
 K = {'up': 23, 'left': 1, 'down': 19, 'right': 4}

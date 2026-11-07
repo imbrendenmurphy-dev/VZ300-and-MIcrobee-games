@@ -7,7 +7,7 @@ def tap(k, n=1):
     o = []
     for _ in range(n): o += ['key %d 1' % k, 'frames 6', 'key %d 0' % k, 'frames 6']
     return o
-PRE = ['frames 60'] + tap(3) + ['frames 340'] + tap(33) + ['frames 1500']
+PRE = ['frames 60'] + tap(3) + ['frames 340'] + tap(33) + ['frames 30'] + tap(52) + ['frames 1500']
 def run(lines):
     return subprocess.run(['../tools/beeemu', 'EMPIRES.COM', 'banked'], input='\n'.join(lines) + '\n',
                           capture_output=True, text=True).stderr

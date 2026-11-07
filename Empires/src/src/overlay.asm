@@ -65,6 +65,7 @@ txt_s4:  db "(CHANGE ANY TIME WITH  C  IN GAME)",0
 
 
 title_menu:
+        call scen_restore
         call draw_bigtitle
         ld b,5
         ld c,24
@@ -126,8 +127,15 @@ title_menu:
         xor a
         ld (ovl_ret),a
         ret
-.new:   call music_stop
-        call sfx_click
+.new:   call sfx_click
+        call scen_screen
+        ld a,(ovl_ret)
+        or a
+        jr nz,.go
+        ld a,2                  ; back: redraw the title
+        ld (ovl_ret),a
+        ret
+.go:    call music_stop
         ld a,1
         ld (ovl_ret),a
         ret
@@ -387,7 +395,7 @@ wt2:    db "CONTINENTAL",0
 wt3:    db "FRONTIER   ",0
 wt4:    db "HARSH      ",0
 txt_living:  db "T H E   L I V I N G   W O R L D",0
-txt_m1:  db "1  NEW WORLD",0
+txt_m1:  db "1  NEW GAME",0
 txt_m2:  db "2  WORLD:   ",0
 txt_m3:  db "3  DISPLAY: ",0
 txt_m4:  db "4  SOUND:   ",0
@@ -401,7 +409,7 @@ txt_colour: db "COLOUR    ",0
 txt_mono:   db "MONOCHROME",0
 txt_on:  db "ON ",0
 txt_off: db "OFF",0
-txt_vibed:   db "ViBED by BPM  2026",0
+txt_vibed:   db "VIBED BY BPM 2026",0
 txt_edition: db "MICROBEE PREMIUM PLUS  -  1MB  -  80 x 24 PCG",0
 
 ; ---- help / how to play
@@ -448,7 +456,8 @@ help_text:
         db C_GOOD,"VIEW   M world map    C colour/monochrome    H this help   R research",0
         db C_GOOD,"TIME   P pause    < slower    > faster    ESC leave world",0
         db C_GOOD,"DISK   F save or load your world (3 slots on the game disk)",0
-        db C_GOOD,"PEOPLE E envoys: gifts, trade and alliances with the peoples you meet",0
+        db C_GOOD,"ENVOYS E envoys: gifts, trade and alliances with the peoples you meet",0
+        db C_GOOD,"GOALS  V your goals and the five paths to victory",0
         db C_DIM,"",0
         db C_TEXT,"FOOD   Farms plough the grass around them into fields. Fields yield",0
         db C_TEXT,"       most in autumn and nothing in winter - store food for the snow!",0
@@ -1315,3 +1324,924 @@ txt_en_traded: db "AGREED! CARAVANS WILL BRING GOLD EVERY MONTH.",0
 txt_en_atwar: db "YOU ARE AT WAR. GIFTS MAY BRING PEACE.",0
 txt_en_needtrade: db "FIRST AGREE TO TRADE WITH THEM.",0
 txt_en_allied: db "AN ALLIANCE! THEIR SCHOLARS WILL SHARE THEIR LEARNING.",0
+
+; ==== SCENARIOS, GOALS AND VICTORY ========================================
+; scenario: worldtype, worldsize, rivals (FF = menu setting), bonus, goal
+; (FF = free play: any of the five paths), name, two lines of description
+SC_LEN  equ 11
+scen_tab:
+        db 0FFh,0FFh,0FFh,0,0FFh
+        dw scn0,scd0a,scd0b
+        db 0,0,0,1,5
+        dw scn1,scd1a,scd1b
+        db 1,0,1,0,6
+        dw scn2,scd2a,scd2b
+        db 2,0,3,0,4
+        dw scn3,scd3a,scd3b
+        db 4,0,1,0,7
+        dw scn4,scd4a,scd4b
+        db 3,1,3,1,8
+        dw scn5,scd5a,scd5b
+        db 0,1,2,2,2
+        dw scn6,scd6a,scd6b
+NSCEN   equ 7
+scn0:  db "FREE PLAY",0
+scd0a: db "YOUR OWN WORLD, MADE WITH THE SETTINGS ON THE TITLE MENU.",0
+scd0b: db "ANY OF THE FIVE PATHS BRINGS VICTORY - THEN PLAY ON FOR EVER.",0
+scn1:  db "THE FIRST SETTLEMENT",0
+scd1a: db "A GENTLE BEGINNING: NO RIVALS AND A FULL STOREHOUSE.",0
+scd1b: db "GOAL: GROW YOUR TOWN TO 50 PEOPLE.",0
+scn2:  db "THE GREAT ISLAND",0
+scd2a: db "AN ISLAND REALM. BUILD HARBOURS AND SEEK OUT TRADE.",0
+scd2b: db "GOAL: 60 PEOPLE AND A TRADE AGREEMENT WITH ANOTHER PEOPLE.",0
+scn3:  db "THE DIVIDED CONTINENT",0
+scd3a: db "THREE OTHER PEOPLES SHARE THIS LAND WITH YOU.",0
+scd3b: db "GOAL: DOMINION - SETTLE A THIRD OF THE WORLD.",0
+scn4:  db "THE LOST VALLEY",0
+scd4a: db "A HIDDEN VALLEY OF ROCK, MARSH AND HARD WINTERS.",0
+scd4b: db "GOAL: GROW TO 80 PEOPLE.",0
+scn5:  db "THE AGE OF DISCOVERY",0
+scd5a: db "A VAST UNKNOWN WORLD. BUILD WATCHTOWERS AND EXPLORE.",0
+scd5b: db "GOAL: MEET EVERY PEOPLE AND EXPLORE 12% OF THE WORLD.",0
+scn6:  db "THE GREAT EMPIRE",0
+scd6a: db "RULE AN ESTABLISHED REALM, RICH IN LEARNING AND GOLD.",0
+scd6b: db "GOAL: CULTURE - THE GRAND FORUM, 100 PEOPLE, 75% HAPPY.",0
+
+; A = scenario -> IY = its entry
+scen_ptr:
+        ld iy,scen_tab
+        or a
+        ret z
+        push de
+        ld de,SC_LEN
+.l:     add iy,de
+        dec a
+        jr nz,.l
+        pop de
+        ret
+; IY+o -> HL = word
+sc_word:
+        ld a,(iy+5)
+        ld l,a
+        ld a,(iy+6)
+        ld h,a
+        ret
+
+; ---- the scenario list (from 1 on the title menu) ------------------------
+; returns ovl_ret 1 = start, 0 = back
+scen_screen:
+        xor a
+        ld (ss_sel),a
+.redraw:
+        ld a,C_TEXT
+        call shadow_clear
+        ld b,1
+        ld c,2
+        ld hl,txt_ss_title
+        ld a,C_MSG
+        call puts_at
+        xor a
+.row:   ld (ss_i),a
+        call scen_ptr
+        ld a,(ss_i)
+        add a,a
+        add a,4
+        ld b,a
+        ld c,1
+        call cell_off
+        ld a,(ss_i)
+        ld hl,ss_sel
+        cp (hl)
+        ld a,C_DIM
+        ld c,' '
+        jr nz,.r1
+        ld a,C_MSG
+        ld c,'>'                ; a marker the monochrome screen shows too
+.r1:    ld (txtcol),a
+        ld a,c
+        call putch
+        inc de
+        ld a,(ss_i)
+        add a,'1'
+        call putch
+        inc de
+        inc de
+        ld a,(ss_i)
+        ld hl,ss_sel
+        cp (hl)
+        ld a,C_TEXT
+        jr nz,.r2
+        ld a,C_GOOD
+.r2:    push af
+        call sc_word
+        pop af
+        call puts
+        ld a,(ss_i)
+        inc a
+        cp NSCEN
+        jr nz,.row
+        ; the chosen one, described
+        ld a,(ss_sel)
+        call scen_ptr
+        ld b,19
+        ld c,4
+        ld l,(iy+7)
+        ld h,(iy+8)
+        ld a,C_TEXT
+        call puts_at
+        ld b,20
+        ld c,4
+        ld l,(iy+9)
+        ld h,(iy+10)
+        ld a,C_MSG
+        call puts_at
+        ld b,22
+        ld c,4
+        ld hl,txt_ss_keys
+        ld a,C_DIM
+        call puts_at
+        call present_all
+        call wait_release
+.lp:    call wait_frame
+        call scan_keys
+        call mouse_frame
+        ld a,(frames)
+        and 7
+        call z,animate
+        ld a,KB_ESC
+        call key_hit
+        jr nz,.back
+        ld a,KB_RET
+        call key_hit
+        jr nz,.go
+        ld a,KB_SPACE
+        call key_hit
+        jr nz,.go
+        ld a,(ms_click)
+        bit 1,a
+        jr nz,.go
+        ld a,(ms_mu)
+        or a
+        jr nz,.up
+        ld a,KB_UP
+        call key_hit
+        jr nz,.up
+        ld a,(ms_md)
+        or a
+        jr nz,.dn
+        ld a,KB_DOWN
+        call key_hit
+        jr nz,.dn
+        ld b,0                  ; number keys pick directly
+.nk:    push bc
+        ld a,b
+        add a,KB_1
+        call key_hit
+        pop bc
+        jr nz,.pick
+        inc b
+        ld a,b
+        cp NSCEN
+        jr nz,.nk
+        jr .lp
+.pick:  ld a,b
+        ld (ss_sel),a
+        call sfx_click
+        jp .redraw
+.up:    ld a,(ss_sel)
+        or a
+        jr z,.lp
+        dec a
+        jr .mv
+.dn:    ld a,(ss_sel)
+        inc a
+        cp NSCEN
+        jr nc,.lp
+.mv:    ld (ss_sel),a
+        call sfx_click
+        jp .redraw
+.back:  call sfx_click
+        xor a
+        ld (ovl_ret),a
+        jp wait_release
+.go:    call sfx_click
+        ld a,(ss_sel)
+        ld (scen),a
+        call scen_ptr
+        ld a,(worldtype)        ; keep the player's own settings for later
+        ld (ss_wt),a
+        ld a,(worldsize)
+        ld (ss_ws),a
+        ld a,1
+        ld (ss_saved),a
+        ld a,(iy+0)
+        cp 0FFh
+        jr z,.g1
+        ld (worldtype),a
+        ld a,(iy+1)
+        ld (worldsize),a
+.g1:    ld a,(iy+2)
+        ld (opt_rivals),a
+        ld a,1
+        ld (ovl_ret),a
+        jp wait_release
+
+; back at the title: give the player's own world settings back
+scen_restore:
+        ld a,(ss_saved)
+        or a
+        ret z
+        xor a
+        ld (ss_saved),a
+        ld a,(ss_wt)
+        ld (worldtype),a
+        ld a,(ss_ws)
+        ld (worldsize),a
+        ret
+
+; after new_game: the scenario's starting gifts
+scen_start:
+        ld a,(scen)
+        call scen_ptr
+        ld a,(iy+3)
+        or a
+        ret z
+        ld hl,200               ; bonus 1: a full storehouse
+        ld (food),hl
+        ld (wood),hl
+        ld hl,100
+        ld (stone),hl
+        ld hl,250
+        ld (gold),hl
+        dec a
+        ret z
+        ld hl,600               ; bonus 2: an established realm
+        ld (food),hl
+        ld (wood),hl
+        ld hl,300
+        ld (stone),hl
+        ld hl,800
+        ld (gold),hl
+        ld hl,12
+        ld (pop),hl
+        ld a,70
+        ld (happy),a
+        ld hl,(techs)           ; six arts already known
+        ld a,l
+        or 3Fh
+        ld l,a
+        ld (techs),hl
+        jp pick_research        ; study something not yet known
+
+; ---- goals --------------------------------------------------------------
+; once a month from the simulation: victory or defeat?
+goal_check:
+        ld hl,(pop)
+        ld a,h
+        or a
+        jr nz,.alive
+        ld a,l
+        cp 3
+        jr nc,.alive
+        ld a,0FFh               ; the people have scattered
+        ld (gw_id),a
+        ld a,2
+        ld (want_goal),a
+        ret
+.alive: ld a,(scen)
+        call scen_ptr
+        ld a,(iy+4)
+        cp 0FFh
+        jr z,.free
+        ld b,a
+        ld a,(goal_done)
+        bit 7,a
+        ret nz
+        ld a,b
+        push bc
+        call goal_test
+        pop bc
+        or a
+        ret z
+        ld hl,goal_done
+        set 7,(hl)
+        jr .won
+.free:  ld b,0
+.fl:    push bc
+        ld a,b
+        call goal_test
+        pop bc
+        or a
+        jr z,.fn
+        ld a,b                  ; new?
+        call bit_of
+        ld hl,goal_done
+        ld c,a
+        and (hl)
+        jr nz,.fn
+        ld a,c
+        or (hl)
+        ld (hl),a
+.won:   ld a,b
+        ld (gw_id),a
+        ld a,1
+        ld (want_goal),a
+        ret
+.fn:    inc b
+        ld a,b
+        cp 5
+        jr nz,.fl
+        ret
+bit_of: ld c,a
+        inc c
+        ld a,80h
+.b:     rlca
+        dec c
+        jr nz,.b
+        ret
+
+; A = goal -> A = 1 achieved, 0 not yet
+goal_test:
+        add a,a
+        ld l,a
+        ld h,0
+        ld de,gt_tab
+        add hl,de
+        ld a,(hl)
+        inc hl
+        ld h,(hl)
+        ld l,a
+        jp (hl)
+gt_tab: dw gt_prosper,gt_science,gt_culture,gt_diplo,gt_dominion
+        dw gt_settle,gt_island,gt_valley,gt_discover
+gt_no:  xor a
+        ret
+gt_yes: ld a,1
+        ret
+cmp_pop:                        ; C if pop < DE
+        ld hl,(pop)
+        or a
+        sbc hl,de
+        ret
+gt_prosper:
+        ld de,150
+        call cmp_pop
+        jr c,gt_no
+        ld hl,(gold)
+        ld de,1000
+        or a
+        sbc hl,de
+        jr c,gt_no
+        call ntechs
+        cp 8
+        jr c,gt_no
+        jr gt_yes
+gt_science:
+        call ntechs
+        cp 13
+        jr c,gt_no
+        jr gt_yes
+gt_culture:
+        ld a,(forum_done)
+        or a
+        jr z,gt_no
+        ld a,(happy)
+        cp 75
+        jr c,gt_no
+        ld de,100
+        call cmp_pop
+        jr c,gt_no
+        jr gt_yes
+gt_diplo:
+        call count_rel
+        ld a,e
+        or a
+        jr z,gt_no
+        cp b
+        jr nz,gt_no
+        jr gt_yes
+gt_dominion:
+        call expl_pct
+        ld b,a
+        call dom_pct
+        ld c,a
+        ld a,b
+        cp c
+        jr c,gt_no
+        ld a,(nbld)
+        cp 100
+        jr c,gt_no
+        jr gt_yes
+dom_pct:
+        ld a,(worldsize)
+        or a
+        ld a,30
+        ret z
+        ld a,15
+        ret
+gt_settle:
+        ld de,50
+        call cmp_pop
+        jr c,gt_no
+        jr gt_yes
+gt_island:
+        call count_rel
+        ld a,d
+        or a
+        jr z,gt_no
+        ld de,60
+        call cmp_pop
+        jr c,gt_no
+        jr gt_yes
+gt_valley:
+        ld de,80
+        call cmp_pop
+        jr c,gt_no
+        jr gt_yes
+gt_discover:
+        call count_rel
+        ld a,e
+        or a
+        jr z,.d
+        cp c
+        jp nz,gt_no
+.d:     call expl_pct
+        cp 12
+        jp c,gt_no
+        jp gt_yes
+
+; A = number of technologies known
+ntechs: ld hl,(techs)
+        ld b,16
+        ld c,0
+.l:     add hl,hl
+        jr nc,.n
+        inc c
+.n:     djnz .l
+        ld a,c
+        ret
+; A = percentage of the world explored
+expl_pct:
+        ld hl,(nexpl)
+        ld de,164
+        ld a,(worldsize)
+        or a
+        jr z,.s
+        ld de,655
+.s:     ld c,0
+.l:     or a
+        sbc hl,de
+        jr c,.d
+        inc c
+        ld a,c
+        cp 100
+        jr c,.l
+.d:     ld a,c
+        ret
+; B = allies, C = met, D = trading or allied, E = peoples in the world
+count_rel:
+        ld bc,0
+        ld de,0
+        ld a,(nrivals)
+        or a
+        ret z
+        xor a
+.l:     ld (cr_i),a
+        push bc
+        push de
+        call riv_ix
+        pop de
+        pop bc
+        ld a,(ix+R_ACT)
+        or a
+        jr z,.n
+        inc e
+        ld a,(ix+R_STAT)
+        or a
+        jr z,.n
+        inc c
+        cp ST_ALLY
+        jr nz,.t
+        inc b
+.t:     cp ST_TRADE
+        jr c,.n
+        cp ST_WAR
+        jr z,.n
+        inc d
+.n:     ld a,(cr_i)
+        inc a
+        ld hl,nrivals
+        cp (hl)
+        jr nz,.l
+        ret
+
+; ---- the goals screen (V) ------------------------------------------------
+goals_screen:
+        ld a,C_TEXT
+        call shadow_clear
+        ld a,(scen)
+        call scen_ptr
+        ld b,0
+        ld c,2
+        ld hl,txt_gs_title
+        ld a,C_MSG
+        call puts_at
+        call sc_word
+        ld a,C_GOOD
+        call puts
+        ld b,2
+        ld c,2
+        ld l,(iy+9)
+        ld h,(iy+10)
+        ld a,C_TEXT
+        call puts_at
+        ld b,4
+        ld c,2
+        ld hl,txt_gs_paths
+        ld a,C_DIM
+        call puts_at
+        ; the five paths
+        ld b,6
+        ld c,2
+        ld hl,txt_gp0
+        call gs_head
+        ld hl,txt_gpeople
+        call gs_lbl
+        ld hl,(pop)
+        call gs_num
+        ld hl,txt_g150
+        call gs_lbl
+        ld hl,txt_ggold
+        call gs_lbl
+        ld hl,(gold)
+        call gs_num
+        ld hl,txt_g1000
+        call gs_lbl
+        ld hl,txt_glearn
+        call gs_lbl
+        call ntechs
+        call gs_numa
+        ld hl,txt_g8
+        call gs_lbl
+        xor a
+        call gs_done
+        ld b,8
+        ld c,2
+        ld hl,txt_gp1
+        call gs_head
+        ld hl,txt_glearn
+        call gs_lbl
+        call ntechs
+        call gs_numa
+        ld hl,txt_g13
+        call gs_lbl
+        ld a,1
+        call gs_done
+        ld b,10
+        ld c,2
+        ld hl,txt_gp2
+        call gs_head
+        ld hl,txt_gforum
+        call gs_lbl
+        ld hl,txt_gno
+        ld a,(forum_done)
+        or a
+        jr z,.f
+        ld hl,txt_gyes
+.f:     call gs_lbl
+        ld hl,txt_gpeople
+        call gs_lbl
+        ld hl,(pop)
+        call gs_num
+        ld hl,txt_g100
+        call gs_lbl
+        ld hl,txt_ghappy
+        call gs_lbl
+        ld a,(happy)
+        call gs_numa
+        ld hl,txt_g75
+        call gs_lbl
+        ld a,2
+        call gs_done
+        call count_rel
+        ld a,b
+        ld (gs_a),a
+        ld a,e
+        ld (gs_b),a
+        ld b,12
+        ld c,2
+        ld hl,txt_gp3
+        call gs_head
+        ld hl,txt_gallies
+        call gs_lbl
+        ld a,(gs_a)
+        call gs_numa
+        ld hl,txt_gof
+        call gs_lbl
+        ld a,(gs_b)
+        call gs_numa
+        ld a,3
+        call gs_done
+        ld b,14
+        ld c,2
+        ld hl,txt_gp4
+        call gs_head
+        ld hl,txt_gland
+        call gs_lbl
+        push de
+        call expl_pct
+        pop de
+        call gs_numa
+        ld hl,txt_gpct
+        call gs_lbl
+        call dom_pct
+        call gs_numa
+        ld hl,txt_gpct2
+        call gs_lbl
+        ld a,(nbld)
+        call gs_numa
+        ld hl,txt_g100
+        call gs_lbl
+        ld a,4
+        call gs_done
+        ; the scenario's own goal
+        ld a,(scen)
+        call scen_ptr
+        ld a,(iy+4)
+        cp 5
+        jr c,.nos
+        cp 0FFh
+        jr z,.nos
+        ld b,17
+        ld c,2
+        ld hl,txt_gs_own
+        call gs_head
+        ld a,(scen)
+        call scen_ptr
+        ld l,(iy+9)
+        ld h,(iy+10)
+        call gs_lbl
+        ld a,(scen)
+        call scen_ptr
+        ld a,(iy+4)
+        call gs_done
+.nos:   ld b,20
+        ld c,2
+        ld hl,txt_gs_year
+        ld a,C_DIM
+        call puts_at
+        ld hl,(year)
+        call gs_num
+        ld hl,txt_gs_any
+        ld a,C_DIM
+        call puts
+        call present_all
+        call wait_release
+.lp:    call wait_frame
+        call scan_keys
+        call mouse_frame
+        ld a,(frames)
+        and 7
+        call z,animate
+        call gs_anykey
+        jr z,.lp
+        call sfx_click
+        jp wait_release
+gs_head:
+        ld a,b
+        ld (gs_row),a
+        ld a,C_MSG
+        jp puts_at
+gs_lbl: ld a,C_TEXT
+        jp puts
+gs_numa:
+        ld l,a
+        ld h,0
+gs_num: ld a,C_GOOD
+        ld (txtcol),a
+        jp putnum
+; A = goal: "ACHIEVED" at the end of row gs_row if done
+gs_done:
+        call goal_test
+        or a
+        ret z
+        ld a,(gs_row)
+        ld b,a
+        ld c,68
+        ld hl,txt_gach
+        ld a,C_GOOD
+        jp puts_at
+; NZ when the player wants to leave a screen
+gs_anykey:
+        ld a,(ms_click)
+        or a
+        ret nz
+        ld a,KB_ESC
+        call key_hit
+        ret nz
+        ld a,KB_RET
+        call key_hit
+        ret nz
+        ld a,KB_SPACE
+        call key_hit
+        ret nz
+        ld a,KB_GOALS
+        jp key_hit
+
+; ---- victory or defeat ---------------------------------------------------
+; ovl_ret: 0 = play on, 1 = back to the title
+goal_end:
+        ld a,C_TEXT
+        call shadow_clear
+        ld a,(gw_id)
+        cp 0FFh
+        jp z,.lost
+        call draw_bigtitle
+        ld b,7
+        ld hl,txt_ge_vic
+        ld a,C_MSG
+        call put_centre
+        ld a,(gw_id)
+        cp 5
+        jr nc,.sc
+        add a,a
+        ld l,a
+        ld h,0
+        ld de,ge_paths
+        add hl,de
+        ld a,(hl)
+        inc hl
+        ld h,(hl)
+        ld l,a
+        jr .p
+.sc:    ld a,(scen)
+        call scen_ptr
+        call sc_word
+        ld b,10
+        ld a,C_GOOD
+        call put_centre
+        ld hl,txt_ge_done
+.p:     ld b,12
+        ld a,C_TEXT
+        call put_centre
+        ld b,15
+        ld c,22
+        ld hl,txt_ge_year
+        ld a,C_TEXT
+        call puts_at
+        ld hl,(year)
+        call gs_num
+        ld hl,txt_ge_pop
+        call gs_lbl
+        ld hl,(pop)
+        call gs_num
+        ld hl,txt_ge_pop2
+        call gs_lbl
+        ld b,19
+        ld hl,txt_ge_keys
+        ld a,C_MSG
+        call put_centre
+        ld b,23
+        ld hl,txt_vibed
+        ld a,COL(BMAGENTA,BLACK)
+        call put_centre
+        call present_all
+        ld hl,mus_title
+        call music_start
+        call wait_release
+.lp:    call wait_frame
+        call scan_keys
+        call mouse_frame
+        ld a,(frames)
+        and 7
+        call z,animate
+        ld a,KB_COL             ; C: play on
+        call key_hit
+        jr nz,.on
+        ld a,(ms_click)
+        bit 1,a
+        jr nz,.on
+        ld a,KB_ESC
+        call key_hit
+        jr z,.lp
+        call music_stop
+        ld a,1
+        ld (ovl_ret),a
+        jp wait_release
+.on:    call music_stop
+        call sfx_click
+        xor a
+        ld (ovl_ret),a
+        jp wait_release
+.lost:  ld b,6
+        ld hl,txt_ge_lost
+        ld a,C_WARN
+        call put_centre
+        ld b,9
+        ld hl,txt_ge_lost2
+        ld a,C_TEXT
+        call put_centre
+        ld b,11
+        ld hl,txt_ge_lost3
+        ld a,C_TEXT
+        call put_centre
+        ld b,15
+        ld c,30
+        ld hl,txt_ge_year
+        ld a,C_TEXT
+        call puts_at
+        ld hl,(year)
+        call gs_num
+        ld b,19
+        ld hl,txt_ge_lkey
+        ld a,C_DIM
+        call put_centre
+        call present_all
+        ld hl,fx_bad
+        call sfx
+        call wait_release
+.ll:    call wait_frame
+        call scan_keys
+        call mouse_frame
+        call gs_anykey
+        jr z,.ll
+        ld a,1
+        ld (ovl_ret),a
+        jp wait_release
+
+; B = row, HL = string, A = colour: centred on the 80 columns
+put_centre:
+        push af
+        push hl
+        ld c,0
+.n:     ld a,(hl)
+        or a
+        jr z,.e
+        inc hl
+        inc c
+        jr .n
+.e:     ld a,80
+        sub c
+        srl a
+        ld c,a
+        pop hl
+        pop af
+        jp puts_at
+
+ge_paths: dw txt_win0,txt_win1,txt_win2,txt_win3,txt_win4
+txt_win0: db "A PROSPERITY VICTORY - YOUR REALM IS WEALTHY AND WISE.",0
+txt_win1: db "A VICTORY OF SCIENCE - ALL THE ARTS OF YOUR AGE ARE MASTERED.",0
+txt_win2: db "A CULTURAL VICTORY - YOUR CITY IS THE LIGHT OF THE WORLD.",0
+txt_win3: db "A DIPLOMATIC VICTORY - EVERY PEOPLE IS YOUR FRIEND AND ALLY.",0
+txt_win4: db "A DOMINION VICTORY - YOUR LANDS STRETCH ACROSS THE WORLD.",0
+txt_ge_vic:  db "V  I  C  T  O  R  Y",0
+txt_ge_done: db "YOU HAVE ACHIEVED ALL THAT WAS ASKED OF YOU.",0
+txt_ge_year: db "IN YEAR ",0
+txt_ge_pop:  db " YOUR CITY HOLDS ",0
+txt_ge_pop2: db " PEOPLE.",0
+txt_ge_keys: db "C  CONTINUE YOUR REIGN          ESC  RETURN TO THE TITLE",0
+txt_ge_lost: db "YOUR PEOPLE HAVE SCATTERED",0
+txt_ge_lost2: db "HUNGER AND HARDSHIP HAVE EMPTIED YOUR TOWN.",0
+txt_ge_lost3: db "THE FIELDS GROW WILD, AND YOUR TALE IS ENDED.",0
+txt_ge_lkey: db "PRESS A KEY TO RETURN TO THE TITLE",0
+txt_ss_title: db "CHOOSE YOUR TALE",0
+txt_ss_keys:  db "1-7 OR UP/DOWN TO CHOOSE.   RETURN TO BEGIN.   ESC GOES BACK.",0
+txt_gs_title: db "GOALS  -  ",0
+txt_gs_paths: db "THE FIVE PATHS TO GREATNESS:",0
+txt_gs_own:   db "THIS TALE:  ",0
+txt_gs_year:  db "YEAR ",0
+txt_gs_any:   db ".   PRESS ANY KEY TO RETURN.",0
+txt_gp0:  db "PROSPERITY   ",0
+txt_gp1:  db "SCIENCE      ",0
+txt_gp2:  db "CULTURE      ",0
+txt_gp3:  db "DIPLOMACY    ",0
+txt_gp4:  db "DOMINION     ",0
+txt_gpeople: db "PEOPLE ",0
+txt_ggold:   db "   GOLD ",0
+txt_glearn:  db "   LEARNING ",0
+txt_gforum:  db "FORUM ",0
+txt_ghappy:  db "   HAPPY ",0
+txt_gallies: db "ALLIES ",0
+txt_gland:   db "LAND SETTLED ",0
+txt_g150:  db "/150",0
+txt_g1000: db "/1000",0
+txt_g8:    db "/8",0
+txt_g13:   db "/13",0
+txt_g100:  db "/100",0
+txt_g75:   db "/75",0
+txt_gof:   db " OF ",0
+txt_gpct:  db "%/",0
+txt_gpct2: db "%   BUILDINGS ",0
+txt_gyes:  db "BUILT   ",0
+txt_gno:   db "NOT YET   ",0
+txt_gach:  db "ACHIEVED",0
+ss_sel:   db 0
+ss_i:     db 0
+ss_wt:    db 0
+ss_ws:    db 0
+ss_saved: db 0
+gw_id:    db 0
+cr_i:     db 0
+gs_row:   db 0
+gs_a:     db 0
+gs_b:     db 0

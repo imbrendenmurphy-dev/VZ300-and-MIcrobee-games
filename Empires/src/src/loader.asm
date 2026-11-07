@@ -55,7 +55,7 @@ svc_exit:
         ld c,9
         call BDOS
         jp 0                    ; warm boot to the A> prompt
-m_bye:  db 26,"Thanks for playing EMPIRES : THE LIVING WORLD - ViBED by BPM",13,10,"$"
+m_bye:  db 26,"Thanks for playing EMPIRES : THE LIVING WORLD - VIBED BY BPM 2026",13,10,"$"
 
 start:  ld sp,0A7F0h            ; upper TPA: the lower window switches under us
         ld de,m_title
@@ -78,7 +78,7 @@ start:  ld sp,0A7F0h            ; upper TPA: the lower window switches under us
         jp main
 
 m_title: db 13,10,"EMPIRES : THE LIVING WORLD",13,10
-         db "ViBED by BPM - 2026",13,10,"$"
+         db "VIBED BY BPM 2026",13,10,"$"
 m_tpa:   db "Needs a CP/M with a TPA above B000h.",13,10,"$"
 
 reloc:

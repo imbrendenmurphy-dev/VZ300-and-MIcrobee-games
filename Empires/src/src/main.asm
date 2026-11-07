@@ -2,7 +2,7 @@
 ;  EMPIRES : THE LIVING WORLD
 ;  An original civilisation / city-building game for the
 ;  Microbee Premium Plus (1MB RAM, 80x24, 32K PCG, colour + monochrome)
-;  ViBED by BPM 2026
+;  VIBED BY BPM 2026
 ;
 ;  Engine image: runs in block 0 at 8000-EFFF, started by EMPIRES.COM
 ;  (loader.asm).  The world map lives in banked RAM in the lower window.
@@ -64,6 +64,8 @@ menu:   call title_screen
         call set_world_size
         call generate_world
         call new_game
+        ld hl,scen_start
+        call ovl_call
         ld hl,fx_start
         call sfx
         xor a

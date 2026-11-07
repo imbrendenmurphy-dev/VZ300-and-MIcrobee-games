@@ -114,6 +114,11 @@ new_game:
         ld (tool),a
         ld (tpage),a
         ld (forum_done),a
+        ld (goal_done),a
+        ld (want_goal),a
+        ld h,a
+        ld l,a
+        ld (nexpl),hl
         ld hl,(1<<TK_AGRI)|(1<<TK_FOREST)
         ld (techs),hl
         ld hl,0
@@ -274,6 +279,9 @@ reveal: push bc
         jr nz,.skip
         or EXPLORED
         ld (hl),a
+        ld de,(nexpl)
+        inc de
+        ld (nexpl),de
         and 1Fh
         cp T_RUINS
         jr nz,.skip
@@ -1833,6 +1841,12 @@ sim_tick:
         ld (happy),a
 .h9:    call research_week
         call riv_week
+        ld a,(week)
+        and 3
+        jr nz,.h10
+        ld hl,goal_check
+        call ovl_call
+.h10:
         call evolve_houses
         call random_event
         ld a,1
@@ -3012,7 +3026,20 @@ game_loop:
         ld (want_jingle),a
         ld hl,fx_ruins
         call sfx
-.s5:    jp .lp
+.s5:    ld a,(want_goal)
+        or a
+        jp z,.lp
+        call cursor_off_hw
+        ld hl,goal_end
+        call ovl_call
+        xor a
+        ld (want_goal),a
+        ld a,(ovl_ret)
+        ld (quit_flag),a
+        or a
+        ret nz
+        call redraw_all
+        jp .lp
 
 ; ---------------- input ----------------
 handle_keys:
@@ -3341,7 +3368,14 @@ handle_keys:
         ld hl,envoy_screen
         call ovl_call
         call redraw_all
-.k8e:   ld a,KB_FILE
+.k8e:   ld a,KB_GOALS
+        call key_hit
+        jr z,.k8g
+        call cursor_off_hw
+        ld hl,goals_screen
+        call ovl_call
+        call redraw_all
+.k8g:   ld a,KB_FILE
         call key_hit
         jr z,.k8b
         call cursor_off_hw
