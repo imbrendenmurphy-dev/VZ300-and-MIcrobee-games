@@ -316,5 +316,6 @@ dm_bd	db 0
 dm_br	db 0
 demostage db 0
 protostage db $FF		; test harness: stage to start in (FFh = normal)
+thin	db 1			; fewer enemies and bullets (0 = exactly as VZ-TYPE)
 mono	db 0			; monochrome monitor (chosen at start-up)
 dbgcol	dw 0			; test harness: start column (0 in play)

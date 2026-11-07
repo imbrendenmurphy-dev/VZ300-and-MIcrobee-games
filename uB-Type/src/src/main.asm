@@ -12,6 +12,7 @@ NENT	equ 20
 ENTSZ	equ 16
 NSHOT	equ 10
 NBUL	equ 12
+NBUL_THIN equ 6		; at most this many when thinning
 PFH	equ 56			; playfield height (VZ pixel rows)
 NTR	equ 14			; tile rows
 
@@ -201,8 +202,8 @@ starcol	ds 1
 colbuf	ds 3*PROWS
 	ALIGN 16
 BGBUF	ds 16
-QA	ds 2*270
-QB	ds 2*270
+QA	ds 2*320
+QB	ds 2*320
 STQA	ds 3*13+2
 STQB	ds 3*13+2
 	ALIGN 256

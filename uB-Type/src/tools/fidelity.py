@@ -56,6 +56,7 @@ def compare(nframes=600, seed=1, stage=0, verbose=True, decouple=True, trainer=T
     # ---- Microbee
     pp = run.boot(stage)
     S = pp.S
+    pp.poke(S['thin'], 0)          # compare the unthinned game
     pp.run_until(S['mainloop'], 4000)
     import vzm
     print('start frame VZ', v.peek(VS['frame']), 'MB', pp.peek(S['frame']), 'scrollx', v.peek(VS['scrollx']), pp.peek(S['scrollx']))

@@ -211,11 +211,44 @@ def main():
         a = 2 * math.pi * k / 16
         d += [int(round(24 * math.cos(a))) & 255, int(round(24 * math.sin(a))) & 255]
     emit('dirtab:\n\tdb ' + ','.join('$%02x' % v for v in d))
+    # ---------------- enemy bullets over open space: ready-made glyphs in
+    # the font bank (codes 96..125), one per piece of each position.
+    # bultab: [frame][x offset 0/4][y offset 0/4/8/12] -> 4 cells (row-major
+    # 2 x 2): code (0 = none), ink
+    import mbfont, mbsprart
+    fontb = bytearray(mbfont.font_bank())
+    code = 96
+    tab = []
+    for f in range(2):
+        c = mbsprart.ebul(f)
+        bits, col = c.bits(), c.col
+        for xo in range(2):
+            for yo in range(4):
+                B = np.zeros((32, 16), bool)
+                C = np.zeros((32, 16), np.uint8)
+                B[4 * yo:4 * yo + 8, 4 * xo:4 * xo + 8] = bits
+                C[4 * yo:4 * yo + 8, 4 * xo:4 * xo + 8] = np.where(bits, col, 0)
+                ent = []
+                for r in range(2):
+                    for cc in range(2):
+                        pb = B[16 * r:16 * r + 16, 8 * cc:8 * cc + 8]
+                        if not pb.any():
+                            ent += [0, 0]
+                            continue
+                        pc = C[16 * r:16 * r + 16, 8 * cc:8 * cc + 8]
+                        vals, cnt = np.unique(pc[pc > 0], return_counts=True)
+                        fontb[code * 16:code * 16 + 16] = mbfont.pack(pb.astype(np.uint8))
+                        ent += [code, int(vals[np.argmax(cnt)])]
+                        code += 1
+                tab.append(ent)
+    assert code <= 128, code
+    emit('bultab:')
+    for e in tab:
+        emit('\tdb ' + ','.join('%d' % v for v in e))
     (BUILD / 'vzdata.inc').write_text('\n'.join(out) + '\n')
 
     # ---------------- per stage
-    import mbfont
-    (BUILD / 'GFX.BNK').write_bytes(mbfont.font_bank() + bytes(2048))
+    (BUILD / 'GFX.BNK').write_bytes(bytes(fontb) + bytes(2048))
     sprlib = SPR.build_all()
     for i, L in enumerate(Ls):
         pal = A.STAGE_PAL[i]

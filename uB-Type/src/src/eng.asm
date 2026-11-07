@@ -1122,6 +1122,8 @@ cell:	ld (cl_ink),a
 	jr z,.new
 	cp 254
 	jr z,.cache
+	cp 253
+	jr z,.over253
 	inc a
 	jp nz,cell_over		; another sprite's glyph is here already
 	; ---- boss body underneath (marked FFh)
@@ -1161,6 +1163,9 @@ cell:	ld (cl_ink),a
 	ret z
 	push hl
 	jr .comp
+.over253:			; a ready-made bullet piece: draw as if open
+	xor a
+	ld (hl),a
 .new:	call .alloc
 	ret z
 	ld c,(hl)		; background code
@@ -1465,12 +1470,154 @@ apply_queue:
 	ret
 
 ; ---- enemy bullet (VZ bul2): B = x+32, C = y+16
-bul2:	ld a,(frame)
+; Over open space a bullet needs no composing: the font bank holds a
+; ready-made glyph for each piece of each position (bultab), written
+; straight to the page (CSLOT = 253: a sprite drawn on top later treats the
+; cell as open space). Anywhere else it is drawn as a sprite.
+bul2:	ld (bf_bc),bc
+	ld a,(frame)
 	and 2
-	ld a,SP_EBUL0
-	jr z,$+3
+	ld e,a			; 0 / 2
+	rrca
+	add a,SP_EBUL0
+	ld (bf_spr),a
+	ld a,e
+	add a,a
+	add a,a			; frame * 8
+	ld e,a
+	ld a,b
+	and 1
+	add a,a
+	add a,a			; x offset * 4
+	add a,e
+	ld e,a
+	ld a,c
+	and 3
+	add a,e			; entry
+	add a,a
+	add a,a
+	add a,a
+	ld e,a
+	ld d,0
+	ld hl,bultab
+	add hl,de
+	ld (bf_tab),hl
+	ld a,b
+	srl a
+	sub 16
+	ld (bf_col),a
+	ld a,c
+	srl a
+	srl a
+	sub 4
+	ld (bf_row),a
+	; every piece over open space?
+	xor a
+.p1:	push af
+	call bf_addr
+	jr z,.n1
+	ld a,h
+	xor $70^$60
+	ld h,a
+	ld a,(hl)		; CSLOT
+	or a
+	jr nz,.spr
+	ld a,h
+	xor $60^$58
+	ld h,a
+	ld a,(hl)		; SHA
+	or a
+	jr nz,.spr
+	ld a,h
+	xor $58^$70
+	ld h,a
+	ld a,(hl)		; SHC
+	cp BLANK_CODE
+	jr nz,.spr
+.n1:	pop af
 	inc a
+	cp 4
+	jr c,.p1
+	; yes: the ready-made pieces
+	xor a
+.p2:	push af
+	call bf_addr
+	jr z,.n2
+	ld a,d
+	ld c,e
+	ld b,BK_FONT
+	call scrput
+	ld a,h
+	xor $70^$60
+	ld h,a
+	ld (hl),253
+.n2:	pop af
+	inc a
+	cp 4
+	jr c,.p2
+	ret
+.spr:	pop af
+	ld bc,(bf_bc)
+	ld a,(bf_spr)
 	jp drawspr
+
+; piece A (0..3: row-major 2 x 2) of the current bullet -> NZ with
+; HL = SHC address, D = code, E = ink; Z if there is none or it is clipped
+bf_addr:
+	ld (bf_k),a
+	add a,a
+	ld e,a
+	ld d,0
+	ld hl,(bf_tab)
+	add hl,de
+	ld a,(hl)
+	or a
+	ret z
+	ld d,a
+	inc hl
+	ld e,(hl)
+	push de
+	ld a,(bf_k)
+	and 1
+	ld hl,bf_col
+	add a,(hl)
+	cp SCOLS
+	jr nc,.clip
+	ld e,a
+	ld a,(bf_k)
+	srl a
+	ld hl,bf_row
+	add a,(hl)
+	cp PROWS
+	jr nc,.clip
+	ld l,a
+	ld h,0
+	add hl,hl
+	add hl,hl
+	add hl,hl
+	add hl,hl
+	add hl,hl
+	add hl,hl
+	ld d,0
+	add hl,de
+	ld de,(pstart)
+	add hl,de
+	ld a,h
+	and 7
+	or $70
+	ld h,a
+	pop de
+	or a			; NZ
+	ret
+.clip:	pop de
+	xor a
+	ret
+bf_bc	dw 0
+bf_tab	dw 0
+bf_spr	db 0
+bf_col	db 0
+bf_row	db 0
+bf_k	db 0
 
 ; ---------------------------------------------------------------------
 ;  HUD: two rows (64 cells each) at the bottom of the page just shown.

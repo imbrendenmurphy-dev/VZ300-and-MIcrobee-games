@@ -295,7 +295,26 @@ col2sx:	push bc			; (keeps BC: callers hold y in C)
 	ret
 
 spawn_from_list:
+	; thinning (Microbee): every fourth ordinary enemy is left out
+	ld a,(thin)
+	or a
+	jr z,.all
 	ld a,(sp_t)
+	cp T_CORE+1
+	jr nc,.all
+	ld e,a
+	ld d,0
+	ld hl,thintab
+	add hl,de
+	ld a,(hl)
+	or a
+	jr z,.all
+	ld hl,thinc
+	inc (hl)
+	ld a,(hl)
+	and 3
+	ret z
+.all:	ld a,(sp_t)
 	cp T_TURF
 	jp z,.turf
 	cp T_TURC
@@ -333,6 +352,18 @@ spawn_from_list:
 	ld a,(sp_p)
 	and 15
 	ld b,a
+	ld a,(thin)		; thinning: a quarter fewer in a formation
+	or a
+	jr z,.sw0
+	ld a,b
+	srl a
+	srl a
+	neg
+	add a,b
+	ld b,a
+	jr nz,.sw0
+	inc b
+.sw0:
 	ld c,0			; index
 .sl:	push bc
 	ld a,c
@@ -415,6 +446,11 @@ spawn_from_list:
 	ld d,0
 	jp spawn
 sp_idx	db 0
+; types that thinning may leave out (not carriers, bosses or reactor nodes)
+;		0 SWIM DART TURF TURC HOP CARR SPIN GUNS SPORE ...
+thintab	db 0,0,1,1,1,1,0,1,0,1,0,0,0,0,0,0,0,0,0,0
+thinc	db 0
+thinb	db 0
 colcf:	; dc_c / dc_f of column sp_col
 	ld hl,(sp_col)
 	push hl
@@ -1045,6 +1081,10 @@ pf_dx	db 0
 ; record: act, xf, x, yf, y, dx, dy, fr
 newbul:	ld iy,BULS
 	ld b,NBUL
+	ld a,(thin)		; thinning: fewer enemy bullets at once
+	or a
+	jr z,.l
+	ld b,NBUL_THIN
 .l:	ld a,(iy+0)
 	or a
 	ret z
@@ -1055,7 +1095,24 @@ newbul:	ld iy,BULS
 	ret
 ; fire bullet from B,C (offset coords) in direction A (0..15)
 firedir:
+	; thinning (Microbee): every third enemy bullet is not fired
 	push af
+	ld a,(thin)
+	or a
+	jr z,.fire
+	ld a,(thinb)
+	inc a
+	cp 3
+	jr c,$+3
+	xor a
+	ld (thinb),a
+	or a
+	jr nz,.fire
+	pop af
+	xor a
+	ld (bulslow),a
+	ret
+.fire:
 	push bc
 	call newbul
 	pop bc
