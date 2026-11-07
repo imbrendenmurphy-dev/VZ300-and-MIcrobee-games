@@ -315,23 +315,24 @@ def gen_music():
             'Bb2 2 F3 2 Bb3 2 F3 2 ' * 2 + 'G2 2 D3 2 G3 2 D3 2 ' * 2 + 'A2 2 E3 2 A3 2 E3 2 ' * 4 +
             'D2 2 A2 2 D3 2 A2 2 ' * 2 + 'A2 2 C#3 2 E3 2 A2 2 ' * 2 + 'D2 2 A2 2 D3 2 A2 2 ' * 4)
     songs['TITLE'] = (seq(mel, u), seq(bass, u))
-    # STAGE 1: GALLOWS HILL - jaunty macabre march in A minor
-    u = 3
-    mel = ('A3 2 C4 2 E4 2 A4 4 G4 2 E4 2 F4 2 E4 2 D4 2 C4 2 B3 2 C4 2 D4 4 - 2 '
-           'E4 2 G#4 2 B4 2 E5 4 D5 2 B4 2 C5 2 B4 2 A4 2 G#4 2 A4 6 - 2 '
-           'A4 2 C5 2 A4 2 E4 2 F4 2 A4 2 F4 2 D4 2 E4 2 G4 2 E4 2 C4 2 D4 2 F4 2 D4 2 B3 2 '
-           'C4 2 E4 2 A4 2 C5 2 B4 2 G#4 2 E4 2 B3 2 A3 8 - 4 ')
-    bass = ('A2 2 - 2 E3 2 - 2 ' * 2 + 'D3 2 - 2 A2 2 - 2 G2 2 - 2 D3 2 - 2 ' +
-            'E2 2 - 2 B2 2 - 2 ' * 3 + 'A2 2 - 2 E3 2 - 2 ' +
-            'F2 2 - 2 C3 2 - 2 D2 2 - 2 A2 2 - 2 C3 2 - 2 G2 2 - 2 G2 2 - 2 D3 2 - 2 ' +
-            'A2 2 - 2 E3 2 - 2 E2 2 - 2 G#2 2 - 2 A2 4 E2 4 A2 4 - 4 ')
+    # In-game music is slow and ponderous: long held notes survive the gaps
+    # while the game logic runs far better than quick ones (the beeper only
+    # sounds in the CPU's idle time).  Bass in whole notes, melody low.
+    # STAGE 1: GALLOWS HILL - a funeral march in A minor
+    u = 5
+    mel = ('A3 4 C4 2 B3 2 A3 4 E3 4 F3 4 E3 2 D3 2 E3 8 '
+           'A3 4 C4 2 D4 2 E4 4 C4 4 B3 4 G#3 4 A3 8 '
+           'C4 4 B3 2 A3 2 G3 4 E3 4 F3 4 A3 4 D4 8 '
+           'E4 4 D4 2 C4 2 B3 4 G#3 4 A3 12 - 4 ')
+    bass = ('A2 8 E2 8 F2 8 E2 8 A2 8 A2 8 E2 8 A2 8 '
+            'C3 8 G2 8 F2 8 D2 8 E2 8 E2 8 A2 8 A2 8 ')
     songs['STAGE1'] = (seq(mel, u), seq(bass, u))
-    # BOSS: driving chromatic
-    u = 2
-    mel = ('E4 2 F4 2 E4 2 D#4 2 E4 4 B3 4 C4 2 B3 2 A#3 2 B3 2 G3 8 '
-           'E4 2 G4 2 F#4 2 F4 2 E4 4 D4 4 E4 2 F4 2 G4 2 A4 2 B4 8 '
-           'C5 4 B4 4 A#4 4 B4 4 G4 2 F#4 2 F4 2 E4 2 D#4 8 E4 8 - 8 ')
-    bass = ('E2 2 E3 2 ' * 8 + 'C2 2 C3 2 ' * 4 + 'B1 2 B2 2 ' * 4 + 'A1 2 A2 2 ' * 4 + 'B1 2 B2 2 ' * 4 + 'E2 2 E3 2 ' * 4).replace('B1', 'C2').replace('A1', 'A2')
+    # BOSS: menacing chromatic crawl
+    u = 4
+    mel = ('E4 4 F4 4 E4 2 D#4 2 E4 8 B3 4 C4 4 B3 2 A#3 2 B3 8 '
+           'G3 4 G#3 4 A3 4 A#3 4 B3 8 - 4 '
+           'E4 4 G4 4 F#4 4 F4 4 E4 8 D#4 8 E4 12 - 4 B3 8 - 4 ')
+    bass = 'E2 8 E2 8 C2 8 C2 8 B2 8 A2 8 B2 8 E2 8 ' * 2
     songs['BOSS'] = (seq(mel, u), seq(bass, u))
     # jingles (no loop)
     songs['J_CLEAR'] = (seq('C4 3 E4 3 G4 3 C5 6 G4 3 C5 12 - 2', 1), seq('C3 6 G3 6 E3 6 C3 12 - 2', 1))

@@ -627,25 +627,42 @@ BOSSES[7] = dict(  # MORGRAVE (colour set 1)
  hp=(24, 34, 44), summon='floater', speed=1, volley=5)
 
 # ------------------------------------------------------------------ music
+# slow and ponderous on purpose: long notes ride out the gaps while the game
+# logic runs; bass in whole notes.  (melody, bass, fields per unit)
 SONGS = {
- 2: ('E3 3 G3 3 B3 3 E4 6 D4 3 B3 3 C4 3 B3 3 A3 6 - 3 G3 3 A3 3 B3 3 G3 3 F#3 3 E3 9 - 3 '
-     'B3 3 D4 3 F#4 3 B4 6 A4 3 F#4 3 G4 3 F#4 3 E4 6 - 3 D4 3 C4 3 B3 3 A3 3 B3 3 E3 9 - 3',
-     'E2 3 - 3 B2 3 - 3 ' * 4 + 'C3 3 - 3 G2 3 - 3 ' * 2 + 'B2 3 - 3 F#2 3 - 3 ' * 2 + 'E2 3 - 3 B2 3 - 3 ' * 4, 3),
- 3: ('D4 2 F4 2 A4 2 G4 2 F4 2 E4 2 D4 4 C4 2 D4 2 E4 2 F4 4 E4 2 D4 2 C#4 4 - 2 '
-     'D4 2 F4 2 A4 2 D5 4 C5 2 A4 2 Bb4 2 A4 2 G4 2 F4 2 E4 4 D4 6 - 2',
-     'D2 4 A2 4 D3 4 A2 4 ' * 2 + 'Bb2 4 F3 4 A2 4 E3 4 ' + 'D2 4 A2 4 G2 4 A2 4 ', 3),
- 4: ('A3 4 C4 2 B3 2 A3 4 E3 4 F3 2 G3 2 A3 4 G3 4 - 4 '
-     'C4 4 E4 2 D4 2 C4 4 G3 4 A3 2 B3 2 C4 4 B3 4 A3 8 - 4',
-     'A2 2 - 2 A2 2 E2 2 ' * 4 + 'F2 2 - 2 F2 2 C3 2 ' * 2 + 'E2 2 - 2 E2 2 B2 2 ' * 2, 3),
- 5: ('E5 2 B4 2 G4 2 E4 2 F#4 2 G4 2 B4 4 A4 2 G4 2 F#4 2 D4 2 E4 6 - 2 '
-     'G4 2 B4 2 E5 2 G5 4 F#5 2 E5 2 D5 2 B4 2 C5 2 A4 2 B4 6 - 2',
-     'E3 2 B3 2 ' * 8 + 'C3 2 G3 2 ' * 4 + 'B2 2 F#3 2 ' * 4, 2),
- 6: ('C4 2 Eb4 2 G4 2 C5 4 B4 2 G4 2 Ab4 2 G4 2 F4 2 Eb4 2 D4 4 - 2 '
-     'G4 2 B4 2 D5 2 G5 4 F5 2 D5 2 Eb5 2 D5 2 C5 2 B4 2 C5 6 - 2',
-     'C2 2 C3 2 ' * 8 + 'Ab2 2 Ab3 2 ' * 4 + 'G2 2 G3 2 ' * 4, 2),
- 7: ('B3 2 D4 2 F4 2 Ab4 4 G4 2 F4 2 D4 2 F4 2 Ab4 2 B4 4 C5 4 B4 8 - 2 '
-     'D5 2 C5 2 B4 2 Ab4 2 G4 2 F4 2 D4 2 F4 2 E4 2 D4 2 C#4 2 D4 8 - 2',
-     'B2 2 F3 2 ' * 4 + 'Ab2 2 D3 2 ' * 4 + 'G2 2 C#3 2 ' * 4 + 'B2 2 F3 2 ' * 4, 2),
+ 2: ('E3 4 G3 2 B3 2 A3 4 G3 4 F#3 4 G3 2 A3 2 B3 8 '          # Witchwood: E minor lullaby
+     'C4 4 B3 2 A3 2 G3 4 E3 4 F#3 4 D3 4 E3 8 '
+     'B3 4 D4 2 C4 2 B3 4 A3 4 G3 4 A3 2 F#3 2 G3 8 '
+     'A3 4 G3 2 F#3 2 E3 4 D#3 4 E3 12 - 4 ',
+     'E2 8 E2 8 D2 8 B2 8 C3 8 A2 8 B2 8 E2 8 '
+     'G2 8 D2 8 C3 8 G2 8 A2 8 B2 8 E2 8 E2 8 ', 5),
+ 3: ('D3 6 F3 2 A3 4 G3 4 F3 4 E3 4 D3 8 '                    # Drowned Village: slow shanty
+     'A3 6 Bb3 2 A3 4 G3 4 F3 4 G3 4 A3 8 '
+     'D4 6 C4 2 Bb3 4 A3 4 G3 4 F3 4 E3 8 '
+     'F3 4 E3 4 D3 4 C#3 4 D3 12 - 4 ',
+     'D2 8 A2 8 D2 8 A2 8 F2 8 C3 8 F2 8 A2 8 '
+     'Bb2 8 G2 8 Bb2 8 A2 8 D2 8 A2 8 D2 8 D2 8 ', 5),
+ 4: ('A2 8 C3 4 B2 4 A2 8 E2 8 '                               # Swamp: a low drone
+     'F2 8 G2 4 A2 4 E2 16 '
+     'A2 8 C3 4 D3 4 E3 8 C3 8 '
+     'B2 8 G#2 8 A2 12 - 4 ',
+     'A2 16 A2 16 F2 16 E2 16 A2 16 C3 16 E2 16 A2 16 ', 5),
+ 5: ('E4 4 B3 4 G3 4 B3 4 F#4 4 D4 4 B3 8 '                    # Crystal Deeps: slow chimes
+     'G4 4 E4 4 C4 4 E4 4 A4 4 F#4 4 D#4 8 '
+     'E4 4 G4 4 B4 4 G4 4 F#4 4 D4 4 A3 8 '
+     'B3 4 C4 4 B3 4 A3 4 B3 12 - 4 ',
+     'E2 16 B2 16 C3 16 B2 16 E2 16 D2 16 G2 8 F#2 8 B2 16 ', 5),
+ 6: ('C3 4 Eb3 4 G3 8 F3 4 Eb3 4 D3 8 '                         # Demon Castle: dread march
+     'Eb3 4 F3 4 G3 8 Ab3 4 G3 4 F3 8 '
+     'G3 4 B3 4 D4 8 C4 4 B3 4 Ab3 8 '
+     'G3 4 F3 4 Eb3 4 D3 4 C3 12 - 4 ',
+     'C2 8 C2 8 G2 8 G2 8 Ab2 8 Ab2 8 F2 8 F2 8 '
+     'G2 8 G2 8 Ab2 8 F2 8 G2 8 G2 8 C2 8 C2 8 ', 5),
+ 7: ('B2 8 D3 4 F3 4 E3 8 C#3 8 '                               # Citadel: the sorcerer's waltz of doom
+     'D3 8 F3 4 Ab3 4 G3 16 '
+     'F3 8 Ab3 4 B3 4 C4 8 B3 8 '
+     'Ab3 4 G3 4 F3 4 D3 4 C#3 12 - 4 ',
+     'B2 16 A2 16 Bb2 16 G2 16 Ab2 16 G2 16 F2 16 F#2 16 ', 5),
 }
 
 # ------------------------------------------------------------------ level builder
