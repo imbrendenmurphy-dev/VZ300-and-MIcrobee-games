@@ -11,7 +11,7 @@ In the kingdom of Dreadmoor, the sorcerer **Morgrave** has stolen the seven **Su
 dead walk the land. Only one knight is awake: **Sir Tinplate**, the least impressive knight
 in the realm, in borrowed tin armour.
 
-### This build (v0.3.11) contains
+### This build (v0.3.12) contains
 
 - **Seven stages**, each its own SD pack (tiles, eight creature sprites, boss, music, text):
 
@@ -166,9 +166,14 @@ Both joysticks work interchangeably (directions read via ports $2C/$29).
   The bass plays soft low blips on the bar. The game logic gets on with it between blips,
   and nothing is left long enough to be chopped.
 - **A health bar (v0.3.8).** No more one-touch losses: every suit of armour, and the bare
-  knight in his trousers, now takes **five knocks** before it breaks. A red bar of five
+  knight in his trousers, took five knocks before it breaks (three since v0.3.12). A red bar of
   segments at the right of the HUD counts them down. When it empties, a piece of armour
   flies off and the bar refills. Checkpoints, a new life and an armour pickup all refill it.
+- **Rebalanced for weapons (v0.3.12).** Now that chests reliably give weapons, each suit of
+  armour takes **three** knocks instead of five, and the bosses are back to their v0.4 hit
+  counts (Casual / Normal / Expert): Gravemaw 11/15/21, the Hungry Oak 12/17/23, Leviathan
+  14/18/24, Old Croaker 14/20/26, the Prism Golem 15/21/27, Gargantua 17/23/30, Morgrave
+  18/26/33. The health bar is now three segments at the right of the HUD.
 - **Chests give their weapons again (v0.3.11).** Opening a chest often produced nothing:
   the code saved the item's height with PUSH AF around the call that finds a free object
   slot, and the POP AF afterwards also restored the old flags, throwing away the "slot

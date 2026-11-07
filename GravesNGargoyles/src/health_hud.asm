@@ -27,7 +27,7 @@ hp_hud:
         and $FC
         or d
         ld d,a                  ; empty segment
-        ld hl,HUDBUF+2*32+27
+        ld hl,HUDBUF+2*32+32-HP_MAX
         ld b,4
 .r:     push bc
         ld a,(hero_hp)

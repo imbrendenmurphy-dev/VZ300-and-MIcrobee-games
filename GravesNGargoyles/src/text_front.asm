@@ -36,7 +36,7 @@ STORY3:
         db 4,0,"WIN BETTER ARMOUR.",0
         db 11,0,"FIND MIGHTIER WEAPONS.",0
         db 18,0,"BRING BACK THE DAWN!",0
-        db 27,2,"EACH SUIT TAKES FIVE KNOCKS",0
+        db 27,2,"EACH SUIT TAKES THREE KNOCKS",0
         db 34,1,"- WATCH THE RED BAR -",0
         db 42,2,"(AND KEEP YOUR TROUSERS ON)",0
         db $FF

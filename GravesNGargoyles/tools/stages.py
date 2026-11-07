@@ -13,10 +13,10 @@ from art import TILES as T1, SPRITES as SP1
 from mkassets import pack, hexrow, db_lines, seq, dinks
 
 # ------------------------------------------------------------------ helpers
-# bosses take 25% fewer hits than first designed (v0.4), and another 25%
-# fewer again (v0.3.10)
+# bosses take 25% fewer hits than first designed (v0.4); the extra cut in
+# v0.3.10 was undone in v0.3.12 once the chests gave weapons properly
 def bhp(n):
-    return max(4, int(n * 0.75 * 0.75 + 0.5))
+    return int(n * 0.75 + 0.5)
 
 def recolour(rows, m):
     return [''.join(m.get(c, c) for c in r) for r in rows]
