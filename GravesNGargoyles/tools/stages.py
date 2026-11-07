@@ -13,6 +13,11 @@ from art import TILES as T1, SPRITES as SP1
 from mkassets import pack, hexrow, db_lines, seq, dinks
 
 # ------------------------------------------------------------------ helpers
+# bosses take 25% fewer hits than first designed (v0.4), and another 25%
+# fewer again (v0.3.10)
+def bhp(n):
+    return max(4, int(n * 0.75 * 0.75 + 0.5))
+
 def recolour(rows, m):
     return [''.join(m.get(c, c) for c in r) for r in rows]
 
@@ -760,7 +765,7 @@ def stage_asm(n):
     summon = ROLE_TYPE[bs['summon']]
     L.append("        db 'S',%d" % n)
     L.append('        dw MAP%s,%d,OBJ%s,TILES%s,TATTR%s,SONG_ST%s,SONG_BOSS_%d,0,S%d_BTOP_0,S%d_BJAW_0' % (sfx, 176, sfx, sfx, sfx, sfx, n, n, n))
-    L.append('        db %d,%d,%d,%d,$%02X,%d' % (bs['hp'][0], bs['hp'][1], bs['hp'][2], summon, th['css'], th['amb']))
+    L.append('        db %d,%d,%d,%d,$%02X,%d' % (bhp(bs['hp'][0]), bhp(bs['hp'][1]), bhp(bs['hp'][2]), summon, th['css'], th['amb']))
     L.append('        dw CARD%s,BNAME%s' % (sfx, sfx))
     for role in roles:
         fr = ['S%d_%s_%d' % (n, role.upper(), i) for i in range(len(sprs[role]))]
@@ -818,7 +823,7 @@ def stage1_header():
     return ["; stage 1 header (Gallows Hill content comes from mkassets.py)",
             "        db 'S',1",
             "        dw LEVEL1_MAP,LEVEL1_W,LEVEL1_OBJ,TILES,TATTR,SONG_STAGE1,SONG_BOSS,S_MOON_0,S_BSKULL_0,S_BJAW_0",
-            "        db 14,20,28,3,$00,1",
+            "        db %d,%d,%d,3,$00,1" % (bhp(14), bhp(20), bhp(28)),
             "        dw CARD_STAGE1,STR_BOSS",
             "        dw S_ZOMBIE_0,S_ZOMBIE_1,S_ZOMBIE_0,S_ZOMBIE_1",
             "        dw S_SKEL_0,S_SKEL_1,S_SKEL_2,S_SKEL_3",

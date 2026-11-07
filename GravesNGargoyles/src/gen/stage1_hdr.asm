@@ -1,7 +1,7 @@
 ; stage 1 header (Gallows Hill content comes from mkassets.py)
         db 'S',1
         dw LEVEL1_MAP,LEVEL1_W,LEVEL1_OBJ,TILES,TATTR,SONG_STAGE1,SONG_BOSS,S_MOON_0,S_BSKULL_0,S_BJAW_0
-        db 14,20,28,3,$00,1
+        db 8,11,16,3,$00,1
         dw CARD_STAGE1,STR_BOSS
         dw S_ZOMBIE_0,S_ZOMBIE_1,S_ZOMBIE_0,S_ZOMBIE_1
         dw S_SKEL_0,S_SKEL_1,S_SKEL_2,S_SKEL_3

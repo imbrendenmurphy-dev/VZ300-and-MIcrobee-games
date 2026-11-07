@@ -11,7 +11,7 @@ In the kingdom of Dreadmoor, the sorcerer **Morgrave** has stolen the seven **Su
 dead walk the land. Only one knight is awake: **Sir Tinplate**, the least impressive knight
 in the realm, in borrowed tin armour.
 
-### This build (v0.3.9) contains
+### This build (v0.3.10) contains
 
 - **Seven stages**, each its own SD pack (tiles, eight creature sprites, boss, music, text):
 
@@ -105,10 +105,10 @@ The rest of this list describes the engine as first built with stage 1:
 | Keyboard | Joystick | Action |
 |---|---|---|
 | O / P | left / right | walk |
-| Q | up | jump (hold for higher) |
+| Q | up or arm button | jump (hold for higher) |
 | A | down | crouch |
 | SPACE | fire | throw; hold to charge magic |
-| W or RETURN | arm button | change weapon |
+| W or RETURN | | change weapon |
 | M | | cast magic |
 | H | | pause |
 | S | | music on/off |
@@ -169,6 +169,12 @@ Both joysticks work interchangeably (directions read via ports $2C/$29).
   knight in his trousers, now takes **five knocks** before it breaks. A red bar of five
   segments at the right of the HUD counts them down. When it empties, a piece of armour
   flies off and the bar refills. Checkpoints, a new life and an armour pickup all refill it.
+- **Quicker bosses (v0.3.10).** Every boss takes another 25% fewer hits (on top of the
+  25% cut in v0.4). Hits needed on Casual / Normal / Expert: Gravemaw 8/11/16, the Hungry
+  Oak 9/12/17, Leviathan 10/14/18, Old Croaker 10/15/19, the Prism Golem 11/16/20,
+  Gargantua 12/17/23, Morgrave 14/19/25.
+- **Jump on the second button (v0.3.10).** The joystick's arm button now jumps, just like
+  pushing up. Weapon changing stays on W or RETURN.
 - **Title music with room to breathe (v0.3.9).** The original, fuller title tune is back.
   Instead of thinning the music, the title screen now does less: once the logo has landed,
   it and the credit line are baked into the backdrop, and the scene (bats, ghost, flickering

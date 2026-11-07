@@ -611,13 +611,13 @@ read_input:
         bit 4,a
         jr nz,$+4
         set K_FIRE,c
-        in a,($2D)              ; arm buttons -> weapon swap
+        in a,($2D)              ; arm buttons -> jump, same as up
         ld b,a
         in a,($27)
         and b
         bit 4,a
         jr nz,$+4
-        set K_SWAP,c
+        set K_UP,c
 store_keys:
         ld a,(keys)
         ld (keys_old),a

@@ -48,7 +48,7 @@ CARD_CTRL:
         db 28,2,"SPACE    THROW (HOLD=MAGIC)",0
         db 34,2,"W / RET  CHANGE WEAPON",0
         db 40,2,"M MAGIC  H PAUSE  S MUSIC",0
-        db 48,0,"JOYSTICK: UP JUMPS, ARM SWAPS",0
+        db 48,0,"JOYSTICK: UP OR BUTTON 2 JUMPS",0
         db $FF
 CARD_CRED:
         db 4,0,"GRAVES 'N' GARGOYLES",0
