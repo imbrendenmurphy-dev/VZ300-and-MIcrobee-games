@@ -24,6 +24,9 @@ def size_of(name):
     return 4 * max(len(r) for r in rows), 4 * len(rows)
 
 
+AR = 1.5        # pixel height / width on a 4:3 screen (512 x 256)
+
+
 # ------------------------------------------------------------------ player ship
 def ship(tilt):
     """tilt -2 (climbing hard) .. +2 (diving hard)"""
@@ -34,45 +37,46 @@ def ship(tilt):
         return (x, y + k * (x - 16))
     top = 1.0 - 0.28 * max(0, -tilt) + 0.18 * max(0, tilt)     # visible wing sizes
     bot = 1.0 - 0.28 * max(0, tilt) + 0.18 * max(0, -tilt)
-    # wings (behind the hull)
-    c.poly([T(9, cy - 3), T(1, cy - 3 - 10 * top), T(5, cy - 3 - 10 * top), T(18, cy - 3)], C_)
-    c.poly([T(9, cy + 3), T(1, cy + 3 + 10 * bot), T(5, cy + 3 + 10 * bot), T(18, cy + 3)], C_)
+    # slim swept wings (behind the hull): short span, raked back to the tail
+    c.poly([T(8, cy - 2), T(1, cy - 2 - 6.5 * top), T(4.5, cy - 2 - 6.5 * top), T(19, cy - 2)], C_, shade=False, lev=3)
+    c.poly([T(8, cy + 2), T(1, cy + 2 + 6.5 * bot), T(4.5, cy + 2 + 6.5 * bot), T(19, cy + 2)], C_, shade=False, lev=3)
     # wing tip lights
-    tx, ty = T(2, cy - 3 - 10 * top)
+    tx, ty = T(2, cy - 2 - 6.5 * top)
     c.put(tx, ty, R_, 3)
-    tx, ty = T(2, cy + 3 + 10 * bot)
+    tx, ty = T(2, cy + 2 + 6.5 * bot)
     c.put(tx, ty, R_, 3)
-    # hull: solid, with a shaded underside
-    hull = [T(31.5, cy + 1), T(26, cy - 1.5), T(14, cy - 3.5), T(5, cy - 3.5), T(2, cy - 2), T(2, cy + 3), T(6, cy + 4.5), T(26, cy + 3.5)]
+    # hull: a long, thin dart with a needle nose and a shaded underside
+    hull = [T(31.5, cy + 0.5), T(25, cy - 1), T(14, cy - 2.5), T(4, cy - 2.5), T(2, cy - 1.5),
+            T(2, cy + 2), T(5, cy + 3), T(25, cy + 2)]
     c.poly(hull, W_, shade=False, lev=3)
-    for x in range(4, 30):
-        px, py = T(x, cy + 4)
+    for x in range(4, 28):
+        px, py = T(x, cy + 2.5)
         if c.col[int(round(py)), int(round(px))]:
             c.put(px, py, W_, 2)
     # panel line
     for x in range(7, 14, 2):
-        px, py = T(x, cy + 1)
+        px, py = T(x, cy + 0.5)
         c.clear(px, py)
     # cockpit: a canopy bubble on the hull's back with a dark window and
     # a bright glint that slides along the glass as the ship banks
     # (towards the rear when climbing, the nose when diving)
-    gx = 17.5 + (tilt + 2) * 1.4
-    for y in range(-9, 0):
+    gx = 16.5 + (tilt + 2) * 1.8
+    for y in range(-7, 0):
         for x in range(12, 28):
             fx, fy = x + 0.5, y + 0.5
-            outer = ((fx - 19.5) / 6.5) ** 2 + ((fy + 3.6) / 2.4) ** 2
+            outer = ((fx - 20) / 6.5) ** 2 + ((fy + 3.5) / 1.8) ** 2
             if outer > 1:
                 continue
             px, py = T(x, cy + y)
-            inner = ((fx - 20.5) / 4.6) ** 2 + ((fy + 3.8) / 1.3) ** 2
-            if inner > 1:
-                c.put(px, py, W_, 3)               # canopy frame
-            elif abs((fx - gx) + (fy + 3.8) * 1.6) < 0.8:
-                c.put(px, py, W_, 3)               # the glint
+            if y == -4 and 15 <= x <= 24:
+                if abs(fx - gx) < 1.0:
+                    c.put(px, py, W_, 3)           # the glint
+                else:
+                    c.clear(px, py)                # the window slit
             else:
-                c.clear(px, py)                    # dark glass
+                c.put(px, py, W_, 3)               # canopy frame
     # engine block
-    c.rect(0, cy - 3 + k * -16, 4, cy + 4 + k * -16, A.GREY, 2)
+    c.rect(0, cy - 2 + k * -16, 3, cy + 3 + k * -16, A.GREY, 2)
     return c
 
 
@@ -98,20 +102,21 @@ def exhaust(kind, f):
 # ------------------------------------------------------------------ pod, helpers
 def pod(f):
     c = Canvas(16, 16)
-    c.ellipse(8, 8, 8, 8, C_, hollow=0.45)
+    # (round on a 4:3 screen: a pixel is about 1.5x taller than wide)
+    c.ellipse(8, 8, 8, 8 / AR, C_, hollow=0.45)
     # rotating lights on the ring
     for i in range(4):
         a = (i / 4 + f / 8) * 2 * math.pi
-        c.put(8 + 6.5 * math.cos(a), 8 + 6.5 * math.sin(a), W_, 3)
-    c.ellipse(8, 8, 3.6, 3.4, W_)
-    c.put(7, 6, W_, 3)
+        c.put(8 + 6.5 * math.cos(a), 8 + 6.5 / AR * math.sin(a), W_, 3)
+    c.ellipse(8, 8, 3.6, 3.6 / AR, W_)
+    c.put(7, 7, W_, 3)
     return c
 
 
 def sat(f):
     c = Canvas(16, 12)
     c.poly([(8, 0), (16, 6), (8, 12), (0, 6)], Y_)
-    c.ellipse(8, 6, 3, 2.6, W_ if f else R_)
+    c.ellipse(8, 6, 3, 3 / AR, W_ if f else R_)
     return c
 
 
@@ -129,8 +134,8 @@ def shot():
 
 def sprd():
     c = Canvas(8, 8)
-    c.ellipse(4, 4, 4, 4, R_)
-    c.put(3, 2, W_, 3)
+    c.ellipse(4, 4, 4, 4 / AR, R_)
+    c.put(3, 3, W_, 3)
     return c
 
 
@@ -178,7 +183,7 @@ def beam(n):
 # ------------------------------------------------------------------ enemy bullet
 def ebul(f):
     c = Canvas(8, 8)
-    c.ellipse(4, 4, 4, 4, M_)
+    c.ellipse(4, 4, 4, 4 / AR, M_)
     if f:
         c.put(4, 0, W_, 3); c.put(4, 7, W_, 3); c.put(0, 4, W_, 3); c.put(7, 4, W_, 3)
     c.put(3, 3, W_, 3)
@@ -189,12 +194,12 @@ def ebul(f):
 # ------------------------------------------------------------------ capsules (power-ups)
 def capsule(letter, col):
     c = Canvas(28, 28)
-    c.ellipse(14, 14, 14, 14, col, hollow=0.62)
+    c.ellipse(14, 14, 14, 14 / AR, col, hollow=0.62)
     g = mbfont.glyph57(letter, bold=True, top=0)
     for y in range(16):
         for x in range(8):
             if g[y, x] and y < 12:
-                c.put(10 + x, 8 + y, W_, 3)
+                c.put(10 + x, 10 + y, W_, 3)
     return c
 
 

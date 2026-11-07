@@ -295,7 +295,7 @@ col2sx:	push bc			; (keeps BC: callers hold y in C)
 	ret
 
 spawn_from_list:
-	; thinning (Microbee): every fourth ordinary enemy is left out
+	; thinning (Microbee): just over 4 in 9 ordinary enemies are left out
 	ld a,(thin)
 	or a
 	jr z,.all
@@ -309,11 +309,15 @@ spawn_from_list:
 	ld a,(hl)
 	or a
 	jr z,.all
-	ld hl,thinc
-	inc (hl)
-	ld a,(hl)
-	and 3
-	ret z
+	ld a,(thinc)		; keep 9 in 16 (about 56%)
+	add a,9
+	cp 16
+	jr c,.skip
+	sub 16
+	ld (thinc),a
+	jr .all
+.skip:	ld (thinc),a
+	ret
 .all:	ld a,(sp_t)
 	cp T_TURF
 	jp z,.turf
@@ -352,14 +356,20 @@ spawn_from_list:
 	ld a,(sp_p)
 	and 15
 	ld b,a
-	ld a,(thin)		; thinning: a quarter fewer in a formation
+	ld a,(thin)		; thinning: 9/16 of a formation, at least one
 	or a
 	jr z,.sw0
 	ld a,b
-	srl a
-	srl a
-	neg
-	add a,b
+	add a,a
+	add a,a
+	add a,a
+	add a,b			; 9n
+	add a,8
+	rrca
+	rrca
+	rrca
+	rrca
+	and 15
 	ld b,a
 	jr nz,.sw0
 	inc b
@@ -1095,6 +1105,10 @@ newbul:	ld iy,BULS
 	ret
 ; fire bullet from B,C (offset coords) in direction A (0..15)
 firedir:
+	push hl
+	ld hl,0
+	ld (lastbul),hl		; (set below if a bullet is fired)
+	pop hl
 	; thinning (Microbee): every third enemy bullet is not fired
 	push af
 	ld a,(thin)
@@ -1118,6 +1132,7 @@ firedir:
 	pop bc
 	jr c,.no
 	ld (iy+0),1
+	ld (lastbul),iy
 	ld (iy+1),0
 	ld (iy+2),b
 	ld (iy+3),0
@@ -1151,6 +1166,7 @@ bslow:	; all enemy bullets fly at ~5/8 of the table speed
 	add a,c
 	ret
 bulslow	db 0
+lastbul	dw 0			; the bullet firedir fired last (0 = none)
 ; aimed bullet from B,C toward the player
 fireaim:
 	ld a,(pstate)

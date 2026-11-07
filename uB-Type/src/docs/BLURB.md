@@ -3,7 +3,7 @@
 
 **The VZ300's own R-Type-style blaster has landed on the Microbee, at four times the resolution in both directions.**
 
-μB-TYPE is the Premium Plus conversion of **VZ-TYPE**, BPM's original horizontally scrolling shoot-'em-up for the Dick Smith VZ300. The game underneath is VZ-TYPE's own: the same stages, enemy waves, bosses, weapons and hit boxes, thinned a little for the Microbee (fewer ordinary enemies, and at most six enemy bullets at once) to keep it flowing and fair on a keyboard. The VZ's chunky 128×64 playfield has been redrawn from scratch at the Microbee's full 512×256, in character graphics.
+μB-TYPE is the Premium Plus conversion of **VZ-TYPE**, BPM's original horizontally scrolling shoot-'em-up for the Dick Smith VZ300. The game underneath is VZ-TYPE's own: the same stages, enemy waves, bosses, weapons and hit boxes, thinned for the Microbee (fewer ordinary enemies, one bullet at a time from each turret, at most five enemy bullets at once, and kamikaze darts that don't always aim true) to keep it flowing and fair on a keyboard. The VZ's chunky 128×64 playfield has been redrawn from scratch at the Microbee's full 512×256, in character graphics.
 
 You pilot a lone fighter through eight stages of biomechanical trouble:
 
@@ -21,7 +21,7 @@ Hold fire to charge a beam that ploughs through whole formations. Shoot down car
 - **+** speeds the ship up.
 - **H** brings a pair of helper satellites.
 
-Your ship has a cockpit canopy whose glint slides across as it banks. Its engine flame grows as you speed up.
+Your ship is a slim swept dart with a cockpit window whose glint slides along as it banks. Its engine flame grows as you speed up.
 
 It all comes wrapped in:
 - a striped μB-TYPE logo with a travelling glint, a starfield and a scroller
@@ -41,7 +41,7 @@ It all comes wrapped in:
 | **Machine** | Microbee Premium Plus with 1MB of RAM. Z80 at 3.375 MHz |
 | **Display** | 64×16 programmable characters of 8×16 pixels: 512×256, exactly 4× the VZ300's 128×64 each way. Colour, or a monochrome mode with its own glyph sets |
 | **Scrolling** | Smooth and tear-free: one VZ pixel (4 Microbee pixels) per game frame, using the 6545's start address over two screen pages and pre-shifted terrain characters |
-| **Frame rate** | Capped at 25 frames per second, like the VZ original. Lighter scenes match the VZ; the busiest scenes and bosses run at about 16–19 |
+| **Frame rate** | Capped at 25 frames per second, like the VZ original. Every stage plays at or near the VZ's speed; the bosses run at about 16–19 |
 | **Disk** | `UBTYPE.DS8`, an 800K DS80 image that boots straight to the CP/M `A>` prompt (no Microbee shell). 23 files, 588K used |
 | **Loading** | Type `UBTYPE`. The loader fills about 20 of the machine's 32K memory blocks, which takes about 40 seconds in the emulator |
 | **Memory map** | Game code from $8000. Sprites, glyph mirrors and work tables in a 32K work block below it. Each stage carries 64K of its own: 32K of character graphics and 32K of tables, sprites and boss art. The front end, title graphics and shared graphics live in their own blocks |
@@ -57,7 +57,7 @@ It all comes wrapped in:
 
 **Keeping the game identical.** The movement, enemy patterns, collisions and scoring are VZ-TYPE's own code, ported, and the stage data is the VZ's. A test harness ran the original in a VZ300 model alongside μB-TYPE, fed both the same inputs and random seed, and compared the game state after every frame. With the Microbee's thinning switched off, every frame matched, apart from a few frames when a life restarts. Those differ because of how the harness lines the two machines up, not because of the game.
 
-**Making it fast enough.** The first working build ran the heaviest boss scenes at under 10 frames per second against the VZ's 20. A long optimisation pass, and then thinning the enemies and bullets, brought the slowest scenes up to about 16–17. The optimisation added:
+**Making it fast enough.** The first working build ran the heaviest boss scenes at under 10 frames per second against the VZ's 20. A long optimisation pass, and then thinning the enemies and bullets, brought the slowest scenes up to about 16–19. The optimisation added:
 - self-modifying sprite routines
 - a fast path for sprite cells over open space
 - an overlay that pops sprite data off the stack two lines at a time

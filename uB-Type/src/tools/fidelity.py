@@ -43,16 +43,18 @@ def script(seed, n):
     return keys
 
 
-def compare(nframes=600, seed=1, stage=0, verbose=True, decouple=True, trainer=True):
+def compare(nframes=600, seed=1, stage=1, verbose=True, decouple=True, trainer=True):
     keys = script(seed, nframes)
     # ---- VZ
     VS = vzmeasure.vzsyms(VZSYM)
     v = VZ(VZFILE)
     v.run_fields(150)
     v.keys = {'SPACE'}
-    v.run_fields(4)
+    v.run_until(VS['new_game'], 400)
     v.keys = set()
-    v.run_until(VS['mainloop'], 4000)
+    v.run_until(VS['level_start'], 400)
+    v.mem[VS['lvlnum']] = stage      # (stage 2 by default: the Microbee
+    v.run_until(VS['mainloop'], 4000)  # drops stage 1's round blocks)
     # ---- Microbee
     pp = run.boot(stage)
     S = pp.S

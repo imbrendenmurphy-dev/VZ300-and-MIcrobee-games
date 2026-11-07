@@ -451,7 +451,22 @@ b_dart:	ld a,(ix+E_ST)
 	ld b,(ix+E_X)
 	ld c,(ix+E_Y)
 	call aimdir
-	add a,a
+	ld e,a
+	ld a,(thin)		; thinning (Microbee): aim 1-2 steps off
+	or a
+	ld a,e
+	jr z,.aim
+	call rnd
+	and 3
+	ld hl,dartmiss
+	add a,l
+	ld l,a
+	jr nc,$+3
+	inc h
+	ld a,(hl)
+	add a,e
+	and 15
+.aim:	add a,a
 	ld e,a
 	ld d,0
 	ld hl,dirtab
@@ -476,6 +491,8 @@ b_dart:	ld a,(ix+E_ST)
 	add a,(ix+E_VY)
 	ld (ix+E_Y),a
 	ret
+
+dartmiss db -1,1,-2,2		; aim errors (of 16 directions)
 
 b_turf:	ld c,0
 	jr turret
@@ -502,18 +519,42 @@ turret:	; aim frame
 	ld (ix+E_SPR),a
 	call onscreen
 	ret nc
-	ld a,90
+	; thinning (Microbee): one bullet at a time from each turret
+	ld a,(thin)
+	or a
+	jr z,.ft
+	ld l,(ix+E_P1)
+	ld h,(ix+E_P2)
+	ld a,h
+	or a
+	jr z,.ft
+	ld a,(hl)		; its last bullet still flying?
+	or a
+	jr z,.ft
+	inc (ix+E_TM)		; then wait, but keep reloading
+	ret nz
+	dec (ix+E_TM)
+	ret
+.ft:	ld a,90
 	call firetime
 	ret z
 	ld b,(ix+E_X)
 	inc b
 	inc b
 	ld c,(ix+E_Y)
+	ld hl,0
+	ld (lastbul),hl
 	ld a,1
 	ld (bulslow),a		; turret bullets are slower
 	call fireaim
 	xor a
 	ld (bulslow),a
+	ld a,(thin)
+	or a
+	ret z
+	ld hl,(lastbul)
+	ld (ix+E_P1),l
+	ld (ix+E_P2),h
 	ret
 
 b_hop:	ld a,(ix+E_ST)

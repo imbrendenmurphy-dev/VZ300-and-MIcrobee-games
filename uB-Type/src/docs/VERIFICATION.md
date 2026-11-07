@@ -8,7 +8,7 @@
 
 - **Result:** over 1,500 frames, only the 7 frames where a life restarts differ. That difference comes from the harness lining the two machines up across a restart, not from the game.
 - **Why it matches:** the movement, weapons, enemy patterns, spawn lists, collisions, scoring and difficulty are VZ-TYPE's own code, ported. The level data is the VZ's level data.
-- **Thinning:** the shipped game thins enemies and bullets (see Performance). The fidelity test switches thinning off (`thin` = 0) and compares the unthinned game, which is VZ-TYPE's logic unchanged.
+- **Thinning:** the shipped game thins enemies and bullets (see Performance). The fidelity test switches thinning off (`thin` = 0) and compares the unthinned game, which is VZ-TYPE's logic unchanged. It runs on stage 2, because stage 1's terrain is no longer the VZ's.
 - **One quirk kept:** as on the VZ, the sound effects' noise generator shares the game's random seed. Exact gameplay therefore depends on timing. The test turns that sharing off on both machines so they can be compared; the game itself keeps it.
 
 ## Scrolling and display
@@ -21,33 +21,33 @@
 
 `tools/perfcmp.py` gives both machines the same scripted input (fire held in bursts, the ship weaving up, down, left and right) and the same random seed, with the noise/seed sharing turned off. Each stage is measured twice over 400 game frames: from the start of the stage, and in the boss fight. Both games cap at 25 frames per second (2 fields per frame). The Microbee runs as shipped, with thinning on.
 
-**Thinned for the Microbee.** To cut slowdown and suit keyboard play, μB-TYPE leaves out every fourth ordinary enemy (and a quarter of each swimming formation), fires every third enemy shot less, and allows at most 6 enemy bullets on screen at once instead of the VZ's 12. Carriers (the power-ups), reactor nodes and bosses are never thinned.
+**Thinned for the Microbee.** To cut slowdown and suit keyboard play (BPM's call), μB-TYPE: keeps about 9 in 16 ordinary enemies, and 9/16 of each swimming formation; lets each gun turret have only one bullet in the air; fires one enemy shot in three less; allows at most 5 enemy bullets at once (the VZ allows 12); keeps boss minion waves smaller; and aims the kamikaze darts one or two compass points off. Power-up carriers, reactor nodes and bosses are never thinned. Stage 1 also loses its round floating blocks, which sat in the flight path.
 
 | Stage | Part | VZ300 fps | Microbee fps |
 |---|---|---|---|
-| 1 Outer Hull | start | 22.5 | 21.8 |
-| 1 Outer Hull | boss | 22.2 | 18.4 |
-| 2 The Hive | start | 21.0 | 20.6 |
-| 2 The Hive | boss | 21.7 | 17.4 |
-| 3 Rock Belt | start | 22.9 | 21.9 |
-| 3 Rock Belt | boss | 20.8 | 16.8 |
-| 4 Crystal Vein | start | 22.4 | 22.6 |
-| 4 Crystal Vein | boss | 21.9 | 19.1 |
-| 5 Dreadnought | start | 20.6 | 17.1 |
-| 5 Dreadnought | boss | 20.7 | 15.9 |
-| 6 Gut Caverns | start | 22.7 | 22.8 |
+| 1 Outer Hull | start | 22.5 | 22.5 |
+| 1 Outer Hull | boss | 22.2 | 19.2 |
+| 2 The Hive | start | 21.0 | 23.2 |
+| 2 The Hive | boss | 21.7 | 18.2 |
+| 3 Rock Belt | start | 22.9 | 22.4 |
+| 3 Rock Belt | boss | 20.8 | 17.4 |
+| 4 Crystal Vein | start | 22.4 | 22.9 |
+| 4 Crystal Vein | boss | 21.9 | 19.3 |
+| 5 Dreadnought | start | 20.6 | 19.3 |
+| 5 Dreadnought | boss | 20.7 | 16.0 |
+| 6 Gut Caverns | start | 22.7 | 22.9 |
 | 6 Gut Caverns | boss | 22.1 | 18.5 |
-| 7 Deep Field | start | 22.8 | 21.3 |
-| 7 Deep Field | boss | 21.9 | 18.3 |
-| 8 The Core | start | 22.8 | 22.4 |
-| 8 The Core | boss | 21.2 | 16.6 |
+| 7 Deep Field | start | 22.8 | 21.8 |
+| 7 Deep Field | boss | 21.9 | 19.1 |
+| 8 The Core | start | 22.8 | 22.9 |
+| 8 The Core | boss | 21.2 | 17.7 |
 
 **Conclusion: μB-TYPE is not yet as fast as the VZ original in busy scenes.**
 
 - Lighter scenes run at the VZ's speed: stages 1, 4, 6 and 8 from the start.
-- Busy scenes run at about 80–100% of the VZ's speed; stage 5 (Dreadnought), the busiest, at about 83%.
-- The bosses run at about 75–90%.
-- Thinning helped most where enemy bullets pile up: stage 2's start went from 18.5 to 20.6 fps and stage 5's from 15.4 to 17.1. Enemy bullets are slow and long-lived, so the cap on bullets at once matters far more than fewer shots fired.
+- Every stage runs at or near the VZ's speed from the start; stage 5 (Dreadnought), the busiest, at about 94%.
+- The bosses run at about 75–90%: the boss bodies themselves are the cost.
+- The thinning made the biggest difference where enemy bullets piled up. Turret bullets are slow and long-lived, and each turret used to keep about four in the air; with one each, stage 5 went from about 7.7 enemy bullets on screen to under 1, and its start from 15.4 to 19.3 fps.
 - When the game is busy it slows down evenly; it doesn't skip frames, and the scrolling stays smooth and tear-free at the lower frame rate.
 
 **Why the gap remains:** the new sprites are drawn at full PCG resolution, so each one is 4× the VZ's size in both directions. Every sprite cell is rebuilt as a PCG glyph each frame, which costs about 1,500–2,000 T-states per cell all in. A screen with 90+ sprite cells therefore costs more than the VZ's fixed-cost full-screen redraw.
@@ -62,7 +62,7 @@
 
 - enemy bullets over open space drawn from ready-made glyphs in the font bank, with no composing
 
-Together with thinning these took the slowest scenes from 9.5–13 fps to 15.9–17.4 fps (the full history is in `perf_v1.txt` to `perf_v5.txt`).
+Together with thinning these took the slowest scenes from 9.5–13 fps to 16–19 fps (the full history is in `perf_v1.txt` to `perf_v6.txt`).
 
 ## Sound
 
@@ -97,6 +97,10 @@ Chosen at start-up (**M**). A monochrome monitor lights every set pixel whatever
 - on a colour monitor the mode shows white on black
 
 This was checked in the emulator's monochrome render, not on your amber monitor.
+
+## A bug the emulator missed
+
+The first version of the fast bullet drawing put screen codes 96–125 on the page. On a Microbee, codes below 128 come from the character ROM, so BPM saw lowercase letters around the bullets on his machine; the test emulator draws those codes blank, so the screenshots looked clean. The codes are now 224–253 (the same programmable characters), and the emulator now shows any character-ROM code as a checker pattern so this can't hide again. Scans of the title, pages, attract mode and play found none.
 
 ## Known limitations
 

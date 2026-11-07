@@ -12,7 +12,7 @@ NENT	equ 20
 ENTSZ	equ 16
 NSHOT	equ 10
 NBUL	equ 12
-NBUL_THIN equ 6		; at most this many when thinning
+NBUL_THIN equ 5		; at most this many when thinning
 PFH	equ 56			; playfield height (VZ pixel rows)
 NTR	equ 14			; tile rows
 

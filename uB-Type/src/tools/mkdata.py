@@ -185,8 +185,45 @@ def w16(v):
     return struct.pack('<H', v & 0xFFFF)
 
 
+def derock(L):
+    """Microbee: take out the clusters of three round 2 x 2 'rocks' that
+    float in the flight path (BPM: too obstructive in stage 1)"""
+    sq = [b for b in L.blocks if b[2:] == (2, 2)]
+    gone = set()
+    for b in sq:
+        n1 = [c for c in sq if c[0] == b[0] + 4]
+        n2 = [c for c in sq if c[0] == b[0] + 8]
+        if n1 and n2:
+            gone |= {b, n1[0], n2[0]}
+    # and the single two-wide blocks, which draw as round lumps
+    gone |= {b for b in L.blocks if b[2] == 2}
+    L.blocks = [b for b in L.blocks if b not in gone]
+    L.grid = LV.build_grid(L, L.theme)
+    objs = [(bx, by, bw, bh, 0) for (bx, by, bw, bh) in L.blocks]
+    objs += [(fx, fy, 1, 1, 1) for (fx, fy, t) in L.feat if t == VT.F0]
+    objs += list(L.xobjs)
+    objs.sort()
+    L.objs = objs
+    return len(gone)
+
+
+_vz_prep_levels = VG.prep_levels
+
+
+def mb_levels():
+    """VZ-TYPE's levels with the Microbee's changes (used for everything,
+    including the packed level data the game decodes)"""
+    Ls = _vz_prep_levels()
+    mb_levels.gone = derock(Ls[0])
+    return Ls
+
+
+VG.prep_levels = mb_levels
+
+
 def main():
     Ls = VG.prep_levels()
+    print('stage 1: %d round blocks taken out' % mb_levels.gone)
     names = list(VA.SPR.keys())
     # ---------------- shared game tables
     out = []
@@ -212,7 +249,7 @@ def main():
         d += [int(round(24 * math.cos(a))) & 255, int(round(24 * math.sin(a))) & 255]
     emit('dirtab:\n\tdb ' + ','.join('$%02x' % v for v in d))
     # ---------------- enemy bullets over open space: ready-made glyphs in
-    # the font bank (codes 96..125), one per piece of each position.
+    # the font bank (glyphs 96..125, screen codes 224..253), one per piece of each position.
     # bultab: [frame][x offset 0/4][y offset 0/4/8/12] -> 4 cells (row-major
     # 2 x 2): code (0 = none), ink
     import mbfont, mbsprart
@@ -238,7 +275,7 @@ def main():
                         pc = C[16 * r:16 * r + 16, 8 * cc:8 * cc + 8]
                         vals, cnt = np.unique(pc[pc > 0], return_counts=True)
                         fontb[code * 16:code * 16 + 16] = mbfont.pack(pb.astype(np.uint8))
-                        ent += [code, int(vals[np.argmax(cnt)])]
+                        ent += [0x80 | code, int(vals[np.argmax(cnt)])]   # PCG: code + 128
                         code += 1
                 tab.append(ent)
     assert code <= 128, code

@@ -206,6 +206,10 @@ class Mbee:
         base = ((at & 15) * 2048 + (ch & 0x7F) * 16)
         rowsel = np.arange(lines)
         glyph = np.where(pcgon[:, None], self.pcg[(base[:, None] + rowsel[None, :]) % (16 * 2048)], 0)
+        # character-ROM codes (not modelled): show any but space/0 as a checker
+        # so a stray one is visible in screenshots
+        romch = (~pcgon) & (ch != 0x20) & (ch != 0)
+        glyph = np.where(romch[:, None], np.where(rowsel[None, :] % 2 == 0, 0xAA, 0x55), glyph)
         bits = ((glyph[:, :, None] >> (7 - np.arange(8))[None, None, :]) & 1).astype(bool)
         pal = np.array(PALETTE, dtype=np.uint8)
         if mono:

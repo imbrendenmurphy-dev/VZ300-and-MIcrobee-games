@@ -357,6 +357,12 @@ boss_attack:
 	jr z,.ring
 	push af
 	call count_ents
+	ld e,a
+	ld a,(thin)		; thinning: fewer minions at once
+	or a
+	ld a,e
+	jr z,$+4
+	add a,4
 	cp 14
 	jr c,.room
 	pop af

@@ -368,7 +368,11 @@ def tile_image(theme, k):
         return bevel(sub(theme, 1, 3), tri(lambda x, y: x <= 15 - y), 'DR'), acc
 
     def rnd(cx, cy):
-        return tri(lambda x, y: ((x + 0.5 - cx) / 16) ** 2 + ((y + 0.5 - cy) / 16) ** 2 <= 1.0)
+        # a quarter circle on a 4:3 screen, where a pixel is about 1.5x
+        # taller than wide: 16 pixels across, 16 / 1.5 down
+        cy = 16 / 1.5 if cy == 16 else 16 - 16 / 1.5 if cy == 0 else cy
+        return tri(lambda x, y: ((x + 0.5 - cx) / 16) ** 2 + ((y + 0.5 - cy) / (16 / 1.5)) ** 2 <= 1.0
+                   or (cy > 8 and y + 0.5 >= cy) or (cy < 8 and y + 0.5 <= cy))
     if k == T.BTL:
         return bevel(sub(theme, 0, 0), rnd(16, 16), 'UL'), acc
     if k == T.BTR:

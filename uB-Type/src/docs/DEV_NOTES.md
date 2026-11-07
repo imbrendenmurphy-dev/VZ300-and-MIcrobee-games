@@ -95,3 +95,13 @@
 - bul2 fast path: over open space (CSLOT 0, SHA 0, SHC BLANK) a bullet's pieces are font-bank glyphs 96-125 (bultab from mkdata), written with scrput, CSLOT = 253 (cell treats 253 as open). Pixel-identical; but only ~1 in 8 bullets is over open space (backdrop bands and scenery), so the gain is small.
 - sfx_shot: was 2,9,+3 / 1,16 (a ~1 kHz bleep); briefly a click-and-thud pop; now a "fat squirt" (BPM): 4 frames of noise with the period mask widening 10, 18, 30, 44, so it starts bright and drops lower.
 - perf_v5.txt is the current table (thinned).
+
+## 2026-11-07 (2): BPM's playtest round
+- Lowercase letters around bullets on BPM's machine: bultab codes were 96-125 (< 128 = character ROM on a Microbee); now 0x80|code. The emulator rendered ROM codes blank, so the render compare missed it; screen_rgb now draws ROM codes (other than 0/space) as a checker. romscan scripts: none in title, pages, attract or play.
+- Turrets: one bullet each (thin): firedir records lastbul; turret keeps it in E_P1/E_P2 and waits (still reloading) while it flies. This was the big one: each turret had ~4 bullets in the air.
+- Dart aim: +-1 or +-2 of 16 directions off (dartmiss, rnd) when thin.
+- Thinning now keeps 9/16 of thintab spawns (accumulator thinc), formations (9n+8)>>4 min 1, boss minion waves: count_ents + 4 vs 14, NBUL_THIN 5.
+- Stage 1: mkdata.derock drops the 2-wide floating blocks (16); VG.prep_levels is replaced by mb_levels so the packed level data (VG.gen) gets the change too. fidelity.py now runs stage 2 (index 1) on both machines (VZ: lvlnum poked at level_start).
+- Ship: slim dart (hull +-2.5, wings span +-8.5, solid), canopy = 3 rows with a 1-row window slit, glint slides with tilt.
+- 4:3 roundness (AR 1.5): pod, sat, sprd, ebul, capsule ellipses ry = rx / 1.5; block corner tiles are quarter-ellipses 16 x 10.7.
+- perf_v6: starts 19.3-23.2, bosses 16.0-19.3.
