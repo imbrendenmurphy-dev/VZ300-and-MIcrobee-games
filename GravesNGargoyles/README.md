@@ -11,7 +11,7 @@ In the kingdom of Dreadmoor, the sorcerer **Morgrave** has stolen the seven **Su
 dead walk the land. Only one knight is awake: **Sir Tinplate**, the least impressive knight
 in the realm, in borrowed tin armour.
 
-### This build (v0.3.10) contains
+### This build (v0.3.11) contains
 
 - **Seven stages**, each its own SD pack (tiles, eight creature sprites, boss, music, text):
 
@@ -169,6 +169,11 @@ Both joysticks work interchangeably (directions read via ports $2C/$29).
   knight in his trousers, now takes **five knocks** before it breaks. A red bar of five
   segments at the right of the HUD counts them down. When it empties, a piece of armour
   flies off and the bar refills. Checkpoints, a new life and an armour pickup all refill it.
+- **Chests give their weapons again (v0.3.11).** Opening a chest often produced nothing:
+  the code saved the item's height with PUSH AF around the call that finds a free object
+  slot, and the POP AF afterwards also restored the old flags, throwing away the "slot
+  found" carry. Whether the weapon appeared depended on a stray flag. Now the contents always
+  pop out: daggers, axe and torch on every stage, and the armour in each secret chest.
 - **Quicker bosses (v0.3.10).** Every boss takes another 25% fewer hits (on top of the
   25% cut in v0.4). Hits needed on Casual / Normal / Expert: Gravemaw 8/11/16, the Hungry
   Oak 9/12/17, Leviathan 10/14/18, Old Croaker 10/15/19, the Prism Golem 11/16/20,

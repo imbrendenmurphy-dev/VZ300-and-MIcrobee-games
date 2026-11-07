@@ -1388,20 +1388,18 @@ obj_touch:
         ld h,(ix+3)
         inc hl
         inc hl
-        ld a,(ix+4)
+        ld b,(ix+4)
         ld c,(ix+12)
-        push bc
-        push af
+        push bc                 ; (not AF: popping it would lose obj_alloc's carry)
         push hl
         call obj_alloc
         pop hl
-        pop af
         pop bc
         jr nc,.ch
         ld (ix+0),OT_ITEM
         ld (ix+2),l
         ld (ix+3),h
-        ld (ix+4),a
+        ld (ix+4),b
         ld (ix+12),c
         ld (ix+6),-14
         ld (ix+14),$FF
