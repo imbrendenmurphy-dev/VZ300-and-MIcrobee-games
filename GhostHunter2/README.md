@@ -123,3 +123,7 @@ cd src
 ## Testing
 
 Tested on a real VZ300 with the BennVenn SD loader and 128K expansion, as well as in the emulator (all screens, all mazes, every power-up, both bonus rounds, both intermissions, death, game over, initials entry, and frame timing).
+
+## Sound-effect fix (8 November 2026)
+
+The sound-effect table had 9 bytes per entry, but the code that plays an effect looks entries up 8 bytes apart. So every effect after the first one played the wrong values, and some came out as long, chirpy, lingering sweeps. The table now has 8-byte entries, so every effect plays as designed. Warbly effects are also capped at 10 frames (about 0.2 s) so they stay short. Nothing else changed.

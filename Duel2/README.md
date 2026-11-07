@@ -189,3 +189,7 @@ Tested **in the emulator only**:
 ## About the original
 
 *DUEL* / *ACE OF ACES* was a VZ200/VZ300 tape game. It has no licence that allows redistribution, so neither the original program nor any of its graphics or code is included here. The sequel was written from scratch after studying it in the emulator. Its disassembly stays on your PC only.
+
+## Sound-effect fix (8 November 2026)
+
+The sound-effect table had 9 bytes per entry, but the code that plays an effect looks entries up 8 bytes apart. So every effect after the first one played the wrong values, and some came out as long, chirpy, lingering sweeps. The table now has 8-byte entries, so every effect plays as designed. Warbly effects are also capped at 10 frames (about 0.2 s) so they stay short. Nothing else changed.

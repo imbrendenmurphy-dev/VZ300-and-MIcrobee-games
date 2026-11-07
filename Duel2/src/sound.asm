@@ -206,19 +206,19 @@ SFX_CHARGE equ 13
 SFX_TWIN   equ 14
 SFX_CHUTE  equ 15
 sfxtab:
-        dw 3800,-500 : db 3,2,1,0,0       ; machine-gun rattle
-        dw 900,-60   : db 6,2,3,0,0       ; hit thud
-        dw 1500,-30  : db 40,2,5,0,0      ; explosion
-        dw 700,-20   : db 18,2,5,0,0      ; mid-air crash
-        dw 2600,-200 : db 5,2,3,0,0       ; balloon pop
-        dw 900,120   : db 18,1,4,0,0      ; power-up
-        dw 1500,-90  : db 3,0,2,0,0       ; menu blip
-        dw 900,160   : db 8,0,3,0,0       ; select
-        dw 600,-6    : db 48,2,5,0,0      ; thunder
-        dw 300,4     : db 30,2,1,0,0      ; gust
-        dw 2000,90   : db 6,1,3,0,0       ; shield ping
-        dw 3200,-36  : db 60,0,4,0,0      ; falling whistle
-        dw 2300,0    : db 2,0,1,0,0       ; tick
-        dw 1600,30   : db 10,1,2,0,0      ; cloud charging
-        dw 4400,-600 : db 3,2,1,0,0       ; twin guns
-        dw 1000,40   : db 20,1,2,0,0      ; parachute opens
+        dw 3800,-500 : db 3,2,1,0       ; machine-gun rattle
+        dw 900,-60   : db 6,2,3,0       ; hit thud
+        dw 1500,-30  : db 40,2,5,0      ; explosion
+        dw 700,-20   : db 18,2,5,0      ; mid-air crash
+        dw 2600,-200 : db 5,2,3,0       ; balloon pop
+        dw 900,120   : db 10,1,4,0      ; power-up
+        dw 1500,-90  : db 3,0,2,0       ; menu blip
+        dw 900,160   : db 8,0,3,0       ; select
+        dw 600,-6    : db 48,2,5,0      ; thunder
+        dw 300,4     : db 30,2,1,0      ; gust
+        dw 2000,90   : db 6,1,3,0       ; shield ping
+        dw 3200,-36  : db 60,0,4,0      ; falling whistle
+        dw 2300,0    : db 2,0,1,0       ; tick
+        dw 1600,30   : db 10,1,2,0      ; cloud charging
+        dw 4400,-600 : db 3,2,1,0       ; twin guns
+        dw 1000,40   : db 10,1,2,0      ; parachute opens
