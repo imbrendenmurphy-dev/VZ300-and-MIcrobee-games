@@ -1,5 +1,5 @@
 # TENNIS II — GRAND SLAM
-### for the Dick Smith VZ200 / VZ300 — ViBED by BPM 2026
+### for the Dick Smith VZ200 / VZ300 — VIBED BY BPM 2026
 
 **New balls, please!** The little green tennis court from the VZ is back for the big
 time. The original's charm is all still here: you just run, and the racket swings itself.
@@ -42,8 +42,7 @@ It all wraps up in:
 - a big-logo title screen with two little players rallying
 - a cheeky two-voice title theme and jingles for every point, game, set and match
 - a satisfying racket thunk on every shot, and a big POP when you smash
-- a crowd that really roars for aces and winners, with crackling applause for the rest
-- a two-tier crowd of 54 little spectators in randomly mixed colours, who leap up, arms in the air, after every point, and do a Mexican wave for aces, winners and sets
+- a two-tier crowd of 54 little spectators in randomly mixed colours, who leap up after every point and do a Mexican wave for aces, winners and sets, with a real roar and crackling applause
 - WINNER!, ACE! and OUT! pop-ups, and the line judge's flag
 - a ball with a shadow and a puff of dust on every bounce
 - blinds wipes between screens, and drifting grass or net dot textures behind every information screen
@@ -59,11 +58,11 @@ It all wraps up in:
 | **Storage** | Loads from SD (BennVenn loader) as a binary .VZ. No other files needed |
 | **File** | `TENNIS2.VZ`, 24.7 KB, loads and autostarts at $8000 |
 | **Display** | Genuine Mode 1 throughout (6847 CG2: 128×64, 4 colours). Both colour sets are used: grass, night and title in CSS0, clay and hard court in CSS1 |
-| **Graphics** | Perspective court with crowd strip and net. Pre-shifted, masked sprites recoloured for each surface and when players change ends. 9 character portraits, title picture, trophy |
+| **Graphics** | Perspective court with a two-tier crowd stand and net. Pre-shifted, masked sprites recoloured for each surface and when players change ends. 9 character portraits, title picture, trophy |
 | **Frame rate** | 50 fps, synced to field sync, with all screen writes in the vblank window (no snow) |
 | **Score panel** | Framed panels for each player, scores centred and in the player's own colour |
 | **Effects** | Two-frame animated two-tier crowd of 54 (bobbing and Mexican wave), bounce puffs, ball shadow, popups. Info screens have a drifting dot backplane (grass or net) that is drawn in vblank and steers clear of text |
-| **Sound** | Two-voice beeper music (title theme, info shuffle, practice loop, Grand Slam march, 10 jingles) and 17 sound effects, with a woody racket "thunk" for every strike a loud pop for smashes, and white-noise crowd roars and applause. Music+SFX / SFX only / off |
+| **Sound** | Two-voice beeper music (title theme, info shuffle, practice loop, Grand Slam march, 10 jingles) and 17 sound effects, with a woody racket "thunk" for every strike, a loud pop for smashes, and white-noise crowd roars and applause. Music+SFX / SFX only / off |
 | **Controls** | Keyboard: Q A M , move, SPACE fire. Joysticks 1 and 2, read to suit the VZ joystick interface. Player 2 keys: I J K L + H. P pause, S sound |
 | **Modes** | World Tour (1P), Exhibition (1P), Two Players, Target Practice, plus the hidden Classic 1984 court |
 | **Rules** | Full tennis scoring: deuce/advantage, games, sets, tie-breaks, change of ends. Faults, double faults, lets and aces. Sets of 2, 4 or 6 games |
