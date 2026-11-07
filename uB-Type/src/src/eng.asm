@@ -100,21 +100,29 @@ restore:
 	ld a,(rpage)
 	or a
 	ld hl,QA
-	ld a,(qnA)
-	jr z,$+8
+	ld de,(qnA)
+	jr z,.pg
 	ld hl,QB
-	ld a,(qnB)
-	ld (qbase),hl
+	ld de,(qnB)
+.pg:	ld (qbase),hl
 	ld (qptr),hl
-	push af
+	push de
 	call stars_hide
-	pop af
-	or a
+	pop de
+	ld a,d
+	or e
 	ret z
-	ld (rs_n),a
+	; 16-bit count (a busy boss scene can list more than 255 cells):
+	; B = low byte, C = passes of the outer loop
+	ld a,e
+	or a
+	jr z,$+3
+	inc d
+	ld b,e
+	ld c,d
+	ld (rs_n),bc
 	ld hl,(qbase)
 	; pass 1: screen codes, clear the slot marks
-	ld b,a
 .p1:	ld e,(hl)
 	inc hl
 	ld d,(hl)
@@ -128,12 +136,13 @@ restore:
 	xor a
 	ld (de),a		; CSLOT
 	djnz .p1
+	dec c
+	jr nz,.p1
 	; pass 2: attributes
 	ld a,LV_ATTR
 	out (P_LV),a
 	ld hl,(qbase)
-	ld a,(rs_n)
-	ld b,a
+	ld bc,(rs_n)
 .p2:	ld e,(hl)
 	inc hl
 	ld a,(hl)
@@ -141,13 +150,15 @@ restore:
 	xor $70^$58
 	ld d,a
 	ld a,(de)		; SHA
-	ld c,a
+	ex af,af'
 	ld a,d
 	xor $58^$F0
 	ld d,a
-	ld a,c
+	ex af,af'
 	ld (de),a
 	djnz .p2
+	dec c
+	jr nz,.p2
 	ld a,(pool_bank)
 	or LV_SCREEN
 	out (P_LV),a
@@ -155,8 +166,7 @@ restore:
 	ld a,COL_ON
 	out (P_COLCTL),a
 	ld hl,(qbase)
-	ld a,(rs_n)
-	ld b,a
+	ld bc,(rs_n)
 .p3:	ld e,(hl)
 	inc hl
 	ld d,(hl)
@@ -166,10 +176,12 @@ restore:
 	set 7,d
 	ld (de),a
 	djnz .p3
+	dec c
+	jr nz,.p3
 	xor a
 	out (P_COLCTL),a
 	ret
-rs_n	db 0
+rs_n	dw 0
 
 ; ---------------------------------------------------------------------
 ;  terrain columns
@@ -1457,16 +1469,19 @@ scrput:	push hl
 ; ---------------------------------------------------------------------
 ;  remember how many cells this page's restore list holds
 ; ---------------------------------------------------------------------
-apply_queue:
-	ld a,(qcount)
-	ld b,a
+apply_queue:	; (16-bit: the list can pass 255 cells)
+	ld hl,(qptr)
+	ld de,(qbase)
+	or a
+	sbc hl,de
+	srl h
+	rr l
 	ld a,(rpage)
 	or a
-	ld a,b
 	jr nz,.b
-	ld (qnA),a
+	ld (qnA),hl
 	ret
-.b:	ld (qnB),a
+.b:	ld (qnB),hl
 	ret
 
 ; ---- enemy bullet (VZ bul2): B = x+32, C = y+16

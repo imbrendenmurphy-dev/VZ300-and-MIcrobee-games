@@ -102,6 +102,10 @@ This was checked in the emulator's monochrome render, not on your amber monitor.
 
 The first version of the fast bullet drawing put screen codes 96–125 on the page. On a Microbee, codes below 128 come from the character ROM, so BPM saw lowercase letters around the bullets on his machine; the test emulator draws those codes blank, so the screenshots looked clean. The codes are now 224–253 (the same programmable characters), and the emulator now shows any character-ROM code as a checker pattern so this can't hide again. Scans of the title, pages, attract mode and play found none.
 
+## A restore-list bug in the busiest boss fights
+
+While capturing the showcase, the stage 8 boss fight showed leftover pieces of sprites on alternate frames. Each screen page keeps a list of the cells its sprites covered, to be put back next time it is drawn, and the list's count was one byte. That boss fight lists up to 270 cells, so the count wrapped past 255 and some cells were never put back. The count is now 16 bits and the lists hold 400 cells each; a check over 1,500 frames of that fight saw counts above 255 on 11 frames, all restored.
+
 ## Known limitations
 
 - Untested on real hardware: timing, keyboard, joystick, sound and disk loading on a real Premium Plus still need checking.

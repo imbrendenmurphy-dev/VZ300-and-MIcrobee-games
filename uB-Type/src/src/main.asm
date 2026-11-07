@@ -192,8 +192,8 @@ pphaseB	ds 1
 poolbank ds 1
 poolnext ds 1
 qptr	ds 2
-qnA	ds 1
-qnB	ds 1
+qnA	ds 2
+qnB	ds 2
 pcgblk	ds 1
 tabblk	ds 1
 bandrow	ds 1
@@ -202,8 +202,8 @@ starcol	ds 1
 colbuf	ds 3*PROWS
 	ALIGN 16
 BGBUF	ds 16
-QA	ds 2*320
-QB	ds 2*320
+QA	ds 2*400
+QB	ds 2*400
 STQA	ds 3*13+2
 STQB	ds 3*13+2
 	ALIGN 256

@@ -3,6 +3,8 @@
 
 **The VZ300's own R-Type-style blaster has landed on the Microbee, at four times the resolution in both directions.**
 
+![μB-TYPE: the title, the attract pages and a run through the stages and bosses](showcase/ubtype_showcase.gif)
+
 μB-TYPE is the Premium Plus conversion of **VZ-TYPE**, BPM's original horizontally scrolling shoot-'em-up for the Dick Smith VZ300. The game underneath is VZ-TYPE's own: the same stages, enemy waves, bosses, weapons and hit boxes, thinned for the Microbee (fewer ordinary enemies, one faster bullet at a time from each turret, at most five enemy bullets at once, and kamikaze darts that don't always aim true) to keep it flowing and fair on a keyboard. The VZ's chunky 128×64 playfield has been redrawn from scratch at the Microbee's full 512×256, in character graphics.
 
 You pilot a lone fighter through eight stages of biomechanical trouble:
@@ -33,6 +35,47 @@ It all comes wrapped in:
 - a 70s "future" typeface throughout, with the double-width stroke on the lower left of each character
 - a trainer mode (press **T** on the title)
 - a separate set of graphics for **monochrome monitors**: pick colour or mono when the game starts
+
+## Screenshots
+
+*All screenshots and the showcase animation were captured in the emulator, drawn at a 4:3 monitor's proportions. The animation runs at real speed; an MP4 version is in `showcase/ubtype_showcase.mp4`.*
+
+**Front end and attract mode**
+
+| | |
+|---|---|
+| ![Monitor choice](showcase/attract_1_monitor_choice.png) | ![Title screen](showcase/attract_2_title.png) |
+| Pick a colour or monochrome monitor | The title: striped logo, ship, planet and scroller |
+| ![Hall of Fame](showcase/attract_3_hall_of_fame.png) | ![How to play](showcase/attract_4_how_to_play.png) |
+| Hall of Fame | How to play |
+| ![Power-ups](showcase/attract_5_power_ups.png) | ![Attract mode](showcase/attract_6_demo.png) |
+| The power-up capsules | Attract mode: the real game, flown by the autopilot |
+| ![Stage intro](showcase/attract_7_stage_intro.png) | ![Monochrome title](showcase/attract_8_title_mono.png) |
+| Stage intro | The title on an amber monochrome monitor |
+
+**The eight stages**
+
+| | |
+|---|---|
+| ![Outer Hull](showcase/game_stage1_outer_hull.png) | ![The Hive](showcase/game_stage2_the_hive.png) |
+| 1 Outer Hull | 2 The Hive |
+| ![Rock Belt](showcase/game_stage3_rock_belt.png) | ![Crystal Vein](showcase/game_stage4_crystal_vein.png) |
+| 3 Rock Belt | 4 Crystal Vein |
+| ![Dreadnought](showcase/game_stage5_dreadnought.png) | ![Gut Caverns](showcase/game_stage6_gut_caverns.png) |
+| 5 Dreadnought | 6 Gut Caverns |
+| ![Deep Field](showcase/game_stage7_deep_field.png) | ![The Core](showcase/game_stage8_the_core.png) |
+| 7 Deep Field | 8 The Core |
+
+**Bosses and monochrome**
+
+| | |
+|---|---|
+| ![Outer Hull boss](showcase/game_boss1_outer_hull.png) | ![Rock Belt serpent](showcase/game_boss3_rock_belt.png) |
+| The Outer Hull's armoured fortress | The Rock Belt's armoured serpent |
+| ![Dreadnought bridge](showcase/game_boss5_dreadnought.png) | ![The Core](showcase/game_boss8_the_core.png) |
+| The dreadnought's bridge tower | The shelled overmind at the Core |
+| ![Monochrome play](showcase/game_stage6_mono.png) | |
+| Gut Caverns in monochrome mode | |
 
 ## Specifications
 

@@ -106,3 +106,7 @@
 - 4:3 roundness (AR 1.5): pod, sat, sprd, ebul, capsule ellipses ry = rx / 1.5; block corner tiles are quarter-ellipses 16 x 10.7.
 - perf_v6: starts 19.3-23.2, bosses 16.0-19.3.
 - (later) Turret bullets were too slow to leave their turret: all enemy bullets fly at 5/8 table speed (15/16 px a frame) and turrets scroll at 1 px a frame. bslow now gives turret bullets (bulslow = 1) 5/4 when thin. Cockpit: no bubble; the hull's top line rises into a low fairing (x 13-27) with a 1-row window slit at cy-2 and the glint.
+
+## 2026-11-07 (3): showcase, restore-count bug
+- Stage 8 boss (and any scene listing > 255 cells): qcount was a byte, so apply_queue's qnA/qnB wrapped and restore missed cells (stale sprite pieces on one page). Now apply_queue computes (qptr - qbase) / 2 as a word; restore loops B (low) x C (outer). QA/QB 400 entries each; vars_end EC00. Measured max 270 cells.
+- Showcase: tools/showcase_capture.py (front end + stages, attract pilot via demomode/demotm pokes; boss start poked after prof_reset), showcase_bosses.py (waits for T_BOSS), showcase_gif.py (16-colour GIF at 80 ms = real speed, plus MP4 via ffmpeg). Output in docs/showcase.
