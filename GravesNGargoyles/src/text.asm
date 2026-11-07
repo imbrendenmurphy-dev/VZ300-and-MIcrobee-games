@@ -25,7 +25,7 @@ CARD_CLEAR:
 CARD_OVER:
         db 14,0,"GAME OVER",0
         db 28,0,"CONTINUE? PRESS FIRE",0
-        db 50,2,"YOUR ARMOUR IS KEPT",0
+        db 46,2,"YOUR ARMOUR IS KEPT",0
         db $FF
 HISCORE_INIT:
         db $00,$20,$00,"BPM"

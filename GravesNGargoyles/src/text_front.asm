@@ -41,23 +41,22 @@ STORY3:
         db 42,2,"(AND KEEP YOUR TROUSERS ON)",0
         db $FF
 CARD_CTRL:
-        db 2,0,"CONTROLS",0
-        db 11,2,"O / P    LEFT / RIGHT",0
-        db 18,2,"Q        JUMP",0
-        db 25,2,"A        CROUCH",0
-        db 32,2,"SPACE    THROW (HOLD=MAGIC)",0
-        db 39,2,"W / RET  CHANGE WEAPON",0
-        db 46,2,"M MAGIC  H PAUSE  S MUSIC",0
-        db 55,0,"JOYSTICK: UP JUMPS, ARM SWAPS",0
+        db 3,0,"CONTROLS",0
+        db 10,2,"O / P    LEFT / RIGHT",0
+        db 16,2,"Q        JUMP",0
+        db 22,2,"A        CROUCH",0
+        db 28,2,"SPACE    THROW (HOLD=MAGIC)",0
+        db 34,2,"W / RET  CHANGE WEAPON",0
+        db 40,2,"M MAGIC  H PAUSE  S MUSIC",0
+        db 48,0,"JOYSTICK: UP JUMPS, ARM SWAPS",0
         db $FF
 CARD_CRED:
         db 4,0,"GRAVES 'N' GARGOYLES",0
         db 12,2,"SIR TINPLATE'S LONG NIGHT",0
-        db 24,2,"CODE, ART AND MUSIC",0
-        db 31,0,"VIBED BY BPM 2026",0
-        db 43,2,"FOR THE DICK SMITH VZ300",0
-        db 50,2,"BENNVENN SD + 128K",0
-        db 58,0,"@ 2026",0
+        db 22,2,"CODE, ART AND MUSIC",0
+        db 29,0,"VIBED BY BPM 2026",0
+        db 39,2,"FOR THE DICK SMITH VZ300",0
+        db 46,2,"BENNVENN SD + 128K",0
         db $FF
 
 ; bestiary: frame0, frame1, name, description
@@ -66,7 +65,7 @@ BEAST:
         db "GRAVE ZOMBIE",0,"RISES WHEN YOU STEP NEAR",0
         dw F_SKEL_0,F_SKEL_1
         db "RATTLEBONES",0,"FIGHTS ON WITHOUT HIS HEAD",0
-        dw F_BAT_0,F_BAT_1
+        dw F_TBAT_0,F_TBAT_1
         db "CRYPT BAT",0,"SWOOPS FROM THE DARK",0
         dw F_GHOST_0,F_GHOST_1
         db "MOURNING GHOST",0,"DRIFTS THROUGH WALLS",0

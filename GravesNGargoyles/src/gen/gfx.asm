@@ -280,6 +280,37 @@ S_BOLT_0_P2:
 
 ; hero frames: 16 rows x 12 px, byte = armourclass<<4 | bodyclass
 NHEROF equ 8
+; static card decoration (see card_art in mkassets.py)
+CARD_TRIM:
+    db $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
+    db $9A,$AB,$AA,$9A,$AA,$BA,$A9,$AA
+CARD_BAND:
+    db $AA,$AA,$AA,$AA,$AB,$AA,$AA,$AA
+    db $A9,$55,$AA,$AA,$BF,$FA,$AA,$AA
+    db $A6,$AA,$6A,$AA,$AB,$AA,$AA,$AA
+    db $A6,$BA,$6A,$AA,$AB,$AA,$A9,$6A
+    db $A6,$FE,$6A,$AA,$AB,$AA,$A6,$9A
+    db $86,$BA,$4A,$A8,$AB,$A8,$A6,$92
+    db $00,$00,$00,$08,$00,$00,$00,$00
+    db $CF,$CF,$3F,$CF,$3F,$3F,$CF,$3F
+CARD_STARS:   ; FB address, keep mask, yellow bits
+    dw $EE00+8*40+4+2
+    db $CF,$10
+    dw $EE00+12*40+4+13
+    db $3F,$40
+    dw $EE00+9*40+4+25
+    db $CF,$10
+    dw $EE00+22*40+4+30
+    db $CF,$10
+    dw $EE00+30*40+4+1
+    db $F3,$04
+    dw $EE00+47*40+4+28
+    db $FC,$01
+    dw $EE00+46*40+4+3
+    db $F3,$04
+    dw $EE00+4*40+4+19
+    db $CF,$10
+NSTARS equ 8
 HERO_BODYTAB:   ; body class -> colour (FF transparent)
     db $FF,1,3,2,3,1,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
 HERO_ARMTAB:    ; level x armour class -> colour (FF not worn)

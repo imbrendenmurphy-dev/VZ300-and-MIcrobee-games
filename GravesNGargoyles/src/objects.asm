@@ -35,7 +35,7 @@ F_KEEP  equ 8           ; collected/killed permanently (never respawns)
 OTAB:   db 0,0,0,0,0,0,0                    ; 0
         db F_HARM|F_SHOOT,1, 3,1,7,13, $10  ; zombie
         db F_HARM|F_SHOOT,2, 3,1,7,15, $20  ; skeleton
-        db F_HARM|F_SHOOT,1, 1,0,10,5, $15  ; bat
+        db F_HARM|F_SHOOT,1, 1,0,10,7, $15  ; bat (and every stage's bat)
         db F_HARM|F_SHOOT,2, 2,1,8,10, $25  ; ghost
         db F_HARM|F_SHOOT,1, 0,1,7,5,  $15  ; crow
         db F_HARM|F_SHOOT|F_KEEP,8, 1,1,10,9, $99  ; imp
@@ -283,7 +283,14 @@ objs_update:
         sbc hl,de
         jp p,.free
 .keep:  ld a,(ix+0)
-        add a,a
+        cp 3                    ; every stage's bat: rests one frame in four
+        jr nz,.go
+        ld a,(ix+8)
+        and 3
+        cp 3
+        jr z,.nx
+        ld a,(ix+0)
+.go:    add a,a
         ld e,a
         ld d,0
         ld hl,OBJ_LOGIC

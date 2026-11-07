@@ -1,4 +1,19 @@
-; health bar drawing (runs from SRAM, BLOB2)
+; health bar drawing + armour refill (runs from SRAM, BLOB2)
+; full armour and a full bar
+arm_full:
+        ld a,(arm_max)
+; A = armour level: wear it with a full bar
+set_arm:
+        ld (arm_cur),a
+        push af
+        ld a,HP_MAX
+        ld (hero_hp),a
+        ld a,1
+        ld (hud_need),a
+        pop af
+        ret
+
+
 ; the bar: HP_MAX segments at the right of the HUD
 hp_hud:
         ld a,(col_hud)

@@ -11,7 +11,7 @@ In the kingdom of Dreadmoor, the sorcerer **Morgrave** has stolen the seven **Su
 dead walk the land. Only one knight is awake: **Sir Tinplate**, the least impressive knight
 in the realm, in borrowed tin armour.
 
-### This build (v0.3.8) contains
+### This build (v0.3.9) contains
 
 - **Seven stages**, each its own SD pack (tiles, eight creature sprites, boss, music, text):
 
@@ -169,13 +169,21 @@ Both joysticks work interchangeably (directions read via ports $2C/$29).
   knight in his trousers, now takes **five knocks** before it breaks. A red bar of five
   segments at the right of the HUD counts them down. When it empties, a piece of armour
   flies off and the bar refills. Checkpoints, a new life and an armour pickup all refill it.
-- **Thinner title music (v0.3.8).** The title and attract tune now uses the same 'dink'
-  style as the game: one short blip per melody note, slower, and one soft low blip per half
-  bar instead of the busy bass arpeggio.
-- **Drifting graveyard backdrops (v0.3.8).** The story pages, bestiary, stage cards, clear
-  cards, game over, controls, credits, high scores and ending now float over a sparse dotted
-  texture of tombstones that slowly drifts up and to the left. Cards are redrawn every frame
-  so it can move, and card text is drawn opaque so the dots never get into the letters.
+- **Title music with room to breathe (v0.3.9).** The original, fuller title tune is back.
+  Instead of thinning the music, the title screen now does less: once the logo has landed,
+  it and the credit line are baked into the backdrop, and the scene (bats, ghost, flickering
+  windows) is redrawn only every other step. The music now gets about 72% of the CPU on the
+  title screen, up from 46%, so its notes are interrupted far less.
+- **Dressed-up static screens (v0.3.9).** The story pages, bestiary, stage and clear cards,
+  game over, controls, credits, high scores and ending have a red trim along the top, a few
+  fixed stars and a graveyard along the bottom, with tombstones, crosses, grass and red
+  earth. On the story pages the knight walks along the graveyard. Card text is drawn
+  opaque, so nothing gets into the letters. Nothing on these screens scrolls.
+- **A bat you can see (v0.3.9).** The title-screen bats (and the Crypt Bat in the bestiary)
+  have a yellow rim, so they no longer vanish against the red castle.
+- **Gentler bats (v0.3.9).** Every stage's bat-slot creature (Crypt Bat, Fang Moth, Gull
+  Ghoul, Mega Mosquito, Cave Bat, Gargoyle Bat, Flying Tome) rests one frame in four, so it
+  flies at three-quarter speed. Its hit box is two rows taller, so it is easier to hit.
 - **Readable graves (v0.3.5).** Gallows Hill's tombstones are now dark slabs with a pale
   stone outline and an engraved cross, instead of green on green.
 
@@ -217,8 +225,8 @@ routine, which keeps the resident engine under the page boundary.
 ```
 $4000-$4A7F  SRAM bank B  ring buffer, phase 0   (title art while in menus)
 $4A80-$54FF  SRAM bank B  ring buffer, phase 2   (logo sprite while in menus)
-$5500-$60D7  SRAM bank B  frame blit routine, high-score code
-$6100-$67D8  SRAM bank B  hero layered class data, attract/bestiary code, health bar
+$5500-$60FF  SRAM bank B  frame blit routine, high-score code, hit counting
+$6100-$67FF  SRAM bank B  hero layered class data, attract/bestiary code, health bar
 $7000-$77FF  video RAM    rows 0-8 HUD, 9-59 playfield, 60-63 border
 $7800-$7AE8  left alone: ROM/BASIC system area used by the SD DOS
 $7B00-$7FFF  HUD buffer, lookup tables, DOS flags, IM2 table ($7F00-$8000)

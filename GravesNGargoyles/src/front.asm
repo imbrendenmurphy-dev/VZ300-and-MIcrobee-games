@@ -90,7 +90,15 @@ title_screen:
 .lp:    ld hl,(t_t)
         inc hl
         ld (t_t),hl
-        ; darkness for the first second, then lightning reveals the castle
+        ; the scene is only redrawn every other step: in between, the CPU
+        ; is left entirely to the music
+        ld a,l
+        and 1
+        jr nz,.draw
+        ld b,2
+        call wait_fields
+        jp .input
+.draw:  ; darkness for the first second, then lightning reveals the castle
         ld a,h
         or a
         jr nz,.lit
@@ -103,16 +111,16 @@ title_screen:
         or a
         jr nz,.nfl
         ld a,l
-        cp 40
+        cp 41
         jr nz,.nfl
         ld a,6
         ld (flash_t),a
         ld a,SFX_THUNDER_ID
         call play_sfx
 .nfl:   call copy_title
-        call flicker_windows
-        call title_bats
-        call title_ghost
+        ld a,(logo_y)
+        cp 5
+        jr z,.baked             ; logo and credit are part of the backdrop now
         ; logo descends
         ld hl,(t_t)
         ld a,h
@@ -129,7 +137,7 @@ title_screen:
         ld a,1
         ld (top_dirty),a
 .lgd:   call draw_logo
-        ; prompt + credits once settled
+        ; credit once settled, then bake logo + credit into the backdrop
         ld hl,(t_t)
         ld a,h
         or a
@@ -137,18 +145,27 @@ title_screen:
         ld a,l
         cp 100
         jr c,.nlogo
-.pr:    ld a,(t_t)
-        and 16
-        jr z,.np
+.pr:    ld hl,STR_COPY
+        ld c,58
+        ld a,(col_yel)
+        call text_fbc
+        ld a,(logo_y)
+        cp 4
+        jr c,.nlogo
+        call bake_title
+        ld a,5
+        ld (logo_y),a
+.baked: ld a,(t_t)
+        and 32
+        jr z,.nlogo
         ld hl,STR_PRESS
         ld c,46
         ld a,(col_yel)
         call text_fbc
-.np:    ld hl,STR_COPY
-        ld c,58
-        ld a,(col_yel)
-        call text_fbc
-.nlogo: ; random lightning
+.nlogo: call flicker_windows
+        call title_bats
+        call title_ghost
+        ; random lightning
         call rand
         cp 3
         jr nc,.nr
@@ -164,8 +181,7 @@ title_screen:
         ld a,1
         ld (top_dirty),a
 .nt:    call show_full
-        ; input
-        call read_input
+.input: call read_input
         ld a,(keys_new)
         and (1<<K_FIRE)|(1<<K_SWAP)
         jr z,.ni
@@ -174,11 +190,25 @@ title_screen:
         xor a
         ret
 .ni:    ld hl,(t_t)
-        ld de,900
+        ld de,1100
         or a
         sbc hl,de
         jp c,.lp
         ld a,1
+        ret
+
+; copy the finished frame buffer back into the title backdrop
+bake_title:
+        ld hl,FB+4
+        ld de,TITLEBUF
+        ld b,64
+.r:     push bc
+        ld bc,32
+        ldir
+        ld bc,FBW-32
+        add hl,bc
+        pop bc
+        djnz .r
         ret
 
 ; unpack the RLE title art into SRAM
@@ -373,11 +403,11 @@ title_bats:
         jr nc,.b2
         ld hl,190
         ld (bat2_x),hl
-.b2:    ld hl,F_BAT_0
+.b2:    ld hl,F_TBAT_0
         ld a,(t_t)
         and 4
         jr z,$+5
-        ld hl,F_BAT_1
+        ld hl,F_TBAT_1
         push hl
         ld bc,(bat1_x)
         ld a,(t_t)
@@ -644,92 +674,51 @@ menu_bg:
         ret
 
 ; ---------------------------------------------------------------- cards
-; clear FB for a card: sky with a sparse dotted graveyard drifting slowly
-; up and left behind it (a 32x32 tile of single dots, repeated 4x2)
+; clear FB for a card: night sky with a red trim along the top, a few
+; stars, and a graveyard along the bottom (rows 56-63). Card text is drawn
+; opaque so nothing gets into the letters.
 cls_card:
         call cls_fb
         ld a,(col_sky)
         ld (txt_op),a
-        ld hl,bg_t
-        inc (hl)
-        ld a,(hl)
-        rrca
-        and 31
-        ld (cc_ox+1),a
-        ld a,(hl)
-        rrca
-        rrca
-        and 31
-        ld (cc_oy+1),a
-        ld hl,DOTS
-        ld b,NDOTS
-cc_dot: push bc
-        ld a,(hl)
+        ld hl,CARD_STARS
+        ld b,NSTARS
+.st:    ld e,(hl)
         inc hl
-cc_ox:  add a,0
-        and 31
-        ld c,a                  ; x in tile
-        ld a,(hl)
+        ld d,(hl)
         inc hl
-cc_oy:  add a,0
-        and 31                  ; y in tile
-        push hl
-        ld l,a
-        ld h,0
-        add hl,hl
-        add hl,hl
-        add hl,hl
-        ld d,h
-        ld e,l
-        add hl,hl
-        add hl,hl
-        add hl,de               ; y*40
-        ld a,c
-        rrca
-        rrca
-        and 7
-        add a,4
-        ld e,a
-        ld d,FB>>8
-        add hl,de               ; FB is page aligned
-        ld a,c
-        and 3
-        ld e,a
-        ld d,0
-        push hl
-        ld hl,DMASK
-        add hl,de
-        ld c,(hl)
-        pop hl
+        ld a,(de)
+        and (hl)
+        inc hl
+        or (hl)
+        inc hl
+        ld (de),a
+        djnz .st
+        ld hl,CARD_TRIM
+        ld de,FB+4
         ld b,2
-.row:   push hl
-        ld e,4
-.col:   ld a,(hl)
-        and c                   ; a colour-0 dot
-        ld (hl),a
-        ld a,l
-        add a,8
-        ld l,a
-        jr nc,$+3
-        inc h
-        dec e
-        jr nz,.col
+        call .band
+        ld hl,CARD_BAND
+        ld de,FB+56*FBW+4
+        ld b,8
+.band:  ; B rows of an 8-byte tile, repeated four times across
+        push bc
+        ld a,4
+.rep:   push hl
+        ld bc,8
+        ldir
         pop hl
-        ld de,32*FBW
-        add hl,de
-        djnz .row
-        pop hl
+        dec a
+        jr nz,.rep
+        ld bc,8
+        add hl,bc
+        ex de,hl
+        ld c,FBW-32
+        add hl,bc
+        ex de,hl
         pop bc
-        djnz cc_dot
+        djnz .band
         ret
-DMASK:  db $3F,$CF,$F3,$FC
-; tile dots (x,y): a tall stone with a cross, a small stone, a little dust
-DOTS:   db 6,5, 8,5, 5,7, 9,7, 7,8, 5,9, 9,9
-        db 3,11, 5,11, 7,11, 9,11, 11,11
-        db 21,21, 20,23, 22,23, 20,25, 22,25
-        db 19,27, 21,27, 23,27
-        db 28,4, 13,18, 2,24
-NDOTS   equ ($-DOTS)/2
 ; card_text: HL = list of (row, colour index, string) terminated by $FF
 ; colour index: 0 yellow 1 red 2 green
 card_text:
@@ -805,14 +794,7 @@ story_page:
 .lp:    call cls_card
         ld hl,(sp_txt)
         call card_text
-        ; ground strip
-        ld hl,FB+56*FBW+4
-        ld b,32
-        ld a,(col_grn)
-.g:     ld (hl),a
-        inc hl
-        djnz .g
-        ; walking knight
+        ; walking knight, along the graveyard at the bottom
         ld a,(t_t)
         ld c,a
         ld b,0
@@ -903,11 +885,11 @@ clear_card:
         cp 8
         ret nc
         ld hl,STR_PWIS
-        ld c,45
+        ld c,42
         ld a,(col_grn)
         call text_fbc
         ld hl,pw_text
-        ld c,54
+        ld c,49
         ld a,(col_red)
         jp text_fbc
 STR_SUNOF:   db "SUNSTONE n OF 7",0

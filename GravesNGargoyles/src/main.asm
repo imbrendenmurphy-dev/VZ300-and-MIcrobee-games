@@ -107,6 +107,7 @@ BLOB1_SRC:
         phase $5500
         include "gen/blit_pf.asm"
         include "front_hi.asm"
+        include "health_hit.asm"
 BLOB1_END:
         dephase
 BLOB2_SRC:
