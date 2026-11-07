@@ -1,6 +1,6 @@
 # μB-TYPE verification report
 
-**All testing so far is in an emulator. Nothing has been run on a real Microbee yet.** The emulator is a Premium Plus model written for this project (`src/tools/emu/mbee.c` with its own Z80 core). It was checked by booting the real Microbee boot ROM (`bn60.rom`, not included) and The Lantern Deep's CP/M disk. The original VZ-TYPE ran in a VZ300 model (`src/tools/emu/vz.c`) for the comparisons.
+**BPM has played μB-TYPE on his Microbee Premium Plus, and his playtesting drove the later changes (thinning, turret bullets, the stage 1 blocks, the ship, round shapes, the bullet-glyph bug). The measurements and automated checks below come from an emulator.** The emulator is a Premium Plus model written for this project (`src/tools/emu/mbee.c` with its own Z80 core). It was checked by booting the real Microbee boot ROM (`bn60.rom`, not included) and The Lantern Deep's CP/M disk. The original VZ-TYPE ran in a VZ300 model (`src/tools/emu/vz.c`) for the comparisons.
 
 ## Gameplay fidelity
 
@@ -15,7 +15,7 @@
 
 - **Mode:** 64×16 characters of 8×16 PCG cells, 512×256 pixels, exactly 4× the VZ300's 128×64. Game logic stays in VZ coordinates.
 - **Scrolling:** one VZ pixel (4 Microbee pixels) per game frame, as on the VZ. The game uses the 6545 start address over two screen pages, plus glyphs pre-shifted by 4 pixels, adding one new terrain column each frame.
-- **No tearing (by design):** every frame is drawn into the page that is not on screen. The page flip (R12/R13) happens straight after the vertical-blank edge. Only the two HUD rows of the visible page are written after the flip, at the top of the frame while the beam is far above them. The emulator showed no tearing in the playfield. Real-hardware confirmation is still needed.
+- **No tearing (by design):** every frame is drawn into the page that is not on screen. The page flip (R12/R13) happens straight after the vertical-blank edge. Only the two HUD rows of the visible page are written after the flip, at the top of the frame while the beam is far above them. The emulator showed no tearing in the playfield.
 
 ## Performance under load
 
@@ -108,7 +108,6 @@ While capturing the showcase, the stage 8 boss fight showed leftover pieces of s
 
 ## Known limitations
 
-- Untested on real hardware: timing, keyboard, joystick, sound and disk loading on a real Premium Plus still need checking.
 - Busy scenes and bosses are slower than the VZ (see above).
 - Loading takes about 40 seconds in the emulator. Your SD setup may be faster or slower.
 - High scores are not saved to disk.

@@ -4,7 +4,7 @@
 
 VIBED BY BPM 2026.
 
-**Status: playable from the disk image, still being optimised.** So far it has been tested only in an emulator (the Premium Plus model in `src/tools/emu`), not on real hardware.
+**Status: playable from the disk image.** BPM has played it on his Microbee Premium Plus. The measurements and automated checks in `VERIFICATION.md` come from an emulator (the Premium Plus model in `src/tools/emu`).
 
 ## Running it
 
