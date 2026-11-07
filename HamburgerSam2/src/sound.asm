@@ -202,11 +202,11 @@ sfxtab:
         dw 3000,-180 : db 12,2,4,0      ; squash!
         dw 900,0     : db 14,2,3,0      ; pepper shake
         dw 3500,-200 : db 10,1,3,0      ; enemy stunned
-        dw 1000,180  : db 10,1,4,0      ; bonus item
+        dw 1000,180  : db 14,1,4,0      ; bonus item
         dw 1500,-90  : db 3,0,2,0       ; menu blip
         dw 900,160   : db 8,0,3,0       ; select
         dw 400,-10   : db 6,0,2,0       ; out of pepper
-        dw 1200,240  : db 10,1,5,0      ; ride bonus
+        dw 1200,240  : db 16,1,5,0      ; ride bonus
         dw 2300,0    : db 2,0,1,0       ; tick
         dw 1600,200  : db 8,1,4,0       ; Order Up: right layer
         dw 700,-40   : db 12,0,4,0      ; Order Up: wrong layer

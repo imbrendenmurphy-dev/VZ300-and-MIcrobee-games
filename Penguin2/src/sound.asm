@@ -213,13 +213,13 @@ sfxtab:
         dw 600,-30   : db 3,0,2,0       ; push
         dw 2400,-110 : db 12,0,2,0      ; slide whoosh
         dw 200,0     : db 10,2,3,0      ; crumble (noise)
-        dw 1600,-90  : db 10,1,6,0      ; crush
+        dw 1600,-90  : db 18,1,6,0      ; crush
         dw 900,160   : db 8,0,4,0       ; kick
         dw 300,40    : db 14,2,5,0      ; egg smash
         dw 60,0      : db 16,2,4,0      ; wall shake rumble
         dw 1400,120  : db 10,1,3,0      ; item appears
-        dw 800,140   : db 10,1,5,0      ; item collected
-        dw 3400,-180 : db 10,1,5,0      ; freeze
+        dw 800,140   : db 16,1,5,0      ; item collected
+        dw 3400,-180 : db 16,1,5,0      ; freeze
         dw 260,55    : db 6,0,2,0       ; hatch: short clean low "bloop" (no warble)
         dw 2300,0    : db 2,0,1,0       ; tick
         dw 420,-20   : db 4,0,2,0       ; block stops

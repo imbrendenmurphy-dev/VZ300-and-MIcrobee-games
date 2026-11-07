@@ -224,13 +224,13 @@ sfxtab:
         dw 420,-30   : db 4,0,2,0       ; pushed into a column
         dw 2900,-70  : db 30,0,3,0      ; diver whistle
         dw 90,0      : db 26,2,5,0      ; ground blast
-        dw 1700,-25  : db 10,1,4,0      ; bomb released
+        dw 1700,-25  : db 22,1,4,0      ; bomb released
         dw 900,-45   : db 18,2,5,0      ; bomb destroyed
-        dw 800,140   : db 10,1,5,0      ; capsule collected
+        dw 800,140   : db 16,1,5,0      ; capsule collected
         dw 2100,-160 : db 8,1,4,0       ; core hit
         dw 2300,0    : db 2,0,1,0       ; tick
         dw 1500,-90  : db 6,0,2,0       ; menu blip
         dw 3400,-150 : db 22,2,6,0      ; nova
-        dw 300,150   : db 10,1,4,0      ; warp
+        dw 300,150   : db 24,1,4,0      ; warp
         dw 60,0      : db 34,2,6,0      ; big explosion
         dw 2400,-40  : db 10,1,5,0      ; shield absorbs a blast
