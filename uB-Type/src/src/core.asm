@@ -346,7 +346,7 @@ sfx_charge:
 sfx_null	db 0
 
 ; ---- effects (VZ-TYPE originals): pri, {frames,period,delta,noise}..., 0
-sfx_shot:	db 2,  1,5,0,1, 1,20,0,0, 1,36,0,0, 1,56,0,0, 0	; a pop: a click, then a falling thud
+sfx_shot:	db 2,  1,10,0,1, 1,18,0,1, 1,30,0,1, 1,44,0,1, 0	; a fat squirt: noise, dropping lower
 sfx_beam:	db 5,  2,6,-1,0, 3,4,2,0, 10,5,2,1, 0
 sfx_beam1:	db 4,  2,10,-2,0, 6,8,3,1, 0
 sfx_pop:	db 3,  2,5,0,0, 6,6,3,1, 0

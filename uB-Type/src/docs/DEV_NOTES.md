@@ -93,5 +93,5 @@
 - BPM asked to thin enemies and bullets for speed and keyboard play. `thin` (demo.asm, default 1): spawn_from_list skips every 4th spawn of thintab types (DART TURF TURC HOP SPIN SPORE; never CARR CORE BOSS), swimming formations lose n/4; firedir skips every 3rd shot; newbul uses only NBUL_THIN = 6 of the 12 slots. fidelity.py pokes thin = 0.
 - Census (tools in scratchpad): the slow scenes had 5-9 enemy bullets on screen but only 1-3 ordinary enemies. Bullets are slow and long-lived, so the slot cap governs the count; skipping shots alone changed nothing (fps within 0.3). Cap 7: st2 start 20.5, st5 16.9; cap 5: 21.0 / 17.5; chose 6.
 - bul2 fast path: over open space (CSLOT 0, SHA 0, SHC BLANK) a bullet's pieces are font-bank glyphs 96-125 (bultab from mkdata), written with scrput, CSLOT = 253 (cell treats 253 as open). Pixel-identical; but only ~1 in 8 bullets is over open space (backdrop bands and scenery), so the gain is small.
-- sfx_shot: was 2,9,+3 / 1,16 (a ~1 kHz bleep); now a pop: 1 frame noise (period 5), then 20, 36, 56 (about 470, 260, 170 Hz).
+- sfx_shot: was 2,9,+3 / 1,16 (a ~1 kHz bleep); briefly a click-and-thud pop; now a "fat squirt" (BPM): 4 frames of noise with the period mask widening 10, 18, 30, 44, so it starts bright and drops lower.
 - perf_v5.txt is the current table (thinned).
