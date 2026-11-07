@@ -54,7 +54,7 @@ gen_status:                     ; HL = message
         ld b,12
         ld c,24
         ld a,C_PANEL
-        call puts_at
+        call puts_at_far
         ld b,12
         ld c,1
         jp present_rows
@@ -1099,7 +1099,3 @@ count_forest5:                  ; count forest/dense in +-5 box -> A
         ld a,(gcnt)
         ret
 
-msg_gen1: db "SHAPING THE CONTINENTS...",0
-msg_gen2: db "RAISING THE MOUNTAINS...",0
-msg_gen3: db "CARVING RIVERS...",0
-msg_gen4: db "PLANTING FORESTS...",0

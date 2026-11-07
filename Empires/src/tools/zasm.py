@@ -379,7 +379,12 @@ class Assembler:
             return
         if mn=='savebin':
             p=split_ops(rest)
-            if s.passno>=2: s.saves.append((p[0].strip().strip('"'),s.ev(p[1]),s.ev(p[2])))
+            if s.passno>=2:
+                st,ln=s.ev(p[1]),s.ev(p[2])
+                used=[i for i in range(st,st+ln) if i in s.out]
+                end=(max(used)+1) if used else st
+                s.saves.append((p[0].strip().strip('"'),bytes(s.out.get(i,0) for i in range(st,end)),st))
+                for i in used: del s.out[i]      # the range may be reused by a later section
             return
         if mn in ('end',): return
         s.emit(s.encode(mn,split_ops(rest)))
@@ -411,12 +416,9 @@ def main():
     except AsmError as e:
         print('ERROR',e); sys.exit(1)
     lo,hi=a.minaddr,a.maxaddr
-    for fn,st,ln in a.saves:
-        used=[i for i in range(st,st+ln) if i in a.out]
-        end=(max(used)+1) if used else st
-        d=bytes(a.out.get(i,0) for i in range(st,end))
+    for fn,d,st in a.saves:
         open(os.path.join(os.path.dirname(sys.argv[1]),fn),'wb').write(d)
-        print('  savebin %s: %04X-%04X (%d bytes)'%(fn,st,end-1,len(d)))
+        print('  savebin %s: %04X-%04X (%d bytes)'%(fn,st,st+len(d)-1,len(d)))
     if a.saves: data=b''
     else: data=bytes(a.out.get(i,0) for i in range(lo,hi+1))
     if data: open(sys.argv[2],'wb').write(data)

@@ -35,6 +35,7 @@ cellcol:    db 0
 pr_off:     dw 0
 pr_len:     dw 0
 numbuf:     ds 8
+txtbuf:     ds 96
 ms_idle:    db 0
 ms_bitn:    db 110
 ms_half:    db 55
@@ -83,7 +84,9 @@ glowxy: dw 0
 gcnt:   db 0
 grad:   db 0
 barval: db 0
-grid:   ds 1200
+grid:   ds 1200                 ; world generation only ...
+rowbuf  equ grid                ; ... shared with save/load (never at the same time)
+st_buf  equ grid+512
 colv:   ds 40
 colacc: ds 40*4
 th_desert: db 46
@@ -256,10 +259,8 @@ st_n:     db 0
 st_rp:    db 0
 st_total: ds 3
 st_sum:   dw 0
-st_buf:   ds 256
 rle_val:  db 0
 rle_len:  db 0
-rowbuf:   ds 512
 
         ds 256
 stacktop:

@@ -308,6 +308,18 @@ puts:   ld (txtcol),a           ; text uses the Roman font in PCG bank FONT_BANK
         inc de
         jr .lp
 
+; text kept in the overlay block
+puts_far:
+        push af
+        call far_str
+        pop af
+        jp puts
+puts_at_far:
+        push af
+        call far_str
+        pop af
+        jr puts_at
+
 ; puts_at: B=row C=col HL=string A=colour
 puts_at:
         push af

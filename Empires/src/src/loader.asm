@@ -140,7 +140,7 @@ main:   di
 
 files:  db BLK_STAGE,00h,"EMPIRES UP "
         db BLK_OVL,  00h,"EMPIRES OVL"
-        db BLK_ART,  40h,"EMPIRES ART"
+        db BLK_ART,  00h,"EMPIRES ART"
         db 0
 
 fail_bank:

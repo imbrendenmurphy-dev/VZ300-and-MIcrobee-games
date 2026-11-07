@@ -59,7 +59,7 @@ menu:   call title_screen
         ld c,30
         ld hl,txt_building_world
         ld a,C_TITLE
-        call puts_at
+        call puts_at_far
         call present_all
         call set_world_size
         call generate_world
@@ -156,7 +156,6 @@ pio_restore:                    ; back to mode 0 (output) for the printer
         out (P_PIOAC),a
         ret
 
-txt_building_world: db "BUILDING A NEW WORLD",0
 
         include "banks.asm"
         include "video.asm"
@@ -177,14 +176,15 @@ engine_end:
 ; ---- overlay block (lower window, 0000h) ----
         org 0000h
         include "overlay.asm"
+        include "text.asm"
 overlay_end:
-        assert overlay_end <= 4000h, "overlay too big"
-        savebin "../build/EMPIRES.OVL",0000h,4000h
+        assert overlay_end <= 8000h, "overlay too big"
+        savebin "../build/EMPIRES.OVL",0000h,8000h
 
-; ---- art block (lower window, 4000h) ----
-        org 4000h
+; ---- art block (lower window, whole 32K) ----
+        org 0000h
         include "art_pcg.inc"
         include "art_anim.inc"
 art_end:
         assert art_end <= 8000h, "art too big"
-        savebin "../build/EMPIRES.ART",4000h,4000h
+        savebin "../build/EMPIRES.ART",0000h,8000h

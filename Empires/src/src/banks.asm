@@ -179,3 +179,33 @@ set_world_size:
         ld a,b
         ld (ovch),a
         ret
+
+; far_str: HL = 0-terminated string in the overlay block (game text)
+; -> HL = txtbuf holding a copy (up to 95 characters).  Keeps BC, DE.
+far_str:
+        push de
+        push bc
+        ld a,BLK_OVL
+        call with_block
+        ld de,txtbuf
+        ld b,95
+.l:     ld a,(hl)
+        ld (de),a
+        or a
+        jr z,.e
+        inc hl
+        inc de
+        djnz .l
+        xor a
+        ld (de),a
+.e:     call map_home
+        ld hl,txtbuf
+        pop bc
+        pop de
+        ret
+; far_copy: HL = source in the overlay block, DE = destination, BC = length
+far_copy:
+        ld a,BLK_OVL
+        call with_block
+        ldir
+        jp map_home

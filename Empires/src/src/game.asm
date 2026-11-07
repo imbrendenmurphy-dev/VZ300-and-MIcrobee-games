@@ -38,42 +38,12 @@ tool_icon:
         dw G_TI_WELL_L,G_TI_MARKET_L,G_TI_MILL_L,G_TI_TOWER_L,G_TI_CLEAR_L
 tool_name:
         dw tn0,tn1,tn2,tn3,tn4,tn5,tn6,tn7,tn8,tn9
-tn0:    db "ROAD      ",0
-tn1:    db "HUT       ",0
-tn2:    db "FARM      ",0
-tn3:    db "WOODCUTTER",0
-tn4:    db "QUARRY    ",0
-tn5:    db "WELL      ",0
-tn6:    db "MARKET    ",0
-tn7:    db "WINDMILL  ",0
-tn8:    db "WATCHTOWER",0
-tn9:    db "CLEAR LAND",0
 obj_name:
         dw on0,on1,on2,on2,on2,on2,on6,on7,on8,tn2,tn3,tn4,tn5,tn6,tn7,tn8
-on0:    db "",0
-on1:    db "ROAD",0
-on2:    db "TOWN HALL",0
-on6:    db "HUT",0
-on7:    db "HOUSE",0
-on8:    db "MANOR",0
 tool_hint:
         dw th0,th1,th2,th3,th4,th5,th6,th7,th8,th9
-th0:    db "ROADS LINK; BRIDGE RIVERS",0
-th1:    db "HOMES 4; GROWS INTO HOUSE",0
-th2:    db "PLOUGHS GRASS INTO FIELDS",0
-th3:    db "TIMBER FROM NEARBY FOREST",0
-th4:    db "STONE FROM HILLS AND ROCK",0
-th5:    db "WATER: HAPPIER, HOMES GROW",0
-th6:    db "TRADE GOLD; MANORS NEED IT",0
-th7:    db "+FOOD EXCEPT IN WINTER",0
-th8:    db "SEES FAR, WIDENS LANDS",0
-th9:    db "FELL, DRAIN, DEMOLISH",0
 season_name:
         dw sn0,sn1,sn2,sn3
-sn0:    db "SPRING",0
-sn1:    db "SUMMER",0
-sn2:    db "AUTUMN",0
-sn3:    db "WINTER",0
 fx_seasons: dw fx_spring,fx_summer,fx_autumn,fx_winter
 speed_frames: db 0,150,80,30      ; frames per game week: paused, slow, normal, fast
 
@@ -316,13 +286,13 @@ draw_msg:
         ld a,(msgcol)
         ld b,MSGROW
         ld c,1
-        call puts_at
+        call puts_at_far
         jr .p
 .hint:  ld hl,msg_hint
         ld a,C_DIM
         ld b,MSGROW
         ld c,1
-        call puts_at
+        call puts_at_far
 .p:     ld b,MSGROW
         ld c,1
         jp present_rows
@@ -350,10 +320,10 @@ draw_status:
         ld h,(hl)
         ld l,a
         ld a,C_STATNUM
-        call puts
+        call puts_far
         ld hl,txt_yr
         ld a,C_STATUS
-        call puts
+        call puts_far
         ld a,C_STATNUM
         ld (txtcol),a
         ld hl,(year)
@@ -553,7 +523,7 @@ draw_toolbar:
         ld h,(hl)
         ld l,a
         ld a,C_PANELHI
-        call puts
+        call puts_far
         inc de
         ; costs
         ld a,(tool)
@@ -628,7 +598,7 @@ draw_toolbar:
         ld b,TOOLROW
         ld c,54
         ld a,COL(BCYAN,BLUE)
-        call puts_at
+        call puts_at_far
         ld b,TOOLROW
         ld c,1
         jp present_rows
@@ -675,7 +645,7 @@ draw_info:
         jr nz,.known
         ld hl,txt_unexplored
         ld a,COL(GREY,BLUE)
-        call puts
+        call puts_far
         jr .xy
 .known: and 1Fh
         ; terrain name
@@ -702,13 +672,13 @@ draw_info:
         ld h,(hl)
         ld l,a
         ld a,C_PANELHI
-        call puts
+        call puts_far
         pop af
         bit 7,a
         jr z,.xy
         ld hl,txt_building
         ld a,COL(BYELLOW,BLUE)
-        call puts
+        call puts_far
 .xy:    ld b,INFOROW
         ld c,1
         jp present_rows
@@ -2081,7 +2051,7 @@ draw_overview:
         ld c,1
         ld hl,txt_worldmap
         ld a,C_MSG
-        call puts_at
+        call puts_at_far
         ld hl,legend
         ld b,4
 .lg:    ld a,(hl)
@@ -2114,7 +2084,7 @@ draw_overview:
         ld c,1
         ld hl,txt_ovhelp
         ld a,C_DIM
-        call puts_at
+        call puts_at_far
         jp present_all
 
 ; mark overview cells containing a settlement (bit array 22 rows x 64 cols)
@@ -2799,40 +2769,7 @@ handle_keys:
         ret
 
 ; ---------------- text ----------------
-msg_welcome:  db "YOUR SETTLERS HAVE FOUNDED A TOWN. BUILD HUTS, FARMS AND A WOODCUTTER!",0
-msg_hint:     db "ARROWS MOVE  SPACE BUILD  1-0 TOOLS  M MAP  F SAVE/LOAD  P PAUSE  H HELP",0
-msg_started:  db "CONSTRUCTION BEGUN.",0
-msg_complete: db "CONSTRUCTION COMPLETE!",0
-msg_grow:     db "A HUT HAS GROWN INTO A FINER HOME.",0
-msg_starve:   db "FOOD HAS RUN OUT - PEOPLE ARE LEAVING! BUILD FARMS.",0
-msg_ruins:    db "ANCIENT RUINS DISCOVERED! SCHOLARS FIND 25 GOLD.",0
-msg_quit:     db "ABANDON THIS WORLD AND RETURN TO THE MENU? (Y/N)",0
-msg_ev_trade: db "TRAVELLING TRADERS ARRIVE: +30 GOLD",0
-msg_ev_harvest: db "A BUMPER HARVEST: +40 FOOD",0
-msg_ev_migrant: db "MIGRANTS SETTLE IN YOUR TOWN: +5 PEOPLE",0
-msg_ev_storm: db "A STORM DAMAGES THE TIMBER STORES: -10 WOOD",0
-msg_ev_wolves: db "WOLVES RAID THE GRANARY: -8 FOOD",0
 msg_seasons:  dw ms0,ms1,ms2,ms3
-ms0:    db "SPRING ARRIVES. THE FIELDS ARE SOWN.",0
-ms1:    db "SUMMER. THE CROPS GROW TALL.",0
-ms2:    db "AUTUMN - HARVEST TIME!",0
-ms3:    db "WINTER. SNOW COVERS THE LAND; FARMS LIE FALLOW.",0
-err_fog:      db "YOU HAVE NOT EXPLORED THERE. BUILD A WATCHTOWER TO SEE FURTHER.",0
-err_terr:     db "TOO FAR FROM YOUR SETTLEMENT. BUILD CLOSER, OR RAISE A TOWER.",0
-err_occ:      db "THAT SPOT IS ALREADY OCCUPIED.",0
-err_terrain:  db "YOU CANNOT BUILD ON THAT TERRAIN.",0
-err_forest:   db "CLEAR THE FOREST FIRST (TOOL 0).",0
-err_farm:     db "FARMS NEED OPEN GRASSLAND OR MEADOW.",0
-err_wood:     db "A WOODCUTTER NEEDS FOREST WITHIN 2 TILES.",0
-err_quarry:   db "A QUARRY NEEDS HILLS, ROCK OR MOUNTAINS NEARBY.",0
-err_poor:     db "NOT ENOUGH RESOURCES.",0
-err_tc:       db "THE TOWN HALL CANNOT BE DEMOLISHED.",0
-err_nothing:  db "NOTHING TO CLEAR HERE.",0
-txt_yr:       db " YR ",0
-txt_unexplored: db "UNEXPLORED",0
-txt_building: db " (BUILDING)",0
-txt_worldmap: db "WORLD MAP",0
-txt_ovhelp:   db "WASD MOVE",0
 
 ; ---------------- save / load panel (in game) ----------------
 file_screen:
@@ -2888,12 +2825,3 @@ file_screen:
         call set_msg
         jp sfx_error
 disk_errs: dw de1,de2,de3,de4,de5
-de1:    db "THERE IS NO SAVED WORLD IN THAT SLOT.",0
-de2:    db "THE DISK IS WRITE-PROTECTED.",0
-de3:    db "NO ROOM IN THE DISK DIRECTORY.",0
-de4:    db "THE DISK IS FULL - THE SAVE IS INCOMPLETE.",0
-de5:    db "THAT SAVE IS DAMAGED OR NOT AN EMPIRES SAVE.",0
-msg_reading: db "READING THE DISK...",0
-msg_saving:  db "SAVING YOUR WORLD TO DISK...",0
-msg_saved:   db "YOUR WORLD HAS BEEN SAVED.",0
-msg_loaded:  db "WORLD LOADED. WELCOME BACK!",0
