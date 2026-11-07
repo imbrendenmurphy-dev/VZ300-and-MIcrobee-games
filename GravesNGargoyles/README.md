@@ -11,7 +11,7 @@ In the kingdom of Dreadmoor, the sorcerer **Morgrave** has stolen the seven **Su
 dead walk the land. Only one knight is awake: **Sir Tinplate**, the least impressive knight
 in the realm, in borrowed tin armour.
 
-### This build (v0.3.6) contains
+### This build (v0.3.7) contains
 
 - **Seven stages**, each its own SD pack (tiles, eight creature sprites, boss, music, text):
 
@@ -97,8 +97,8 @@ The rest of this list describes the engine as first built with stage 1:
   game over with continue countdown, stage clear, and an ending.
 - **Difficulty:** Casual (5 lives, longer invulnerability, weaker boss) / Normal / Expert
   (faster zombies, hits strip two armour stages).
-- **Music:** gothic title organ (D minor), a slow funeral march for Gallows Hill, a
-  creeping chromatic boss theme, and jingles, plus 16 sound effects. The S key toggles music in-game.
+- **Music:** gothic title organ (D minor), a slow, suspenseful 'dink' march for Gallows
+  Hill, a creeping chromatic boss theme, and jingles, plus 16 sound effects. The S key toggles music in-game.
 
 ### Controls
 
@@ -160,10 +160,11 @@ Both joysticks work interchangeably (directions read via ports $2C/$29).
   end, which chopped the music 50 times a second. It now keeps the tone loop running through
   that wait. Notes also decay to a fuller pulse width (14-16% instead of 5-7%), so they sound
   less thin and scratchy.
-- **Slow, ponderous in-game music (v0.3.6).** The beeper only sounds while the CPU is idle, so
-  quick notes got chopped up during play. Every in-game tune and the boss theme are now slow:
-  a melody held in long notes, low in the range, over bass in whole notes. Each tune loops in
-  about 13 seconds (16 at the boss).
+- **Suspenseful 'dink' music (v0.3.7).** The beeper only sounds in the CPU's idle time, so
+  held notes got chopped up during play. In-game tunes and the boss theme now play every note
+  as a short blip (three fields), an octave up, followed by silence: dink ... dink-dink-dink.
+  The bass plays soft low blips on the bar. The game logic gets on with it between blips,
+  and nothing is left long enough to be chopped.
 - **Readable graves (v0.3.5).** Gallows Hill's tombstones are now dark slabs with a pale
   stone outline and an engraved cross, instead of green on green.
 

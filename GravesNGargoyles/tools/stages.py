@@ -10,7 +10,7 @@ as buff cyan magenta orange.
 import os, sys, random, math
 sys.path.insert(0, os.path.dirname(__file__))
 from art import TILES as T1, SPRITES as SP1
-from mkassets import pack, hexrow, db_lines, seq
+from mkassets import pack, hexrow, db_lines, seq, dinks
 
 # ------------------------------------------------------------------ helpers
 def recolour(rows, m):
@@ -627,8 +627,8 @@ BOSSES[7] = dict(  # MORGRAVE (colour set 1)
  hp=(24, 34, 44), summon='floater', speed=1, volley=5)
 
 # ------------------------------------------------------------------ music
-# slow and ponderous on purpose: long notes ride out the gaps while the game
-# logic runs; bass in whole notes.  (melody, bass, fields per unit)
+# slow and suspenseful: each note is played as a short 'dink' (see dinks()),
+# melody an octave up, bass as soft low blips.  (melody, bass, fields per unit)
 SONGS = {
  2: ('E3 4 G3 2 B3 2 A3 4 G3 4 F#3 4 G3 2 A3 2 B3 8 '          # Witchwood: E minor lullaby
      'C4 4 B3 2 A3 2 G3 4 E3 4 F#3 4 D3 4 E3 8 '
@@ -800,7 +800,7 @@ def stage_asm(n):
     L.append('    db $FF')
     # music
     mel, bass, u = SONGS[n]
-    for nm, (a, b) in (('ST%s' % sfx, (seq(mel, u), seq(bass, u))),):
+    for nm, (a, b) in (('ST%s' % sfx, (dinks(mel, u, 4, 1), dinks(bass, u, 6))),):
         L.append('SONG_%s: dw SONG_%s_A,SONG_%s_B' % (nm, nm, nm))
         for ch, d in (('A', a), ('B', b)):
             L.append('SONG_%s_%s:' % (nm, ch)); L += db_lines(d); L.append('    db $FF')

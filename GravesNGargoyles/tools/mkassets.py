@@ -294,6 +294,27 @@ def seq(text, unit=1):
         out += [note_idx(n), d]
     return out
 
+def dinks(text, unit, blip=4, octave=0):
+    """staccato: each note is a short blip (blip fields, the last one silent)
+    followed by a rest for the rest of its length - 'dink ... dink-dink-dink'.
+    The game logic gets the CPU between blips, so nothing gets chopped."""
+    t = text.split()
+    out = []
+    for i in range(0, len(t), 2):
+        n, d = t[i], int(t[i+1]) * unit
+        if n in ('-', 'r'):
+            parts = [('-', d)]
+        else:
+            if octave:
+                n = n[:-1] + str(int(n[-1]) + octave)
+            b = min(blip, d)
+            parts = [(n, b)] + ([('-', d - b)] if d > b else [])
+        for nn, dd in parts:
+            while dd > 250:
+                out += [note_idx(nn), 250]; dd -= 250
+            out += [note_idx(nn), dd]
+    return out
+
 def gen_music():
     L = ['; generated music & sfx', '; sample loop %d T -> %.0f Hz' % (LOOP_T, RATE), 'NOTE_STEP:']
     steps = [0]
@@ -315,9 +336,9 @@ def gen_music():
             'Bb2 2 F3 2 Bb3 2 F3 2 ' * 2 + 'G2 2 D3 2 G3 2 D3 2 ' * 2 + 'A2 2 E3 2 A3 2 E3 2 ' * 4 +
             'D2 2 A2 2 D3 2 A2 2 ' * 2 + 'A2 2 C#3 2 E3 2 A2 2 ' * 2 + 'D2 2 A2 2 D3 2 A2 2 ' * 4)
     songs['TITLE'] = (seq(mel, u), seq(bass, u))
-    # In-game music is slow and ponderous: long held notes survive the gaps
-    # while the game logic runs far better than quick ones (the beeper only
-    # sounds in the CPU's idle time).  Bass in whole notes, melody low.
+    # In-game music is slow and suspenseful: every note is a short 'dink'
+    # followed by silence, so the game logic runs between blips and nothing
+    # gets chopped (the beeper only sounds in the CPU's idle time).
     # STAGE 1: GALLOWS HILL - a funeral march in A minor
     u = 5
     mel = ('A3 4 C4 2 B3 2 A3 4 E3 4 F3 4 E3 2 D3 2 E3 8 '
@@ -326,14 +347,14 @@ def gen_music():
            'E4 4 D4 2 C4 2 B3 4 G#3 4 A3 12 - 4 ')
     bass = ('A2 8 E2 8 F2 8 E2 8 A2 8 A2 8 E2 8 A2 8 '
             'C3 8 G2 8 F2 8 D2 8 E2 8 E2 8 A2 8 A2 8 ')
-    songs['STAGE1'] = (seq(mel, u), seq(bass, u))
+    songs['STAGE1'] = (dinks(mel, u, 4, 1), dinks(bass, u, 6))
     # BOSS: menacing chromatic crawl
     u = 4
     mel = ('E4 4 F4 4 E4 2 D#4 2 E4 8 B3 4 C4 4 B3 2 A#3 2 B3 8 '
            'G3 4 G#3 4 A3 4 A#3 4 B3 8 - 4 '
            'E4 4 G4 4 F#4 4 F4 4 E4 8 D#4 8 E4 12 - 4 B3 8 - 4 ')
     bass = 'E2 8 E2 8 C2 8 C2 8 B2 8 A2 8 B2 8 E2 8 ' * 2
-    songs['BOSS'] = (seq(mel, u), seq(bass, u))
+    songs['BOSS'] = (dinks(mel, u, 4, 1), dinks(bass, u, 6))
     # jingles (no loop)
     songs['J_CLEAR'] = (seq('C4 3 E4 3 G4 3 C5 6 G4 3 C5 12 - 2', 1), seq('C3 6 G3 6 E3 6 C3 12 - 2', 1))
     songs['J_OVER'] = (seq('A4 8 G4 8 F4 8 E4 8 D4 8 C#4 8 D4 24 - 4', 1), seq('D3 16 A2 16 F2 16 D2 24 - 4', 1))
