@@ -88,8 +88,8 @@ title_menu:
         jr nz,.loop
         inc a
         ld (title_played),a
-        ld hl,tune_title
-        call play_tune
+        ld hl,mus_title
+        call music_start
 .loop:  call wait_frame
         ld hl,(seed)
         inc hl
@@ -126,7 +126,8 @@ title_menu:
         xor a
         ld (ovl_ret),a
         ret
-.new:   call sfx_click
+.new:   call music_stop
+        call sfx_click
         ld a,1
         ld (ovl_ret),a
         ret
@@ -142,7 +143,8 @@ title_menu:
         ld c,8
         call present_rows
         jr .loop
-.ld:    call sfx_click
+.ld:    call music_stop
+        call sfx_click
         ld a,3
         ld (ovl_ret),a
         ret

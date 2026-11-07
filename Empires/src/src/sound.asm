@@ -1,154 +1,258 @@
 ; ===================================================================
-;  sound.asm - single-bit beeper on PIO port B bit 6
-;  Notes are kept short and separated by gaps (clean, not droney).
+;  sound.asm - frame-driven 1-bit sound (speaker = PIO B bit 6)
+;
+;  After the approach of The Lantern Deep: sound is played in the time
+;  the game spends waiting for the next frame, so nothing stops for it.
+;  wait_frame runs the tone generator until vertical blanking; snd_frame
+;  steps the current effect (or the music) once per frame.
+;  Tones are narrow pulses (1/8 of the period, 1/4 for an attack): thin
+;  and clean.  The serial mouse line is watched inside every loop.
+;  Bit 5 of port B (RS232 TXD) is kept at mark throughout.
 ; ===================================================================
+SPK_ON  equ 60h                 ; speaker bit 6 + TXD mark
+SPK_OFF equ 20h
 
-; tone: H = half-period (loop count), DE = number of half-cycles
-tone:   ld a,(sound_on)
-        or a
-        ret z
-        ld a,(spkbit)
-.cyc:   xor 40h
-        out (P_PIOB),a
-        ld b,h
-.w:     djnz .w
-        dec de
-        ld c,a
-        ld a,d
-        or e
-        ld a,c
-        jr nz,.cyc
-        ld (spkbit),a
+; ---- start an effect (HL) / the music (HL) ----
+sfx:    ld (fx_ptr),hl
+        xor a
+        ld (fx_left),a
+        ret
+music_start:
+        ld (mu_ptr),hl
+        ld (mu_start),hl
+        xor a
+        ld (mu_left),a
+        ld a,1
+        ld (mu_on),a
+        ret
+music_stop:
+        xor a
+        ld (mu_on),a
         ret
 
-; play_tune: HL = list of (period, length) pairs, 0 terminates.
-; period 1 = rest.  length is in ~10ms units.
-play_tune:
+sfx_click:  ld hl,fx_click
+            jr sfx
+sfx_tool:   ld hl,fx_tool
+            jr sfx
+sfx_build:  ld hl,fx_build
+            jr sfx
+sfx_done:   ld hl,fx_done
+            jr sfx
+sfx_error:  ld hl,fx_error
+            jr sfx
+sfx_warn:   ld hl,fx_warn
+            jr sfx
+sfx_grow:   ld hl,fx_grow
+            jr sfx
+
+; ---- once per frame: pick what to play during the next frame ----
+snd_frame:
+        xor a
+        ld (snd_type),a
+        ld a,(sound_on)
+        or a
+        ret z
+        ; effect first
+        ld hl,(fx_ptr)
+        ld a,h
+        or l
+        jr z,.mus
+        ld a,(fx_left)
+        or a
+        jr nz,.fxgo
+        ld a,(hl)               ; next entry
+        cp 0FFh
+        jr nz,.fxn
+        ld hl,0
+        ld (fx_ptr),hl
+        jr .mus
+.fxn:   ld (fx_per),a
+        inc hl
+        ld a,(hl)
+        inc hl
+        ld (fx_ptr),hl
+        ld b,a
+        and 7Fh
+        ld (fx_left),a
+        ld a,b
+        and 80h
+        ld (fx_wide),a
+.fxgo:  ld hl,fx_left
+        dec (hl)
+        ld a,(fx_per)
+        ld b,a
+        ld a,(fx_wide)
+        ld c,a
+        jp snd_set
+.mus:   ld a,(mu_on)
+        or a
+        ret z
+        ld a,(mu_left)
+        or a
+        jr nz,.mugo
+        ld hl,(mu_ptr)
+.mrd:   ld a,(hl)
+        cp 0FEh
+        jr nz,.mn
+        ld hl,(mu_start)        ; loop the tune
+        jr .mrd
+.mn:    cp 0FFh
+        jp z,music_stop
+        ld (mu_per),a
+        inc hl
+        ld a,(hl)
+        inc hl
+        ld (mu_ptr),hl
+        and 7Fh
+        ld (mu_left),a
+        ld (mu_len),a
+.mugo:  ld hl,mu_left
+        dec (hl)
         ld a,(hl)
         or a
+        ret z                   ; last frame of every note is silent
+        ld a,(mu_per)
+        ld b,a
+        ld a,(mu_len)
+        dec a
+        cp (hl)                 ; first frame of the note: a little attack
+        ld c,80h
+        jr z,snd_set
+        ld c,0
+; B = period (0 silence, 1 noise), C = 80h for a wider pulse
+snd_set:
+        ld a,b
+        or a
         ret z
-        inc hl
-        ld c,(hl)
-        inc hl
-        push hl
-        cp 1
-        jr z,.rest
-        ld (tperiod),a
-        ld l,a
-        call div_2500           ; HL = half-cycles per 10ms
-        ld b,c
-        ex de,hl
-        ld hl,0
-.acc:   add hl,de
-        djnz .acc
-        ex de,hl                ; DE = half-cycles
-        ld a,(tperiod)
-        ld h,a
-        call tone
-        ld b,6                  ; gap between notes
-        call delay_ms_b
-        pop hl
-        jr play_tune
-.rest:  ld b,c
-        call delay_10ms_b
-        pop hl
-        jr play_tune
-
-; HL = 2500 / L  (L = period, 1..255)   result in HL
-div_2500:
-        push bc
-        ld c,l
-        ld hl,2500
-        ld de,0
-.d:     ld a,l
+        dec a
+        jr nz,.tone
+        ld a,2
+        ld (snd_type),a
+        ret
+.tone:  ld a,b
+        srl a
+        srl a
+        bit 7,c
+        jr nz,.w
+        srl a                   ; 1/8 pulse
+.w:     cp 2
+        jr nc,.h
+        ld a,2
+.h:     ld (snd_hi),a
+        ld c,a
+        ld a,b
         sub c
-        ld l,a
-        ld a,h
-        sbc a,0
-        ld h,a
-        jr c,.e
-        inc de
-        jr .d
-.e:     ex de,hl
+        ld (snd_lo),a
+        ld a,1
+        ld (snd_type),a
+        ret
+
+; ---- frame wait = sound + mouse --------------------------------------
+wait_frame:
+        in a,(P_CRTCA)
+        and 20h
+        jr z,.p2
+        ld d,20h                ; in blanking: play until it ends
+        call play_until
+.p2:    ld d,0                  ; play until blanking starts
+        call play_until
+        ld hl,(frames)
+        inc hl
+        ld (frames),hl
+        jp snd_frame
+
+; play the current sound until (status AND 20h) <> D; E = mouse idle level
+play_until:
+        ld a,(ms_idle)
+        ld e,a
+        ld a,(snd_type)
+        dec a
+        jr z,.tone
+        dec a
+        jr z,.noise
+        ld a,SPK_OFF
+        out (P_PIOB),a
+.s:     in a,(P_CRTCA)
+        and 20h
+        cp d
+        ret nz
+        in a,(P_PIOB)
+        and 10h
+        cp e
+        jr z,.s
+        call .mouse
+        jr .s
+.tone:  ; the wave carries on where the last frame left it (no clicks)
+        ld a,(snd_cnt)
+        or a
+        jr z,.hi0
+        ld b,a
+        ld a,(snd_ph)
+        or a
+        jr nz,.lo
+        jr .hi
+.hi0:   ld a,(snd_hi)
+        ld b,a
+.hi:    ld a,SPK_ON
+        out (P_PIOB),a
+        ld c,0
+.t1:    in a,(P_CRTCA)          ; 11
+        and 20h                 ; 7
+        cp d                    ; 4
+        jr nz,.save             ; 7
+        in a,(P_PIOB)           ; 11
+        and 10h                 ; 7
+        cp e                    ; 4
+        call nz,.mouse          ; 10
+        djnz .t1                ; 13  = 74 T per count
+        ld a,(snd_lo)
+        ld b,a
+.lo:    ld a,SPK_OFF
+        out (P_PIOB),a
+        ld c,1
+.t2:    in a,(P_CRTCA)
+        and 20h
+        cp d
+        jr nz,.save
+        in a,(P_PIOB)
+        and 10h
+        cp e
+        call nz,.mouse
+        djnz .t2
+        jr .hi0
+.save:  ld a,b
+        ld (snd_cnt),a
+        ld a,c
+        ld (snd_ph),a
+        ret
+.noise: ; soft noise: short random gaps between thin clicks
+        xor a
+        ld (snd_cnt),a
+.n0:    ld a,SPK_ON
+        out (P_PIOB),a
+        ld a,SPK_OFF
+        out (P_PIOB),a
+        ld a,r
+        and 3Fh
+        add a,8
+        ld b,a
+.n1:    in a,(P_CRTCA)
+        and 20h
+        cp d
+        ret nz
+        in a,(P_PIOB)
+        and 10h
+        cp e
+        call nz,.mouse
+        djnz .n1
+        jr .n0
+.mouse: push bc                 ; a start bit: take the mouse packet
+        push de
+        push hl
+        call mouse_poll
+        pop hl
+        pop de
         pop bc
         ret
 
-delay_10ms_b:                   ; B * ~10ms
-.o:     push bc
-        ld bc,2400
-.i:     dec bc
-        ld a,b
-        or c
-        jr nz,.i
-        pop bc
-        djnz .o
-        ret
-delay_ms_b:                     ; B * ~1ms
-.o:     push bc
-        ld bc,240
-.i:     dec bc
-        ld a,b
-        or c
-        jr nz,.i
-        pop bc
-        djnz .o
-        ret
-
-; ---- effects ----
-sfx_click:
-        ld h,40
-        ld de,10
-        jp tone
-sfx_build:
-        ld h,90
-        ld de,30
-        call tone
-        ld h,60
-        ld de,40
-        jp tone
-sfx_error:
-        ld h,200
-        ld de,40
-        call tone
-        ld b,4
-        call delay_ms_b
-        ld h,240
-        ld de,30
-        jp tone
-sfx_done:
-        ld hl,tune_done
-        jp play_tune
-sfx_warn:
-        ld hl,tune_warn
-        jp play_tune
-
-; note periods (loop counts; lower = higher pitch)
-N_C4 equ 245
-N_D4 equ 218
-N_E4 equ 194
-N_F4 equ 182
-N_G4 equ 162
-N_A4 equ 144
-N_B4 equ 128
-N_C5 equ 120
-N_D5 equ 107
-N_E5 equ 95
-N_G5 equ 79
-N_A5 equ 70
-N_C6 equ 59
-REST equ 1
-
-tune_title:
-        db N_C5,10, N_G4,6, N_C5,6, N_E5,10, N_G5,14, REST,6
-        db N_E5,6, N_G5,6, N_A5,10, N_G5,8, N_E5,8, N_C5,14, REST,6
-        db N_D5,8, N_E5,8, N_C5,8, N_G4,8, N_C5,20,0
-tune_done:
-        db N_C5,4, N_E5,4, N_G5,8,0
-tune_warn:
-        db N_E4,8, N_C4,12,0
-tune_season:
-        db N_G4,6, N_C5,6, N_E5,10,0
-tune_grow:
-        db N_E5,4, N_G5,4, N_C6,10,0
-tune_start:
-        db N_C5,6, N_C5,6, N_G5,12, N_E5,6, N_G5,18,0
+        include "sfx.inc"

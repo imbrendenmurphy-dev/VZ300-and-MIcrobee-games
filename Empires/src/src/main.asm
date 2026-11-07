@@ -64,8 +64,8 @@ menu:   call title_screen
         call set_world_size
         call generate_world
         call new_game
-        ld hl,tune_start
-        call play_tune
+        ld hl,fx_start
+        call sfx
         xor a
         ld (quit_flag),a
         call game_loop

@@ -12,8 +12,21 @@ ovtown:     ds 22*8
 frames:     dw 0
 mono:       db 0
 sound_on:   db 1
-spkbit:     db 20h          ; keep RS232 TXD (bit 5) at mark
-tperiod:    db 0
+snd_type:   db 0
+snd_hi:     db 0
+snd_lo:     db 0
+snd_cnt:    db 0
+snd_ph:     db 0
+fx_ptr:     dw 0
+fx_left:    db 0
+fx_per:     db 0
+fx_wide:    db 0
+mu_ptr:     dw 0
+mu_start:   dw 0
+mu_left:    db 0
+mu_len:     db 0
+mu_per:     db 0
+mu_on:      db 0
 dos_colour: db 0
 title_played: db 0
 quit_flag:  db 0

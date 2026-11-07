@@ -74,18 +74,19 @@ sn0:    db "SPRING",0
 sn1:    db "SUMMER",0
 sn2:    db "AUTUMN",0
 sn3:    db "WINTER",0
-speed_frames: db 0,90,45,16
+fx_seasons: dw fx_spring,fx_summer,fx_autumn,fx_winter
+speed_frames: db 0,150,80,30      ; frames per game week: paused, slow, normal, fast
 
 ; ---------------- new game ----------------
 new_game:
         ; resources
-        ld hl,45
+        ld hl,80
         ld (food),hl
-        ld hl,40
-        ld (wood),hl
-        ld hl,16
-        ld (stone),hl
         ld hl,60
+        ld (wood),hl
+        ld hl,24
+        ld (stone),hl
+        ld hl,80
         ld (gold),hl
         ld hl,6
         ld (pop),hl
@@ -101,7 +102,7 @@ new_game:
         ld (overview),a
         ld hl,1
         ld (year),hl
-        ld a,2
+        ld a,1                  ; begin slowly: the player speeds up with '.'
         ld (speed),a
         ; town centre at start
         ld bc,(startxy)
@@ -1700,6 +1701,14 @@ random_event:
         ld l,a
         jp (hl)
 ev_tab: dw ev_trade,ev_harvest,ev_migrant,ev_storm,ev_wolves
+early_years:                    ; C if still in the first two years (no misfortunes)
+        ld hl,(year)
+        ld a,h
+        or a
+        ret nz
+        ld a,l
+        cp 3
+        ret
 ev_trade:
         ld hl,(gold)
         ld de,30
@@ -1735,6 +1744,8 @@ ev_migrant:
         ld a,C_GOOD
         jp set_msg
 ev_storm:
+        call early_years
+        ret c
         ld hl,(wood)
         ld de,10
         or a
@@ -1745,6 +1756,8 @@ ev_storm:
         ld a,C_WARN
         jp set_msg
 ev_wolves:
+        call early_years
+        ret c
         ld hl,(food)
         ld de,8
         or a
@@ -2404,8 +2417,17 @@ game_loop:
         ld l,a
         ld a,C_MSG
         call set_msg
-        ld hl,tune_season
-        call play_tune
+        ld a,(season)
+        add a,a
+        ld l,a
+        ld h,0
+        ld de,fx_seasons
+        add hl,de
+        ld a,(hl)
+        inc hl
+        ld h,(hl)
+        ld l,a
+        call sfx
 .s1:    ld a,(want_done)
         or a
         jr z,.s2
@@ -2417,8 +2439,7 @@ game_loop:
         jr z,.s3
         xor a
         ld (want_grow),a
-        ld hl,tune_grow
-        call play_tune
+        call sfx_grow
 .s3:    ld a,(want_warn)
         or a
         jr z,.s4
@@ -2430,8 +2451,8 @@ game_loop:
         jr z,.s5
         xor a
         ld (want_jingle),a
-        ld hl,tune_grow
-        call play_tune
+        ld hl,fx_ruins
+        call sfx
 .s5:    jp .lp
 
 ; ---------------- input ----------------

@@ -224,27 +224,3 @@ wait_release:
         jr nz,wait_release
         ret
 
-; ---- frame sync on 6545 vertical blanking (status bit 5) ----
-wait_frame:
-        ld bc,0
-.a:     call mouse_poll         ; the idle part of every frame listens to the mouse
-        in a,(P_CRTCA)          ; wait while in vblank
-        and 20h
-        jr z,.b
-        dec bc
-        ld a,b
-        or c
-        jr nz,.a
-.b:     ld bc,0
-.c:     call mouse_poll
-        in a,(P_CRTCA)          ; wait for vblank start
-        and 20h
-        jr nz,.d
-        dec bc
-        ld a,b
-        or c
-        jr nz,.c
-.d:     ld hl,(frames)
-        inc hl
-        ld (frames),hl
-        ret

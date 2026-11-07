@@ -16,6 +16,7 @@ static u8 vram[2048], aram[2048], cram[2048], pcg[16][2048];
 static u8 p08, p1c, crtc_idx, crtc[32]; static int keys[64];
 static long long tstates, frame_start; static int spk_toggles; static u8 last_b;
 static int halted_exit=0;
+static long long *spk_t; static int spk_n=0, spk_cap=0; static int spk_level=0; static long long wav_from=0;
 static u8 cpm_ref[0x7000];
 /* serial mouse: queued bytes, 7N1 at 1200 baud, bit4: mark=0 (idle), space=1 */
 static long long BIT_T=2812;
@@ -83,7 +84,10 @@ static void outport(u8 p,u8 v){
     case 0x1C: p1c=v; break;
     case 0x0C: crtc_idx=v&31; break;
     case 0x0D: crtc[crtc_idx&31]=v; break;
-    case 0x02: if((v^last_b)&0x40) spk_toggles++; last_b=v; break;
+    case 0x02: if((v^last_b)&0x40){ spk_toggles++;
+        if(spk_n>=spk_cap){ spk_cap=spk_cap?spk_cap*2:65536; spk_t=realloc(spk_t,spk_cap*sizeof(long long)); }
+        spk_t[spk_n++]=tstates; }
+      last_b=v; break;
     case 0x50: if(banked){ p50=v; int low=(v&3)^((v&4)?2:0); lowblk=(((v>>5)&7)<<2)|low; vidon=!(v&8); vid8000=(v&0x10)!=0; } break;
   }
 }
@@ -393,6 +397,22 @@ int main(int argc,char**argv){
     else if(!strcmp(cmd,"profile")){ sscanf(line,"%*s %d",&a); static unsigned prof2[65536]; memset(prof2,0,sizeof prof2);
       long long end=tstates+(long long)a*FRAME_T; while(tstates<end && !trap_exit && !halted_exit){ u16 p0=PC; int t=step(); prof2[p0]+=t; tstates+=t; }
       FILE*pf=fopen("../build/prof.bin","wb"); if(!pf) pf=fopen("build/prof.bin","wb"); fwrite(prof2,4,65536,pf); fclose(pf); fprintf(stderr,"profiled %d frames, PC=%04X\n",a,PC); }
+    else if(!strcmp(cmd,"spklog")){ sscanf(line,"%*s %399s",arg); FILE*w=fopen(arg,"wb"); fwrite(spk_t,sizeof(long long),spk_n,w); fclose(w); }
+    else if(!strcmp(cmd,"wavstart")){ wav_from=tstates; }
+    else if(!strcmp(cmd,"wav")){ sscanf(line,"%*s %399s",arg); FILE*w=fopen(arg,"wb");
+      int rate=22050; long long len=(tstates-wav_from)*rate/3375000; int n=(int)len;
+      unsigned hdr[11]; fwrite("RIFF",1,4,w); unsigned v32=36+n*2; fwrite(&v32,4,1,w); fwrite("WAVEfmt ",1,8,w);
+      v32=16; fwrite(&v32,4,1,w); unsigned short v16=1; fwrite(&v16,2,1,w); fwrite(&v16,2,1,w);
+      v32=rate; fwrite(&v32,4,1,w); v32=rate*2; fwrite(&v32,4,1,w); v16=2; fwrite(&v16,2,1,w); v16=16; fwrite(&v16,2,1,w);
+      fwrite("data",1,4,w); v32=n*2; fwrite(&v32,4,1,w);
+      int k=0, lvl=0; while(k<spk_n && spk_t[k]<wav_from){ lvl^=1; k++; }
+      double hp=0, prev=0;
+      for(int i=0;i<n;i++){ long long t0=wav_from+(long long)i*3375000/rate, t1=wav_from+(long long)(i+1)*3375000/rate;
+        /* average level over the sample interval */
+        double acc=0; long long t=t0; while(k<spk_n && spk_t[k]<t1){ acc+=(spk_t[k]-t)*lvl; t=spk_t[k]; lvl^=1; k++; }
+        acc+=(t1-t)*lvl; double x=acc/(t1-t0);
+        hp=0.995*(hp+x-prev); prev=x; short smp=(short)(hp*12000); fwrite(&smp,2,1,w); }
+      fclose(w); fprintf(stderr,"wav %s: %.1f s\n",arg,(double)n/rate); }
     else if(!strcmp(cmd,"quit")) break;
   }
   fprintf(stderr,"T=%lld frames=%.1f speaker_toggles=%d\n",tstates,(double)tstates/FRAME_T,spk_toggles);
