@@ -34,6 +34,7 @@ mu_left:    db 0
 mu_len:     db 0
 mu_per:     db 0
 mu_on:      db 0
+mu_soft:    db 0
 dos_colour: db 0
 title_played: db 0
 quit_flag:  db 0

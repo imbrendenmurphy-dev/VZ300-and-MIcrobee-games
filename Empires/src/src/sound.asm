@@ -17,10 +17,16 @@ sfx:    ld (fx_ptr),hl
         xor a
         ld (fx_left),a
         ret
+music_soft:                     ; the same, played quietly with no attack
+        call music_start
+        ld a,1
+        ld (mu_soft),a
+        ret
 music_start:
         ld (mu_ptr),hl
         ld (mu_start),hl
         xor a
+        ld (mu_soft),a
         ld (mu_left),a
         ld a,1
         ld (mu_on),a
@@ -113,6 +119,10 @@ snd_frame:
         ret z                   ; last frame of every note is silent
         ld a,(mu_per)
         ld b,a
+        ld a,(mu_soft)
+        or a
+        ld c,40h                ; soft: 1/16 pulse throughout
+        jr nz,snd_set
         ld a,(mu_len)
         dec a
         cp (hl)                 ; first frame of the note: a little attack
@@ -135,6 +145,9 @@ snd_set:
         bit 7,c
         jr nz,.w
         srl a                   ; 1/8 pulse
+        bit 6,c
+        jr z,.w
+        srl a                   ; 1/16 pulse
 .w:     cp 2
         jr nc,.h
         ld a,2

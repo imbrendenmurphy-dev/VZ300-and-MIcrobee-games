@@ -90,7 +90,7 @@ title_menu:
         inc a
         ld (title_played),a
         ld hl,mus_title
-        call music_start
+        call music_soft
 .loop:  call wait_frame
         ld hl,(seed)
         inc hl
