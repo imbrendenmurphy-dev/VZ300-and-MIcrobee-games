@@ -22,4 +22,4 @@ ROM images for the machines and emulators are not included.
 
 ## Third-party code
 
-The test emulator in some `src/tools/` and `tools/` folders (Forgotten Depths, Megademo, Ghost Hunter 2, Asteroids II, Circus 2, Killer Tomatoes, Penguin 2, Tennis II, Star Blaster II, Panik 2, Kamikaze Invaders 2, Duel II, Hamburger Sam II, Robogeddon) uses a Z80 CPU core that looks like superzazu/z80 (MIT licence, https://github.com/superzazu/z80). It's used only for testing and isn't part of the games.
+The test emulator in some `src/tools/` and `tools/` folders (Forgotten Depths, Megademo, Ghost Hunter 2, Asteroids II, Circus 2, Killer Tomatoes, Penguin 2, Tennis II, Star Blaster II, Panik 2, Kamikaze Invaders 2, Duel II, Hamburger Sam II, Robogeddon, Zephyr Zone) uses a Z80 CPU core that looks like superzazu/z80 (MIT licence, https://github.com/superzazu/z80). It's used only for testing and isn't part of the games.
