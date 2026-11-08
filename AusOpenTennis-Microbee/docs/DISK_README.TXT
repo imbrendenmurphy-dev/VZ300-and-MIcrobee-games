@@ -8,7 +8,7 @@ TO PLAY:  boot this disk, then type  AOT  at the A> prompt.
           Press C for a colour monitor or M for monochrome.
 
 KEYS:     Q A M ,  or the arrow keys or a joystick: move
-          SPACE or fire: hit harder (a smash if the ball is high)
+          SPACE, SHIFT or fire: hit harder (a smash if the ball is high)
           pull back as you hit: lob    push up: drop shot
           hold left/right as you hit: steer the shot
           SERVE: fire to toss, fire again to hit

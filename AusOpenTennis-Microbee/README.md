@@ -19,7 +19,7 @@ Then press **C** for a colour monitor or **M** for monochrome.
 | Action | Keys |
 |---|---|
 | Move | Q A M , or the arrow keys, or a joystick |
-| Hit harder (smash when the ball is high) | SPACE / fire |
+| Hit harder (smash when the ball is high) | SPACE / SHIFT / fire |
 | Lob / drop shot | pull back / push up as you hit |
 | Steer the shot | hold left / right as you hit |
 | Serve | fire to toss, fire again to hit |

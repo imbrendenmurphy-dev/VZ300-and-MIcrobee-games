@@ -479,7 +479,7 @@ how_lines:
         db C_FOOT,15 : dw hw8
         db $FF
 hw0:    db "MOVE: Q A M ,  OR THE ARROW KEYS OR JOYSTICK",0
-hw0b:   db "SPACE OR FIRE: HIT HARDER    P: PAUSE   S: SOUND",0
+hw0b:   db "SPACE/SHIFT/FIRE: HIT HARDER  P: PAUSE  S: SOUND",0
 hw1:    db "THE SWING IS AUTOMATIC!",0
 hw2:    db "WHERE THE BALL MEETS YOU SETS THE ANGLE",0
 hw3:    db "HOLD LEFT OR RIGHT AS YOU HIT TO STEER IT",0
