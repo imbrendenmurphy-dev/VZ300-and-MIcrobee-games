@@ -159,13 +159,18 @@ sound_tick:
 .sfx:   ld a,(sfxleft)
         or a
         ret z
+        ld hl,(sfxstep)
+        ld b,a
+        ld a,(sfx_adv)              ; (Microbee) effects count frames, not ticks:
+        or a                        ; only the frame's last tick moves them on
+        jr z,.cur
+        ld a,b
         dec a
         ld (sfxleft),a
-        ld hl,(sfxstep)
         ld de,(sfxdelta)
         add hl,de
         ld (sfxstep),hl
-        ld a,(sfxmode)
+.cur:   ld a,(sfxmode)
         or a
         jr z,.plain
         dec a
@@ -215,6 +220,7 @@ sound_tick:
 .ch2:   ld (step2),hl
         ret
 
+;  (len counts frames)
 ;  start, delta, len, mode (0 plain, 1 warble, 2 noise: start/delta high byte = density, 3 thump, 4 pop), prio
 SFX_HIT    equ 0
 SFX_POWER  equ 1
@@ -237,18 +243,18 @@ sfxtab:
         dw 1150,-260 : db 3,3,3,0         ; racket "thunk" (~380 -> 160 Hz, 60 ms)
         dw 1400,-280 : db 4,3,4,0         ; power drive: deeper, fuller thunk (80 ms)
         dw 700,-40   : db 3,0,2,0         ; bounce
-        dw $1000,-$180 : db 8,2,4,0       ; into the net: a short rattle
-        dw 1700,0    : db 14,1,5,0        ; line judge "OUT!"
-        dw 500,90    : db 6,0,1,0         ; toss
-        dw $1400,-$30 : db 30,2,1,0       ; crowd roar: a soft hiss of white noise, dying away
+        dw $1000,-$260 : db 5,2,4,0       ; into the net: a short rattle
+        dw 1700,0    : db 8,1,5,0        ; line judge "OUT!"
+        dw 500,135   : db 4,0,1,0         ; toss
+        dw $1400,-$58 : db 16,2,1,0       ; crowd roar: a soft hiss of white noise, dying away
         dw 1500,-90  : db 3,0,2,0         ; menu blip
-        dw 900,160   : db 8,0,3,0         ; select
-        dw 600,-25   : db 10,0,4,0        ; fault
+        dw 900,256   : db 5,0,3,0         ; select
+        dw 600,-42   : db 6,0,4,0        ; fault
         dw 1300,-200 : db 6,4,5,0         ; smash: loud POP - 40 ms crack, then a deep thud (120 ms)
         dw 2300,0    : db 2,0,1,0         ; tick
-        dw 800,140   : db 16,1,5,0        ; target hit
-        dw $0800,$300 : db 6,2,2,0        ; ball machine: a rising whoosh
+        dw 800,250   : db 9,1,5,0        ; target hit
+        dw $0800,$480 : db 4,2,2,0        ; ball machine: a rising whoosh
         dw 1300,-270 : db 4,3,4,0         ; serve thunk
         dw 900,-120  : db 4,3,4,0         ; net cord: a dull clip on the tape
-        dw $0C00,-$20 : db 16,2,1,0       ; applause: a light hiss, 0.3 s
+        dw $0C00,-$38 : db 9,2,1,0       ; applause: a light hiss, 0.3 s
         ASSERT $-sfxtab == 17*8

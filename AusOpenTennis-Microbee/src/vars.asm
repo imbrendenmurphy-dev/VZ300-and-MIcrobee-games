@@ -15,6 +15,7 @@ hsteps:  db 0
 brd_on:  db 0
 brd_half: db 0
 brd_ph:  db 0
+sfx_adv: db 0
 brd_k:   db 0
 brd_c:   dw 0
 brd_n:   dw 0

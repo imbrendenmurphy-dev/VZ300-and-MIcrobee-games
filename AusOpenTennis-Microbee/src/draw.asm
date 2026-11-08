@@ -8,6 +8,9 @@
 do_frame:
         ld a,(steps)            ; one sound tick per field of the last frame:
 .st:    push af                 ; the music keeps time however long frames take
+        cp 2                    ; effects move on once a frame (the last tick),
+        sbc a,a                 ; so even a short racket thunk is heard
+        ld (sfx_adv),a          ; through whole frames
         call sound_tick
         pop af
         dec a
