@@ -74,3 +74,4 @@ BBLUE       EQU 12
 BMAGENTA    EQU 13
 BCYAN       EQU 14
 WHITE       EQU 15
+NOISETAB    EQU $D000       ; 1K of random bytes (D000-D3FF) for the noise channel

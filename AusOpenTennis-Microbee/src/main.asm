@@ -48,6 +48,9 @@ entry:  di
         INCLUDE "gfx.inc"
         INCLUDE "music.inc"
         INCLUDE "projtab.inc"
+        ASSERT $ <= NOISETAB
+        ORG NOISETAB
+        INCLUDE "noise.inc"
 code_end:
         ASSERT code_end <= TABLES
         SAVEBIN "../build/AOT.BIN",$8000,code_end-$8000

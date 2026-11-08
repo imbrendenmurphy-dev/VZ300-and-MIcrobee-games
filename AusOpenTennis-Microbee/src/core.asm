@@ -148,7 +148,7 @@ vschk:  in a,(P_CRTCA)
 ; frame_wait: the 2-channel pin-pulse beeper (from TENNIS II on the VZ)
 ; plays until (vcount) reaches A fields since the last frame. Loop = 127 T
 ; (26.6 kHz). Channel 1 = acc1/step1, channel 2 = acc2/step2.
-; Noise mode: channel 2 pulses when a byte of the program is below D'.
+; Noise mode: channel 2 pulses when a byte of the noise table is below D'.
 ; ---------------------------------------------------------------------
 frame_wait:
         ld (fw_need),a
@@ -230,9 +230,9 @@ fw_noise:
         exx
         ld hl,(acc2)
         ld a,h
-        and $3F
-        or $80
-        ld h,a                  ; walk the program bytes $8000-$BFFF
+        and $03
+        or NOISETAB>>8
+        ld h,a                  ; walk the white-noise table D000-D3FF
         ld de,(step2)           ; D' = density
         ld a,(vblast)
         ld c,a
@@ -244,7 +244,7 @@ fw_noise:
         exx
         ld a,(hl)
         inc hl
-        res 6,h
+        res 2,h                 ; D400 -> D000
         cp d
         sbc a,a
         and $40
@@ -347,11 +347,12 @@ K_UP    equ $38
 K_DOWN  equ $3A
 K_LEFT  equ $3B
 K_RIGHT equ $3E
+K_SHIFT equ $3F         ; both SHIFT keys
 
 ; table: key code, pad (0 = pad 1, 1 = pad 2, 2 = keys), bit
 keymap:
         db K_Q,0,2, K_A,0,3, K_M,0,1, K_COMMA,0,0, K_SPACE,0,4
-        db K_UP,0,2, K_DOWN,0,3, K_LEFT,0,1, K_RIGHT,0,0
+        db K_UP,0,2, K_DOWN,0,3, K_LEFT,0,1, K_RIGHT,0,0, K_SHIFT,0,4
         db K_I,1,2, K_K,1,3, K_J,1,1, K_L,1,0, K_H,1,4
         db K_S,2,0, K_P,2,1, K_RET,2,2, K_X,2,3, K_N,2,4, K_C,2,5, K_ESC,2,6, K_Y,2,7
         db $FF
