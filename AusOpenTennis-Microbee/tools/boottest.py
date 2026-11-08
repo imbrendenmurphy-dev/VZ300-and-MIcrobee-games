@@ -51,7 +51,7 @@ def boot(out=None):
 def check(pp):
     """compare the RAM blocks with the files the loader put there"""
     B = run.BUILD
-    want = [(2, 0, 'FRONT.BIN'), (12, 0, 'GFX.BNK'), (26, 0, 'PORT.BNK'), (13, 0, 'PIC0.BNK'), (14, 0, 'PIC1.BNK')]
+    want = [(2, 0, 'FRONT.BIN'), (12, 0, 'GFX.BNK'), (26, 0, 'PORT.BNK'), (13, 0, 'PIC0.BNK'), (14, 0, 'PIC1.BNK'), (17, 0, 'BOARD.BNK'), (18, 0, 'CLOUD.BNK')]
     want += [(4 + i, 0x2000, 'SPR%d.BNK' % i) for i in range(6)]
     bad = 0
     for blk, off, f in want:

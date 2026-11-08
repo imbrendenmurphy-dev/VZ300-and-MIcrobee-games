@@ -8,5 +8,7 @@
 	DB 7, $20, "SPR3    BNK"
 	DB 8, $20, "SPR4    BNK"
 	DB 9, $20, "SPR5    BNK"
+	DB 17, $00, "BOARD   BNK"
+	DB 18, $00, "CLOUD   BNK"
 	DB 13, $00, "PIC0    BNK"
 	DB 14, $00, "PIC1    BNK"

@@ -44,6 +44,12 @@ def boot(extra=None, disk=None):
     f = BUILD / 'PORT.BNK'
     if f.exists():
         put(pp, 26, f.read_bytes())
+    f = BUILD / 'CLOUD.BNK'
+    if f.exists():
+        put(pp, 18, f.read_bytes())
+    f = BUILD / 'BOARD.BNK'
+    if f.exists():
+        put(pp, 17, f.read_bytes())
     f = BUILD / 'FRONT.BIN'
     if f.exists():
         put(pp, 2, f.read_bytes())

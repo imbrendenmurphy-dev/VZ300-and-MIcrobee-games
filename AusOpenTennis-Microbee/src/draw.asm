@@ -103,6 +103,7 @@ ball_screen:
 ; ---------------------------------------------------------------------
 ; match_draw: the sprites of this frame
 match_draw:
+        call board_tick
         ; bounce puff
         ld a,(puff_tim)
         or a

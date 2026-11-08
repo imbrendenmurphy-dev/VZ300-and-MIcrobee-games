@@ -4,32 +4,32 @@ court_tab:
 	db 13
 	dw $0000
 	db 13
-	dw $11B6
+	dw $112E
 	db 13
-	dw $257A
+	dw $2424
 	db 13
-	dw $381E
+	dw $3622
 	db 13
-	dw $4D8B
+	dw $4B31
 	db 13
-	dw $60D3
+	dw $5DF6
 	db 14
 	dw $0000
 	db 14
-	dw $1376
+	dw $12C3
 	db 14
-	dw $2A69
+	dw $290A
 	db 14
-	dw $376D
+	dw $35BB
 	db 14
-	dw $46BF
+	dw $442E
 	db 14
-	dw $5095
+	dw $4E04
 	db 14
-	dw $5AB8
+	dw $5827
 	db 14
-	dw $5B5B
+	dw $58CA
 	db 14
-	dw $5BBD
+	dw $592C
 	db 14
-	dw $5EA6
+	dw $5C15

@@ -52,6 +52,8 @@ Then press **C** for a colour monitor or **M** for monochrome.
 - **Courtside:**
   - grandstands on three sides, with a crowd that cheers and does Mexican waves
   - an umpire in a tall chair who follows the ball, raises his arm for calls and leans in
+  - an LED sponsor board on the end wall that scrolls BPM's sponsor messages ("NOW WITH 20% MORE TENNIS")
+  - clouds drifting over Kooyong, gulls crossing the sky, and a plane blinking over Melbourne Park at night
   - the players' chairs, a ball kid and line judges
   - sponsor boards, and the venue's name painted on the run-off
   - a stadium scoreboard
@@ -91,6 +93,7 @@ Test scripts:
 | D400h–E7FFh | background maps, cell map, sprite pool records |
 | E800h–EFFEh | variables, stack |
 | block 1 | restore lists, base maps, crowd and umpire lists, save buffer |
+| block 17, 18 | the sponsor board's pre-shifted messages, Kooyong's cloud loop |
 | block 2 | front end (runs at 0000h) |
 | blocks 4–9 | player sprites (each has the court's first 512 glyphs at 0000h) |
 | block 12 | fonts |

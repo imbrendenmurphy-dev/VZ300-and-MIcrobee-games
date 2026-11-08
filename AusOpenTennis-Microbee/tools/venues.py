@@ -254,6 +254,8 @@ def draw_side_stands(c, st, pose, seed):
                 crowd_block(c, a * 8, row * 16, b * 8 - 1, row * 16 + 15, pose, st, seed=seed + row * 7 + side * 101)
 
 
+_GAME_BOARD = True
+BOARD_X0, BOARD_X1 = 11 * 8, 53 * 8 - 1     # cells 11..52 (src/board.asm)
 BOARDS = {'KOOYONG': (GRN, WHT), 'PERTH': (BLK, YEL), 'SYDNEY': (BLU, WHT), 'MELBOURNE': (BLU, WHT), 'CLASSIC': (BLU, YEL)}
 
 
@@ -261,6 +263,10 @@ def draw_boards(c, st, venue):
     y = BOARD_ROW * 16
     bg, fg = BOARDS[venue]
     c.rect(0, y, 511, y + 15, bg)
+    if _GAME_BOARD:
+        # the end wall: the game's LED scroller between the two end stands
+        c.rect(BOARD_X0, y, BOARD_X1, y + 15, BLK)
+        return
     texts = ['MICROBEE', 'BPM', 'APPLIED TECHNOLOGY', 'VIBED 2026', 'PREMIUM PLUS', 'MICROWORLD']
     col = 1
     k = 0
@@ -359,6 +365,10 @@ def draw(venue, crowd=0, ump=0):
     cols = [YEL, BRED, BBLU] if venue == 'CLASSIC' else None
     crowd_block(c, 128, 32, 511, 47, crowd, st, seed=seed, cols=cols)
     draw_boards(c, st, venue)
+    if _GAME_BOARD:              # end stands either side of the board
+        cc = [YEL, BRED, BBLU] if venue == 'CLASSIC' else None
+        crowd_block(c, 0, 48, BOARD_X0 - 1, 63, crowd, st, seed=seed + 5, cols=cc)
+        crowd_block(c, BOARD_X1 + 1, 48, 511, 63, crowd, st, seed=seed + 9, cols=cc)
     if st.get('classic'):
         draw_classic_court(c, st)
     else:

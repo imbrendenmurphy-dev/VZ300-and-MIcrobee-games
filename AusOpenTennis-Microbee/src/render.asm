@@ -1109,6 +1109,7 @@ load_picture:
         push af
         push hl
         xor a
+        ld (brd_on),a           ; no sponsor board (court_load turns it on)
         ld e,0
         ld c,16
         call block_rows         ; (no rows blocked)

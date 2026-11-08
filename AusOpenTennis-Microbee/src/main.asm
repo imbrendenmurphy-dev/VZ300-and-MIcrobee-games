@@ -42,6 +42,7 @@ entry:  di
         INCLUDE "court.asm"
         INCLUDE "services.asm"
         INCLUDE "save.asm"
+        INCLUDE "board.asm"
         INCLUDE "boot.asm"
         INCLUDE "sprtab.inc"
         INCLUDE "courts.inc"

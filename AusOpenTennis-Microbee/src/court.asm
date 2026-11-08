@@ -219,7 +219,8 @@ court_load:
         cp BLK_SPR+NSPRBLK
         jr nz,.sb
         ld a,BLK_RT
-        jp map_blk
+        call map_blk
+        jp board_init
 
 ; court_show: the court on screen with the scoreboard
 court_show:

@@ -102,6 +102,15 @@ def small_sprites(sb):
     mach = art(['..########..', '.##########.', '.#.######.#.', '.##########.',
                 '.##########.', '..########..', '.#........#.', '###......###'])
     sb.add('MACHINE', sprite_frame(mach, ax=6, ay=7))
+    # sky visitors: a gull (wings up, wings level) and a far-off plane (light on, off)
+    g0 = art(['.##.....##.', '#..#...#..#', '....#.#....', '.....#.....'])
+    g1 = art(['...........', '.###...###.', '#...#.#...#', '.....#.....'])
+    sb.add('GULL0', sprite_frame(g0, g0, ax=5, ay=2))
+    sb.add('GULL1', sprite_frame(g1, g1, ax=5, ay=2))
+    pl0 = art(['..........#..', '.....##..##..', '############.', '.....##......', '#............'])
+    pl1 = art(['..........#..', '.....##..##..', '############.', '.....##......', '.............'])
+    sb.add('PLANE0', sprite_frame(pl0, pl0, ax=6, ay=2))
+    sb.add('PLANE1', sprite_frame(pl1, pl1, ax=6, ay=2))
 
 
 def sprites():
@@ -231,9 +240,11 @@ def loadfiles():
     for i in range(8):
         if os.path.exists(os.path.join(BUILD, 'SPR%d.BNK' % i)):
             names.append((4 + i, 0x20, 'SPR%d' % i, 'BNK'))
+    names.append((17, 0, 'BOARD', 'BNK'))   # BLK_BOARD (src/board.asm)
+    names.append((18, 0, 'CLOUD', 'BNK'))   # BLK_CLOUD
     for i in range(8):
         if os.path.exists(os.path.join(BUILD, 'PIC%d.BNK' % i)):
-            assert BLK_PIC + i < 19
+            assert BLK_PIC + i < 17
             names.append((BLK_PIC + i, 0, 'PIC%d' % i, 'BNK'))
     lines = ['\tDB %s, $%02X, "%-8s%s"' % (b, o, n, e) for b, o, n, e in names]
     open(os.path.join(SRC, 'loadfiles.inc'), 'w').write('\n'.join(lines) + '\n')
@@ -270,6 +281,9 @@ if __name__ == '__main__':
     sprites()
     courts()
     portraits()
+    import mkboard
+    open(os.path.join(BUILD, 'BOARD.BNK'), 'wb').write(mkboard.build()[0])
+    open(os.path.join(BUILD, 'CLOUD.BNK'), 'wb').write(mkboard.build_clouds())
     loadfiles()
     assemble()
     disk()
