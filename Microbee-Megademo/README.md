@@ -64,7 +64,7 @@ SPACE skips to the next part. At the end the demo goes back to the monitor choic
 
 - `release/`: `MEGA.DS8`, the plain-text `README.TXT`, `FILE_ID.DIZ` and `YOUTUBE.TXT` (the video description)
 - `screenshots/`: 24 pictures from throughout the demo
-- `showcase/`: the showcase GIF and a video of the whole demo with sound. The video was captured from the emulator.
+- `showcase/`: the showcase GIF and `MicrobeeMegademo2026.mp4`, the whole demo with sound (a small 544×408 copy, captured from the emulator)
 - `src/`: Z80 source and the Python build tools
 
 ## Building
