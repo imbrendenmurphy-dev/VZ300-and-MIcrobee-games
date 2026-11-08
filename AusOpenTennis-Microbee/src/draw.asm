@@ -287,6 +287,10 @@ draw_player:
 
 ; draw_you: A = near-view body frame at (spr_x, spr_y), with YOUR head
 draw_you:
+        ld c,SF_HN_YOU
+; draw_bh: A = body frame id (0..71, far view = NFR+), C = head sprite
+draw_bh:
+        push bc
         push af
         call spr_draw
         pop af
@@ -316,7 +320,8 @@ draw_you:
         ld hl,(spr_y)
         add hl,de
         ld (spr_y),hl
-        ld a,SF_HEADN+8
+        pop bc
+        ld a,c
         jp spr_draw
 
 ; frame numbers in the body sets (tools/players.py order)
@@ -383,7 +388,7 @@ player_frame:
         ld a,FR_B_BH
 .s2:    ld b,a
         ld a,c
-        cp 8
+        cp 9
         jr c,.s3
         ld a,b
         inc a                   ; contact

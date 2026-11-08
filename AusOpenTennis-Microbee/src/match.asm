@@ -245,7 +245,7 @@ setup_player:
         call ctl_cpu
         ret z
         ; humans: standard human reach + speed
-        ld (ix+P_REACH),26
+        ld (ix+P_REACH),36      ; (Microbee) easier to reach than the VZ's 26
         ld (ix+P_SPD),196
         ld (ix+P_SPD+1),0
         ld (ix+P_SPDY),148
@@ -1556,7 +1556,18 @@ try_hit:
         jr .dd
 .nearp: sub c                   ; near player: player Y - ball Y
 .dd:    ld (hit_d),a
-        cp 9
+        push bc
+        ld b,a
+        call ctl_cpu
+        ld a,b
+        pop bc
+        jr z,.cw
+        cp 13                   ; (Microbee) humans: a wider timing window
+        jr c,.inwin
+        cp -9
+        ret c
+        jr .inwin
+.cw:    cp 9
         jr c,.inwin
         cp -6
         ret c
@@ -1743,7 +1754,10 @@ make_shot:
 .h2:    ; error: worse when the timing is off, or going for power
         ld a,(hit_d)
         call abs_a
-        add a,a
+        cp 7
+        jr c,.h2c
+        ld a,7                  ; (Microbee) capped: forgiving timing
+.h2c:   add a,a
         add a,5
         ld e,a
         ld a,(shottype)
@@ -1828,7 +1842,7 @@ make_shot:
         jr z,.nl
         ld a,(hit_d)
         call abs_a
-        cp 6
+        cp 9
         jr c,.nl
         ld hl,(ball_vz)
         ld a,180
@@ -1846,7 +1860,7 @@ make_shot:
         ld (iy+P_HITOK),1
         ld hl,rally
         inc (hl)
-        ld (ix+P_SWING),9
+        ld (ix+P_SWING),12      ; (Microbee) a longer, readable swing
         ld a,(hit_dx)
         or a
         ld a,FR_FORE

@@ -295,7 +295,7 @@ rally_step:
         ld (ra_x1),a
         ld a,SFX_HIT
         call play_sfx
-        ld a,8
+        ld a,12
         ld (ra_sw),a
 .fly:   ; players drift towards where the ball will be
         ld a,(ra_dir)
@@ -371,16 +371,11 @@ rally_step:
         jr z,.c1
         ld a,WHITE
 .c1:    ld (spr_ink),a
-        ld a,(ra_dir)
-        or a
-        ld a,NFR+FR_B_IDLE
-        jr nz,.f1
-        ld a,(ra_sw)
-        or a
-        ld a,NFR+FR_B_IDLE
-        jr z,.f1
-        ld a,NFR+FR_B_FH+2
-.f1:    call spr_draw
+        xor a
+        call ra_pose
+        add a,NFR
+        ld c,SF_HF_LOU
+        call draw_bh
         ld a,(ra_pn)
         ld l,a
         ld h,0
@@ -389,16 +384,9 @@ rally_step:
         ld hl,236
         ld (spr_y),hl
         call ink_white
-        ld a,(ra_dir)
-        or a
-        ld a,FR_B_IDLE
-        jr z,.f2
-        ld a,(ra_sw)
-        or a
-        ld a,FR_B_IDLE
-        jr z,.f2
-        ld a,FR_B_FH+2
-.f2:    call spr_draw
+        ld a,1
+        call ra_pose
+        call draw_you
         ld a,(ra_bx)
         ld l,a
         ld h,0
@@ -416,6 +404,33 @@ rally_step:
 .c3:    ld (spr_ink),a
         ld a,SF_BALL1
         jp spr_draw
+; A = 0 far player, 1 near player -> A = near-view body frame: the hitter
+; swings through (contact, follow-through, finish), the receiver winds up
+ra_pose:
+        ld b,a
+        ld a,(ra_dir)           ; 0: ball going up (the near player hit it)
+        xor 1                   ; = the hitter's side
+        cp b
+        jr nz,.recv
+        ld a,(ra_sw)
+        or a
+        jr z,.idle
+        cp 9
+        jr c,.f2
+        ld a,FR_B_FH+1
+        ret
+.f2:    cp 5
+        ld a,FR_B_FH+3
+        ret c
+        ld a,FR_B_FH+2
+        ret
+.recv:  ld a,(ra_t)
+        cp RA_T-7
+        jr c,.idle
+        ld a,FR_B_FH
+        ret
+.idle:  ld a,FR_B_IDLE
+        ret
 ; A = t, E = signed span -> A = E * t / 36
 ra_frac:
         ld h,a

@@ -175,7 +175,7 @@ sound_tick:
         push hl                 ; noise: density = H + 0-15, varied each frame
         call random
         pop hl
-        and $0F
+        and $07
         add a,h
         ld h,a
         ld (step2),hl
@@ -240,7 +240,7 @@ sfxtab:
         dw $1000,-$180 : db 8,2,4,0       ; into the net: a short rattle
         dw 1700,0    : db 14,1,5,0        ; line judge "OUT!"
         dw 500,90    : db 6,0,1,0         ; toss
-        dw $4800,-$100 : db 40,2,1,0      ; crowd roar: loud, dies away over 0.8 s
+        dw $2200,-$70 : db 30,2,1,0       ; crowd roar: a soft rush, dies away over 0.6 s
         dw 1500,-90  : db 3,0,2,0         ; menu blip
         dw 900,160   : db 8,0,3,0         ; select
         dw 600,-25   : db 10,0,4,0        ; fault
@@ -250,5 +250,5 @@ sfxtab:
         dw $0800,$300 : db 6,2,2,0        ; ball machine: a rising whoosh
         dw 1300,-270 : db 4,3,4,0         ; serve thunk
         dw 900,-120  : db 4,3,4,0         ; net cord: a dull clip on the tape
-        dw $0C00,-$80 : db 18,2,1,0       ; applause: crackling, 0.36 s
+        dw $0A00,-$50 : db 16,2,1,0       ; applause: light crackle, 0.3 s
         ASSERT $-sfxtab == 17*8
