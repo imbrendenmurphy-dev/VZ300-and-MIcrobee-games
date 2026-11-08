@@ -17,8 +17,12 @@ P_MEM       EQU $50
 P_LV        EQU $1C
 
 ; blocks (must match src/hw.inc and tools/build.py)
-STG_PROG    EQU 28          ; the program, staged (moved to 8000h at the end)
-N_BLOCKS    EQU 30          ; blocks checked (0..29)
+STG_PROG    EQU 31          ; the program, staged (moved to 8000h at the end)
+STG_FRONT   EQU 19          ; front end, staged (moved to block 2 at the end)
+STG_PORT    EQU 20          ; portraits, staged (moved to block 26 at the end)
+N_BLOCKS    EQU 32          ; blocks checked (0..31)
+; While CP/M is alive only blocks 4..22 and 31 are written (as the Megademo
+; loader, which works on a real Premium Plus): CP/M's BIOS may use others.
 
 DMA         EQU $A800       ; record buffer (upper TPA)
 PROG_LEN    EQU $5400       ; AOT.BIN: 8000h onwards (to D400h)
@@ -399,7 +403,7 @@ final_start:
             call blk_port_f
             out (P_MEM),a
             jp $8000
-moves:      DB 0
+moves:      DB STG_FRONT,2,STG_PORT,26,0
 from:       DB 0
 to:         DB 0
 blk_port_f: ld b,a

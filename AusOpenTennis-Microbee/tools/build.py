@@ -224,12 +224,16 @@ def courts():
 
 
 def loadfiles():
-    names = [('STG_PROG', 0, 'AOT', 'BIN'), (2, 0, 'FRONT', 'BIN'), (BLK_GFX, 0, 'GFX', 'BNK'), (26, 0, 'PORT', 'BNK')]
+    names = [('STG_PROG', 0, 'AOT', 'BIN'), ('STG_FRONT', 0, 'FRONT', 'BIN'), (BLK_GFX, 0, 'GFX', 'BNK'), ('STG_PORT', 0, 'PORT', 'BNK')]
+    # Only blocks 4..22 and 31 are written while CP/M is alive (the range the
+    # Megademo loader proved safe on a real Premium Plus); FRONT (block 2) and
+    # PORT (block 26) are staged in 19/20 and moved home by the final stage.
     for i in range(8):
         if os.path.exists(os.path.join(BUILD, 'SPR%d.BNK' % i)):
             names.append((4 + i, 0x20, 'SPR%d' % i, 'BNK'))
     for i in range(8):
         if os.path.exists(os.path.join(BUILD, 'PIC%d.BNK' % i)):
+            assert BLK_PIC + i < 19
             names.append((BLK_PIC + i, 0, 'PIC%d' % i, 'BNK'))
     lines = ['\tDB %s, $%02X, "%-8s%s"' % (b, o, n, e) for b, o, n, e in names]
     open(os.path.join(SRC, 'loadfiles.inc'), 'w').write('\n'.join(lines) + '\n')

@@ -5,3 +5,4 @@ build/pk.*
 build/TESTPIC.BIN
 build/tourdisk.ds8
 shots/
+resources/rom/
