@@ -8,6 +8,7 @@
 BRD_ROW     equ 3
 BRD_COL0    equ 11                  ; the end wall: cells 11..52 (tools/venues.py)
 BRD_W       equ 42
+BRD_CYC     equ 3                   ; frames per 2-pixel step (the reading speed)
 BRD_BANK    equ 9                   ; glyphs 1152.. = bank 9, codes 0..63
 BRD_DATA    equ $0010
 brd_blocks: db 10,11,15,16          ; the messages at shift 0, 2, 4, 6 (tools/mkboard.py)
@@ -95,9 +96,16 @@ board_tick:
         ret z
         call cloud_tick
         call fly_tick
-        ld a,(brd_half)
-        xor 1
+        ld a,(brd_ph)               ; a BRD_CYC-frame cycle: move + left half,
+        inc a                       ; right half, then rest
+        cp BRD_CYC
+        jr c,.p
+        xor a
+.p:     ld (brd_ph),a
+        cp 2
+        ret nc
         ld (brd_half),a
+        or a
         jr nz,brd_copy              ; second half: same position
         ld a,(brd_k)                ; first half: 2 pixels on
         add a,2
