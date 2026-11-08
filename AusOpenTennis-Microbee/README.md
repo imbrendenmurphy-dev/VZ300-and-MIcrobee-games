@@ -5,7 +5,9 @@ VIBED BY BPM 2026.
 
 It needs a Microbee Premium Plus with 1MB RAM and 32K PCG RAM.
 
-![showcase](release/showcase.png)
+![showcase](showcase/showcase.gif)
+
+See [BLURB.md](BLURB.md) for the full feature list, tech specs and RAM map, and [screenshots/](screenshots/) for pictures from throughout the game.
 
 ## Play it
 
