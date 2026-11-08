@@ -54,7 +54,7 @@ Then press **C** for a colour monitor or **M** for monochrome.
 - **Courtside:**
   - grandstands on three sides, with a crowd that cheers and does Mexican waves
   - an umpire in a tall chair who follows the ball, raises his arm for calls and leans in
-  - an LED sponsor board on the end wall that scrolls BPM's sponsor messages ("NOW WITH 20% MORE TENNIS")
+  - an LED sponsor board on the end wall that scrolls BPM's sponsor messages ("NOW WITH 20% MORE TENNIS") in a new shuffled order every match
   - clouds drifting over Kooyong, gulls crossing the sky, and a plane blinking over Melbourne Park at night
   - the players' chairs, a ball kid and line judges
   - sponsor boards, and the venue's name painted on the run-off

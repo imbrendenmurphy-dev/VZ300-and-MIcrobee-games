@@ -25,7 +25,7 @@ The eight caricatured players on the tour each play their own way, from Rookie R
   - line judges, ball kids and players' chairs
   - clouds drifting over Kooyong
   - gulls crossing the sky, and a plane blinking over Melbourne Park at night
-- **The LED sponsor board:** 34 sponsor messages and retro jokes scroll smoothly along the end wall ("FAULTY TOWERS - SERVING DOUBLE FAULTS SINCE 1982", "NOW WITH 20% MORE TENNIS", "640K? SHOW OFF.").
+- **The LED sponsor board:** 34 sponsor messages and retro jokes scroll smoothly along the end wall, in a new shuffled order every match ("FAULTY TOWERS - SERVING DOUBLE FAULTS SINCE 1982", "NOW WITH 20% MORE TENNIS", "640K? SHOW OFF.").
 - **Animated players:** 36 poses seen from the near end and the far end, with run cycles, backswing, contact and follow-through, serves, and celebrations and slumps between points. The far player is drawn in perspective.
 - **Caricature portraits** of the whole tour, drawn from BPM's own artwork.
 - **Tennis-style type throughout:** a sporty italic, an LED scoreboard face and a classic serif.
@@ -48,7 +48,7 @@ The eight caricatured players on the tour each play their own way, from Rookie R
 | **Graphics** | Every court is a full-screen PCG picture (up to about 550 unique glyphs, plus crowd and umpire animation glyphs). Sprites are composited into private glyphs each frame from pre-shifted, column-trimmed frames, with a 120-glyph pool per screen page. |
 | **Perspective** | A pinhole projection of the VZ game's flat court. The far player is drawn at 72% size. |
 | **Frame rate** | About 22-23 frames a second in a match. Game logic runs one step per 50 Hz field, so the speed of play matches the VZ original even when a frame takes longer to draw. |
-| **Sponsor board** | 42 board glyphs rewritten from four pre-shifted copies of the message loop (one RAM block per 2-pixel shift), half the board a frame, so it costs about 1-2% of a frame |
+| **Sponsor board** | 42 board glyphs rewritten from four pre-shifted copies of the messages (one RAM block per 2-pixel shift), half the board a frame, so it costs about 1-2% of a frame. Each message is a separate segment, so every match shuffles the running order. |
 | **Sound** | Two-channel pin-pulse beeper engine from the VZ game, retimed for the Premium (127 T-state loop, 26.6 kHz), with a 1K white-noise table for the crowd |
 | **Disk** | DS80 (80 tracks × 2 sides × 10 × 512 bytes). Boots to the CP/M `A>` prompt with no shell. `AOT.COM` loads 17 files into the RAM banks (about 21 seconds), and the game then takes over the machine. |
 | **Saving** | The game drives the WD2793 disk controller directly to write `SAVE.DAT` |
@@ -63,7 +63,7 @@ The Premium Plus's 1MB is 32 blocks of 32K. The game uses 23 of them (736K), and
 | 1 | restore lists, background maps, crowd and umpire animation lists, save buffer | 15K |
 | 2 | the front end: menus, tour, attract screens | 6K |
 | 4-9 | player sprites: 72 body frames, 18 heads, ball, shadows, gulls, plane | 125K |
-| 10, 11, 15, 16 | the sponsor board's message loop, pre-shifted 0/2/4/6 pixels | 4 × 22K |
+| 10, 11, 15, 16 | the sponsor board's messages, pre-shifted 0/2/4/6 pixels | 4 × 21K |
 | 12 | three fonts, small sprites | 4.5K |
 | 13, 14 | packed pictures: five courts in colour and mono, title, info, trophy | 53K packed |
 | 18 | Kooyong's cloud loop, pre-shifted 8 ways | 12K |

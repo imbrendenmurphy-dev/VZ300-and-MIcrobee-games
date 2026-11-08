@@ -1,8 +1,8 @@
 """The scrolling sponsor board (cell row 3): BPM's sponsor messages in the
 LED font, pre-shifted for the game's 2-pixel scroll steps.
 
-BOARD0..3.BNK, one per 2-pixel shift (RAM blocks 10, 11, 15, 16).
-The board shows its glyphs starting at character c, shift k."""
+BOARD0..3.BNK, one per 2-pixel shift (RAM blocks 10, 11, 15, 16): one
+segment per message; the game plays them in a new shuffled order every match."""
 import fonts
 
 ORIGINAL = [
@@ -59,34 +59,49 @@ def messages():
 
 
 SEP = '   *   '
-DATA = 0x0010           # BRD_DATA in each block
+SEGTAB = 0x0010         # BRD_SEGTAB: NSEG x (dw first glyph, db length)
+DATA = 0x0080           # BRD_DATA in each block
 SHIFT_BLOCKS = (10, 11, 15, 16)     # BRD_BLOCKS in src/board.asm: one per shift
 
 
+def segments():
+    """each message with its separator in front: every segment starts with a
+    space, so a segment's glyphs don't depend on what follows it and the game
+    can play them in any order"""
+    segs = [SEP + m for m in messages()]
+    assert all(len(t) > 21 for t in segs)          # half a board spans <= 2 segments
+    assert all(len(t) < 256 for t in segs)
+    return segs
+
+
 def build():
-    """-> [4 block images] (shift 0, 2, 4, 6 px), N.
-    Block: dw N, then (N + 64) glyphs x 16 bytes from DATA:
-    glyph c at shift k = (char c << k) | (char c+1 >> 8-k), row by row."""
-    text = SEP.join(messages()) + SEP
-    n = len(text)
-    loop = (text * 2)[:n + 65]
+    """-> [4 block images] (shift 0, 2, 4, 6 px), number of segments.
+    Block: db NSEG; at SEGTAB the segment table; at DATA the glyphs, 16 bytes
+    each: glyph c at shift k = (char c << k) | (char c+1 >> 8-k), with a
+    space after the end of each segment."""
+    segs = segments()
     F = fonts.FONTS['LED']
-    g = [F[ord(ch) - 32] for ch in loop]
     blocks = []
     for s in (0, 2, 4, 6):
         out = bytearray(DATA)
-        out[0:2] = n.to_bytes(2, 'little')
-        for c in range(n + 64):
-            for r in range(16):
-                out.append((g[c][r] << s | g[c + 1][r] >> (8 - s)) & 0xFF if s else g[c][r])
+        out[0] = len(segs)
+        first = 0
+        for i, t in enumerate(segs):
+            out[SEGTAB + 3 * i:SEGTAB + 3 * i + 3] = first.to_bytes(2, 'little') + bytes([len(t)])
+            g = [F[ord(ch) - 32] for ch in t + ' ']
+            for c in range(len(t)):
+                for r in range(16):
+                    out.append((g[c][r] << s | g[c + 1][r] >> (8 - s)) & 0xFF if s else g[c][r])
+            first += len(t)
+        assert SEGTAB + 3 * len(segs) <= DATA
         assert len(out) <= 0x8000, len(out)
         blocks.append(bytes(out))
-    return blocks, n
+    return blocks, len(segs)
 
 
 if __name__ == '__main__':
     bl, n = build()
-    print(n, 'characters,', len(bl[0]), 'bytes a shift')
+    print(n, 'segments,', len(bl[0]), 'bytes a shift')
 
 
 # ---------------------------------------------------------------- clouds

@@ -10,15 +10,59 @@ BRD_COL0    equ 11                  ; the end wall: cells 11..52 (tools/venues.p
 BRD_W       equ 42
 BRD_CYC     equ 3                   ; frames per 2-pixel step (the reading speed)
 BRD_BANK    equ 9                   ; glyphs 1152.. = bank 9, codes 0..63
-BRD_DATA    equ $0010
+BRD_SEGTAB  equ $0010                ; (tools/mkboard.py) NSEG x (dw first glyph, db length)
+BRD_DATA    equ $0080
 brd_blocks: db 10,11,15,16          ; the messages at shift 0, 2, 4, 6 (tools/mkboard.py)
 
 ; after the court picture is loaded (RT block mapped)
 board_init:
+        ; this match's running order: the messages shuffled (stir the
+        ; random seed with the time spent so far first)
+        ld hl,(framecount)
+        ld de,(seed)
+        ld a,r
+        xor e
+        xor l
+        ld e,a
+        ld a,d
+        xor h
+        ld d,a
+        ld (seed),de
         ld a,(brd_blocks)
         call map_blk
-        ld hl,(0)
-        ld (brd_n),hl
+        ld a,(0)
+        ld (brd_n),a
+        ld b,a
+        ld hl,brd_pl
+        xor a
+.pl:    ld (hl),a
+        inc hl
+        inc a
+        djnz .pl
+        ld a,(brd_n)                ; Fisher-Yates: for i = n-1 .. 1, swap i with rand(i+1)
+        dec a
+.sh:    ld (brd_i),a
+        inc a
+        ld b,a
+        call rand_n                 ; A < i+1
+        ld e,a
+        ld d,0
+        ld hl,brd_pl
+        add hl,de
+        ex de,hl                    ; DE -> entry j
+        ld a,(brd_i)
+        ld l,a
+        ld h,0
+        ld bc,brd_pl
+        add hl,bc                   ; HL -> entry i
+        ld a,(de)
+        ld c,(hl)
+        ld (hl),a
+        ld a,c
+        ld (de),a
+        ld a,(brd_i)
+        dec a
+        jr nz,.sh
         ld a,BLK_RT
         call map_blk
         ; colours: amber LEDs on black (the classic court: on blue)
@@ -73,9 +117,9 @@ board_init:
         inc hl
         inc e
         djnz .m
-        ld hl,0
-        ld (brd_c),hl
         xor a
+        ld (brd_i),a
+        ld (brd_o),a
         ld (brd_k),a
         ld (brd_half),a
         call brd_copy               ; both halves now
@@ -111,18 +155,29 @@ board_tick:
         add a,2
         cp 8
         jr c,.k
-        ld hl,(brd_c)
-        inc hl
-        ld de,(brd_n)
-        or a
-        sbc hl,de
-        add hl,de
-        jr c,.n
-        ld hl,0
-.n:     ld (brd_c),hl
+        ld a,(curblk)
+        push af
+        ld a,(brd_blocks)
+        call map_blk
+        ld a,(brd_o)                ; a character on
+        inc a
+        ld e,a
+        ld a,(brd_i)
+        ld c,a
+        call brd_seg                ; B = this segment's length
+        ld a,e
+        cp b
+        jr c,.o
+        call brd_next               ; into the next message
+        ld a,c
+        ld (brd_i),a
+        xor a
+.o:     ld (brd_o),a
+        pop af
+        call map_port
         xor a
 .k:     ld (brd_k),a
-; copy half (brd_half) of the board at (brd_c, brd_k) into the PCG
+; copy half (brd_half) of the board at (brd_i, brd_o, brd_k) into the PCG
 brd_copy:
         ld a,(curblk)
         push af
@@ -134,35 +189,113 @@ brd_copy:
         add hl,de
         ld a,(hl)
         call map_blk
-        ; source = DATA + (c + half * W/2) * 16
-        ld hl,(brd_c)
+        ; where this half starts: C = running-order index, E = character
+        ld a,(brd_i)
+        ld c,a
+        ld a,(brd_o)
+        ld e,a
+        ld hl,PCGWIN
         ld a,(brd_half)
         or a
         jr z,.h0
-        ld de,BRD_W/2
-        add hl,de
-.h0:    REPT 4
+        call brd_seg                ; skip W/2 characters (segments are longer)
+        ld a,b
+        sub e                       ; left in this segment
+        cp BRD_W/2+1
+        jr c,.h1
+        ld a,e
+        add a,BRD_W/2
+        ld e,a
+        jr .h2
+.h1:    ld d,a
+        ld a,BRD_W/2
+        sub d
+        ld e,a
+        call brd_next
+.h2:    ld hl,PCGWIN+BRD_W/2*16
+.h0:    ld (brd_dst),hl
+        ld a,BRD_W/2
+        ld (brd_left),a
+        ld a,LV_SCREEN+BRD_BANK
+        out (P_LV),a
+.run:   call brd_seg                ; HL = first glyph, B = length
+        ld a,b
+        sub e                       ; glyphs left in the segment
+        ld b,a
+        ld a,(brd_left)
+        cp b
+        jr nc,.n
+        ld b,a                      ; B = glyphs to copy now
+.n:     ld a,(brd_left)
+        sub b
+        ld (brd_left),a
+        ld d,0
+        add hl,de                   ; + the character
+        REPT 4
         add hl,hl
         ENDR
         ld de,BRD_DATA
         add hl,de
-    ; destination: bank 9 at F800, half*512
-        ld de,PCGWIN
-        ld a,(brd_half)
-        or a
-        jr z,.d0
-        ld de,PCGWIN+BRD_W/2*16
-.d0:    ld a,LV_SCREEN+BRD_BANK
-        out (P_LV),a
-        ld bc,BRD_W/2*16
+        ld de,(brd_dst)
+        push bc
+        ld a,b
+        ld c,b                      ; BC = B * 16
+        ld b,0
+        REPT 4
+        sla c
+        rl b
+        ENDR
 .cp:    REPT 16
         ldi
         ENDR
         jp pe,.cp
+        pop bc
+        ld (brd_dst),de
+        ld a,(brd_left)
+        or a
+        jr z,.done
+        call brd_next
+        ld e,0
+        jr .run
+.done:
         ld a,LV_SCREEN
         out (P_LV),a
         pop af
         jp map_port
+
+; C = running-order index -> HL = its segment's first glyph, B = its length
+; (a board block mapped)
+brd_seg:
+        push de
+        ld e,c
+        ld d,0
+        ld hl,brd_pl
+        add hl,de
+        ld a,(hl)                   ; the segment
+        ld l,a
+        ld h,0
+        ld e,l
+        ld d,h
+        add hl,hl
+        add hl,de
+        ld de,BRD_SEGTAB
+        add hl,de
+        ld e,(hl)
+        inc hl
+        ld d,(hl)
+        inc hl
+        ld b,(hl)
+        ex de,hl
+        pop de
+        ret
+; C = the next running-order index (round to the start)
+brd_next:
+        inc c
+        ld a,(brd_n)
+        cp c
+        ret nz
+        ld c,0
+        ret
 
 ; ---------------------------------------------------------------------
 ;  CLOUDS: Kooyong's sky (row 0, columns 16..63) drifts left a pixel every

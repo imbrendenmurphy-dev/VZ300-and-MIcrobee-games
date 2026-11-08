@@ -17,9 +17,12 @@ brd_half: db 0
 brd_ph:  db 0
 sfx_adv: db 0
 brd_k:   db 0
-brd_c:   dw 0
-brd_n:   dw 0
-brd_stride: dw 0
+brd_i:   db 0
+brd_o:   db 0
+brd_n:   db 0
+brd_left: db 0
+brd_dst: dw 0
+brd_pl:  ds 64
 cl_on:   db 0
 cl_r:    db 0
 cl_p:    dw 0
