@@ -1,0 +1,10 @@
+build/
+__pycache__/
+*.so
+src/*.s
+src/assets.inc
+src/song.inc
+src/notes.inc
+src/loadfiles.inc
+src/proglen.inc
+resources/rom/
