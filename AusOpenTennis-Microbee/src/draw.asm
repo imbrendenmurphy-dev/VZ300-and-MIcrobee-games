@@ -6,8 +6,12 @@
 ; ---------------------------------------------------------------------
 ; do_frame: two sound ticks (50 Hz), finish + show the frame, input, next
 do_frame:
+        ld a,(steps)            ; one sound tick per field of the last frame:
+.st:    push af                 ; the music keeps time however long frames take
         call sound_tick
-        call sound_tick
+        pop af
+        dec a
+        jr nz,.st
         call frame_end
         call read_input
         jp frame_begin

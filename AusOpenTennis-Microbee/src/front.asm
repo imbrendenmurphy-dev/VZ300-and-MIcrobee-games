@@ -265,6 +265,10 @@ tm3:    db "KOOYONG  PERTH  SYDNEY  MELBOURNE",0
 ; the title rally: far player at y 168, near player at y 234; the ball
 ; flies between them in 36 frames with a little arc
 RA_T    equ 36
+RA_OFFN equ 9           ; racket reach (in 2-pixel units): near player
+RA_OFFF equ 6           ;   far player
+RA_YF   equ 150         ; ball at the far racket
+RA_YN   equ 208         ;   at the near racket
 rally_init:
         xor a
         ld (ra_t),a
@@ -297,19 +301,30 @@ rally_step:
         call play_sfx
         ld a,12
         ld (ra_sw),a
-.fly:   ; players drift towards where the ball will be
+.fly:   ; the receiver runs so that its racket meets the ball at x1
         ld a,(ra_dir)
         or a
         ld hl,ra_pf
+        ld c,RA_OFFF
         jr z,.up
         ld hl,ra_pn
+        ld c,RA_OFFN
 .up:    ld a,(ra_x1)
-        cp (hl)
+        sub c                   ; where the body must stand
+        sub (hl)
         jr z,.ok
         jr c,.l
-        inc (hl)
+        cp 4
+        jr c,.r1
+        ld a,4
+.r1:    add a,(hl)
+        ld (hl),a
         jr .ok
-.l:     dec (hl)
+.l:     cp -4
+        jr nc,.l1
+        ld a,-4
+.l1:    add a,(hl)
+        ld (hl),a
 .ok:    ld a,(ra_sw)
         or a
         jr z,.ns
@@ -333,10 +348,10 @@ rally_step:
         jr nz,.d
         ld a,RA_T
         sub b                   ; going up: from the near end
-.d:     ; y = 166 + 64 * a / 36
-        ld e,64
+.d:     ; y from racket to racket
+        ld e,RA_YN-RA_YF
         call ra_frac
-        add a,166
+        add a,RA_YF
         ld c,a
         ; arc: 4 t (T - t) / 64
         ld a,(ra_t)
