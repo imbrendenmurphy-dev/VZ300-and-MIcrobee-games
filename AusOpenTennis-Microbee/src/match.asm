@@ -209,6 +209,7 @@ setup_player:
         pop hl
         pop bc
         ld a,(hl)
+        add a,6                 ; (Microbee) a little more reach than the VZ
         ld (ix+P_REACH),a
         inc hl
         ld a,(hl)               ; react - boost
@@ -333,10 +334,10 @@ server_ix:
 hold:
         push bc
         ld a,(steps)
-        ld (msteps),a
-.t:     call hold_tick
+        ld (hsteps),a           ; (its own count: hold runs inside match_step's
+.t:     call hold_tick          ; tick loop when a point is called)
         call input_used
-        ld hl,msteps
+        ld hl,hsteps
         dec (hl)
         jr nz,.t
         call match_draw

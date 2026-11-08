@@ -11,6 +11,7 @@ vcount:  db 0
 fw_need: db 0
 steps:   db 2
 msteps:  db 0
+hsteps:  db 0
 framecount: dw 0
 seed:    dw 0
 lzb_tab: dw 0
