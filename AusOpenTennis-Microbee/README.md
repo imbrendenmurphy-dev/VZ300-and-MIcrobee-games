@@ -93,7 +93,7 @@ Test scripts:
 | D400h–E7FFh | background maps, cell map, sprite pool records |
 | E800h–EFFEh | variables, stack |
 | block 1 | restore lists, base maps, crowd and umpire lists, save buffer |
-| block 17, 18 | the sponsor board's pre-shifted messages, Kooyong's cloud loop |
+| blocks 10, 11, 15, 16, 18 | the sponsor board's messages (one block per 2-pixel shift), Kooyong's cloud loop |
 | block 2 | front end (runs at 0000h) |
 | blocks 4–9 | player sprites (each has the court's first 512 glyphs at 0000h) |
 | block 12 | fonts |

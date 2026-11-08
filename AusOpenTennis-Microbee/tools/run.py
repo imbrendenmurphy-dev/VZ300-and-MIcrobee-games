@@ -47,9 +47,10 @@ def boot(extra=None, disk=None):
     f = BUILD / 'CLOUD.BNK'
     if f.exists():
         put(pp, 18, f.read_bytes())
-    f = BUILD / 'BOARD.BNK'
-    if f.exists():
-        put(pp, 17, f.read_bytes())
+    for i, b in enumerate((10, 11, 15, 16)):
+        f = BUILD / ('BOARD%d.BNK' % i)
+        if f.exists():
+            put(pp, b, f.read_bytes())
     f = BUILD / 'FRONT.BIN'
     if f.exists():
         put(pp, 2, f.read_bytes())

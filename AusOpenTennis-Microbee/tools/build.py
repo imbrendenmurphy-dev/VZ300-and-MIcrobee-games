@@ -240,7 +240,8 @@ def loadfiles():
     for i in range(8):
         if os.path.exists(os.path.join(BUILD, 'SPR%d.BNK' % i)):
             names.append((4 + i, 0x20, 'SPR%d' % i, 'BNK'))
-    names.append((17, 0, 'BOARD', 'BNK'))   # BLK_BOARD (src/board.asm)
+    for i, b in enumerate((10, 11, 15, 16)):  # BRD_BLOCKS (src/board.asm)
+        names.append((b, 0, 'BOARD%d' % i, 'BNK'))
     names.append((18, 0, 'CLOUD', 'BNK'))   # BLK_CLOUD
     for i in range(8):
         if os.path.exists(os.path.join(BUILD, 'PIC%d.BNK' % i)):
@@ -282,7 +283,8 @@ if __name__ == '__main__':
     courts()
     portraits()
     import mkboard
-    open(os.path.join(BUILD, 'BOARD.BNK'), 'wb').write(mkboard.build()[0])
+    for i, d in enumerate(mkboard.build()[0]):
+        open(os.path.join(BUILD, 'BOARD%d.BNK' % i), 'wb').write(d)
     open(os.path.join(BUILD, 'CLOUD.BNK'), 'wb').write(mkboard.build_clouds())
     loadfiles()
     assemble()

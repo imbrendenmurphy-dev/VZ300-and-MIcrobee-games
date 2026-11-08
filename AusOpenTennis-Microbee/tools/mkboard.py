@@ -1,14 +1,11 @@
 """The scrolling sponsor board (cell row 3): BPM's sponsor messages in the
 LED font, pre-shifted for the game's 2-pixel scroll steps.
 
-BOARD.BNK (loaded into RAM block 17):
-  dw N (characters in the loop)
-  then 4 shifts (0, 2, 4, 6 px) x (N + 64) glyphs x 16 bytes, from BOARD_DATA:
-  glyph c at shift k = (char c << k) | (char c+1 >> 8-k), row by row.
-The board shows 64 glyphs starting at character c, shift k."""
+BOARD0..3.BNK, one per 2-pixel shift (RAM blocks 10, 11, 15, 16).
+The board shows its glyphs starting at character c, shift k."""
 import fonts
 
-MESSAGES = [
+ORIGINAL = [
     'YOUR AD HERE - CALL 555-ACE',
     'THIS SPACE INTENTIONALLY SOLD',
     'PLEASE IGNORE THE PIXELS',
@@ -22,31 +19,74 @@ MESSAGES = [
     'PLEASE DO NOT FEED THE BALL BOYS',
     '100% ORGANIC SYNTHETIC GRASS',
 ]
+SPONSORS = [
+    ('FAULTY TOWERS', 'SERVING DOUBLE FAULTS SINCE 1982'),
+    ('ACE HARDWARE', 'WE KNOW HOW TO SERVE'),
+    ('DEUCE BIGALOW', 'PROFESSIONAL BALL HANDLING'),
+    ('NET PROFITS LTD', 'YOUR LOSS IS OUR GAIN'),
+    ('LOVE ALL INSURANCE', 'LOVE MEANS NOTHING'),
+    ('BALLS R US', 'TWO BALLS ARE BETTER THAN ONE'),
+    ('THE RACKET', 'ORGANISED TENNIS SINCE 1984'),
+    ('LOBOTOMY INC', 'GET IT OUT OF YOUR HEAD'),
+    ('SMASHED AVOCADO', 'BREAKFAST OF CHAMPIONS'),
+    ('DODGY BROTHERS', 'OFFICIAL LINE JUDGES'),
+    ('OUT OF BOUNDS TRAVEL', "WE'LL TAKE YOU ANYWHERE"),
+    ('UNFORCED ERRORS LTD', 'PROUD SPONSOR OF YOUR OPPONENT'),
+]
+RETRO = [
+    '32K PCG - UNLIMITED IMAGINATION',
+    "MICROBEE - WE'VE GOT CHARACTER",
+    '640K? SHOW OFF.',
+    'Z80 POWER - FEEL THE 4MHZ',
+    'LOADING SPONSOR... PLEASE WAIT',
+    'NO SPRITES WERE HARMED',
+    'REAL ATHLETES USE 8 BITS',
+    'VIBED BY BPM - PROUDLY UNTESTED',
+    'YOUR NEXT OPPONENT IS ON DISK 2',
+    'THIS AD USES TWO COLOURS',
+]
+
+
+def messages():
+    """BPM's lines, the sponsors (name - slogan) and the retro jokes, dealt in turn"""
+    spons = ['%s - %s' % s for s in SPONSORS]
+    out = []
+    for i in range(max(len(ORIGINAL), len(spons), len(RETRO))):
+        for lst in (ORIGINAL, spons, RETRO):
+            if i < len(lst):
+                out.append(lst[i])
+    return out
+
+
 SEP = '   *   '
-HEADER = 2
-DATA = 0x0010           # BOARD_DATA in the block
+DATA = 0x0010           # BRD_DATA in each block
+SHIFT_BLOCKS = (10, 11, 15, 16)     # BRD_BLOCKS in src/board.asm: one per shift
 
 
 def build():
-    text = SEP.join(MESSAGES) + SEP
+    """-> [4 block images] (shift 0, 2, 4, 6 px), N.
+    Block: dw N, then (N + 64) glyphs x 16 bytes from DATA:
+    glyph c at shift k = (char c << k) | (char c+1 >> 8-k), row by row."""
+    text = SEP.join(messages()) + SEP
     n = len(text)
-    loop = (text * 3)[:n + 65]
+    loop = (text * 2)[:n + 65]
     F = fonts.FONTS['LED']
     g = [F[ord(ch) - 32] for ch in loop]
-    out = bytearray(DATA)
-    out[0:2] = n.to_bytes(2, 'little')
+    blocks = []
     for s in (0, 2, 4, 6):
+        out = bytearray(DATA)
+        out[0:2] = n.to_bytes(2, 'little')
         for c in range(n + 64):
             for r in range(16):
-                b = (g[c][r] << s | g[c + 1][r] >> (8 - s)) & 0xFF if s else g[c][r]
-                out.append(b)
-    assert len(out) <= 0x8000, len(out)
-    return bytes(out), n
+                out.append((g[c][r] << s | g[c + 1][r] >> (8 - s)) & 0xFF if s else g[c][r])
+        assert len(out) <= 0x8000, len(out)
+        blocks.append(bytes(out))
+    return blocks, n
 
 
 if __name__ == '__main__':
-    d, n = build()
-    print(n, 'characters,', len(d), 'bytes')
+    bl, n = build()
+    print(n, 'characters,', len(bl[0]), 'bytes a shift')
 
 
 # ---------------------------------------------------------------- clouds

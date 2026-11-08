@@ -1,29 +1,23 @@
 ; =====================================================================
 ;  BOARD: the scrolling sponsor board along the back of the court (cell
 ;  row 3). Its 64 cells show their own glyphs, 1152..1215 (PCG bank 9),
-;  rewritten from the pre-shifted messages in RAM block BLK_BOARD
+;  rewritten from the pre-shifted messages in RAM blocks 10, 11, 15, 16
 ;  (tools/mkboard.py): half the board a frame, the text moving 2 pixels
 ;  every other frame. Sprites over it read the glyphs back from the PCG.
 ; =====================================================================
-BLK_BOARD   equ 17
 BRD_ROW     equ 3
 BRD_COL0    equ 11                  ; the end wall: cells 11..52 (tools/venues.py)
 BRD_W       equ 42
 BRD_BANK    equ 9                   ; glyphs 1152.. = bank 9, codes 0..63
 BRD_DATA    equ $0010
+brd_blocks: db 10,11,15,16          ; the messages at shift 0, 2, 4, 6 (tools/mkboard.py)
 
 ; after the court picture is loaded (RT block mapped)
 board_init:
-        ld a,BLK_BOARD
+        ld a,(brd_blocks)
         call map_blk
         ld hl,(0)
         ld (brd_n),hl
-        ld de,64                    ; + 64 glyphs, x 16 bytes = the stride
-        add hl,de
-        REPT 4
-        add hl,hl
-        ENDR
-        ld (brd_stride),hl
         ld a,BLK_RT
         call map_blk
         ; colours: amber LEDs on black (the classic court: on blue)
@@ -124,9 +118,15 @@ board_tick:
 brd_copy:
         ld a,(curblk)
         push af
-        ld a,BLK_BOARD
+        ld a,(brd_k)                ; one RAM block per shift
+        srl a
+        ld e,a
+        ld d,0
+        ld hl,brd_blocks
+        add hl,de
+        ld a,(hl)
         call map_blk
-        ; source = DATA + (k/2) * stride + (c + half*32) * 16
+        ; source = DATA + (c + half * W/2) * 16
         ld hl,(brd_c)
         ld a,(brd_half)
         or a
@@ -138,14 +138,7 @@ brd_copy:
         ENDR
         ld de,BRD_DATA
         add hl,de
-        ld a,(brd_k)
-        srl a
-        jr z,.s0
-        ld de,(brd_stride)
-.s:     add hl,de
-        dec a
-        jr nz,.s
-.s0:    ; destination: bank 9 at F800, half*512
+    ; destination: bank 9 at F800, half*512
         ld de,PCGWIN
         ld a,(brd_half)
         or a
