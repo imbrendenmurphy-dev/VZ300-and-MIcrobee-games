@@ -375,7 +375,7 @@ def draw(venue, crowd=0, ump=0):
         draw_court(c, st)
     if venue in RUNOFF:
         t, ink = RUNOFF[venue]
-        cell_text(c, t, 32 - len(t), 4, ink, wide=2)
+        # near end only: the far player stands on row 4 and would clash with it
         cell_text(c, t, 32 - len(t), 15, ink, wide=2)
     if venue == 'CLASSIC':
         crowd_cols = [YEL, BRED, BBLU]
