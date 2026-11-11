@@ -75,18 +75,42 @@ run on a real Microbee yet.**
   pixel for pixel, against an independent drawing of the same scene;
   `tools/check_speed.py` times real key presses.
 
-## Not changed
+## Second pass (12 November 2026)
 
-Gameplay, maps, monsters, stats, text, music, the battle screens and monster
-art, the gallery, the map and story pages, and the 1984 Easter egg are as
-Codex left them. Codex's own boot, battle (all twelve wins, colour and amber),
-combat-path, animation, front-end and soak checks still pass.
+- **Title screen redrawn.** Moonrise behind the castle on its crag, bats,
+  bare trees, blood running from the lettering. Why: the old one was a few
+  rectangles and a moon that looked bitten. The moon is slightly flattened
+  because Microbee pixels are taller than wide. Credit reads VIBED BY BPM 2026.
+- **Battle rooms redrawn in the areas' own materials.** Five of the six rooms
+  were one brick template recoloured solid blue, cyan, brown or magenta, and
+  the bright fill fought with the monster. Each fight now happens in front of
+  the wall and floor of the area you are in, with a pool of shadow behind the
+  monster. The graveyard was already good and is unchanged. Monster drawings
+  and animation are unchanged.
+- **On one-colour screens the battle room sits back.** With no colour to
+  separate them, monster and wall were the same brightness. The room is now
+  dimmed there so the monster stands out.
+- **Story, inventory and message pages are light text on a dark leaf** with a
+  gold rule, and text keeps its own colours. Why: solid yellow was harsh in
+  colour, and on a one-colour screen every line of text sat in a dark bar.
+- **Coming back from the map or a fight is quick.** The area's art now stays
+  in memory (RAM blocks 28 and 31) instead of being unpacked again each time:
+  about 0.6 s of blank screen instead of 2.3 s.
+- **Music keeps time while you move.** Pitch was measured and is exactly in
+  tune (E5 = 659.2 Hz), and tempo is exact standing still. While turning
+  constantly the tune was running at 62% speed because drawing skipped its
+  beats; it now holds 87%.
+- **Checked and left alone:** gameplay, maps, monster stats and text are the
+  VZ300 game, by choice. The 1984 Easter egg keeps its authentic look. The
+  map page and the gallery layout did not need changes (the gallery shows the
+  new rooms).
 
 ## Known limits
 
 - **Emulator only.** Pacing, music and readability on the real machine and on
   the amber monitor still need your eyes.
-- The title screen was not redrawn; it is still the plain Codex one.
+- Entering a new area still blanks the screen for about 2.3 s while its art
+  unpacks, and opening the map for about 0.9 s.
 - Floor objects are the VZ drawings enlarged, not new illustrations, so they
   are chunkier than the walls around them.
 - A floor object takes the colour of the cell it overlaps, so a little of the
@@ -96,5 +120,4 @@ combat-path, animation, front-end and soak checks still pass.
 - In the Great Hall and Clock Tower 26 of about 1,750 character shapes were
   merged with near-identical ones to fit the PCG; the difference is two or
   three pixels in a few views.
-- On the amber screen the inventory page shows its text on dark bars. That is
-  from the Codex build and was left alone.
+- The spires on the title castle are faint against the sky.

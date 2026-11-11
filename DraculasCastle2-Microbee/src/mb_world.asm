@@ -241,7 +241,10 @@ world_present_maze:
             ld a,(vp_dirty)
             ld hl,world_changed
             or (hl)
-            call nz,vp_compose
+            jr z,.drawn
+            call vp_compose
+            call snd_tick           ; drawing took a frame: keep the tune in time
+.drawn:
             call ui_scan
             ld b,a
             ld a,(world_changed)
@@ -255,6 +258,7 @@ world_present_maze:
             jr z,.done
             call wait_frame
             call vp_blit
+            call snd_tick
             xor a
             ld (vp_dirty),a
 .done:      pop ix
@@ -552,9 +556,29 @@ world_load:
             xor a
             ld (native_left),a
             ld a,2
+            ld (world_bank),a
+            ld a,(world_screen)
+            cp 1
+            jr nz,.unpack
+            ; The area's art stays resident in blocks 28 and 31, so coming
+            ; back from the map or a fight only has to refill the PCG.
+            ld a,28
+            ld (world_bank),a
+            ld a,(world_loaded)
+            cp 7
+            jr c,.which
+            sub 6
+.which:     ld hl,area_loaded
+            cp (hl)
+            jr z,.glyphs
+            ld (hl),a
+.unpack:    ld a,(world_bank)
+            ld (unpack_bank),a
             call mb_bank
             ld de,0
             call native_unpack
+            xor a
+            ld (unpack_bank),a
             ld a,(world_screen)
             cp 1
             jr nz,.page
@@ -596,6 +620,7 @@ world_load:
             call native_unpack
             xor a
             ld (unpack_bank),a
+.glyphs:    xor a
             out ($08),a
             out ($0B),a
             ld a,31
@@ -669,7 +694,7 @@ world_piece:
             add hl,hl
             ld de,64
             add hl,de
-            ld a,2
+            ld a,(world_bank)
             call mb_bank
             ld e,(hl)
             inc hl
@@ -714,7 +739,7 @@ world_piece:
             ld (world_planes),a
             jr nz,.plane
             pop hl
-            ld a,2
+            ld a,(world_bank)
             call mb_bank
             ld a,(world_service)
             inc a
@@ -739,7 +764,7 @@ VPPLANE     equ 640
 vp_compose: call sample_view
             call max_depth
             ld (rv_d),a
-            ld a,2
+            ld a,(world_bank)
             call mb_bank
             ld hl,(50)
             ld de,VPBUF
@@ -867,7 +892,7 @@ vp_cell:    ld a,(rv_d)
 vp_piece:   add hl,hl
             ld de,64
             add hl,de
-            ld a,2
+            ld a,(world_bank)
             call mb_bank
             ld a,(hl)
             inc hl
@@ -1192,15 +1217,7 @@ world_text:
             cp $F0
             jr z,.colour
             ld c,15
-.colour:    ld a,(world_screen)
-            cp 2
-            jr nz,.ink
-            ld c,$B0
-            ld a,(mb_mode)
-            or a
-            jr z,.ink
-            ld c,$F0
-.ink:       ld a,3
+.colour:    ld a,3
             call mb_bank
             pop af
             sub 32
@@ -1263,7 +1280,7 @@ world_map:
             add hl,de
             ld de,8
             add hl,de
-            ld a,2
+            ld a,(world_bank)
             call mb_bank
             ld a,(hl)
             inc hl
@@ -1373,7 +1390,7 @@ world_symbol:
             add hl,de
             ld de,8
             add hl,de
-            ld a,2
+            ld a,(world_bank)
             call mb_bank
             ld a,(hl)
             ld (world_icon),a
@@ -1484,6 +1501,8 @@ vp_slot:    ds 1
 vp_port:    ds 1
 vp_left:    ds 1
 unpack_bank: ds 1
+world_bank:  ds 1
+area_loaded: ds 1
             assert $ <= $E400
             emit
             org world_code_end

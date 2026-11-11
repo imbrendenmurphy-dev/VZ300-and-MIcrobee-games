@@ -103,7 +103,11 @@ def monster(i,frame):
     return canvas.image
 
 @lru_cache(None)
-def backdrop(area):
+def backdrop(area,mono=False):
+    if mono and area:
+        # One-colour screens have only brightness to separate a monster from
+        # the room, so the interiors sit well back behind it.
+        return Image.eval(backdrop(area),lambda v:int(v*.42))
     if area in range(6):
         return native_detail.backdrop(PAL,area)
     im=Image.new('RGB',(320,264),tuple(PAL[0]));d=ImageDraw.Draw(im)
@@ -147,25 +151,81 @@ def backdrop(area):
     return im
 
 def title():
-    im=Image.new('RGB',(320,264),(0,0,0));d=ImageDraw.Draw(im)
-    d.rectangle((0,0,319,197),fill=tuple(PAL[4]//3))
-    for i in range(45):
-        x=(i*73+13)%320;y=(i*37+11)%160;d.point((x,y),fill=tuple(PAL[7]))
-    d.ellipse((206,49,284,127),fill=tuple(PAL[11]))
-    d.polygon([(0,181),(47,169),(100,179),(151,157),(210,169),(260,155),(319,176),(319,198),(0,198)],fill=tuple(PAL[5]//2))
-    for x,w,h in [(57,27,61),(94,23,90),(131,48,70),(186,23,99),(218,33,67)]:
-        y=184-h;d.rectangle((x,y,x+w,191),fill=(0,0,0));d.polygon([(x-5,y),(x+w/2,y-26),(x+w+5,y)],fill=(0,0,0))
-        for yy in range(y+11,177,19):
-            d.rectangle((x+w//2-2,yy,x+w//2+2,yy+8),fill=tuple(PAL[11]))
-    d.arc((143,159,173,199),180,360,fill=tuple(PAL[9]),width=2)
-    d.line((158,158,158,190),fill=tuple(PAL[9]),width=2)
-    for text,y,size in [("DRACULA'S",5,31),('CASTLE II',38,31)]:
-        dracula_font.draw(im,(162,y+2),text,size,(0,0,0),center=True)
-        dracula_font.draw(im,(160,y),text,size,tuple(PAL[15]),center=True)
-    d.rectangle((88,72,232,85),fill=(0,0,0))
-    dracula_font.draw(im,(160,73),'THE CASTLE AWAKENS',11,tuple(PAL[11]),center=True)
-    d.rectangle((84,183,236,197),fill=(0,0,0))
-    dracula_font.draw(im,(160,184),'ViBED by BPM - 2026',11,tuple(PAL[15]),center=True)
+    """Moonrise over the castle. Everything is ink on a black sky so the amber
+    screen gets the same picture; the moon is slightly flattened because
+    pixels are taller than wide on a 4:3 tube."""
+    im=Image.new('RGB',(320,264),(0,0,0));d=ImageDraw.Draw(im);px=im.load()
+    C=lambda i:tuple(int(v) for v in PAL[i])
+    def dither(box_fn,ink,level):
+        for y in range(0,176):
+            for x in range(320):
+                if box_fn(x,y) and level(x,y)>(BAYER[y%4,x%4]+.5)/16:px[x,y]=C(ink)
+    for i in range(70):
+        x=(i*73+13)%320;y=(i*37+11)%150
+        px[x,y]=C(15 if i%4==0 else 7)
+        if i%11==0:
+            for dx,dy in ((1,0),(-1,0),(0,1),(0,-1)):
+                if 0<=x+dx<320 and y+dy>=0:px[x+dx,y+dy]=C(7)
+    # moon with a soft halo and a few seas, rising behind the crag
+    mx,my,rx,ry=238,126,42,37
+    inside=lambda x,y,k=1.0:((x-mx)/(rx*k))**2+((y-my)/(ry*k))**2<1
+    dither(lambda x,y:inside(x,y,1.25) and not inside(x,y),3,lambda x,y:.2)
+    d.ellipse((mx-rx,my-ry,mx+rx,my+ry),fill=C(11))
+    for cx,cy,r in ((224,112,8),(252,134,11),(246,104,5),(222,138,5),(262,116,4)):
+        dither(lambda x,y,cx=cx,cy=cy,r=r:(x-cx)**2+((y-cy)*1.15)**2<r*r and inside(x,y),0,lambda x,y:.4)
+    # castle on the crag: night-blue stone, black where the moon is behind it
+    def stone(x0,y0,x1,y1):
+        for y in range(y0,y1):
+            for x in range(x0,x1):
+                if inside(x,y):px[x,y]=(0,0,0)
+                elif x==x0:px[x,y]=C(12)
+                else:px[x,y]=C(4) if ((x*5+y*3)%16<(9 if x<x0+(x1-x0)//2 else 5)) and y%6 else (0,0,0)
+    towers=[(92,104,18,0),(112,88,14,1),(128,112,36,0),(166,96,16,1),(184,108,20,0),(206,84,13,1)]
+    stone(92,128,220,150)
+    for x,y,w,tall in towers:
+        stone(x,y,x+w,150)
+        for bx in range(x,x+w,6):stone(bx,y-4,bx+3,y)
+        if tall:
+            for k in range(26):
+                half=(w/2+3)*(1-k/26)
+                yy=y-5-k
+                for xx in range(int(x+w/2-half),int(x+w/2+half)+1):
+                    px[xx,yy]=(0,0,0) if inside(xx,yy) else (C(12) if xx==int(x+w/2-half) else (C(4) if (xx+yy)%2 else (0,0,0)))
+        for yy in range(y+9,142,16):
+            d.rectangle((x+w//2-2,yy,x+w//2+1,yy+6),fill=C(11))
+    d.pieslice((138,128,156,166),180,360,fill=C(9));d.line((147,130,147,148),fill=(0,0,0))
+    # crag
+    ridge=[(0,168),(34,160),(60,164),(84,150),(228,150),(262,162),(290,156),(319,166)]
+    def ground(x):
+        for (x0,y0),(x1,y1) in zip(ridge,ridge[1:]):
+            if x0<=x<=x1:return y0+(y1-y0)*(x-x0)/max(1,x1-x0)
+        return 176
+    for x in range(320):
+        g=int(ground(x))
+        for y in range(g,176):
+            px[x,y]=C(5) if (y-g<2) else (C(5) if (.5-(y-g)/60)>(BAYER[y%4,x%4]+.5)/16 else (0,0,0))
+    for k in range(26):
+        y=150+k;x=147+int(10*math.sin(k/5.0))-k//2
+        for dx in range(-(1+k//7),2+k//7):
+            if (x+dx+y)%2==0:px[max(0,min(319,x+dx)),y]=C(3)
+    # bats
+    for bx,by,sz,ink in ((232,120,5,0),(258,108,4,0),(64,118,5,13),(40,96,4,13),(294,84,4,13),(74,140,3,13)):
+        d.polygon([(bx,by),(bx-sz*2,by-sz),(bx-sz,by),(bx-sz*2,by+sz//2),(bx,by+2),(bx+sz*2,by+sz//2),(bx+sz,by),(bx+sz*2,by-sz)],fill=C(ink))
+    # bare trees framing the scene
+    for x,side in ((14,1),(306,-1)):
+        d.line([(x,176),(x+side*4,120),(x,84)],fill=C(4),width=3)
+        for y,l in ((150,22),(128,26),(106,18),(92,12)):
+            d.line([(x+side*2,y),(x+side*l,y-14),(x+side*(l+6),y-30)],fill=C(4),width=1)
+            d.line([(x+side*2,y+6),(x-side*10,y-8)],fill=C(4),width=1)
+    for text,y,size in [("DRACULA'S",4,31),('CASTLE II',36,31)]:
+        dracula_font.draw(im,(162,y+2),text,size,C(1),center=True)
+        dracula_font.draw(im,(160,y),text,size,C(15),center=True)
+    # blood running from the lettering
+    for x,l in ((62,10),(101,16),(139,7),(183,13),(221,9),(257,15),(88,8),(240,6)):
+        for yy in range(66,66+l):
+            if px[x,yy]==(0,0,0) or yy>70:px[x,yy]=C(9);px[x+1,yy]=C(9) if yy<66+l-2 else px[x+1,yy]
+    d.rectangle((84,74,236,87),fill=(0,0,0))
+    dracula_font.draw(im,(160,75),'THE CASTLE AWAKENS',11,C(11),center=True)
     return im
 
 def encode(im,mono=False,cell_height=11):
@@ -196,22 +256,24 @@ def build():
     out=ROOT/'build/native';out.mkdir(parents=True,exist_ok=True)
     ti=title().crop((0,0,320,256))
     ImageDraw.Draw(ti).rectangle((0,184,319,255),fill=(0,0,0))
-    credit=dracula_font.mask('ViBED by BPM - 2026')
+    credit=dracula_font.mask('VIBED BY BPM 2026')
     credit=credit.resize((credit.width,16),Image.Resampling.NEAREST)
     ImageDraw.Draw(ti).rectangle((84,176,236,191),fill=(0,0,0))
     ti.paste(tuple(PAL[15]),(160-credit.width//2,176,160-credit.width//2+credit.width,192),credit)
-    images=[('title',ti)]
-    for i,(name,*_) in enumerate(M.MONSTERS):
-        for frame in range(3):
-            im=backdrop(M.HOME_BBG.get(name,0)).crop((0,0,320,256));sp=monster(i,frame)
-            im.paste(sp,(80,18),sp)
-            d=ImageDraw.Draw(im);d.rectangle((0,200,319,255),fill=(0,0,0))
-            dracula_font.draw(im,(12,207),name,22,tuple(PAL[15]))
-            dracula_font.draw(im,(12,239),'SPACE: NEXT   P: BACK',11,tuple(PAL[11]))
-            images.append((f'monster{i+1:02}-{frame}',im))
+    def gallery(mono):
+        images=[('title',ti)]
+        for i,(name,*_) in enumerate(M.MONSTERS):
+            for frame in range(3):
+                im=backdrop(M.HOME_BBG.get(name,0),mono).crop((0,0,320,256));sp=monster(i,frame)
+                im.paste(sp,(80,18),sp)
+                d=ImageDraw.Draw(im);d.rectangle((0,200,319,255),fill=(0,0,0))
+                dracula_font.draw(im,(12,207),name,22,tuple(PAL[15]))
+                dracula_font.draw(im,(12,239),'SPACE: NEXT   P: BACK',11,tuple(PAL[11]))
+                images.append((f'monster{i+1:02}-{frame}',im))
+        return images
     entries=[];sheet=Image.new('RGB',(320*4,256*3))
     for mono in (False,True):
-        for i,(name,im) in enumerate(images):
+        for i,(name,im) in enumerate(gallery(mono)):
             raw,pic=encode(im,mono,8);packed=compress_fast(raw)
             stem=name+('-mono' if mono else '-colour')
             (out/(stem+'.lz')).write_bytes(packed);pic.save(out/(stem+'.png'))
@@ -224,7 +286,7 @@ def build():
         mode='mono' if mono else 'colour'
         for i,(name,*_) in enumerate(M.MONSTERS):
             for frame in range(4):
-                im=backdrop(M.HOME_BBG.get(name,0)).crop((0,0,320,256))
+                im=backdrop(M.HOME_BBG.get(name,0),mono).crop((0,0,320,256))
                 if frame<3:
                     sp=monster(i,frame);im.paste(sp,(80,18),sp)
                 ImageDraw.Draw(im).rectangle((0,200,319,255),fill=(0,0,0))

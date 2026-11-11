@@ -33,6 +33,8 @@ the first-person view for every area and makes it four to seven times faster.
 
 ![Library before and after](screenshots/library-before-after.png)
 
+![Title and battles](screenshots/title-and-battles.png)
+
 ## Building
 
 Python 3 with Pillow and numpy, and gcc (or zig on Windows) for the test

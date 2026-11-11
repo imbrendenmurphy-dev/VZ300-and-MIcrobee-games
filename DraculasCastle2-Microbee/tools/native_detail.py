@@ -193,76 +193,46 @@ def backdrop(pal,area):
             for x in range(320):
                 if (x*7+y*13)%19<3:p.solid('point',(x,y),12 if y%3 else 15)
         return p.im
-    ink={1:12,2:3,3:6,4:3,5:13}[area]
-    for y in range(16,176,16):
-        for x in range(-16 if y%32 else 0,320,32):
-            p.shape('rectangle',(x+1,y+1,x+30,y+14),ink,3,'stone',None)
-            p.line([(x+2,y+2),(x+28,y+2)],ink)
-            p.line([(x+1,y+4),(x+1,y+13)],ink)
-            if (x//32+y//16)%3==0:p.line([(x+20,y+3),(x+17,y+7),(x+21,y+10)],0)
-    # Perspective flagstones, repeated texture rather than random grain.
-    for y in range(176,200,8):
-        p.line([(0,y),(319,y)],ink)
-        for x in range(0,320,32):
-            p.shape('polygon',[(x,y+1),(x+26,y+1),(x+32,y+6),(x+3,y+6)],ink,5,'stone',None)
-    if area==2:
-        for y in (32,80,128):
-            for x in list(range(0,80,8))+list(range(240,320,8)):
-                colour=(9,13,14,11,6)[(x//8+y//16)%5]
-                height=24+(x//8%2)*8
-                p.solid('rectangle',(x+1,y+32-height,x+6,y+31),colour)
-                for yy in (y+4,y+24):p.line([(x+1,yy),(x+6,yy)],0)
-                p.line([(x+4,y+3),(x+4,y+27)],0)
-            p.line([(0,y+33),(79,y+33)],11,2);p.line([(240,y+33),(319,y+33)],11,2)
-        skull(p,18,170)
-        for x,c in ((51,13),(272,14),(294,9)):
-            p.shape('ellipse',(x,177,x+12,190),c,12,'flesh',0)
-            p.solid('rectangle',(x+4,170,x+8,180),c);p.line([(x+3,170),(x+9,170)],11)
-    else:
-        for x in (8,280):
-            p.solid('rounded_rectangle',(x,32,x+31,151),0)
-            p.arc((x,32,x+31,63),180,360,11 if area==1 else 13,2)
-            p.line([(x,48),(x,151),(x+31,151),(x+31,48)],11 if area==1 else 13,2)
-            glass=12 if area==1 else 9
-            for yy in range(48,144,8):
-                p.shape('rectangle',(x+8,yy,x+23,yy+7),glass,10,'spectral',None)
-            p.line([(x+15,48),(x+15,143)],0,2)
-        # Distant castle and moon behind a mullioned centre window.
-        p.solid('rounded_rectangle',(112,16,207,88),0)
-        p.arc((112,16,207,88),180,360,15,2)
-        p.shape('rectangle',(120,48,199,86),12,8,'spectral',None)
-        p.solid('ellipse',(155,24,184,53),15)
-        for x,h in ((139,18),(151,27),(165,21),(180,32)):
-            p.solid('rectangle',(x,85-h,x+7,87),0)
-            p.solid('polygon',[(x-2,85-h),(x+3,77-h),(x+9,85-h)],0)
-        p.line([(160,17),(160,88)],0,3);p.line([(113,56),(206,56)],0,3)
-        for x in (48,256):
-            p.shape('polygon',[(x,32),(x+15,32),(x+15,75),(x+7,84),(x,75)],9,10,'cloth',11,1)
-            p.line([(x+7,45),(x+7,69)],0,3);p.line([(x+3,53),(x+12,53)],0,3)
-            flame=[(x,118),(x-2,109),(x+4,99),(x+2,90),(x+10,98),(x+9,106),(x+15,101),(x+14,115),(x+9,121)]
-            p.shape('polygon',flame,11,14,'flesh',None)
-            p.solid('polygon',[(x+3,117),(x+5,109),(x+8,104),(x+12,117)],9)
-            p.shape('polygon',[(x-3,121),(x+18,121),(x+13,129),(x+2,129)],15,8)
-            p.shape('rectangle',(x+5,130,x+10,165),15,8)
-            p.line([(x,166),(x+15,166)],15,2)
-        for anchor in (40,248):
-            for k in range(7):
-                x=anchor+k*4;y=16+(k%3)*4
-                p.line([(x,16),(x+2,y+10)],10)
-                p.solid('polygon',[(x,y),(x-3,y+5),(x,y+8),(x+3,y+3)],10)
-    if area==4:
-        for cx,cy,r in ((39,47,22),(279,48,24),(38,137,27),(280,139,20)):
-            p.arc((cx-r,cy-r,cx+r,cy+r),0,359,11,4)
-            for a in range(0,360,45):
-                vx=math.cos(math.radians(a));vy=math.sin(math.radians(a))
-                p.line([(cx+vx*6,cy+vy*6),(cx+vx*(r+4),cy+vy*(r+4))],11,3)
-            p.solid('ellipse',(cx-4,cy-4,cx+4,cy+4),15)
-    if area==3:
-        for x in range(8,320,24):
-            h=8+(x*7)%29
-            p.solid('polygon',[(x,16),(x+9,16),(x+5,16+h)],10)
-            p.line([(x+5,20),(x+5,12+h)],2)
-    return p.im
+    return interior(pal,area)
+
+def interior(pal,area):
+    """Battle rooms in the same materials as the first-person view: the area's
+    own wall face-on, its floor running toward you, and a pool of shadow in
+    the middle so the monster stands clear of the pattern."""
+    import maze_native as MN
+    wall=MN.WALLS[area][{1:1,2:0,3:0,4:1,5:1}[area]]
+    painter=MN.Painter(area)
+    im=Image.new('RGB',(320,264),(0,0,0));px=im.load()
+    top,foot=8,172
+    for y in range(top,foot):
+        v=1.5*(foot-(y+.5))/(foot-top)
+        for x in range(320):
+            ink,level=wall((x+.5)/160%1,v,x,y,False)
+            if level<=0:continue
+            # shadow pool: an ellipse about the monster, feathered by the dither
+            dx,dy=(x-160)/118,(y-104)/112
+            r=dx*dx+dy*dy
+            shade=.28 if r<.55 else .28+(min(r,1.25)-.55)*.9
+            if level>=2:lit=shade>.5 or MN.BAYER[y&3][x&3]<shade*1.6
+            else:lit=level*shade>MN.BAYER[y&3][x&3]
+            if lit:px[x,y]=tuple(int(c) for c in pal[ink if r>.8 else MN.DARK[ink]])
+    for y in range(foot,200):
+        # floor: same perspective rule as the view, squeezed into the strip
+        z=1+(200-y)/14.0;w=320/z*1.9
+        for x in range(320):
+            ink=painter.ground((x+.5-160)/w,min(z,4.4)*.8+.3,x,y,False)
+            if ink:px[x,y]=tuple(int(c) for c in pal[ink])
+    d=ImageDraw.Draw(im)
+    d.line([(0,foot),(319,foot)],fill=(0,0,0))
+    if area in (1,3,5):
+        # wall torches either side, as in the corridors
+        for x in (34,270):
+            flame=[(x,70),(x-3,60),(x+4,48),(x+2,38),(x+11,49),(x+9,58),(x+16,52),(x+15,68),(x+9,75)]
+            d.polygon(flame,fill=tuple(int(c) for c in pal[11]))
+            d.polygon([(x+3,70),(x+5,61),(x+8,55),(x+12,70)],fill=tuple(int(c) for c in pal[9]))
+            d.polygon([(x-3,76),(x+18,76),(x+13,85),(x+2,85)],fill=tuple(int(c) for c in pal[7]))
+            d.rectangle((x+5,86,x+10,112),fill=tuple(int(c) for c in pal[7]))
+    return im
 
 def bat(pal,frame,lord=False):
     p=Painter(pal);lift=(0,-8,12)[frame]

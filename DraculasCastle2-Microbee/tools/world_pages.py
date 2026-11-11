@@ -20,16 +20,22 @@ def page(kind,mono=False):
             p.arc((cx-5,cy-4,cx+5,cy+4),20,320,0,2)
             p.arc((cx-2,cy-2,cx+2,cy+2),180,350,0)
     if kind=='story':
-        # The 32-column text rectangle remains clean; wear is confined to edges.
-        paper((24,1,295,254))
-        for y in range(12,246,19):
-            p.solid('polygon',[(24,y),(18,y+5),(24,y+10)],11)
-            p.solid('polygon',[(295,y),(301,y+7),(295,y+13)],11)
-            p.line([(25,y+3),(30,y+5)],3)
-            p.line([(289,y+8),(294,y+4)],3)
-        for x in (6,309):
-            p.line([(x,16),(x,240)],3,2)
-            for y in range(20,240,16):p.solid('polygon',[(x,y),(x-4,y+5),(x,y+10),(x+4,y+5)],11)
+        # A dark leaf inside a gold rule: light lettering on black reads the
+        # same on colour and one-colour screens, with no inverse bars. The
+        # 32-column text field (x 32..287) is left untouched.
+        d.rectangle((18,2,301,253),outline=tuple(int(v) for v in PAL[11]),width=2)
+        d.rectangle((23,7,296,248),outline=tuple(int(v) for v in PAL[3]))
+        for cx,cy in ((18,2),(301,2),(18,253),(301,253)):
+            p.solid('ellipse',(cx-6,cy-5,cx+6,cy+5),0)
+            p.arc((cx-6,cy-5,cx+6,cy+5),0,359,11,2)
+            p.solid('ellipse',(cx-2,cy-2,cx+2,cy+2),9)
+        for x in (160,):
+            for y in (2,253):
+                p.solid('polygon',[(x-10,y),(x,y-2),(x+10,y),(x,y+2)],0)
+                p.solid('polygon',[(x-7,y),(x,y-2),(x+7,y),(x,y+2)],9)
+        for x in (6,313):
+            p.line([(x,20),(x,236)],3,1)
+            for y in range(24,236,24):p.solid('polygon',[(x,y),(x-4,y+5),(x,y+10),(x+4,y+5)],11)
         return p.im
     # Blue stippled masonry behind a parchment map and separate legend scroll.
     for y in range(8,256,16):
