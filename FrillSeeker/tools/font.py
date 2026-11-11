@@ -1,5 +1,5 @@
-"""The game font: 8 x 12 logical pixels a letter (2 cells x 2 rows, four
-glyphs), built from a 5 x 7 face made bold and stretched to 10 lines.
+"""The game font: 8 x 16 pixels a letter (one cell wide, two rows, two
+glyphs), built from a 5 x 7 face made bold with its rows doubled.
 Characters 32..95; '[' is a heart, ']' an empty heart, '^' a bug."""
 import numpy as np
 from art import byte_rows
@@ -39,45 +39,33 @@ HEART0 = ["........", ".##..##.", "#..##..#", "#......#", "#......#", "#......#"
           "..#..#..", "...##...", "...#....", "........"]
 BUG = ["........", "##....##", "###..###", ".######.", "..####..", ".#o##o#.", ".######.", "#.####.#",
        "..####..", ".#.##.#.", "........", "........"]
-STRETCH = [1, 2, 1, 2, 1, 2, 1]
-
-
 def glyph(ch):
-    a = np.zeros((12, 8), bool)
-    if ch == '[':
-        rows = HEART
-    elif ch == ']':
-        rows = HEART0
-    elif ch == '^':
-        rows = BUG
-    else:
-        rows = None
+    """8 x 16: the 5 x 7 face made bold, every row doubled"""
+    a = np.zeros((16, 8), bool)
+    rows = {'[': HEART, ']': HEART0, '^': BUG}.get(ch)
     if rows:
-        for y, r in enumerate(rows):
+        for y in range(16):
+            r = rows[min(11, (y * 12) // 16)]
             for x, c in enumerate(r):
                 a[y, x] = c == '#'
         return a
     src = F57.get(ch)
     if not src:
         return a
-    y = 1
-    for r, n in zip(src.split(','), STRETCH):
-        for k in range(n):
+    for j, r in enumerate(src.split(',')):
+        for k in (0, 1):
             for x, c in enumerate(r):
                 if c == '1':
-                    a[y, 1 + x] = True
-                    a[y, 2 + x] = True
-            y += 1
+                    a[1 + 2 * j + k, 1 + x] = True
+                    a[1 + 2 * j + k, 2 + x] = True
     return a
 
 
 def build():
-    """256 glyphs x 6 bytes: letter c -> glyphs c*4 .. c*4+3 (TL, TR, BL, BR)"""
+    """128 glyphs x 8 bytes: letter c -> glyphs c*2 (top), c*2+1 (bottom)"""
     out = bytearray()
     for c in range(64):
-        a = glyph(chr(32 + c))
-        b = byte_rows(a)            # (12, 2)
-        for half in (0, 1):
-            for col in (0, 1):
-                out += bytes(int(v) for v in b[half * 6:half * 6 + 6, col])
+        b = byte_rows(glyph(chr(32 + c)))       # (16, 1)
+        out += bytes(int(v) for v in b[0:8, 0])
+        out += bytes(int(v) for v in b[8:16, 0])
     return bytes(out)

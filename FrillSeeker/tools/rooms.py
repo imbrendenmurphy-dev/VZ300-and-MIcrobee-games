@@ -1,68 +1,73 @@
-"""FRILLSEEKER rooms. A room is a 16 x 10 map of 16 x 18 pixel tiles, but it
-is not drawn from a tile library: each room is *painted* as one 256 x 180
-picture (every dirt tile, mound and branch gets its own random texture),
-then cut into 4 x 6 cells with their two colours and the patterns
-de-duplicated. The game loads a room's own glyph set (up to 1024) when you
-walk in, so no two rooms need share art.
+"""FRILLSEEKER rooms. A room is a 20 x 11 map of 16 x 16 pixel tiles (320 x
+176, the 40-column playfield), but it is not drawn from a tile library:
+each room is *painted* as one picture (every dirt tile, mound and branch
+gets its own random texture), then cut into 8 x 8 cells with their two
+colours and the patterns de-duplicated. The game loads a room's own glyph
+set when you walk in, so no two rooms need share art.
 
-Each picture is painted twice: in colour, and for a monochrome monitor
-(which shows ink pixels only, so fills become outlines and stipple).
+Each picture is painted in four phases (the living background), and twice
+over: in colour, and for a monochrome monitor (which shows ink pixels only,
+so fills become outlines and stipple).
 """
 import math
 import numpy as np
 from art import *
 
-TW, TH = 16, 18
-MW, MH = 16, 10
-PW, PH = 256, 180
+TW, TH = 16, 16
+MW, MH = 20, 11
+PW, PH = 320, 176
+GROUND = 144             # the usual ground line (tile row 9)
 
 # tile flags
 T_EMPTY, T_SOLID, T_ONEWAY, T_WATER = 0, 1, 2, 3
 # object types
 O_BUG, O_TOAD, O_START = 1, 2, 3
 
-SKY_BANDS = [(7, BLACK), (6, BLUE), (5, MAGENTA), (4, RED), (8, BROWN)]   # cell rows, top to bottom
+SKY_BANDS = [(5, BLACK), (4, BLUE), (4, MAGENTA), (3, RED), (6, BROWN)]   # cell rows, top to bottom
 
 ROOMS = [
-    dict(name='THE RED DIRT', left=-1, right=1, sun=(196, 147, 30), moon=None,
-         mesa=[(0, 128), (30, 128), (36, 118), (70, 118), (78, 132), (120, 132), (128, 124), (150, 124), (158, 136), (256, 136)],
-         trees=[(40, 144, 78)], map=[
-             "................",
-             "................",
-             "..B.........B...",
-             ".---.......==...",
-             "................",
-             ".......B........",
-             ".....====.....B.",
-             "S.........T..M..",
-             "################",
-             "################"]),
-    dict(name='BILLABONG', left=0, right=2, sun=None, moon=(40, 26),
-         mesa=[(0, 136), (60, 136), (70, 122), (118, 122), (126, 130), (200, 130), (210, 116), (256, 116)],
-         trees=[(232, 108, 74)], map=[
-             "................",
-             "...........B....",
-             "....B......--...",
-             "...---..........",
-             "..........B.....",
-             "......=.........",
-             "................",
-             ".............T..",
-             "##~~~o~~~o~~####",
-             "################"]),
-    dict(name='MOUND CITY', left=1, right=-1, sun=None, moon=(200, 22),
-         mesa=[(0, 116), (40, 116), (50, 130), (140, 130), (150, 120), (256, 120)],
-         trees=[(20, 144, 70)], map=[
-             "................",
-             ".............B..",
-             "......B....M....",
-             "...........M....",
-             "........==.M..B.",
-             "...........M....",
-             ".B.........M....",
-             "....M..T..MM.T..",
-             "################",
-             "################"]),
+    dict(name='THE RED DIRT', left=-1, right=1, sun=(246, 147, 34), moon=None,
+         mesa=[(0, 128), (40, 128), (48, 112), (96, 112), (104, 128), (160, 128), (168, 120), (200, 120), (208, 136), (320, 136)],
+         trees=[(52, 144, 84)], map=[
+             "....................",
+             "....................",
+             "..B............B....",
+             ".---..........==....",
+             "....................",
+             ".........B..........",
+             "....................",
+             "......====........B.",
+             "S............T..M...",
+             "####################",
+             "####################"]),
+    dict(name='BILLABONG', left=0, right=2, sun=None, moon=(52, 26),
+         mesa=[(0, 136), (72, 136), (80, 120), (144, 120), (152, 128), (248, 128), (256, 112), (320, 112)],
+         trees=[(292, 144, 80)], map=[
+             "....................",
+             "..............B.....",
+             ".....B........--....",
+             "....---.............",
+             "....................",
+             ".............B......",
+             "....................",
+             "........=...........",
+             "................T...",
+             "##~~~oo~~~oo~~~#####",
+             "####################"]),
+    dict(name='MOUND CITY', left=1, right=-1, sun=None, moon=(256, 22),
+         mesa=[(0, 112), (56, 112), (64, 128), (176, 128), (184, 120), (320, 120)],
+         trees=[(24, 144, 76)], map=[
+             "....................",
+             "................B...",
+             ".......B.....M......",
+             ".............M......",
+             "..........==.M...B..",
+             ".............M......",
+             ".............M......",
+             ".B...........M......",
+             ".....M..T...MM..T...",
+             "####################",
+             "####################"]),
 ]
 
 
@@ -98,9 +103,9 @@ def sky(p, room):
         p.put(p.rect(0, y, PW, y + rows * CH), col, 0)
         y += rows * CH
     # stars in the dark bands; every fourth one twinkles
-    for n in range(46):
-        x, yy = p.rng.randint(3, PW - 3), p.rng.randint(3, 74)
-        col = WHITE if yy < 42 else BCYAN
+    for n in range(56):
+        x, yy = p.rng.randint(3, PW - 3), p.rng.randint(3, 70)
+        col = WHITE if yy < 40 else BCYAN
         big = n % 4 == 0 and (p.ph + n // 4) % 4 == 0
         if big:
             for dx, dy in ((0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)):
@@ -112,7 +117,7 @@ def sky(p, room):
     # thin cloud streaks low in the sky
     for i in range(5):
         x0 = p.rng.randint(0, PW - 60)
-        yy = 80 + p.rng.randint(0, 5) * 6 + 2
+        yy = 76 + p.rng.randint(0, 6) * 8
         L = p.rng.randint(24, 60)
         band = p.c[yy, x0]
         lite = {BLUE: BBLUE, MAGENTA: BMAGENTA, RED: BRED, BROWN: YELLOW}.get(int(band), GREY)
@@ -261,15 +266,15 @@ def ledge(p, mp, tx, ty):
     right = tx < MW - 1 and mp[ty][tx + 1] == '='
     xa = x0 + (0 if left else 1)
     xb = x0 + TW - (0 if right else 1)
-    slab = p.rect(xa, y0, xb, y0 + 12)
+    slab = p.rect(xa, y0, xb, y0 + 11)
     p.put(slab, BROWN, 0)
     p.put(p.rect(xa, y0, xb, y0 + 1), YELLOW, 1)
-    p.put(p.rect(xa, y0 + 11, xb, y0 + 12), BLACK, 1)
-    p.put(p.rect(xa, y0 + 9, xb, y0 + 11) & ((p.xx + p.yy) % 2 == 0), BLACK, None)
+    p.put(p.rect(xa, y0 + 10, xb, y0 + 11), BLACK, 1)
+    p.put(p.rect(xa, y0 + 8, xb, y0 + 10) & ((p.xx + p.yy) % 2 == 0), BLACK, None)
     if not left:
-        p.put(p.rect(xa, y0, xa + 1, y0 + 12), YELLOW, 1)
+        p.put(p.rect(xa, y0, xa + 1, y0 + 11), YELLOW, 1)
     if not right:
-        p.put(p.rect(xb - 1, y0, xb, y0 + 12), BLACK, 1)
+        p.put(p.rect(xb - 1, y0, xb, y0 + 11), BLACK, 1)
     # strata lines and a crack
     yy = y0 + 4 + p.rng.randint(0, 3)
     p.put(p.rect(xa + 1, yy, xb - 1, yy + 1) & ((p.xx + p.rng.randint(0, 5)) % 7 != 0), RED, None)
@@ -281,9 +286,9 @@ def ledge(p, mp, tx, ty):
     for i in range(p.rng.randint(0, 3)):
         hx = x0 + p.rng.randint(1, TW - 1)
         for k in range(p.rng.randint(2, 6)):
-            p.c[y0 + 12 + k, hx] = YELLOW if k % 2 == 0 else BROWN
+            p.c[y0 + 11 + k, hx] = YELLOW if k % 2 == 0 else BROWN
             if k % 2 == 0:
-                p.m[y0 + 12 + k, hx] = 15
+                p.m[y0 + 11 + k, hx] = 15
 
 
 def mound(p, mp, tx, ty):
@@ -359,7 +364,7 @@ def water(p, mp, tx, ty):
     p.put(surf & ((p.xx + p.ph) % 8 != 0), BCYAN, 1)
     glint = p.rect(x0, y0 + 5, x0 + TW, y0 + 6) & ((p.xx + p.ph) % 8 == 3)
     p.put(glint, WHITE, 1)
-    for k, yy in enumerate((8, 11, 15)):
+    for k, yy in enumerate((8, 11, 14)):
         d = p.ph if k != 1 else -p.ph
         rp = p.rect(x0, y0 + yy, x0 + TW, y0 + yy + 1) & (((p.xx + k * 3 + d) % 8) < 3)
         p.put(rp, BBLUE if k else BCYAN, 1 if k == 0 else None)
@@ -422,11 +427,11 @@ def paint_room(idx, ph=0):
             elif ch == 'o':
                 tm[ty, tx] = T_ONEWAY
             elif ch == 'B':
-                objs.append((O_BUG, tx * TW + 8, ty * TH + 10))
+                objs.append((O_BUG, tx * TW + 8, ty * TH + 9))
             elif ch == 'T':
-                objs.append((O_TOAD, tx * TW + 8, ty * TH + 18))
+                objs.append((O_TOAD, tx * TW + 8, ty * TH + 16))
             elif ch == 'S':
-                objs.append((O_START, tx * TW + 8, ty * TH + 18))
+                objs.append((O_START, tx * TW + 8, ty * TH + 16))
     # water first, then land over it
     for ty in range(MH):
         for tx in range(MW):
@@ -436,8 +441,9 @@ def paint_room(idx, ph=0):
             elif ch == 'o':
                 lily(p, mp, tx, ty)
     if idx == 1:
-        reeds(p, 36, 150, 4)
-        reeds(p, 170, 150, 3)
+        reeds(p, 40, 150, 4)
+        reeds(p, 150, 150, 3)
+        reeds(p, 222, 150, 3)
     for ty in range(MH):
         for tx in range(MW):
             ch = mp[ty][tx]
@@ -462,7 +468,7 @@ import critters as _cr
 
 
 def busy(pat):
-    return sum(bin(v).count('1') for v in pat) > 12
+    return sum(bin(v).count('1') for v in pat) > 14
 
 
 def compile_room(idx, mono):
@@ -473,11 +479,11 @@ def compile_room(idx, mono):
     ps = [paint_room(idx, ph) for ph in range(NPH)]
     p, tm, objs = ps[0]
     pats, ink, pap = cells_from_images([(q[0].m if mono else q[0].c) for q in ps])
-    static = {bytes(6): 0}
+    static = {bytes(CH): 0}
     dyn = {}                 # tuple of patterns -> dyn index
-    scr = np.full(2048, 0x80, np.uint8)
-    attr = np.zeros(2048, np.uint8)
-    col = np.full(2048, 0x0F, np.uint8)
+    scr = np.full(COLS * ROWS, 0x80, np.uint8)
+    attr = np.zeros(COLS * ROWS, np.uint8)
+    col = np.full(COLS * ROWS, 0x0F, np.uint8)
 
     def setcell(i, g, pat0, c):
         scr[i] = 0x80 | (g & 0x7F)
@@ -539,7 +545,7 @@ def compile_room(idx, mono):
             if base is None:                    # an animated cell: freeze it at phase 0
                 base = tups[g0 - DYN_BASE][0]
             for f in range(NPH):
-                bits = [[(base[yy] >> (7 - 2 * xx)) & 1 for xx in range(CW)] for yy in range(CH)]
+                bits = [[(base[yy] >> (7 - xx)) & 1 for xx in range(CW)] for yy in range(CH)]
                 for k, v in enumerate(fr[f]):
                     if v is not None:
                         bits[k // CW][k % CW] = 1 if v else 0
@@ -553,7 +559,7 @@ def compile_room(idx, mono):
             scr[i] = 0x80 | (g & 0x7F)
             attr[i] = (g >> 7) | (0x10 if keep else 0)
             col[i] = cc
-        tail = bytes([oi, x & 255, y & 255, len(tail_cells)])
+        tail = bytes([oi, x & 255, x >> 8, y & 255, len(tail_cells)])
         for i, s, a, cc in tail_cells:
             tail += bytes([i & 255, i >> 8, s, a, cc])
         anims.append(dict(type=A_BUG, ids=ids, frames=frames, period=7, tail=tail))
@@ -561,9 +567,9 @@ def compile_room(idx, mono):
     n = len(static)
     assert n <= DYN_BASE, 'room %d: %d static glyphs' % (idx, n)
     assert ndyn <= 256, 'room %d: %d living glyphs' % (idx, ndyn)
-    pb = bytearray(n * 6)
+    pb = bytearray(n * CH)
     for k, g in static.items():
-        pb[g * 6:g * 6 + 6] = k
+        pb[g * CH:g * CH + CH] = k
     ab = bytearray()
     for a in anims:
         ng, nf = len(a['ids']), len(a['frames'])
@@ -582,21 +588,23 @@ def compile_room(idx, mono):
                 anim=bytes(ab), rgb=rgb, room=ROOMS[idx])
 
 
-R_SCR, R_ATTR, R_COL, R_TMAP, R_OBJ, R_NPAT, R_NAME, R_PAT, R_ANIM = 0, 0x800, 0x1000, 0x1800, 0x18A0, 0x1940, 0x1950, 0x1A00, 0x2C00
+R_SCR, R_ATTR, R_COL, R_TMAP, R_OBJ, R_NPAT, R_NAME, R_PAT, R_ANIM = 0, 0x400, 0x800, 0xC00, 0xD00, 0xD40, 0xD50, 0xE00, 0x2600
 R_SIZE = 0x4000
+NCELL = COLS * ROWS
 
 
 def room_bytes(rc):
     d = bytearray(R_SIZE)
-    d[R_SCR:R_SCR + 2048] = rc['scr'].tobytes()
-    d[R_ATTR:R_ATTR + 2048] = rc['attr'].tobytes()
-    d[R_COL:R_COL + 2048] = rc['col'].tobytes()
-    d[R_TMAP:R_TMAP + 160] = rc['tmap'].tobytes()
+    d[R_SCR:R_SCR + NCELL] = rc['scr'].tobytes()
+    d[R_ATTR:R_ATTR + NCELL] = rc['attr'].tobytes()
+    d[R_COL:R_COL + NCELL] = rc['col'].tobytes()
+    d[R_TMAP:R_TMAP + MW * MH] = rc['tmap'].tobytes()
     o = R_OBJ
     for t, x, y in rc['objs']:
-        d[o:o + 4] = bytes([t, x & 255, y & 255, 0])
+        d[o:o + 4] = bytes([t, x & 255, x >> 8, y & 255])
         o += 4
     d[o] = 0
+    assert o < R_NPAT
     d[R_NPAT] = rc['n'] & 255
     d[R_NPAT + 1] = rc['n'] >> 8
     d[R_NPAT + 2] = rc['room']['left'] & 255
@@ -616,5 +624,5 @@ if __name__ == '__main__':
     for i in range(len(ROOMS)):
         for mono in (False, True):
             rc = compile_room(i, mono)
-            save_png(rc['rgb'], '%s/room%d%s.png' % (out, i, 'm' if mono else ''), 2, 1.8)
+            save_png(rc['rgb'], '%s/room%d%s.png' % (out, i, 'm' if mono else ''))
             print(i, mono, rc['n'], 'static', rc['ndyn'], 'living', len(rc['anim']), 'bytes of animation')

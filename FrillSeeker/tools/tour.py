@@ -28,8 +28,16 @@ class Pilot:
             self.pp.run_frames(1)
             self.n += 1
             if self.ims is not None and self.n % 2 == 0:
-                rgb = self.pp.frame_rgb(self.mono)[40:40 + 200, 32:32 + 528]
-                self.ims.append(Image.fromarray(rgb).resize((528, 360), Image.NEAREST))
+                im = run.view(self.pp, self.mono)
+                self.ims.append(im.resize((504, 269), Image.NEAREST))
+
+    def toads(self):
+        out = []
+        for i in range(8):
+            a = self.S['ENTS'] + 16 * i
+            if self.pp.peek(a) == 2:
+                out.append((self.pp.peekw(a + 2), self.pp.peek(a + 1)))
+        return out
 
     def state(self):
         return dict(room=self.v('room'), x=self.v('hx', True), y=self.v('hy', True), bugs=self.v('bugs'),
@@ -53,18 +61,29 @@ def tour(out, mono=False, gif=True):
     tag = 'm' if mono else ''
     P.note('start')
     P.step([], 30)
-    P.step(['RIGHT'], 78)
+    for i in range(300):                    # up to the toad
+        tx = P.toads()[0][0]
+        if tx - P.state()['x'] < 44:
+            break
+        P.step(['RIGHT'], 1)
     P.step(['UP'], 50)                      # the bluff
     P.shot('%s/tour_flare%s.png' % (out, tag))
-    toad = [P.pp.peek(P.S['ENTS'] + 16 * i + 1) for i in range(8) if P.pp.peek(P.S['ENTS'] + 16 * i) == 2]
-    P.note('flared; toad states %s' % toad)
-    for i in range(200):                    # hop on to the toad's belly and glide off the bounce
-        s = P.state()
-        if P.v('hvy', True) >= 0xFC00 and not s['on']:
+    P.note('flared; toads %s' % P.toads())
+    tx = P.toads()[0][0]                    # hop on to the toad's belly
+    while P.state()['x'] < tx - 24:
+        P.step(['RIGHT'], 1)
+    P.step([], 6)
+    bounced = False
+    for i in range(80):
+        P.step(['RIGHT', 'SPACE'] if P.state()['x'] < tx + 3 else ['SPACE'], 1)
+        if 0x8000 <= P.v('hvy', True) <= 0xFB80:
+            bounced = True
             break
-        P.step(['RIGHT', 'SPACE'] if (i % 30) < 10 else ['RIGHT'], 1)
-    P.note('bounced' if P.v('hvy', True) >= 0xFC00 else 'no bounce')
+        if i > 10 and P.state()['on']:
+            break
+    P.note('bounced' if bounced else 'no bounce')
     P.step(['RIGHT'], 26)
+    P.shot('%s/tour_bounce%s.png' % (out, tag))
     P.step(['RIGHT', 'UP'], 60)
     P.shot('%s/tour_glide%s.png' % (out, tag))
     P.note('glided')
@@ -76,21 +95,33 @@ def tour(out, mono=False, gif=True):
     P.note('walked out of the red dirt')
     P.step([], 20)
     P.shot('%s/tour_room1%s.png' % (out, tag))
-    # the billabong: hop the lily pads, gliding
-    air = 0
-    for i in range(900):
+    # the billabong: hop the lily pads, gliding to stretch each jump
+    targets = [96, 176, 250]
+    k = 0
+    for i in range(1200):
         s = P.state()
         if s['room'] != 1:
             break
+        if k >= len(targets):
+            P.step(['RIGHT'], 1)
+            continue
+        goal = targets[k]
         if s['on']:
-            if air:
-                P.step(['RIGHT'], 1)            # let go of jump
-            air = 0
-            P.step(['RIGHT', 'SPACE'], 1)
+            if s['x'] >= goal - 10:
+                k += 1
+                P.step([], 6)
+            elif k == 0 and s['x'] < 24:
+                P.step(['RIGHT'], 1)            # walk to the bank's edge
+            else:
+                P.step([], 1)
+                P.step(['RIGHT', 'SPACE'], 1)
         else:
-            air += 1
-            P.step(['RIGHT', 'SPACE'] if air < 16 else ['RIGHT', 'UP'], 1)
-        if i == 150:
+            keys = []
+            if s['x'] < goal - 3:
+                keys.append('RIGHT')
+                keys.append('SPACE' if P.v('hvy', True) >= 0x8000 else 'UP')
+            P.step(keys, 1)
+        if i == 60:
             P.shot('%s/tour_pads%s.png' % (out, tag))
     P.note('crossed the billabong')
     P.step([], 20)

@@ -11,8 +11,11 @@
 ;  and nothing is ever erased and redrawn in view.
 ; =====================================================================
 
-; 64 x 32 cells of 6 lines: 52 rows x 6 + 1 = 313 lines
-crtc_game:  db $6B,64,$51,$37,51,1,32,43,$48,5,$20,5,0,0,0,0
+; The 40-column mode: 40 x 25 cells of 8 lines. These are the values of
+; BPM's MODES.COM test, proven on the Premium Plus (as KABOOMERANG uses
+; them): the 6545 registers alone select it.
+crtc_game:  db $35,$28,$2C,$34,$26,$01,$19,$21,$48,$07,$20,$07,0,0,0,0
+DROWS       EQU 25
 
 hw_init:
         di
@@ -57,7 +60,7 @@ hw_init:
         call map_blk
         ld hl,0
         ld a,BK_FONT
-        ld bc,256
+        ld bc,128
         call pcg_load
         ret
 
@@ -83,7 +86,7 @@ display_off:
 display_on:
         ld a,6
         out (P_CRTCA),a
-        ld a,32
+        ld a,DROWS
         out (P_CRTCD),a
         xor a
         ld (vlast),a
@@ -123,7 +126,7 @@ win_col:
         out (P_COLCTL),a
         ret
 
-; HL = patterns (6 bytes a glyph), A = first PCG bank, BC = glyphs
+; HL = patterns (8 bytes a glyph), A = first PCG bank, BC = glyphs
 pcg_load:
         ld (pl_bank),a
         xor a
@@ -139,9 +142,11 @@ pcg_load:
         ldi
         ldi
         ldi
+        ldi
+        ldi
         pop bc
         ld a,e
-        add a,10
+        add a,8
         ld e,a
         jr nc,.nc
         inc d
@@ -165,27 +170,37 @@ cls:    push af
         call win_screen
         ld hl,VIDEO
         ld de,VIDEO+1
-        ld bc,2047
+        ld bc,NCELL-1
         ld (hl),$80
         ldir
         call win_attr
         ld hl,VIDEO
         ld de,VIDEO+1
-        ld bc,2047
+        ld bc,NCELL-1
         ld (hl),BK_FONT
         ldir
         call win_col
         pop af
         ld hl,PCGWIN
         ld de,PCGWIN+1
-        ld bc,2047
+        ld bc,NCELL-1
         ld (hl),a
         ldir
         jp win_screen
 
+; A = cell row -> HL = CELLMAP address of its first cell
+row_addr:
+        ld l,a
+        ld h,rowtab >> 8
+        ld a,(hl)
+        set 5,l
+        ld h,(hl)
+        ld l,a
+        ret
+
 ; ---------------------------------------------------------------------
-;  text: the 8 x 12 font, four glyphs a letter (2 cells x 2 rows)
-;  HL = string (0 ends), D = cell row, E = letter column (0..31), C = colour
+;  text: the 8 x 16 font, two glyphs a letter (one cell, two rows)
+;  HL = string (0 ends), D = cell row, E = column (0..39), C = colour
 ; ---------------------------------------------------------------------
 print:
 .ch:    ld a,(hl)
@@ -200,7 +215,7 @@ print:
         inc e
         jr .ch
 
-; A = character, D = cell row, E = letter column, C = colour
+; A = character, D = cell row, E = column, C = colour
 putch:  ld b,a
         ld a,(mono)
         or a
@@ -208,78 +223,31 @@ putch:  ld b,a
         ld c,WHITE              ; a monochrome monitor shows ink only
 .pc:    ld a,b
         sub 32
-        ld b,a                  ; 0..63
-        ; HL = VIDEO + row*64 + col*2
-        ld a,d
-        rrca
-        rrca
-        ld h,a
-        and $C0
-        ld l,a
-        ld a,h
-        and 7
-        or VIDEO >> 8
-        ld h,a
-        ld a,e
-        add a,a
-        or l
-        ld l,a
-        ld a,b
-        and 31
-        add a,a
         add a,a
         or $80
-        ld e,a                  ; first glyph code
-        ld a,b
-        rlca
-        rlca
-        rlca
-        and 1
-        add a,BK_FONT
-        ld d,a                  ; bank
-        push hl
+        ld b,a                  ; the top glyph's code
+        ld a,d
+        call row_addr
+        ld a,h
+        add a,(VIDEO >> 8) - (CELLMAP >> 8)
+        ld h,a
+        ld d,0
+        add hl,de
+        ld de,COLS
         call win_screen
-        ld (hl),e
-        inc l
-        inc e
-        ld (hl),e
-        ld a,l
-        add a,63
-        ld l,a
-        jr nc,.a
-        inc h
-.a:     inc e
-        ld (hl),e
-        inc l
-        inc e
-        ld (hl),e
-        pop hl
+        ld (hl),b
         push hl
+        add hl,de
+        inc b
+        ld (hl),b
         call win_attr
-        ld (hl),d
-        inc l
-        ld (hl),d
-        ld a,l
-        add a,63
-        ld l,a
-        jr nc,.b
-        inc h
-.b:     ld (hl),d
-        inc l
-        ld (hl),d
+        ld (hl),BK_FONT
         pop hl
+        ld (hl),BK_FONT
         call win_col
         set 3,h
         ld (hl),c
-        inc l
-        ld (hl),c
-        ld a,l
-        add a,63
-        ld l,a
-        jr nc,.c
-        inc h
-.c:     ld (hl),c
-        inc l
+        add hl,de
         ld (hl),c
         jp win_screen
 
@@ -316,22 +284,22 @@ room_load:
         ld hl,R_SCR
         call room_ptr
         ld de,SCRSH
-        ld bc,2048
+        ld bc,NCELL
         ldir
         ld hl,R_ATTR
         call room_ptr
         ld de,ATTSH
-        ld bc,2048
+        ld bc,NCELL
         ldir
         ld hl,R_COL
         call room_ptr
         ld de,COLSH
-        ld bc,2048
+        ld bc,NCELL
         ldir
         ld hl,R_TMAP
         call room_ptr
         ld de,TMAP
-        ld bc,160
+        ld bc,220
         ldir
         ld hl,R_NPAT
         call room_ptr
@@ -347,11 +315,9 @@ room_load:
         ld (nb_right),a
         ; glyph patterns: to TILEPAT (for compositing) and to the PCG
         ld hl,(rm_npat)
-        ld d,h
-        ld e,l
         add hl,hl
-        add hl,de
-        add hl,hl               ; n * 6
+        add hl,hl
+        add hl,hl               ; n * 8
         ld b,h
         ld c,l
         ld hl,R_PAT
@@ -367,7 +333,7 @@ room_load:
         ; no sprites on show
         ld hl,CELLMAP
         ld de,CELLMAP+1
-        ld bc,2047
+        ld bc,1023
         ld (hl),0
         ldir
         xor a
@@ -380,12 +346,12 @@ room_show:
         call win_screen
         ld hl,SCRSH
         ld de,VIDEO
-        ld bc,2048
+        ld bc,NCELL
         ldir
         call win_attr
         ld hl,ATTSH
         ld de,VIDEO
-        ld bc,2048
+        ld bc,NCELL
 .at:    ld a,(hl)               ; bit 4 is the renderer's own flag
         and 15
         ld (de),a
@@ -398,7 +364,7 @@ room_show:
         call win_col
         ld hl,COLSH
         ld de,PCGWIN
-        ld bc,2048
+        ld bc,NCELL
         ldir
         jp win_screen
 
@@ -463,7 +429,8 @@ sprite:
         ld d,h
         ld e,l
         add hl,hl
-        add hl,de               ; x 12
+        add hl,hl
+        add hl,de               ; x 20
         ld de,sprtab
         add hl,de
         ld a,(cur_blk)
@@ -484,22 +451,24 @@ sprite:
         or a
         sbc hl,de               ; left edge, pixels
         ld a,l
-        and 3
+        and 7
         ld (ds_sh),a
+        sra h
+        rr l
         sra h
         rr l
         sra h
         rr l
         ld a,l
         ld (ds_cx),a
-        ; on the screen at all? cell column -16..79
-        ld de,16
+        ; on the screen at all? cell column -8..47
+        ld de,8
         add hl,de
         ld a,h
         or a
         jr nz,.off
         ld a,l
-        cp 96
+        cp 56
         jr nc,.off
         pop hl
         ld a,(hl)               ; y offset
@@ -513,17 +482,21 @@ sprite:
         ld hl,(sd_y)
         or a
         sbc hl,de
-        ld de,60                ; + 12 lines of status panel + 48 table bias
+        ld de,16+64             ; the status panel's 16 lines, and a bias
         add hl,de
         ld a,h
         or a
         jr nz,.off
-        ld h,div6tab >> 8
-        ld a,(hl)
-        ld (ds_cy),a
-        inc h
-        ld a,(hl)
+        ld a,l
+        and 7
         ld (ds_ry),a
+        ld a,l
+        rrca
+        rrca
+        rrca
+        and $1F
+        sub 8
+        ld (ds_cy),a
         pop hl
         ld a,(ds_sh)
         add a,a
@@ -553,21 +526,23 @@ spr_draw:
         or a
         jr z,.colnext
         ld a,(ds_cx)
-        cp 64
+        cp COLS
         jr nc,.skipcol
-        ld a,(ds_cy)
-        ld b,a
         ld a,(ds_ry)
         add a,d
-.m6:    cp 6
-        jr c,.m6d
-        sub 6
-        inc b
-        jr .m6
-.m6d:   ld e,a                  ; line in the cell
-        ld a,b
+        ld e,a
+        rrca
+        rrca
+        rrca
+        and $1F
+        ld b,a
+        ld a,(ds_cy)
+        add a,b
         ld (ds_cyc),a
-.seg:   ld a,6
+        ld a,e
+        and 7
+        ld e,a                  ; line in the cell
+.seg:   ld a,8
         sub e
         cp c
         jr c,.n1
@@ -579,7 +554,7 @@ spr_draw:
         ld a,(ds_cyc)
         cp PF_ROW0
         jr c,.skipseg
-        cp 32
+        cp PF_ROW1
         jr nc,.skipseg
         push bc
         push hl
@@ -631,19 +606,18 @@ spr_draw:
 ; A cell not yet in this frame gets the next pool slot: its buffer starts
 ; as the background's glyph, and its flip-list entry is written here.
 getbuf:
-        rrca
-        rrca
-        ld h,a
-        and $C0
         ld l,a
-        ld a,h
-        and $07
-        or CELLMAP >> 8
-        ld h,a
-        ld a,(ds_cx)
-        or l
-        ld l,a
+        ld h,rowtab >> 8
         ld a,(hl)
+        set 5,l
+        ld h,(hl)
+        ld l,a
+        ld a,(ds_cx)
+        add a,l
+        ld l,a
+        jr nc,.g1
+        inc h
+.g1:    ld a,(hl)
         or a
         jr z,.alloc
         ld l,a
@@ -684,25 +658,20 @@ getbuf:
         or $80
         ld (hl),a
         inc hl
-        ld a,c
-        rlca
-        and 1
-        ld b,a
         ld a,(poolbank)
-        add a,b
         ld (hl),a
         inc hl
         push hl
         ld h,d
         ld l,e
         ld a,h
-        sub 8
+        sub 4
         ld h,a
         ld b,(hl)               ; glyph bank, b4 = busy cell: keep its ink
-        sub 8
+        sub 4
         ld h,a
         ld e,(hl)               ; screen code
-        sub 8
+        sub 4
         ld h,a
         ld a,(hl)               ; colours
         pop hl
@@ -722,10 +691,8 @@ getbuf:
         ld a,b
         and 15
         ld h,a                  ; glyph id x 2
-        ld d,h
-        ld e,l
         add hl,hl
-        add hl,de               ; x 6
+        add hl,hl               ; x 8
         ld de,TILEPAT
         add hl,de
         ex de,hl
@@ -739,6 +706,8 @@ getbuf:
         ld h,a
         ex de,hl
         push de
+        ldi
+        ldi
         ldi
         ldi
         ldi
@@ -792,7 +761,7 @@ restores:
         inc hl
         exx
         ld a,h
-        sub $10
+        sub 8
         ld h,a
         ld a,(hl)               ; screen code
         exx
@@ -800,7 +769,7 @@ restores:
         inc hl
         exx
         ld a,h
-        add a,8
+        add a,4
         ld h,a
         ld a,(hl)               ; glyph bank
         and 15
@@ -809,7 +778,7 @@ restores:
         inc hl
         exx
         ld a,h
-        sub $10
+        sub 8
         ld h,a
         ld a,(hl)               ; colours
         exx
@@ -909,19 +878,13 @@ blast:  ld a,(nslots)
         ldi
         ldi
         ldi
-        inc hl
-        inc hl
+        ldi
+        ldi
         ld a,e
-        add a,10
+        add a,8
         ld e,a
         jr nc,.nc
         inc d
-        jr nz,.nc
-        ld d,PCGWIN >> 8        ; glyph 128: the pool's second bank
-        ld a,(poolbank)
-        inc a
-        or LV_SCREEN
-        out (P_LV),a
 .nc:    in a,(P_CRTCA)
         and $20
         cp ixh

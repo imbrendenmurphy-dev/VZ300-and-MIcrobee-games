@@ -18,7 +18,7 @@ Bluff wants his dinner back. He cannot hurt a thing. He can only *bluff*:
 | | |
 |---|---|
 | ![](screenshots/01-the-bluff.png) | ![](screenshots/03-gliding-the-billabong.png) |
-| ![](screenshots/04-mound-city.png) | ![](screenshots/05-amber-the-bluff.png) |
+| ![](screenshots/04-mound-city.png) | ![](screenshots/06-amber-billabong.png) |
 
 ## This is a prototype
 
@@ -48,10 +48,10 @@ Needs a Premium Plus: 1 MB RAM, 32K PCG RAM.
 
 ## What is interesting inside
 
-* **A display mode of its own:** 64 × 32 cells of 8 × 6 — every one of the
-  2048 screen cells, 512 × 192, with colour in cells four times finer than a
-  Spectrum's. Art is drawn in near-square 2 × 1 pixels (256 × 192).
-* **Sprites that are not tiles.** The PCG holds exactly as many glyphs as the
+* **The 40-column mode:** 40 × 25 cells of 8 × 8, 320 × 200 right across the
+  tube, with near-square pixels and square cells (the mode BPM proved on the
+  real machine with MODES.COM).
+* **Sprites that are not tiles.** The PCG holds twice as many glyphs as the
   screen has cells, so each cell a sprite touches gets a private glyph
   composed in RAM, and is simply re-pointed at it in the vertical blanking.
   Two glyph pools take turns: nothing is erased, nothing tears, and Bluff
@@ -60,11 +60,11 @@ Needs a Premium Plus: 1 MB RAM, 32K PCG RAM.
   rewriting a few glyphs a frame. The bugs are not sprites at all, just cells
   of background that flutter.
 * **Bluff is a puppet**, posed by code and rendered to pixels, so the megabyte
-  can hold every in-between: each frame is stored eight times, pre-shifted.
+  can hold every in-between: each frame is stored sixteen times, pre-shifted.
 * **Every room is a painting,** generated as one picture with its own
   textures, in colour and again for amber.
-* **25 frames a second**, measured, with a third of each frame left to make
-  sound in.
+* **50 frames a second**, measured in the emulator, with Bluff and a toad on
+  screen.
 
 ## To build it
 

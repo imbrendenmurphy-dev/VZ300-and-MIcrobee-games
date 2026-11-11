@@ -1,16 +1,16 @@
 """FRILLSEEKER art helpers.
 
-The game's picture is 512 x 192 hardware pixels in 64 x 32 PCG cells of
-8 x 6. Art is drawn in "logical" pixels: 2 hardware pixels wide, 1 scanline
-tall (256 x 192), which are close to square on a 4:3 tube. A cell is then
-4 x 6 logical pixels and carries one ink and one paper colour.
+The game runs in the Premium Plus's 40-column mode: 40 x 25 PCG cells of
+8 x 8 pixels (320 x 200) at half the dot clock, so a pixel is a little
+wider than it is tall and a cell is very nearly square, right across the
+tube. A cell carries one ink and one paper colour.
 """
 import numpy as np
 
-CW, CH = 4, 6            # cell size, logical pixels
-COLS, ROWS = 64, 32
+CW, CH = 8, 8            # cell size, pixels
+COLS, ROWS = 40, 25
 PF_ROW0 = 2              # playfield starts at cell row 2
-PF_ROWS = 30
+PF_ROWS = 22
 
 PALETTE = [(0, 0, 0), (192, 0, 0), (0, 192, 0), (192, 96, 0), (0, 0, 192), (192, 0, 192), (0, 192, 192), (192, 192, 192),
            (96, 96, 96), (255, 64, 64), (64, 255, 64), (255, 255, 64), (64, 64, 255), (255, 64, 255), (64, 255, 255), (255, 255, 255)]
@@ -33,11 +33,10 @@ def dilate(m, diag=True):
 
 
 def byte_rows(bits):
-    """bool array (h, w logical) -> (h, w/4 bytes) with each logical pixel
-    doubled to 2 hardware pixels"""
+    """bool array (h, w) -> (h, w/8) bytes, leftmost pixel in bit 7"""
     h, w = bits.shape
-    assert w % 4 == 0
-    b = np.repeat(bits.astype(np.uint8), 2, axis=1).reshape(h, w // 4, 8)
+    assert w % 8 == 0
+    b = bits.astype(np.uint8).reshape(h, w // 8, 8)
     return (b * (1 << (7 - np.arange(8)))).sum(axis=2).astype(np.uint8)
 
 
@@ -97,9 +96,8 @@ def image_from_cells(pat, ink, pap, mono=False):
     return out
 
 
-def save_png(rgb, path, scale=2, aspect=1.8):
-    """rgb is in hardware pixels (512 wide); a hardware pixel is about 1.8
-    times taller than wide"""
+def save_png(rgb, path, scale=3, aspect=0.8):
+    """a 40-column pixel is about 1.25 times wider than it is tall"""
     from PIL import Image
     im = Image.fromarray(rgb)
     im = im.resize((im.width * scale, int(round(im.height * scale * aspect))), Image.NEAREST)
@@ -111,21 +109,21 @@ def save_png(rgb, path, scale=2, aspect=1.8):
 def sprite_variants(ink, cut):
     """ink, cut: bool (h, w) logical. The mask clears the background under
     the sprite and in a one-pixel halo round it.
-    -> 4 pre-shifted variants (x & 3): bytes [ncols, then for each cell
+    -> 8 pre-shifted variants (x & 7): bytes [ncols, then for each cell
     column: first line, lines n, n x (mask, image)] with mask bits
     1 = keep the background. A column holds only its used lines."""
     h, w = ink.shape
     solid = dilate(ink | cut, diag=False)
     out = []
-    for sh in range(4):
-        wp = ((w + sh + 2 + 3) // 4) * 4
+    for sh in range(8):
+        wp = ((w + sh + 2 + 7) // 8) * 8
         i2 = np.zeros((h, wp), bool)
         s2 = np.zeros((h, wp), bool)
         i2[:, sh:sh + w] = ink
         s2[:, sh:sh + w] = solid
         img = byte_rows(i2)
         msk = byte_rows(~s2)
-        ncols = wp // 4
+        ncols = wp // 8
         while ncols > 1 and (msk[:, ncols - 1] == 0xFF).all():
             ncols -= 1
         d = bytearray([ncols])

@@ -58,6 +58,7 @@ typedef struct {
     int rom_writes;
     uint32_t vram_writes_display;   /* writes to video RAM while not in vblank */
     int vwait;                      /* wait T-states owed by this instruction */
+    int clk40;                      /* the 40-column dot clock (IN (09h) with A = 1): a character every 4 T */
     int ven_prev; uint64_t ven_tick;
     uint32_t vwait_total;
     uint16_t last_pc;
@@ -130,7 +131,7 @@ static void vram_wait(M *m) {
     crtc_sync(m, m->tick + m->vwait + 6);
     if (g_vwait_mode == 3) { m->vwait += g_vwait_t; m->vwait_total += g_vwait_t; return; }
     if (m->venable && m->hc < m->crtc[1]) {
-        int w = g_vwait_mode == 2 ? g_vwait_t : (m->crtc[1] - m->hc) * 2;
+        int w = g_vwait_mode == 2 ? g_vwait_t : (m->crtc[1] - m->hc) * (m->clk40 ? 4 : 2);
         m->vwait += w;
         m->vwait_total += w;
         crtc_sync(m, m->tick + m->vwait + 6);
@@ -236,8 +237,9 @@ static void crtc_char(M *m) {
     uint8_t *R = m->crtc;
     int y = m->pl - (TOP - 16);
     if (m->venable && m->hc < R[1] && y >= 0 && y < FB_H) {
-        int x = 40 + m->hc * 8;
-        if (x + 8 <= FB_W) {
+        int cwid = m->clk40 ? 16 : 8;
+        int x = 40 + m->hc * cwid;
+        if (x + cwid <= FB_W) {
             int a = (m->ma_row + m->hc) & 0x7FF;
             uint8_t code = m->scr[a], at = m->attr[a], c = m->col[a];
             int rl = (m->adj ? m->adjc : m->ra) & 15;
@@ -246,14 +248,16 @@ static void crtc_char(M *m) {
             else if (code != 0x20 && code) g = (rl > 2 && rl < 12) ? 0x7E : 0;   /* ROM font stand-in */
             uint8_t ink = c & 15, paper = c >> 4;
             uint8_t *p = &m->fb[m->fbw][y][x];
-            for (int i = 0; i < 8; i++) p[i] = (g & (0x80 >> i)) ? ink : paper;
+            if (m->clk40) for (int i = 0; i < 8; i++) p[2 * i] = p[2 * i + 1] = (g & (0x80 >> i)) ? ink : paper;
+            else for (int i = 0; i < 8; i++) p[i] = (g & (0x80 >> i)) ? ink : paper;
         }
     }
     if (m->hc == R[0]) { m->hc = 0; crtc_endline(m); }
     else m->hc = (m->hc + 1) & 255;
 }
 static void crtc_sync(M *m, uint64_t t) {
-    while (m->ctick + 2 <= t) { crtc_char(m); m->ctick += 2; }
+    int step = m->clk40 ? 4 : 2;
+    while (m->ctick + step <= t) { crtc_char(m); m->ctick += step; }
 }
 
 /* ---------------- FDC */
@@ -362,6 +366,9 @@ static void pout(void *ctx, uint16_t port, uint8_t v) {
             m->cw[m->cw_n++] = ((uint32_t)(m->pl & 0x3FF) << 22) | ((uint32_t)(m->hc & 0xFF) << 14) | ((m->creg & 31) << 8) | v;
         }
         m->crtc[m->creg] = v;
+        /* the 40-column tables (R0 = 35h, as BPM's MODES.COM, proven on the
+           Premium Plus) run at half the dot clock: a character every 4 T */
+        if (m->creg == 0) m->clk40 = v < 0x40;
         if (m->creg == 31) {
             uint16_t addr = ((m->crtc[18] & 0x3F) << 8) | m->crtc[19];
             int key = ((m->crtc[18] & 3) << 4) | (m->crtc[19] >> 4);

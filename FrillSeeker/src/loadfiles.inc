@@ -1,6 +1,7 @@
 	DB STG_PROG, $00, "FRILL   BIN"
 	DB 4, $00, "SPR0    BNK"
 	DB 5, $00, "SPR1    BNK"
+	DB 6, $00, "SPR2    BNK"
 	DB 8, $00, "GFX     BNK"
 	DB 12, $00, "ROOMC0  BNK"
 	DB 16, $00, "ROOMM0  BNK"

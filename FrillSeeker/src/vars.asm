@@ -1,5 +1,5 @@
 ; =====================================================================
-;  variables (EE00-EE7F), entities (EE80-EEFF), the tile map (ED00)
+;  variables (EE00-EE7F), entities (EE80-EEFF), the tile map (ED00, 20 x 11)
 ; =====================================================================
 TMAP        EQU $ED00
 scratch     EQU $EDF0
@@ -72,6 +72,7 @@ h_on:       ds 1
 h_was:      ds 1
 h_coy:      ds 1
 h_jbuf:     ds 1
+h_jump:     ds 1
 h_drop:     ds 1
 h_flare:    ds 1
 h_glide:    ds 1

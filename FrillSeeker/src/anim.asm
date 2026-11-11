@@ -8,8 +8,8 @@
 ;  vertical blanking, after the sprite cells.
 ;
 ;  record: type, glyphs n, frames, period, length (word), n glyph ids
-;  (words), frames x n x 6 pattern bytes; a bug then has: object index,
-;  x, y, cells, and for each cell: index (word), the screen code, bank
+;  (words), frames x n x 8 pattern bytes; a bug then has: object index,
+;  x (word), y, cells, and for each cell: index (word), the screen code, bank
 ;  and colours to put back when the bug is eaten
 ; =====================================================================
 A_TYPE      EQU 0           ; 1 scenery, 2 bug, 3 gone; b7 = a new frame is waiting
@@ -98,12 +98,10 @@ anim_data:
         ld h,0
         ld l,(ix+A_N)
         add hl,hl
-        ld b,h
-        ld c,l
         add hl,hl
-        add hl,bc
+        add hl,hl
         ld b,h
-        ld c,l                  ; 6n
+        ld c,l                  ; 8n
         ex de,hl
         ret
 
@@ -136,10 +134,8 @@ anim_apply:
         ld h,d
         ld l,e
         add hl,hl
-        ld b,h
-        ld c,l
         add hl,hl
-        add hl,bc
+        add hl,hl
         ld bc,TILEPAT
         add hl,bc
         push hl
@@ -157,6 +153,18 @@ anim_apply:
         pop de                  ; TILEPAT
         ex (sp),hl              ; HL = source
         pop bc                  ; PCG
+        ld a,(hl)
+        ld (de),a
+        ld (bc),a
+        inc hl
+        inc de
+        inc bc
+        ld a,(hl)
+        ld (de),a
+        ld (bc),a
+        inc hl
+        inc de
+        inc bc
         ld a,(hl)
         ld (de),a
         ld (bc),a
@@ -289,6 +297,7 @@ anim_kill:
         inc hl
         inc hl
         inc hl
+        inc hl
         ld b,(hl)
         inc hl
 .c:     ld e,(hl)
@@ -304,14 +313,14 @@ anim_kill:
         ld b,a
         inc hl
         ld a,d
-        add a,8
+        add a,4
         ld d,a
         ld a,(hl)
         ld (de),a
         ld c,a
         inc hl
         ld a,d
-        sub $10
+        sub 8
         ld d,a
         ld a,(hl)
         ld (de),a

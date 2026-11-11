@@ -1,6 +1,6 @@
 ; =====================================================================
-;  GAME: Bluff, the toads, the bugs. All motion is in logical pixels
-;  (256 x 180 playfield), 8.8 fixed point, one tick = one 50 Hz field.
+;  GAME: Bluff, the toads, the bugs. All motion is in pixels (320 x 176
+;  playfield of 20 x 11 tiles), 8.8 fixed point, one tick = one 50 Hz field.
 ; =====================================================================
 WALKV       EQU $0140       ; 1.25 px a tick
 ACC         EQU $0028
@@ -9,8 +9,8 @@ GRAV        EQU $0026
 JUMPV       EQU $0390
 MAXFALL     EQU $0400
 GLIDEV      EQU $0078       ; sink rate under the frill
-BOUNCEV     EQU $04A0       ; off a toad on its back
-HERO_H      EQU 17          ; he fits under a ledge one tile up
+BOUNCEV     EQU $0500       ; off a toad on its back
+HERO_H      EQU 15          ; he fits under a ledge one tile up
 
 T_SOLID     EQU 1
 T_ONEWAY    EQU 2
@@ -38,27 +38,27 @@ title:
         ld a,$0F
         call cls
         ld hl,t_name
-        ld de,$060A
+        ld de,$050E
         ld c,YELLOW
         call print
         ld hl,t_l1
-        ld de,$0A06
+        ld de,$0808
         ld c,WHITE
         call print
         ld hl,t_l2
-        ld de,$0C05
+        ld de,$0A09
         ld c,WHITE
         call print
         ld hl,t_l3
-        ld de,$1205
+        ld de,$0F0B
         ld c,BCYAN
         call print
         ld hl,t_l4
-        ld de,$1405
+        ld de,$110B
         ld c,BCYAN
         call print
         ld hl,t_l5
-        ld de,$1A07
+        ld de,$160B
         ld c,BGREEN
         call print
         call display_on
@@ -80,8 +80,8 @@ title:
         jp game_start
 
 t_name: db "FRILLSEEKER",0
-t_l1:   db "ENGINE PROTOTYPE FOR",0
-t_l2:   db "MICROBEE PREMIUM PLUS",0
+t_l1:   db "AN ENGINE PROTOTYPE FOR",0
+t_l2:   db "THE MICROBEE PREMIUM PLUS",0
 t_l3:   db "C - COLOUR MONITOR",0
 t_l4:   db "M - MONO MONITOR",0
 t_l5:   db "VIBED BY BPM 2026",0
@@ -173,10 +173,13 @@ enter_room:
         inc hl
         ld e,(hl)
         inc hl
-        ld d,0
+        ld d,(hl)
         ld (hx),de
+        inc hl
         ld e,(hl)
+        ld d,0
         ld (hy),de
+        dec hl
         dec hl
         dec hl
         jr .next
@@ -187,11 +190,14 @@ enter_room:
         inc hl
         ld a,(hl)
         ld (iy+E_X),a
-        ld (iy+E_X+1),0
+        inc hl
+        ld a,(hl)
+        ld (iy+E_X+1),a
         inc hl
         ld a,(hl)
         ld (iy+E_Y),a
         ld (iy+E_Y+1),0
+        dec hl
         dec hl
         dec hl
         ld (iy+E_OBJ),c
@@ -221,20 +227,22 @@ enter_room:
         cp 2
         jr nz,.bn
         push bc
-        call anim_tail          ; object index, x, y
+        call anim_tail          ; object index, x (word), y
         ld c,(hl)
         inc hl
         ld e,(hl)
         inc hl
         ld d,(hl)
+        inc hl
+        ld a,(hl)
+        ld (iy+E_Y),a
+        ld (iy+E_Y+1),0
         pop af                  ; set number + 1
         push af
         ld (iy+E_HOME),a
         ld (iy+E_OBJ),c
         ld (iy+E_X),e
-        ld (iy+E_X+1),0
-        ld (iy+E_Y),d
-        ld (iy+E_Y+1),0
+        ld (iy+E_X+1),d
         call col_ptr
         ld a,(hl)
         ld b,c
@@ -290,11 +298,11 @@ hud_all:
         xor a
         ld (de),a
         ld hl,hudname
-        ld de,$0010
+        ld de,$0014
         ld c,BCYAN
         call print
         ld hl,t_bugs
-        ld de,$0005
+        ld de,$0006
         ld c,WHITE
         call print
 hud_stats:
@@ -328,11 +336,11 @@ hud_stats:
         add a,10+'0'
         push af
         ld a,b
-        ld de,$000A
+        ld de,$000B
         ld c,YELLOW
         call putch
         pop af
-        ld de,$000B
+        ld de,$000C
         ld c,YELLOW
         jp putch
 t_bugs: db "BUGS",0
@@ -343,27 +351,39 @@ t_bugs: db "BUGS",0
 tile_at:
         ld a,h
         or a
-        jr nz,.yout
+        jr nz,.none
         ld a,l
-        cp 180
+        cp 176
         jr nc,.none
         ld a,d
         or a
+        jr z,.xin
+        dec a
         jr nz,.xout
-        ld h,row18tab >> 8
-        ld l,(hl)
         ld a,e
+        cp ROOM_W-256
+        jr nc,.xout
+.xin:   ld a,l                  ; row * 20
         rrca
         rrca
         rrca
         rrca
         and 15
-        or l
+        add a,row20tab & 255
+        ld l,a
+        ld h,row20tab >> 8
+        ld l,(hl)
+        srl d                   ; x / 16
+        rr e
+        srl e
+        srl e
+        srl e
+        ld a,e
+        add a,l
         ld l,a
         ld h,TMAP >> 8
         ld a,(hl)
         ret
-.yout:
 .none:  xor a
         ret
 .xout:  bit 7,d
@@ -498,6 +518,8 @@ hero_tick:
         jr .j9
 .j2:    ld hl,-JUMPV
         ld (hvy),hl
+        ld a,1
+        ld (h_jump),a
         xor a
         ld (h_coy),a
         ld (h_jbuf),a
@@ -511,7 +533,10 @@ hero_tick:
         add hl,de
         bit 7,h
         jr z,.falling
-        ; rising: let go of jump for a short hop
+        ; rising from a jump: let go of the key for a short hop
+        ld a,(h_jump)
+        or a
+        jr z,.sy
         ld a,(pad)
         bit PB_JUMP,a
         jr nz,.sy
@@ -643,9 +668,9 @@ hero_tick:
         ld (h_coy),a
         jr .vdone
 .land:  ld hl,(hy)
-        ld h,top18tab >> 8
-        ld l,(hl)
-        ld h,0
+        ld a,l
+        and $F0
+        ld l,a
         ld (hy),hl
         ld hl,0
         ld (hvy),hl
@@ -693,16 +718,17 @@ hero_tick:
         ld hl,(hx)
         bit 7,h
         jr nz,.goleft
-        ld a,h
+        ld de,ROOM_W
         or a
-        jr z,.inroom
-        ld h,0
+        sbc hl,de
+        jr c,.inroom
         ld (hx),hl
         ld a,(nb_right)
         ld (newroom),a
         ret
 .goleft:
-        ld h,0
+        ld de,ROOM_W
+        add hl,de
         ld (hx),hl
         ld a,(nb_left)
         ld (newroom),a
@@ -714,7 +740,7 @@ hero_tick:
         or a
         jr nz,.chkpit
         ld a,l
-        cp 180
+        cp 176
         jr nc,.pit
         ; water under the feet?
         ld de,-3
@@ -723,13 +749,10 @@ hero_tick:
         call tile_at
         cp T_WATER
         jr nz,.anim
-        ld hl,(hy)
-        ld h,top18tab >> 8
-        ld a,(hl)
-        add a,7
-        ld hl,hy
-        cp (hl)
-        jr nc,.anim
+        ld a,(hy)
+        and 15
+        cp 8
+        jr c,.anim
 .pit:   call hero_fell
         jr .anim
 .chkpit:
@@ -756,9 +779,9 @@ hero_tick:
         jr nz,.fno
         ; only from above: was the old feet line at or above the tile top?
         ld hl,(hy)
-        ld h,top18tab >> 8
-        ld l,(hl)
-        ld h,0
+        ld a,l
+        and $F0
+        ld l,a
         ld de,(oldy)
         or a
         sbc hl,de
@@ -786,7 +809,7 @@ hprobe:
         cp T_SOLID
         jr z,.hit
         ld hl,(hy)
-        ld bc,-9
+        ld bc,-8
         add hl,bc
         push de
         call tile_at
@@ -794,7 +817,7 @@ hprobe:
         cp T_SOLID
         jr z,.hit
         ld hl,(hy)
-        ld bc,-16
+        ld bc,-14
         add hl,bc
         push de
         call tile_at
@@ -814,6 +837,8 @@ hero_hurt:
         ld (h_hurt),a
         ld hl,-$0280
         ld (hvy),hl
+        xor a
+        ld (h_jump),a
         ld hl,$0120
         ld a,(h_face)
         or a
@@ -1077,6 +1102,8 @@ toad_tick:
         jr c,.done
         ld hl,-BOUNCEV
         ld (hvy),hl
+        xor a
+        ld (h_jump),a
         ld hl,sfx_boing
         call play_sfx
 .done:  ld a,O_TOAD
@@ -1092,14 +1119,18 @@ toad_look:
         jr z,.r
         ld de,-16
 .r:     add hl,de
-        ld a,h
-        or a
+        bit 7,h
         jr nz,.turn
-        ld a,l
-        cp 10
-        jr c,.turn
-        cp 246
+        push hl
+        ld bc,-10
+        add hl,bc
+        pop hl
         jr nc,.turn
+        push hl
+        ld bc,-(ROOM_W-10)
+        add hl,bc
+        pop hl
+        jr c,.turn
         ex de,hl
         push de
         ld l,(ix+E_Y)

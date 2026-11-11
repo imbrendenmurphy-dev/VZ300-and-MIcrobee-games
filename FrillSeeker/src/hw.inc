@@ -3,8 +3,9 @@
 ;  Z80 3.375 MHz, 1MB RAM (32 blocks of 32K), 32K PCG RAM (16 banks of
 ;  128 glyphs), 6545 CRTC. A scanline is 216 T; a frame is 313 lines.
 ;
-;  Display: 64 x 32 cells of 8 x 6 hardware pixels (512 x 192). Art is
-;  in logical pixels, 2 hardware pixels x 1 line (256 x 192).
+;  Display: the 40-column mode, 40 x 25 cells of 8 x 8 pixels (320 x
+;  200) at half the dot clock: near-square pixels, square cells, the
+;  full width of the tube.
 ; =====================================================================
 P_PIOA      EQU $00         ; joystick (active low), b7 fire
 P_PIOAC     EQU $01
@@ -37,36 +38,42 @@ BLK_ROOMM   EQU 16          ; rooms, monochrome art
 
 ; ---- a room record (16K; see tools/rooms.py)
 R_SCR       EQU $0000
-R_ATTR      EQU $0800
-R_COL       EQU $1000
-R_TMAP      EQU $1800
-R_OBJ       EQU $18A0
-R_NPAT      EQU $1940       ; dw glyphs, db left room, db right room
-R_NAME      EQU $1950
-R_PAT       EQU $1A00
-R_ANIM      EQU $2C00
+R_ATTR      EQU $0400
+R_COL       EQU $0800
+R_TMAP      EQU $0C00
+R_OBJ       EQU $0D00       ; type, x (word), y ... 0
+R_NPAT      EQU $0D40       ; dw glyphs, db left room, db right room
+R_NAME      EQU $0D50
+R_PAT       EQU $0E00       ; up to 768 glyphs x 8
+R_ANIM      EQU $2600
 
-; ---- upper memory (block 0)
-COLSH       EQU $A000       ; the room's colours
-SCRSH       EQU $A800       ; the room's screen codes (background)
-ATTSH       EQU $B000       ; the room's glyph banks
-CELLMAP     EQU $B800       ; this frame's pool slot for each cell (0 = none)
-TILEPAT     EQU $C000       ; the room's glyph patterns, 1024 x 6
-POOLBUF     EQU $D800       ; this frame's composed glyphs, 8 bytes a slot
-LISTA       EQU $E000       ; cell lists (CELLMAP addresses), 2 bytes a slot
-LISTB       EQU $E180
-ANIMS       EQU $E300       ; the living background's sets
-FLIPL       EQU $E400       ; the flip list: addr, screen, attr, colour, pad
+NCELL       EQU 1000
+COLS        EQU 40
+
+; ---- upper memory (block 0). The four 1K cell tables are 400h apart:
+; code relies on it.
+COLSH       EQU $A800       ; the room's colours
+SCRSH       EQU $AC00       ; the room's screen codes (background)
+ATTSH       EQU $B000       ; the room's glyph banks (b4: busy cell)
+CELLMAP     EQU $B400       ; this frame's pool slot for each cell (0 = none)
+TILEPAT     EQU $C000       ; the room's glyph patterns, 1024 x 8
+POOLBUF     EQU $E000       ; this frame's composed glyphs, 8 bytes a slot
+LISTA       EQU $E400       ; cell lists (CELLMAP addresses), 2 bytes a slot
+LISTB       EQU $E500
+ANIMS       EQU $E600       ; the living background's sets
+FLIPL       EQU $E700       ; the flip list: addr, screen, attr, colour, pad
 VARS        EQU $EE00
 STACK       EQU $EFF0
 
-MAXSLOT     EQU 176
-PF_ROW0     EQU 2           ; playfield = cell rows 2..31
+MAXSLOT     EQU 120
+PF_ROW0     EQU 2           ; playfield = cell rows 2..23
+PF_ROW1     EQU 24
+ROOM_W      EQU 320
 
 ; ---- PCG banks
-BK_FONT     EQU 10          ; 10, 11: the 8 x 12 font, four glyphs a letter
-BK_POOLA    EQU 12          ; 12, 13: sprite glyph pool A
-BK_POOLB    EQU 14          ; 14, 15: sprite glyph pool B
+BK_FONT     EQU 11          ; the 8 x 16 font, two glyphs a letter
+BK_POOLA    EQU 14          ; sprite glyph pool A (slots 1..120)
+BK_POOLB    EQU 15          ; sprite glyph pool B
 
 ; ---- colours
 BLACK       EQU 0
