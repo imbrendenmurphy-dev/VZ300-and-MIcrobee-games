@@ -85,8 +85,11 @@ run on a real Microbee yet.**
   were one brick template recoloured solid blue, cyan, brown or magenta, and
   the bright fill fought with the monster. Each fight now happens in front of
   the wall and floor of the area you are in, with a pool of shadow behind the
-  monster. The graveyard was already good and is unchanged. Monster drawings
-  and animation are unchanged.
+  monster. Monster drawings and animation are unchanged.
+- **Graveyard room redrawn too** (the bat and skeleton fights). It now matches
+  the Grounds: starry sky, crescent moon, the castle on the skyline, the mossy
+  wall, headstones and grass. Those two monsters always fight here, whichever
+  area you meet them in.
 - **On one-colour screens the battle room sits back.** With no colour to
   separate them, monster and wall were the same brightness. The room is now
   dimmed there so the monster stands out.

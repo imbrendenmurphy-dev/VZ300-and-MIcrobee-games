@@ -174,6 +174,7 @@ def dracula(pal,frame):
     return p.im
 
 def backdrop(pal,area):
+    if area==0:return graveyard(pal)
     p=Painter(pal,(320,264),False)
     if area==0:
         p.shape('ellipse',(253,12,292,51),11,15,'spectral',None)
@@ -194,6 +195,70 @@ def backdrop(pal,area):
                 if (x*7+y*13)%19<3:p.solid('point',(x,y),12 if y%3 else 15)
         return p.im
     return interior(pal,area)
+
+def graveyard(pal):
+    """The Grounds at night, as in the first-person view: starry sky, crescent
+    moon, the castle on the skyline, the mossy graveyard wall and headstones."""
+    import maze_native as MN
+    C=lambda i:tuple(int(c) for c in pal[i])
+    im=Image.new('RGB',(320,264),(0,0,0));px=im.load();d=ImageDraw.Draw(im)
+    lit=lambda x,y,level:level>MN.BAYER[y&3][x&3]
+    for i in range(90):
+        x=(i*89+17)%320;y=(i*41+7)%104
+        px[x,y]=C(15 if i%3==0 else 7)
+    # crescent moon, a little flattened for the tall pixels
+    for y in range(10,46):
+        for x in range(246,292):
+            dx,dy=(x-268)/20.0,(y-28)/17.0
+            if dx*dx+dy*dy<1 and (dx+.42)**2+(dy+.22)**2>.74:px[x,y]=C(11)
+    # the castle far off on the left skyline
+    for x0,y0,w in ((22,74,10),(34,52,9),(46,66,14),(62,58,8)):
+        for y in range(y0,108):
+            for x in range(x0,x0+w):
+                if lit(x,y,.5):px[x,y]=C(9)
+                if (x*7+y*3)%29==0 and y>y0+6:px[x,y]=C(11)
+        for k in range(w//2+1):
+            for x in range(x0+k,x0+w-k):
+                for y in range(y0-3-k*3,y0-k*3):
+                    if lit(x,y,.5):px[x,y]=C(9)
+    # graveyard wall across the back, darker behind the monster
+    top,foot=108,172
+    for y in range(top,foot):
+        v=1.5*(foot-(y+.5))/(foot-top)
+        for x in range(320):
+            ink,level=MN.grave_wall((x+.5)/128%1,v,x,y,False)
+            if level<=0:continue
+            shade=.45 if 84<x<236 else .8
+            if (level>=2 and (shade>.5 or MN.BAYER[y&3][x&3]<.7)) or (level<2 and lit(x,y,level*shade)):
+                px[x,y]=C(ink if shade>.5 else MN.DARK[ink])
+    # grass with a worn path, running toward you
+    painter=MN.Painter(0)
+    for y in range(foot,200):
+        z=1+(200-y)/14.0;w=320/z*1.9
+        for x in range(320):
+            ink=painter.ground((x+.5-160)/w,min(z,4.4)*.8+.3,x,y,False)
+            if ink:px[x,y]=C(ink)
+    # headstones and a cross either side, clear of the monster
+    def stone(x,y,w,h,cross=False):
+        d.rectangle((x-1,y+5,x+w+1,y+h+1),fill=(0,0,0))
+        d.pieslice((x-1,y-1,x+w+1,y+12),180,360,fill=(0,0,0))
+        for yy in range(y,y+h):
+            for xx in range(x,x+w):
+                r=w/2.0
+                if yy<y+r and (xx-x-r+.5)**2+(yy-y-r)**2>r*r:continue
+                if xx<x+2 or yy==y or lit(xx,yy,.55):px[xx,yy]=C(15 if xx<x+2 else 7)
+        if cross:
+            d.line((x+w//2,y+7,x+w//2,y+h-8),fill=(0,0,0),width=2);d.line((x+w//2-5,y+13,x+w//2+5,y+13),fill=(0,0,0),width=2)
+        else:
+            for yy in range(y+12,y+h-6,5):d.line((x+5,yy,x+w-5,yy),fill=(0,0,0))
+        for xx in range(x-2,x+w+3):
+            if (xx*5)%3:px[xx,y+h]=C(10);px[xx,y+h-1-(xx%3==0)]=C(2)
+    stone(18,128,26,50);stone(52,144,20,34,True);stone(262,134,24,44,True);stone(294,150,18,28)
+    # a dead tree leaning in from the right
+    d.line([(312,176),(306,120),(310,70)],fill=C(3),width=3)
+    for y,l in ((132,24),(108,30),(88,18)):
+        d.line([(307,y),(307-l,y-14),(301-l,y-28)],fill=C(3))
+    return im
 
 def interior(pal,area):
     """Battle rooms in the same materials as the first-person view: the area's

@@ -104,10 +104,13 @@ def monster(i,frame):
 
 @lru_cache(None)
 def backdrop(area,mono=False):
-    if mono and area:
+    if mono:
         # One-colour screens have only brightness to separate a monster from
-        # the room, so the interiors sit well back behind it.
-        return Image.eval(backdrop(area),lambda v:int(v*.42))
+        # the room, so the room sits well back behind it. Outdoors the sky
+        # keeps its stars and moon; only the wall and ground are dimmed.
+        im=backdrop(area).copy();top=108 if area==0 else 0
+        im.paste(Image.eval(im.crop((0,top,320,264)),lambda v:int(v*.42)),(0,top))
+        return im
     if area in range(6):
         return native_detail.backdrop(PAL,area)
     im=Image.new('RGB',(320,264),tuple(PAL[0]));d=ImageDraw.Draw(im)
