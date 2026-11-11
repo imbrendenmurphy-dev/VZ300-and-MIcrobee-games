@@ -20,6 +20,7 @@
 start:	di
 	ld sp,$EFF0
 	call hw_init
+	MEMV BLK_WORK		; video RAM window on at F000h (the loader leaves it off)
 	ld a,1
 	in a,(P_CLK40)
 	call crtc_tab_load

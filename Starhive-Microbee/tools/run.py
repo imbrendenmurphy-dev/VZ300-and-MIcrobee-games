@@ -38,7 +38,7 @@ def boot(binname='SCRLTEST.BIN', sym='scrtest.sym', blocks=None):
     for b, f in blocks.items():
         put(b, (BUILD / f).read_bytes())
     put(0, (BUILD / binname).read_bytes())
-    pp.out(0x50, blk_port(2))
+    pp.out(0x50, blk_port(2) | 8)   # as the loader leaves it: no video window
     pp.cpu.pc = 0x8000
     pp.cpu.sp = 0xEFF0
     pp.S = symbols(BUILD / sym)
