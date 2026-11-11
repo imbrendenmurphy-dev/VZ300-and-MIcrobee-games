@@ -4,6 +4,10 @@ Sequel to the VZ200/VZ300 game *HAMBURGER SAM* (Dick Smith Electronics), for the
 VZ300 / VZ200 with the **BennVenn SD loader + 128K**. ViBED by BPM 2026. Version 1.0.1 (shorter, softer ingredient-drop sound).
 Original code, graphics and music. Nothing from the original game is included.
 
+![showcase](showcase/showcase.gif)
+
+Release blurb and specs: [BLURB.md](BLURB.md). Screenshots: [gameplay](screenshots/gameplay/) · [screens](screenshots/info/)
+
 ![title](screenshots/HAMSAM2_title.gif)
 
 ![gameplay](screenshots/HAMSAM2_gameplay.gif)
