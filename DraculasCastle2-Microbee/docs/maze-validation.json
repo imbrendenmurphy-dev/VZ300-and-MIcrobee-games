@@ -1,0 +1,62 @@
+[
+  {
+    "area": "grounds",
+    "glyphs": 1517,
+    "folded_glyphs": 0,
+    "packet_bytes": 28994,
+    "second_bytes": 22468,
+    "pieces": 163,
+    "object_cells": 540,
+    "compressed_bytes": 25622
+  },
+  {
+    "area": "hall",
+    "glyphs": 1728,
+    "folded_glyphs": 26,
+    "packet_bytes": 28509,
+    "second_bytes": 23453,
+    "pieces": 243,
+    "object_cells": 503,
+    "compressed_bytes": 27374
+  },
+  {
+    "area": "library",
+    "glyphs": 1706,
+    "folded_glyphs": 0,
+    "packet_bytes": 27664,
+    "second_bytes": 25037,
+    "pieces": 163,
+    "object_cells": 595,
+    "compressed_bytes": 27785
+  },
+  {
+    "area": "dungeon",
+    "glyphs": 1145,
+    "folded_glyphs": 0,
+    "packet_bytes": 24449,
+    "second_bytes": 19587,
+    "pieces": 163,
+    "object_cells": 545,
+    "compressed_bytes": 20836
+  },
+  {
+    "area": "tower",
+    "glyphs": 1728,
+    "folded_glyphs": 26,
+    "packet_bytes": 22745,
+    "second_bytes": 23921,
+    "pieces": 163,
+    "object_cells": 527,
+    "compressed_bytes": 26299
+  },
+  {
+    "area": "dracula",
+    "glyphs": 1065,
+    "folded_glyphs": 0,
+    "packet_bytes": 25868,
+    "second_bytes": 17541,
+    "pieces": 163,
+    "object_cells": 471,
+    "compressed_bytes": 20122
+  }
+]
