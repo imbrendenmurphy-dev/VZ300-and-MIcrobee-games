@@ -1,4 +1,4 @@
-# PENGUIN 2 – "Ice Age Rampage"
+# PENGUIN 2 – "Ice Age Rampage"  (v1.1)
 
 ![showcase](screenshots/PENGUIN2_showcase.gif)
 
@@ -20,7 +20,9 @@ Your penguin is back on the ice, and the monsters have brought friends. As in th
   - a Hall of Fame with initials
   - all-new two-voice music and 16 sound effects
 
-ViBED by BPM 2026. Free, with full source on GitHub.
+VIBED BY BPM 2026. Free, with full source on GitHub.
+
+**v1.1 (8 Nov 2026):** fixed sound-effect table. Every effect now plays as designed: no more chirpy, lingering sweeps. The monster-hatch sound is now a short, clean "bloop".
 
 ## Tech specs
 
@@ -41,5 +43,7 @@ ViBED by BPM 2026. Free, with full source on GitHub.
 | Testing | Headless VZ300 emulator with a snow detector and vblank timing check, and an automated soak test through every stage |
 
 **Load:** copy `PENGUIN2.VZ` to the SD card and run it from the BennVenn loader. SPACE or fire starts the game, and keys 1–4 on the title screen pick a world. P pauses and S changes the sound mode.
+
+**Release zip:** `release/PENGUIN2_v1.1.zip` contains the game, a plain-text readme, screenshots and the showcase GIF.
 
 **Download & source:** https://github.com/imbrendenmurphy-dev/vz300-and-microbee-games/tree/main/Penguin2

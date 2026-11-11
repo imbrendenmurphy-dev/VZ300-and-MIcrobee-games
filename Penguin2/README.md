@@ -15,7 +15,7 @@ Release blurb with tech specs: [BLURB.md](BLURB.md)
 
 ## Play it
 
-Copy `release/PENGUIN2.VZ` to the SD card and load it from the BennVenn SD loader. It's a type F1 binary that loads at $8000 (to $CF7F) and runs from $8000. It needs the **BennVenn 128K** RAM expansion (RAM up to $FFFF).
+Copy `release/PENGUIN2.VZ` to the SD card (or grab `release/PENGUIN2_v1.1.zip`, which has the game, a text readme, screenshots and the showcase GIF) and load it from the BennVenn SD loader. It's a type F1 binary that loads at $8000 (to $CF7F) and runs from $8000. It needs the **BennVenn 128K** RAM expansion (RAM up to $FFFF).
 
 | Action | Keyboard | Joystick |
 |---|---|---|
