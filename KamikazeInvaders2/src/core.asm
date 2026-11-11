@@ -1171,7 +1171,38 @@ render:
 .fast:  ; 8-px sprites: pre-masked (mask,data) pairs, read with POP (DI throughout)
         ld a,(w_)
         cp 3
-        jp nz,.next             ; clipped narrow sprite: not drawn (never happens in play)
+        jr z,.f3go
+        cp 2
+        jp nz,.next             ; only 1 byte left on screen: not drawn
+        ; clipped at the right edge: draw the first two bytes of each row
+        ld (savesp),sp
+        ld h,b
+        ld l,c
+        ld sp,hl
+        ex de,hl                ; HL = VRAM
+        ld a,(h_)
+        ld b,a
+.f2:    pop de
+        ld a,(hl)
+        and e
+        or d
+        ld (hl),a
+        inc l
+        pop de
+        ld a,(hl)
+        and e
+        or d
+        ld (hl),a
+        pop de                  ; third pair is off screen
+        ld a,l
+        add a,31
+        ld l,a
+        jr nc,.f2n
+        inc h
+.f2n:   djnz .f2
+        ld sp,(savesp)
+        jp .next
+.f3go:
         ld (savesp),sp
         ld h,b
         ld l,c
