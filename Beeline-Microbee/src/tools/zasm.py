@@ -249,6 +249,7 @@ class Assembler:
         self.lastglobal = ''
         self.listing = []
         self.unresolved = False
+        self.bss = False
         self.ex = Expr(self)
 
     def resolve_name(self, n):
@@ -407,10 +408,15 @@ class Assembler:
         elif mnu in ('DS', 'DEFS'):
             n = self.ex.eval(ops[0], True)
             fill = self.ex.eval(ops[1], strict) if len(ops) > 1 else 0
-            self.emit([fill] * n)
+            if self.bss: self.pc += n
+            else: self.emit([fill] * n)
         elif mnu == 'ALIGN':
             n = self.ex.eval(args, True)
+            if self.bss: self.pc += (-self.pc) % n
             while self.pc % n: self.emit([0])
+        elif mnu == 'BSS':
+            # from here on DS/ALIGN only reserve space (nothing is written to the binary)
+            self.bss = True
         elif mnu == 'INCLUDE':
             self.run_file(os.path.join(base, args.strip().strip('"')), pass_no, strict)
         elif mnu == 'INCBIN':
@@ -426,7 +432,7 @@ class Assembler:
         if pass_no == 2:
             n = self.pc - start
             if mnu not in ('ORG', 'INCLUDE') and n > 0 and n <= 64:
-                bs = ' '.join('%02X' % self.out[a] for a in range(start, start + min(n, 8)))
+                bs = ' '.join('%02X' % self.out[a] for a in range(start, start + min(n, 8)) if a in self.out)
                 self.listing.append('%04X  %-24s %s' % (start, bs, raw.rstrip()))
             else:
                 self.listing.append('%4s  %-24s %s' % ('', '', raw.rstrip()))
@@ -435,12 +441,13 @@ class Assembler:
         for p in (1, 2):
             self.pc = 0
             self.out = {}
+            self.bss = False
             self.lastglobal = ''
             self.listing = []
             self.run_file(fname, p, p == 2)
         return self.out
 
-TABLE_MNEMONICS = set(k.split(' ')[0] for k in TABLE) | {'ORG','EQU','DB','DW','DS','DEFB','DEFW','DEFS','INCLUDE','INCBIN','ALIGN','END','ASSERT','DM'}
+TABLE_MNEMONICS = set(k.split(' ')[0] for k in TABLE) | {'ORG','EQU','DB','DW','DS','DEFB','DEFW','DEFS','INCLUDE','INCBIN','ALIGN','END','ASSERT','DM','BSS'}
 
 def main():
     ap = argparse.ArgumentParser()

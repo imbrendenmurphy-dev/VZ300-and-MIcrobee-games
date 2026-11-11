@@ -618,6 +618,7 @@ static Sym *marks = NULL; static int nmarks = 0;
 static u8 markmap[65536];   /* index+1 into marks */
 static u64 hist[65536];      /* T-states spent per PC (instruction start) */
 static int do_hist = 0;
+static int dumpflips = 0;
 
 static void load_syms(const char *fn)
 {
@@ -686,6 +687,7 @@ int main(int argc, char **argv)
         else if (!strcmp(argv[i], "-wav")) wavf = argv[++i];
         else if (!strcmp(argv[i], "-mono")) mono = 1;
         else if (!strcmp(argv[i], "-hist")) do_hist = 1;
+        else if (!strcmp(argv[i], "-dumpflips")) dumpflips = 1;
         else if (!strcmp(argv[i], "-cpmvid")) vidpos = atoi(argv[++i]);
         else if (!strcmp(argv[i], "-vwait")) vwait = atoi(argv[++i]);
         else if (!strcmp(argv[i], "-poke")) { unsigned a, v; sscanf(argv[++i], "%i,%i", &a, &v); pokes[npokes][0] = a; pokes[npokes++][1] = v; }
@@ -729,7 +731,17 @@ int main(int argc, char **argv)
         if (!in_vblank && ln >= disp_lines()) {
             in_vblank = 1;
             true_vb++;
-            if (dumpdir && frame_no >= first && ((frame_no - first) % every) == 0) {
+            static int last_r12 = -1, nflip = 0;
+            if (dumpflips) {
+                if (crtc[12] != last_r12) {
+                    last_r12 = crtc[12];
+                    if (dumpdir && nflip >= first && ((nflip - first) % every) == 0) {
+                        char path[512]; snprintf(path, sizeof path, "%s/f%05d.ppm", dumpdir, nflip);
+                        render_frame(path);
+                    }
+                    nflip++;
+                }
+            } else if (dumpdir && frame_no >= first && ((frame_no - first) % every) == 0) {
                 char path[512]; snprintf(path, sizeof path, "%s/f%05d.ppm", dumpdir, frame_no);
                 render_frame(path);
             }

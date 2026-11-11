@@ -18,9 +18,9 @@ os.makedirs(OUT, exist_ok=True)
 
 # ------------------------------------------------------------------ engine constants
 NSEG = 16          # projected points ahead (1 segment apart up to 8, then 2) -> 24 segments
-HY = 76            # horizon line (logical) for flat ground: low camera, lots of sky
+HY = 80            # horizon line (logical): low camera, lots of sky
 F = 128            # focal length
-CAMH = 102         # camera height (world units): CAMH*F/256 = 127-HY
+CAMH = 94          # camera height (world units): CAMH*F/256 = 127-HY
 RW = 200           # road half width (world units)
 SEGLEN = 256
 
@@ -309,14 +309,20 @@ for k, v in (('NSEG', NSEG), ('HY', HY), ('CAMH', CAMH), ('RW', RW), ('PCG_COUNT
              ('PCG_BANKS', (len(pcg) + 127) // 128), ('PCG_FIRST', STATIC0)):
     L.append('%-12s equ %d' % (k, v))
 
-# edge table: per slope: dw entries_ptr ; db omin, omax   (4 bytes, index = slope+16)
+# edge tables.  EDGE_DIR (page aligned): 10 bytes per slope:
+#   db omin, span ; dw sub0, sub1, sub2, sub3
+# sub-table r holds the masks for j = r, r+4, r+8 ... (j = o - omin), so the
+# cells along one boundary (j steps by -4) are consecutive bytes, walked down.
+L.append('        align 256')
 L.append('EDGE_DIR:')
 for sq, lo, hi, ent in edge_tables:
-    L.append('        dw EDGE_%d' % (sq + 16))
     L.append('        db %d,%d' % (lo & 255, (hi - lo + 1) & 255))
+    L.append('        dw ' + ','.join('EDGE_%d_%d' % (sq + 16, r) for r in range(4)))
 for sq, lo, hi, ent in edge_tables:
-    L.append('EDGE_%d:' % (sq + 16))
-    db(ent)
+    for r in range(4):
+        L.append('EDGE_%d_%d:' % (sq + 16, r))
+        sub = ent[r::4]
+        if sub: db(sub)
 
 # HUD font map: ascii 32..95 -> code, attr
 L.append('FONTMAP:')
@@ -352,17 +358,33 @@ for pose in car_poses:
 L.append('CARPART:')
 for data in car_partials:
     db(data)
+# CARROAD: each partial car cell pre-composited over plain road, per line and
+# band phase: 64-byte aligned blocks, line l phase p at +l*6+p*2 (2 scanlines)
+L.append('        align 64')
+L.append('CARROAD:')
+for data in car_partials:
+    blk = []
+    for l in range(8):
+        for ph in range(3):
+            for sc in range(2):
+                nm, ink = data[(l * 2 + sc) * 2], data[(l * 2 + sc) * 2 + 1]
+                blk.append((PATS[2][ph][sc] & nm) | ink)
+    db(blk + [0] * (64 - len(blk)))
 
 # slope table: d = x7-x0 in -32..32 -> clamp(round(d*4/7)) + 16
-L.append('SLOPETAB:'); db([max(-8, min(8, int(math.floor(d / 4 + 0.5)))) + 8 for d in range(-32, 33)])
+L.append('        align 256')
+L.append('SLOPETAB:'); db([(max(-8, min(8, int(math.floor(d / 4 + 0.5)))) + 8) * 10 for d in range(-32, 33)])
 L.append('PSTEP:'); db([0] + [PK[i] - PK[i - 1] for i in range(1, NSEG + 1)])
 L.append('        align 256')
 L.append('TRK_CURVE:'); db(curve)
 L.append('TRK_YL:'); db([v & 255 for v in ty])
 L.append('TRK_YH:'); db([(v >> 8) & 255 for v in ty])
-L.append('        align 2048')
+# interleaved: line l of mask i at MASKLIB + 256*l + i  (BC = page:index, inc b)
+assert len(masks) <= 256
+L.append('        align 256')
 L.append('MASKLIB:')
-for m in masks: db(list(m))
+for l in range(8):
+    db([m[l] for m in masks] + [0] * (256 - len(masks)))
 L.append('        align 256')
 L.append('RESPAGES:')
 for page in RES:

@@ -70,6 +70,7 @@ project:
         ld (kseg),a
         inc a
         ld (kk),a
+        ld iy,PTS+8             ; point records: sy, sx, sw (words), phase
         ; point loop -------------------------------------------------------
 .kl     call vbpoll
         ; advance PSTEP[p] segments, accumulating the curve
@@ -113,16 +114,11 @@ project:
         ; band phase of the last segment of this strip: bands are 2 segments
         dec a
         and 2
-        ld b,a
-        ld a,(kk)
-        ld e,a
-        ld d,0
-        ld hl,PHT
-        add hl,de
-        ld (hl),b
+        ld (iy+6),a
         ; table index = p*32 + fq
-        ld l,e
-        ld h,d
+        ld a,(kk)
+        ld l,a
+        ld h,0
         add hl,hl
         add hl,hl
         add hl,hl
@@ -131,7 +127,7 @@ project:
         ld a,(fq)
         or l
         ld l,a
-        ld (tidx),hl
+        push hl
         ld de,INVM
         add hl,de
         ld a,(hl)
@@ -150,7 +146,8 @@ project:
         call mulinv
         ld de,HY
         add hl,de
-        ld (cur_sy),hl
+        ld (iy+0),l
+        ld (iy+1),h
         ; sx = 128 + (XK - camX) * inv >> 14
         ld hl,(XK)
         ld de,(camX)
@@ -159,54 +156,34 @@ project:
         call mulinv
         ld de,128
         add hl,de
-        ld (cur_sx),hl
+        ld (iy+2),l
+        ld (iy+3),h
         ; sw = HWT[idx]
-        ld hl,(tidx)
+        pop hl
         ld de,HWTL
         add hl,de
         ld a,(hl)
+        ld (iy+4),a
         ld de,HWTH-HWTL
         add hl,de
-        ld h,(hl)
-        ld l,a
-        ld (cur_sw),hl
-        ; store at p
-        ld a,(kk)
-        add a,a
-        ld e,a
-        ld d,0
-        ld hl,SYT
-        add hl,de
-        ld bc,(cur_sy)
-        ld (hl),c
-        inc hl
-        ld (hl),b
-        ld hl,SXT
-        add hl,de
-        ld bc,(cur_sx)
-        ld (hl),c
-        inc hl
-        ld (hl),b
-        ld hl,SWT
-        add hl,de
-        ld bc,(cur_sw)
-        ld (hl),c
-        inc hl
-        ld (hl),b
+        ld a,(hl)
+        ld (iy+5),a
         ; p == 1: virtual point 0 well below the screen
         ld a,(kk)
         dec a
         jr nz,.nv
+        push iy
+        pop hl
+        ld de,PTS+2
+        inc hl
+        inc hl
+        ld bc,5
+        ldir
         ld hl,400
-        ld (SYT),hl
-        ld hl,(cur_sx)
-        ld (SXT),hl
-        ld hl,(cur_sw)
-        ld (SWT),hl
-        ld a,(PHT+1)
-        ld (PHT),a
+        ld (PTS),hl
 .nv     ; visible?  sy < maxy (signed)
-        ld hl,(cur_sy)
+        ld l,(iy+0)
+        ld h,(iy+1)
         bit 7,h
         jr nz,.vis0
         ld a,h
@@ -227,24 +204,70 @@ project:
         sub c
         jr z,.next
         ld b,a
-        ld a,(kk)
-        ld e,c
-        ld d,0
-        ld hl,LINEK
-        add hl,de
-.fl     ld (hl),a
-        inc hl
+        ld a,(kk)               ; D = band phase offset of this strip (0 / 10)
+        ld e,a
+        ld a,(iy+6)             ; 0 or 2
+        ld d,a
+        add a,a
+        add a,a
+        add a,d
+        ld d,a
+        ld l,c                  ; LPH[y] = phase*10, LPH2[y] = phase*2, every line
+        ld h,high(LPH)
+        ld a,(iy+6)
+        push bc
+.fl     ld (hl),d
+        inc h
+        ld (hl),a
+        dec h
+        inc l
         djnz .fl
+        pop bc
+        ld a,c                  ; LINEK[y] = point, only on lines 8r and 127
+        add a,b                 ;   (the only lines line_geom samples)
+        ld b,a                  ; end (exclusive)
+        ld h,high(LINEK)
         ld a,c
+        add a,7
+        and 0F8h
+.lk     cp b
+        jr nc,.l127
+        ld l,a
+        ld (hl),e
+        add a,8
+        jr .lk
+.l127   ld a,b
+        cp 128                  ; range reaches line 127?
+        jr nz,.ldone
+        ld l,127
+        ld (hl),e
+.ldone  ld a,c
         or a
         jp z,.done
-.next   ld hl,kk
+.next   ld de,8
+        add iy,de
+        ld hl,kk
         inc (hl)
         ld a,(hl)
         cp NSEG+1
         jp c,.kl
 .done   ld a,(maxy)
         ld (LTOP),a
+        ld b,a                  ; lines above the horizon in its row: sky phase
+        and 7
+        ret z
+        ld c,a
+        ld a,b
+        sub c
+        ld l,a
+        ld h,high(LPH)
+        ld b,c
+.sk     ld (hl),20
+        inc h
+        ld (hl),4
+        dec h
+        inc l
+        djnz .sk
         ret
 .csg    db 0
 
@@ -331,26 +354,21 @@ neghl:  xor a
 line_geom:
         ld (.y),a
         ld l,a
+        ld h,high(LINEK)
+        ld l,(hl)               ; point k
         ld h,0
-        ld de,LINEK
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        ld de,PTS
         add hl,de
-        ld a,(hl)
-        add a,a
-        ld e,a
-        ld d,0
-        ld (.k2),de
-        ld hl,SYT
-        add hl,de
-        ld c,(hl)
-        inc hl
-        ld b,(hl)               ; BC = SY[p]
-        dec hl
-        dec hl
-        ld d,(hl)
-        dec hl
-        ld e,(hl)               ; DE = SY[p-1]
-        push de
-        ex de,hl
+        push hl
+        pop ix                  ; IX -> record k, IX-8 -> record k-1
+        ld c,(ix+0)
+        ld b,(ix+1)             ; BC = SY[k]
+        ld l,(ix-8)
+        ld h,(ix-7)             ; HL = SY[k-1]
+        push hl
         or a
         sbc hl,bc
         ex de,hl                ; DE = dy
@@ -362,27 +380,20 @@ line_geom:
         sbc hl,bc               ; HL = t
         call frac8
         ld (.f),a
-        ld de,(.k2)
-        ld hl,SXT
-        call .lp
+        ld l,(ix-6)
+        ld h,(ix-5)
+        ld e,(ix+2)
+        ld d,(ix+3)
+        call lerp
         ld (lcx),hl
-        ld de,(.k2)
-        ld hl,SWT
-        call .lp
+        ld l,(ix-4)
+        ld h,(ix-3)
+        ld e,(ix+4)
+        ld d,(ix+5)
+        ld a,(.f)
+        call lerp
         ld (lhw),hl
         ret
-.lp     add hl,de
-        ld e,(hl)
-        inc hl
-        ld d,(hl)
-        dec hl
-        dec hl
-        ld a,(hl)
-        dec hl
-        ld l,(hl)
-        ld h,a
-        ld a,(.f)
-        jp lerp
 .y      db 0
 .k2     dw 0
 .f      db 0
@@ -456,12 +467,23 @@ build_regions:
         cp 4
         jr nc,.m2
         set 1,c
-.m2     ld a,c
+.m2     ld a,(LTOP)             ; the two rows nearest the horizon: no kerbs
+        rrca                    ;   (they are a pixel or two wide there)
+        rrca
+        rrca
+        and 1Fh
+        add a,2
+        ld b,a
+        ld a,(crow)
+        cp b
+        jr nc,.m3
+        ld c,3
+.m3     ld a,c
         ld (mstate),a
         xor a
         ld (cur),a
-        ld hl,ECODE
-        ld (eptr),hl
+        ld hl,EPTRS
+        ld (eprp),hl
         ld hl,REGLEN
         ld (rptr),hl
         ld a,(mstate)
@@ -500,140 +522,164 @@ bnd_skip:                       ; boundary absorbed: empty interior + edge
         ld (hl),a
         inc hl
         ld (rptr),hl
+        ld hl,(eprp)
+        inc hl
+        inc hl
+        ld (eprp),hl
         pop af
         ret
 
-; bnd: A = boundary index -> one interior region and one edge region
+; bnd: A = boundary index -> one interior region and one edge region,
+;   plus EPTRS[k] -> mask index of the edge region's first cell (walk down)
 bnd:
         add a,a
-        ld e,a
-        ld d,0
-        ld hl,BX0
-        add hl,de
+        add a,low(BX0)          ; BX0/BX8 sit in one page
+        ld l,a
+        ld h,high(BX0)
         ld c,(hl)
-        inc hl
+        inc l
         ld b,(hl)               ; BC = x0
-        ld de,7
-        add hl,de
-        ld e,(hl)
-        inc hl
-        ld d,(hl)               ; DE = x8
-        ex de,hl
+        ld a,l
+        add a,7
+        ld l,a
+        ld a,(hl)
+        inc l
+        ld h,(hl)
+        ld l,a                  ; HL = x8
         or a
-        sbc hl,bc               ; slope = x8 - x0
-        call clamp32
+        sbc hl,bc               ; slope = x8 - x0, clamp to -32..32 -> 0..64
+        ld a,l
         add a,32
         ld e,a
-        ld d,0
-        ld hl,SLOPETAB
-        add hl,de
-        ld a,(hl)
-        add a,a
-        add a,a
-        ld e,a
-        ld hl,EDGE_DIR
-        add hl,de
-        ld e,(hl)
-        inc hl
-        ld d,(hl)
-        ld (.ptr),de
-        inc hl
-        ld e,(hl)               ; omin (signed)
-        inc hl
-        ld a,(hl)
-        ld (.span),a
+        ld a,h
+        or a
+        jr nz,.sneg
+        ld a,l
+        cp 33
         ld a,e
+        jr c,.sok
+        ld a,64
+        jr .sok
+.sneg   inc a                   ; H = FF and L >= E0 -> in range
+        jr nz,.smin
+        ld a,l
+        cp 0E0h
+        ld a,e
+        jr nc,.sok
+.smin   xor a
+.sok    ld l,a
+        ld h,high(SLOPETAB)
+        ld l,(hl)               ; slope*10 -> directory entry
+        ld h,high(EDGE_DIR)
+        ld a,(hl)               ; omin (signed)
+        inc l
+        ld e,(hl)               ; span
+        inc l
+        push hl                 ; -> sub-table pointers
+        ld l,a
         rlca
         sbc a,a
-        ld d,a
-        ld h,b
-        ld l,c
-        or a
-        sbc hl,de               ; t = x0 - omin
-        ld (.t),hl
-        sra h                   ; cmax = t >> 2
-        rr l
+        ld h,a                  ; HL = omin
+        ld a,c                  ; HL = t = x0 - omin
+        sub l
+        ld l,a
+        ld a,b
+        sbc a,h
+        ld h,a
+        ld a,l
+        and 3
+        ld d,a                  ; D = r = t & 3 (sub-table)
         sra h
         rr l
+        sra h
+        rr l                    ; HL = q = t >> 2
+        push hl
         call cellof16
-        ld (.cmax),a
-        ld hl,(.t)              ; cmin = (t - span) >> 2 + 1
-        ld a,(.span)
+        ld c,a                  ; C = cmax (clamped -1..64)
+        ld a,d                  ; cmin = q - ((span + 3 - r) >> 2) + 1
+        cpl
+        and 3
+        add a,e
+        rra
+        srl a
         ld e,a
-        ld d,0
-        or a
-        sbc hl,de
-        sra h
-        rr l
-        sra h
-        rr l
-        inc hl
+        pop hl
+        push hl
+        ld a,l
+        sub e
+        ld l,a
+        jr nc,.nb
+        dec h
+.nb     inc hl
         call cellof16
-        ; start = clamp(max(cmin,cur), cur..64)
-        ld c,a
-        ld a,(cur)
-        ld b,a
-        ld a,c
+        ld b,a                  ; B = cmin (clamped)
+        ld a,(cur)              ; start = clamp(max(cmin,cur), cur..64)
+        ld e,a
+        ld a,b
         bit 7,a
         jr nz,.uc
-        cp b
+        cp e
         jr nc,.s1
-.uc     ld a,b
+.uc     ld a,e
 .s1     cp 65
         jr c,.s2
         ld a,64
-.s2     ld c,a                  ; C = start
-        sub b
+.s2     ld b,a                  ; B = start
+        sub e
         ld hl,(rptr)
         ld (hl),a               ; interior length
         inc hl
-        ld a,(.cmax)
+        ld a,c
         bit 7,a
         jr nz,.none
         cp 64
         jr c,.e1
         ld a,63
-.e1     sub c
+.e1     sub b
         jr c,.none
         inc a
         ld (hl),a               ; edge length
         inc hl
         ld (rptr),hl
-        ld b,a
-        add a,c
+        add a,b
         ld (cur),a
-        ; HL = ptr + t - 4*start
-        ld l,c
-        ld h,0
-        add hl,hl
-        add hl,hl
+        pop hl                  ; EPTRS[k] = sub[r] + q - start
+        ld a,l
+        sub b
+        ld c,a
+        ld a,h
+        sbc a,0
+        ld b,a
+        pop hl
+        ld a,d
+        add a,a
+        add a,l
+        ld l,a
+        ld a,(hl)
+        inc l
+        ld h,(hl)
+        ld l,a
+        add hl,bc
         ex de,hl
-        ld hl,(.t)
-        or a
-        sbc hl,de
-        ld de,(.ptr)
-        add hl,de
-        ld de,(eptr)
-.ecl    ld a,(hl)
-        ld (de),a
-        inc e
-        dec hl
-        dec hl
-        dec hl
-        dec hl
-        djnz .ecl
-        ld (eptr),de
+        ld hl,(eprp)
+        ld (hl),e
+        inc hl
+        ld (hl),d
+        inc hl
+        ld (eprp),hl
         ret
 .none   ld (hl),0
         inc hl
         ld (rptr),hl
-        ld a,c
+        ld a,b
         ld (cur),a
+        pop hl
+        pop hl
+        ld hl,(eprp)
+        inc hl
+        inc hl
+        ld (eprp),hl
         ret
-.ptr    dw 0
-.t      dw 0
-.span   db 0
-.cmax   db 0
 
 BDEF:   db 0,1,2,1              ; left class of boundaries 0..3 (0 verge 1 kerb 2 road)
         db 1,2,1,0              ; right class
@@ -768,6 +814,79 @@ row_bank:
         ld (rbank),a
         ret
 
+DIV5:   db 0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,4
+UNICODE equ 80h+122             ; uniform interiors: code UNICODE + 2*surface + light
+
+; init_uniform: build the 6 uniform interior characters in banks 1..8
+;   and their slot records (mask 0, surface page)
+init_uniform:
+        ld c,1                  ; bank
+.bk     ld a,c
+        or X1C
+        out (PORT_1C),a
+        push bc
+        ld e,0                  ; e = 2*surface + phase
+.ch     push de
+        ld a,e                  ; phase offset for all 8 lines
+        and 1
+        ld a,0
+        jr z,.p0
+        ld a,10
+.p0     ld hl,PHOFF
+        ld b,8
+.pf     ld (hl),a
+        inc hl
+        djnz .pf
+        call patch_gen
+        pop de
+        push de
+        ld a,e
+        add a,UNICODE
+        ld l,a                  ; record for car rows
+        ld h,high(SLOTMASK)
+        ld (hl),0
+        inc h
+        ld a,e
+        srl a
+        push hl
+        ld l,a
+        ld h,0
+        ld bc,INTPAGE
+        add hl,bc
+        ld a,(hl)
+        pop hl
+        ld (hl),a               ; SLOTPAGE[code] = page of the surface
+        ld b,high(MASKLIB)
+        ld c,0
+        push af
+        ld a,e                  ; DE = PCGWIN + (122 + e) * 16
+        add a,122
+        ld l,a
+        ld h,0
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        ld de,PCGWIN
+        add hl,de
+        ex de,hl
+        pop af
+        ld h,a
+        call cellgen
+        pop de
+        inc e
+        ld a,e
+        cp 6
+        jr c,.ch
+        pop bc
+        inc c
+        ld a,c
+        cp 9
+        jr c,.bk
+        ld a,X1C
+        out (PORT_1C),a
+        ret
+
 ; slot_ptr: A = slot -> DE = PCG address, A = screen code   (bank selected)
 slot_ptr:
         ld hl,sbase
@@ -791,36 +910,23 @@ slot_ptr:
 ; set_phases: band phase of the 8 lines of row (crow), patched into
 ; cellgen / cellcomp as RES offsets (phase*10): 0 dark, 1 light, 2 sky
 set_phases:
-        ld a,(crow)
+        ld a,(crow)             ; copy LPH[crow*8 .. +7] -> PHOFF
         add a,a
         add a,a
         add a,a
-        ld c,a                  ; first line
-        ld b,high(LINEK)
-        ld de,PHOFF
-        ld a,(LTOP)
-        ld (.lt+1),a
-        ld h,high(PHT)
-.l
-.lt     ld a,0                  ; LTOP (patched)
-        dec a
-        cp c                    ; line < LTOP -> sky
-        ld a,20
-        jr nc,.st
-        ld a,(bc)
-        add a,low(PHT)
         ld l,a
-        ld a,(hl)
-        or a
-        jr z,.st
-        ld a,10
-.st     ld (de),a
-        inc e
-        inc c
-        ld a,e
-        cp low(PHOFF)+8
-        jr nz,.l
-        ; patch the immediates of cellgen
+        ld h,high(LPH)
+        ld de,PHOFF
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ; patch the immediates of cellgen from PHOFF
+patch_gen:
         ld hl,PHOFF
         ld a,(hl)
         ld (cellgen.p0+1),a
@@ -847,8 +953,45 @@ set_phases:
         ld (cellgen.p7+1),a
         ret
 
-; patch_comp: copy the current PHOFF into cellcomp
+; patch_comp: copy the current PHOFF into cellcomp, and line*6+phase*2 into carroad
 patch_comp:
+        ld a,(crow)             ; carroad offsets: line*6 + LPH2[line]
+        add a,a
+        add a,a
+        add a,a
+        ld l,a
+        ld h,high(LPH2)
+        ld a,(hl)
+        ld (carroad.p0+1),a
+        inc l
+        ld a,(hl)
+        add a,6
+        ld (carroad.p1+1),a
+        inc l
+        ld a,(hl)
+        add a,12
+        ld (carroad.p2+1),a
+        inc l
+        ld a,(hl)
+        add a,18
+        ld (carroad.p3+1),a
+        inc l
+        ld a,(hl)
+        add a,24
+        ld (carroad.p4+1),a
+        inc l
+        ld a,(hl)
+        add a,30
+        ld (carroad.p5+1),a
+        inc l
+        ld a,(hl)
+        add a,36
+        ld (carroad.p6+1),a
+        inc l
+        ld a,(hl)
+        add a,42
+        ld (carroad.p7+1),a
+
         ld hl,PHOFF
         ld a,(hl)
         ld (cellcomp.p0+1),a
@@ -877,12 +1020,12 @@ patch_comp:
 
 ; --------------------------------------------------------------------------
 ; cellgen: build one road character.
-;   BC -> mask (8 bytes, 8-aligned in MASKLIB), H = RES page of the surface
+;   BC = MASKLIB page : mask index (lines on consecutive pages), H = RES page of the surface
 ;   pair, DE -> destination (16-aligned).  Per scanline: RES[phase][mval][s]
 ; --------------------------------------------------------------------------
 cellgen:
         ld a,(bc)
-        inc c
+        inc b
 .p0     add a,0
         ld l,a
         ld a,(hl)
@@ -893,7 +1036,7 @@ cellgen:
         ld (de),a
         inc e
         ld a,(bc)
-        inc c
+        inc b
 .p1     add a,0
         ld l,a
         ld a,(hl)
@@ -904,7 +1047,7 @@ cellgen:
         ld (de),a
         inc e
         ld a,(bc)
-        inc c
+        inc b
 .p2     add a,0
         ld l,a
         ld a,(hl)
@@ -915,7 +1058,7 @@ cellgen:
         ld (de),a
         inc e
         ld a,(bc)
-        inc c
+        inc b
 .p3     add a,0
         ld l,a
         ld a,(hl)
@@ -926,7 +1069,7 @@ cellgen:
         ld (de),a
         inc e
         ld a,(bc)
-        inc c
+        inc b
 .p4     add a,0
         ld l,a
         ld a,(hl)
@@ -937,7 +1080,7 @@ cellgen:
         ld (de),a
         inc e
         ld a,(bc)
-        inc c
+        inc b
 .p5     add a,0
         ld l,a
         ld a,(hl)
@@ -948,7 +1091,7 @@ cellgen:
         ld (de),a
         inc e
         ld a,(bc)
-        inc c
+        inc b
 .p6     add a,0
         ld l,a
         ld a,(hl)
@@ -959,7 +1102,7 @@ cellgen:
         ld (de),a
         inc e
         ld a,(bc)
-        inc c
+        inc b
 .p7     add a,0
         ld l,a
         ld a,(hl)
@@ -974,7 +1117,7 @@ cellgen:
 ;   out = (ground & notmask) | ink,  IX -> 32 bytes (notmask, ink) x 16
 cellcomp:
         ld a,(bc)
-        inc c
+        inc b
 .p0     add a,0
         ld l,a
         ld a,(hl)
@@ -989,7 +1132,7 @@ cellcomp:
         ld (de),a
         inc e
         ld a,(bc)
-        inc c
+        inc b
 .p1     add a,0
         ld l,a
         ld a,(hl)
@@ -1004,7 +1147,7 @@ cellcomp:
         ld (de),a
         inc e
         ld a,(bc)
-        inc c
+        inc b
 .p2     add a,0
         ld l,a
         ld a,(hl)
@@ -1019,7 +1162,7 @@ cellcomp:
         ld (de),a
         inc e
         ld a,(bc)
-        inc c
+        inc b
 .p3     add a,0
         ld l,a
         ld a,(hl)
@@ -1034,7 +1177,7 @@ cellcomp:
         ld (de),a
         inc e
         ld a,(bc)
-        inc c
+        inc b
 .p4     add a,0
         ld l,a
         ld a,(hl)
@@ -1049,7 +1192,7 @@ cellcomp:
         ld (de),a
         inc e
         ld a,(bc)
-        inc c
+        inc b
 .p5     add a,0
         ld l,a
         ld a,(hl)
@@ -1064,7 +1207,7 @@ cellcomp:
         ld (de),a
         inc e
         ld a,(bc)
-        inc c
+        inc b
 .p6     add a,0
         ld l,a
         ld a,(hl)
@@ -1079,7 +1222,7 @@ cellcomp:
         ld (de),a
         inc e
         ld a,(bc)
-        inc c
+        inc b
 .p7     add a,0
         ld l,a
         ld a,(hl)
@@ -1091,6 +1234,92 @@ cellcomp:
         ld a,(hl)
         and (ix+30)
         or (ix+31)
+        ld (de),a
+        ret
+
+; carroad: car cell over plain road from the pre-composited table.
+;   HL -> 64-byte block (64-aligned), DE -> destination.  The 8 immediates
+;   (line*6 + phase*2) are patched per row by patch_comp.
+carroad:
+        ld c,l
+        ld a,c
+.p0     add a,0
+        ld l,a
+        ld a,(hl)
+        ld (de),a
+        inc e
+        inc l
+        ld a,(hl)
+        ld (de),a
+        inc e
+        ld a,c
+.p1     add a,0
+        ld l,a
+        ld a,(hl)
+        ld (de),a
+        inc e
+        inc l
+        ld a,(hl)
+        ld (de),a
+        inc e
+        ld a,c
+.p2     add a,0
+        ld l,a
+        ld a,(hl)
+        ld (de),a
+        inc e
+        inc l
+        ld a,(hl)
+        ld (de),a
+        inc e
+        ld a,c
+.p3     add a,0
+        ld l,a
+        ld a,(hl)
+        ld (de),a
+        inc e
+        inc l
+        ld a,(hl)
+        ld (de),a
+        inc e
+        ld a,c
+.p4     add a,0
+        ld l,a
+        ld a,(hl)
+        ld (de),a
+        inc e
+        inc l
+        ld a,(hl)
+        ld (de),a
+        inc e
+        ld a,c
+.p5     add a,0
+        ld l,a
+        ld a,(hl)
+        ld (de),a
+        inc e
+        inc l
+        ld a,(hl)
+        ld (de),a
+        inc e
+        ld a,c
+.p6     add a,0
+        ld l,a
+        ld a,(hl)
+        ld (de),a
+        inc e
+        inc l
+        ld a,(hl)
+        ld (de),a
+        inc e
+        ld a,c
+.p7     add a,0
+        ld l,a
+        ld a,(hl)
+        ld (de),a
+        inc e
+        inc l
+        ld a,(hl)
         ld (de),a
         ret
 
@@ -1108,7 +1337,35 @@ write_row:
         ld a,(rbank)
         or X1C
         out (PORT_1C),a
-        ; interior characters: slot s = surface s over an all-left mask
+        ; interior characters.  A row lying wholly in one band uses the
+        ; uniform characters prebuilt in every dynamic bank (codes FA..FF)
+        ld hl,PHOFF
+        ld a,(hl)
+        cp 20
+        jr z,.nonuni
+        ld b,7
+.uc     inc l
+        cp (hl)
+        jr nz,.nonuni
+        djnz .uc
+        or a                    ; 0 dark / 10 light
+        ld a,UNICODE
+        jr z,.ud
+        inc a
+.ud     ld (ICODE+0),a
+        ld (rbase),a
+        add a,2
+        ld (ICODE+1),a
+        add a,2
+        ld (ICODE+2),a
+        ld a,1
+        ld (unif),a
+        jr .igdone
+.nonuni xor a
+        ld (unif),a
+        ld a,(sbase)
+        or 80h
+        ld (rbase),a
         ld b,0
 .ig     push bc
         ld a,b
@@ -1127,14 +1384,22 @@ write_row:
         inc h
         ld (hl),b
         ld h,b
-        ld bc,MASKLIB           ; mask 0 = all left
+        ld bc,MASKLIB           ; mask 0 = all left (index 0)
         call cellgen
         pop bc
         inc b
         ld a,b
         cp 3
         jr c,.ig
-        call vbpoll
+.igdone call vbpoll
+        ; slot records are only needed under the car
+        ld a,(crow)
+        cp CAR_ROW
+        jr c,.norec
+        ld hl,16D5h             ; PUSH DE / LD D,n
+        jr .setrec
+.norec  ld hl,0918h             ; JR $+11
+.setrec ld (.rec),hl
         ; edge slot allocator
         ld a,3
         call slot_ptr
@@ -1142,73 +1407,63 @@ write_row:
         ld (scode),a
         ld a,(crow)             ; car rows keep 10 slots for the car
         cp CAR_ROW
-        ld a,29
-        jr c,.lim
         ld a,19
+        jr nc,.lim
+        ld a,(crow)             ; the 4th row of a bank gives 6 slots to the
+        dec a                   ; uniform characters
+        and 3
+        cp 3
+        ld a,29
+        jr nz,.lim
+        ld a,23
 .lim    ld (sleft),a
-        ; region tables for this merge state
-        ld a,(mstate)
-        ld b,a
-        add a,a
-        add a,a
-        add a,b                 ; *5
-        ld e,a
-        ld d,0
-        ld hl,INTS
-        add hl,de
-        ld (rints),hl
+        ; region table row for this merge state and code layout:
+        ;   RT[mstate][uniform]: 5 interior surfaces (*k), 4 edge RES pages,
+        ;   4 fallback surfaces (*k); codes = rbase + entry
         ld a,(mstate)
         add a,a
-        add a,a
-        ld e,a
-        ld hl,EPAIRS
+        ld hl,unif
+        or (hl)                 ; *2 + uniform
+        ld l,a
+        ld h,0
+        ld d,h
+        ld e,l
+        add hl,hl
+        add hl,hl
+        add hl,hl
         add hl,de
-        ld (rpairs),hl
-        ; ---- code pass over the 9 regions
-        ld hl,(raddr)
-        ld (wptr),hl
-        ld hl,ECODE
-        ld (eptr),hl
+        add hl,de
+        add hl,de
+        add hl,de
+        add hl,de               ; *13
+        ld de,RT
+        add hl,de
+        push hl
+        pop iy
+        ld hl,EPTRS
+        ld (eprp),hl
+        ld hl,(raddr)           ; HL = screen pointer for the whole pass
         ld ix,REGLEN
-        ld c,5
-.pl     ld b,(ix+0)             ; interior region
+        ld b,(ix+0)             ; region 0: interior
         ld a,b
         or a
-        jr z,.pe
-        ld hl,(rints)
-        ld e,(hl)
-        ld d,0
-        ld hl,ICODE
-        add hl,de
-        ld a,(hl)
-        ld hl,(wptr)
+        jr z,.r0
+        ld a,(rbase)
+        add a,(iy+0)
         call fillb
-        ld (wptr),hl
-.pe     ld hl,(rints)
-        inc hl
-        ld (rints),hl
-        dec c
-        jp z,.done
-        ld a,(ix+1)             ; edge region
+.r0     ld a,4
+        ld (.j),a
+.pl     ld a,(ix+1)             ; edge region j
         or a
         jp z,.pn
-        push bc
         push ix
+        push hl
         ld b,a                  ; cells in this edge region
-        ld hl,(rpairs)
-        ld e,(hl)               ; pair 0..5
-        ld d,0
-        ld hl,PAIRPAGE
-        add hl,de
-        ld a,(hl)
+        ld a,(iy+5)             ; RES page of the pair
         ld (.pgi+1),a
         ld (.pgs+1),a
-        ld hl,PAIRLEFT          ; fallback code when out of slots
-        add hl,de
-        ld e,(hl)
-        ld hl,ICODE
-        add hl,de
-        ld a,(hl)
+        ld a,(rbase)            ; fallback code when out of slots
+        add a,(iy+9)
         ld (.fb),a
         ld a,(sleft)            ; n = min(cells, slots left)
         cp b
@@ -1230,21 +1485,28 @@ write_row:
         or a
         jr z,.nogen
         ld a,(scode)
-        ld c,a                  ; alt set: B count, C code, DE -> ECODE, HL -> screen
+        ld c,a                  ; alt set: B count, C code, DE -> masks, HL -> screen
+        pop hl
         push bc
         exx
         pop bc
-        ld de,(eptr)
-        ld hl,(wptr)
+        ld hl,(eprp)            ; DE -> mask index of the first cell (walk down)
+        ld e,(hl)
+        inc hl
+        ld d,(hl)
+        exx
+        push hl
+        exx
+        pop hl
         exx
         ld de,(sdest)
         exx
 .ecl    ld a,(de)               ; mask index
-        inc e
+        dec de
         ld (hl),c               ; screen code of the next slot
         inc hl
-        push de                 ; record SLOTMASK[code], SLOTPAGE[code]
-        ld d,high(SLOTMASK)
+.rec    push de                 ; record SLOTMASK[code], SLOTPAGE[code] (car rows;
+        ld d,high(SLOTMASK)     ;  other rows patch a JR over these 11 bytes)
         ld e,c
         ex de,hl
         ld (hl),a
@@ -1254,13 +1516,8 @@ write_row:
         pop de
         inc c
         exx
-        ld l,a                  ; BC = MASKLIB + 8*index (MASKLIB is 2K aligned)
-        ld h,MASKLIB/2048
-        add hl,hl
-        add hl,hl
-        add hl,hl
-        ld b,h
-        ld c,l
+        ld c,a                  ; BC = mask (page of line 0 : index)
+        ld b,high(MASKLIB)
 .pgi    ld h,0                  ; RES page of the pair (patched)
         call cellgen
         inc de
@@ -1268,31 +1525,40 @@ write_row:
         djnz .ecl
         ld a,c
         ld (scode),a
-        ld (eptr),de
-        ld (wptr),hl
+        push hl                 ; screen pointer back to the main set
         exx
         ld (sdest),de
-.nogen  ld a,(.nfb)             ; out of slots: plain interior cells
+        pop hl
+        push hl
+.nogen  pop hl
+        ld a,(.nfb)             ; out of slots: plain interior cells
         or a
         jr z,.efin
         ld b,a
-        ld hl,(eptr)
-        add a,l
-        ld l,a
-        ld (eptr),hl
         ld a,(.fb)
-        ld hl,(wptr)
         call fillb
-        ld (wptr),hl
 .efin   pop ix
-        pop bc
-.pn     call vbpoll
-        ld hl,(rpairs)
+.pn     push hl
+        call vbpoll
+        ld hl,(eprp)
         inc hl
-        ld (rpairs),hl
+        inc hl
+        ld (eprp),hl
+        pop hl
+        ld b,(ix+2)             ; interior region after edge j
+        ld a,b
+        or a
+        jr z,.pi
+        ld a,(rbase)
+        add a,(iy+1)
+        call fillb
+.pi     inc ix
         inc ix
-        inc ix
-        jp .pl
+        inc iy
+        ld a,(.j)
+        dec a
+        ld (.j),a
+        jp nz,.pl
 .done   ld a,X1C
         out (PORT_1C),a
         ld a,(crow)             ; car rows: remember what lies under the car
@@ -1301,6 +1567,7 @@ write_row:
         jp car_under
 .fb     db 0
 .nfb    db 0
+.j      db 0
 
 ; car_under: for car row (crow) record, for columns CAR_COL..CAR_COL+9,
 ;   the RES page and mask index of the ground cell -> CUNDER[(row-13)*20],
@@ -1369,6 +1636,20 @@ INTPAGE: db high(RESPAGES)+0, high(RESPAGES)+1, high(RESPAGES)+2   ; pair whose 
 PAIRPAGE: db high(RESPAGES)+0, high(RESPAGES)+1, high(RESPAGES)+2
         db high(RESPAGES)+3, high(RESPAGES)+4, high(RESPAGES)+5
 PAIRLEFT: db 0,1,2,1,0,2
+
+; RT[mstate][uniform] (13 bytes): interior surfaces of regions 0,2,4,6,8
+; (times k = 1, or 2 for the uniform layout), RES pages of edge regions
+; 1,3,5,7, fallback (left) surfaces of those edges (times k)
+RT:
+        db 0,1,2,1,0,high(RESPAGES)+0,high(RESPAGES)+1,high(RESPAGES)+2,high(RESPAGES)+3,0,1,2,1
+        db 0,2,4,2,0,high(RESPAGES)+0,high(RESPAGES)+1,high(RESPAGES)+2,high(RESPAGES)+3,0,2,4,2
+        db 0,0,2,1,0,high(RESPAGES)+0,high(RESPAGES)+4,high(RESPAGES)+2,high(RESPAGES)+3,0,0,2,1
+        db 0,0,4,2,0,high(RESPAGES)+0,high(RESPAGES)+4,high(RESPAGES)+2,high(RESPAGES)+3,0,0,4,2
+        db 0,1,2,0,0,high(RESPAGES)+0,high(RESPAGES)+1,high(RESPAGES)+5,high(RESPAGES)+3,0,1,2,1
+        db 0,2,4,0,0,high(RESPAGES)+0,high(RESPAGES)+1,high(RESPAGES)+5,high(RESPAGES)+3,0,2,4,2
+        db 0,0,2,0,0,high(RESPAGES)+0,high(RESPAGES)+4,high(RESPAGES)+5,high(RESPAGES)+3,0,0,2,1
+        db 0,0,4,0,0,high(RESPAGES)+0,high(RESPAGES)+4,high(RESPAGES)+5,high(RESPAGES)+3,0,0,4,2
+
 
 ; row_type_road: when row (crow) of (page) was not a road row, set its
 ; attribute row to the row's bank and its colour row to the ground colour

@@ -22,7 +22,7 @@
         include "road.asm"
 
 MAXSPD  equ 400
-FRAMEFIELDS equ 5              ; 50/5 = 10 fps locked (4 -> 12.5 fps when the engine is fast enough)
+FRAMEFIELDS equ 4              ; 50/4 = 12.5 fps locked (a frame that overruns waits for the 5th field)
 ACC     equ 3
 DRAG    equ 1
 BRAKE   equ 8
@@ -36,6 +36,7 @@ start:
         ld sp,0EF00h
         call map_video
         call init_video
+        call init_uniform
         ld hl,0
         ld (camPos),hl
         ld (camX),hl
@@ -83,7 +84,12 @@ mainloop:
 .dt     cp 8
         jr c,.dt2
         ld a,8
-.dt2    ld (dt),a
+.dt2    ld b,a
+        ld a,(fixdt)            ; test mode: fixed physics steps per frame
+        or a
+        jr nz,.dt3
+        ld a,b
+.dt3    ld (dt),a
         call fps_update
         call vbpoll
         call read_input
@@ -685,69 +691,49 @@ draw_car:
         ld a,(rbank)
         or X1C
         out (PORT_1C),a
-        ; pass 1: codes (and partial cells built); attr/colour to buffers
+        ; pass 1: codes, partial cells built.  Attribute and colour rows of
+        ; the car only change with the pose, so they are cached per page.
+        ld a,(page)
+        ld e,a
+        ld d,0
+        ld hl,lastpose
+        add hl,de
+        ld a,(carpose)
+        cp (hl)
+        ld a,0
+        jr z,.same
+        inc a
+.same   ld (.newac),a
+        ld iy,(.src)
         ld ix,.attrs
+        ld hl,(.dst)
         ld b,10
-.cell   push bc
-        call vbpoll
-        ld hl,(.src)
-        ld a,(hl)               ; type
-        inc hl
-        ld c,(hl)               ; a
-        inc hl
-        ld b,(hl)               ; b
-        inc hl
-        ld (.src),hl
+.cell   ld a,(iy+0)             ; type
         or a
         jr nz,.t1
-        ld a,(rbank)            ; empty: ground stays, restore bank + colour
+        ld a,(rbank)            ; empty: ground stays; bank + ground colour
         ld (ix+0),a
         ld a,(.gcol)
         ld (ix+10),a
-        jr .nx
+        jp .nx
 .t1     cp 3
         jr z,.t3
-        ld hl,(.dst)            ; static character
-        ld (hl),c
-        ld (ix+0),b
+        ld c,a
+        ld a,(iy+1)             ; static character
+        ld (hl),a
+        ld a,(iy+2)
+        ld (ix+0),a
+        ld a,c
         cp 2
         ld a,(.gcol)
         jr nz,.t1c
         ld a,(LIGHTCOL)
 .t1c    ld (ix+10),a
-        jr .nx
-.t3     push ix
-        ld l,c                  ; IX = CARPART + 32*index
-        ld h,0
-        add hl,hl
-        add hl,hl
-        add hl,hl
-        add hl,hl
-        add hl,hl
-        ld de,CARPART
-        add hl,de
+        jp .nx
+.t3     push bc
         push hl
-        pop ix
-        ld hl,(.und)            ; ground under this column: page, mask
-        ld a,(hl)
-        inc hl
-        ld l,(hl)
-        ld h,0
-        add hl,hl
-        add hl,hl
-        add hl,hl
-        ld de,MASKLIB
-        add hl,de
-        ld b,h
-        ld c,l
-        ld h,a
-        ld de,(.pdst)
-        call cellcomp
-        inc de
-        ld (.pdst),de
-        pop ix
-        ld hl,(.dst)
-        ld a,(.code)
+        push ix
+        ld a,(.code)            ; screen code of the next free slot
         ld (hl),a
         inc a
         ld (.code),a
@@ -755,22 +741,74 @@ draw_car:
         ld (ix+0),a
         ld a,(.gcol)
         ld (ix+10),a
-.nx     ld hl,(.dst)
+        ld hl,(.und)            ; ground under this column: page, mask
+        ld a,10
+        sub b
+        add a,a
+        add a,l
+        ld l,a
+        jr nc,.u0
+        inc h
+.u0     ld a,(hl)
         inc hl
-        ld (.dst),hl
-        ld hl,(.und)
-        inc hl
-        inc hl
-        ld (.und),hl
-        inc ix
+        ld c,(hl)
+        ld de,(.pdst)
+        cp high(RESPAGES)+2     ; plain road under it? (road page, mask 0)
+        jr nz,.slow
+        inc c
+        dec c
+        jr nz,.slow
+        ld l,(iy+1)             ; HL = CARROAD + 64*index
+        ld h,0
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        ld bc,CARROAD
+        add hl,bc
+        call carroad
+        jr .made
+.slow   ld b,high(MASKLIB)
+        push af
+        ld l,(iy+1)             ; IX = CARPART + 32*index
+        ld h,0
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        push de
+        ld de,CARPART
+        add hl,de
+        pop de
+        push hl
+        pop ix
+        pop af
+        ld h,a
+        call cellcomp
+.made   inc de
+        ld (.pdst),de
+        call vbpoll
+        pop ix
+        pop hl
         pop bc
+.nx     inc hl
+        inc ix
+        inc iy
+        inc iy
+        inc iy
         dec b
         jp nz,.cell
+        ld (.src),iy
+        ld a,X1C
+        out (PORT_1C),a
+        ld a,(.newac)           ; pose unchanged on this page: skip attr/colour
+        or a
+        jr z,.skipac
         ; pass 2: attributes, pass 3: colours
         ld hl,(.dst)
-        ld de,-10
-        add hl,de
-        ld (.dst),hl
         ld a,X1C_ATTR
         out (PORT_1C),a
         ex de,hl
@@ -791,17 +829,26 @@ draw_car:
         ldir
         xor a
         out (PORT_08),a
-        ld a,(.cy)
+.skipac ld a,(.cy)
         inc a
         ld (.cy),a
         cp 3
         jp c,.rowl
+        ld a,(page)             ; this page now shows this pose
+        ld e,a
+        ld d,0
+        ld hl,lastpose
+        add hl,de
+        ld a,(carpose)
+        ld (hl),a
         ret
+.newac  db 0
 .src    dw 0
 .dst    dw 0
 .pdst   dw 0
 .und    dw 0
 .cy     db 0
+.pidx   db 0
 .code   db 0
 .gcol   db 0
 .attrs  ds 10
@@ -887,7 +934,29 @@ draw_hud:
         ld h,0
         ld de,HUDTXT+HUD_FPS
         call put2
+        ld a,(page)             ; digits unchanged on this page? nothing to do
+        add a,a
+        add a,a
+        add a,a
+        ld e,a
+        ld d,0
+        ld hl,HUDLAST
+        add hl,de
+        ex de,hl
+        ld hl,HUDTXT+HUD_SPD
+        ld b,3
+        call .chk
+        ld hl,HUDTXT+HUD_TIM
+        ld b,3
+        call .chk
+        ld hl,HUDTXT+HUD_FPS
+        ld b,2
+        call .chk
+        ld a,(.chg)
+        or a
+        ret z
         xor a
+        ld (.chg),a
         ld (crow),a
         call row_addr
         push hl
@@ -940,6 +1009,23 @@ draw_hud:
         inc de
         djnz .cp
         ret
+
+; draw_hud.chk: compare B chars at HL with the page's last-drawn copy at DE,
+;   updating the copy and setting draw_hud.chg when they differ
+draw_hud.chk:
+        ld a,(de)
+        cp (hl)
+        jr z,.same
+        ld a,(hl)
+        ld (de),a
+        ld a,1
+        ld (draw_hud.chg),a
+.same   inc hl
+        inc de
+        djnz draw_hud.chk
+        ret
+draw_hud.chg: db 0
+HUDLAST: ds 16
 
 ; put3: HL = value (0..999) -> 3 ascii digits at DE
 put3:   ld bc,100
@@ -1097,6 +1183,9 @@ set_theme:
 .rt     ld (hl),0
         inc hl
         djnz .rt
+        ld a,0FFh               ; car attribute/colour cache
+        ld (lastpose),a
+        ld (lastpose+1),a
         ld a,(page)
         push af
         xor a
@@ -1138,7 +1227,8 @@ PCGDATA:
 
 ; ---------------------------------------------------------------- variables
 camPos: dw 0
-autodrive: db 0                 ; set by the emulator (-poke) / attract mode
+autodrive: db 0
+fixdt:  db 0                    ; test mode (emulator -poke): physics steps per frame                 ; set by the emulator (-poke) / attract mode
 camX:   dw 0
 speed:  dw 0
 panX:   dw 0
@@ -1180,6 +1270,8 @@ cur:    db 0
 mstate: db 0
 rptr:   dw 0
 eptr:   dw 0
+eprp:   dw 0
+EPTRS:  ds 8
 THM:    ds THEMESZ
 ROWCOL: ds 16
 LIGHTCOL: db 0
@@ -1188,7 +1280,8 @@ PANO_COLB: db 0
 HUDCOL: db 0
 lastsky: ds 4
 ROWTYPE: ds 32
-BX0:    ds 8                    ; BX0 and BX8 must be contiguous
+        align 16
+BX0:    ds 8                    ; BX0 and BX8 contiguous, in one page
 BX8:    ds 8
 BXR:    ds 17*8
 BINFO:  ds 32
@@ -1205,22 +1298,31 @@ rints:  dw 0
 rpairs: dw 0
 wptr:   dw 0
 ICODE:  ds 3
+rbase:  db 0
+unif:   db 0
+CRLINE: ds 8
         align 16
 PHOFF:  ds 8
 CUNDER: ds 60
 CSLOT:  ds 3
 CSDEST: ds 6
 carpose: db 2
+lastpose: db 0FFh,0FFh
 steerT: db 0
-SYT:    ds (NSEG+1)*2
-SXT:    ds (NSEG+1)*2
-SWT:    ds (NSEG+1)*2
-        align 256
+PTS:    ds (NSEG+1)*8              ; per projected point: sy, sx, sw, phase
+ENDIMAGE:
+        assert ENDIMAGE < 8000h         ; the .COM must load below 8000h
+; ---- runtime-only buffers above 9000h (used after map_video, never loaded)
+        org 9000h
+        bss
 LINEK:  ds 128
 PHT:    ds NSEG+1
+        align 256
+LPH:    ds 256                  ; per line: band phase offset 0 dark / 10 light / 20 sky (LINEK + 256)
+LPH2:   ds 128                  ; per line: phase*2 (carroad offsets), LPH + 256
         align 256
 ECODE:  ds 256
 SLOTMASK: ds 256                ; per screen code: mask index of its character
 SLOTPAGE: ds 256                ; per screen code: RES page of its character
 ENDPROG:
-        assert ENDPROG < 0E000h
+        assert ENDPROG < 0E000h        ; stub at E000h, stack below EF00h

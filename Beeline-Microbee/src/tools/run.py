@@ -19,6 +19,7 @@ ap.add_argument('--scale', type=int, default=1)
 ap.add_argument('--wav')
 ap.add_argument('--poke', action='append', default=[])
 ap.add_argument('--vwait', default='0')
+ap.add_argument('--flips', action='store_true', help='number snapshots by page flip, not by field')
 a = ap.parse_args()
 
 here = os.path.dirname(os.path.abspath(__file__))
@@ -31,6 +32,7 @@ cmd = [emu, a.com, '-sym', a.sym, '-frames', str(a.frames), '-dump', a.outdir,
 if a.mono: cmd.append('-mono')
 for p_ in a.poke: cmd += ['-poke', p_]
 cmd += ['-vwait', a.vwait]
+if a.flips: cmd.append('-dumpflips')
 if a.wav: cmd += ['-wav', a.wav]
 r = subprocess.run(cmd, capture_output=True, text=True)
 sys.stderr.write(r.stderr)
@@ -66,3 +68,13 @@ if loops:
     avg = sum(skip) / len(skip)
     print('frame loop: avg %.0f T  (%.2f fps at 3.375 MHz, %.2f fields/frame)' %
           (avg, 3375000 / avg, avg / 67608))
+# work per frame = P_frame -> first P_wait (excludes waiting for the frame lock)
+work = []; last = None
+for f, t, n in rows:
+    if n == 'P_frame': last = t
+    elif n.startswith('P_wait') and last is not None:
+        work.append(t - last); last = None
+if len(work) > 10:
+    w = sorted(work[5:])
+    print('work/frame: median %d T (%.2f fields), p90 %d T (%.2f), max %d T (%.2f)' % (
+        w[len(w) // 2], w[len(w) // 2] / 67608, w[int(len(w) * .9)], w[int(len(w) * .9)] / 67608, w[-1], w[-1] / 67608))
