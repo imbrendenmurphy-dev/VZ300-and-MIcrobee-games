@@ -1,6 +1,6 @@
 # KABOOMERANG — design and technical plan
 
-Status: **design stage.** The look, gameplay and engine plan are settled in a browser mockup (`mockup/kaboomerang.html`). No Z80 code has been written yet. Nothing here has run on a real Premium Plus.
+Status: **engine build 0.1.** World 1 is playable on the Z80 engine in the test model (see the README). The 40 × 25 mode with 8 × 8 cells was proven on BPM's Premium Plus with the HULLBREACH mode test. The game itself has not run on real hardware yet: the 40-column clock switch still has to go into `clock40`.
 
 ViBED by BPM 2026.
 
@@ -79,7 +79,7 @@ Native Z80 at 3.375 MHz. The engine starts from the one already proven in MICROB
 
 | Area | Decision | Status |
 |---|---|---|
-| Display | 40 × 25 cells of 8 × 8 at half dot clock (320 × 200). 1,000 cells, so two pages fit in the 2K screen, attribute and colour RAM | **Not yet tried.** No earlier game used a 40-column mode, and how the Premium Plus switches it on isn't documented in the sources found so far. The first test disk tries it. |
+| Display | 40 × 25 cells of 8 × 8 at half dot clock (320 × 200). 1,000 cells, so two pages fit in the 2K screen, attribute and colour RAM. CRTC: R0 35h, R1 28h, R2 2Ch, R3 34h, R4 26h, R5 01h, R6 19h, R7 21h, R9 07h | **Proven on hardware** by BPM's mode test (40×24 and 40×32 with 8×8 cells, H sync 2Ch). The clock-switch write is still to be copied in. |
 | Fallback display | 64 × 16 cells of 8 × 16 (512 × 256), as in BILBIES!, AUSOPEN and HULLBREACH | proven on hardware |
 | Arena | 19 × 11 tiles of 2 × 2 cells (17 × 9 inside the border); 2 HUD rows above, a message row below | chosen |
 | Colour | Colour RAM at F800h via port 08h bit 6; paper high nibble, ink low; 1 red, 2 green, 4 blue, 8 dark grey, 9–15 bright | proven |
@@ -132,10 +132,10 @@ About 67,500 T-states per 50 Hz field. A composited cell costs roughly 650–750
 
 ## 3. Build plan
 
-1. **Hardware test disk** (next): 40-column mode attempts with labelled screens; 8 × 8 PCG glyphs and banks; the colour chart; page flipping at 40 × 25; keyboard and joystick; vertical blank timing. Run in colour and on the amber monitor, then lock the display mode.
-2. **Graphics proof:** the mockup's arena on the Z80 with composited, page-flipped sprites.
-3. **Core gameplay:** movement with buffering, bombs, chains, crumbling, power-ups, boomerang, burrows, three enemies.
-4. **Benchmark** the worst case with music; fix the update rate.
+1. **Hardware test** (done by BPM with the HULLBREACH mode test): 40-column mode attempts with labelled screens; 8 × 8 PCG glyphs and banks; the colour chart; page flipping at 40 × 25; keyboard and joystick; vertical blank timing. Run in colour and on the amber monitor, then lock the display mode.
+2. **Graphics proof** (done): the mockup's arena on the Z80 with composited, page-flipped sprites, 25 fps.
+3. **Core gameplay** (done, build 0.1): movement with buffering, bombs, chains, crumbling, power-ups, boomerang, burrows, three enemies.
+4. **Benchmark** (next): the worst case with music. So far 25 fps quiet, 24 fps with bombs, flames and the boomerang.
 5. **World 1 complete:** seven stages, Big Daddy Bufo, music, title screen.
 6. **Worlds 2–6**, one at a time.
 7. **Modes and presentation:** battle, co-op, survival, puzzles, attract mode, ending, saves, polish.
