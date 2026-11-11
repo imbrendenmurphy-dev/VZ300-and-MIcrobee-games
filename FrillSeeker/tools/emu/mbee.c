@@ -343,7 +343,11 @@ static uint8_t pin(void *ctx, uint16_t port) {
         return m->crtc[m->creg];
     }
     if (p == 0x00) return m->joy;
-    if (p == 0x09) return 0;
+    /* IN (09h): the dot clock select. The Z80 puts A on the upper address
+       lines; bit 0 of it set = the 40-column clock (a character every 4 T).
+       Without it the 40-column CRTC table runs at twice the line rate - on
+       the real Premium Plus, four small pictures on the tube. */
+    if (p == 0x09) { crtc_sync(m, m->tick + 8); m->clk40 = (port >> 8) & 1; return 0; }
     if (p == 0x02) return (uint8_t)(0x80 | m->m_dtr | m->m_cts | (m->spk ? 0x40 : 0));
     if (p == 0x1C) return m->p1c;
     if (p == 0x08) return m->p08;
@@ -366,9 +370,6 @@ static void pout(void *ctx, uint16_t port, uint8_t v) {
             m->cw[m->cw_n++] = ((uint32_t)(m->pl & 0x3FF) << 22) | ((uint32_t)(m->hc & 0xFF) << 14) | ((m->creg & 31) << 8) | v;
         }
         m->crtc[m->creg] = v;
-        /* the 40-column tables (R0 = 35h, as BPM's MODES.COM, proven on the
-           Premium Plus) run at half the dot clock: a character every 4 T */
-        if (m->creg == 0) m->clk40 = v < 0x40;
         if (m->creg == 31) {
             uint16_t addr = ((m->crtc[18] & 0x3F) << 8) | m->crtc[19];
             int key = ((m->crtc[18] & 3) << 4) | (m->crtc[19] >> 4);

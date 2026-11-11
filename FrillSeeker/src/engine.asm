@@ -11,9 +11,10 @@
 ;  and nothing is ever erased and redrawn in view.
 ; =====================================================================
 
-; The 40-column mode: 40 x 25 cells of 8 lines. These are the values of
-; BPM's MODES.COM test, proven on the Premium Plus (as KABOOMERANG uses
-; them): the 6545 registers alone select it.
+; The 40-column mode: 40 x 25 cells of 8 lines. Two things select it, and
+; the real Premium Plus needs both: the dot clock (IN (09h) with A = 1) and
+; the 6545 table of BPM's MODES40 test. With the table alone the machine
+; scans at twice the line rate and the monitor shows four small pictures.
 crtc_game:  db $35,$28,$2C,$34,$26,$01,$19,$21,$48,$07,$20,$07,0,0,0,0
 DROWS       EQU 25
 
@@ -44,6 +45,8 @@ hw_init:
         out (P_COLCTL),a
         ld a,LV_SCREEN
         out (P_LV),a
+        ld a,1
+        in a,(P_CLK40)          ; the 40-column dot clock
         ld hl,crtc_game
         call crtc_set
         call display_off
@@ -804,9 +807,21 @@ present:
         xor a
         ld (bl_edge),a
         call blast
+        ; The game is locked to 25 frames a second: a frame is shown at the
+        ; second vertical blanking after the last one. The wait is where
+        ; the sound is made.
+        ld a,(fields)
+        cp 2
+        jr nc,.late
+.w:     call snd_wait
+        ld a,(fields)
+        cp 2
+        jr c,.w
+        jr do_flips
+.late:  ; the work ran past two fields: show it at the next blanking
         ld a,(bl_edge)
         or a
-        jr nz,.flip
+        jr nz,do_flips
         in a,(P_CRTCA)
         and $20
         jr z,.wait
@@ -816,9 +831,8 @@ present:
         ld (hl),a               ; it began this instant
         ld hl,fields
         inc (hl)
-        jr .flip
+        jr do_flips
 .wait:  call snd_wait
-.flip:  ; fall into do_flips
 
 do_flips:
         ld hl,(nflip)

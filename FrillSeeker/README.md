@@ -27,9 +27,9 @@ Not yet a game: no title sequence, map, save or ending. The full plan, the
 hardware investigation and the measurements are in
 [docs/DESIGN.md](docs/DESIGN.md).
 
-It has been tested only in this project's Premium Plus model
-(`tools/emu`), **not on a real machine**, and the disk's boot was not run in
-the emulator this time (see the design document).
+The disk boots and the game runs on a real Premium Plus. The first
+40-column build came up as four small pictures (the dot clock select was
+missing); this build adds it and is waiting to be tried.
 
 ## To run it
 
@@ -63,8 +63,8 @@ Needs a Premium Plus: 1 MB RAM, 32K PCG RAM.
   can hold every in-between: each frame is stored sixteen times, pre-shifted.
 * **Every room is a painting,** generated as one picture with its own
   textures, in colour and again for amber.
-* **50 frames a second**, measured in the emulator, with Bluff and a toad on
-  screen.
+* **A steady 25 frames a second**, with more than half of every frame left
+  to make sound in (unlocked, the engine manages 50 with Bluff and a toad).
 
 ## To build it
 

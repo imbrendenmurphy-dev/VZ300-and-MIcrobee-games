@@ -29,7 +29,7 @@ the real machine). **Nothing here has run on real hardware yet.**
 | Fact | Consequence |
 |---|---|
 | 3.375 MHz Z80; a scanline is 216 T, a frame 313 lines (67 608 T) | Every cost below is in these units |
-| **40-column mode: 6545 R0–R3 = 35h, 28h, 2Ch, 34h** (MODES.COM's values, proven on the machine) | 320 pixels across the whole tube. A pixel is about 1.25 wide to 1 tall: chunky and near square |
+| **40-column mode: `IN A,(09h)` with A = 1, and 6545 R0–R3 = 35h, 28h, 2Ch, 34h** | 320 pixels across the whole tube. A pixel is about 1.25 wide to 1 tall: chunky and near square |
 | R9 sets the scanlines in a character row | **8-line rows: an 8 × 8 cell is very nearly square.** 40 × 25 of them = 320 × 200 |
 | The screen RAM is 2048 cells; 40 × 25 uses 1000 | Room to spare (a second page, or a taller picture) |
 
@@ -38,11 +38,13 @@ status panel, rows 2–23 the playfield (320 × 176 = 20 × 11 tiles of 16 × 16
 The CRTC table is the one KABOOMERANG confirmed against MODES.COM:
 `35 28 2C 34 26 01 19 21 48 07 20 07`.
 
-One thing I could not settle from here: KABOOMERANG's notes say MODES.COM
-selects the mode with the CRTC registers alone, while STARHIVE also reads
-port 09h first. This game follows MODES.COM (registers only), because that
-is the program that has actually run on the machine. If the picture does not
-come up on the real Premium Plus, that is the first thing to look at.
+**Settled on the real machine (12 Nov):** the CRTC table alone is not
+enough. The first 40-column disk set only the registers, and BPM's amber
+monitor showed four small slanted pictures: the machine was scanning at
+twice the line rate, because the dot clock had not been halved. The mode
+needs both the table **and the dot clock select, `IN A,(09h)` with A = 1**
+(as STARHIVE does). The game now does both, and the emulator models the
+clock select, so leaving it out shows up there too.
 
 Why not the alternatives:
 
@@ -255,11 +257,11 @@ it took, so speed never changes.
 | **Work** | ≈ 103 000 | **≈ 58 000** |
 | **Frame rate, Bluff running + a toad** | 25 fps | **49–50 fps** |
 
-In the 40-column mode Bluff and a toad run at **50 frames a second** (98 %
-of frames in one field, measured). That leaves about 10 000 T a frame for
-sound at 50, and the option of locking to 25 with three or four creatures
-on screen and far more time for sound. Which to prefer is a choice to make
-by ear and eye on the real machine.
+Unlocked, Bluff and a toad run at 50 frames a second in the 40-column mode.
+**The game is locked to 25** (BPM's call): every frame is shown at the
+second vertical blanking, so the pace never wavers, there is room for three
+or four creatures, and about 72 000 T of every frame — more than half —
+goes to making sound.
 
 ### 4.4 Sound
 
@@ -294,9 +296,10 @@ monochrome art chosen at the start; a bootable disk image.
 regions, more creatures, bosses, the save, configurable keys, music for the
 title, an ending.
 
-**Not verified:** real hardware. The things most worth checking on the real
-machine first: that the 40-column picture comes up and is centred (§1.1),
-that it is clean when Bluff moves, and how the sound comes across.
+**Not verified:** real hardware. Seen on the real machine so far: the art on
+the amber monitor (good), and the 40-column mode without its clock select
+(four pictures; fixed, §1.1). Still to check: that the fixed picture is
+full-width and centred, that it is clean when Bluff moves, the sound.
 
 ---
 
