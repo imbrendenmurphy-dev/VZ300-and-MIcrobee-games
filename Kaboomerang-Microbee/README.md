@@ -10,8 +10,8 @@ An original Bomberman-inspired arcade game for the **Microbee Premium Plus** (1M
 
 The first Z80 build, running in the 40 × 25 mode with 8 × 8 cells that BPM's mode test proved on the Premium Plus. World 1, Red Centre, is playable stage after stage.
 
-- **One thing is missing for real hardware:** the switch to the 40-column dot clock. It goes in `clock40` in `src/src/core.asm`, the same write the HULLBREACH mode test makes when you press C. Until then the disk shows the right picture only in the test model. Everything else assumes the 40-column clock.
-- Tested only in the emulator model so far: no real-hardware run yet.
+- **The 40-column mode:** the CRTC table matches BPM's MODES.COM test exactly, apart from the row count. MODES.COM needs no extra clock switch; the CRTC registers alone give the 40-column mode.
+- Tested in the emulator model only so far. The first real-hardware run is next.
 
 ![explosion](screenshots/02_explosion.png)
 

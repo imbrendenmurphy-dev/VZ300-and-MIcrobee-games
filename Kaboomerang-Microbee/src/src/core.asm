@@ -46,9 +46,10 @@ hw_init:
         call crtc_game
         ret
 
-; 40 x 25 characters of 8 lines at half dot clock (320 x 200). The timing
-; follows BPM's 40-column mode test on the Premium Plus (H sync 2Ch,
-; V sync 20h-24h for 24-32 rows). (crtc_vpos) can nudge the picture.
+; 40 x 25 characters of 8 lines (320 x 200). The values follow BPM's
+; MODES.COM 40-column test, proven on the Premium Plus: the 40-column modes
+; need nothing but these CRTC registers (R0 35h with R1 28h). Its 40 x 24
+; and 40 x 32 tables differ from this only in R6 and R7.
 crtc_game:
         call clock40
         ld a,(crtc_vpos)
@@ -77,11 +78,8 @@ CRTC_V  equ $21
 ;               R0  R1  R2  R3  R4  R5  R6  R7  R8  R9  R10 R11 R12 R13 R14 R15
 crtc_tab:       db $35,$28,$2C,$34,$26,$01,$19,CRTC_V,$48,$07,$20,$07,$00,$00,$00,$00
 
-; ---------------------------------------------------------------------
-; clock40: select the half (40-column) dot clock.
-; *** TO DO: the port write used by BPM's mode test goes here. ***
-; Everything else in the game already assumes the 40-column clock.
-; ---------------------------------------------------------------------
+; clock40: nothing to do. MODES.COM writes no clock port; kept as the
+; one place to add a switch if a later board ever needs it.
 clock40:
         ret
 
