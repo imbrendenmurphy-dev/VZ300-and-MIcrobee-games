@@ -27,11 +27,18 @@ Each program takes over the machine; press RESET to leave.
 | Z X (or , .) | Steer |
 | C | Change colour theme |
 
-## Measured (cycle-counting emulator)
+## Measured
 
-- RACE: 12.5 fps locked (4 fields per frame), 20–32 fps with less road on screen.
-- CUBE: 20 fps for one to three shaded faces.
-- Static PCG library for the whole road: 128 of 2048 characters.
+| | Emulator | Real Premium Plus |
+|---|---|---|
+| BENCH (blocks/s) | 591 587 464 462 462 954 599 | 603 517 415 413 465 954 527 |
+| Video RAM wait states | — | about 4 T per screen/colour/PCG access; none on attribute RAM (emulator now models this with `-vwait 4`) |
+| RACE on the road | 13.5 fps | about 12.9 fps (emulator with wait states) |
+| CUBE | 20 fps | not yet reported |
+
+Version 2 (low camera, horizon at 60% of the screen as in the reference photos) is about 15% faster than version 1, which ran at 11.25 fps with wait states. Version 1's FPS counter missed vertical blanks and showed about 1.66 times the true rate; version 2 polls often enough to count every field.
+
+The static PCG library for the whole road is 128 of 2048 characters.
 
 ## Building
 

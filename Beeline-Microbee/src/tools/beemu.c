@@ -53,6 +53,9 @@ static u64 T = 0;
 static u64 frame_start_T = 0;
 static int frame_no = 0;
 static int stopped = 0;
+static long true_vb = 0;
+static int vwait = 0;   /* extra T per screen/colour/PCG access (real-hardware wait states) */
+static u64 wait_extra = 0;
 
 /* speaker log */
 static u64 *spk_t = NULL; static u8 *spk_v = NULL; static size_t spk_n = 0, spk_cap = 0;
@@ -77,6 +80,7 @@ static inline u8 mem_rd(u16 a)
     if (a < 0x8000) return lowblk[curblk][a];
     if (!vid_at(a, &vo)) return ram[a];
     a = 0xF000 + vo;
+    if (!(a < 0xF800 && (port1c & 0x10))) wait_extra += vwait;
     if (a >= 0xF800) {
         u16 o = a - 0xF800;
         if (port08 & 0x40) return cram[o];
@@ -95,6 +99,7 @@ static inline void mem_wr(u16 a, u8 v)
     if (a < 0x8000) { lowblk[curblk][a] = v; return; }
     if (!vid_at(a, &vo)) { ram[a] = v; return; }
     a = 0xF000 + vo;
+    if (!(a < 0xF800 && (port1c & 0x10))) wait_extra += vwait;
     if (a >= 0xF800) {
         u16 o = a - 0xF800;
         if (port08 & 0x40) cram[o] = v;
@@ -669,6 +674,7 @@ int main(int argc, char **argv)
     int frames = 100, every = 1, first = 0;
     int peek_a = -1, peek_n = 0;
     const char *vdumpf = NULL;
+    static unsigned pokes[16][2]; int npokes = 0;
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "-sym")) symf = argv[++i];
         else if (!strcmp(argv[i], "-frames")) frames = atoi(argv[++i]);
@@ -681,6 +687,8 @@ int main(int argc, char **argv)
         else if (!strcmp(argv[i], "-mono")) mono = 1;
         else if (!strcmp(argv[i], "-hist")) do_hist = 1;
         else if (!strcmp(argv[i], "-cpmvid")) vidpos = atoi(argv[++i]);
+        else if (!strcmp(argv[i], "-vwait")) vwait = atoi(argv[++i]);
+        else if (!strcmp(argv[i], "-poke")) { unsigned a, v; sscanf(argv[++i], "%i,%i", &a, &v); pokes[npokes][0] = a; pokes[npokes++][1] = v; }
         else if (!strcmp(argv[i], "-cpmblk")) curblk = atoi(argv[++i]);
         else if (!strcmp(argv[i], "-vdump")) vdumpf = argv[++i];
         else if (!strcmp(argv[i], "-peek")) { sscanf(argv[++i], "%i,%i", &peek_a, &peek_n); }
@@ -698,6 +706,7 @@ int main(int argc, char **argv)
     memcpy(lowblk[curblk], ram, 0x8000);   /* program lives in CP/M's lower block */
     lowblk[curblk][0] = 0x76;  /* warm boot -> HALT (stop) */
     lowblk[curblk][5] = 0xC9;  /* BDOS -> RET */
+    for (int k = 0; k < npokes; k++) { if (pokes[k][0] < 0x8000) lowblk[curblk][pokes[k][0]] = pokes[k][1]; else ram[pokes[k][0]] = pokes[k][1]; }
     PC = 0x100; SP = 0xEFF0; push(0x0000);
     if (symf) load_syms(symf);
     KeyEv *kev = NULL; int nkev = 0;
@@ -715,10 +724,11 @@ int main(int argc, char **argv)
     int in_vblank = 0;
     while (frame_no < frames && !stopped) {
         if (pf && markmap[PC]) fprintf(pf, "%d,%llu,%s\n", frame_no, (unsigned long long)T, marks[markmap[PC] - 1].name);
-        { u16 pc0 = PC; int t = step(); T += t; if (do_hist) hist[pc0] += t; }
+        { u16 pc0 = PC; int t = step(); t += (int)wait_extra; wait_extra = 0; T += t; if (do_hist) hist[pc0] += t; }
         int ln = cur_line();
         if (!in_vblank && ln >= disp_lines()) {
             in_vblank = 1;
+            true_vb++;
             if (dumpdir && frame_no >= first && ((frame_no - first) % every) == 0) {
                 char path[512]; snprintf(path, sizeof path, "%s/f%05d.ppm", dumpdir, frame_no);
                 render_frame(path);
@@ -740,7 +750,7 @@ int main(int argc, char **argv)
         fclose(hf);
     }
     if (wavf) write_wav(wavf, T);
-    fprintf(stderr, "stopped=%d frames=%d T=%llu PC=%04X\n", stopped, frame_no, (unsigned long long)T, PC);
+    fprintf(stderr, "stopped=%d frames=%d T=%llu PC=%04X true_vblanks=%ld\n", stopped, frame_no, (unsigned long long)T, PC, true_vb);
     if (vdumpf) {
         FILE *vf = fopen(vdumpf, "wb");
         fwrite(vram, 1, 2048, vf); fwrite(aram, 1, 2048, vf); fwrite(cram, 1, 2048, vf);

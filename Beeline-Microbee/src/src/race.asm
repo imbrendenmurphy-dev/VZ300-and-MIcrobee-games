@@ -84,17 +84,22 @@ mainloop:
         ld a,8
 .dt2    ld (dt),a
         call fps_update
+        call vbpoll
         call read_input
+        call vbpoll
         ld a,(dt)
         ld b,a
 .ph     push bc
         call physics
+        call vbpoll
         pop bc
         djnz .ph
         call project
 P_rows:
         call draw_page
+        call vbpoll
         call draw_hud
+        call vbpoll
         call draw_car
 P_wait:
         call wait_vb
@@ -136,7 +141,20 @@ read_input:
         ld b,a
 .nk     inc hl
         jr .k
-.done   ld a,b
+.done   ld a,(autodrive)
+        or a
+        jr z,.man
+        ld b,4                  ; autopilot: accelerate, steer back to centre
+        ld hl,(camX)
+        ld de,-40
+        call cmp_signed
+        jr nc,.a1
+        set 1,b
+.a1     ld de,40
+        call cmp_signed
+        jr c,.man
+        set 0,b
+.man    ld a,b
         ld (keys),a
         ; C cycles the colour theme (on key-down)
         ld a,K_C
@@ -299,7 +317,8 @@ draw_page:
         rrca
         and 1Fh
         ld (.r),a
-.geo    ld a,(.r)
+.geo    call vbpoll
+        ld a,(.r)
         cp 16
         ld b,127
         jr z,.g16
@@ -367,6 +386,7 @@ draw_page:
         call stripe_char
         xor a
         ld (allint),a
+        call vbpoll
         call build_regions
         call write_row
         call vbpoll
@@ -437,7 +457,8 @@ draw_sky:
         ld (hl),a
         ld a,1
         ld (crow),a
-.sr     ld a,(toprow)
+.sr     call vbpoll
+        ld a,(toprow)
         ld b,a
         ld a,(crow)
         cp b
@@ -570,7 +591,8 @@ draw_car:
 .p0     ld (.src),hl
         xor a
         ld (.cy),a
-.rowl   ld a,(.cy)
+.rowl   call vbpoll
+        ld a,(.cy)
         add a,CAR_ROW
         ld (crow),a
         call row_addr
@@ -1189,6 +1211,7 @@ PCGDATA:
 
 ; ---------------------------------------------------------------- variables
 camPos: dw 0
+autodrive: db 0                 ; set by the emulator (-poke) / attract mode
 camX:   dw 0
 speed:  dw 0
 panX:   dw 0

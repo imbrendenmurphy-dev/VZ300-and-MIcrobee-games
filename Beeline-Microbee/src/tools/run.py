@@ -17,6 +17,8 @@ ap.add_argument('--gif', action='store_true')
 ap.add_argument('--mono', action='store_true')
 ap.add_argument('--scale', type=int, default=1)
 ap.add_argument('--wav')
+ap.add_argument('--poke', action='append', default=[])
+ap.add_argument('--vwait', default='0')
 a = ap.parse_args()
 
 here = os.path.dirname(os.path.abspath(__file__))
@@ -27,6 +29,8 @@ prof = os.path.join(a.outdir, 'prof.csv')
 cmd = [emu, a.com, '-sym', a.sym, '-frames', str(a.frames), '-dump', a.outdir,
        '-every', str(a.every), '-first', str(a.first), '-keys', a.keys, '-prof', prof]
 if a.mono: cmd.append('-mono')
+for p_ in a.poke: cmd += ['-poke', p_]
+cmd += ['-vwait', a.vwait]
 if a.wav: cmd += ['-wav', a.wav]
 r = subprocess.run(cmd, capture_output=True, text=True)
 sys.stderr.write(r.stderr)

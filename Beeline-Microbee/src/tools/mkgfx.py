@@ -18,9 +18,9 @@ os.makedirs(OUT, exist_ok=True)
 
 # ------------------------------------------------------------------ engine constants
 NSEG = 20          # projected points ahead (1 segment apart up to 12, then 2) -> 28 segments
-HY = 50            # horizon line (logical) for flat ground
+HY = 76            # horizon line (logical) for flat ground: low camera, lots of sky
 F = 128            # focal length
-CAMH = 154         # camera height (world units): CAMH*F/256 = 127-HY
+CAMH = 102         # camera height (world units): CAMH*F/256 = 127-HY
 RW = 200           # road half width (world units)
 SEGLEN = 256
 

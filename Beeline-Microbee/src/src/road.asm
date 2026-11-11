@@ -45,6 +45,7 @@ project:
         ld de,CAMH
         add hl,de
         ld (H0),hl
+        call vbpoll
         ; DXK = -(curve[seg] * frac) >> 8 ; XK = 0
         ld a,(seg)
         call get_curve
@@ -70,9 +71,7 @@ project:
         inc a
         ld (kk),a
         ; point loop -------------------------------------------------------
-.kl     ld a,(kk)
-        and 7
-        call z,vbpoll
+.kl     call vbpoll
         ; advance PSTEP[p] segments, accumulating the curve
         ld a,(kk)
         ld e,a
@@ -755,6 +754,7 @@ write_row:
         call row_addr
         ld (raddr),hl
         call row_type_road
+        call vbpoll
         ; ---- codes: interior = (rcode), edges copied from ECODE
         ld hl,(raddr)
         ld de,ECODE
@@ -786,7 +786,8 @@ write_row:
 .pn     inc ix
         inc ix
         jr .pl
-.pd     ; ---- colours (constant per region)
+.pd     call vbpoll
+        ; ---- colours (constant per region)
         ld a,40h
         out (PORT_08),a
         ld hl,(raddr)

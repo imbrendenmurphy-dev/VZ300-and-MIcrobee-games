@@ -159,6 +159,7 @@ keytest:
 ;         call at least every ~10,000 T-states while rendering.
 ; --------------------------------------------------------------------------
 vbpoll:
+P_vb:
         in a,(CRTC_A)
         and 20h
         ld hl,vb_last
