@@ -98,7 +98,7 @@ init_video:
         ; upload PCG data: PCG_BANKS whole banks of 2K
         ld hl,PCGDATA
         ld b,PCG_BANKS
-        ld c,0
+        ld c,PCG_FIRST
 .bank   push bc
         ld a,c
         or X1C
@@ -175,28 +175,16 @@ P_vb:
 vb_last: db 0
 fields: dw 0
 
-; wait_vb: wait for the start of the next vertical blank (counted)
+; wait_vb: wait for the start of the next vertical blank, as counted by
+;          vbpoll (so the field counter and the wait can never disagree)
 wait_vb:
-        ld de,0
-.a      push de
-        call vbpoll
-        pop de
-        in a,(CRTC_A)
-        and 20h
-        jr z,.b                 ; not in vblank: wait for it
-        dec de                  ; in vblank already: wait for it to end (timeout)
-        ld a,d
-        or e
-        jr nz,.a
-.b      ld de,0
-.c      push de
-        call vbpoll
-        pop de
-        in a,(CRTC_A)
-        and 20h
-        ret nz
-        dec de
-        ld a,d
-        or e
-        jr nz,.c
+        ld hl,(fields)
+        ld (.f0),hl
+.l      call vbpoll
+        ld hl,(fields)
+        ld de,(.f0)
+        or a
+        sbc hl,de
+        jr z,.l
         ret
+.f0     dw 0

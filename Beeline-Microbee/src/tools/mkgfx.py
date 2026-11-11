@@ -17,7 +17,7 @@ OUT = sys.argv[1] if len(sys.argv) > 1 else 'build'
 os.makedirs(OUT, exist_ok=True)
 
 # ------------------------------------------------------------------ engine constants
-NSEG = 20          # projected points ahead (1 segment apart up to 12, then 2) -> 28 segments
+NSEG = 16          # projected points ahead (1 segment apart up to 8, then 2) -> 24 segments
 HY = 76            # horizon line (logical) for flat ground: low camera, lots of sky
 F = 128            # focal length
 CAMH = 102         # camera height (world units): CAMH*F/256 = 127-HY
@@ -60,21 +60,32 @@ def expand4(bits4):
             v |= 0xC0 >> (2 * i)
     return v
 
+STATIC0 = 9        # static characters live in PCG banks 9..15
+
 def code_attr(i):
+    i += STATIC0 * 128
     return (0x80 | (i & 127), i >> 7)
 
-# fixed characters ---------------------------------------------------------
-# Bank 0 holds everything the road rows use, so road cells never need an
-# attribute change: 15 stripe chars (rows 1..15, rewritten in vblank),
-# FULL, 9 horizon masks and the edge library.
-IDX_STRIPE = reserve(15)
-IDX_FULL = alloc([0xFF] * 16, dedupe=False)
-pcg_index[tuple([0xFF] * 16)] = IDX_FULL
-IDX_HMASK = len(pcg)
-for k in range(9):
-    pcg.append(tuple(dbl([0 if l < k else 0xFF for l in range(8)])))
-# edge library: boundary at logical x; pixel p (0..3) set iff p >= v,
-# v = o + floor((s*l+1)/2), s in half logical pixels per line (-8..8)
+# ------------------------------------------------------------------ road masks
+# PCG banks 1-8 are the double-buffered road characters, built every frame
+# (page p uses banks 1+4p .. 4+4p, rows 1-4 / 5-8 / 9-12 / 13-15, 32 slots
+# per row).  Each road character = for every logical line, the dither
+# pattern of the left or right surface, chosen per pixel by an edge mask.
+#
+# Mask library: 8 bytes per mask, each byte = mval*2 where the line mask is
+# one of 00 03 0F 3F FF (mval 0..4; set bits = right-hand surface).
+# Boundary at logical x; pixel p (0..3) is right-hand iff p >= v,
+# v = o + floor((s*l+1)/2), s in half logical pixels per line (-8..8).
+MVAL = {0x00: 0, 0x03: 1, 0x0F: 2, 0x3F: 3, 0xFF: 4}
+masks = [tuple([0] * 8), tuple([8] * 8)]       # 0 = all left, 1 = all right
+mask_index = {masks[0]: 0, masks[1]: 1}
+def mask_id(lines):
+    t = tuple(MVAL[b] * 2 for b in lines)
+    if t not in mask_index:
+        mask_index[t] = len(masks)
+        masks.append(t)
+    return mask_index[t]
+
 SLOPES = list(range(-8, 9))
 edge_tables = []
 for sq in SLOPES:
@@ -92,16 +103,30 @@ for sq in SLOPES:
     def triv(p): return all(b == 0xFF for b in p) or all(b == 0 for b in p)
     nz = [o for o, p in rng if not triv(p)]
     lo, hi = min(nz), max(nz)
-    ent = []
-    for o, p in rng:
-        if lo <= o <= hi:
-            if all(b == 0xFF for b in p): ent.append(('FULL', None))
-            elif all(b == 0 for b in p): ent.append(('EMPTY', None))
-            else: ent.append(('CH', alloc(dbl(p))))
+    ent = [mask_id(p) for o, p in rng if lo <= o <= hi]
     edge_tables.append((sq, lo, hi, ent))
-n_edge_chars = len(pcg)
-assert len(pcg) <= 128, 'bank 0 overflow: %d' % len(pcg)
-reserve(128 - len(pcg))
+assert len(masks) * 8 <= 1024
+n_edge_chars = len(masks)
+
+# Dither patterns per surface (0 verge, 1 kerb, 2 road) and band phase
+# (0 dark, 1 light, 2 above the horizon), two scanlines each.
+PATS = [
+    [(0x88, 0x22), (0xAA, 0x55), (0x00, 0x00)],     # verge: sparse / checker
+    [(0xFF, 0xFF), (0x00, 0x00), (0x00, 0x00)],     # kerb chevrons: inverse of the road
+    [(0xAA, 0x55), (0xFF, 0xFF), (0x00, 0x00)],     # road: checker / solid
+]
+# surface pairs (left, right): 0 V|K 1 K|R 2 R|K 3 K|V 4 V|R 5 R|V
+PAIRS = [(0, 1), (1, 2), (2, 1), (1, 0), (0, 2), (2, 0)]
+RES = []
+for l_, r_ in PAIRS:
+    page = []
+    for ph in range(3):
+        for mv, m in enumerate((0x00, 0x03, 0x0F, 0x3F, 0xFF)):
+            for sc in range(2):
+                a_ = PATS[l_][ph][sc]; b_ = PATS[r_][ph][sc]
+                page.append((a_ & ~m & 0xFF) | (b_ & m))
+    RES.append(page)
+
 # HUD font ------------------------------------------------------------------
 FONT = {
  '0': ['.##.', '#..#', '#.##', '##.#', '#..#', '#..#', '.##.'],
@@ -159,6 +184,7 @@ for name, pat in (('d25', [0x88, 0x00, 0x22, 0x00]), ('d50', [0xAA, 0x55]), ('d7
     lines = [pat[i % len(pat)] for i in range(16)]
     DITHER[name] = alloc(lines)
 
+IDX_SOLID = alloc([0xFF] * 16)
 # panorama: 256 logical px loop, 16 logical lines (2 cell rows), 4 sub-cell shifts
 def mountain_height(x):
     t = x / 256.0 * 2 * math.pi
@@ -188,81 +214,59 @@ for shift in range(4):
     pano.append(rows)
 
 # ------------------------------------------------------------------ player car
-CAR = [
- "............KKKKKKKKKKKKKKKK............",
- ".........KKKKKKKKKKKKKKKKKKKKKK.........",
- ".......KKKKKKKKKKKKKKKKKKKKKKKKKK.......",
- "......KKKKKKKKKKKKKKKKKKKKKKKKKKKK......",
- ".....KKKKKKKKKKKKKKKKKKKKKKKKKKKKKK.....",
- "....KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK....",
- "...KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK...",
- "..KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK..",
- ".KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK.",
- ".KKKKKKKRRRRRRRRKKKKKKKKRRRRRRRRKKKKKKK.",
- "KKKKKKKKRRRRRRRRKKKKKKKKRRRRRRRRKKKKKKKK",
- "KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK",
- "KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK",
- "KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK",
- ".KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK.",
- "..KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK..",
- "...KKKKKKK....................KKKKKKK...",
- "...KKKKKKK....................KKKKKKK...",
- "........................................",
- "........................................",
- "........................................",
- "........................................",
- "........................................",
- "........................................",
-]
-COLS = {'K': 0, 'R': 9, 'r': 1, 'Y': 11, 'W': 15, 'G': 8, 'P': 13}
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import mkcar
+CAR_FRAMES = mkcar.frames()          # 5 poses, 80x48 screen pixels
 
-def shift_rows(art, top_shift):
-    out = []
-    n = len(art)
-    for y, row in enumerate(art):
-        s = int(round(top_shift * max(0, (12 - y)) / 12))
-        if s > 0: row = '.' * s + row[:-s]
-        elif s < 0: row = row[-s:] + '.' * (-s)
-        out.append(row)
-    return out
+def car_ink(c, x, y):
+    if c == 'S': return 1 if (x % 2 == 0 and y % 2 == 0) else 0
+    if c == 'W': return 1 if (x + y) % 2 == 0 else 0
+    if c == 'G': return 1 if (y % 6 == 2 and x % 2 == 0) else 0
+    return 0
 
-def convert_sprite(art, W, Hh):
-    """returns list of cells: (pcg_idx or None, fg, bg or None[=transparent->dynamic])"""
-    cw, ch = W // 4, Hh // 8
+car_partials = []                     # 32 bytes each: (notmask, ink) x 16
+def convert_car(fr):
+    """30 cells -> (type, a, b): 0 empty; 1 opaque (code, attr);
+    2 opaque with tail light (code, attr); 3 partial (index into car_partials)"""
     cells = []
-    for cy in range(ch):
-        for cx in range(cw):
-            px = [[art[cy * 8 + l][cx * 4 + p] for p in range(4)] for l in range(8)]
+    for cy in range(3):
+        for cx in range(10):
+            px = [[fr[cy * 16 + y][cx * 8 + x] for x in range(8)] for y in range(16)]
             flat = [c for r in px for c in r]
-            cnt = {}
-            for c in flat: cnt[c] = cnt.get(c, 0) + 1
-            if set(cnt) == {'.'}:
-                cells.append(None); continue
-            inks = sorted([c for c in cnt if c != '.'], key=lambda c: -cnt[c])
-            if '.' in cnt:
-                fgc, bgc = inks[0], None       # transparent bg
-            elif len(inks) == 1:
-                fgc, bgc = inks[0], inks[0]
+            if all(c == '.' for c in flat):
+                cells.append((0, 0, 0)); continue
+            light = any(c == 'R' for c in flat)
+            if light:                  # tail-light cells are made fully opaque
+                px = [[('K' if c == '.' else c) for c in r] for r in px]
+                flat = [c for r in px for c in r]
+            if '.' not in flat:
+                scan = []
+                for y in range(16):
+                    v = 0
+                    for x in range(8):
+                        c = px[y][x]
+                        on = (c == 'R') if light else car_ink(c, cx * 8 + x, cy * 16 + y)
+                        if on: v |= 0x80 >> x
+                    scan.append(v)
+                cd, at = code_attr(alloc(scan))
+                cells.append((2 if light else 1, cd, at))
             else:
-                fgc, bgc = inks[1], inks[0]
-            lines = []
-            for l in range(8):
-                bits = 0
-                for p in range(4):
-                    c = px[l][p]
-                    if c == '.' or c == bgc: continue
-                    if c == fgc or bgc is None or True:
-                        # nearest assignment: anything not bg becomes fg
-                        bits |= 8 >> p
-                lines.append(expand4(bits))
-            idx = alloc(dbl(lines))
-            cells.append((idx, COLS[fgc], None if bgc is None else COLS[bgc]))
+                data = []
+                for y in range(16):
+                    nm = ink = 0
+                    for x in range(8):
+                        c = px[y][x]
+                        if c == '.': nm |= 0x80 >> x
+                        elif c != 'R' and car_ink(c, cx * 8 + x, cy * 16 + y): ink |= 0x80 >> x
+                    data += [nm, ink]
+                car_partials.append(data)
+                cells.append((3, len(car_partials) - 1, 0))
     return cells
 
-car_poses = [convert_sprite(shift_rows(CAR, s), 40, 24) for s in (-2, 0, 2)]
+car_poses = [convert_car(f) for f in CAR_FRAMES]
 
-print('PCG characters used: %d of 2048 (bank 0 road set %d/128)' % (len(pcg), n_edge_chars), file=sys.stderr)
-assert len(pcg) <= 2048 - 0
+print('static PCG characters: %d (banks %d-%d), road masks %d, car partial cells %d' % (len(pcg), STATIC0, STATIC0 + (len(pcg) - 1) // 128, len(masks), len(car_partials)), file=sys.stderr)
+assert len(pcg) <= (16 - STATIC0) * 128
 
 # ------------------------------------------------------------------ track
 # 256 segments: curve (signed, X accel per segment) and height (world units)
@@ -279,7 +283,7 @@ for i in range(256):
 ty = [int(round(h)) for h in hill]
 
 # ------------------------------------------------------------------ tables
-PK = [0] + [p if p <= 12 else 12 + 2 * (p - 12) for p in range(1, NSEG + 1)]
+PK = [0] + [p if p <= 8 else 8 + 2 * (p - 8) for p in range(1, NSEG + 1)]
 INV = []
 HWT = []
 for p_ in range(NSEG + 1):
@@ -302,10 +306,8 @@ def dw(vals, per=8):
 
 L.append('; generated by mkgfx.py - do not edit')
 for k, v in (('NSEG', NSEG), ('HY', HY), ('CAMH', CAMH), ('RW', RW), ('PCG_COUNT', len(pcg)),
-             ('IDX_FULL', IDX_FULL), ('PCG_BANKS', (len(pcg) + 127) // 128), ('IDX_HMASK', IDX_HMASK), ('IDX_STRIPE', IDX_STRIPE)):
+             ('PCG_BANKS', (len(pcg) + 127) // 128), ('PCG_FIRST', STATIC0)):
     L.append('%-12s equ %d' % (k, v))
-fc, fa = code_attr(IDX_FULL)
-L.append('FULL_CODE    equ %d' % fc); L.append('FULL_ATTR    equ %d' % fa)
 
 # edge table: per slope: dw entries_ptr ; db omin, omax   (4 bytes, index = slope+16)
 L.append('EDGE_DIR:')
@@ -314,14 +316,7 @@ for sq, lo, hi, ent in edge_tables:
     L.append('        db %d,%d' % (lo & 255, (hi - lo + 1) & 255))
 for sq, lo, hi, ent in edge_tables:
     L.append('EDGE_%d:' % (sq + 16))
-    vals = []
-    for kind, i in ent:
-        if kind == 'FULL': vals.append(fc)
-        elif kind == 'EMPTY': vals.append(0x20)
-        else:
-            assert i < 128
-            vals.append(code_attr(i)[0])
-    db(vals)
+    db(ent)
 
 # HUD font map: ascii 32..95 -> code, attr
 L.append('FONTMAP:')
@@ -346,29 +341,33 @@ for nm, sel in (('PANOC', 0), ('PANOA', 1)):
             vals = []
             for kind, i in pano[shift][row]:
                 if kind == 'EMPTY': vals.append((0x20, 0)[sel])
-                elif kind == 'FULL': vals.append((fc, fa)[sel])
+                elif kind == 'FULL': vals.append(code_attr(IDX_SOLID)[sel])
                 else: vals.append(code_attr(i)[sel])
             db(vals + vals)
 
-# car: 3 poses x 30 cells: code, attr, fg, bg(255 = transparent)
+# car: 5 poses x 30 cells x (type, a, b)
 L.append('CARDATA:')
 for pose in car_poses:
-    vals = []
-    for cell in pose:
-        if cell is None: vals += [0, 0, 0, 254]          # 254 = empty cell (leave road)
-        else:
-            i, fg, bg = cell
-            c, a = code_attr(i)
-            vals += [c, a, fg, 255 if bg is None else bg]
-    db(vals)
+    db([v for cell in pose for v in cell])
+L.append('CARPART:')
+for data in car_partials:
+    db(data)
 
 # slope table: d = x7-x0 in -32..32 -> clamp(round(d*4/7)) + 16
 L.append('SLOPETAB:'); db([max(-8, min(8, int(math.floor(d / 4 + 0.5)))) + 8 for d in range(-32, 33)])
 L.append('PSTEP:'); db([0] + [PK[i] - PK[i - 1] for i in range(1, NSEG + 1)])
+L.append('        align 256')
 L.append('TRK_CURVE:'); db(curve)
 L.append('TRK_YL:'); db([v & 255 for v in ty])
 L.append('TRK_YH:'); db([(v >> 8) & 255 for v in ty])
+L.append('        align 2048')
+L.append('MASKLIB:')
+for m in masks: db(list(m))
 L.append('        align 256')
+L.append('RESPAGES:')
+for page in RES:
+    db(page)
+    L.append('        align 256')
 L.append('SQL:'); db([(n * n // 4) & 255 for n in range(512)])
 L.append('SQH:'); db([(n * n // 4) >> 8 for n in range(512)])
 L.append('INVL:'); db([v & 255 for v in INV])

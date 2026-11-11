@@ -22,6 +22,7 @@
         include "road.asm"
 
 MAXSPD  equ 400
+FRAMEFIELDS equ 5              ; 50/5 = 10 fps locked (4 -> 12.5 fps when the engine is fast enough)
 ACC     equ 3
 DRAG    equ 1
 BRAKE   equ 8
@@ -102,7 +103,16 @@ P_rows:
         call vbpoll
         call draw_car
 P_wait:
-        call wait_vb
+.w      call wait_vb            ; steady pacing: flip every FRAMEFIELDS fields
+        ld hl,(fields)
+        ld de,(flipf)
+        or a
+        sbc hl,de
+        ld a,l
+        cp FRAMEFIELDS
+        jr c,.w
+        ld hl,(fields)
+        ld (flipf),hl
         ld a,12                 ; flip: show the page just drawn
         out (CRTC_A),a
         ld a,(page)
@@ -113,7 +123,6 @@ P_wait:
         out (CRTC_A),a
         xor a
         out (CRTC_D),a
-        call blit_stripes       ; still inside vertical blank
 P_flip:
         ld a,(page)
         xor 1
@@ -383,9 +392,6 @@ draw_page:
         ld de,BX0
         ld bc,8
         ldir
-        call stripe_char
-        xor a
-        ld (allint),a
         call vbpoll
         call build_regions
         call write_row
@@ -396,16 +402,7 @@ draw_page:
         ld de,BX0
         ld bc,8
         ldir
-        ld a,1
-        ld (allint),a
-        call build_regions
-        ld a,(rowtop)
-        ld b,a
-        ld a,(LTOP)
-        sub b                   ; empty lines at top (1..7)
-        add a,IDX_HMASK
-        or 80h
-        ld (rcode),a
+        call build_regions      ; lines above the horizon come out black
         call write_row
 .next   ld a,(crow)
         inc a
@@ -442,6 +439,8 @@ draw_sky:
         ld d,0
         ld hl,lastsky
         add hl,de
+        xor a
+        ld (.gdirty),a
         ld a,(toprow)
         cp (hl)
         jr nz,.ch
@@ -449,8 +448,17 @@ draw_sky:
         ld a,(panpx)
         cp (hl)
         ret z
-        dec hl
-.ch     ld a,(toprow)
+        ld (hl),a               ; only the panorama scrolled: its 2 rows
+        ld a,(toprow)
+        sub 2
+        jr c,.none
+        jr z,.none
+        ld (crow),a
+        jr .sr
+.none   ret
+.ch     ld a,1                  ; horizon row moved: whole sky
+        ld (.gdirty),a
+        ld a,(toprow)
         ld (hl),a
         inc hl
         ld a,(panpx)
@@ -476,6 +484,9 @@ draw_sky:
         inc c
         cp c
         jr z,.panoB
+        ld a,(.gdirty)          ; gradient rows only change with the horizon
+        or a
+        jp z,.nx
         ld a,(toprow)           ; gradient row: d = (toprow-2) - crow  (>=1)
         sub 2
         ld hl,crow
@@ -556,39 +567,76 @@ draw_sky:
         call fillb
         xor a
         out (PORT_08),a
-        ld a,(crow)
+.nx     ld a,(crow)
         inc a
         ld (crow),a
         jp .sr
+.gdirty db 0
 .sc     db 0
 .sa     db 0
 .scol   db 0
 .src    dw 0
 
 ; --------------------------------------------------------------------------
-; draw_car: player car on rows 13-15 (pose by steering), three passes
-;   cells: code, attr, fg, bg (255 = colour of ground beneath, 254 = empty)
+; draw_car: player car on rows 13-15, 5 steering poses that blend over a
+; few frames.  Per cell: 0 empty (ground stays), 1 opaque static character,
+; 2 opaque with tail light (light colour), 3 partial: built per frame from
+; the ground under it (car_under) and the car's mask/ink (cellcomp).
 ; --------------------------------------------------------------------------
 P_car:
 draw_car:
+        ; target pose from steering, held steering leans further
         ld a,(keys)
         and 3
-        ld b,1
+        ld c,2
+        jr z,.tgt0
+        ld hl,steerT
+        inc (hl)
+        ld b,(hl)
         cp 1
-        jr nz,.n1
-        ld b,0
-.n1     cp 2
-        jr nz,.n2
-        ld b,2
-.n2     ld a,b
-        ld hl,CARDATA
-        ld de,120
-        or a
-        jr z,.p0
-.pm     add hl,de
+        jr nz,.r
+        ld c,1                  ; left
+        ld a,b
+        cp 4
+        jr c,.tgt
+        ld c,0
+        jr .tgt
+.r      cp 2
+        jr nz,.tgt
+        ld c,3                  ; right
+        ld a,b
+        cp 4
+        jr c,.tgt
+        ld c,4
+        jr .tgt
+.tgt0   xor a
+        ld (steerT),a
+.tgt    ld a,(carpose)          ; move one pose per frame towards the target
+        cp c
+        jr z,.pz
+        jr c,.up
         dec a
-        jr nz,.pm
-.p0     ld (.src),hl
+        jr .ps
+.up     inc a
+.ps     ld (carpose),a
+.pz     ld a,(carpose)
+        ld l,a
+        ld h,0
+        ld d,h
+        ld e,l
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        add hl,de               ; *9
+        add hl,hl               ; *18
+        ld d,h
+        ld e,l
+        add hl,hl
+        add hl,hl               ; *72
+        add hl,de               ; *90
+        ld de,CARDATA
+        add hl,de
+        ld (.src),hl
         xor a
         ld (.cy),a
 .rowl   call vbpoll
@@ -599,147 +647,150 @@ draw_car:
         ld de,CAR_COL
         add hl,de
         ld (.dst),hl
-        ; ground boundaries under this row (line 8*(row+1)) -> cell numbers
-        ld a,(crow)
-        inc a
+        call row_bank
+        call set_phases
+        call patch_comp
+        ld a,(.cy)
+        ld e,a
+        ld d,0
+        ld hl,CSLOT
+        add hl,de
+        ld a,(hl)
+        ld (.code),a
+        ld hl,CSDEST
+        add hl,de
+        add hl,de
+        ld a,(hl)
+        inc hl
+        ld h,(hl)
+        ld l,a
+        ld (.pdst),hl
+        ld a,(.cy)              ; CUNDER row pointer
+        ld b,a
         add a,a
+        add a,a
+        add a,b
         add a,a
         add a,a
         ld e,a
-        ld d,0
-        ld ix,BXR
-        add ix,de
-        ld b,4
-        ld de,.cb
-.cbl    ld l,(ix+0)
-        ld h,(ix+1)
-        push de
-        call cellof
-        pop de
-        inc a                   ; -1..64 -> 0..65
-        ld (de),a
-        inc de
-        inc ix
-        inc ix
-        djnz .cbl
-        ; colours
-        ld hl,(.src)
-        ld de,.cols
-        ld c,CAR_COL+1          ; +1 matches the cb offset
+        ld hl,CUNDER
+        add hl,de
+        ld (.und),hl
+        ld a,(crow)
+        ld e,a
+        ld hl,ROWCOL
+        add hl,de
+        ld a,(hl)
+        ld (.gcol),a
+        ld a,(rbank)
+        or X1C
+        out (PORT_1C),a
+        ; pass 1: codes (and partial cells built); attr/colour to buffers
+        ld ix,.attrs
         ld b,10
-.colc   push bc
+.cell   push bc
+        call vbpoll
+        ld hl,(.src)
+        ld a,(hl)               ; type
         inc hl
+        ld c,(hl)               ; a
         inc hl
-        ld a,(hl)
+        ld b,(hl)               ; b
         inc hl
-        ld (.fg),a
-        ld a,(hl)
-        inc hl
-        cp 255
-        jr nz,.hb
+        ld (.src),hl
+        or a
+        jr nz,.t1
+        ld a,(rbank)            ; empty: ground stays, restore bank + colour
+        ld (ix+0),a
+        ld a,(.gcol)
+        ld (ix+10),a
+        jr .nx
+.t1     cp 3
+        jr z,.t3
+        ld hl,(.dst)            ; static character
+        ld (hl),c
+        ld (ix+0),b
+        cp 2
+        ld a,(.gcol)
+        jr nz,.t1c
+        ld a,(LIGHTCOL)
+.t1c    ld (ix+10),a
+        jr .nx
+.t3     push ix
+        ld l,c                  ; IX = CARPART + 32*index
+        ld h,0
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        ld de,CARPART
+        add hl,de
         push hl
-        ld hl,.cb               ; class = number of boundaries at or left of c
-        ld b,0
-        ld a,c
-        cp (hl)
-        jr c,.u
-        inc b
+        pop ix
+        ld hl,(.und)            ; ground under this column: page, mask
+        ld a,(hl)
         inc hl
-        cp (hl)
-        jr c,.u
-        inc b
-        inc hl
-        cp (hl)
-        jr c,.u
-        inc b
-        inc hl
-        cp (hl)
-        jr c,.u
-        inc b
-.u      ld a,b
-        ld hl,UNDERCOL
-        add a,l
-        ld l,a
-        jr nc,.u2
-        inc h
-.u2     ld a,(hl)
-        pop hl
-.hb     add a,a
-        add a,a
-        add a,a
-        add a,a
-        ld b,a
-        ld a,(.fg)
-        or b
-        ld (de),a
+        ld l,(hl)
+        ld h,0
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        ld de,MASKLIB
+        add hl,de
+        ld b,h
+        ld c,l
+        ld h,a
+        ld de,(.pdst)
+        call cellcomp
         inc de
+        ld (.pdst),de
+        pop ix
+        ld hl,(.dst)
+        ld a,(.code)
+        ld (hl),a
+        inc a
+        ld (.code),a
+        ld a,(rbank)
+        ld (ix+0),a
+        ld a,(.gcol)
+        ld (ix+10),a
+.nx     ld hl,(.dst)
+        inc hl
+        ld (.dst),hl
+        ld hl,(.und)
+        inc hl
+        inc hl
+        ld (.und),hl
+        inc ix
         pop bc
-        inc c
-        djnz .colc
-        ; pass 1: codes (empty cells keep the road)
-        ld hl,(.src)
-        ld de,(.dst)
-        ld b,10
-.c1     ld a,(hl)
-        inc hl
-        inc hl
-        inc hl
-        ld c,(hl)
-        inc hl
-        inc c
-        inc c
-        jr z,.c1s
-        ld (de),a
-.c1s    inc de
-        djnz .c1
-        ; pass 2: attributes (all cells: empty cells back to bank 0)
+        dec b
+        jp nz,.cell
+        ; pass 2: attributes, pass 3: colours
+        ld hl,(.dst)
+        ld de,-10
+        add hl,de
+        ld (.dst),hl
         ld a,X1C_ATTR
         out (PORT_1C),a
-        ld hl,(.src)
-        ld de,(.dst)
-        ld b,10
-.c2     inc hl
-        ld a,(hl)
-        inc hl
-        inc hl
-        ld c,(hl)
-        inc hl
-        inc c
-        inc c
-        jr nz,.c2w
-        xor a
-.c2w    ld (de),a
-        inc de
-        djnz .c2
+        ex de,hl
+        ld hl,.attrs
+        ld bc,10
+        ldir
         ld a,X1C
         out (PORT_1C),a
-        ; pass 3: colours
         ld a,40h
         out (PORT_08),a
         ld hl,(.dst)
         ld a,h
         add a,8
-        ld h,a
-        ex de,hl
-        ld hl,(.src)
-        ld ix,.cols
-        ld b,10
-.c3     inc hl
-        inc hl
-        inc hl
-        ld c,(hl)
-        inc hl
-        inc c
-        inc c
-        jr z,.c3s
-        ld a,(ix+0)
-        ld (de),a
-.c3s    inc de
-        inc ix
-        djnz .c3
+        ld d,a
+        ld e,l
+        ld hl,.cols
+        ld bc,10
+        ldir
         xor a
         out (PORT_08),a
-        ld (.src),hl
         ld a,(.cy)
         inc a
         ld (.cy),a
@@ -748,9 +799,12 @@ draw_car:
         ret
 .src    dw 0
 .dst    dw 0
+.pdst   dw 0
+.und    dw 0
 .cy     db 0
-.fg     db 0
-.cb     ds 4
+.code   db 0
+.gcol   db 0
+.attrs  ds 10
 .cols   ds 10
 
 ; --------------------------------------------------------------------------
@@ -759,7 +813,7 @@ draw_car:
 HUD_SPD equ 6
 HUD_TIM equ 20
 HUD_FPS equ 29
-HUDTXT: db "SPEED 000 KMH  TIME 000  FPS 00                 VIBED BY BPM 2026"
+HUDTXT: db "SPEED 000 KMH  TIME 000  FPS 00                VIBED BY BPM 2026"
 HUDLEN  equ 64
 
 hud_static:
@@ -949,20 +1003,18 @@ fps_update:
         ret
 
 ; --------------------------------------------------------------------------
-; colour themes (inspired by period Microbee racers: dithered gradients)
-;  per theme: verge A,B  kerb A,B  road A,B  terrain  peaks  mountains
-;             sky0..sky4 (top -> horizon)  HUD colour
-; A = solid-line colour, B = second colour of the checker lines
+; colour themes.  The ground is ONE colour on black (two shades: far rows,
+; near rows); verge, kerb and road differ only by dither pattern.
+;  per theme: ground far, ground near, tail light, peaks, mountains,
+;             sky0..sky4 (top -> horizon), HUD colour
 ; --------------------------------------------------------------------------
 NTHEMES equ 3
 THEMES:
-        ; DUSK: violet-to-magenta sky, blue road, pink/white kerbs
-        db 4,0,  15,13,  12,4,  0,  5,0,  4,4,4,5,13,   0Dh
-        ; SNOWLINE: red sky, white horizon, grey road, white verges
-        db 15,7, 15,9,   7,8,   7,  7,8,  1,1,9,9,15,   09h
-        ; DAYTIME: blue sky, green verges, grey road
-        db 10,2, 15,9,   7,8,   2,  15,4, 4,4,12,12,14,  0Bh
-THEMESZ equ 15
+        db 4,12, 9,  5,0,  4,4,4,5,13,   0Dh    ; DUSK: blue ground, violet/magenta sky
+        db 8,7,  9,  7,0,  1,1,9,9,15,   09h    ; SNOWLINE: grey ground, red sky
+        db 2,10, 11, 15,0, 4,4,12,12,14, 0Bh    ; DAYTIME: green ground, blue sky
+THEMESZ equ 11
+FARROWS equ 10                  ; rows 1..9 use the far shade
 
 set_theme:
         ld a,(theme)
@@ -976,125 +1028,42 @@ set_theme:
 .t0     ld de,THM
         ld bc,THEMESZ
         ldir
-        ; class colours: CLS_INT[c] = (B<<4)|A ; CLS_HOR[c] = (TERR<<4)|A
-        ld ix,THM
-        ld b,3
-        ld hl,CLS_INT
-        ld de,CLS_HOR
-.c1     ld a,(ix+1)
-        add a,a
-        add a,a
-        add a,a
-        add a,a
-        or (ix+0)
-        ld (hl),a
-        inc hl
-        ld a,(THM+6)
-        add a,a
-        add a,a
-        add a,a
-        add a,a
-        or (ix+0)
-        ld (de),a
-        inc de
-        inc ix
-        inc ix
-        djnz .c1
-        ; CLS_PAIR[l*3+r] = (A_l<<4)|A_r
-        ld hl,CLS_PAIR
+        ld hl,ROWCOL            ; ground colour per screen row (black background)
+        ld b,16
         ld c,0
-.pl     ld a,c
-        call .ca
-        add a,a
-        add a,a
-        add a,a
-        add a,a
-        ld b,a
-        ld e,0
-.pr     ld a,e
-        call .ca
-        or b
-        ld (hl),a
-        inc hl
-        inc e
-        ld a,e
-        cp 3
-        jr c,.pr
-        inc c
-        ld a,c
-        cp 3
-        jr c,.pl
-        ; region colour sets for the 4 kerb-merge states
-        ; regions: V | (V,K) | K | (K,R) | R | (R,K) | K | (K,V) | V
-        ;  merged left: (V,K)+K -> empty, (K,R) -> (V,R)
-        ld de,RCOLS
-        ld hl,RCSPEC
-        ld b,36
-.rs     push bc
-        ld a,(hl)
-        inc hl
-        push hl
-        push de
-        call .rcol
-        pop de
-        ld (de),a
-        inc de
-        pop hl
-        pop bc
-        djnz .rs
-        ld de,HCOLS
-        ld hl,RCSPEC
-        ld b,36
-.hs     push bc
-        ld a,(hl)
-        inc hl
-        and 3                   ; horizon: (terrain, right class A)
-        push hl
-        push de
-        ld e,a
-        ld d,0
-        ld hl,CLS_HOR
-        add hl,de
-        ld a,(hl)
-        pop de
-        ld (de),a
-        inc de
-        pop hl
-        pop bc
-        djnz .hs
-        ; car ground colours: classes verge, kerb, road, kerb, verge
+.rc     ld a,c
+        cp FARROWS
         ld a,(THM+0)
-        ld (UNDERCOL+0),a
-        ld (UNDERCOL+4),a
+        jr c,.far
+        ld a,(THM+1)
+.far    ld (hl),a
+        inc hl
+        inc c
+        djnz .rc
         ld a,(THM+2)
-        ld (UNDERCOL+1),a
-        ld (UNDERCOL+3),a
-        ld a,(THM+4)
-        ld (UNDERCOL+2),a
-        ; panorama row colours: sky4 background, peaks / mountains foreground
-        ld a,(THM+13)
+        ld (LIGHTCOL),a
+        ld a,(THM+9)            ; panorama rows: sky4 background
         add a,a
         add a,a
         add a,a
         add a,a
         ld b,a
-        ld a,(THM+7)
+        ld a,(THM+3)
         or b
         ld (PANO_COLA),a
-        ld a,(THM+8)
+        ld a,(THM+4)
         or b
         ld (PANO_COLB),a
-        ld a,(THM+14)
+        ld a,(THM+10)
         ld (HUDCOL),a
-        ; sky gradient colours (codes are fixed): d=1..9
-        ld ix,THM+9             ; sky0..sky4
+        ld ix,THM+5             ; sky0..sky4 -> gradient rows d=1..9
         ld a,(ix+4)
         call .solid
-        ld (SKYTAB+0*3+2),a     ; d1 sky4
+        ld (SKYTAB+0*3+2),a
         ld a,(ix+3)
         ld b,(ix+4)
         call .mix
-        ld (SKYTAB+1*3+2),a     ; d2 sky3/sky4
+        ld (SKYTAB+1*3+2),a
         ld a,(ix+3)
         call .solid
         ld (SKYTAB+2*3+2),a
@@ -1119,10 +1088,15 @@ set_theme:
         ld a,(ix+0)
         call .solid
         ld (SKYTAB+8*3+2),a
-        ; invalidate cached sky rows and the HUD colour on both pages
+        ; force sky and road rows (attributes + colours) to be redrawn
         ld a,0FFh
         ld (lastsky),a
         ld (lastsky+2),a
+        ld hl,ROWTYPE
+        ld b,32
+.rt     ld (hl),0
+        inc hl
+        djnz .rt
         ld a,(page)
         push af
         xor a
@@ -1133,44 +1107,6 @@ set_theme:
         call hud_static
         pop af
         ld (page),a
-        ret
-.rcol   ; spec byte: bit7 = edge, bits 3-2 left class, bits 1-0 right class
-        bit 7,a
-        jr nz,.re
-        and 3
-        ld e,a
-        ld d,0
-        ld hl,CLS_INT
-        add hl,de
-        ld a,(hl)
-        ret
-.re     ld c,a
-        rrca
-        rrca
-        and 3
-        ld b,a
-        add a,a
-        add a,b
-        ld b,a
-        ld a,c
-        and 3
-        add a,b
-        ld e,a
-        ld d,0
-        ld hl,CLS_PAIR
-        add hl,de
-        ld a,(hl)
-        ret
-.ca     push hl                 ; A = class -> A = colour A of class
-        add a,a
-        ld l,a
-        ld h,0
-        push de
-        ld de,THM
-        add hl,de
-        pop de
-        ld a,(hl)
-        pop hl
         ret
 .solid  add a,a                 ; space char: background colour only
         add a,a
@@ -1183,15 +1119,6 @@ set_theme:
         add a,a
         or b
         ret
-
-; region colour specs: interior = class, edge = 80h | left<<2 | right
-V_ equ 0
-K_ equ 1
-R_ equ 2
-RCSPEC: db V_, 80h|V_<<2|K_, K_, 80h|K_<<2|R_, R_, 80h|R_<<2|K_, K_, 80h|K_<<2|V_, V_
-        db V_, 80h|V_<<2|K_, V_, 80h|V_<<2|R_, R_, 80h|R_<<2|K_, K_, 80h|K_<<2|V_, V_
-        db V_, 80h|V_<<2|K_, K_, 80h|K_<<2|R_, R_, 80h|R_<<2|V_, V_, 80h|K_<<2|V_, V_
-        db V_, 80h|V_<<2|K_, V_, 80h|V_<<2|R_, R_, 80h|R_<<2|V_, V_, 80h|K_<<2|V_, V_
 
 ; sky gradient rows by distance above the panorama: code, attr, colour
 SKYTAB: db 20h,0,0
@@ -1216,6 +1143,7 @@ camX:   dw 0
 speed:  dw 0
 panX:   dw 0
 lastf:  dw 0
+flipf:  dw 0
 dt:     db 0
 keys:   db 0
 ckey:   db 0
@@ -1247,18 +1175,14 @@ crow:   db 0
 rowtop: db 0
 toprow: db 0
 panpx:  db 0
-rcode:  db 0
-allint: db 0
 raddr:  dw 0
 cur:    db 0
 mstate: db 0
 rptr:   dw 0
 eptr:   dw 0
 THM:    ds THEMESZ
-CLS_INT: ds 3
-CLS_HOR: ds 3
-CLS_PAIR: ds 9
-UNDERCOL: ds 5
+ROWCOL: ds 16
+LIGHTCOL: db 0
 PANO_COLA: db 0
 PANO_COLB: db 0
 HUDCOL: db 0
@@ -1271,18 +1195,32 @@ BINFO:  ds 32
 BLC:    ds 4                    ; BLC, BRC, BEN must be contiguous
 BRC:    ds 4
 BEN:    ds 4
-REGLEN: ds 9                    ; REGLEN, REGCOL must be contiguous
-REGCOL: ds 9
-STRIPEBUF: ds 15*16
+REGLEN: ds 9
+sbase:  db 0
+rbank:  db 0
+sdest:  dw 0
+scode:  db 0
+sleft:  db 0
+rints:  dw 0
+rpairs: dw 0
+wptr:   dw 0
+ICODE:  ds 3
+        align 16
+PHOFF:  ds 8
+CUNDER: ds 60
+CSLOT:  ds 3
+CSDEST: ds 6
+carpose: db 2
+steerT: db 0
 SYT:    ds (NSEG+1)*2
 SXT:    ds (NSEG+1)*2
 SWT:    ds (NSEG+1)*2
-RCOLS:  ds 36                   ; region colours [merge state 0..3][9]
-HCOLS:  ds 36                   ; horizon-row region colours
         align 256
 LINEK:  ds 128
 PHT:    ds NSEG+1
         align 256
-ECODE:  ds 64
+ECODE:  ds 256
+SLOTMASK: ds 256                ; per screen code: mask index of its character
+SLOTPAGE: ds 256                ; per screen code: RES page of its character
 ENDPROG:
         assert ENDPROG < 0E000h

@@ -78,32 +78,41 @@ project:
         ld d,0
         ld hl,PSTEP
         add hl,de
-        ld b,(hl)
-.st     push bc
+        ld b,(hl)               ; 1 or 2 segments to this point
+        ld a,(kseg)
+        ld c,a
+        add a,b
+        ld (kseg),a
         ld a,(seg)
-        ld hl,kseg
-        add a,(hl)
-        inc (hl)
-        call get_curve
-        ld e,a
+        add a,c
+        ld c,a                  ; first segment of the strip
+        ld a,b
+        ld b,high(TRK_CURVE)    ; TRK_CURVE is page aligned
+        ld hl,(DXK)
+        ld de,(XK)
+.st     ex af,af'
+        ld a,(bc)
+        inc c
+        push bc
+        ld c,a
         rlca
         sbc a,a
-        ld d,a
-        ld hl,(DXK)
-        add hl,de
-        ld (DXK),hl
-        ld de,(XK)
-        add hl,de
-        ld (XK),hl
+        ld b,a
+        add hl,bc               ; DXK += curve
+        ex de,hl
+        add hl,de               ; XK += DXK
+        ex de,hl
         pop bc
-        djnz .st
-        ld a,(seg)
-        ld hl,kseg
-        add a,(hl)
-        ld (sk),a
-        ; parity of the last segment of this strip -> stripe phase
+        ex af,af'
         dec a
-        and 1
+        jr nz,.st
+        ld (DXK),hl
+        ld (XK),de
+        ld a,c
+        ld (sk),a
+        ; band phase of the last segment of this strip: bands are 2 segments
+        dec a
+        and 2
         ld b,a
         ld a,(kk)
         ld e,a
@@ -228,7 +237,7 @@ project:
         djnz .fl
         ld a,c
         or a
-        jr z,.done
+        jp z,.done
 .next   ld hl,kk
         inc (hl)
         ld a,(hl)
@@ -480,24 +489,6 @@ build_regions:
         sub b
         ld hl,(rptr)
         ld (hl),a
-        ; ---------- colours: precomputed per merge state (set_theme)
-        ld a,(mstate)
-        ld b,a
-        add a,a
-        add a,a
-        add a,a
-        add a,b                 ; *9
-        ld e,a
-        ld d,0
-        ld hl,RCOLS
-        ld a,(allint)
-        or a
-        jr z,.rc
-        ld hl,HCOLS
-.rc     add hl,de
-        ld de,REGCOL
-        ld bc,9
-        ldir
         ret
 
 bnd_skip:                       ; boundary absorbed: empty interior + edge
@@ -745,74 +736,642 @@ clamp32:
         ret
 
 ; --------------------------------------------------------------------------
-; write_row: row (crow) of page (page): code pass + colour pass.
-;   Road rows never need attributes (all bank 0); if this row last held
-;   something else on this page, the attribute row is reset first.
+; Road rows.  Every road row of the hidden page gets its own characters in
+; that page's dynamic PCG banks (32 slots per row):
+;   slot 0..2   interior verge / kerb / road for this row's band phases
+;   slot 3..    edge cells (mask x left/right surface) and car cells
+; Codes are written every frame; attribute and colour RAM only when the
+; row changes type (so road rows cost no colour writes at all).
+; --------------------------------------------------------------------------
+
+; row_bank: A = PCG bank of row (crow) on page (page): 1 + 4p + (crow-1)/4
+;           also sets (sbase) = slot base ((crow-1)&3)*32
+row_bank:
+        ld a,(crow)
+        dec a
+        ld b,a
+        and 3
+        rrca
+        rrca
+        rrca                    ; *32
+        ld (sbase),a
+        ld a,b
+        rrca
+        rrca
+        and 3
+        ld b,a
+        ld a,(page)
+        add a,a
+        add a,a
+        add a,b
+        inc a
+        ld (rbank),a
+        ret
+
+; slot_ptr: A = slot -> DE = PCG address, A = screen code   (bank selected)
+slot_ptr:
+        ld hl,sbase
+        add a,(hl)
+        ld e,a
+        or 80h
+        push af
+        ld a,e
+        ld d,0
+        ex de,hl
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        ld de,PCGWIN
+        add hl,de
+        ex de,hl
+        pop af
+        ret
+
+; set_phases: band phase of the 8 lines of row (crow), patched into
+; cellgen / cellcomp as RES offsets (phase*10): 0 dark, 1 light, 2 sky
+set_phases:
+        ld a,(crow)
+        add a,a
+        add a,a
+        add a,a
+        ld c,a                  ; first line
+        ld b,high(LINEK)
+        ld de,PHOFF
+        ld a,(LTOP)
+        ld (.lt+1),a
+        ld h,high(PHT)
+.l
+.lt     ld a,0                  ; LTOP (patched)
+        dec a
+        cp c                    ; line < LTOP -> sky
+        ld a,20
+        jr nc,.st
+        ld a,(bc)
+        add a,low(PHT)
+        ld l,a
+        ld a,(hl)
+        or a
+        jr z,.st
+        ld a,10
+.st     ld (de),a
+        inc e
+        inc c
+        ld a,e
+        cp low(PHOFF)+8
+        jr nz,.l
+        ; patch the immediates of cellgen
+        ld hl,PHOFF
+        ld a,(hl)
+        ld (cellgen.p0+1),a
+        inc l
+        ld a,(hl)
+        ld (cellgen.p1+1),a
+        inc l
+        ld a,(hl)
+        ld (cellgen.p2+1),a
+        inc l
+        ld a,(hl)
+        ld (cellgen.p3+1),a
+        inc l
+        ld a,(hl)
+        ld (cellgen.p4+1),a
+        inc l
+        ld a,(hl)
+        ld (cellgen.p5+1),a
+        inc l
+        ld a,(hl)
+        ld (cellgen.p6+1),a
+        inc l
+        ld a,(hl)
+        ld (cellgen.p7+1),a
+        ret
+
+; patch_comp: copy the current PHOFF into cellcomp
+patch_comp:
+        ld hl,PHOFF
+        ld a,(hl)
+        ld (cellcomp.p0+1),a
+        inc l
+        ld a,(hl)
+        ld (cellcomp.p1+1),a
+        inc l
+        ld a,(hl)
+        ld (cellcomp.p2+1),a
+        inc l
+        ld a,(hl)
+        ld (cellcomp.p3+1),a
+        inc l
+        ld a,(hl)
+        ld (cellcomp.p4+1),a
+        inc l
+        ld a,(hl)
+        ld (cellcomp.p5+1),a
+        inc l
+        ld a,(hl)
+        ld (cellcomp.p6+1),a
+        inc l
+        ld a,(hl)
+        ld (cellcomp.p7+1),a
+        ret
+
+; --------------------------------------------------------------------------
+; cellgen: build one road character.
+;   BC -> mask (8 bytes, 8-aligned in MASKLIB), H = RES page of the surface
+;   pair, DE -> destination (16-aligned).  Per scanline: RES[phase][mval][s]
+; --------------------------------------------------------------------------
+cellgen:
+        ld a,(bc)
+        inc c
+.p0     add a,0
+        ld l,a
+        ld a,(hl)
+        ld (de),a
+        inc e
+        inc l
+        ld a,(hl)
+        ld (de),a
+        inc e
+        ld a,(bc)
+        inc c
+.p1     add a,0
+        ld l,a
+        ld a,(hl)
+        ld (de),a
+        inc e
+        inc l
+        ld a,(hl)
+        ld (de),a
+        inc e
+        ld a,(bc)
+        inc c
+.p2     add a,0
+        ld l,a
+        ld a,(hl)
+        ld (de),a
+        inc e
+        inc l
+        ld a,(hl)
+        ld (de),a
+        inc e
+        ld a,(bc)
+        inc c
+.p3     add a,0
+        ld l,a
+        ld a,(hl)
+        ld (de),a
+        inc e
+        inc l
+        ld a,(hl)
+        ld (de),a
+        inc e
+        ld a,(bc)
+        inc c
+.p4     add a,0
+        ld l,a
+        ld a,(hl)
+        ld (de),a
+        inc e
+        inc l
+        ld a,(hl)
+        ld (de),a
+        inc e
+        ld a,(bc)
+        inc c
+.p5     add a,0
+        ld l,a
+        ld a,(hl)
+        ld (de),a
+        inc e
+        inc l
+        ld a,(hl)
+        ld (de),a
+        inc e
+        ld a,(bc)
+        inc c
+.p6     add a,0
+        ld l,a
+        ld a,(hl)
+        ld (de),a
+        inc e
+        inc l
+        ld a,(hl)
+        ld (de),a
+        inc e
+        ld a,(bc)
+        inc c
+.p7     add a,0
+        ld l,a
+        ld a,(hl)
+        ld (de),a
+        inc e
+        inc l
+        ld a,(hl)
+        ld (de),a
+        ret
+
+; cellcomp: as cellgen, but composites a car cell over the ground:
+;   out = (ground & notmask) | ink,  IX -> 32 bytes (notmask, ink) x 16
+cellcomp:
+        ld a,(bc)
+        inc c
+.p0     add a,0
+        ld l,a
+        ld a,(hl)
+        and (ix+0)
+        or (ix+1)
+        ld (de),a
+        inc e
+        inc l
+        ld a,(hl)
+        and (ix+2)
+        or (ix+3)
+        ld (de),a
+        inc e
+        ld a,(bc)
+        inc c
+.p1     add a,0
+        ld l,a
+        ld a,(hl)
+        and (ix+4)
+        or (ix+5)
+        ld (de),a
+        inc e
+        inc l
+        ld a,(hl)
+        and (ix+6)
+        or (ix+7)
+        ld (de),a
+        inc e
+        ld a,(bc)
+        inc c
+.p2     add a,0
+        ld l,a
+        ld a,(hl)
+        and (ix+8)
+        or (ix+9)
+        ld (de),a
+        inc e
+        inc l
+        ld a,(hl)
+        and (ix+10)
+        or (ix+11)
+        ld (de),a
+        inc e
+        ld a,(bc)
+        inc c
+.p3     add a,0
+        ld l,a
+        ld a,(hl)
+        and (ix+12)
+        or (ix+13)
+        ld (de),a
+        inc e
+        inc l
+        ld a,(hl)
+        and (ix+14)
+        or (ix+15)
+        ld (de),a
+        inc e
+        ld a,(bc)
+        inc c
+.p4     add a,0
+        ld l,a
+        ld a,(hl)
+        and (ix+16)
+        or (ix+17)
+        ld (de),a
+        inc e
+        inc l
+        ld a,(hl)
+        and (ix+18)
+        or (ix+19)
+        ld (de),a
+        inc e
+        ld a,(bc)
+        inc c
+.p5     add a,0
+        ld l,a
+        ld a,(hl)
+        and (ix+20)
+        or (ix+21)
+        ld (de),a
+        inc e
+        inc l
+        ld a,(hl)
+        and (ix+22)
+        or (ix+23)
+        ld (de),a
+        inc e
+        ld a,(bc)
+        inc c
+.p6     add a,0
+        ld l,a
+        ld a,(hl)
+        and (ix+24)
+        or (ix+25)
+        ld (de),a
+        inc e
+        inc l
+        ld a,(hl)
+        and (ix+26)
+        or (ix+27)
+        ld (de),a
+        inc e
+        ld a,(bc)
+        inc c
+.p7     add a,0
+        ld l,a
+        ld a,(hl)
+        and (ix+28)
+        or (ix+29)
+        ld (de),a
+        inc e
+        inc l
+        ld a,(hl)
+        and (ix+30)
+        or (ix+31)
+        ld (de),a
+        ret
+
+; --------------------------------------------------------------------------
+; write_row: road row (crow) of the hidden page
 ; --------------------------------------------------------------------------
 P_write_row:
 write_row:
         call row_addr
         ld (raddr),hl
+        call row_bank
         call row_type_road
+        call set_phases
         call vbpoll
-        ; ---- codes: interior = (rcode), edges copied from ECODE
+        ld a,(rbank)
+        or X1C
+        out (PORT_1C),a
+        ; interior characters: slot s = surface s over an all-left mask
+        ld b,0
+.ig     push bc
+        ld a,b
+        call slot_ptr
+        ld hl,ICODE
+        ld c,b
+        ld b,0
+        add hl,bc
+        ld (hl),a
+        ld hl,INTPAGE
+        add hl,bc
+        ld b,(hl)               ; page
+        ld l,a                  ; record: SLOTMASK[code] = 0, SLOTPAGE[code] = page
+        ld h,high(SLOTMASK)
+        ld (hl),0
+        inc h
+        ld (hl),b
+        ld h,b
+        ld bc,MASKLIB           ; mask 0 = all left
+        call cellgen
+        pop bc
+        inc b
+        ld a,b
+        cp 3
+        jr c,.ig
+        call vbpoll
+        ; edge slot allocator
+        ld a,3
+        call slot_ptr
+        ld (sdest),de
+        ld (scode),a
+        ld a,(crow)             ; car rows keep 10 slots for the car
+        cp CAR_ROW
+        ld a,29
+        jr c,.lim
+        ld a,19
+.lim    ld (sleft),a
+        ; region tables for this merge state
+        ld a,(mstate)
+        ld b,a
+        add a,a
+        add a,a
+        add a,b                 ; *5
+        ld e,a
+        ld d,0
+        ld hl,INTS
+        add hl,de
+        ld (rints),hl
+        ld a,(mstate)
+        add a,a
+        add a,a
+        ld e,a
+        ld hl,EPAIRS
+        add hl,de
+        ld (rpairs),hl
+        ; ---- code pass over the 9 regions
         ld hl,(raddr)
-        ld de,ECODE
+        ld (wptr),hl
+        ld hl,ECODE
+        ld (eptr),hl
         ld ix,REGLEN
-        ld c,5                  ; 5 interior regions, 4 edge regions between
-.pl     ld b,(ix+0)
+        ld c,5
+.pl     ld b,(ix+0)             ; interior region
         ld a,b
         or a
         jr z,.pe
-        ld a,(rcode)
+        ld hl,(rints)
+        ld e,(hl)
+        ld d,0
+        ld hl,ICODE
+        add hl,de
+        ld a,(hl)
+        ld hl,(wptr)
         call fillb
-.pe     dec c
-        jr z,.pd
-        ld a,(ix+1)
-        or a
-        jr z,.pn
-        ld b,a
-        ld a,(allint)
-        or a
-        jr z,.cpy
-        ld a,(rcode)            ; horizon row: edges filled like interior
-        call fillb
-        jr .pn
-.cpy    ld a,(de)               ; copy edge codes
-        ld (hl),a
-        inc e
-        inc l
-        djnz .cpy
-.pn     inc ix
-        inc ix
-        jr .pl
-.pd     call vbpoll
-        ; ---- colours (constant per region)
-        ld a,40h
-        out (PORT_08),a
-        ld hl,(raddr)
-        ld a,h
-        add a,8
-        ld h,a
-        ld de,REGLEN
-        ld ix,REGCOL
-        ld c,9
-.cl     ld a,(de)
-        or a
-        jr z,.cs
-        ld b,a
-        ld a,(ix+0)
-        call fillb
-.cs     inc de
-        inc ix
+        ld (wptr),hl
+.pe     ld hl,(rints)
+        inc hl
+        ld (rints),hl
         dec c
-        jr nz,.cl
+        jp z,.done
+        ld a,(ix+1)             ; edge region
+        or a
+        jp z,.pn
+        push bc
+        push ix
+        ld b,a                  ; cells in this edge region
+        ld hl,(rpairs)
+        ld e,(hl)               ; pair 0..5
+        ld d,0
+        ld hl,PAIRPAGE
+        add hl,de
+        ld a,(hl)
+        ld (.pgi+1),a
+        ld (.pgs+1),a
+        ld hl,PAIRLEFT          ; fallback code when out of slots
+        add hl,de
+        ld e,(hl)
+        ld hl,ICODE
+        add hl,de
+        ld a,(hl)
+        ld (.fb),a
+        ld a,(sleft)            ; n = min(cells, slots left)
+        cp b
+        jr c,.few
+        sub b
+        ld (sleft),a
+        ld c,0                  ; no fallback cells
+        jr .go
+.few    ld c,a                  ; n = sleft, fallback = cells - n
+        ld a,b
+        sub c
+        ld b,c
+        ld c,a
         xor a
-        out (PORT_08),a
+        ld (sleft),a
+.go     ld a,c
+        ld (.nfb),a
+        ld a,b
+        or a
+        jr z,.nogen
+        ld a,(scode)
+        ld c,a                  ; alt set: B count, C code, DE -> ECODE, HL -> screen
+        push bc
+        exx
+        pop bc
+        ld de,(eptr)
+        ld hl,(wptr)
+        exx
+        ld de,(sdest)
+        exx
+.ecl    ld a,(de)               ; mask index
+        inc e
+        ld (hl),c               ; screen code of the next slot
+        inc hl
+        push de                 ; record SLOTMASK[code], SLOTPAGE[code]
+        ld d,high(SLOTMASK)
+        ld e,c
+        ex de,hl
+        ld (hl),a
+        inc h
+.pgs    ld (hl),0               ; RES page (patched)
+        ex de,hl
+        pop de
+        inc c
+        exx
+        ld l,a                  ; BC = MASKLIB + 8*index (MASKLIB is 2K aligned)
+        ld h,MASKLIB/2048
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        ld b,h
+        ld c,l
+.pgi    ld h,0                  ; RES page of the pair (patched)
+        call cellgen
+        inc de
+        exx
+        djnz .ecl
+        ld a,c
+        ld (scode),a
+        ld (eptr),de
+        ld (wptr),hl
+        exx
+        ld (sdest),de
+.nogen  ld a,(.nfb)             ; out of slots: plain interior cells
+        or a
+        jr z,.efin
+        ld b,a
+        ld hl,(eptr)
+        add a,l
+        ld l,a
+        ld (eptr),hl
+        ld a,(.fb)
+        ld hl,(wptr)
+        call fillb
+        ld (wptr),hl
+.efin   pop ix
+        pop bc
+.pn     call vbpoll
+        ld hl,(rpairs)
+        inc hl
+        ld (rpairs),hl
+        inc ix
+        inc ix
+        jp .pl
+.done   ld a,X1C
+        out (PORT_1C),a
+        ld a,(crow)             ; car rows: remember what lies under the car
+        cp CAR_ROW
+        ret c
+        jp car_under
+.fb     db 0
+.nfb    db 0
+
+; car_under: for car row (crow) record, for columns CAR_COL..CAR_COL+9,
+;   the RES page and mask index of the ground cell -> CUNDER[(row-13)*20],
+;   read back from the codes just written and the per-code slot records.
+car_under:
+        ld a,(crow)
+        sub CAR_ROW
+        ld b,a
+        add a,a
+        add a,a
+        add a,b
+        add a,a
+        add a,a                 ; *20
+        ld e,a
+        ld d,0
+        ld hl,CUNDER
+        add hl,de
+        ex de,hl                ; DE -> output
+        ld hl,(raddr)
+        ld bc,CAR_COL
+        add hl,bc
+        ld b,10
+.c      ld a,(hl)               ; screen code
+        inc hl
+        push hl
+        ld l,a
+        ld h,high(SLOTPAGE)
+        ld a,(hl)
+        ld (de),a
+        inc de
+        dec h
+        ld a,(hl)
+        ld (de),a
+        inc de
+        pop hl
+        djnz .c
+        ; remember the next free slot for the car cells
+        ld a,(crow)
+        sub CAR_ROW
+        ld e,a
+        ld d,0
+        ld hl,CSLOT
+        add hl,de
+        ld a,(scode)
+        ld (hl),a
+        ld hl,CSDEST
+        add hl,de
+        add hl,de
+        ld bc,(sdest)
+        ld (hl),c
+        inc hl
+        ld (hl),b
         ret
 
+; region tables per kerb-merge state (bit0 left merged, bit1 right merged)
+; interior surfaces of regions 0,2,4,6,8 ; pairs of edge regions 1,3,5,7
+INTS:   db 0,1,2,1,0
+        db 0,0,2,1,0
+        db 0,1,2,0,0
+        db 0,0,2,0,0
+EPAIRS: db 0,1,2,3
+        db 0,4,2,3
+        db 0,1,5,3
+        db 0,4,5,3
+INTPAGE: db high(RESPAGES)+0, high(RESPAGES)+1, high(RESPAGES)+2   ; pair whose left = surface
+PAIRPAGE: db high(RESPAGES)+0, high(RESPAGES)+1, high(RESPAGES)+2
+        db high(RESPAGES)+3, high(RESPAGES)+4, high(RESPAGES)+5
+PAIRLEFT: db 0,1,2,1,0,2
 
-; row_type_road: ensure attribute row (crow) on (page) is all bank 0
+; row_type_road: when row (crow) of (page) was not a road row, set its
+; attribute row to the row's bank and its colour row to the ground colour
 row_type_road:
         call rowtype_ptr
         ld a,(hl)
@@ -822,11 +1381,29 @@ row_type_road:
         ld a,X1C_ATTR
         out (PORT_1C),a
         ld hl,(raddr)
-        xor a
+        ld a,(rbank)
         ld b,64
         call fillb
         ld a,X1C
         out (PORT_1C),a
+        ld a,40h
+        out (PORT_08),a
+        ld hl,(raddr)
+        ld a,h
+        add a,8
+        ld h,a
+        ld a,(crow)
+        ld e,a
+        ld d,0
+        push hl
+        ld hl,ROWCOL
+        add hl,de
+        ld a,(hl)
+        pop hl
+        ld b,64
+        call fillb
+        xor a
+        out (PORT_08),a
         ret
 
 ; rowtype_ptr: HL -> ROWTYPE[page*16 + crow]
@@ -848,7 +1425,7 @@ rowtype_ptr:
 row_addr:
         ld a,(crow)
         rrca
-        rrca                    ; crow*64 = (crow>>2)*256 + (crow&3)*64
+        rrca
         ld l,a
         and 3Fh
         ld h,a
@@ -879,61 +1456,4 @@ fillb:
 FILL64:
         include "../build/fill.inc"
 FILL_END:
-        ret
-
-; --------------------------------------------------------------------------
-; stripe_char
-stripe_char:
-        ld a,(crow)
-        dec a                   ; rows 1..15 -> chars 0..14
-        or 80h
-        ld (rcode),a
-        and 7Fh
-        ld l,a
-        ld h,0
-        add hl,hl
-        add hl,hl
-        add hl,hl
-        add hl,hl
-        ld de,STRIPEBUF
-        add hl,de
-        ex de,hl                ; DE -> buffer
-        ld a,(crow)
-        add a,a
-        add a,a
-        add a,a
-        ld c,a
-        ld b,high(LINEK)        ; LINEK is page aligned
-        ld h,high(PHT)          ; PHT is page aligned
-        ld a,8
-.l      ex af,af'
-        ld a,(bc)
-        ld l,a
-        ld a,(hl)
-        or a
-        jr z,.dark
-        ld a,0FFh
-        ld (de),a
-        inc de
-        ld (de),a
-        jr .nx
-.dark   ld a,0AAh
-        ld (de),a
-        inc de
-        ld a,55h
-        ld (de),a
-.nx     inc de
-        inc c
-        ex af,af'
-        dec a
-        jr nz,.l
-        ret
-
-; blit_stripes: copy STRIPEBUF (15 chars) into PCG bank 0 chars 0..14.
-;   called inside vertical blank right after the page flip.
-blit_stripes:
-        ld hl,STRIPEBUF
-        ld de,PCGWIN
-        ld bc,15*16
-        ldir
         ret
