@@ -1,0 +1,4 @@
+	DB STG_PROG, $00, "SPIN    BIN"
+	DB 4, $00, "TAB     BNK"
+	DB 5, $00, "ENM     BNK"
+	DB 6, $00, "PIC     BNK"
