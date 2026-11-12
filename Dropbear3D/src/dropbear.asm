@@ -8,8 +8,7 @@ TURN:   equ 10
 MARG:   equ 80
 SIDE:   equ 40
 EMARG:  equ 72
-NOBJ:   equ 16
-NENEMY: equ 5
+NOBJ:   equ 32
 MUSP:   equ 14
 
         org CODEORG
@@ -45,6 +44,7 @@ gl1:    call turnmove
         call render
         call objects
         call drawvis
+        call parts
         call drawgun
         call blit
         call hud
@@ -343,40 +343,44 @@ areaflag:
 ; the saved state of an area: 256 map bytes then 128 object bytes
 liveptr:
         ld a,(area)
+        add a,a
         ld h,a
         ld l,0
-        srl h
-        rr l
-        add a,h
-        ld h,a
         ld de,LIVE
         add hl,de
         ret
+; the map sits in the half of RAM that the high bank replaces, so it goes via a bounce buffer
 savearea:
-        ld a,3                  ; area states live in the second SRAM bank
-        out ($37),a
-        call liveptr
-        ex de,hl
         ld hl,MAP
+        ld de,ACTTEX
         ld bc,256
         ldir
-        ld hl,OBJ
-        ld bc,128
-        ldir
-        jr bank1
-getarea:
-        ld a,3
-        out ($37),a
         call liveptr
+        ex de,hl
+        push de
+        ld hl,ACTTEX
+        ld bc,256
+        call HICOPY
+        pop de
+        inc d
+        ld hl,OBJ
+        ld bc,256
+        jp HICOPY
+getarea:
+        call liveptr
+        push hl
+        ld de,ACTTEX
+        ld bc,256
+        call HICOPY
+        ld hl,ACTTEX
         ld de,MAP
         ld bc,256
         ldir
+        pop hl
+        inc h
         ld de,OBJ
-        ld bc,128
-        ldir
-bank1:  ld a,1                  ; back to the bank holding the art
-        out ($37),a
-        ret
+        ld bc,256
+        jp HICOPY
 
 ; A = type -> HL = its entry in TYPES
 typeptr:
@@ -389,6 +393,7 @@ typeptr:
         add hl,hl
         add hl,de
         add hl,hl
+        add hl,de
         ld de,TYPES
         add hl,de
         ret
@@ -472,6 +477,38 @@ ex5:    ld a,(hl)
         inc de
         inc hl
         djnz ex5
+        jp marksolid
+
+; furniture that blocks: mark its cell solid (bit 7: the rays see through it)
+marksolid:
+        ld hl,OBJ
+        ld b,NOBJ
+ms1:    ld a,(hl)
+        cp DECOR
+        jr c,ms2
+        push bc
+        push hl
+        call typeptr
+        ld de,9
+        add hl,de
+        ld a,(hl)
+        pop hl
+        push hl
+        and $20
+        jr z,ms3
+        inc hl
+        inc hl
+        ld b,(hl)
+        inc hl
+        inc hl
+        ld c,(hl)
+        call mapat
+        set 7,(hl)
+ms3:    pop hl
+        pop bc
+ms2:    ld de,8
+        add hl,de
+        djnz ms1
         ret
 
 newgame:
@@ -519,12 +556,12 @@ loadarea:
         ld d,h
         add hl,hl
         add hl,hl
-        add hl,hl
         add hl,de
+        add hl,hl
         ld de,THEMES
         add hl,de
         ld de,latchbase
-        ld bc,9
+        ld bc,10
         ldir
         call loadtex
         pop hl
@@ -568,31 +605,33 @@ spawn:  ld a,(entrycell)
         ld a,2
         ld (steps),a
         ld (lastf),a
+clrparts:
+        ld hl,PART+5
+        ld b,32
+        ld de,6
+cp1:    ld (hl),0
+        add hl,de
+        djnz cp1
         ret
 
-; copy this area's four wall textures from the library in the second bank
+; copy this area's four wall textures from the library in the high bank
 loadtex:
-        ld a,3
-        out ($37),a
-        ld de,BUF
         ld hl,tlib
+        ld de,ACTTEX
         ld b,4
 lt1:    push bc
         push hl
+        push de
         ld h,(hl)
         ld l,0
         ld bc,256
-        ldir
+        call HICOPY
+        pop de
+        inc d
         pop hl
         inc hl
         pop bc
         djnz lt1
-        ld a,1
-        out ($37),a
-        ld hl,BUF
-        ld de,ACTTEX
-        ld bc,1024
-        ldir
         ret
 
 changearea:
@@ -1063,23 +1102,289 @@ fi2:    ld (hl),0
         ld de,9
         add hl,de
         ld a,(hl)
+        ld (kflg),a
         inc hl
         ld e,(hl)
         inc hl
         ld d,(hl)
-        ex de,hl
-        rrca
-        jr nc,fi3
-        push hl                 ; a boss: whatever it guarded is now open
-        call opengates
+        inc hl
+        ld a,(hl)
+        ld (pcols),a
+        inc hl
+        ld b,(hl)               ; how many pieces
+        push de
+        ld a,(tcol)             ; centre of the burst, in half pixels
+        add a,a
+        add a,a
+        add a,a
+        add a,4
+        ld (pcx),a
+        ld a,(th)
+        srl a
+        ld c,a
+        ld a,(ttop)
+        add a,c
+        add a,a
+        ld (pcy),a
+        ld a,(th)               ; spread to match how big it looks
+        ld c,15
+        cp 10
+        jr c,fi4
+        ld c,31
+        cp 24
+        jr c,fi4
+        ld c,63
+fi4:    ld a,c
+        ld (pspread),a
+        call spawnp
         pop hl
         call setmsg
+        ld a,(kflg)
+        rrca
+        jr nc,fi5
+        call opengates          ; a boss: whatever it guarded is now open
+        ld a,6
+        ld (hurtflash),a
+        ld b,0
+        call noise
+        ld b,0
+        call noise
         jp jingle_up
-fi3:    call setmsg
-        ld e,40
-        ld c,5
-        ld a,30
-        jp sweep
+fi5:    ld b,150
+        jp noise
+
+; B pieces fly out from (pcx, pcy) in colours from pcols
+spawnp: ld a,(pnext)
+        inc a
+        and 31
+        ld (pnext),a
+        ld l,a
+        ld h,0
+        add hl,hl
+        ld e,l
+        ld d,h
+        add hl,hl
+        add hl,de
+        ld de,PART
+        add hl,de
+        ld a,(pspread)
+        srl a
+        ld e,a
+        call rnd
+        ld c,a
+        ld a,(pspread)
+        and c
+        sub e
+        ld c,a
+        ld a,(pcx)
+        add a,c
+        ld (hl),a
+        inc hl
+        call rnd
+        ld c,a
+        ld a,(pspread)
+        and c
+        sub e
+        ld c,a
+        ld a,(pcy)
+        add a,c
+        cp 92
+        jr c,sp2
+        ld a,88
+sp2:    ld (hl),a
+        inc hl
+        call rnd
+        and 31
+        sub 16
+        ld (hl),a
+        inc hl
+        call rnd
+        and 15
+        add a,4
+        neg
+        ld (hl),a
+        inc hl
+        call rnd
+        and 3
+        ld c,a
+        inc c
+        ld a,(pcols)
+sp3:    dec c
+        jr z,sp4
+        rrca
+        rrca
+        jr sp3
+sp4:    and 3
+        ld c,a
+        add a,a
+        add a,a
+        add a,c
+        ld c,a
+        add a,a
+        add a,a
+        add a,a
+        add a,a
+        add a,c
+        ld (hl),a
+        inc hl
+        call rnd
+        and 7
+        add a,13
+        ld (hl),a
+        djnz spawnp
+        ret
+
+rnd:    push bc
+        ld a,(seed)
+        ld b,a
+        add a,a
+        add a,a
+        add a,b
+        inc a
+        ld (seed),a
+        rrca
+        rrca
+        rrca
+        xor b
+        pop bc
+        ret
+
+; crunchy noise, B = length (0 = long)
+noise:  call rnd
+        and 1
+        jr z,nz2
+        ld a,(latch)
+        xor $21
+        ld (latch),a
+        ld ($6800),a
+nz2:    ld a,10
+nz3:    dec a
+        jr nz,nz3
+        call poll
+        djnz noise
+        ret
+
+; move and draw the flying pieces
+parts:  ld hl,PART
+        ld b,32
+pt1:    push bc
+        push hl
+        ld de,5
+        add hl,de
+        ld a,(hl)
+        or a
+        jr z,pt9
+        dec (hl)
+        pop hl
+        push hl
+        ld a,(hl)
+        inc hl
+        inc hl
+        ld c,(hl)
+        dec hl
+        dec hl
+        bit 7,c
+        jr nz,pt2
+        add a,c
+        jr c,ptk
+        jr pt3
+pt2:    add a,c
+        jr nc,ptk
+pt3:    ld (hl),a
+        srl a
+        ld (ptx),a
+        inc hl
+        ld a,(hl)
+        inc hl
+        inc hl
+        ld c,(hl)
+        inc (hl)
+        dec hl
+        dec hl
+        bit 7,c
+        jr nz,pt4
+        add a,c
+        cp 92
+        jr c,pt5
+        inc hl                  ; bounce off the floor
+        inc hl
+        ld a,c
+        srl a
+        neg
+        ld (hl),a
+        dec hl
+        ld a,(hl)
+        sra a
+        ld (hl),a
+        dec hl
+        ld a,91
+        jr pt5
+pt4:    add a,c
+        jr nc,ptk
+pt5:    ld (hl),a
+        srl a
+        ld c,a
+        inc hl
+        inc hl
+        inc hl
+        ld a,(hl)
+        ld (ptc),a
+        ld a,c
+        call plot
+        jr pt9
+ptk:    pop hl
+        push hl
+        ld de,5
+        add hl,de
+        ld (hl),0
+pt9:    pop hl
+        ld de,6
+        add hl,de
+        pop bc
+        djnz pt1
+        ret
+
+; A = row, ptx = pixel x, ptc = colour pattern
+plot:   ld l,a
+        ld h,0
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        ld a,(ptx)
+        ld b,a
+        srl a
+        srl a
+        or l
+        ld l,a
+        ld a,h
+        add a,BUF_HI
+        ld h,a
+        ld a,b
+        ld c,$F0                ; a chunky 2x2 piece
+        bit 1,a
+        jr z,pl1
+        ld c,$0F
+pl1:    ld a,(ptc)
+        and c
+        ld e,a
+        ld a,c
+        cpl
+        ld c,a
+        and (hl)
+        or e
+        ld (hl),a
+        ld a,l
+        add a,32
+        ld l,a
+        jr nc,pl2
+        inc h
+pl2:    ld a,c
+        and (hl)
+        or e
+        ld (hl),a
+        ret
 
 ; ---------------- sound -----------------------------------------
 ; DE = half period count, B = half cycles
@@ -1298,6 +1603,7 @@ dmr:    push af
         push de
         ld b,16
 dmc:    ld a,(hl)
+        and $0F
         inc hl
         push hl
         push bc
@@ -1352,7 +1658,9 @@ dmc:    ld a,(hl)
         ret
 
 ; ---------------- walls -----------------------------------------
-render: ld hl,COLS
+render: ld a,1                  ; wall textures live in SRAM bank 1
+        out ($37),a
+        ld hl,COLS
         ld (colptr),hl
         xor a
         ld (coln),a
@@ -1544,7 +1852,7 @@ dda:    or a
         jr nc,stepy
 xop:    inc c
         ld a,(bc)
-        or a
+        and $7F
         jr nz,hitx
         ld a,l
 sxlo:   add a,0
@@ -1557,7 +1865,7 @@ stepy:  ld a,c
 yadd:   add a,16
         ld c,a
         ld a,(bc)
-        or a
+        and $7F
         jr nz,hity
         ld a,e
 sylo:   add a,0
@@ -1643,6 +1951,7 @@ ts_d:   and $F0
 ; ---------------- things: creatures, pickups --------------------
 ; object: type, x(2), y(2), hp, flags (bit 7 awake, low 4 hurt timer), bite cooldown
 objects:
+        call mktabs
         xor a
         ld (nvis),a
         ld (tz),a
@@ -1696,12 +2005,15 @@ ob0:    push bc
 ob2:    xor a
         ld (oframe),a
         ld (obob),a
+        ld a,(otype)
+        cp DECOR
+        jr nc,ob3
         call pick
         ld hl,(optr)
         ld a,(hl)
         or a
         jr z,ob9
-ob3:    call proj
+ob3:    call projq
         call poll
 ob9:    pop hl
         pop bc
@@ -1726,13 +2038,13 @@ pick:   ld hl,(adx)
         cp $70
         ret nc
         ld a,(otype)
-        cp 6
+        cp T_HEALTH
         jr z,pk_h
-        cp 7
+        cp T_AMMO
         jr z,pk_a
-        cp 8
+        cp T_KEY
         jr z,pk_k
-        cp 9
+        cp T_OPAL
         jr z,pk_o
         call areaflag           ; the map
         set 0,(hl)
@@ -1816,7 +2128,19 @@ ai4:    ld a,(oflg)
         ld (oframe),a
 ai4b:   ld a,(oflags)
         rlca
+        jr c,ai4e
+        ld a,(adx+1)            ; asleep: wake if you come within three cells
+        cp 3
         ret nc
+        ld a,(ady+1)
+        cp 3
+        ret nc
+        ld hl,(optr)
+        ld de,6
+        add hl,de
+        set 7,(hl)
+        ret
+ai4e:
         ld a,(animt)
         rrca
         rrca
@@ -1845,7 +2169,7 @@ ai4b:   ld a,(oflags)
         ld hl,(optr)
         ld de,7
         add hl,de
-        ld (hl),50
+        ld (hl),40
         ld a,1
         ld (huddirty),a
         ld a,(oflg)
@@ -1887,7 +2211,7 @@ ac0a:   bit 2,a
         ld hl,(optr)            ; the angrier, the faster
         ld de,5
         add hl,de
-        ld a,27
+        ld a,32
         sub (hl)
         ld c,a
 ac0:    ld a,(steps)
@@ -2014,6 +2338,186 @@ dv2:    sub c
 dv3:    djnz dv1
         ret
 
+; quick tests first, from the cell the thing is in: too far for this area, behind us,
+; or off to the side of the view. Only what passes gets placed properly.
+projq:  ld a,(cullc)
+        ld c,a
+        ld a,(otype)
+        cp T_HEALTH
+        jr c,pq1
+        ld a,c                  ; pickups and furniture: not past six cells
+        cp 7
+        jr c,pq1
+        ld c,6
+pq1:    ld a,(adx+1)
+        cp c
+        ret nc
+        ld a,(ady+1)
+        cp c
+        ret nc
+        ld hl,(optr)
+        inc hl
+        inc hl
+        ld a,(hl)
+        ld (fcx),a
+        inc hl
+        inc hl
+        ld a,(hl)
+        ld (fcy),a
+        ld hl,TCT
+        ld a,(fcx)
+        call tget
+        push hl
+        ld hl,TST
+        ld a,(fcy)
+        call tget
+        pop de
+        add hl,de
+        ld de,(p1)
+        or a
+        sbc hl,de
+        ld (cdep),hl
+        ld de,192
+        add hl,de
+        bit 7,h
+        ret nz
+        ld hl,TCT
+        ld a,(fcy)
+        call tget
+        push hl
+        ld hl,TST
+        ld a,(fcx)
+        call tget
+        ex de,hl
+        pop hl
+        or a
+        sbc hl,de
+        ld de,(p2)
+        or a
+        sbc hl,de
+        ld (clat),hl
+        call abshl
+        ex de,hl
+        ld hl,(cdep)
+        bit 7,h
+        jr z,pq2
+        ld hl,0
+pq2:    push de
+        ld d,h
+        ld e,l
+        srl d
+        rr e
+        srl h
+        rr l
+        srl h
+        rr l
+        srl h
+        rr l
+        add hl,de
+        ld de,384
+        add hl,de
+        pop de
+        or a
+        sbc hl,de
+        ret c
+        ld a,(otype)
+        cp T_HEALTH
+        jp c,proj
+        ld hl,(cdep)            ; still things sit at the cell centre: these numbers are exact
+        bit 7,h
+        ret nz
+        ld a,h
+        or a
+        jr nz,pf1
+        ld a,l
+        cp $30
+        ret c
+pf1:    ld (depth),hl
+        ld hl,(clat)
+        jp pjlat
+
+; per frame: (cell + 0.5) x cos and x sin for every cell, and the player's own terms,
+; so things that never move can be placed with a few additions
+mktabs: ld a,(pcos)
+        ld b,a
+        ld a,(pcn)
+        ld hl,TCT
+        call mkt
+        ld a,(psin)
+        ld b,a
+        ld a,(psn)
+        ld hl,TST
+        call mkt
+        ld de,(px)
+        ld a,(pcn)
+        ld c,a
+        ld a,(pcos)
+        call smul
+        push hl
+        ld de,(py)
+        ld a,(psn)
+        ld c,a
+        ld a,(psin)
+        call smul
+        pop de
+        add hl,de
+        ld (p1),hl
+        ld de,(py)
+        ld a,(pcn)
+        ld c,a
+        ld a,(pcos)
+        call smul
+        push hl
+        ld de,(px)
+        ld a,(psn)
+        ld c,a
+        ld a,(psin)
+        call smul
+        ex de,hl
+        pop hl
+        or a
+        sbc hl,de
+        ld (p2),hl
+        ret
+; B = step, A = 1 for negative, HL -> 16-entry table
+mkt:    push hl
+        ld e,b
+        ld d,0
+        ld l,b
+        srl l
+        ld h,0
+        or a
+        jr z,mk1
+        call negde
+        call neghl
+mk1:    ld b,h
+        ld c,l
+        pop hl
+        ld a,16
+mk2:    ld (hl),c
+        inc hl
+        ld (hl),b
+        inc hl
+        push hl
+        ld h,b
+        ld l,c
+        add hl,de
+        ld b,h
+        ld c,l
+        pop hl
+        dec a
+        jr nz,mk2
+        ret
+tget:   add a,a
+        ld e,a
+        ld d,0
+        add hl,de
+        ld a,(hl)
+        inc hl
+        ld h,(hl)
+        ld l,a
+        ret
+
 ; work out where one object appears and add it to the draw list
 proj:   ld de,(dx)
         ld a,(pcn)
@@ -2052,7 +2556,7 @@ pj1:    ld (depth),hl
         pop hl
         or a
         sbc hl,de
-        xor a
+pjlat:  xor a
         bit 7,h
         jr z,pj2
         call neghl
@@ -2146,7 +2650,7 @@ pj8:    ld e,(hl)
         add hl,de
         ld (orec),hl
         ld a,(hl)
-        and $7F
+        and $3F
         ld (ow),a
         inc hl
         ld a,(hl)
@@ -2166,7 +2670,18 @@ pj8:    ld e,(hl)
         ld a,21
         sub b
         jr pj8b
-pj8a:   ld a,(oz)
+pj8a:   ld a,(oflg)
+        and $10
+        jr z,pj8c
+        ld a,(oz)               ; hangs from the ceiling
+        ld l,a
+        ld h,0
+        ld de,BOT
+        add hl,de
+        ld a,48
+        sub (hl)
+        jr pj8b
+pj8c:   ld a,(oz)
         ld l,a
         ld h,0
         ld de,BOT
@@ -2208,7 +2723,15 @@ pj8b:   ld (otop),a
         ld (hl),a
         ld hl,(optr)
         ld (target),hl
+        ld a,(scol)             ; remember where it is on screen, for the burst
+        ld (tcol),a
+        ld a,(otop)
+        ld (ttop),a
+        ld a,(oh)
+        ld (th),a
 pj9:    ld a,(nvis)
+        cp 24
+        ret nc
         ld l,a
         inc a
         ld (nvis),a
@@ -2288,8 +2811,13 @@ drawgun:
 drawspr:
         ld a,(hl)
         ld b,a
-        and $7F
+        and $3F
         ld c,a
+        ld a,1                  ; bit 6: this sprite's pixels are in SRAM bank 3
+        bit 6,b
+        jr z,dsb
+        ld a,3
+dsb:    out ($37),a
         inc hl
         ld a,(hl)
         ld (s_h),a
@@ -2446,6 +2974,7 @@ QTAB:   db $0C,$10,0,0
         db $0D,$10,1,0
         db $0D,$F0,1,1
         db $0C,$F0,0,1
+PMASK:  db $C0,$30,$0C,$03
 MAPPAT: db $00,$00              ; floor
         db $AA,$AA,$AA,$AA      ; walls
         db $7D,$7D              ; door
@@ -2456,11 +2985,12 @@ MAPPAT: db $00,$00              ; floor
         db $E6,$E6              ; gate
         db $AA,$AA              ; secrets stay secret
 latch:  db 1
-latchbase: db $08               ; theme block: these 9 bytes are copied in together
+latchbase: db $08               ; theme block: these 10 bytes are copied in together
 skyc:   db $55
 groundc: db 0
 fogz:   db 0
 fogc:   db $AA
+cullc:  db 9
 tlib:   ds 4
 s_base: dw BUF
 numbuf: db 0,0,$FF
@@ -2547,6 +3077,26 @@ psin:   db 0
 pcn:    db 0
 psn:    db 0
 latneg: db 0
+tcol:   db 0
+ttop:   db 0
+th:     db 0
+pcx:    db 0
+pcy:    db 0
+pspread: db 0
+pcols:  db 0
+pnext:  db 0
+ptx:    db 0
+ptc:    db 0
+seed:   db 37
+kflg:   db 0
+fcx:    db 0
+fcy:    db 0
+p1:     dw 0
+p2:     dw 0
+cdep:   dw 0
+clat:   dw 0
+TCT:    ds 32
+TST:    ds 32
 scol:   db 0
 nvis:   db 0
 tz:     db 0
@@ -2562,7 +3112,15 @@ ow:     db 0
 oh:     db 0
 oleft:  db 0
 otop:   db 0
-OBJ:    ds 128
         ds 160
 stacktop:
 codeend:
+
+; ---- below $B800, so it can run while the high bank is switched in --------
+        org HICOPY
+hicopy: ld a,5
+        out ($37),a
+        ldir
+        ld a,1
+        out ($37),a
+        ret

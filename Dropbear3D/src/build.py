@@ -4,8 +4,11 @@ Memory plan
   $8000-$80FF  loader stub (unpacks the three blobs below, then starts the game)
   $8100-$F7FF  main RAM: engine tables, compiled scalers, some sprites, text, world, code
   $F800-$FFFF  work areas (map, texture column, depth buffer, sprite list, view buffer)
-  $4000-$67FF  BennVenn SRAM bank 1 (mapper value 1): active textures and most sprites
-  $4000-$67FF  BennVenn SRAM bank 3 (mapper value 3): saved area states and the texture library
+  $7800-$79FF  object list and flying pieces;  $7A00-$7FFF  more sprites
+  $4000-$67FF  BennVenn SRAM bank 1 (mapper value 1): active textures, sprites
+  $4000-$67FF  BennVenn SRAM bank 3 (mapper value 3): more sprites, switched in per sprite while drawing
+  $B800-$FFFF  BennVenn high bank (mapper value 5): saved area states and the texture library, copied
+               in and out only when you change area
 """
 import math, pickle, sys
 from z80tools import assemble, Z80
@@ -13,7 +16,9 @@ from z80tools import assemble, Z80
 VIEWH = 48; NA = 1024; K = 42; DMIN = 0.25; WALL = 74.0
 CLOCK = 3546900
 mem = bytearray(65536); b1 = bytearray(0x2800); b3 = bytearray(0x2800); syms = {}
-arena = {'main': [0x8100, 0xF800], 'b1': [0x4000, 0x6800], 'b3': [0x4000, 0x6800]}
+arena = {'main': [0x8100, 0xF800], 'b1': [0x4000, 0x6800], 'b3': [0x4000, 0x6800], 'lo': [0x7A00, 0x8000],
+         'hi': [0xB800, 0x10000]}
+lo = bytearray(0x600); hi = bytearray(0x4800)
 used = {k: v[0] for k, v in arena.items()}
 
 def blob(name, data, align=1, where='main'):
@@ -21,16 +26,20 @@ def blob(name, data, align=1, where='main'):
     assert p+len(data) <= arena[where][1], 'out of room in %s for %s (%d bytes)' % (where, name, len(data))
     if where == 'main': mem[p:p+len(data)] = bytes(data)
     elif where == 'b1': b1[p-0x4000:p-0x4000+len(data)] = bytes(data)
+    elif where == 'lo': lo[p-0x7A00:p-0x7A00+len(data)] = bytes(data)
+    elif where == 'hi': hi[p-0xB800:p-0xB800+len(data)] = bytes(data)
     else: b3[p-0x4000:p-0x4000+len(data)] = bytes(data)
     used[where] = p+len(data)
     if name: syms[name] = p
     return p
 def art(name, data, align=1):
-    """Art goes in SRAM bank 1 while it fits, otherwise main RAM."""
-    try: return blob(name, data, align, 'b1')
-    except AssertionError: return blob(name, data, align, 'main')
+    """Sprite pixels: SRAM bank 1, then bank 3, then the spare RAM at $7A00, then main RAM. Returns (address, bank flag)."""
+    for where in ('b1', 'b3', 'lo'):
+        try: return blob(name, data, align, where), (0x40 if where == 'b3' else 0)
+        except AssertionError: pass
+    return blob(name, data, align, 'main'), 0
 
-syms.update(MAP=0xF800, TEXBUF=0xF900, ZBUF=0xF920, VIS=0xF940, BUF=0xFA00)
+syms.update(MAP=0xF800, TEXBUF=0xF900, ZBUF=0xF920, VIS=0xF940, BUF=0xFA00, OBJ=0x7800, PART=0x7900)
 
 # ---- trig, folded to one quadrant ------------------------------------------------------
 act = []; dxl = []; dxh = []
@@ -41,7 +50,7 @@ for i in range(256):
 blob('ACT', act, 256); blob('DXLO', dxl+dxh, 256)
 logd = [max(0, min(255, int(round(K*math.log2(max(i, 16)/64/DMIN))))) for i in range(1024)]
 blob('LOGD', logd, 256)
-HEIGHTS = list(range(1, 49)) + [52, 56, 60, 64, 72, 80, 88, 96, 112, 128, 144, 160, 192, 224, 256]
+HEIGHTS = list(range(1, 33)) + list(range(34, 49, 2)) + [52, 58, 66, 76, 90, 110, 140, 190, 256]
 NH = len(HEIGHTS)
 hitab = [min(range(NH), key=lambda k: abs(HEIGHTS[k]-WALL/(DMIN*2**(v/K)))) for v in range(256)]
 blob('HITAB', hitab, 256)
@@ -218,9 +227,10 @@ LIBFN = dict(brick=t_brick, crate=t_crate, iron=t_iron, brick_c=lambda: cracked(
              mud_c=lambda: cracked(t_mud, 2), sand=t_sand, sand_c=lambda: cracked(t_sand, 2), bones=t_bones,
              cliff_c=lambda: cracked(t_cliff, 1))
 NAREA = 9
-blob('LIVE', [0]*(384*NAREA), 1, 'b3')
+blob('HICOPY', [0]*16, 1, 'lo')
+blob('LIVE', [0]*(512*NAREA), 1, 'hi')
 libpage = {}
-for nm in LIBNAMES: libpage[nm] = blob(None, flat(LIBFN[nm]()), 256, 'b3') >> 8
+for nm in LIBNAMES: libpage[nm] = blob(None, flat(LIBFN[nm]()), 256, 'hi') >> 8
 
 # active slots and shared textures (bank 1)
 blob('ACTTEX', [0]*1024, 256, 'b1')
@@ -245,7 +255,8 @@ TH = {}
 th = []
 for i, (nm, css, sky, gr, fog, a, b, c, cr) in enumerate(THEMES):
     TH[nm] = i
-    th += [css, sky, gr, hidx_for_dist(fog) if fog else 0, solid(2), libpage[a], libpage[b], libpage[c], libpage[cr]]
+    th += [css, sky, gr, hidx_for_dist(fog) if fog else 0, solid(2), int(fog)+2 if fog else 9,
+           libpage[a], libpage[b], libpage[c], libpage[cr]]
 blob('THEMES', th)
 
 # ---- unrolled helpers ---------------------------------------------------------------------
@@ -344,6 +355,49 @@ item_opal = sym([tri(.5, .0, .0, .45, .5, 1.0, 1), tri(.5, .0, .25, .22, .5, .45
 item_map = sym([rect(.1, .15, .9, .85, 0), ell(.1, .5, .1, .4, 3), rect(.25, .3, .45, .36, 2), rect(.25, .48, .75, .54, 2),
                 rect(.25, .66, .6, .72, 2)])
 
+toad_sit = sym([ell(.5, .68, .45, .3, 3), ell(.5, .45, .32, .22, 3), ell(.3, .3, .11, .11, 3), ell(.3, .3, .07, .07, 0),
+                ell(.3, .31, .03, .04, 2), ell(.5, .82, .26, .12, 1), ell(.2, .93, .12, .07, 3), rect(.36, .56, .5, .58, 2),
+                ell(.24, .62, .04, .04, 1), ell(.38, .74, .035, .035, 1)])
+toad_hop = sym([ell(.5, .42, .4, .27, 3), ell(.5, .27, .3, .2, 3), ell(.3, .14, .11, .11, 3), ell(.3, .14, .07, .07, 0),
+                ell(.3, .15, .03, .04, 2), ell(.5, .52, .24, .12, 1), ell(.18, .74, .1, .2, 3), ell(.14, .95, .14, .05, 3),
+                ell(.5, .38, .14, .06, 2)])
+mag_up = sym([tri(.5, .42, .02, .02, .3, .62, 2), tri(.1, .1, .22, .38, .34, .4, 1), ell(.5, .55, .13, .28, 2),
+              ell(.5, .26, .12, .12, 2), tri(.46, .3, .54, .3, .5, .46, 0), ell(.43, .22, .03, .03, 3), ell(.5, .62, .07, .1, 1)])
+mag_dn = sym([tri(.5, .38, .02, .98, .3, .4, 2), tri(.1, .9, .22, .62, .34, .55, 1), ell(.5, .55, .13, .28, 2),
+              ell(.5, .26, .12, .12, 2), tri(.46, .3, .54, .3, .5, .46, 0), ell(.43, .22, .03, .03, 3), ell(.5, .62, .07, .1, 1)])
+snake_up = sym([ell(.5, .84, .46, .15, 3), ell(.5, .84, .3, .07, 1), ell(.5, .68, .32, .11, 3), ell(.5, .68, .18, .05, 1),
+                rect(.42, .26, .58, .66, 3), rect(.42, .4, .58, .44, 1), ell(.5, .22, .16, .12, 3),
+                ell(.42, .2, .035, .035, 0), rect(.49, .33, .51, .42, 2)])
+snake_hit = sym([ell(.5, .84, .46, .15, 3), ell(.5, .84, .3, .07, 1), ell(.5, .68, .32, .11, 3), ell(.5, .68, .18, .05, 1),
+                 rect(.42, .45, .58, .66, 3), ell(.5, .4, .19, .14, 3), ell(.5, .45, .1, .06, 2),
+                 rect(.44, .41, .46, .48, 0), ell(.4, .35, .035, .035, 0)])
+def legs(dy):
+    return [tri(.44, .44, .02, .14+dy, .07, .1+dy, 3), tri(.43, .5, .0, .42+dy, .03, .36+dy, 3),
+            tri(.43, .56, .02, .74-dy, .06, .68-dy, 3), tri(.44, .62, .08, .98-dy, .14, .95-dy, 3)]
+spider_a = sym(legs(0) + [ell(.5, .5, .15, .17, 3), ell(.5, .72, .12, .15, 3), ell(.5, .72, .05, .07, 2),
+                          ell(.45, .42, .025, .025, 1), ell(.48, .5, .02, .02, 1)])
+spider_b = sym(legs(.08) + [ell(.5, .5, .15, .17, 3), ell(.5, .72, .12, .15, 3), ell(.5, .72, .05, .07, 2),
+                            ell(.45, .42, .025, .025, 1), ell(.48, .5, .02, .02, 1)])
+dingo_common = [tri(.3, .02, .2, .25, .42, .18, 3), ell(.5, .3, .26, .2, 3), ell(.5, .62, .24, .2, 3), ell(.5, .64, .1, .14, 0),
+                rect(.32, .7, .42, .97, 3), ell(.37, .97, .07, .03, 0), ell(.38, .26, .04, .04, 1)]
+dingo_run = sym(dingo_common + [ell(.5, .4, .12, .1, 0), ell(.5, .35, .05, .04, 2)])
+dingo_bite = sym(dingo_common + [ell(.5, .42, .13, .12, 0), ell(.5, .35, .05, .04, 2), ell(.5, .46, .09, .06, 2),
+                                 rect(.43, .42, .45, .47, 0)])
+d_drum = sym([rect(.08, .12, .92, 1.0, 3), rect(.08, .35, .92, .4, 2), rect(.08, .7, .92, .75, 2), ell(.5, .12, .42, .1, 1)])
+d_lamp = sym([rect(.46, 0, .54, .55, 2), tri(.5, .45, .05, .85, .95, .85, 3), ell(.5, .9, .16, .1, 1)])
+d_shrub = sym([ell(.5, .62, .48, .38, 0), ell(.3, .45, .22, .25, 0), ell(.5, .3, .25, .25, 0), ell(.35, .5, .04, .04, 1),
+               ell(.5, .3, .04, .04, 1), ell(.42, .76, .05, .05, 1), ell(.12, .7, .04, .04, 1)])
+d_termite = sym([tri(.5, .0, .1, 1.0, .9, 1.0, 3), ell(.5, .12, .12, .14, 3), ell(.38, .5, .14, .2, 3), ell(.3, .82, .18, .2, 3),
+                 ell(.45, .62, .04, .05, 2), ell(.42, .3, .03, .04, 2), ell(.28, .85, .04, .05, 2)])
+d_cart = sym([rect(.06, .28, .94, .78, 3), rect(.0, .22, 1.0, .3, 2), ell(.35, .22, .16, .1, 1), ell(.5, .17, .14, .09, 1),
+              rect(.2, .45, .24, .7, 2), ell(.25, .86, .12, .12, 2), ell(.25, .86, .04, .04, 1)])
+d_stump = sym([rect(.25, .28, .75, 1.0, 3), ell(.5, .28, .25, .08, 1), tri(.25, .72, .02, 1.0, .3, 1.0, 3),
+               rect(.38, .4, .41, .92, 2), ell(.5, .28, .1, .03, 3)])
+d_reeds = sym([rect(.13, .32, .17, 1.0, 3), rect(.3, .12, .34, 1.0, 3), rect(.45, .25, .49, 1.0, 3),
+               ell(.32, .16, .045, .11, 2), ell(.15, .36, .04, .09, 2), tri(.25, 1.0, .05, .5, .3, .9, 1)])
+d_bones = sym([ell(.5, .42, .22, .27, 0), rect(.38, .62, .62, .74, 0), ell(.41, .4, .065, .075, 2),
+               tri(.5, .5, .46, .58, .54, .58, 2), rect(.43, .66, .45, .74, 2), ell(.22, .88, .22, .06, 0), ell(.04, .88, .05, .08, 0)])
+
 sprite_bytes = {}
 def prescale(fn, hh, wpx, mirror):
     wb = max(1, math.ceil((wpx+2)/4)); W = wb*4; pad = (W-wpx)/2
@@ -370,7 +424,7 @@ def frameset(name, fn, ladder, aspect, mirror=True):
     table = []; tot = 0
     for hh in ladder:
         wb, data, grid = prescale(fn, hh, max(2, round(hh*aspect)), mirror)
-        a = art(None, data); table += [wb | (0 if mirror else 0x80), hh, a & 255, a >> 8]; tot += len(data)
+        a, bank = art(None, data); table += [wb | bank | (0 if mirror else 0x80), hh, a & 255, a >> 8]; tot += len(data)
     PREVIEW[name] = grid
     sprite_bytes[name] = tot
     return blob(name, table)
@@ -391,11 +445,29 @@ IA = frameset('SPR_AMMO', item_ammo, ITEM_L, 1.4)
 IK = frameset('SPR_KEY', item_key, ITEM_L, 1.8, mirror=False)
 IO = frameset('SPR_OPAL', item_opal, ITEM_L, 0.8)
 IM = frameset('SPR_MAPI', item_map, ITEM_L, 1.3)
+def ladder(maxh):
+    out = []; hh = 2
+    while hh < maxh: out.append(hh); hh = max(hh+1, round(hh*1.33))
+    return out + [maxh]
+NEW = {}
+for nm, f0, f1, frac, asp in (('TOAD', toad_sit, toad_hop, .24, 1.3), ('MAG', mag_up, mag_dn, .26, 1.5),
+                              ('SNAKE', snake_up, snake_hit, .3, 1.35), ('SPIDER', spider_a, spider_b, .26, 1.7),
+                              ('DINGO', dingo_run, dingo_bite, .5, .9)):
+    L = ladder(min(40, round(frac*78)))
+    NEW[nm] = (frameset('SPR_'+nm+'0', f0, L, asp), frameset('SPR_'+nm+'1', f1, L, asp), L, frac)
+DEC = {}
+for nm, fn, frac, asp in (('DRUM', d_drum, .45, .7), ('LAMP', d_lamp, .34, .55), ('SHRUB', d_shrub, .45, 1.0),
+                          ('TERMITE', d_termite, .7, .55), ('CART', d_cart, .42, 1.25), ('STUMP', d_stump, .5, .75),
+                          ('REEDS', d_reeds, .5, .9), ('BONES', d_bones, .28, 1.2)):
+    L = ladder(min(40, round(frac*78)))
+    DEC[nm] = (frameset('SPR_'+nm, fn, L, asp), L, frac)
 def sizetab(name, ladder, frac):
     return blob(name, [min(range(len(ladder)), key=lambda j: abs(ladder[j]-frac*hh)) for hh in HEIGHTS])
 SB = sizetab('SZ_BEAR', BEAR_L, 0.62); SBOSS = sizetab('SZ_BOSS', BEAR_L, 0.95)
 SBAT = sizetab('SZ_BAT', BAT_L, 0.3); SBUN = sizetab('SZ_BUN', BIG_L, 0.7); SYOW = sizetab('SZ_YOW', BIG_L, 1.0)
 SI = sizetab('SZ_ITEM', ITEM_L, 0.28)
+for nm, (a0, a1, L, frac) in NEW.items(): NEW[nm] = (a0, a1, sizetab('SZ_'+nm, L, frac))
+for nm, (a0, L, frac) in DEC.items(): DEC[nm] = (a0, sizetab('SZ_'+nm, L, frac))
 
 # ---- text --------------------------------------------------------------------------------------
 GLYPHS = {
@@ -453,22 +525,35 @@ for nm, s in (('MSG_NOMAP', "NO MAP HERE YET"), ('MSG_SECRET', "SECRET FOUND!"),
               ('MSG_MAP', "GOT MAP! HOLD M"), ('MSG_KEY', "GOT A KEY!"), ('MSG_OPAL', "OPAL! BEAUTY!"),
               ('MSG_HEALTH', "VEGEMITE! +25"), ('MSG_AMMO', "AMMO +15"), ('MSG_OUCH', "OUCH!"), ('MSG_BLANK', ""),
               ('MSG_K1', "GOT ONE!"), ('MSG_K2', "BAT DOWN!"), ('MSG_K3', "BIG FELLA DOWN!"),
-              ('MSG_K4', "BUNYIP BEATEN!"), ('MSG_K5', "YOWIE DOWN!")):
+              ('MSG_K4', "BUNYIP BEATEN!"), ('MSG_K5', "YOWIE DOWN!"), ('MSG_K6', "TOAD SQUASHED!"),
+              ('MSG_K7', "MAGPIE DOWN!"), ('MSG_K8', "SNAKE GONE!"), ('MSG_K9', "SPIDER SPLAT!"), ('MSG_K10', "DINGO DOWN!")):
     assert len(s) <= 16
     blob(nm, enc(s.ljust(16)))
 
-# creature and pickup types: size table, frame 0, frame 1, hp, speed, bite, flags, kill message
-# flags: 1 boss (opens gates when beaten), 2 charges in bursts, 4 speeds up when hurt, 8 flies
-TYPES = [(SB, BW, BB, 2, 12, 7, 0, 'MSG_K1'), (SBAT, VU, VD, 1, 16, 4, 8, 'MSG_K2'),
-         (SBOSS, BW, BB, 12, 8, 14, 1, 'MSG_K3'), (SBUN, UW, UB, 16, 22, 14, 3, 'MSG_K4'),
-         (SYOW, YW, YB, 20, 7, 16, 5, 'MSG_K5'),
-         (SI, IH, IH, 0, 0, 0, 0, 'MSG_BLANK'), (SI, IA, IA, 0, 0, 0, 0, 'MSG_BLANK'), (SI, IK, IK, 0, 0, 0, 0, 'MSG_BLANK'),
-         (SI, IO, IO, 0, 0, 0, 0, 'MSG_BLANK'), (SI, IM, IM, 0, 0, 0, 0, 'MSG_BLANK')]
+# creature, pickup and furniture types: size table, frame 0, frame 1, hp, speed, bite, flags, kill message,
+# burst colours (four 2-bit colours), burst size
+# flags: 1 boss (opens gates when beaten), 2 moves in bursts, 4 speeds up when hurt, 8 flies,
+#        16 hangs from the ceiling, 32 blocks the way
+def cols(*c): return c[0] | c[1] << 2 | c[2] << 4 | c[3] << 6
+N = NEW; D = DEC
+TYPES = [(SB, BW, BB, 2, 13, 8, 0, 'MSG_K1', cols(0, 0, 1, 3), 22), (SBAT, VU, VD, 1, 17, 4, 8, 'MSG_K2', cols(3, 3, 2, 1), 14),
+         (SBOSS, BW, BB, 18, 9, 15, 1, 'MSG_K3', cols(0, 0, 1, 3), 32), (SBUN, UW, UB, 24, 24, 15, 3, 'MSG_K4', cols(1, 1, 3, 0), 32),
+         (SYOW, YW, YB, 24, 7, 18, 5, 'MSG_K5', cols(0, 0, 3, 1), 32),
+         (N['TOAD'][2], N['TOAD'][0], N['TOAD'][1], 1, 22, 4, 2, 'MSG_K6', cols(3, 3, 1, 0), 14),
+         (N['MAG'][2], N['MAG'][0], N['MAG'][1], 1, 20, 5, 8, 'MSG_K7', cols(2, 1, 2, 1), 14),
+         (N['SNAKE'][2], N['SNAKE'][0], N['SNAKE'][1], 2, 8, 9, 0, 'MSG_K8', cols(3, 1, 3, 1), 16),
+         (N['SPIDER'][2], N['SPIDER'][0], N['SPIDER'][1], 1, 18, 5, 0, 'MSG_K9', cols(3, 3, 2, 1), 14),
+         (N['DINGO'][2], N['DINGO'][0], N['DINGO'][1], 3, 18, 8, 0, 'MSG_K10', cols(3, 0, 3, 1), 20),
+         (SI, IH, IH, 0, 0, 0, 0, 'MSG_BLANK', 0, 0), (SI, IA, IA, 0, 0, 0, 0, 'MSG_BLANK', 0, 0), (SI, IK, IK, 0, 0, 0, 0, 'MSG_BLANK', 0, 0),
+         (SI, IO, IO, 0, 0, 0, 0, 'MSG_BLANK', 0, 0), (SI, IM, IM, 0, 0, 0, 0, 'MSG_BLANK', 0, 0)]
+for nm, fl in (('DRUM', 32), ('LAMP', 16), ('SHRUB', 32), ('TERMITE', 32), ('CART', 32), ('STUMP', 32), ('REEDS', 0), ('BONES', 0)):
+    TYPES.append((D[nm][1], D[nm][0], D[nm][0], 0, 0, 0, fl, 'MSG_BLANK', 0, 0))
 tt = []
-for st, f0, f1, hp, sp, bite, fl, msg in TYPES:
-    m = syms[msg]; tt += [st & 255, st >> 8, f0 & 255, f0 >> 8, f1 & 255, f1 >> 8, hp, sp, bite, fl, m & 255, m >> 8]
+for st, f0, f1, hp, sp, bite, fl, msg, pc, pn in TYPES:
+    m = syms[msg]
+    tt += [st & 255, st >> 8, f0 & 255, f0 >> 8, f1 & 255, f1 >> 8, hp, sp, bite, fl, m & 255, m >> 8, pc, pn]
 blob('TYPES', tt)
-syms['NENEMY'] = 5
+syms.update(NENEMY=10, T_HEALTH=11, T_AMMO=12, T_KEY=13, T_OPAL=14, T_MAP=15, DECOR=16)
 syms['TBEAR0'] = BW + 9*4; syms['TBEAR1'] = BB + 9*4
 
 GUN = ["..........3333..........", "..........3113..........", ".........222222.........", ".........212222.........",
@@ -485,171 +570,176 @@ def gunrec(name, artrows):
             for ch in artrows[y][bx*4:bx*4+4]:
                 m = m << 2 | (3 if ch == '.' else 0); d = d << 2 | (0 if ch == '.' else int(ch))
             out += [m, d]
-    a = art(None, out); return blob(name, [6 | 0x80, hh, a & 255, a >> 8])
+    a, bank = art(None, out); return blob(name, [6 | 0x80 | bank, hh, a & 255, a >> 8])
 gunrec('GUN0', GUN); syms['GUNH'] = len(GUN)
 gunrec('GUN1', [("".join(f if f != '.' else g for f, g in zip(FLASH[y], GUN[y])) if y < len(FLASH) else GUN[y]) for y in range(len(GUN))])
 
 # ---- the world ---------------------------------------------------------------------------------
 # '#' wall A, 'C' wall B, 'W' wall C, 'D' door, 'X' way out, 'L' locked door, 'S' switch, 'G' gate,
 # '%' cracked wall (secret), '.' floor, 'P' start
-# b bear, v bat, B Big Fella, U Bunyip, Y Yowie, h Vegemite, a ammo, k key, o opal, m map
+# b bear, v bat, B Big Fella, U Bunyip, Y Yowie, t toad, g magpie, n snake, s spider, d dingo
+# h Vegemite, a ammo, k key, o opal, m map
+# furniture: r drum, l lamp, j shrub, q termite mound, c mine cart, u stump, e reeds, x bones
 AREAS = [
  dict(name="THE HOMESTEAD", theme='STATION', known=1, exits=[1], rows=[
   "################",
-  "#P...#...o#....#",
+  "#P...#..lo#.g..#",
   "#....#....#.b..#",
-  "#....D....D....#",
-  "#..a.#....#....#",
+  "#....D....D..r.#",
+  "#.ra.#.t..#....#",
   "###D####%###D###",
-  "#....#..o..#...#",
+  "#....#..o..#..g#",
   "#.CC.#.....#.h.#",
   "#.CC.#######...#",
-  "#....D.........#",
+  "#l...D....l....#",
   "#.b..#..CCC..b.#",
-  "#....#..C.C....#",
-  "#WWWW#.........#",
-  "#..o%..........#",
+  "#..t.#..C.C....#",
+  "#WWWW#..r.t....#",
+  "#..o%....g...r.#",
   "#...#....b.....X",
   "################"]),
  dict(name="THE BUSH TRACK", theme='BUSH', known=1, exits=[0, 2, 3], rows=[
   "################",
-  "#.....#........#",
+  "#...q.#..j...g.#",
   "X.....#..v.....#",
   "#.....D.....CC.#",
-  "#..C.b#.....CC.#",
+  "#..C.b#.n...CC.#",
   "#..C..###D######",
-  "#.......#.b....#",
+  "#j......#.b..q.#",
   "##.###..#......X",
   "#....#..%..o...#",
-  "#.o..#..#..h...#",
+  "#.o.n#..#.gh...#",
   "#....#..########",
-  "#.a..D.........#",
+  "#.a..D....n....#",
   "###L###..v..CC.#",
   "X.....#.....CC.#",
-  "#....b#..b..o..#",
+  "#....b#.qb..o.j#",
   "################"]),
  dict(name="GUM TREE MAZE", theme='BUSH', known=0, exits=[1], rows=[
   "################",
-  "#m#.....#.....o#",
+  "#m#.....#..g..o#",
   "#.#.###.#.###..#",
   "#.#.#...#...#..#",
   "#...#.#####.#.##",
-  "###.#.#...#.#..#",
+  "###.#.#.n.#.#..#",
   "#...#...#.#.##.#",
   "X.###.#.#.#....#",
   "#.....#.#.####.#",
-  "####.##.#....#.#",
+  "####.##.#..n.#.#",
   "#..#.#..####.#.#",
   "#.##.#.##..#.#.#",
-  "#.#..#....##.#.#",
+  "#.#..#.n..##.#.#",
   "#.#.#####.#..#.#",
-  "#o....v...#k.b.#",
+  "#o..g.v...#k.b.#",
   "################"]),
  dict(name="THE OLD MINE", theme='MINE', known=0, exits=[1, 4], rows=[
   "################",
-  "#....WW....#...#",
+  "#..l.WW..c.#...#",
   "X....WW..b.#.o.#",
-  "#..........#...#",
+  "#......s...#.l.#",
   "#.WW...WW..##D##",
-  "#.WW.b.WW......#",
-  "#..........WW..#",
+  "#.WW.b.WW..s...#",
+  "#..r.......WW..#",
   "####D#####.WW..#",
-  "#....#.....v...#",
+  "#..l.#.....v...#",
   "#.m..#..WWWGWWWW",
-  "#....#..W.b...h#",
+  "#s...#..W.b.s.h#",
   "#..b.#..W......#",
   "#....#..W.WWWW.#",
   "##S###..W.W..%.#",
-  "#a......W.Wo.W.X",
+  "#a..s...W.Wo.W.X",
   "################"]),
  dict(name="BIG FELLA'S DEN", theme='MINE', known=1, exits=[3, 5], rows=[
   "################",
-  "#.....#........#",
+  "#.....#..l..l..#",
   "X..a..D........#",
   "#.....#..W..W..#",
-  "#.h...#........#",
+  "#.h...#.x....x.#",
   "###D###...B....#",
-  "#.....#........#",
+  "#.s...#........#",
   "#..o..#..W..W..#",
-  "#.....#........#",
+  "#...c.#.s....s.#",
   "#.....#######G##",
   "#.b...#.....#..#",
-  "#.....#..o..#..#",
+  "#...s.#..o..#..#",
   "#.....%.....#..#",
-  "#.....#.....#..#",
+  "#.c...#..x..#..#",
   "#..a..#.....#..X",
   "################"]),
  dict(name="THE BILLABONG", theme='SWAMP', known=0, exits=[4, 6], rows=[
   "################",
-  "#......#..v....#",
-  "X..CC..#.CC..CC#",
-  "#..CC..D.CC....#",
+  "#....te#..v....#",
+  "X..CC..#.CC.uCC#",
+  "#..CC..D.CC..t.#",
   "#....v.#....b..#",
   "#......###L#####",
   "##D#####.......#",
-  "#......#.CC.v..#",
-  "#.CC...#.CC....#",
-  "#.CC.b.#.b.WW..#",
-  "#......#...WW.o#",
-  "#.k..m.#.......#",
-  "####%###.......#",
-  "#.o.h..#.......#",
+  "#e...n.#.CC.v..#",
+  "#.CC...#.CC...u#",
+  "#.CC.b.#.b.WWt.#",
+  "#..t...#...WW.o#",
+  "#.k..m.#.t.....#",
+  "####%###.n.....#",
+  "#.o.h..#e......#",
   "#......#..a....X",
   "################"]),
  dict(name="BUNYIP'S POOL", theme='SWAMP', known=1, exits=[5, 7], rows=[
   "################",
-  "#.....#........#",
+  "#....e#e.....e.#",
   "X.....D...CC...#",
-  "#..h..#...CC...#",
-  "#.....#........#",
+  "#..h..#...CC.t.#",
+  "#.....#.t......#",
   "#..a..#.CC..U..#",
   "##D####.CC.....#",
-  "#.....#........#",
-  "#.o...#...CC...#",
-  "#.....#...CC...#",
+  "#..n..#......u.#",
+  "#.o...#.u.CC...#",
+  "#....n#...CC.t.#",
   "#..v..#........#",
-  "#.....######G###",
-  "#.....#.v.....o#",
-  "#..a..#........#",
+  "#e....######G###",
+  "#.....#.v.t...o#",
+  "#..a.t#...e....#",
   "#.....#........X",
   "################"]),
  dict(name="THE RIDGE", theme='RIDGE', known=0, exits=[6, 8], rows=[
   "################",
   "#.....#.v...#.o#",
   "X.###.#.###.#..#",
-  "#.#...#...#.#L##",
-  "#.#.#####.#....#",
-  "#.#..b..#.####.#",
-  "#.#####.#....#.#",
+  "#.#x..#...#.#L##",
+  "#.#.#####n#....#",
+  "#.#..b..#.####n#",
+  "#.#####.#..d.#.#",
   "#m....#...k..#.#",
   "#####G###S######",
-  "#..............#",
-  "#.WW..b...WW...#",
-  "#.WW......WW...#",
-  "#......v.......#",
-  "#..a.......h...#",
-  "#..........o...X",
+  "#......j....d..#",
+  "#.WW.qb...WW...#",
+  "#.WW......WWj..#",
+  "#...d..v.x.....#",
+  "#..a....n..h...#",
+  "#..x.......o...X",
   "################"]),
  dict(name="YOWIE'S LAIR", theme='LAIR', known=1, exits=[7, 255], rows=[
   "################",
-  "#.....#........#",
-  "X..h..D........#",
+  "#.....#..l...l.#",
+  "X..h..D.u....d.#",
   "#.....#..WW....#",
   "#..a..#..WW.Y..#",
-  "###D###........#",
-  "#.....#....WW..#",
-  "#..o..#....WW..#",
-  "#.....D........#",
+  "###D###x.......#",
+  "#.....#....WW.x#",
+  "#..o.d#.s..WW..#",
+  "#.....D......s.#",
   "#.b...#######G##",
-  "#.....#.......v#",
-  "#..a..#.......o#",
+  "#..s..#..x....v#",
+  "#..a..#.u.....o#",
   "#.....#.......h#",
-  "#.....#........#",
+  "#.d...#..l.....#",
   "#..v..#........X",
   "################"])]
 assert len(AREAS) == NAREA
 CELL = {'#': 1, 'C': 2, 'D': 3, 'X': 4, 'W': 5, 'L': 6, 'S': 7, 'G': 9, '%': 10}
-OBJC = {'b': 1, 'v': 2, 'B': 3, 'U': 4, 'Y': 5, 'h': 6, 'a': 7, 'k': 8, 'o': 9, 'm': 10}
+OBJC = {'b': 1, 'v': 2, 'B': 3, 'U': 4, 'Y': 5, 't': 6, 'g': 7, 'n': 8, 's': 9, 'd': 10,
+        'h': 11, 'a': 12, 'k': 13, 'o': 14, 'm': 15,
+        'r': 16, 'l': 17, 'j': 18, 'q': 19, 'c': 20, 'u': 21, 'e': 22, 'x': 23}
+SOLIDDEC = {16, 18, 19, 20, 21}
 DIRS = {(1, 0): 0, (0, 1): 1, (-1, 0): 2, (0, -1): 3}
 WORLD = []
 for ai, A in enumerate(AREAS):
@@ -658,7 +748,7 @@ for ai, A in enumerate(AREAS):
     for i in range(16):
         for (x, y) in ((i, 0), (i, 15), (0, i), (15, i)): assert grid[y][x] in (1, 2, 4, 5), (A['name'], x, y)
     objs = [(OBJC[ch], x, y) for y, r in enumerate(rows) for x, ch in enumerate(r) if ch in OBJC]
-    assert len(objs) <= 16, A['name']
+    assert len(objs) <= 32, A['name']
     xs = [(x, y) for y in range(16) for x in range(16) if rows[y][x] == 'X']
     assert len(xs) == len(A['exits']), A['name']
     WORLD.append(dict(grid=grid, objs=objs, xs=xs, rows=rows))
@@ -690,15 +780,32 @@ problems = []
 for (ai, cell), (tgt, ent, face) in EXITS.items():
     if tgt == 255: continue
     for t, x, y in WORLD[tgt]['objs']:
-        if t <= 5 and max(abs(x-ent[0]), abs(y-ent[1])) <= 3:
+        if t <= 10 and max(abs(x-ent[0]), abs(y-ent[1])) <= 3:
             problems.append('%s: creature %d at %d,%d too close to the way in at %d,%d' % (AREAS[tgt]['name'], t, x, y, *ent))
 for t, x, y in WORLD[0]['objs']:
-    if t <= 5 and max(abs(x-1), abs(y-1)) <= 3: problems.append('start: creature at %d,%d' % (x, y))
+    if t <= 10 and max(abs(x-1), abs(y-1)) <= 3: problems.append('start: creature at %d,%d' % (x, y))
+# furniture must not cut anything off: everything stays reachable with blocking furniture in place
+for ai, A in enumerate(AREAS):
+    W = WORLD[ai]; g = W['grid']
+    solid = {(x, y) for t, x, y in W['objs'] if t in SOLIDDEC}
+    starts = [ent for (a0, c), (t, ent, f) in EXITS.items() if t == ai] + ([(1, 1)] if ai == 0 else [])
+    seen = set(starts); todo = list(starts)
+    while todo:
+        x, y = todo.pop()
+        for nx, ny in ((x+1, y), (x-1, y), (x, y+1), (x, y-1)):
+            if (nx, ny) not in seen and g[ny][nx] in (0, 3, 6, 9, 10) and (nx, ny) not in solid:
+                seen.add((nx, ny)); todo.append((nx, ny))
+    for t, x, y in W['objs']:
+        if t < 16 and (x, y) not in seen: problems.append('%s: thing %d at %d,%d cut off' % (A['name'], t, x, y))
+    for y in range(16):
+        for x in range(16):
+            if g[y][x] in (4, 7) and not any(n in seen for n in ((x+1, y), (x-1, y), (x, y+1), (x, y-1))):
+                problems.append('%s: exit or switch at %d,%d cut off' % (A['name'], x, y))
 if problems: raise SystemExit('\n'.join(sorted(set(problems))))
 syms['NAREA'] = NAREA
 (sx, sy), = [(x, y) for y, r in enumerate(AREAS[0]['rows']) for x, ch in enumerate(r) if ch == 'P']
 syms['STARTCELL'] = sy*16+sx; syms['STARTANG'] = 0
-NOPALS = sum(1 for W in WORLD for o in W['objs'] if o[0] == 9)
+NOPALS = sum(1 for W in WORLD for o in W['objs'] if o[0] == 14)
 page('PG_WIN', [centre(6, "YOU BEAUTY!"), centre(17, "THE YOWIE IS DOWN AND THE"), centre(23, "UTE ROARS OFF HOME."),
                 (33, 5, "OPALS FOUND:    OF %d" % NOPALS), centre(45, "VIBED BY BPM 2026"), centre(56, "PRESS FIRE")])
 syms['WINNUM'] = 0x7000+33*32+5+13
@@ -733,11 +840,15 @@ for k in list(syms):
     if isinstance(syms[k], int) and (k.isupper() or k.startswith('SPR')): syms[k+'_HI'] = syms[k] >> 8
 syms['ZBUF_LO'] = syms['ZBUF'] & 255
 code = assemble(open('dropbear.asm').read(), syms)
-for a, v in code.items(): mem[a] = v
+for a, v in code.items():
+    if 0x7A00 <= a < 0x8000: lo[a-0x7A00] = v
+    else: mem[a] = v
+assert syms['codeend'] < 0x10000 and max(a for a in code if a < 0x7A00 or a >= 0x8000) < 0xF800
 codeend = syms['codeend']; IMGEND = (codeend+255) & 0xFF00
 assert IMGEND <= 0xF800, 'main RAM overflow: code ends %04X' % codeend
 mem[syms['SPREND']+1] = syms['ds_ret'] & 255; mem[syms['SPREND']+2] = syms['ds_ret'] >> 8
-image = bytes(mem[0x8100:IMGEND]); img1 = bytes(b1[:used['b1']-0x4000]); img3 = bytes(b3[:used['b3']-0x4000])
+image = bytes(mem[0x8100:IMGEND]); img1 = bytes(b1[:used['b1']-0x4000]); img3 = bytes(b3[:max(1, used['b3']-0x4000)])
+imglo = bytes(lo[:used['lo']-0x7A00]); LIBADDR = syms['LIVE']+512*NAREA; imghi = bytes(hi[LIBADDR-0xB800:used['hi']-0xB800])
 
 # ---- pack: literal runs (0..127 = n+1 bytes) or copies ($81..$FF = length-3, then 16-bit distance); $80 ends
 def pack(data):
@@ -765,11 +876,42 @@ def pack(data):
         worst = max(worst, i-len(out)-len(lit))
     flush(); out.append(0x80)
     return bytes(out), worst
-pm, worst = pack(image); p1, _ = pack(img1); p3, _ = pack(img3)
+pm, worst = pack(image); p1, _ = pack(img1); p3, _ = pack(img3); plo, _ = pack(imglo); ph, _ = pack(imghi)
 STUB = """
         org $8000
         di
-        ld sp,$FFF0
+        ld sp,$79F0
+        ld a,1
+        out ($37),a
+        ld a,($B800)            ; is there a high bank? it must keep its own data at $B800
+        ld b,a
+        ld a,5
+        out ($37),a
+        ld a,b
+        cpl
+        ld ($B800),a
+        ld a,1
+        out ($37),a
+        ld a,($B800)
+        cp b
+        jr nz,nomem
+        ld a,($4000)            ; and a second bank at $4000
+        ld b,a
+        ld a,3
+        out ($37),a
+        ld a,b
+        cpl
+        ld ($4000),a
+        ld a,1
+        out ($37),a
+        ld a,($4000)
+        cp b
+        jr nz,nomem
+        ld a,5
+        out ($37),a
+        ld hl,PKH
+        ld de,LIBADDR
+        call unpk
         ld a,3
         out ($37),a
         ld hl,PK3
@@ -780,6 +922,9 @@ STUB = """
         ld hl,PK1
         ld de,$4000
         call unpk
+        ld hl,PKLO
+        ld de,$7A00
+        call unpk
         ld hl,PKM+PKLEN-1
         ld de,$F9FF
         ld bc,PKLEN
@@ -789,6 +934,22 @@ STUB = """
         ld de,$8100
         call unpk
         jp START
+nomem:  xor a
+        ld ($6800),a
+        ld hl,$7000
+        ld de,$7001
+        ld bc,511
+        ld (hl),$20
+        ldir
+        ld hl,NOMSG
+        ld de,$7000+7*32+4
+nm1:    ld a,(hl)
+        or a
+nm2:    jr z,nm2
+        ld (de),a
+        inc hl
+        inc de
+        jr nm1
 unpk:   ld a,(hl)
         inc hl
         or a
@@ -818,27 +979,31 @@ dpm:    and $7F
         pop hl
         inc hl
         jr unpk
-PKM:
+NOMSG:  db NOMSGBYTES
+PKH:
 """
-ss = dict(PKLEN=len(pm), START=syms['start'])
-tmp = dict(ss, PK1=0, PK3=0); assemble(STUB, tmp)
-ss['PK1'] = tmp['PKM']+len(pm); ss['PK3'] = ss['PK1']+len(p1)
+
+msg = "NEEDS BENNVENN 128K RAM"
+ss = dict(PKLEN=len(pm), START=syms['start'], LIBADDR=LIBADDR)
+STUB = STUB.replace('NOMSGBYTES', ','.join(str(ord(c)-64 if c.isalpha() else ord(c)) for c in msg) + ',0')
+tmp = dict(ss, PK1=0, PK3=0, PKLO=0, PKM=0); assemble(STUB, tmp)
+ss['PKM'] = tmp['PKH']+len(ph); ss['PK1'] = ss['PKM']+len(pm); ss['PK3'] = ss['PK1']+len(p1); ss['PKLO'] = ss['PK3']+len(p3)
 stub = assemble(STUB, ss)
-body = bytes(stub[a] for a in range(0x8000, ss['PKM'])) + pm + p1 + p3
-assert ss['PKM'] <= 0x8100
+body = bytes(stub[a] for a in range(0x8000, ss['PKH'])) + ph + pm + p1 + p3 + plo
+assert ss['PKH'] <= 0x8100 and ss['PKM'] <= 0xB800, 'high-bank data must load below $B800'
 assert 0x8000+len(body) < 0xFA00
 # while unpacking the main image from the top of RAM, writes must never catch up with unread input
 assert (0xFA00-len(pm)) - 0x8100 > worst + 8, 'unpack would overwrite its own input'
 vz = b'VZF0' + b'DROPBEAR'.ljust(17, b'\0') + bytes([0xF1, 0x00, 0x80]) + body
 open('DROPBEAR.VZ', 'wb').write(vz)
-pickle.dump(dict(syms=syms, image=image, img1=img1, img3=img3, body=body, IMGEND=IMGEND, world=WORLD,
+pickle.dump(dict(syms=syms, image=image, img1=img1, img3=img3, imglo=imglo, imghi=imghi, LIBADDR=LIBADDR, body=body, IMGEND=IMGEND, world=WORLD,
                  areas=[dict(name=A['name'], exits=A['exits'], theme=A['theme']) for A in AREAS], exits=EXITS,
                  nopals=NOPALS, preview=PREVIEW, heights=HEIGHTS), open('image.pkl', 'wb'))
 if __name__ == '__main__':
     print('main RAM: data %04X-%04X, code %04X-%04X (%d bytes), %d bytes free' %
           (0x8100, syms['CODEORG'], syms['CODEORG'], codeend, codeend-syms['CODEORG'], 0xF800-codeend))
-    print('SRAM bank 1 used to %04X (%d free), bank 3 used to %04X (%d free)' %
-          (used['b1'], 0x6800-used['b1'], used['b3'], 0x6800-used['b3']))
+    print('SRAM bank 1 used to %04X (%d free), bank 3 to %04X (%d free), $7A00 area to %04X (%d free), high bank to %04X (%d free)' %
+          (used['b1'], 0x6800-used['b1'], used['b3'], 0x6800-used['b3'], used['lo'], 0x8000-used['lo'], used['hi'], 0x10000-used['hi']))
     print('sprites: ' + ', '.join('%s %d' % (k[4:], v) for k, v in sprite_bytes.items()))
-    print('packed: main %d, bank1 %d, bank3 %d; file %d bytes, loads 8000-%04X; %d opals in the world' %
-          (len(pm), len(p1), len(p3), len(vz), 0x8000+len(body)-1, NOPALS))
+    print('packed: main %d, bank1 %d, bank3 %d, lo %d, high %d; file %d bytes, loads 8000-%04X; %d opals in the world' %
+          (len(pm), len(p1), len(p3), len(plo), len(ph), len(vz), 0x8000+len(body)-1, NOPALS))

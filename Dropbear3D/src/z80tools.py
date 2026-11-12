@@ -113,14 +113,16 @@ class Z80:
     def __init__(s,mem):
         s.m=mem; s.r=[0]*8; s.r2=[0]*8; s.fc=s.fz=s.fs=0; s.sp=0; s.pc=0; s.t=0
         s.latch=0; s.keys={}; s.ioreads=[]; s.FIELD=70630; s.SYNC=12740; s.logio=False
-        s.bank=1; s.other=bytearray(0x2800); s.outs=[]
+        s.losel=0; s.hisel=0; s.lowalt=bytearray(0x2800); s.highalt=bytearray(0x4800); s.outs=[]
     def out(s,port,v):
         s.outs.append((port,v))
         if port==0x37:
-            assert v in (1,3), 'unexpected mapper value %d'%v
-            nb=v
-            if nb!=s.bank:
-                cur=bytes(s.m[0x4000:0x6800]); s.m[0x4000:0x6800]=s.other; s.other=bytearray(cur); s.bank=nb
+            assert v in (1,3,5), 'unexpected mapper value %d'%v
+            lo=(v>>1)&1; hi=(v>>2)&1
+            if lo!=s.losel:
+                cur=bytes(s.m[0x4000:0x6800]); s.m[0x4000:0x6800]=s.lowalt; s.lowalt=bytearray(cur); s.losel=lo
+            if hi!=s.hisel:
+                cur=bytes(s.m[0xB800:0x10000]); s.m[0xB800:0x10000]=s.highalt; s.highalt=bytearray(cur); s.hisel=hi
     def rd(s,a):
         if 0x6800<=a<0x7000:
             if s.logio: s.ioreads.append(s.t)

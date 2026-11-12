@@ -19,9 +19,13 @@ def shot(z, scale=6):
 z = Z80(bytearray(65536)); z.m[0x8000:0x8000+len(P['body'])] = P['body']; z.pc = 0x8000
 while z.pc != S['start']: z.step()
 assert bytes(z.m[0x8100:P['IMGEND']]) == P['image'], 'main unpack mismatch'
-assert z.bank == 1 and bytes(z.m[0x4000:0x4000+len(P['img1'])]) == P['img1'], 'bank 1 unpack mismatch'
-assert bytes(z.other[:len(P['img3'])]) == P['img3'], 'bank 3 unpack mismatch'
-print('unpacked all three parts OK in %.2f s' % (z.t/3546900))
+assert z.losel == 0 and z.hisel == 0
+assert bytes(z.m[0x4000:0x4000+len(P['img1'])]) == P['img1'], 'bank 1 unpack mismatch'
+assert bytes(z.lowalt[:len(P['img3'])]) == P['img3'], 'bank 3 unpack mismatch'
+assert bytes(z.m[0x7A00:0x7A00+len(P['imglo'])]) == P['imglo'], '$7A00 unpack mismatch'
+la = P['LIBADDR']-0xB800
+assert bytes(z.highalt[la:la+len(P['imghi'])]) == P['imghi'], 'high bank unpack mismatch'
+print('unpacked all five parts OK in %.2f s' % (z.t/3546900))
 
 rd = lambda a: z.m[a]
 rd16 = lambda a: z.m[a] | z.m[a+1] << 8
@@ -42,7 +46,7 @@ def los(grid, x0, y0, x1, y1):
     n = int(max(abs(x1-x0), abs(y1-y0))*40)+1
     for i in range(1, n):
         x = x0+(x1-x0)*i/n; y = y0+(y1-y0)*i/n
-        if grid[int(y)*16+int(x)]: return False
+        if grid[int(y)*16+int(x)] & 0x7F: return False
     return True
 def bfs(grid, start, keys, goals):
     """shortest walk to any goal cell; goal cells may be walls (bump targets)"""
@@ -68,7 +72,7 @@ def bot(nframe):
     px, py = rd16(S['px'])/256, rd16(S['py'])/256; ang = rd16(S['pang'])
     grid = z.m[S['MAP']:S['MAP']+256]; keys = rd(S['keys'])
     objs = []
-    for i in range(16):
+    for i in range(32):
         a = S['OBJ']+i*8
         if z.m[a]: objs.append((z.m[a], rd16(a+1)/256, rd16(a+3)/256, z.m[a+6]))
     def steer(tx, ty, walk=True):
@@ -79,7 +83,7 @@ def bot(nframe):
         elif d < -6: k += 'A'
         if walk and abs(d) < 60: k += 'W'
         return k, d
-    foes = [(math.hypot(o[1]-px, o[2]-py), o) for o in objs if o[0] <= 5 and o[3] & 0x80 and los(grid, px, py, o[1], o[2])]
+    foes = [(math.hypot(o[1]-px, o[2]-py), o) for o in objs if o[0] <= 10 and o[3] & 0x80 and los(grid, px, py, o[1], o[2])]
     if foes and PACIFIST: return ''
     if foes and rd(S['ammo']):
         dist, o = min(foes)
@@ -90,9 +94,9 @@ def bot(nframe):
     here = (int(px), int(py))
     want = []
     for o in objs:
-        if o[0] == 6 and rd(S['hp']) >= 100: continue
-        if o[0] == 7 and rd(S['ammo']) >= 99: continue
-        if o[0] >= 6: want.append((int(o[1]), int(o[2])))
+        if o[0] == 11 and rd(S['hp']) >= 100: continue
+        if o[0] == 12 and rd(S['ammo']) >= 99: continue
+        if 11 <= o[0] <= 15: want.append((int(o[1]), int(o[2])))
     path = bfs(grid, here, keys, set(want)) if want else None
     if not path and 9 in grid and 7 in grid:
         path = bfs(grid, here, keys, {(i % 16, i//16) for i in range(256) if grid[i] == 7})
@@ -155,7 +159,11 @@ while not done:
         tz = rd(S['tz'])
         tgt = rd16(S['target'])
         if tgt and z.m[tgt] in (3, 4, 5) and tz > 30: shots.setdefault('boss%d' % z.m[tgt], shot(z))
-        if tgt and z.m[tgt] == 2 and tz > 20: shots.setdefault('bat', shot(z))
+        if tgt and z.m[tgt] in (2, 6, 7, 8, 9, 10) and tz > 22: shots.setdefault('foe%d' % z.m[tgt], shot(z))
+        live = sum(1 for i in range(32) if z.m[S['PART']+i*6+5] > 0)
+        if live > 8 and tz > 30 and len([k for k in shots if k.startswith('boom')]) < 8:
+            shots['boom%d' % nframe] = shot(z)
+        kills = getattr(z, 'kills', 0)
         if rd(S['hurtflash']): shots.setdefault('bitten', shot(z))
         k = bot(nframe)
         if area == 2 and z.m[S['aflags']+2] & 1 and not mapshot:
@@ -180,8 +188,8 @@ if not wins:
     print('STATE area', NAMES[rd(S['area'])], 'pos %.2f %.2f' % (rd16(S['px'])/256, rd16(S['py'])/256),
           'hp', rd(S['hp']), 'ammo', rd(S['ammo']), 'keys', rd(S['keys']), 'itin', itin)
     g = z.m[S['MAP']:S['MAP']+256]
-    for y in range(16): print(''.join('.#CDXWLSsG%'[g[y*16+x]] for x in range(16)))
-    for i in range(16):
+    for y in range(16): print(''.join(('*' if g[y*16+x] & 0x80 else '.#CDXWLSsG%'[g[y*16+x]]) for x in range(16)))
+    for i in range(32):
         a = S['OBJ']+i*8
         if z.m[a]: print('  obj', z.m[a], '%.2f %.2f' % (rd16(a+1)/256, rd16(a+3)/256), 'hp', z.m[a+5], 'flags %02x' % z.m[a+6])
     shot(z).save('shot_stuck.png')
