@@ -605,9 +605,15 @@ cb_to:  cp 32+8
         cp (hl)
         ret z
         jr c,.u
+        inc (hl)                ; 2 px at a time (every fourth frame): each
+        cp (hl)                 ; page keeps its boss glyphs every other frame
+        ret z
         inc (hl)
         ret
 .u:     dec (hl)
+        cp (hl)
+        ret z
+        dec (hl)
         ret
 
 ; flip snags at the pilot: they arc over and burst on the sand
@@ -615,7 +621,7 @@ cb_flip:
         ld a,1
         ld (boss_var),a
         ld a,(boss_t)
-        and 1
+        and 3
         call z,cb_bob
         ld a,(boss_t)
         and 15
@@ -650,7 +656,7 @@ cb_smoke:
         xor a
         ld (boss_var),a
         ld a,(boss_t)
-        and 1
+        and 3
         call z,cb_bob
         ld a,(boss_t)
         and 15

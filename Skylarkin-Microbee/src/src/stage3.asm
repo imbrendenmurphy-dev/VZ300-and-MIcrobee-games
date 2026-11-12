@@ -557,9 +557,15 @@ cb_to:  cp 32+4
         cp (hl)
         ret z
         jr c,.u
+        inc (hl)                ; 2 px at a time (every fourth frame): each
+        cp (hl)                 ; page keeps its boss glyphs every other frame
+        ret z
         inc (hl)
         ret
 .u:     dec (hl)
+        cp (hl)
+        ret z
+        dec (hl)
         ret
 
 ; cocktail sauce: globs lobbed at the pilot
@@ -567,7 +573,7 @@ cb_sauce:
         xor a
         ld (boss_var),a
         ld a,(boss_t)
-        and 1
+        and 3
         call z,cb_bob
         ld a,(boss_t)
         and 15

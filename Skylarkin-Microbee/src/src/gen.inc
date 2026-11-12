@@ -118,7 +118,22 @@ S3_BW equ 80
 S3_BH equ 64
 BLK_S3A equ 10
 BLK_S3B equ 11
+; stage 4
+SF_NOTE0 equ 192
+SF_NOTE1 equ 193
+SF_PICK0 equ 194
+SF_PICK1 equ 195
+SF_CYMBAL0 equ 196
+SF_CYMBAL1 equ 197
+SF_COWBELL equ 198
+SF_SPEAKER0 equ 199
+SF_SPEAKER1 equ 200
+S4_BW equ 80
+S4_BH equ 64
+BLK_S4A equ 13
+BLK_S4B equ 14
 stage_blk:
 	db 4,5
 	db 7,8
 	db 10,11
+	db 13,14

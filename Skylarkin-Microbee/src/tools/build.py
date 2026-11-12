@@ -29,7 +29,7 @@ SPR_DATA = 0x3000          # sprite frames start here in a sprite block (store b
 BLK_SPR = 3
 BLK_STRIP = [29, 30, 31]
 N_COMMON = 192             # sprite frames 0..191 common, 192..255 the stage's
-STAGE_MODULES = ['stage1', 'stage2', 'stage3']
+STAGE_MODULES = ['stage1', 'stage2', 'stage3', 'stage4']
 
 OVL_SLOTS = {}
 OVL_LEN = {}

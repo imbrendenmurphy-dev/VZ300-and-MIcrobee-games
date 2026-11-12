@@ -57,7 +57,9 @@ frame_begin:
         ld b,a
         ld hl,(rl_cur)
         call rs_list
-.nb:    ld a,(rpage)
+.nb:    call boss_same          ; the boss as this page has it: its cells stay
+        ret z
+        ld a,(rpage)
         ld c,a
         ld b,0
         ld hl,blcnt

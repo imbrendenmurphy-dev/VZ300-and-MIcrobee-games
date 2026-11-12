@@ -1,7 +1,7 @@
 """assemble; on 'relative jump out of range' turn that jr into jp (djnz into dec b / jp nz)"""
 import re, subprocess, sys
 for it in range(200):
-    r = subprocess.run([sys.executable, '../tools/zasm.py', 'main.asm', '--sym=../build/main.sym'], cwd='src', capture_output=True, text=True)
+    r = subprocess.run([sys.executable, '../tools/zasm.py', sys.argv[1] if len(sys.argv) > 1 else 'main.asm'], cwd='src', capture_output=True, text=True)
     out = r.stdout + r.stderr
     m = re.search(r'(\w+\.asm):(\d+): relative jump out of range', out.split('\n')[0].split('main.asm:')[-1] if 'main.asm:' in out else out)
     if not m:

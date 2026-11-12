@@ -22,7 +22,7 @@ for i in range(n):
         step(pp, 4, ['X'] if t % 40 == 0 else ())
         pp.poke(S['lives'], 3)
     ims.append(pp.png('/tmp/claude-0/s.png', scale=1, aspect=1.2).copy())
-    print(i, 'stage', peek(pp, 'stage'), 'scroll', peekw(pp, 'scrollx'), 'gstate', peek(pp, 'gstate'), 'boss st', peek(pp, 'boss_st'), 'hp', peekw(pp, 'boss_hp'), 'gas', peek(pp, 'boss_jam'), 'score', score(pp), 'pc %04X' % pp.cpu.pc)
+    print(i, 'stage', peek(pp, 'stage'), 'scroll', peekw(pp, 'scrollx'), 'gstate', peek(pp, 'gstate'), 'boss st', peek(pp, 'boss_st'), peekw(pp, 'boss_t'), 'fc', peekw(pp, 'framecount'), 'hp', peekw(pp, 'boss_hp'), 'gas', peek(pp, 'boss_jam'), 'score', score(pp), 'pc %04X' % pp.cpu.pc)
 w, h = ims[0].size
 o = Image.new('RGB', (w * 2, h * ((n + 1) // 2)))
 for i, im in enumerate(ims):

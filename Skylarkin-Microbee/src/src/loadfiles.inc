@@ -9,3 +9,6 @@
 	DB 10, $00, "B10     BNK"
 	DB 11, $00, "B11     BNK"
 	DB 12, $00, "B12     BNK"
+	DB 13, $00, "B13     BNK"
+	DB 14, $00, "B14     BNK"
+	DB 15, $00, "B15     BNK"
