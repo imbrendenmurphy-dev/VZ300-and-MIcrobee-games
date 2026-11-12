@@ -9,6 +9,7 @@ dbg_zone: db 0
 dbg_x:  db 0
 dbg_y:  db 0
 dbg_a:  dw 0
+dbg_frz: db 0                   ; test builds: creatures stand still
 
 ; ---- the player
 px:     db 0,80h,7              ; x: 1/65536, 1/256, cell
@@ -46,6 +47,11 @@ opals:  db 0
 nopals: db 0
 secrets: db 0
 losn:   db 0
+act_i:  db 0
+crn:    db 0                    ; creatures in CRL
+cri:    db 0
+spn:    db 0
+CRL:    ds NENT                 ; their slots, for the sight checks
 
 ; ---- creatures
 pdx:    dw 0
@@ -159,6 +165,7 @@ IMGH0:  ds NIMAGES
 ; ---- start-up scaler
 ps_img: db 0
 ps_cnt: db 0
+litn:   dw 0
 ps_moff: dw 0
 ps_nb:  db 0
 ps_h0:  db 0
@@ -186,6 +193,7 @@ PIX:    ds 256                  ; scaler: one master row as pixels
 POPC:   ds 256                  ; bits set in each byte
 ROW40:  ds 256                  ; screen row -> VRAM address (word)
 C10:    ds 512                  ; code * 10: low bytes, then high bytes
+LITC:   ds 2048                 ; lit pixels of each glyph of banks 0-12 (0-15)
 STATE:  ds 1024                 ; per-column state, 2 pages x 512
 SHADOW: ds POOLN*16             ; private sprite glyphs (also scratch)
 RLIST0: ds 1+POOLN*5            ; count, then 5 bytes per cell

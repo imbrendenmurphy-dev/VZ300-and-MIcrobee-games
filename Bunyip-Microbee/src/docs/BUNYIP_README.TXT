@@ -16,6 +16,7 @@ zone's guardian, then reach the exit.
   M                       map of what you have seen
   P                       pause
   C                       colour / amber mono (also on the title)
+  R                       sharp walls / fast walls (80 or 40 rays)
 
 Creatures: redbacks, flying foxes, yowies, cane toads, drop bears,
 min min lights, saltwater crocs and the bunyip itself.

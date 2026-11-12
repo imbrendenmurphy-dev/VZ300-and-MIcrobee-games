@@ -61,6 +61,9 @@ spawn_all:
         xor a
         ld (ncreat),a
         ld (nopals),a
+        ld (crn),a
+        ld (cri),a
+        ld (spn),a
         ld ix,ENT
         ld hl,ZH+(Z_ENTS-400h)
 .l      ld a,(hl)
@@ -75,6 +78,9 @@ spawn_all:
         call spawn
         ld de,ESIZE
         add ix,de
+        ld a,(spn)
+        inc a
+        ld (spn),a
         pop hl
         jr .l
 
@@ -129,6 +135,18 @@ spawn:  ld (ix+E_X),80h
         ret
 .cr     ld hl,ncreat
         inc (hl)
+        push af                 ; on the list for sight checks
+        push de
+        ld hl,crn
+        ld e,(hl)
+        inc (hl)
+        ld d,0
+        ld hl,CRL
+        add hl,de
+        ld a,(spn)
+        ld (hl),a
+        pop de
+        pop af
         ld e,a                  ; 8, 9 = kind A, B; 10 = the guardian
         sub 8
         ld hl,ZKINDS
@@ -230,60 +248,105 @@ kind:   ld a,(ix+E_KIND)
 ; --------------------------------------------------------------------------
 ; actors: everything moves, nstep fields' worth
 ; --------------------------------------------------------------------------
-actors: ld ix,ENT
+actors: ld hl,ENT
         ld b,NENT
-.l      push bc
-        ld a,(ix+E_TYPE)
+.l      ld a,(hl)
         or a
-        call nz,actor
-        call vbpoll
-        ld de,ESIZE
-        add ix,de
+        jr z,.nx
+        cp T_PROP               ; still scenery: nothing to do
+        jr nz,.go
+        push hl
+        ld de,E_FL
+        add hl,de
+        ld a,(hl)
+        and F_ANIM+F_HURT
+        pop hl
+        jr nz,.go
+        push hl
+        ld de,E_ST
+        add hl,de
+        ld a,(hl)
+        pop hl
+        or a
+        jr z,.nx
+.go     push hl
+        push bc
+        push hl
+        pop ix
+        ld a,NENT
+        sub b
+        ld (act_i),a
+        call actor
         pop bc
+        pop hl
+.nx     ld a,b
+        and 7
+        jr nz,.nv
+        push hl
+        call vbpoll             ; (often enough to catch every vertical blank)
+        pop hl
+.nv     ld de,ESIZE
+        add hl,de
         djnz .l
-        ld a,(losn)             ; next creature for a sight check
+        ; the next creature for a sight check (round the creature list)
+        ld a,(crn)
+        or a
+        ret z
+        ld b,a
+        ld a,(cri)
         inc a
-        cp NENT
-        jr c,.ln
+        cp b
+        jr c,.ci
         xor a
-.ln     ld (losn),a
+.ci     ld (cri),a
+        ld e,a
+        ld d,0
+        ld hl,CRL
+        add hl,de
+        ld a,(hl)
+        ld (losn),a
         ret
 
 actor:  ld a,(ix+E_AN)
         ld hl,nstep
         add a,(hl)
         ld (ix+E_AN),a
-        ld a,(ix+E_TYPE)
+        ld a,(ix+E_TYPE)        ; (distances are worked out only when needed)
         cp T_PROP
-        jp z,prop               ; (scenery works out distance only if it must)
-        call reldist            ; pdx, pdy, dist
-        ld a,(ix+E_TYPE)
-        cp T_ENEMY
-        jp c,item
+        jp z,prop
         cp T_ROCK
         jp nc,shot
+        cp T_ENEMY
+        jr nc,.cr
+        ld a,(px+2)             ; an item: only when you are in or next to its cell
+        sub (ix+E_X+1)
+        inc a
+        cp 3
+        ret nc
+        ld a,(py+2)
+        sub (ix+E_Y+1)
+        inc a
+        cp 3
+        ret nc
+        call reldist
+        jp item
         ; ---- creatures and guardians
-        ld a,(ix+E_ST)
+.cr     ld a,(ix+E_ST)
         cp ST_DIE
         jp z,.die
         cp ST_PAIN
         jr z,.pain
         ; sight check, one creature a frame
-        ld a,(losn)
-        ld hl,ENT
-        ld e,a
-        ld d,0
-        push ix
-        pop bc
-        ex de,hl
-        add hl,hl
-        add hl,hl
-        add hl,hl
-        add hl,hl
-        add hl,de
-        or a
-        sbc hl,bc
-        jr nz,.nlos
+        ld a,(act_i)
+        ld hl,losn
+        cp (hl)
+        jr z,.look
+        ld a,(ix+E_ST)
+        cp ST_CHASE
+        ret nz                  ; asleep
+        call reldist
+        jr .nlos
+.look   call reldist
         ld a,(ix+E_FL)
         and ~F_LOS
         ld (ix+E_FL),a
@@ -299,6 +362,9 @@ actor:  ld a,(ix+E_AN)
         ld (ix+E_ST),ST_CHASE   ; seen: wake up
 .nlos   ld a,(ix+E_ST)
         cp ST_CHASE
+        ret nz
+        ld a,(dbg_frz)          ; (test builds: creatures stand still)
+        or a
         ret nz
         call chase
         jp attack

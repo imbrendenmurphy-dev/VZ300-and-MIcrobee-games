@@ -431,8 +431,10 @@ MSG_DEAD equ 16
 MSG_PAUSE equ 17
 MSG_OUCH equ 18
 MSG_POWER equ 19
+MSG_SHARP equ 20
+MSG_FAST equ 21
 MSG_HINT equ 0FFh
-MSGS:   dw .m0,.m1,.m2,.m3,.m4,.m5,.m6,.m7,.m8,.m9,.m10,.m11,.m12,.m13,.m14,.m15,.m16,.m17,.m18,.m19
+MSGS:   dw .m0,.m1,.m2,.m3,.m4,.m5,.m6,.m7,.m8,.m9,.m10,.m11,.m12,.m13,.m14,.m15,.m16,.m17,.m18,.m19,.m20,.m21
 .m0     db "THIS DOOR NEEDS THE GOLD KEY.",0
 .m1     db "THIS DOOR NEEDS THE BLUE KEY.",0
 .m2     db "THIS DOOR NEEDS THE RED KEY.",0
@@ -453,6 +455,8 @@ MSGS:   dw .m0,.m1,.m2,.m3,.m4,.m5,.m6,.m7,.m8,.m9,.m10,.m11,.m12,.m13,.m14,.m15
 .m17    db "PAUSED. PRESS P.",0
 .m18    db "OUCH! KEEP CLEAR OF THAT.",0
 .m19    db "THE SOUTHERN CROSS! DOUBLE ZAPS.",0
+.m20    db "SHARP WALLS (R: FAST WALLS)",0
+.m21    db "FAST WALLS (R: SHARP WALLS)",0
 
 ; --------------------------------------------------------------------------
 ; automap: every wall you have seen, two map rows to a text row

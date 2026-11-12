@@ -28,6 +28,7 @@ Needs a Premium Plus with 1MB RAM. Boot `release/BUNYIP.DS8`, type `BUNYIP` at t
 | M | Map of what you have seen |
 | P | Pause |
 | C | Colour / amber mono |
+| R | Sharp walls (80 rays) / fast walls (40 rays) |
 
 Four zones, each with its own colours, maze, lever-and-gate puzzle, creatures, scenery and guardian:
 
@@ -46,9 +47,9 @@ Creatures flicker white and burst into a puff of smoke when they fall, and somet
 
 - **Walls:** each character cell shows one PCG glyph whose left and right halves are wall to different heights, so 80 half-columns of picture come from at most 880 cell writes. Rays are grid walks using log tables. Two screen pages flip in vertical blank, and only changed cells are rewritten.
 - **Sprites:** 37 images (creatures with two frames, items, scenery, smoke). Each is shrunk once to 16 sizes and stored as byte columns, plain and shifted half a cell, packed into RAM blocks 6–21. The things every zone uses are made at start-up. Each zone's creatures and scenery are made while its story screen is shown. Drawing works one character cell at a time: the sprite's lines for the cell are built first, and cells where nothing shows are skipped. A cell the sprite covers completely skips reading the background back. Otherwise the cell's glyph is read back from PCG RAM, and the sprite is laid over it in a private glyph. The cell takes the sprite's colour only where the sprite is most of what is lit in it.
-- **Memory:** program 8000h–DD5Fh. Block 1 holds the tables and the zone map (plus a 1K "scenery in the way" map). Block 2 holds the four zones, block 3 the sprite masters, and block 4 the glyphs plus the sprite directory. Blocks 6–21 hold the shrunk sprites.
+- **Memory:** program 8000h–E85Fh. Block 1 holds the tables and the zone map (plus a 1K "scenery in the way" map). Block 2 holds the four zones, block 3 the sprite masters, and block 4 the glyphs plus the sprite directory. Blocks 6–21 hold the shrunk sprites.
 
-Frame rates in the emulator: about 12–20 fps in open rooms, dropping to 5–8 fps with two or three big creatures close up. Creatures now keep about two cells away and lunge, which keeps the biggest sprites off the screen.
+Frame rates in the emulator: a scripted 60-second play session averages about 16 fps (17 with fast walls), up from 13 in the first playable build. Quiet rooms run at 15–27 fps. A close fight with two or three big creatures still drops to about 5 fps, because nearly every character cell around them has to be recomposed. Creatures keep about two cells away and lunge, which keeps the biggest sprites off the screen.
 
 ## Building
 

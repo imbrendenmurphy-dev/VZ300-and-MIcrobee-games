@@ -12,6 +12,10 @@ def hist(n):
     for k, v in (('dbg_on', 1), ('dbg_zone', z - 1), ('dbg_x', x), ('dbg_y', y), ('dbg_a', ang & 255), ('dbg_a+1', ang >> 8)):
         a = S[k] if '+' not in k else S[k[:-2]] + 1
         cmd += ['-poke', '%d,%d' % (a, v)]
+    for p_ in os.environ.get('POKES', '').split():
+        cmd += ['-poke', p_]
+    if os.environ.get('FRZ'):
+        cmd += ['-poke', '%d,1' % S['dbg_frz']]
     subprocess.run(cmd, capture_output=True)
     h = struct.unpack('<65536Q', open('hist.bin', 'rb').read()); os.remove('hist.bin')
     return h

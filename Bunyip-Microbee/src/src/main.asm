@@ -90,6 +90,7 @@ start:  di
         ld de,10*40+8
         ld b,CYELLOW
         call printc
+        call make_litc
         call prescale_all
         ld hl,1234h
         ld (seed),hl
@@ -122,6 +123,39 @@ title:  ld a,(dbg_on)
         jr c,.zone
         call victory
         jr title
+
+; make_litc: LITC = lit pixels of every glyph in the tileset (block 4)
+make_litc:
+        ld a,BLK_PCG
+        call setblk
+        ld hl,13*128
+        ld (litn),hl
+        ld hl,0
+        ld de,LITC
+.g      ld b,CELLH
+        ld c,0
+.l      ld a,(hl)
+        inc hl
+        push hl
+        ld l,a
+        ld h,high(POPC)
+        ld a,c
+        add a,(hl)
+        ld c,a
+        pop hl
+        djnz .l
+        ld a,c
+        ld (de),a
+        inc de
+        push hl
+        ld hl,(litn)
+        dec hl
+        ld (litn),hl
+        ld a,h
+        or l
+        pop hl
+        jr nz,.g
+        jp tabblk
 
 NCOMMON equ IMG_RB_A          ; images 0.. NCOMMON-1 are in every zone
 T_PREP: db "PREPARING THE DEEP...",0
@@ -229,7 +263,7 @@ T_T2:   db "SPACE: START   C:",0
 T_COLOUR: db "COLOUR    ",0
 T_MONO: db "AMBER MONO",0
 T_T3:   db "ARROWS/WASD WALK+TURN  Z X SIDESTEP",0
-T_T4:   db "SPACE ZAP  E USE  M MAP  P PAUSE",0
+T_T4:   db "SPACE ZAP E USE M MAP P PAUSE R WALLS",0
 T_CRED: db "VIBED BY BPM 2026",0
 
 ; --------------------------------------------------------------------------
@@ -593,6 +627,9 @@ play:   ld b,CWHITE
         ld a,KY_C
         call edge
         call nz,swap_mode
+        ld a,KY_R
+        call edge
+        call nz,swap_rays
         ld a,KY_M
         call edge
         call nz,automap
@@ -735,6 +772,16 @@ swap_mode:
         call colours
         call view_reset
         jp hud_all
+
+; swap_rays: R - sharp walls (80 rays) or fast walls (40 rays)
+swap_rays:
+        ld a,(M_rays+1)
+        xor 1
+        ld (M_rays+1),a
+        ld a,MSG_SHARP
+        jr nz,.m
+        ld a,MSG_FAST
+.m      jp message
 
 pause:  ld a,MSG_PAUSE
         call message

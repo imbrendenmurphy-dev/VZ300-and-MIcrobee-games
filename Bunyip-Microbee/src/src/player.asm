@@ -21,9 +21,10 @@ KY_M    equ 13
 KY_P    equ 14
 KY_C    equ 15
 KY_ESC  equ 16
-NKEYS   equ 17
+KY_R    equ 17
+NKEYS   equ 18
 KEYLIST: db K_UP,K_W,K_DOWN,K_S,K_LEFT,K_A,K_RIGHT,K_D,26,24
-        db K_SPACE,K_E,K_RET,K_M,K_P,K_C,K_ESC
+        db K_SPACE,K_E,K_RET,K_M,K_P,K_C,K_ESC,K_R
 
 ; readkeys: scan the keys once per frame into keyst (1 = held).  The
 ;           keyboard scan needs the ROM latch (port 0Bh) on, and nothing

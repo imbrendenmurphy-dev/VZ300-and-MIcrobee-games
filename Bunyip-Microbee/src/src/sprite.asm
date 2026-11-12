@@ -162,19 +162,53 @@ proj_all:
         xor a
         ld (nvis),a
         ld iy,VIS
-        ld ix,ENT
+        ld a,(M_st1+1)          ; this frame's stamp
+        ld (.st+1),a
+        ld hl,ENT
         ld b,NENT
-.e      push bc
-        call vbpoll
+.e      ld a,(hl)
+        or a
+        jr z,.nx
+        push hl                 ; only things in cells the rays crossed
+        inc hl
+        inc hl
+        ld c,(hl)               ; x cell
+        inc hl
+        inc hl
+        ld a,(hl)               ; y cell
+        rrca
+        rrca
+        rrca
+        ld e,a
+        and 3
+        add a,high(STAMP)
+        ld d,a
+        ld a,e
+        and 0E0h
+        or c
+        ld e,a
+        ld a,(de)
+.st     cp 0
+        pop hl
+        jr nz,.nx
+        push hl
+        push bc
+        push hl
+        pop ix
         ld a,NENT
         sub b
         ld (cur_ent),a
-        ld a,(ix+E_TYPE)
-        or a
-        call nz,proj_one
-        ld bc,ESIZE
-        add ix,bc
+        call proj_one
         pop bc
+        pop hl
+.nx     ld a,b
+        and 7
+        jr nz,.nv
+        push hl
+        call vbpoll
+        pop hl
+.nv     ld de,ESIZE
+        add hl,de
         djnz .e
 .sort   ld a,(nvis)             ; bubble sort of the order, far to near
         or a
@@ -867,17 +901,120 @@ cellsp: ld a,(dr)
         ld a,b
 .z      sub e                   ; lines
         cp CELLH
-        jr z,.whole
-        push bc                 ; part of a cell: clear it first
-        ld hl,TMPM
-        ld b,CELLH
-.cl     ld (hl),0FFh
-        set 4,l
-        ld (hl),0
-        res 4,l
+        jp nz,.prt
+        ld a,(M_cvv+1)          ; a whole cell, both halves visible:
+        inc a                   ; the quick way, unrolled
+        jp nz,.whole0
+        ld d,high(ROWMAP)
+        ld a,(cmp_hi)
+        ld h,a
+        ld a,(M_cl1+1)
+        ld c,a
+        ld a,(de)
+        inc e
+        or c
+        ld l,a
+        ld a,(hl)
+        ld (TMPM+0),a
         inc l
-        djnz .cl
-        pop bc
+        ld a,(hl)
+        ld (TMPD+0),a
+        ld a,(de)
+        inc e
+        or c
+        ld l,a
+        ld a,(hl)
+        ld (TMPM+1),a
+        inc l
+        ld a,(hl)
+        ld (TMPD+1),a
+        ld a,(de)
+        inc e
+        or c
+        ld l,a
+        ld a,(hl)
+        ld (TMPM+2),a
+        inc l
+        ld a,(hl)
+        ld (TMPD+2),a
+        ld a,(de)
+        inc e
+        or c
+        ld l,a
+        ld a,(hl)
+        ld (TMPM+3),a
+        inc l
+        ld a,(hl)
+        ld (TMPD+3),a
+        ld a,(de)
+        inc e
+        or c
+        ld l,a
+        ld a,(hl)
+        ld (TMPM+4),a
+        inc l
+        ld a,(hl)
+        ld (TMPD+4),a
+        ld a,(de)
+        inc e
+        or c
+        ld l,a
+        ld a,(hl)
+        ld (TMPM+5),a
+        inc l
+        ld a,(hl)
+        ld (TMPD+5),a
+        ld a,(de)
+        inc e
+        or c
+        ld l,a
+        ld a,(hl)
+        ld (TMPM+6),a
+        inc l
+        ld a,(hl)
+        ld (TMPD+6),a
+        ld a,(de)
+        inc e
+        or c
+        ld l,a
+        ld a,(hl)
+        ld (TMPM+7),a
+        inc l
+        ld a,(hl)
+        ld (TMPD+7),a
+        ld a,(de)
+        inc e
+        or c
+        ld l,a
+        ld a,(hl)
+        ld (TMPM+8),a
+        inc l
+        ld a,(hl)
+        ld (TMPD+8),a
+        ld a,(de)
+        inc e
+        or c
+        ld l,a
+        ld a,(hl)
+        ld (TMPM+9),a
+        inc l
+        ld a,(hl)
+        ld (TMPD+9),a
+        jp .done
+.whole0 ld a,CELLH
+        jr .whole
+.prt    ld hl,0FFFFh            ; part of a cell: clear it first
+        ld (TMPM),hl
+        ld (TMPM+2),hl
+        ld (TMPM+4),hl
+        ld (TMPM+6),hl
+        ld (TMPM+8),hl
+        ld hl,0
+        ld (TMPD),hl
+        ld (TMPD+2),hl
+        ld (TMPD+4),hl
+        ld (TMPD+6),hl
+        ld (TMPD+8),hl
 .whole  ex af,af'               ; A' = lines
         ld b,high(TMPM)         ; BC -> TMPM line
         ld d,high(ROWMAP)       ; DE -> row map
@@ -962,18 +1099,97 @@ put_cell:
         endm
         jp z,.up                ; all black: the cell keeps its ink
         jp .ink
-.mix    ld hl,TMPM
-        ld b,CELLH
-.m      ld a,(de)
-        and (hl)                ; the background where the mask is clear
+.mix    ld hl,TMPM              ; background where the mask is clear, then ink
+        ld a,(de)
+        and (hl)
         set 4,l
-        or (hl)                 ; and the sprite's ink
+        or (hl)
         res 4,l
         ld (de),a
         inc l
         inc e
-        djnz .m
-        ld h,high(POPC)         ; sprite ink pixels
+        ld a,(de)
+        and (hl)
+        set 4,l
+        or (hl)
+        res 4,l
+        ld (de),a
+        inc l
+        inc e
+        ld a,(de)
+        and (hl)
+        set 4,l
+        or (hl)
+        res 4,l
+        ld (de),a
+        inc l
+        inc e
+        ld a,(de)
+        and (hl)
+        set 4,l
+        or (hl)
+        res 4,l
+        ld (de),a
+        inc l
+        inc e
+        ld a,(de)
+        and (hl)
+        set 4,l
+        or (hl)
+        res 4,l
+        ld (de),a
+        inc l
+        inc e
+        ld a,(de)
+        and (hl)
+        set 4,l
+        or (hl)
+        res 4,l
+        ld (de),a
+        inc l
+        inc e
+        ld a,(de)
+        and (hl)
+        set 4,l
+        or (hl)
+        res 4,l
+        ld (de),a
+        inc l
+        inc e
+        ld a,(de)
+        and (hl)
+        set 4,l
+        or (hl)
+        res 4,l
+        ld (de),a
+        inc l
+        inc e
+        ld a,(de)
+        and (hl)
+        set 4,l
+        or (hl)
+        res 4,l
+        ld (de),a
+        inc l
+        inc e
+        ld a,(de)
+        and (hl)
+        set 4,l
+        or (hl)
+        res 4,l
+        ld (de),a
+        ld a,(pc_bg)            ; a (nearly) blank background: any ink at all
+        cp 3                    ; makes the sprite most of what is lit
+        jr nc,.tl
+        ld hl,TMPD
+        xor a
+        rept CELLH
+        or (hl)
+        inc l
+        endm
+        jp z,.up
+        jp .ink
+.tl     ld h,high(POPC)         ; sprite ink pixels
         ld de,TMPD
         ld c,0
         rept CELLH
@@ -986,6 +1202,12 @@ put_cell:
         endm
         or a
         jp z,.up                ; none: the cell keeps its ink
+        ld c,a
+        ld a,(pc_bg)            ; background pixels <= sprite pixels: the
+        cp c                    ; sprite is at least half of what is lit
+        jp c,.ink
+        jp z,.ink
+        ld a,c
         add a,a
         ld b,a
         ld de,(cmp_sh)          ; lit pixels in the cell
@@ -1063,7 +1285,7 @@ claim:
         jr nz,.n15
         ld a,c                  ; already one of this frame's glyphs
         sub 80h
-        jp .have
+        jp .old
 .n15    ld a,b
         cp 15
         jr nz,.new
@@ -1073,7 +1295,7 @@ claim:
         sub 80h
         sub e
         add a,128
-        jp .have
+        jp .old
 .new    ld a,(nslot)            ; a free glyph in the pool?
         cp POOLN
         ccf
@@ -1108,6 +1330,26 @@ claim:
         push hl
         ld hl,(rl_head)
         inc (hl)
+        ld a,b                  ; lit pixels of the old glyph (LITC), if known
+        and 15
+        cp 13
+        ld a,0FFh
+        jr nc,.lq
+        ld a,b
+        rrca
+        ld h,a
+        and 80h
+        ld l,a
+        ld a,c
+        and 7Fh
+        or l
+        ld l,a
+        ld a,h
+        and 07h
+        add a,high(LITC)
+        ld h,a
+        ld a,(hl)
+.lq     ld (pc_bg),a
         ld a,(pc_full)
         or a
         jr z,.nc                ; covered: nothing to copy
@@ -1159,6 +1401,11 @@ claim:
 .have   ld (cmp_slot),a
         or a                    ; (no carry)
         ret
+.old    ld (cmp_slot),a         ; a glyph of this frame: lit pixels not known
+        ld a,0FFh
+        ld (pc_bg),a
+        or a
+        ret
 
 ; slot_ptr: A = slot -> DE = its private glyph (keeps HL, BC)
 slot_ptr:
@@ -1181,3 +1428,4 @@ cmp_sh: dw 0
 cmp_ad: dw 0
 cmp_slot: db 0
 pc_full: db 0
+pc_bg:  db 0FFh
