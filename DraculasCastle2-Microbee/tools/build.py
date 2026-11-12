@@ -147,6 +147,7 @@ def files():
 def native_files(used_banks=()):
     import native_art
     import pcg_validate
+    import battle_rooms
     folder=ROOT/'build/native';manifest=folder/'manifest.json'
     sources=[ROOT/'tools/native_art.py',ROOT/'tools/native_detail.py',ROOT/'tools/ghoulies.py',ROOT/'tools/dracula_font.py',ROOT/'original/tools/monsters.py']
     if not manifest.exists() or any(p.stat().st_mtime>manifest.stat().st_mtime for p in sources):native_art.build()
@@ -192,6 +193,12 @@ def native_files(used_banks=()):
     groups=[];idle_entries=[];allocations=[];animation_entries=[]
     for variant,mode in ((v,m) for v in ('monster','battle') for m in ('colour','mono')):
         for monster in range(1,13):
+            if variant=='battle' and monster in battle_rooms.ORDINARY:
+                # Composed at load time from the current room (battle_rooms.py).
+                groups.append('            db 0\n            dw 0\n')
+                idle_entries.append('            db 0\n            dw 0\n')
+                animation_entries.append('            db 0,0,0,0,0,0,0,0,0\n')
+                continue
             glyphs=[];lookup={};maps=[]
             if monster==3:glyphs,lookup=dictionaries[mode]
             for frame in range(4 if variant=='battle' else 3):
@@ -258,6 +265,19 @@ def native_files(used_banks=()):
                 banks[bank]=bytes(buf);bank=next(available);buf=bytearray()
             idle_entries.append(f'            db {bank}\n            dw {len(buf)} ; {name}\n')
             buf.extend(data)
+    room_entries=[];sprite_entries=[];room_report=[]
+    for mode in ('colour','mono'):
+        for area in range(6):
+            raw,pic=battle_rooms.room(area,mode=='mono')
+            pic.save(folder/f'room{area}-{mode}.png')
+            room_entries.append(store_animation(raw));room_report.append({'room':area,'mode':mode,'glyphs':int.from_bytes(raw[:2],'little')//16})
+    for mode in ('colour','mono'):
+        for monster in range(1,13):
+            if monster not in battle_rooms.ORDINARY:
+                sprite_entries.append('            db 0\n            dw 0\n');continue
+            raw=battle_rooms.sprite(monster,mode=='mono')
+            sprite_entries.append(store_animation(raw));room_report.append({'sprite':monster,'mode':mode,'glyphs':int.from_bytes(raw[:2],'little')//16,'bytes':len(raw)})
+    checked['battle_rooms']=room_report
     import dracula_font
     import world_art
     import lz2
@@ -305,6 +325,7 @@ def native_files(used_banks=()):
     buf.extend(fontdata)
     banks[bank]=bytes(buf)
     assert all(len(data)<=32768 for data in banks.values())
+    assert not {27,29}&set(banks),'RAM 27 and 29 hold the battle room and monster caches'
     checked['group_allocations']=allocations
     checked['expanded_ram_bytes']=sum(map(len,banks.values()))
     checked['expanded_ram_banks']=list(banks)
@@ -312,7 +333,8 @@ def native_files(used_banks=()):
     checked['max_group_packet_bytes']=max(a['packet_bytes'] for a in allocations)
     (folder/'pcg-validation.json').write_text(json.dumps(checked,indent=2))
     for b,data in banks.items():write(f'build/DATA{b:02}.BNK',data)
-    write('src/gen/native.inc','native_assets:\n'+''.join(table)+'native_groups:\n'+''.join(groups)+'native_idle_assets:\n'+''.join(idle_entries)+fontentry+'world_assets:\n'+''.join(world_entries)+'world_assets2:\n'+''.join(second_entries)+'native_anim_assets:\n'+''.join(animation_entries))
+    assert all('db 0,0,0,0,0,0,0,0,0' in e for i,e in enumerate(animation_entries) if i not in (2,14))
+    write('src/gen/native.inc','native_assets:\n'+''.join(table)+'native_groups:\n'+''.join(groups)+'native_idle_assets:\n'+''.join(idle_entries)+fontentry+'world_assets:\n'+''.join(world_entries)+'world_assets2:\n'+''.join(second_entries)+'native_anim_assets:\n'+animation_entries[2]+animation_entries[14]+'bt_rooms:\n'+''.join(room_entries)+'bt_sprites:\n'+''.join(sprite_entries))
     write('src/gen/native_font.bin',fontdata)
     return banks
 
@@ -364,12 +386,14 @@ def main():
     fs={'DRACULA.COM':(ROOT/'build/DRACULA.COM').read_bytes(),'GAME.BIN':(ROOT/'build/GAME.BIN').read_bytes(),'PCG.BNK':(ROOT/'build/PCG.BNK').read_bytes()}
     fs.update({f'DATA{b:02}.BNK':data for b,data in banks.items()})
     fs['CCP.SYS']=(ROOT/'resources/CCP.SYS').read_bytes()
-    disk_readme=(b"DRACULA'S CASTLE II - native 40x32 development build\r\n"
-        b'Type DRACULA to play. Choose C for colour or M for monochrome.\r\n'
-        b'Native 40x32 title, GHOUL GALLERY and combat. 8x8 PCGs.\r\n'
-        b'Native mazes, scroll map, parchment story and status panels.\r\n'
-        b'Change display with C/M on the title or while paused (P).\r\n'
-        b'Gallery: SPACE/RIGHT next, LEFT previous, P returns.\r\n\x1a')
+    disk_readme=(b"DRACULA'S CASTLE II - THE CASTLE AWAKENS\r\n"
+        b'Microbee Premium Plus (1MB RAM, 32K PCG). Vibed by BPM 2026.\r\n\r\n'
+        b'Type DRACULA to play. C = colour, M = one-colour monitor\r\n'
+        b'(also on the title and while paused).\r\n\r\n'
+        b'W/I/up forward. A/J/left, D/L/right turn. S/K/down turn around.\r\n'
+        b'SPACE/RETURN act. M map. E inventory. P pause. Q quit (paused).\r\n'
+        b'N music on/off. - and + music volume.\r\n'
+        b'Joystick on PIO port A. Saves are RAM checkpoints, lost at power-off.\r\n\x1a')
     write('build/DISK_README.TXT',disk_readme)
     system=disk.unskew((ROOT/'resources/DRVB.DS8').read_bytes())
     disk.build_disk(system,fs,ROOT/'build/DRACULA.DS8')

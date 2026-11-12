@@ -113,11 +113,8 @@ snd_tick:
             ld a,$40                ; music voice: half swing
             ld (ml_m3+1),a
             ld (ml_m3n+1),a
-            ld a,(music_on)
-            or a
             ld a,(ix+CH_DUTY)
-            jr nz,.ch3
-            xor a
+            call nz_mute
             jr .ch3
 .sfx:       ld a,$40                ; sound effect: full swing, stands out over the music
             ld (ml_m3+1),a
@@ -134,17 +131,6 @@ snd_tick:
             jr z,.t
             ld hl,ml_noise
 .t:         ld (ml_j3+1),hl
-            ret
-
-nz_mute:    ; A = duty; zero it if music off (flags from earlier 'or a' are lost, so re-test)
-            push af
-            ld a,(music_on)
-            or a
-            jr z,.off
-            pop af
-            ret
-.off:       pop af
-            xor a
             ret
 
 ; --- per channel tick (IX = channel) ---

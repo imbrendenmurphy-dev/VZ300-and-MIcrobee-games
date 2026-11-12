@@ -29,6 +29,8 @@ def generate():
             s=s[:a]+s[b:]
             a=s.index('\ndraw_cell:')+1;b=s.index('\nblit_masked:',a)+1
             s=s[:a]+s[b:]
+            # The VZ masked and mirrored sprite blitters drew into the unseen bitmap.
+            s=cut(s,'; draw one cell (rv_d, rv_l)\nblit_masked:','; build pixel-pair flip table')
         if p.name == 'explore.asm':
             s=s.replace("ld a,'['", "ld a,' '").replace("ld a,'$'", "ld a,'G'")
             s = s.replace('            call present_panel_top\n','')
@@ -49,12 +51,22 @@ def generate():
             a=s.index('pause_screen:');b=s.index('str_paused:',a)
             segment=s[a:b].replace('call read_input','call read_input\n            call mb_pause_display')
             s=s[:a]+segment+s[b:]
-            s=s.replace(' N: MUSIC ON/OFF  Q: QUIT',' C:COLOUR M:MONO N:SOUND Q:QUIT')
+            s=s.replace(' N: MUSIC ON/OFF  Q: QUIT',' C:COLOUR M:MONO N:MUSIC Q:QUIT')
+            s=s.replace('" - PAUSED -     P: CONTINUE"','" - PAUSED -  P:GO  -/+:VOLUME"')
         if p.name == 'title.asm':
             s=s.replace('title_screen:', 'legacy_title_screen:',1)
             a=s.index('legacy_title_screen:');b=s.index('\ntitle_note:',a)
             s=s[:a]+s[b:]  # mb_front.asm owns the active title/menu loop.
-            s=s.replace('gallery_monster:\n','gallery_monster:\n            dec a\n            jp world_cinema\nlegacy_gallery_monster:\n')
+            s=s.replace('gallery_monster:\n','gallery_monster:\n            dec a\n            jp world_cinema\n\n',1)
+            a=s.index('            push af\n            ; the monster\'s home backdrop');b=s.index('attract_page:',a)
+            s=s[:a]+s[b:]   # world_cinema owns the bestiary
+            # mb_front.asm draws the title and menu; the VZ title painter is unused.
+            s=cut(s,'title_note:','; ---------------------------------------------------------------------------\n; story pages')
+            # Story pages and the ending are centred and reflowed (world_flow_layout).
+            s=s.replace('text_page:\n            push hl\n            ld a,$AA\n            call cls_back\n',
+                        'text_page:\n            push hl\n            ld a,$AA\n            call cls_back\n            ld a,1\n            ld (world_flow),a\n',1)
+            s=s.replace('            ld a,MUS_ENDING\n            call play_music\n            ld a,$AA\n            call cls_back\n',
+                        '            ld a,MUS_ENDING\n            call play_music\n            ld a,$AA\n            call cls_back\n            ld a,1\n            ld (world_flow),a\n',1)
         if p.name == 'text.asm':
             # Text lives in the native text layer. The VZ 3x5 glyph plot into the
             # unseen back buffer (and its font table) is dropped: less work per
@@ -68,10 +80,16 @@ def generate():
             s=s.replace('battle_exit:\n            push af','battle_exit:\n            push af\n            call native_battle_leave')
             s=s.replace('clear_ui:\n','clear_ui:\n            call native_battle_clear\n')
             s=s.replace('draw_battle_ui_stats:\n','draw_battle_ui_stats:\n            call native_battle_clear_stats\n')
+            s=native_combat(s)
         if p.name == 'sd.asm':
             s = (ROOT / 'src/mb_files.asm').read_text()
         if p.name == 'music.asm':
             s = s.replace('ld a,$20', 'ld a,$40').replace('ld a,$21', 'ld a,$40')
+            # Music voices go through nz_mute (mb_hw.asm), which also sets the volume.
+            s = cut(s, 'nz_mute:', '; --- per channel tick')
+            old3 = '            ld a,(music_on)\n            or a\n            ld a,(ix+CH_DUTY)\n            jr nz,.ch3\n            xor a\n            jr .ch3\n'
+            assert old3 in s
+            s = s.replace(old3, '            ld a,(ix+CH_DUTY)\n            call nz_mute\n            jr .ch3\n')
         if p.name == 'sys.asm':
             s=s.replace('cls_back:   ; A = fill byte','cls_back:   call world_reset ; A = fill byte')
             s=s.replace('fill_rect:\n','fill_rect:\n            call world_erase\n')
@@ -114,10 +132,61 @@ detect_joy: ld a,1
             ret
 
 ''' + s[b:]
+        if p.name == 'sys.asm':
+            s = s.replace('.r4n:       ld a,b\n', '.r4n:       call vol_keys\n            ld a,b\n', 1)
         for row in ('FE','FD','EF','BF','7F','F7'):
             s = s.replace('ld a,($68'+row+')', 'call mb_row_'+row)
         s = s.replace('ld a,($6800)', 'call mb_any')
         (dst / p.name).write_text(s)
+
+def cut(s, a, b, new=''):
+    i = s.index(a); j = s.index(b, i)
+    return s[:i] + new + s[j:]
+
+
+def native_combat(s):
+    """Combat is drawn by mb_battle.asm from native maps. The VZ bitmap scene,
+    its masks and effect strokes are never seen, so they are not composed."""
+    s = s.replace('            call sd_load\n            call build_masks\n', '            call sd_load\n', 1)
+    s = cut(s, '; build mask planes: frames were unpacked', '; ---------------------------------------------------------------------------\n; effects')
+    s = cut(s, '; restore backdrop rows into BACK (bank 3)\ndraw_backdrop:', '; present the scene rows only',
+            'draw_backdrop:\ndraw_monster:\ndraw_scene:\n            ret\n\n')
+    s = cut(s, 'draw_mon_bar:\n', 'present_ui:', 'draw_mon_bar:\n            ret\n\n')
+    s = cut(s, '; effect overlay drawn after the monster (fx_kind / fx_step)\ndraw_fx:',
+            '; ---------------------------------------------------------------------------\nstr_a:', 'draw_fx:\n            ret\n\n')
+    s = cut(s, '; monster death: dissolve with random pixel erasure over 12 steps\nfx_death:', 'draw_fx:\n', """; monster death: a quick ordered dissolve into the room
+fx_death:
+            ld hl,sfx_death
+            call play_sfx
+            ld a,1
+            ld (bt_dying),a
+            ld b,1
+.l:         push bc
+            ld a,b
+            add a,a
+            ld (native_death),a
+            call present_monster
+            pop bc
+            inc b
+            ld a,b
+            cp 9
+            jr c,.l
+            xor a
+            ld (bt_dying),a
+            ld a,16                 ; fully dissolved until the next battle
+            ld (native_death),a
+            jp present_monster
+
+""")
+    s = cut(s, '; transition from exploration: blinds closing over the screen\nbattle_wipe:', 'present_full_fast:', """; transition from exploration: black blinds close over the maze
+battle_wipe:
+            ld hl,sfx_encounter
+            call play_sfx
+            jp native_battle_wipe
+
+""")
+    return s
+
 
 if __name__ == '__main__':
     generate()

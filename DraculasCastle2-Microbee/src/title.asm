@@ -3,139 +3,6 @@
 ; ===========================================================================
 
 
-title_note:
-            push hl
-            ld c,0
-            ld b,32
-            ld d,57
-            ld e,6
-            ld a,$AA
-            call fill_rect
-            ld b,1
-            ld c,2
-            call text_colors
-            pop hl
-            ld d,57
-            ld b,0
-            ld c,32
-            call print_centre
-            ld c,0
-            ld b,32
-            ld d,57
-            ld e,63
-            jp present_rect
-
-draw_title:
-            ld a,0
-            call set_css
-            ld ix,f_title
-            ld de,BACK
-            xor a
-            call sd_load
-            jp draw_credit
-
-draw_credit:
-            ld c,0
-            ld b,32
-            ld d,57
-            ld e,6
-            ld a,$AA
-            call fill_rect
-            ld a,(frame_count)
-            and 128
-            ld hl,str_sub
-            ld b,1
-            jr z,.s
-            ld hl,str_credit
-            ld b,3
-.s:         push hl
-            ld c,2
-            call text_colors
-            pop hl
-            ld d,58
-            ld b,0
-            ld c,32
-            jp print_centre
-
-menu_x:     db 1,12,22
-menu_txt:   dw str_m_new,str_m_cont,str_m_music
-str_m_new:  db " NEW GAME ",0
-str_m_cont: db " CONTINUE ",0
-str_m_music: db " MUSIC ON ",0
-str_m_mute: db " MUSIC OFF",0
-
-draw_title_menu:
-            ld c,0
-            ld b,32
-            ld d,51
-            ld e,6
-            ld a,$AA
-            call fill_rect
-            xor a
-.l:         ld (tm_i),a
-            ld b,1
-            ld c,2
-            ld hl,menu_sel
-            cp (hl)
-            jr nz,.n
-            ld c,3
-.n:         call text_colors
-            ld a,(tm_i)
-            add a,a
-            ld e,a
-            ld d,0
-            ld hl,menu_txt
-            add hl,de
-            ld a,(hl)
-            inc hl
-            ld h,(hl)
-            ld l,a
-            ld a,(tm_i)
-            cp 2
-            jr nz,.t
-            ld a,(music_on)
-            or a
-            jr nz,.t
-            ld hl,str_m_mute
-.t:         ld a,(tm_i)
-            ld e,a
-            ld d,0
-            push hl
-            ld hl,menu_x
-            add hl,de
-            ld c,(hl)
-            pop hl
-            ld d,51
-            call print_at
-            ld a,(tm_i)
-            inc a
-            cp 3
-            jr nz,.l
-            ret
-
-; flash the sky: swap colour set for a few frames + thunder
-lightning:
-            ld hl,sfx_thunder
-            call play_sfx
-            ld a,1
-            call set_css
-            ld b,2
-            call wait_frames
-            xor a
-            call set_css
-            ld b,3
-            call wait_frames
-            ld a,1
-            call set_css
-            ld b,1
-            call wait_frames
-            xor a
-            jp set_css
-
-str_sub:    db "THE CASTLE AWAKENS",0
-str_credit: db "VIBED BY BPM  2026",0
-str_nosave: db "NO SAVED GAME FOUND",0
-
 ; ---------------------------------------------------------------------------
 ; story pages (full screen text), skippable
 ; ---------------------------------------------------------------------------
@@ -153,6 +20,8 @@ text_page:
             push hl
             ld a,$AA
             call cls_back
+            ld a,1
+            ld (world_flow),a
             ; red frame
             ld c,0
             ld b,32
@@ -301,61 +170,6 @@ str_demo:   db "PRESS ANY KEY",0
 gallery_monster:
             dec a
             jp world_cinema
-legacy_gallery_monster:
-            push af
-            ; the monster's home backdrop (def byte 13)
-            dec a
-            add a,a
-            add a,a
-            add a,a
-            add a,a
-            ld l,a
-            ld h,0
-            ld de,monsters+13
-            add hl,de
-            ld a,(hl)
-            ld (AREA_RAM+26),a
-            pop af
-            call battle_load
-            ld a,(bt_css)
-            call set_css
-            call draw_scene
-            call clear_ui
-            ld b,1
-            ld c,2
-            call text_colors
-            ld hl,str_ghoulies
-            ld d,50
-            ld b,0
-            ld c,32
-            call print_centre
-            ld de,msgbuf
-            call mon_name_de
-            ld b,3
-            ld c,2
-            call text_colors
-            ld hl,msgbuf
-            ld d,57
-            ld b,0
-            ld c,32
-            call print_centre
-            call present_full
-            ld a,1
-            ld (bt_anim),a
-            ld b,150
-.w:         push bc
-            call wait_frame
-            call read_input
-            call idle_anim
-            pop bc
-            ld a,(any_key)
-            or a
-            ret nz
-            djnz .w
-            xor a
-            ret
-
-str_ghoulies: db "GROOVY GHOULIES OF THE CASTLE",0
 
 attract_page:
             push hl
@@ -393,6 +207,8 @@ chapter_end:
             call play_music
             ld a,$AA
             call cls_back
+            ld a,1
+            ld (world_flow),a
             ld b,1
             ld c,2
             call text_colors

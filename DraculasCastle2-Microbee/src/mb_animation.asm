@@ -8,20 +8,14 @@ native_anim_load:
             ld (native_anim_phase),a
             dec a
             ld (native_anim_cached),a
-            ld a,(native32_group_index)
-            ld l,a
-            ld h,0
-            ld e,l
-            ld d,h
-            add hl,hl
-            add hl,hl
-            add hl,hl
-            add hl,de
-            ld de,native_anim_assets
-            add hl,de
-            ld a,(hl)
-            or a
-            ret z
+            ld a,(native32_group_index)     ; only the bestiary Ghost has poses
+            ld hl,native_anim_assets
+            cp 2
+            jr z,.found
+            ld hl,native_anim_assets+9
+            cp 14
+            ret nz
+.found:
             ld a,1
             ld (native_anim_loading),a
             call native_anim_unpack

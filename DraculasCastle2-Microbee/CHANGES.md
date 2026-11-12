@@ -88,8 +88,9 @@ run on a real Microbee yet.**
   monster. Monster drawings and animation are unchanged.
 - **Graveyard room redrawn too** (the bat and skeleton fights). It now matches
   the Grounds: starry sky, crescent moon, the castle on the skyline, the mossy
-  wall, headstones and grass. Those two monsters always fight here, whichever
-  area you meet them in.
+  wall, headstones and grass. Those two monsters always fought here, whichever
+  area you met them in (changed in the fourth pass: they now fight in the
+  room you are in).
 - **On one-colour screens the battle room sits back.** With no colour to
   separate them, monster and wall were the same brightness. The room is now
   dimmed there so the monster stands out.
@@ -133,8 +134,8 @@ run on a real Microbee yet.**
 - **Title screen redone.** The logo sits on a dripping crimson banner, with
   the subtitle under it and the cast lined up in front: ghost, skeleton,
   Dracula, zombie and slime, drawn from the new monster art. The amber
-  version uses a black banner with a dotted border so the letters stay
-  readable.
+  version used a black banner with a dotted border so the letters stayed
+  readable (replaced in the fourth pass).
 - **All 21 maze floor objects redrawn** (`tools/maze_objects.py`) in the same
   style, replacing the enlarged VZ sprites: chests open and shut, graves,
   bones, the stone angel, the suit of armour, the gargoyle statue, lecterns,
@@ -145,12 +146,99 @@ run on a real Microbee yet.**
   objects no longer tint the wall beside them. The 128 object glyph slots
   are split 80 / 30 / 18 across the three distances to fit.
 
+## Fourth pass (13 November 2026): fast battles, fights in your room
+
+Measured in the emulator on a one-hit skeleton fight with the keys mashed:
+
+| Battle moment (emulated) | Before | Now |
+| --- | ---: | ---: |
+| Sword slash until the damage shows | 0.90 s | 0.19 s |
+| Hit flash and shake | about 1.2 s | 0.47 s |
+| Monster vanishing when it dies | 3.6 s | 0.54 s |
+| Whole fight, encounter to back in the maze | 11.0 s | 3.8 s |
+
+- **The battle screen is redrawn in one pass.** Codex's battle code rebuilt
+  the whole 40x32 screen for every animation step, compared all 3,840 bytes
+  with the previous frame, and waited for the next frame up to eight times
+  along the way so the tune would keep playing. A sword stroke of five steps
+  took 45 frames. Now each step recomposes only the monster's window (or just
+  the cells an effect stroke touches), then writes those rows straight to the
+  screen right after the frame sync. A still pose or a stroke costs one to two
+  frames; a moved, flashing or dissolving monster about three. Why: you asked
+  for the VZ's quick, aggressive fights back, and the waiting was the whole
+  problem.
+- **The VZ's bitmap scene is no longer drawn.** Every animation step still
+  copied the VZ backdrop, masked the VZ monster into it, drew the VZ effect
+  strokes and the VZ health bar into a buffer the Microbee never shows, and
+  each battle started by rebuilding VZ sprite masks. All gone. Why: pure
+  waste, and the space was needed for the new code.
+- **Death is a quick ordered dissolve into the room**, eight steps on a 4x4
+  pattern, instead of twelve slow random-pixel steps that redrew the whole
+  screen each time. A monster you kill with one blow no longer disappears
+  during its hit flash and then pops back to dissolve; it stays until it
+  dissolves.
+- **A hit shows the monster in negative** in colour (it used to turn the
+  fill white, which did nothing to the white skeleton or ghost), and makes it
+  blink on the amber screen, where colours do not show.
+- **Ordinary monsters fight in the room you are standing in.** The bat,
+  skeleton, ghost, zombie, slime, knight and bride now appear in front of the
+  Grounds, Great Hall, Library, Dungeons, Clock Tower or Dracula's Tower,
+  whichever you are in; a skeleton in the Library fights among the
+  bookshelves. Bosses keep their own lairs. This works because the ghoulies
+  are drawn cell-exact: every cell a monster touches holds only the monster
+  and black, so its cells can be laid over any room when the battle loads
+  (`tools/battle_rooms.py`). The rooms use PCG banks 0 to 4 and the monster
+  banks 5 to 13. The six rooms and seven monsters take less disk than the
+  fourteen baked-in fights they replace. The ghost's eight-pose float is
+  composed into the room too.
+- **The last room and monster stay unpacked** (RAM blocks 27 and 29), so a
+  second fight in the same area loads about a quarter faster.
+- **No flash back to the maze when a fight starts.** Black blinds now close
+  over the maze in eight frames and the screen stays black until the battle
+  is drawn. Before, the maze stayed up while the art unpacked, then showed
+  scrambled for a few frames as the new character shapes arrived. Leaving a
+  fight also clears to black first, instead of showing a scrambled 64-column
+  screen for a fifth of a second.
+- **The selected battle command has a pointer** (and yellow lettering in
+  colour) instead of reverse video. In the emulator's amber mode reverse
+  video did not show at all, and in colour the bold letters ran together.
+- **Story pages are centred.** The text was placed at the VZ's fixed rows, so
+  the last line sat on the bottom rule while the top had room to spare. The
+  page now measures its text, keeps each paragraph's line spacing, closes the
+  paragraph gaps a little and centres the whole block. The ending page gets
+  the same treatment.
+- **The amber title is its own picture.** The colour banner was simply
+  swapped for black on one-colour screens, so the blood drips vanished. On
+  amber the banner now glows solid with the lettering cut out of it in black
+  and the drips hanging lit beneath; the bats are solid and the cast use
+  clean even tones.
+- **Music volume.** Press - and + (the ;+ key) anywhere to set the music
+  from 1 to 4; N still turns it off and on. The setting shows on the title.
+  It works the way 1-bit machines do it: each step halves the width of the
+  speaker pulses, so the notes stay in tune and only get quieter. Sound
+  effects stay at full strength so they still cut through. The game starts at
+  3, a notch below the VZ's full swing, because the Microbee's speaker is
+  louder than the VZ's piezo.
+- **Smaller things:** byte fetches in the decompressor have a fast path
+  (about a fifth quicker); the disk's own README now has the controls; about
+  1.4K of unused VZ title and sprite code was removed to make room.
+- New and rewritten checks: `tools/check_native_combat.py` composes 26
+  monster-and-room pairs in both modes and compares every pose, movement,
+  effect, hit flash and dissolve with an independent Python drawing;
+  `tools/check_animation.py` checks the ghost's eight poses in two rooms.
+
 ## Known limits
 
 - **Emulator only.** Pacing, music and readability on the real machine and on
   the amber monitor still need your eyes.
 - Entering a new area still blanks the screen for about 2.3 s while its art
   unpacks, and opening the map for about 0.9 s.
+- A battle takes 0.7 to 0.9 s of black screen to load (1.3 s for the ghost,
+  whose eight poses are composed into the room). Most of it is unpacking and
+  loading about 16K of character shapes.
+- When a message and a monster movement change in the same step, the lower
+  rows can be written just after the beam passes them, so that one frame may
+  show a tear. Movement alone and messages alone stay ahead of the beam.
 - Floor objects stand in a black halo one cell deep. On the dark floors it is
   barely visible; against a bright wall at a distance it can show.
 - If two floor objects line up one behind the other, the nearer one's halo

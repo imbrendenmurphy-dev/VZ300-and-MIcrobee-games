@@ -149,12 +149,21 @@ native_show:
             ret
 
 native_get:
-            push bc
+            ld a,(native_left)      ; fast path: the next byte is buffered
+            or a
+            jr z,.refill
+            dec a
+            ld (native_left),a
+            push hl
+            ld hl,(native_read)
+            ld a,(hl)
+            inc hl
+            ld (native_read),hl
+            pop hl
+            ret
+.refill:    push bc
             push de
             push hl
-            ld a,(native_left)
-            or a
-            jr nz,.ready
             ld a,(native_anim_loading)
             or a
             jr z,.fetch

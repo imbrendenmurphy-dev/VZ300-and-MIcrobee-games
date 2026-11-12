@@ -100,10 +100,6 @@ native_group_show:
             ld de,0
             call native32_copy_local
             pop hl
-            call native_battle_prepare
-            ld a,(native_battle_active)
-            or a
-            call nz,native_battle_overlay
             call native32_commit
 .finish:    call native32_fast_finish
             pop ix

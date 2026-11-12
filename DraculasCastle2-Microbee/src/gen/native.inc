@@ -5,11 +5,11 @@ native_assets:
             dw 4148 ; title-mono
 native_groups:
             db 6
-            dw 7820 ; group01-colour
+            dw 7748 ; group01-colour
             db 6
-            dw 17079 ; group02-colour
+            dw 17007 ; group02-colour
             db 6
-            dw 26439 ; group03-colour
+            dw 26367 ; group03-colour
             db 7
             dw 19108 ; group04-colour
             db 8
@@ -52,59 +52,59 @@ native_groups:
             dw 14246 ; group11-mono
             db 13
             dw 20159 ; group12-mono
+            db 0
+            dw 0
+            db 0
+            dw 0
+            db 0
+            dw 0
             db 15
-            dw 0 ; combat01-colour
-            db 15
-            dw 9325 ; combat02-colour
-            db 15
-            dw 18698 ; combat03-colour
-            db 16
             dw 0 ; combat04-colour
-            db 16
+            db 15
             dw 10463 ; combat05-colour
+            db 0
+            dw 0
+            db 0
+            dw 0
+            db 15
+            dw 21128 ; combat08-colour
+            db 0
+            dw 0
             db 16
-            dw 21128 ; combat06-colour
-            db 17
-            dw 0 ; combat07-colour
-            db 17
-            dw 10354 ; combat08-colour
-            db 17
-            dw 20100 ; combat09-colour
-            db 18
             dw 0 ; combat10-colour
-            db 18
+            db 16
             dw 11401 ; combat11-colour
-            db 18
-            dw 20505 ; combat12-colour
-            db 19
-            dw 0 ; combat01-mono
-            db 19
-            dw 7191 ; combat02-mono
-            db 19
-            dw 14859 ; combat03-mono
-            db 19
-            dw 21542 ; combat04-mono
-            db 20
+            db 0
+            dw 0
+            db 0
+            dw 0
+            db 0
+            dw 0
+            db 0
+            dw 0
+            db 16
+            dw 20505 ; combat04-mono
+            db 17
             dw 0 ; combat05-mono
-            db 20
-            dw 8540 ; combat06-mono
-            db 20
-            dw 14248 ; combat07-mono
-            db 20
-            dw 20551 ; combat08-mono
-            db 21
-            dw 0 ; combat09-mono
-            db 21
-            dw 6932 ; combat10-mono
-            db 21
-            dw 15468 ; combat11-mono
-            db 21
-            dw 21517 ; combat12-mono
+            db 0
+            dw 0
+            db 0
+            dw 0
+            db 17
+            dw 8540 ; combat08-mono
+            db 0
+            dw 0
+            db 17
+            dw 15244 ; combat10-mono
+            db 17
+            dw 23780 ; combat11-mono
+            db 0
+            dw 0
 native_idle_assets:
             db 6
-            dw 16191 ; group01-colour
+            dw 16119 ; group01-colour
             db 6
-            dw 25448 ; group02-colour
+            dw 25376 ; group02-colour
             db 7
             dw 18103 ; group03-colour
             db 7
@@ -149,168 +149,186 @@ native_idle_assets:
             dw 19684 ; group11-mono
             db 13
             dw 26753 ; group12-mono
+            db 0
+            dw 0
+            db 0
+            dw 0
+            db 0
+            dw 0
             db 15
-            dw 8438 ; combat01-colour
-            db 15
-            dw 17702 ; combat02-colour
-            db 15
-            dw 27129 ; combat03-colour
-            db 16
             dw 10351 ; combat04-colour
-            db 16
+            db 15
             dw 20017 ; combat05-colour
+            db 0
+            dw 0
+            db 0
+            dw 0
+            db 15
+            dw 30136 ; combat08-colour
+            db 0
+            dw 0
             db 16
-            dw 29000 ; combat06-colour
-            db 17
-            dw 9097 ; combat07-colour
-            db 17
-            dw 19362 ; combat08-colour
-            db 17
-            dw 28552 ; combat09-colour
-            db 18
             dw 10383 ; combat10-colour
-            db 18
+            db 16
             dw 19830 ; combat11-colour
-            db 18
-            dw 29701 ; combat12-colour
-            db 19
-            dw 6446 ; combat01-mono
-            db 19
-            dw 14067 ; combat02-mono
-            db 19
-            dw 20827 ; combat03-mono
-            db 19
-            dw 28516 ; combat04-mono
-            db 20
+            db 0
+            dw 0
+            db 0
+            dw 0
+            db 0
+            dw 0
+            db 0
+            dw 0
+            db 16
+            dw 27479 ; combat04-mono
+            db 17
             dw 7642 ; combat05-mono
-            db 20
-            dw 13725 ; combat06-mono
-            db 20
-            dw 19632 ; combat07-mono
-            db 20
-            dw 26622 ; combat08-mono
-            db 21
-            dw 6459 ; combat09-mono
-            db 21
-            dw 14676 ; combat10-mono
-            db 21
-            dw 21061 ; combat11-mono
-            db 21
-            dw 28232 ; combat12-mono
-native_font_asset: db 27
+            db 0
+            dw 0
+            db 0
+            dw 0
+            db 17
+            dw 14611 ; combat08-mono
+            db 0
+            dw 0
+            db 17
+            dw 22988 ; combat10-mono
+            db 17
+            dw 29373 ; combat11-mono
+            db 0
+            dw 0
+native_font_asset: db 26
             dw 21925
 world_assets:
+            db 21
+            dw 7447
             db 22
             dw 0
             db 23
             dw 0
             db 24
             dw 0
-            db 25
-            dw 0
-            db 25
+            db 24
             dw 20343
-            db 26
+            db 25
             dw 15193
+            db 21
+            dw 7447
             db 22
             dw 0
             db 23
             dw 0
             db 24
             dw 0
-            db 25
-            dw 0
-            db 25
+            db 24
             dw 20343
-            db 26
+            db 25
             dw 15193
-            db 27
+            db 26
             dw 10790
-            db 27
+            db 26
             dw 11526
-            db 27
+            db 26
             dw 16590
-            db 27
+            db 26
             dw 17292
 world_assets2:
+            db 21
+            dw 19722
             db 22
-            dw 12275
-            db 23
             dw 12091
-            db 24
+            db 23
             dw 12239
-            db 25
+            db 24
             dw 9510
+            db 25
+            dw 0
             db 26
             dw 0
-            db 27
-            dw 0
 native_anim_assets:
-            db 0,0,0,0,0,0,0,0,0
-            db 0,0,0,0,0,0,0,0,0
             db 7
             dw 0
             db 7
             dw 8787
             db 7
             dw 14313
-            db 0,0,0,0,0,0,0,0,0
-            db 0,0,0,0,0,0,0,0,0
-            db 0,0,0,0,0,0,0,0,0
-            db 0,0,0,0,0,0,0,0,0
-            db 0,0,0,0,0,0,0,0,0
-            db 0,0,0,0,0,0,0,0,0
-            db 0,0,0,0,0,0,0,0,0
-            db 0,0,0,0,0,0,0,0,0
-            db 0,0,0,0,0,0,0,0,0
-            db 0,0,0,0,0,0,0,0,0
-            db 0,0,0,0,0,0,0,0,0
             db 11
             dw 9759
             db 11
             dw 14621
             db 11
             dw 18598
-            db 0,0,0,0,0,0,0,0,0
-            db 0,0,0,0,0,0,0,0,0
-            db 0,0,0,0,0,0,0,0,0
-            db 0,0,0,0,0,0,0,0,0
-            db 0,0,0,0,0,0,0,0,0
-            db 0,0,0,0,0,0,0,0,0
-            db 0,0,0,0,0,0,0,0,0
-            db 0,0,0,0,0,0,0,0,0
-            db 0,0,0,0,0,0,0,0,0
-            db 0,0,0,0,0,0,0,0,0
-            db 0,0,0,0,0,0,0,0,0
-            db 7
+bt_rooms:
+            db 18
             dw 0
-            db 15
-            dw 21785
-            db 7
-            dw 14313
-            db 0,0,0,0,0,0,0,0,0
-            db 0,0,0,0,0,0,0,0,0
-            db 0,0,0,0,0,0,0,0,0
-            db 0,0,0,0,0,0,0,0,0
-            db 0,0,0,0,0,0,0,0,0
-            db 0,0,0,0,0,0,0,0,0
-            db 0,0,0,0,0,0,0,0,0
-            db 0,0,0,0,0,0,0,0,0
-            db 0,0,0,0,0,0,0,0,0
-            db 0,0,0,0,0,0,0,0,0
-            db 0,0,0,0,0,0,0,0,0
-            db 11
-            dw 9759
+            db 18
+            dw 2967
+            db 18
+            dw 6906
+            db 18
+            dw 10388
+            db 18
+            dw 13649
+            db 18
+            dw 18251
+            db 18
+            dw 21394
+            db 18
+            dw 23397
+            db 18
+            dw 25337
+            db 18
+            dw 27333
+            db 18
+            dw 28688
             db 19
-            dw 16950
-            db 11
-            dw 18598
-            db 0,0,0,0,0,0,0,0,0
-            db 0,0,0,0,0,0,0,0,0
-            db 0,0,0,0,0,0,0,0,0
-            db 0,0,0,0,0,0,0,0,0
-            db 0,0,0,0,0,0,0,0,0
-            db 0,0,0,0,0,0,0,0,0
-            db 0,0,0,0,0,0,0,0,0
-            db 0,0,0,0,0,0,0,0,0
-            db 0,0,0,0,0,0,0,0,0
+            dw 0
+bt_sprites:
+            db 19
+            dw 1834
+            db 19
+            dw 6711
+            db 19
+            dw 11604
+            db 0
+            dw 0
+            db 0
+            dw 0
+            db 19
+            dw 21911
+            db 19
+            dw 25835
+            db 0
+            dw 0
+            db 20
+            dw 0
+            db 0
+            dw 0
+            db 0
+            dw 0
+            db 20
+            dw 3225
+            db 20
+            dw 8648
+            db 20
+            dw 12810
+            db 20
+            dw 17555
+            db 0
+            dw 0
+            db 0
+            dw 0
+            db 20
+            dw 24335
+            db 20
+            dw 27926
+            db 0
+            dw 0
+            db 21
+            dw 0
+            db 0
+            dw 0
+            db 0
+            dw 0
+            db 21
+            dw 2954

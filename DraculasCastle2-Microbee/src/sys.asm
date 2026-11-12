@@ -383,7 +383,8 @@ read_input:
             ld hl,sfx_tick
             call play_sfx
             pop bc
-.r4n:       ld a,b
+.r4n:       call vol_keys
+            ld a,b
             bit 5,a                 ; M
             jr z,.r4b
             set 5,c

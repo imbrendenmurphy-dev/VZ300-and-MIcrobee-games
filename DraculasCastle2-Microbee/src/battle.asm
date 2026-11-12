@@ -66,7 +66,6 @@ battle_load:
             ld de,MONB
             xor a
             call sd_load
-            call build_masks
             ; backdrop from SD into SRAM bank 3
             ld a,(AREA_RAM+26)      ; the area's battle backdrop
             add a,a
@@ -819,51 +818,6 @@ draw_battle_ui_stats:
             jp draw_mon_bar
 
 draw_mon_bar:
-            ld c,0
-            ld b,11
-            ld d,0
-            ld e,8
-            ld a,$AA
-            call fill_rect
-            ld b,1
-            ld c,2
-            call text_colors
-            ld de,statbuf
-            call mon_name_de
-            ld hl,statbuf
-            ld c,0
-            ld d,0
-            call print_at
-            ; bar: 40px * mhp / mhpmax at row 6
-            ld a,(bt_mhp)
-            ld e,40
-            call mul8
-            ld a,(bt_mhpmax)
-            ld c,a
-            call div_hl_c
-            ld b,a
-            ld d,6
-            ld c,0
-            push bc
-            call back_addr
-            pop bc
-.f:         ld a,b
-            cp 4
-            jr c,.p
-            ld (hl),$FF
-            inc hl
-            sub 4
-            ld b,a
-            jr .f
-.p:         or a
-            ret z
-            ld (hl),$C0
-            dec b
-            ret z
-            ld (hl),$F0
-            dec b
-            ret z
-            ld (hl),$FC
             ret
 
 present_ui:
@@ -929,95 +883,9 @@ bt_wait:
 ; ---------------------------------------------------------------------------
 ; scene drawing
 ; ---------------------------------------------------------------------------
-; restore backdrop rows into BACK (bank 3)
 draw_backdrop:
-            call bank3
-            ld hl,BBG
-            ld de,BACK
-            ld bc,32*SCENE_H
-            ldir
-            ret
-
-draw_scene:
-            call draw_backdrop
-            call draw_monster
-            jp draw_mon_bar
-
-; draw monster frame bt_frame at (MON_X + bt_dx, MON_Y + bt_dy)
 draw_monster:
-            ld a,(bt_mhp)
-            or a
-            jr nz,.alive
-            ld a,(bt_dying)
-            or a
-            ret z
-.alive:     ld a,(bt_frame)
-            ld hl,MONB
-            ld de,MON_FRAME
-            or a
-            jr z,.f0
-.fl:        add hl,de
-            dec a
-            jr nz,.fl
-.f0:        ld a,(bt_dy)
-            add a,MON_Y
-            ld d,a
-            ld a,(bt_dx)
-            add a,MON_X
-            ld c,a
-            push hl
-            call back_addr
-            ex de,hl
-            pop hl
-            ld a,(bt_flash)
-            or a
-            jr nz,draw_mon_flash
-            ld b,MON_H
-.r:         push bc
-            push de
-            ld b,MON_W
-.b:         ld a,(de)
-            and (hl)
-            inc hl
-            or (hl)
-            inc hl
-            ld (de),a
-            inc de
-            djnz .b
-            pop de
-            ex de,hl
-            ld bc,32
-            add hl,bc
-            ex de,hl
-            pop bc
-            djnz .r
-            ret
-
-; flash: opaque pixels become colour 1 (yellow / cyan)
-draw_mon_flash:
-            ld b,MON_H
-.r:         push bc
-            push de
-            ld b,MON_W
-.b:         ld a,(hl)               ; mask
-            cpl                     ; opaque bits
-            and $55
-            ld c,a
-            ld a,(de)
-            and (hl)
-            or c
-            inc hl
-            inc hl
-            ld (de),a
-            inc de
-            djnz .b
-            pop de
-            ex de,hl
-            ld bc,32
-            add hl,bc
-            ex de,hl
-            pop bc
-            djnz .r
+draw_scene:
             ret
 
 ; present the scene rows only
@@ -1061,113 +929,14 @@ idle_anim:
             call draw_mon_bar
             jp present_monster
 
-; build mask planes: frames were unpacked as data planes with transparent
-; colour key = the monster's key colour stored in the def (ix+12)
-build_masks:
-            ; frames in bank 1 at $4000 stored as data only (MON_W*MON_H each);
-            ; expand backwards into (mask,data) pairs in place
-            ld ix,(bt_def)
-            ld a,(ix+9)             ; frames
-            ld b,a
-            ld hl,0
-            ld de,MON_W*MON_H
-.m:         add hl,de
-            djnz .m                 ; hl = total data bytes
-            ld (bt_tmp),hl
-            ; src end = MONB + total - 1 ; dst end = MONB + 2*total - 1
-            ld de,MONB-1
-            add hl,de
-            push hl                 ; src end
-            ld hl,(bt_tmp)
-            add hl,hl
-            ld de,MONB-1
-            add hl,de
-            ex de,hl                ; de = dst end
-            pop hl
-            ld bc,(bt_tmp)
-            ld a,(ix+12)            ; key colour 0..3
-            ld (bt_key),a
-.x:         push bc
-            ld a,(hl)
-            dec hl
-            ld (de),a               ; data
-            dec de
-            ; mask: pixels equal to key -> 11
-            ld c,a
-            ld b,4
-            xor a
-            ld (bt_tmp+2),a
-.px:        ld a,(bt_tmp+2)
-            rrca
-            rrca
-            ld (bt_tmp+2),a
-            ld a,c
-            and 3
-            push hl
-            ld hl,bt_key
-            cp (hl)
-            pop hl
-            jr nz,.op
-            ld a,(bt_tmp+2)
-            or $C0
-            ld (bt_tmp+2),a
-.op:        rrc c
-            rrc c
-            djnz .px
-            ld a,(bt_tmp+2)
-            ld (de),a
-            dec de
-            ; clear key pixels in the data byte
-            inc de
-            inc de
-            ld a,(de)
-            push af
-            ld a,(bt_tmp+2)
-            cpl
-            ld c,a
-            pop af
-            and c
-            ld (de),a
-            dec de
-            dec de
-            pop bc
-            dec bc
-            ld a,b
-            or c
-            jr nz,.x
-            ret
-
 ; ---------------------------------------------------------------------------
 ; effects
 ; ---------------------------------------------------------------------------
-; transition from exploration: blinds closing over the screen
+; transition from exploration: black blinds close over the maze
 battle_wipe:
             ld hl,sfx_encounter
             call play_sfx
-            ld b,0
-.s:         push bc
-            ; fill rows where (row & 7) == b with blue
-            ld d,b
-.r:         ld a,d
-            cp 64
-            jr nc,.done
-            push de
-            ld e,d
-            inc e
-            ld a,$AA
-            call fill_rows
-            pop de
-            ld a,d
-            add a,8
-            ld d,a
-            jr .r
-.done:      call present_full_fast
-            pop bc
-            inc b
-            ld a,b
-            cp 8
-            jr nz,.s
-            ret
+            jp native_battle_wipe
 
 present_full_fast:
             jp present_full
@@ -1333,181 +1102,30 @@ fx_player_dies:
             djnz .l
             ret
 
-; monster death: dissolve with random pixel erasure over 12 steps
+; monster death: a quick ordered dissolve into the room
 fx_death:
             ld hl,sfx_death
             call play_sfx
             ld a,1
             ld (bt_dying),a
-            ld b,12
+            ld b,1
 .l:         push bc
-            ; erase random bytes of mask (set to FF) in current frame
-            ld b,100
-.e:         push bc
-            call random
-            ld l,a
-            call random
-            and 3
-            ld h,a
-            add hl,hl               ; even offset (mask byte), range 0..2047
-            ld a,(bt_frame)
-            or a
-            jr z,.f0
-            ld de,MON_FRAME
-            add hl,de
-.f0:        ld de,MONB
-            add hl,de
-            ld (hl),$FF
-            inc hl
-            ld (hl),0
+            ld a,b
+            add a,a
+            ld (native_death),a
+            call present_monster
             pop bc
-            djnz .e
-            call redraw_mon
-            pop bc
-            djnz .l
+            inc b
+            ld a,b
+            cp 9
+            jr c,.l
             xor a
             ld (bt_dying),a
-            call draw_backdrop
-            call draw_mon_bar
+            ld a,16                 ; fully dissolved until the next battle
+            ld (native_death),a
             jp present_monster
 
-; effect overlay drawn after the monster (fx_kind / fx_step)
 draw_fx:
-            ld a,(fx_kind)
-            or a
-            ret z
-            cp 1
-            jr z,fx_draw_slash
-            cp 2
-            jr z,fx_draw_fire
-            jp fx_draw_holy
-
-; slash: a bright diagonal band from top-right to bottom-left, growing
-fx_draw_slash:
-            ld a,(fx_step)
-            inc a
-            ld b,a
-            add a,a
-            add a,a
-            add a,a
-            add a,b                 ; rows = step*9
-            cp SCENE_H-4
-            jr c,.ok
-            ld a,SCENE_H-4
-.ok:        ld b,a
-            ld d,4
-.r:         push bc
-            push de
-            ; x byte = 22 - (row-4)/3
-            ld a,d
-            sub 4
-            ld c,0
-.dv:        sub 3
-            jr c,.dd
-            inc c
-            jr .dv
-.dd:        ld a,22
-            sub c
-            ld c,a
-            call back_addr
-            ld (hl),$55             ; bright streak (colour 1)
-            inc hl
-            ld (hl),$15
-            pop de
-            inc d
-            pop bc
-            djnz .r
-            ret
-
-; fire: fireball rising from the bottom to the monster, then a burst
-fx_draw_fire:
-            ld a,(fx_step)
-            cp 6
-            jr nc,.burst
-            ; ball at y = 40 - step*5, x = 15..16
-            ld b,a
-            add a,a
-            add a,a
-            add a,b
-            ld b,a
-            ld a,40
-            sub b
-            ld d,a
-            ld c,15
-            call back_addr
-            ld (hl),$5D             ; yellow/red core
-            inc hl
-            ld (hl),$D4
-            ld de,31
-            add hl,de
-            ld (hl),$7F
-            inc hl
-            ld (hl),$FC
-            ld de,31
-            add hl,de
-            ld (hl),$3F
-            inc hl
-            ld (hl),$F0
-            ret
-.burst:     ; ring of sparks around the monster centre
-            sub 5
-            ld b,a                  ; radius step 1..4
-            ld hl,burst_pts
-.p:         ld a,(hl)
-            cp $80
-            ret z
-            push hl
-            ld c,a
-            inc hl
-            ld a,(hl)
-            ; y = 22 + dy*b, x = 16 + dx*b
-            push bc
-            ld e,a
-            xor a
-.m1:        add a,e
-            djnz .m1
-            pop bc
-            add a,22
-            ld d,a
-            ld e,c
-            push bc
-            xor a
-.m2:        add a,e
-            djnz .m2
-            pop bc
-            add a,16
-            ld c,a
-            push bc
-            call back_addr
-            pop bc
-            ld a,(fx_step)
-            and 1
-            ld a,$77
-            jr z,.c1
-            ld a,$DD
-.c1:        ld (hl),a
-            pop hl
-            inc hl
-            inc hl
-            jr .p
-burst_pts:  db 1,0, -1,0, 0,4, 0,-4, 1,3, -1,3, 1,-3, -1,-3, 2,1, -2,1, 2,-1, -2,-1, $80
-
-; holy water: sparkles falling on the monster
-fx_draw_holy:
-            ld b,10
-.l:         push bc
-            call random
-            and 15
-            add a,MON_X
-            ld c,a
-            call random
-            and 31
-            add a,4
-            ld d,a
-            call back_addr
-            ld (hl),$44
-            pop bc
-            djnz .l
             ret
 
 ; ---------------------------------------------------------------------------

@@ -210,14 +210,14 @@ def title(mono=False):
             dx,dy=(x-302)/15.0,(y-21)/13.0
             if dx*dx+dy*dy<1 and (dx+.45)**2+(dy+.25)**2>.72:px[x,y]=C(11)
     for bx,by,sz in ((296,50,4),(282,64,3),(14,22,4),(26,42,3),(10,60,3)):
-        d.polygon([(bx,by),(bx-sz*2,by-sz),(bx-sz,by),(bx-sz*2,by+sz//2),(bx,by+2),(bx+sz*2,by+sz//2),(bx+sz,by),(bx+sz*2,by-sz)],fill=C(13))
-    # a crimson banner with a dripping lower edge carries the logo
-    crimson=C(0 if mono else 1)
+        d.polygon([(bx,by),(bx-sz*2,by-sz),(bx-sz,by),(bx-sz*2,by+sz//2),(bx,by+2),(bx+sz*2,by+sz//2),(bx+sz,by),(bx+sz*2,by-sz)],fill=C(15 if mono else 13))
+    # a crimson banner with a dripping lower edge carries the logo. On an
+    # amber monitor the banner glows solid, the lettering is cut out of it in
+    # black and the blood drips hang lit below it.
+    crimson=C(15 if mono else 1)
     for x in range(40,280):
         bottom=84+int(2*math.sin(x/7.0))
         for y in range(0,bottom):px[x,y]=crimson
-        if mono and (x%4==0 or x in (40,279)):
-            px[x,0]=px[x,bottom-1]=C(7)
         k=(x*37)%23
         if k<3 and (44<x<84 or 236<x<276):
             n=6+(x*13)%9
@@ -225,16 +225,31 @@ def title(mono=False):
                 for dx in (0,1,2):px[x+dx,y]=crimson
             for dx in (-1,0,1,2,3):px[x+dx,bottom+n]=crimson
     if mono:
-        for y in range(0,84,4):px[40,y]=px[279,y]=C(7)
-    logo(im,"DRACULA'S",6,bands=(15,11,11,11,9))
-    logo(im,'CASTLE II',46,bands=(11,11,11,9,9))
+        for x in range(43,277):px[x,3]=C(0)            # a keyline inside the glow
+        for y in range(3,78):px[43,y]=px[276,y]=C(0)
+        logo(im,"DRACULA'S",6,bands=(0,))
+        logo(im,'CASTLE II',46,bands=(0,))
+    else:
+        logo(im,"DRACULA'S",6,bands=(15,11,11,11,9))
+        logo(im,'CASTLE II',46,bands=(11,11,11,9,9))
     dracula_font.draw(im,(160,91),'THE CASTLE AWAKENS',11,C(14),center=True)
     # the cast, half size, on the cell grid with black halos
     cast=[(2,0,0,88),(1,2,56,104),(10,2,120,104),(5,0,184,104),(6,2,240,88)]
     for i,f,x,y in cast:
         sp=ghoulies.cellfix(half(ghoulies.monster(i,f,PAL)),PAL)
+        if mono:sp=amber(sp,x,y)
         im.paste(sp,(x,y),sp)
     return im
+
+def amber(sp,x0=0,y0=0):
+    """One-colour tones for a sprite: ink lines stay black, light fills glow
+    solid and the rest take an even checker or a sparse dot, laid on the
+    screen grid, so shapes read cleanly instead of as dither noise."""
+    a=np.asarray(sp).copy();lum=(a[:,:,:3]*np.array([.24,.58,.18])).sum(2)
+    yy,xx=np.indices(lum.shape);yy=yy+y0;xx=xx+x0
+    on=np.where(lum>=150,True,np.where(lum>=95,(xx+yy)%2==0,np.where(lum>=45,(xx%2==0)&(yy%2==0),False)))
+    a[:,:,:3]=np.where(on[:,:,None],255,0)
+    return Image.fromarray(a,'RGBA')
 
 def encode(im,mono=False,cell_height=11):
     assert im.width==320 and im.height%cell_height==0

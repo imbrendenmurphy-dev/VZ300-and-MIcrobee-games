@@ -19,7 +19,8 @@ Needs a Premium Plus (1MB RAM, 32K PCG).
 ## Controls
 
 W/I/up forward, A/J/left and D/L/right turn, S/K/down turn around.
-SPACE or RETURN acts. M map, E inventory, P pause, N sound.
+SPACE or RETURN acts. M map, E inventory, P pause, N music on/off,
+- and + (the ;+ key) music volume.
 C/M on the title or while paused changes the display. Q quits from pause.
 A joystick on PIO port A also works. Saves are RAM checkpoints and are lost at
 power-off, as on the VZ.
@@ -28,7 +29,8 @@ power-off, as on the VZ.
 
 ChatGPT Codex did the first conversion: boot loader, disk, 40x32 screen,
 battles, gallery, map and story pages. This version picks that up, redraws
-the first-person view for every area and makes it four to seven times faster.
+the first-person view for every area and makes it four to seven times faster,
+redraws every monster and makes battles about three times faster.
 `CHANGES.md` lists each change and the reason for it.
 
 ![Library before and after](screenshots/library-before-after.png)
@@ -38,6 +40,8 @@ the first-person view for every area and makes it four to seven times faster.
 ![The Groovy Ghoulies](screenshots/ghoulies-colour.png)
 
 ![Maze objects](screenshots/maze-objects.png)
+
+![Ordinary monsters fight in the room you are in](screenshots/battle-rooms.png)
 
 ## Building
 

@@ -24,7 +24,7 @@ def present(p,name):
     return p.frames-start
 
 for mode,key in (('colour','C'),('mono','M')):
-    for variant in ('monster','battle'):
+    for variant in ('monster',):
         p=direct(key)
         if variant=='battle':
             invoke(p,s,'battle_load',3);invoke(p,s,'set_css',p.peek(s['bt_css']))
@@ -80,7 +80,27 @@ for mode,key in (('colour','C'),('mono','M')):
             assert p.peek(s['native_anim_phase'])==(previous+1)%8 and p.peek(s['bt_dy'])==0
         print('PASS eight-pose Ghost, expanded RAM, delta loop/wrap and scanout',variant,mode,flush=True)
 
+# Combat: the Ghost's eight phases are laid into whichever room the fight is in.
+import battle_rooms
+from mbee import FRAME_T
+battle_costs=[]
+for mode,key in (('colour','C'),('mono','M')):
+    p=direct(key)
+    for area in (1,3):
+        p.poke(s['cur_area'],area)
+        invoke(p,s,'battle_load',3);invoke(p,s,'set_css',p.peek(s['bt_css']))
+        invoke(p,s,'native_battle_enter');invoke(p,s,'draw_battle_ui')
+        assert p.peek(s['native_anim_enabled'])==1
+        for i in list(range(16))+[2,6,1]:
+            phase=i%8 if i<16 else i
+            p.poke(s['native_anim_phase'],phase);p.poke(s['bt_frame'],0)
+            t=p.tick;invoke(p,s,'native_battle_present');battle_costs.append((p.tick-t)/FRAME_T)
+            want=np.asarray(battle_rooms.preview(3,area,mode=='mono',3+phase))
+            assert np.array_equal(p.screen_rgb()[16:200],want[16:200]),(mode,area,phase)
+            checks+=1
+        invoke(p,s,'native_battle_leave')
+    print('PASS Ghost phases composed into rooms',mode,[round(x,1) for x in battle_costs[-19:]],flush=True)
 assert max(timings)<=4,timings
 shots[0].save(ROOT/'build/ghost-eight-poses.gif',save_all=True,append_images=shots[1:],duration=300,loop=0,disposal=2)
-report={'pose_count':8,'scene_checks':checks,'frame_cache_bank':30,'frame_cache_bytes':30720,'delta_cache_bank':2,'delta_cache_bytes':14336,'max_cached_transition_frames':max(timings),'max_full_composition_frames':max(slow),'max_encounter_preload_frames':max(loads),'late_plane_writes':0,'transfer_checks':len(margins),'min_row_margin_tstates':min(margins),'pcg_unchanged_during_idle':True,'hardware_tested':False}
+report={'pose_count':8,'scene_checks':checks,'frame_cache_bank':30,'frame_cache_bytes':30720,'delta_cache_bank':2,'delta_cache_bytes':14336,'max_cached_transition_frames':max(timings),'max_full_composition_frames':max(slow),'max_encounter_preload_frames':max(loads),'max_battle_phase_frames':round(max(battle_costs),2),'late_plane_writes':0,'transfer_checks':len(margins),'min_row_margin_tstates':min(margins),'pcg_unchanged_during_idle':True,'hardware_tested':False}
 (ROOT/'build/animation-validation.json').write_text(json.dumps(report,indent=2));print(report)

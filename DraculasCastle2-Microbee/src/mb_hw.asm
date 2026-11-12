@@ -24,6 +24,8 @@ mb_init:
             ld (rng),hl
             ld a,1
             ld (music_on),a
+            ld a,3                  ; music a notch below the VZ piezo's full swing
+            ld (music_vol),a
             ld a,$08
             call set_latch
             ld a,$CF
@@ -265,6 +267,78 @@ mb_eggcell:
             include "mb_keys.asm"
             include "gen/mb_colours.inc"
 
+; - and + (the ;+ key) set the music volume, 1..4, anywhere in the game.
+vol_keys:   push bc
+            ld a,1
+            out ($0B),a
+            ld c,0
+            ld a,45                 ; -
+            call mb_keytest
+            jr z,.plus
+            set 0,c
+.plus:      ld a,43                 ; ; +
+            call mb_keytest
+            jr z,.read
+            set 1,c
+.read:      xor a
+            out ($0B),a
+            ld a,(vol_prev)
+            cpl
+            and c
+            ld b,a
+            ld a,c
+            ld (vol_prev),a
+            ld a,b
+            or a
+            jr z,.done
+            ld a,(music_vol)
+            bit 0,b
+            jr z,.up
+            cp 2
+            jr c,.up
+            dec a
+.up:        bit 1,b
+            jr z,.set
+            cp 4
+            jr nc,.set
+            inc a
+.set:       ld (music_vol),a
+            ld a,1
+            ld (music_on),a
+            ld (n_hit),a
+.done:      pop bc
+            ret
+
+; A = duty of a music voice: silent when the music is off, and narrower
+; pulses (quieter on the one-bit speaker) at lower volume settings.
+nz_mute:    push bc
+            ld c,a
+            ld a,(music_on)
+            or a
+            jr z,.off
+            ld a,(music_vol)
+            ld b,a
+            ld a,4
+            sub b
+            jr z,.full
+            jr c,.full
+            ld b,a
+            ld a,c
+.sh:        srl a
+            djnz .sh
+            or a
+            jr nz,.done
+            ld a,c
+            or a
+            jr z,.done
+            ld a,1
+            jr .done
+.full:      ld a,c
+            jr .done
+.off:       xor a
+.done:      pop bc
+            ret
+
 mb_hw_end:
             noemit
             org $E200
@@ -289,8 +363,14 @@ native_battle_active: ds 1
 native_death: ds 1
 native_ui_index: ds 1
 native_fx_count: ds 1
-native_map_src: ds 2
-native_shift: ds 2
+bt_uidirty: ds 1
+bt_room_tag: ds 1
+music_vol:  ds 1
+vol_prev:   ds 1
+world_flow: ds 1
+world_prev: ds 1
+world_adv:  ds 1
+bt_sprite_tag: ds 1
 native32_full: ds 1
 native32_from: ds 1
 native32_index: ds 1

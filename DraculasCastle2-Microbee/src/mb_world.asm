@@ -10,7 +10,9 @@ world_reset:
             jr nz,.done
             ld a,2
             ld (world_screen),a
-            ld a,1
+            xor a
+            ld (world_flow),a
+            inc a
             ld (world_changed),a
             ld hl,$3A00
             ld b,64
@@ -1161,6 +1163,9 @@ vp_upload:  ld a,$80
             ret
 
 world_text:
+            ld a,(world_flow)
+            or a
+            call nz,world_flow_layout
             ld ix,$3200
             ld de,$F004
             ld b,31
@@ -1186,7 +1191,30 @@ world_text:
             djnz .row
             ret
 .go:        push bc
-            ld c,0
+            ld a,(world_flow)
+            or a
+            jr z,.cols
+            ld a,31
+            sub b
+            ld l,a
+            ld h,$3B
+            ld a,(hl)
+            cp $FF
+            jr z,.cols
+            ld l,a
+            ld h,0
+            add hl,hl
+            add hl,hl
+            add hl,hl
+            ld d,h
+            ld e,l
+            add hl,hl
+            add hl,hl
+            add hl,de
+            ld de,$F004
+            add hl,de
+            ex de,hl
+.cols:      ld c,0
 .char:      ld a,(ix+0)
             or a
             jr z,.next
@@ -1240,6 +1268,74 @@ world_text:
             pop bc
             dec b
             jp nz,.row
+            ret
+
+; Story pages: keep each paragraph's lines on their usual pitch, close the
+; paragraph gaps a little and centre the whole text on the page. RAM1 $3B00
+; maps each text row to its screen row ($FF = empty).
+world_flow_layout:
+            ld hl,$3200
+            ld de,$3B00
+            ld b,31
+            ld c,0              ; screen row of the current line, from the first
+            ld a,$FF
+            ld (world_prev),a
+.scan:      push bc
+            push hl
+            ld b,32
+            xor a
+.any:       or (hl)
+            inc hl
+            djnz .any
+            pop hl
+            pop bc
+            or a
+            ld a,$FF
+            jr z,.store
+            ld a,31
+            sub b
+            push af             ; this text row
+            ld a,(world_prev)
+            cp $FF
+            jr z,.first
+            ld (world_adv),a
+            pop af
+            push af
+            push hl
+            ld hl,world_adv
+            sub (hl)            ; rows since the previous line
+            pop hl
+            cp 5
+            jr c,.pitch
+            ld a,5              ; a paragraph gap keeps three clear rows
+.pitch:     add a,c
+            ld c,a
+.first:     pop af
+            ld (world_prev),a
+            ld a,c
+.store:     ld (de),a
+            inc de
+            push bc
+            ld bc,32
+            add hl,bc
+            pop bc
+            djnz .scan
+            ld a,28             ; first row = 1 + (28 - last) / 2
+            sub c
+            jr nc,.fits
+            xor a
+.fits:      srl a
+            inc a
+            ld c,a
+            ld hl,$3B00
+            ld b,31
+.shift:     ld a,(hl)
+            cp $FF
+            jr z,.next
+            add a,c
+            ld (hl),a
+.next:      inc hl
+            djnz .shift
             ret
 
 world_map:

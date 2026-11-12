@@ -21,7 +21,7 @@ STG_PROG    EQU 28          ; the program, staged (moved to 8000h at the end)
 N_BLOCKS    EQU 30          ; blocks checked (0..29)
 
 DMA         EQU $A800       ; record buffer (upper TPA)
-PROG_LEN    EQU $5927       ; HB.BIN: 8000h onwards (to D000h)
+PROG_LEN    EQU $5A0A       ; HB.BIN: 8000h onwards (to D000h)
 
             ORG $0100
 start:      ld sp,$A7F0
