@@ -1,0 +1,273 @@
+#!/usr/bin/env python3
+"""
+build_race.py - builds RACE3D.VZ (VZ300 3D racer, Stage 3) and test images.
+VIBED BY BPM 2026
+
+  python3 build_race.py          build the game  -> RACE3D.VZ
+  python3 build_race.py test     render test camera states in the emulator and
+                                 compare each frame byte-for-byte with ref3.py
+"""
+import os, sys, subprocess, json
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE); sys.path.insert(0, os.path.join(HERE, '..', 'tools'))
+import ref3 as R
+import craft
+from z80asm import Asm, vz_file
+
+EMU = os.path.join(HERE, '..', 'tools', 'vzemu')
+
+VARS = """CAM_I 2 CAM_F 1 CAM_LAT 2 CAM_TH 1 TK 2 HC 1 VX 2 VY 2 VZ 2 DYI 1 HZ 1 NSEC 1 DEPTHV 1
+TIDX 2 DANG 1 HBXV 1 OXV 1 OZV 1 HBYV 1 LZ 2 PSX 1 PSY 1 PSIGN 1 YTOP 1 NGATE 1
+PX0 1 PX1 1 PX2 1 PX3 1 PY0 1 PY1 1 PY2 1 PY3 1 ZNL 2 ZNR 2 CLIPPED 1 LZM 2 RW 1 SS 1 KK 1
+FARP 2 TCL 1 CPT 6 YMIN 1 YMAX 1 YR0 1 YR1 1 YA0 1 YA1 1 SUC 1 RLC 1 STOP 1 YCUR 1
+ETAG 1 EXA 1 EYA 1 EXB 1 EYB 1 EDY 1 ESIGN 1 ESLOPE 2 EX88 2 EY 1 PAR 1 SV 1 KV 1 KY 1
+RUNP 2 NRUN 1 SA 1 SB 1 RA 1 RB 1 TLV 1 TRV 1 KA 1 KB 1 L1V 1 R1V 1 RUNS0 2 CR_R 1 LBASE 2
+CLV 1 OLDCL 1 CR1 1 C0V 1 SPLIT 1 BAND 1 BACC 1 BGV 1 SKYTAB 2 crow 1 RX0 1 RX1 1 RY0 1 RY1 1
+RY 1 MLEFT 1 MRIGHT 1 FIELDS 2 LASTF 2 ELAPSED 1 READY 1 FSPLIT 1 DSPLIT 1 COPIED 1
+SPLITMODE 1 STEER 1 THROT 1 BRAKE 1 IDLE 2 AUTO 1 MPREV 1 SPEED 1 LATV 1 SPSV 2 LATCHV 1
+HUDBUF 16 RUNBUF 16 FRAMES 2 CRF 1 FLG 1 PKX 2 PKY 2 HALFON 1 HPREV 1 SKYD 1 HUDFG 1
+SKYDIRTY 1 HUDFORCE 1 TOPCHG 1 HUDPREV 16 FACC 1 FCNT 1 FAVG 1"""
+
+LAYOUT = dict(
+    LATCH=0x6800, KEYROW=0x68EF, KEYH=0x687F, VRAM=0x7000,
+    SQPAGE=0xB0, SIN64=0xB400, COS64=0xB500, PATTAB=0xB600, LMASK=0xB620, SKY0=0xB630, SKY1=0xB638,
+    GLYPHT=0xB640, GLYPHM=0xB648, FONT=0xB660, SKYIMG=0xFA00, EXPTP=0xB800, EXP88L=0xBA00, LOGL=0xC200,
+    TRK_H=0xD200, TRK_DY=0xD400, TRK_HBX=0xD600, TRK_HBY=0xD800, TRK_FL=0xDA00,
+    IM2TAB=0xDC00, SPRITES=0xA400, SPRTAB=0xB7A0,
+    XMIN=0xE000, XMAX=0xE100, TMIN=0xE200, TMAX=0xE300, ROWCL=0xE400, ROWLP=0xE500,
+    GATES=0xE600, BGROW=0xDE00, VARS=0xE700, SECS=0xE800, LISTS=0xEA00, BUFFER=0xF200, STACKTOP=0xE6FE,
+)
+CRAFTY = 52
+HALF_INIT = None
+VMAX = 110
+COPYT = 128 * 204 + 60
+DLY_COPY = max(1, ((56 + 64) * 226 - COPYT - 450) // 26)
+DLY_COPYP = DLY_COPY + (32 * 204 - 24) // 26
+DLY_NOCOPY = (64 * 226 - 60) // 26
+
+CRAFT = [
+    "......222222222222......",
+    "....2222222222222222....",
+    "...222222222222222222...",
+    "..22233322222222233322..",
+    "..22233322222222233322..",
+    "..22222222222222222222..",
+    "...222222111111222222...",
+    "....2222222222222222....",
+    ".......2222222222.......",
+]
+
+def sprites():
+    out = []
+    for sh in range(4):
+        for row in CRAFT:
+            px = ['.'] * sh + list(row) + ['.'] * (28 - sh - len(row))
+            for b in range(7):
+                mask = data = 0
+                for q in range(4):
+                    ch = px[b * 4 + q]; s = 6 - 2 * q
+                    if ch == '.': mask |= 3 << s
+                    else: data |= int(ch) << s
+                out += [mask, data]
+        out += [0, 0]           # pad set to 128 bytes
+    return out
+
+FONT = {
+ ' ': [0,0,0,0,0], '0': [7,5,5,5,7], '1': [2,6,2,2,7], '2': [7,1,7,4,7], '3': [7,1,3,1,7],
+ '4': [5,5,7,1,1], '5': [7,4,7,1,7], '6': [7,4,7,5,7], '7': [7,1,1,2,2], '8': [7,5,7,5,7],
+ '9': [7,5,7,1,7], 'A': [2,5,7,5,5], 'B': [6,5,6,5,6], 'C': [3,4,4,4,3], 'D': [6,5,5,5,6],
+ 'E': [7,4,6,4,7], 'F': [7,4,6,4,4], 'G': [3,4,5,5,3], 'H': [5,5,7,5,5], 'I': [7,2,2,2,7],
+ 'J': [1,1,1,5,2], 'K': [5,5,6,5,5], 'L': [4,4,4,4,7], 'M': [5,7,7,5,5], 'N': [6,5,5,5,5],
+ 'O': [2,5,5,5,2], 'P': [6,5,6,4,4], 'Q': [2,5,5,6,3], 'R': [6,5,6,5,5], 'S': [3,4,2,1,6],
+ 'T': [7,2,2,2,2], 'U': [5,5,5,5,7], 'V': [5,5,5,5,2], 'W': [5,5,7,7,5], 'X': [5,5,2,5,5],
+ 'Y': [5,5,2,2,2], 'Z': [7,1,2,4,7], ':': [0,2,0,2,0], '-': [0,0,7,0,0], '.': [0,0,0,0,2],
+ ',': [0,0,0,2,4], '/': [1,1,2,4,4], '!': [2,2,2,0,2],
+}
+
+def db(data, per=32):
+    return '\n'.join('        DB ' + ','.join(str(v & 255) for v in data[i:i + per]) for i in range(0, len(data), per))
+
+def equates():
+    lines = [f'{k:10s} EQU ${v:04X}' for k, v in LAYOUT.items()]
+    off = 0
+    toks = VARS.split()
+    for name, size in zip(toks[0::2], toks[1::2]):
+        lines.append(f'{name:10s} EQU VARS+{off}'); off += int(size)
+    assert off <= 256, off
+    lines += [f'NEARZ EQU {R.NEARZ}', f'CH EQU {R.CH}', f'HORIZ EQU {R.HORIZ}', f'DEPTH EQU {R.DEPTH}',
+              f'BIAS EQU {R.BIAS}', f'LOGFX EQU {R.LOGFX}', f'LOGFY EQU {R.LOGFY}',
+              f'C_RAIL EQU {R.LOGT[R.RAIL_E] + R.LOGFX + R.BIAS}',
+              f'C_SKIRT EQU {(R.LOGT[R.SKIRT_E] + R.LOGFY + R.BIAS) if R.SKIRT_ON else -4000}',
+              f'LOD1 EQU {R.LOD1}', f'LOD2 EQU {R.LOD2}',
+              f'HALFROW EQU {R.HALFROW}', f'TOPROW EQU {R.TOPROW}', f'HALF_INIT EQU {HALF_INIT if HALF_INIT is not None else (1 if R.HALF_ON else 0)}',
+              f'C_GH EQU {R.LOGT[R.GATEH_E] + R.LOGFY + R.BIAS}',
+              f'C_GW EQU {R.LOGT[R.GATEW_E] + R.LOGFX + R.BIAS}',
+              f'C_GT EQU {R.LOGT[R.GATET_E] + R.LOGFY + R.BIAS}',
+              f'SU_A EQU {R.SU_A}', f'SU_B EQU {R.SU_B}', f'RL_A EQU {R.RL_A}', f'RL_B EQU {R.RL_B}',
+              f'SK EQU {R.SK}', f'VOID EQU {R.VOID}', f'HAZE EQU {R.HAZE}',
+              f'CRAFTY EQU {CRAFTY}', f'VMAX EQU {VMAX}',
+              f'DLY_COPY EQU {DLY_COPY}', f'DLY_NOCOPY EQU {DLY_NOCOPY}', f'DLY_COPYP EQU {DLY_COPYP}', f'EXP88H EQU EXP88L+$400']
+    return '\n'.join(lines)
+
+def copy_routine():
+    L = ['copy_buffer:', '        ld (SPSV),sp']
+    for c in range(128):
+        if c == 32:
+            L += ['        jr cb_c32', 'copy_buffer16:', '        ld (SPSV),sp', '@cb_c32:']
+        src = LAYOUT['BUFFER'] + 16 * c; dst = LAYOUT['VRAM'] + 16 * c + 16
+        L += [f'        ld sp,${src:04X}', '        pop af', '        pop bc', '        pop de', '        pop hl',
+              '        exx', '        pop bc', '        pop de', '        pop hl', "        ex af,af'", '        pop af',
+              f'        ld sp,${dst:04X}', '        push af', "        ex af,af'", '        push hl', '        push de',
+              '        push bc', '        exx', '        push hl', '        push de', '        push bc', '        push af']
+    L += ['        ld sp,(SPSV)', '        ret']
+    return '\n'.join(L)
+
+def data_section(T):
+    lo, hi = R.sq_tables()
+    font = []
+    for code in range(32, 96): font += FONT.get(chr(code), [7, 5, 5, 5, 7])
+    glyph = []
+    for bits in range(8):
+        b = 0
+        for q in range(4):
+            on = q < 3 and (bits >> (2 - q)) & 1
+            b |= (1 if on else 2) << (6 - 2 * q)
+        glyph.append(b)
+    expl = [v & 255 for v in R.EXP88]; exph = [v >> 8 for v in R.EXP88]
+    logl = [v & 255 for v in R.LOGT]; logh = [v >> 8 for v in R.LOGT]
+    parts = [
+        ('SQPAGE*256', lo + hi), ('SIN64', R.SIN64), ('COS64', R.COS64),
+        ('PATTAB', R.PATE + R.PATO), ('LMASK', [0xFF, 0x3F, 0x0F, 0x03, 0xC0, 0xF0, 0xFC, 0xFF]),
+        ('SKY0', R.SKY_CSS0), ('SKY1', R.SKY_CSS1), ('GLYPHT', glyph), ('FONT', font),
+        ('GLYPHM', [sum(3 << (6 - 2 * q) for q in range(3) if (bits >> (2 - q)) & 1) for bits in range(8)]),
+        ('EXPTP', R.EXPT), ('EXP88L', expl + exph), ('LOGL', logl + logh),
+        ('TRK_H', T['H']), ('TRK_DY', T['DY']), ('TRK_HBX', T['HBX']), ('TRK_HBY', T['HBY']), ('TRK_FL', T['FL']),
+        ('IM2TAB', [0xDD] * 257), ('SPRITES', craft.sprite_bytes()),
+        ('SPRTAB', [b for i in range(20) for b in ((LAYOUT['SPRITES'] + 140 * i) & 255, (LAYOUT['SPRITES'] + 140 * i) >> 8)]),
+    ]
+    out = []
+    for org, data in parts:
+        out.append(f'        ORG {org}\n{db(data)}')
+    out.append('        ORG $DDDD\n        jp isr')
+    return '\n'.join(out)
+
+def source(test_state=None):
+    T = R.build_track()
+    eng = open(os.path.join(HERE, 'engine.asm')).read()
+    chk = '' if test_state else '        ld a,(LATCH)\n        rla\n        jr nc,$+3\n        ei'
+    if test_state:
+        st = test_state
+        startup = f'''        ld hl,{st['i']}
+        ld (CAM_I),hl
+        ld a,{st['f']}
+        ld (CAM_F),a
+        ld hl,{st['lat'] & 0xFFFF}
+        ld (CAM_LAT),hl
+        ld a,{st['theta'] & 255}
+        ld (CAM_TH),a
+        call render
+        call compose
+        call draw_gates
+        halt'''
+    else:
+        startup = '''        call cls_buf
+        ld hl,s_title
+        ld de,BUFFER+32*18+9
+        call text
+        ld hl,s_credit
+        ld de,BUFFER+32*26+7
+        call text
+        ld hl,s_keys1
+        ld de,BUFFER+32*40+2
+        call text
+        ld hl,s_keys2
+        ld de,BUFFER+32*48+2
+        call text
+        ld hl,BUFFER
+        ld de,VRAM
+        ld bc,2048
+        ldir
+        ld b,120
+.w:     ld a,(LATCH)
+        rla
+        jr nc,.w
+.w2:    ld a,(LATCH)
+        rla
+        jr c,.w2
+        djnz .w
+        ld a,IM2TAB/256
+        ld i,a
+        im 2
+        ei
+        jp main
+s_title:  DB "VZ RACER 3D",0
+s_credit: DB "VIBED BY BPM 2026",0
+s_keys1:  DB ", . STEER  SPACE GO  N BRAKE",0
+s_keys2:  DB "M SPLIT  H HALF ROWS  JOYSTICK",0'''
+    src = open(os.path.join(HERE, 'race.asm')).read()
+    src = src.replace('{EQUATES}', equates()).replace('{STARTUP}', startup)
+    src = src.replace('{ENGINE}', eng).replace('{COPY}', copy_routine())
+    src = src.replace('{FILL}', '\n'.join('        ld (de),a\n        inc e' for _ in range(32)))
+    src = src.replace('{DATA}', data_section(T))
+    import re
+    def _chk(m):
+        lab = m.group(1) or ''
+        return (lab + '\n' if lab else '') + chk
+    src = re.sub(r'^([A-Za-z_.][A-Za-z0-9_.]*:)?[ \t]*CHKEI[ \t]*$', _chk, src, flags=re.M)
+    return src, T
+
+def assemble(src, name):
+    asm = Asm()
+    org, data = asm.assemble(src, HERE)
+    code_end = asm.sym['FILL2'] + 66
+    assert code_end <= 0xA400, f'code overruns sprites: ${code_end:04X}'
+    assert org + len(data) <= 0xE000
+    vz = os.path.join(HERE, name)
+    open(vz, 'wb').write(vz_file(name.split('.')[0][:16], org, data))
+    return asm, org, data, vz
+
+def build_game():
+    src, T = source()
+    open(os.path.join(HERE, 'race_full.asm'), 'w').write(src)
+    asm, org, data, vz = assemble(src, 'RACE3D.VZ')
+    with open(os.path.join(HERE, 'race.lst'), 'w') as fh:
+        fh.write('\n'.join(asm.listing) + '\n\nSYMBOLS\n')
+        for k in sorted(asm.sym): fh.write(f'{k:24s} {asm.sym[k] & 0xFFFF:04X}\n')
+    print(f'RACE3D.VZ ${org:04X}-${org + len(data) - 1:04X} ({len(data)} bytes); code ends ${asm.sym["FILL2"] + 66:04X}')
+    return asm
+
+def run_test(states):
+    T = R.build_track()
+    ok = 0
+    for n, st in enumerate(states):
+        src, _ = source(st)
+        asm, org, data, vz = assemble(src, 'TEST.VZ')
+        mem = os.path.join(HERE, 'mem_test.bin')
+        out = subprocess.run([EMU, vz, '30000000', '--memdump', mem], capture_output=True, text=True,
+                             stdin=subprocess.DEVNULL).stdout
+        m = open(mem, 'rb').read()
+        got = list(m[LAYOUT['BUFFER']:LAYOUT['BUFFER'] + 2048])
+        fr, hz = R.render(T, st)
+        exp = R.compose(fr); R.draw_gates(exp, fr)
+        same = got == exp
+        ok += same
+        tline = [l for l in out.splitlines() if l.startswith('stopped')]
+        if not same:
+            diff = [i for i in range(2048) if got[i] != exp[i]]
+            print(f'state {n} {st}: MISMATCH {len(diff)} bytes, first at row {diff[0]//32} col {diff[0]%32}  {tline}')
+        else:
+            print(f'state {n}: match  {tline[0] if tline else out[-200:]}')
+    print(f'{ok}/{len(states)} frames identical')
+    return ok == len(states)
+
+if __name__ == '__main__':
+    if len(sys.argv) > 1 and sys.argv[1] == 'test':
+        import random
+        random.seed(3)
+        states = [dict(i=4, f=0, lat=0, theta=0), dict(i=40, f=128, lat=20, theta=2)]
+        for _ in range(int(sys.argv[2]) if len(sys.argv) > 2 else 10):
+            states.append(dict(i=random.randrange(512), f=random.randrange(256),
+                               lat=random.randrange(-56, 57), theta=random.randrange(-6, 7)))
+        run_test(states)
+    else:
+        build_game()
