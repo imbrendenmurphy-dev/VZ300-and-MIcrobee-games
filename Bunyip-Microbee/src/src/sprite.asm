@@ -165,6 +165,7 @@ proj_all:
         ld ix,ENT
         ld b,NENT
 .e      push bc
+        call vbpoll
         ld a,NENT
         sub b
         ld (cur_ent),a
@@ -175,45 +176,6 @@ proj_all:
         add ix,bc
         pop bc
         djnz .e
-        ; the zapper, nearest of all
-        ld a,(show_gun)
-        or a
-        jr z,.sort
-        ld (iy+V_Z),0
-        ld (iy+V_ENT),0FFh
-        ld a,(gun_fire)
-        or a
-        ld a,IMG_WEAP0
-        jr z,.g0
-        inc a
-.g0     ld (iy+V_IMG),a
-        ld (iy+V_S),0
-        ld a,(gun_bob)          ; sway 0..7 dots
-        ld e,a
-        ld d,0
-        ld hl,156
-        add hl,de
-        ld (iy+V_DX),l
-        ld (iy+V_DX+1),h
-        ld a,(gun_bob)
-        rra
-        and 3
-        ld e,a
-        ld hl,222
-        add hl,de
-        ld (iy+V_YB),l
-        ld (iy+V_YB+1),h
-        ld de,-WEAPON_H
-        add hl,de
-        ld (iy+V_YT),l
-        ld (iy+V_YT+1),h
-        ld (iy+V_H),WEAPON_H
-        ld a,(gun_ink)
-        ld (iy+V_INK),a
-        ld a,(WTAB+IMG_WEAP0*16)
-        ld (iy+V_W),a
-        ld hl,nvis
-        inc (hl)
 .sort   ld a,(nvis)             ; bubble sort of the order, far to near
         or a
         ret z
@@ -271,6 +233,21 @@ proj_one:
         ld a,(ix+E_ST)
         cp ST_GONE
         ret z
+        ld a,(ix+E_Y+1)         ; only where this frame's rays went
+        rrca
+        rrca
+        rrca
+        ld l,a
+        and 3
+        add a,high(STAMP)
+        ld h,a
+        ld a,l
+        and 0E0h
+        or (ix+E_X+1)
+        ld l,a
+        ld a,(M_st1+1)
+        cp (hl)
+        ret nz
         ld l,(ix+E_X)
         ld h,(ix+E_X+1)
         ld de,(px+1)
@@ -358,29 +335,20 @@ proj_one:
         add hl,de
         ld (iy+V_DX),l
         ld (iy+V_DX+1),h
-        ; height = yb * F / 64, at most 124
+        ; height = yb * F / 64, at most HCAP (very near sprites cost a lot)
         ld a,(pyb)
         ld e,(ix+E_F)
         call mul8
         ld a,h
         cp 1Fh
-        ld a,124
-        jr nc,.hc
+        ld a,HCAP
+        jr nc,.hd
         add hl,hl
         add hl,hl
         ld a,h
-.hc     ld b,a
-        ld a,(ix+E_ST)
-        cp ST_DIE
-        ld a,b
-        jr nz,.hd
-        ld e,(ix+E_TM)          ; dying: squash by timer/16
-        call mul8
-        add hl,hl
-        add hl,hl
-        add hl,hl
-        add hl,hl
-        ld a,h
+        cp HCAP
+        jr c,.hd
+        ld a,HCAP
 .hd     cp 4
         ret c                   ; too small to draw
         ld (iy+V_H),a
@@ -393,23 +361,36 @@ proj_one:
         ld a,(hl)
         ld (iy+V_S),a
         ld c,a
-        ld a,(ix+E_IMG)
+        ld a,(ix+E_ST)
+        cp ST_DIE
+        jr nz,.alive
+        ld a,(ix+E_TM)          ; dying: flashes, then a puff of smoke
+        cp PUFFT
+        jr nc,.alive
+        rrca
+        rrca
+        and 1
+        add a,IMG_PUFF_A
+        jr .f0
+.alive  ld a,(ix+E_IMG)
         bit 3,(ix+E_AN)         ; second frame every 8 fields
         jr z,.f0
-        ld b,a
-        ld a,(ix+E_TYPE)
-        cp T_ENEMY
-        ld a,b
-        jr c,.f0
-        cp IMG_WEAP0            ; items and shots have one frame
-        jr c,.f0
+        bit 3,(ix+E_FL)         ; F_ANIM
+        jr z,.f0
         inc a
 .f0     ld (iy+V_IMG),a
-        add a,a
-        add a,a
-        add a,a
-        add a,a
-        add a,c
+        ld l,a
+        ld h,0
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        ld a,l
+        or c
+        ld l,a
+        ld a,h
+        add a,high(WTAB)
+        ld h,a
         ld l,a
         ld h,high(WTAB)
         ld a,(hl)
@@ -472,8 +453,15 @@ proj_one:
         ld b,a
         ld a,(ix+E_ST)
         cp ST_PAIN
+        jr z,.iw
+        cp ST_DIE
         jr nz,.ik
-        ld b,CWHITE             ; hurt: flash white
+        ld a,(ix+E_TM)          ; dying: flicker white
+        cp PUFFT
+        jr c,.ik
+        and 2
+        jr z,.ik
+.iw     ld b,CWHITE             ; hurt: flash white
 .ik     ld a,(mono)
         or a
         ld a,b
@@ -565,6 +553,18 @@ rlist_ptr:
 ; draw_sprites: VIS in VORD order
 ; --------------------------------------------------------------------------
 draw_sprites:
+        call rlist_ptr          ; HL = list, A = count (0 after restore_page)
+        dec hl
+        ld (rl_head),hl
+        inc hl
+        ld e,a
+        ld d,0
+        add hl,de
+        add hl,de
+        add hl,de
+        add hl,de
+        add hl,de
+        ld (rl_ptr),hl
         xor a
         ld (nslot),a
         ld a,(page)             ; pool banks for this page
@@ -603,7 +603,7 @@ draw_sprites:
 ; draw_one: IY = VIS entry
 ; --------------------------------------------------------------------------
 draw_one:
-        ; directory entry: IMGDIR + (img * 16 + s) * 8
+        ; directory entry: SPRDIR + (img * 16 + s) * 8, in block 4
         ld a,(iy+V_IMG)
         ld l,a
         ld h,0
@@ -611,16 +611,21 @@ draw_one:
         add hl,hl
         add hl,hl
         add hl,hl
-        ld e,(iy+V_S)
-        ld d,0
+        ld a,(iy+V_S)
+        or l
+        ld l,a
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        ld de,SPRDIR
         add hl,de
-        add hl,hl
-        add hl,hl
-        add hl,hl
-        ld de,IMGDIR
-        add hl,de
-        push hl
-        pop ix                  ; IX = directory entry
+        ld a,BLK_PCG
+        call setblk
+        ld de,DCOPY
+        ld bc,8
+        ldir
+        call tabblk
+        ld ix,DCOPY             ; IX = directory entry
         ; left edge in half columns: (centre - w/2) >> 2
         ld l,(iy+V_DX)
         ld h,(iy+V_DX+1)
@@ -681,11 +686,11 @@ draw_one:
         ret c
         ret z
         call rowmap
-        ; ---- phase A: claim the cells (tileset mapped)
-        ld a,BLK_PCG
+        ; ---- every cell it covers where it is nearer than the wall: make
+        ;      the sprite's lines for it; if any of the sprite shows there,
+        ;      take the cell and lay them over (sprite block mapped)
+        ld a,(dblk)
         call setblk
-        xor a
-        ld (ncell),a
         ld a,(dy0)
         call div10
         ld (dr0),a
@@ -693,9 +698,24 @@ draw_one:
         dec a
         call div10
         ld (dr1),a
+        ; screen address of row dr0, column 0 of the hidden page
+        ld a,(dr0)
+        inc a
+        add a,a
+        ld l,a
+        ld h,high(ROW40)
+        ld e,(hl)
+        inc l
+        ld d,(hl)
+        ld a,(page)
+        or a
+        jr z,.pg
+        set 2,d
+.pg     ld (drow0),de
         xor a
         ld (dk),a
-.col    ld a,(dc0)
+.col    call vbpoll
+        ld a,(dc0)
         ld hl,dk
         add a,(hl)
         cp 40
@@ -719,52 +739,50 @@ draw_one:
 .rv     ld a,b
         or a
         jp z,.nextc
-        ld (dvis),a
+        ld (M_cvv+1),a          ; the visible halves
+        cpl
+        ld (M_cnvv+1),a
+        ; this sprite column: base + (k << colsize)
+        ld a,(dk)
+        ld l,a
+        ld h,0
+        ld a,(dcs)
+        ld b,a
+.sh     add hl,hl
+        djnz .sh
+        ld de,(dbase)
+        add hl,de
+        ld a,l
+        ld (M_cl1+1),a
+        ld (M_cl2+1),a
+        ld a,h
+        ld (cmp_hi),a
+        ld a,(dcx)
+        ld l,a
+        ld h,0
+        ld de,(drow0)
+        add hl,de
+        ld (caddr),hl
         ld a,(dr0)
         ld (dr),a
-.row    call claim
+.row    call cellsp
+        call nz,put_cell
         ld a,(dr)
         ld hl,dr1
         cp (hl)
         jr z,.nextc
         inc a
         ld (dr),a
+        ld hl,(caddr)
+        ld de,40
+        add hl,de
+        ld (caddr),hl
         jr .row
 .nextc  ld hl,dk
         inc (hl)
         ld a,(dbw)
         cp (hl)
         jp nz,.col
-        ld a,(ncell)
-        or a
-        jp z,tabblk
-        ; ---- phase B: compose (sprite block mapped)
-        ld a,(dblk)
-        call setblk
-        ld hl,CELLS
-        ld a,(ncell)
-        ld b,a
-.cb     push bc
-        push hl
-        call compose
-        pop hl
-        ld bc,4
-        add hl,bc
-        pop bc
-        djnz .cb
-        ; ---- phase C: upload the glyphs
-        ld hl,CELLS
-        ld a,(ncell)
-        ld b,a
-.cc     push bc
-        ld a,(hl)               ; slot
-        push hl
-        call upload_slot
-        pop hl
-        ld bc,4
-        add hl,bc
-        pop bc
-        djnz .cc
         ld a,X1C
         out (PORT_1C),a
         jp tabblk
@@ -820,43 +838,226 @@ rowmap:
 .done   ret
 
 ; --------------------------------------------------------------------------
-; claim: cell (dcx, dr) of the hidden page joins this sprite
+; cellsp: the sprite's lines in cell row dr of this column, into TMPM (NOT
+;   mask: 1 = background shows) and TMPD (ink).  Lines the sprite does not
+;   reach, and halves behind the wall, are left clear.
+;   -> NZ if any of the sprite shows in the cell
 ; --------------------------------------------------------------------------
-claim:
-        ld a,(ncell)
-        cp POOLN
-        ret nc
-        ; HL = cell address
-        ld a,(dr)
+cellsp: ld a,(dr)
+        add a,a
+        ld b,a
+        add a,a
+        add a,a
+        add a,b
+        ld b,a                  ; B = 10 r
+        ld a,(dy0)
+        cp b
+        jr nc,.a
+        ld a,b
+.a      ld e,a                  ; E = first line on screen
+        sub b
+        add a,low(TMPM)
+        ld c,a                  ; C = its line in the cell
+        ld a,b
+        add a,CELLH
+        ld b,a
+        ld a,(dy1)
+        cp b
+        jr c,.z
+        ld a,b
+.z      sub e                   ; lines
+        cp CELLH
+        jr z,.whole
+        push bc                 ; part of a cell: clear it first
+        ld hl,TMPM
+        ld b,CELLH
+.cl     ld (hl),0FFh
+        set 4,l
+        ld (hl),0
+        res 4,l
+        inc l
+        djnz .cl
+        pop bc
+.whole  ex af,af'               ; A' = lines
+        ld b,high(TMPM)         ; BC -> TMPM line
+        ld d,high(ROWMAP)       ; DE -> row map
+        ld a,(cmp_hi)
+        ld h,a                  ; H = the column's page
+        ld a,(M_cvv+1)
         inc a
+        jr nz,.part
+.f      ld a,(de)               ; both halves visible
+        inc e
+M_cl1:  or 0
         ld l,a
+        ld a,(hl)
+        ld (bc),a
+        inc l
+        ld a,(hl)
+        set 4,c
+        ld (bc),a
+        res 4,c
+        inc c
+        ex af,af'
+        dec a
+        jr z,.done
+        ex af,af'
+        jr .f
+.part   ld a,(de)               ; one half is behind the wall
+        inc e
+M_cl2:  or 0
+        ld l,a
+        ld a,(hl)
+M_cnvv: or 0                    ; the hidden half shows the background
+        ld (bc),a
+        inc l
+        ld a,(hl)
+M_cvv:  and 0
+        set 4,c
+        ld (bc),a
+        res 4,c
+        inc c
+        ex af,af'
+        dec a
+        jr z,.done
+        ex af,af'
+        jr .part
+.done   ld hl,TMPM              ; any NOT mask bit clear?
+        ld a,(hl)
+        rept CELLH-1
+        inc l
+        and (hl)
+        endm
+        inc a                   ; all FF: nothing (Z)
+        ret
+
+; --------------------------------------------------------------------------
+; put_cell: take cell (caddr) and lay TMPM/TMPD over it; the cell takes the
+;   sprite's ink if the sprite is most of what is lit in it; to PCG RAM
+; --------------------------------------------------------------------------
+put_cell:
+        ld hl,TMPM              ; covers the whole cell? (all NOT masks 0)
+        ld a,(hl)
+        rept CELLH-1
+        inc l
+        or (hl)
+        endm
+        ld (pc_full),a
+        call claim
+        ret c                   ; no glyphs left this frame
+        ld a,(cmp_slot)
+        call slot_ptr
+        ld (cmp_sh),de
+        ld a,(pc_full)
+        or a
+        jr nz,.mix
+        ld hl,TMPD              ; opaque: the glyph is the sprite's lines
+        ld bc,CELLH
+        ldir
+        ld hl,TMPD
+        xor a
+        rept CELLH
+        or (hl)
+        inc l
+        endm
+        jp z,.up                ; all black: the cell keeps its ink
+        jp .ink
+.mix    ld hl,TMPM
+        ld b,CELLH
+.m      ld a,(de)
+        and (hl)                ; the background where the mask is clear
+        set 4,l
+        or (hl)                 ; and the sprite's ink
+        res 4,l
+        ld (de),a
+        inc l
+        inc e
+        djnz .m
+        ld h,high(POPC)         ; sprite ink pixels
+        ld de,TMPD
+        ld c,0
+        rept CELLH
+        ld a,(de)
+        ld l,a
+        ld a,c
+        add a,(hl)
+        ld c,a
+        inc e
+        endm
+        or a
+        jp z,.up                ; none: the cell keeps its ink
+        add a,a
+        ld b,a
+        ld de,(cmp_sh)          ; lit pixels in the cell
+        ld c,0
+        rept CELLH
+        ld a,(de)
+        ld l,a
+        ld a,c
+        add a,(hl)
+        ld c,a
+        inc e
+        endm
+        ld a,c
+        ld c,b
+        cp c
+        jr z,.ink
+        jr nc,.up               ; lit > sprite pixels * 2: keep the old ink
+.ink    ld hl,(caddr)
+        set 3,h
+        ld a,40h
+        out (PORT_08),a
+        ld a,(hl)
+        and 0F0h
+        or (iy+V_INK)
+        ld (hl),a
+        xor a
+        out (PORT_08),a
+.up     ; the glyph to PCG RAM: pool bank, or bank 15 for slots 128+
+        ld a,(cmp_slot)
+        cp 128
+        jr nc,.u15
+        ld e,a
+        ld a,(poolbk)
+        jr .ub
+.u15    sub 128
+        ld e,a
+        ld a,(pool15)
+        add a,e
+        ld e,a
+        ld a,15
+.ub     or X1C
+        out (PORT_1C),a
+        ld l,e
         ld h,0
         add hl,hl
         add hl,hl
         add hl,hl
-        ld d,h
-        ld e,l
         add hl,hl
-        add hl,hl
-        add hl,de               ; (row+1) * 40
-        ld a,(dcx)
-        ld e,a
-        ld d,0
+        ld de,PCGWIN
         add hl,de
-        ld a,(page)
-        or a
-        jr z,.pg
-        ld de,400h
-        add hl,de
-.pg     ld de,VRAM
-        add hl,de
-        ld (caddr),hl
+        ex de,hl
+        ld hl,(cmp_sh)
+        rept CELLH
+        ldi
+        endm
+        ret
+
+; --------------------------------------------------------------------------
+; claim: cell (caddr) of the hidden page joins this sprite.  A cell not yet
+;   taken this frame gets a private glyph: unless the sprite covers it all,
+;   a copy of what it showed, read back from PCG RAM; its old code, bank and
+;   ink go on the page's restore list.  -> cmp_slot, or CY if the pool is
+;   used up.
+; --------------------------------------------------------------------------
+claim:
+        ld hl,(caddr)
+        ld c,(hl)               ; C = code
         ld a,X1C_ATTR
         out (PORT_1C),a
         ld b,(hl)               ; B = bank
         ld a,X1C
         out (PORT_1C),a
-        ld c,(hl)               ; C = code
         ld a,(poolbk)
         cp b
         jr nz,.n15
@@ -875,283 +1076,108 @@ claim:
         jp .have
 .new    ld a,(nslot)            ; a free glyph in the pool?
         cp POOLN
-        ret nc
+        ccf
+        ret c
+        ld (cslot),a
         inc a
         ld (nslot),a
-        dec a
-        ld (cslot),a
-        ; restore entry: address, code, bank, colour
-        push bc
-        call rlist_ptr          ; HL = list, A = count
-        dec hl
-        inc (hl)
-        inc hl
-        ld e,a
-        ld d,0
-        push hl
-        ld h,d
-        ld l,e
-        add hl,hl
-        add hl,hl
-        add hl,de
-        pop de
-        add hl,de               ; entry = list + 5 * count
-        ld de,(caddr)
-        ld (hl),e
-        inc hl
-        ld (hl),d
-        inc hl
-        pop bc
-        ld (hl),c
-        inc hl
-        ld (hl),b
-        inc hl
-        ld a,d
-        add a,8
-        ld d,a
-        ld a,40h
-        out (PORT_08),a
-        ld a,(de)
-        ld (hl),a
-        xor a
-        out (PORT_08),a
-        ld a,(cslot)
-        ; copy the old glyph from the tileset: bank * 1280 + (code-80h) * 10
-        push af
-        ld a,c
-        sub 80h
-        ld l,a
-        ld h,0
-        add hl,hl
-        ld d,h
-        ld e,l
-        add hl,hl
-        add hl,hl
-        add hl,de               ; * 10
-        ld a,b
-        and 15
-        ld d,a
-        add a,a
-        add a,a
-        add a,d
-        add a,h
-        ld h,a
-        pop af
-        call slot_ptr           ; DE = shadow glyph
-        ld bc,CELLH
-        ldir
-        ; point the cell at it
-        ld a,(cslot)
-        call slot_code          ; B = bank, C = code
-        ld hl,(caddr)
-        ld (hl),c
-        ld a,X1C_ATTR
-        out (PORT_1C),a
-        ld (hl),b
-        ld a,X1C
-        out (PORT_1C),a
-        ld a,(cslot)
-        jr .ink
-.have   ld (cslot),a
-.ink    ; the cell takes the sprite's ink and keeps its paper
-        ld hl,(caddr)
+        ; restore entry: address, code, bank, ink
+        ld de,(rl_ptr)
+        ld a,l
+        ld (de),a
+        inc de
         ld a,h
-        add a,8
-        ld h,a
+        ld (de),a
+        inc de
+        ld a,c
+        ld (de),a
+        inc de
+        ld a,b
+        ld (de),a
+        inc de
+        set 3,h
         ld a,40h
         out (PORT_08),a
         ld a,(hl)
-        and 0F0h
-        or (iy+V_INK)
-        ld (hl),a
+        ld (de),a
         xor a
         out (PORT_08),a
-        ; add to the cell list: slot, column, row, visible halves
-        ld a,(ncell)
-        ld l,a
-        inc a
-        ld (ncell),a
-        ld h,0
-        add hl,hl
-        add hl,hl
-        ld de,CELLS
-        add hl,de
-        ld a,(cslot)
-        ld (hl),a
-        inc hl
-        ld a,(dk)
-        ld (hl),a
-        inc hl
-        ld a,(dr)
-        ld (hl),a
-        inc hl
-        ld a,(dvis)
-        ld (hl),a
-        ret
-
-; slot_ptr: A = slot -> DE = its shadow glyph (keeps HL, BC)
-slot_ptr:
+        res 3,h
+        inc de
+        ld (rl_ptr),de
         push hl
-        ld l,a
-        ld h,0
-        add hl,hl
-        add hl,hl
-        add hl,hl
-        add hl,hl
-        ld de,SHADOW
-        add hl,de
-        ex de,hl
-        pop hl
-        ret
-
-; slot_code: A = slot -> B = PCG bank, C = code
-slot_code:
-        cp 128
-        jr nc,.h
-        or 80h
-        ld c,a
-        ld a,(poolbk)
-        ld b,a
-        ret
-.h      sub 128
-        ld c,a
-        ld a,(pool15)
-        add a,c
-        or 80h
-        ld c,a
-        ld b,15
-        ret
-
-; upload_slot: A = slot -> its shadow glyph into PCG RAM
-upload_slot:
-        push af
-        call slot_ptr
-        pop af
-        call slot_code
+        ld hl,(rl_head)
+        inc (hl)
+        ld a,(pc_full)
+        or a
+        jr z,.nc                ; covered: nothing to copy
+        ; copy the old glyph from PCG RAM: bank B, (code - 80h) * 16
         ld a,b
+        and 15
         or X1C
         out (PORT_1C),a
         ld a,c
-        sub 80h
+        and 7Fh
         ld l,a
         ld h,0
         add hl,hl
         add hl,hl
         add hl,hl
         add hl,hl
-        ld bc,PCGWIN
-        add hl,bc
-        ex de,hl
-        ld bc,CELLH
-        ldir
+        ld de,PCGWIN
+        add hl,de
+        ld a,(cslot)
+        call slot_ptr           ; DE = private glyph
+        rept CELLH
+        ldi
+        endm
+        ld a,X1C
+        out (PORT_1C),a
+.nc     pop hl
+        ; point the cell at it
+        ld a,(cslot)
+        cp 128
+        jr nc,.h
+        or 80h
+        ld (hl),a
+        ld a,(poolbk)
+        jr .pb
+.h      sub 128
+        ld e,a
+        ld a,(pool15)
+        add a,e
+        or 80h
+        ld (hl),a
+        ld a,15
+.pb     ld e,a
+        ld a,X1C_ATTR
+        out (PORT_1C),a
+        ld (hl),e
+        ld a,X1C
+        out (PORT_1C),a
+        ld a,(cslot)
+.have   ld (cmp_slot),a
+        or a                    ; (no carry)
         ret
 
-; --------------------------------------------------------------------------
-; compose: HL -> cell list entry (slot, column, row, visible halves)
-;   lays the sprite's rows over the shadow glyph
-; --------------------------------------------------------------------------
-compose:
-        ld a,(hl)
-        call slot_ptr           ; DE = shadow glyph
-        ld (cmp_sh),de
-        inc hl
-        ld a,(hl)               ; column k: base + (k << colsize)
-        inc hl
-        ld c,(hl)               ; row r
-        inc hl
-        ld b,(hl)               ; visible halves
-        push bc
-        ld l,a
-        ld h,0
-        ld a,(dcs)
-        ld b,a
-.sh     add hl,hl
-        djnz .sh
-        ld de,(dbase)
-        add hl,de
-        ld a,l
-        ld (cmp_or1+1),a
-        ld (cmp_or2+1),a
-        ld a,h
-        ld (cmp_hi),a
-        pop bc
-        ld a,b
-        ld (cmp_vv+1),a
-        cpl
-        ld (cmp_nvv+1),a
-        ld a,c                  ; lines max(y0, 10r) .. min(y1, 10r + 10)
-        add a,a
-        ld b,a
-        add a,a
-        add a,a
-        add a,b
-        ld b,a                  ; B = 10 r
-        ld a,(dy0)
-        cp b
-        jr nc,.a
-        ld a,b
-.a      ld c,a                  ; C = first line on screen
-        sub b
-        ld hl,(cmp_sh)
-        add a,l
-        ld l,a                  ; HL -> that line in the glyph
-        ld a,b
-        add a,CELLH
-        ld b,a
-        ld a,(dy1)
-        cp b
-        jr c,.z
-        ld a,b
-.z      sub c
-        ret z
-        ret c
-        ex af,af'               ; A' = lines
-        ld b,h                  ; BC = glyph line pointer
-        ld a,l
-        ld e,c
-        ld c,a
-        ld d,high(ROWMAP)       ; DE = row map
-        ld a,(cmp_hi)
-        ld h,a                  ; H = the column's page
-        ld a,(cmp_vv+1)
-        inc a
-        jr nz,.part
-.f      ld a,(de)               ; both halves visible
-        inc e
-cmp_or1: or 0
-        ld l,a
-        ld a,(bc)
-        and (hl)                ; keep the background outside the mask
-        inc l
-        or (hl)                 ; and draw the sprite's ink
-        ld (bc),a
-        inc c
-        ex af,af'
-        dec a
-        ret z
-        ex af,af'
-        jr .f
-.part   ld a,(de)               ; one half is behind the wall
-        inc e
-cmp_or2: or 0
-        ld l,a
-        ld a,(hl)
-cmp_nvv: or 0                   ; the hidden half keeps its background
-        ld (.t+1),a
-        inc l
-        ld a,(hl)
-cmp_vv: and 0
-        ld (.u+1),a
-        ld a,(bc)
-.t      and 0
-.u      or 0
-        ld (bc),a
-        inc c
-        ex af,af'
-        dec a
-        ret z
-        ex af,af'
-        jr .part
+; slot_ptr: A = slot -> DE = its private glyph (keeps HL, BC)
+slot_ptr:
+        ld e,a
+        rrca
+        rrca
+        rrca
+        rrca
+        ld d,a
+        and 0F0h
+        ld e,a
+        ld a,d
+        and 0Fh
+        add a,high(SHADOW)
+        ld d,a
+        ret
+
 cmp_hi: db 0
 cmp_sh: dw 0
-cmp_hi: db 0
+cmp_ad: dw 0
+cmp_slot: db 0
+pc_full: db 0

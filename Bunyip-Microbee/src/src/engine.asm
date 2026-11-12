@@ -115,6 +115,12 @@ fillv:  ld (hl),a
 ; frame_setup: the things every ray of this frame shares
 ; --------------------------------------------------------------------------
 frame_setup:
+        ld a,(M_st1+1)          ; a new stamp for the cells the rays cross
+        inc a
+        jr nz,.st
+        inc a
+.st     ld (M_st1+1),a
+        ld (M_st2+1),a
         ld a,(py+2)
         ld l,a
         ld h,0
@@ -303,6 +309,9 @@ M_ddx:  ld bc,0
         add hl,bc
         exx
         add hl,de
+        set 3,h                 ; STAMP = MAP + 800h: crossed this frame
+M_st1:  ld (hl),0
+        res 3,h
         ld a,(hl)
         exx
         or a
@@ -325,6 +334,9 @@ M_ddy:  ld bc,0
         ex de,hl
         exx
         add hl,bc
+        set 3,h
+M_st2:  ld (hl),0
+        res 3,h
         ld a,(hl)
         exx
         or a

@@ -20,7 +20,7 @@ E_CD    equ 14          ; attack cooldown (creatures) / x speed (shots)
 E_VY    equ 15          ; y speed (shots)
 E_VX    equ 14
 ESIZE   equ 16
-NENT    equ 48
+NENT    equ 64
 
 ; entity types
 T_GKEY  equ 1
@@ -29,10 +29,12 @@ T_RKEY  equ 3
 T_PIE   equ 4
 T_CHG   equ 5
 T_OPAL  equ 6
+T_POWER equ 7           ; the Southern Cross: double zaps for a while
 T_ENEMY equ 8
 T_BOSS  equ 10
 T_ROCK  equ 12
 T_FIRE  equ 13
+T_PROP  equ 14          ; scenery (see F_SOLID, F_BREAK, F_HURT, F_BOOM)
 
 ; states
 ST_IDLE equ 0
@@ -45,12 +47,25 @@ ST_GONE equ 4
 F_FLY   equ 1
 F_BOSS  equ 2
 F_LOS   equ 4           ; last line-of-sight check saw the player
+F_ANIM  equ 8           ; two frames (image, image + 1)
+F_SOLID equ 16          ; scenery that blocks the way
+F_BREAK equ 32          ; scenery the zapper can smash
+F_HURT  equ 64          ; scenery that hurts when you stand at it
+F_BOOM  equ 128         ; scenery that explodes when smashed
+
+PUFFT   equ 12          ; the last fields of dying are a puff of smoke
+HCAP    equ 90          ; sprites are drawn at most this many scanlines tall
+POWERT  equ 1500        ; fields of double zaps from the Southern Cross
 
 ; creature kinds
 KD_REDBACK equ 0
 KD_FLYFOX equ 1
 KD_YOWIE equ 2
 KD_BUNYIP equ 3
+KD_TOAD equ 4
+KD_DROPBEAR equ 5
+KD_MINMIN equ 6
+KD_CROC equ 7
 
 ; map cell types
 C_DOOR  equ 5

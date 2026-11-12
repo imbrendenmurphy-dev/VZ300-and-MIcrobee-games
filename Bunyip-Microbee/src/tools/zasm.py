@@ -417,7 +417,7 @@ class Assembler:
         if label:
             # M_ labels mark self-modified operands inside a routine: they are
             # global names but do not start a new scope for .local labels
-            if not label.startswith('.') and not label.startswith('M_'):
+            if not label.startswith('.') and not label.startswith('M_') and not label.startswith('P_'):
                 self.lastglobal = label
             self.define(label, self.pc, pass_no)
         if not mn: return

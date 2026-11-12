@@ -69,5 +69,22 @@ def main():
     print('BEECAST2.DS8: %d of 196 blocks used, %d files' % (used, len(files)))
 
 
+def main_bunyip():
+    B = ROOT / 'build'
+    sysdisk = (ROOT / 'resources' / 'boot_tracks.bin').read_bytes()
+    files = {}
+    for n in ('BUNYIP.COM', 'BN.BIN', 'TABLES.BIN', 'ZONES.BIN', 'ART.BIN', 'PCG.BIN'):
+        files[n] = (B / n).read_bytes()
+    files['CCP.SYS'] = (ROOT / 'resources' / 'CCP.SYS').read_bytes()
+    txt = (ROOT / 'docs' / 'BUNYIP_README.TXT').read_text().replace('\r\n', '\n').replace('\n', '\r\n')
+    files['README.TXT'] = txt.encode('ascii') + b'\x1a'
+    used = build_disk(sysdisk, files, B / 'BUNYIP.DS8')
+    print('BUNYIP.DS8: %d of 196 blocks used, %d files' % (used, len(files)))
+
+
 if __name__ == '__main__':
-    main()
+    import sys
+    if sys.argv[1:] == ['bunyip']:
+        main_bunyip()
+    else:
+        main()

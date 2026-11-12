@@ -121,6 +121,7 @@ T.space('SHP', 256, 256)
 # the zone being played (copied in from the zone data) and the cells seen
 T.space('MAP', 1024, 256)
 T.space('SEEN', 1024)
+T.space('STAMP', 1024)        # MAP + 800h: the frame each cell was last crossed by a ray
 
 # sprite projection
 # |cos| of every angle, 0..255 (sign from the quadrant)
@@ -238,6 +239,20 @@ for i, (ch, rows) in enumerate(FONT.items()):
 for ch, rows in ICONS.items():
     fmap[ord(ch) - 32] = 0x80 + len(font_bank)
     font_bank.append([int(r.replace('#', '1').replace('.', '0'), 2) for r in rows])
+# the zapper: 4 x 3 cells per frame, drawn over the floor at the bottom
+# of the view (black around it), from the art's 32 x 24 picture
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import art as _art
+GUN_CODE = 0x80 + len(font_bank)
+for fr in range(2):
+    c = _art.weapon(fr)
+    for r in range(3):
+        for cx in range(4):
+            g = []
+            for y in range(CH):
+                sy = min(23, (r * CH + y) * 24 // (3 * CH))
+                g.append(sum((1 if c[sy][cx * 8 + b] == _art.I else 0) << (7 - b) for b in range(8)))
+            font_bank.append(g)
 assert len(font_bank) <= 128
 banks.append(font_bank)
 FONT_BANK = len(banks) - 1          # 12
@@ -262,6 +277,7 @@ for k, v in sorted(T.sym.items(), key=lambda kv: kv[1]):
     S.append('%-12s equ %05Xh' % (k, v))
 S += ['FONT_BANK    equ %d' % FONT_BANK, 'CELLH        equ %d' % CH, 'NOWALL       equ %d' % HALF,
       'NWALLBANKS   equ 12']
+S.append('GUN_CODE     equ %d' % GUN_CODE)
 S.append('FMAP:')
 for i in range(0, 96, 16):
     S.append('        db ' + ','.join('%d' % v for v in fmap[i:i + 16]))
