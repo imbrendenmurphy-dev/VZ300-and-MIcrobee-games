@@ -4,9 +4,9 @@ Real-time solid-polygon 3D racing on the Dick Smith VZ300: an anti-gravity hover
 Target: VZ300 + BennVenn SD loader + 128K RAM. Mode 1 (128x64, 4 colours).
 VIBED BY BPM 2026
 
-**Status: v0.4 engine demo** (Stage 4 of the brief). One track, gates, an animated craft and an autopilot. Gameplay (boost pads, energy shield, rivals) comes next.
+**Status: v0.5 engine demo** (Stage 4 of the brief). One track, gates, an animated craft and an autopilot. Gameplay (boost pads, energy shield, rivals) comes next.
 
-![v0.4 preview](screenshots/v04_preview.gif)
+![v0.5 preview](screenshots/v05_preview.gif)
 
 ## Loading
 
@@ -21,11 +21,11 @@ Copy `release/RACE3D.VZ` to the SD card and run it from the loader. The title sc
 | `,` / `.` | Steer left / right |
 | SPACE | Accelerate |
 | N | Brake |
-| M | Palette split on/off (sky in colour set 1, track in colour set 0). It looks great but costs about a field per frame |
+| M | HUD strip in colour set 1 on/off. The VZ has no timer, so the split halves the frame rate; it's shown for free on the title card instead |
 | H | Half-rate rows on/off (on by default) |
 | Joystick 1 | Steer, fire to accelerate |
 
-The HUD at the top shows speed, average fields per frame (`4.3F` = 50 / 4.3 ≈ 11.6 fps), `H` when half-rate rows are on, and `AUTO` while the autopilot drives.
+The HUD floats in an open blue sky above a panning mountain skyline. It shows speed, average fields per frame (`4.4F` = 50 / 4.4 ≈ 11.4 fps), `H` when half-rate rows are on, and `AUTOPILOT` while the demo drives. In attract mode the title card (with the colour-set split) returns every ~200 frames.
 
 ## How it works
 
@@ -35,12 +35,13 @@ The HUD at the top shows speed, average fields per frame (`4.3F` = 50 / 4.3 ≈ 
 - The static top sky and the HUD are only redrawn when they change.
 - Every frame the Z80 renderer draws is checked byte for byte against a Python reference (`src/race/ref3.py`).
 
-## Measured speed (v0.4, cycle-exact emulator, 40 s autopilot)
+## Measured speed (v0.5, cycle-exact emulator, 40 s autopilot)
 
 | Mode | Fields per frame | fps |
 |---|---|---|
-| Half-rate rows on (default) | 4.29 | 11.7 |
-| Half-rate rows off | 4.78 | 10.5 |
+| Half-rate rows on (default) | 4.40 | 11.4 |
+| Half-rate rows off | 4.95 | 10.1 |
+| With M (HUD split) | 9.02 | 5.5 |
 
 The full development history and the measurements are in `docs/STAGE1.md` to `docs/STAGE4.md`.
 

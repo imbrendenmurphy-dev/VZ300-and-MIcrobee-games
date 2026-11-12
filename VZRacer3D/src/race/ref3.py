@@ -54,6 +54,31 @@ PATE = [pat_byte(c, 0) for c in range(16)]
 PATO = [pat_byte(c, 1) for c in range(16)]
 SKY_CSS0 = [2, 10, 3, 7, 1]     # sunset in colour set 0: blue, blue/red, red, red/yellow, yellow
 SKY_CSS1 = [1, 9, 2, 10, 3]     # colour set 1: cyan, cyan/magenta, magenta, magenta/orange, orange
+SKY_A = [2, 2, 2, 2, 2]          # open blue sky (in game)
+SKY_H = [1, 1, 2, 2, 2]          # HUD strip in colour set 1 (cyan), blue sky below
+import math as _m
+RIDGE = [max(0, min(7, int(round(3.2 + 1.8 * _m.sin(u * 2 * _m.pi / 256 * 3 + 1) + 1.6 * _m.sin(u * 2 * _m.pi / 256 * 7 + 2)
+                                  + 1.2 * _m.sin(u * 2 * _m.pi / 256 * 13))))) for u in range(256)]
+SKYL_H = 7
+
+def sky_pix(u, h):
+    r = RIDGE[u & 255]
+    if r >= h + 2: return 1
+    if r >= h: return 1 if (u + h) & 1 else 2
+    return 2
+
+def skyline(img, fr):
+    """Distant mountains on the open sky, panning with heading; only on byte columns clear of track."""
+    s = (fr.hc * 2) & 255; split = fr.split
+    for y in range(max(TOPROW, split - SKYL_H), split):
+        h = split - y; cl, cr = fr.CL[y], fr.CR[y]
+        if cl == 255: js = list(range(32))
+        else:
+            nl = 0 if cl < 64 else min(32, (cl - 64) >> 2)
+            st = 0 if cr < 64 else ((cr - 64) >> 2) + 1
+            js = list(range(nl)) + list(range(st, 32))
+        for j in js:
+            img[y * 32 + j] = sum(sky_pix(s + 4 * j + p, h) << (6 - 2 * p) for p in range(4))
 SU_A, SU_B, RL_A, RL_B, SK = 0, 4, 1, 7, 5
 VOID, HAZE = 2, 8
 
@@ -163,8 +188,10 @@ class Frame:
         self.XMIN = [255] * 256; self.XMAX = [0] * 256
         self.TMIN = [0] * 256; self.TMAX = [0] * 256
 
-def render(T, st, sky=SKY_CSS0):
+def render(T, st, sky=SKY_A, sky_line=True):
     fr = Frame()
+    fr.sky_line = sky_line
+    fr.hc = (T['H'][st['i'] % N] + st['theta']) & 255
     hz = HORIZ + ((T['DY'][st['i'] % N] * 7) >> 4)
     secs = transform(T, st)
     ytop = 200
@@ -314,6 +341,7 @@ def sky_top(sky):
 
 def finalise(fr, hz, sky):
     split = max(0, min(63, hz))
+    fr.split = split
     fr.sky = sky
     for r in range(TOPROW, 64):
         par = 16 if r & 1 else 0
@@ -350,6 +378,7 @@ def compose(fr):
                 c, P = pix[j * 4 + q]
                 b |= P[c] & (0xC0 >> (2 * q))
             img.append(b)
+    if fr.sky_line: skyline(img, fr)
     return img
 
 def fill_rect(img, x0, x1, y0, y1, colour=3):

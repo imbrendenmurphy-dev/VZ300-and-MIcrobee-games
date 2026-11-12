@@ -911,7 +911,7 @@ stripfill:
         jr z,.done
         inc a
         ld (YCUR),a
-        jr .row
+        jp .row
 .done:  ld a,(STOP)
         ret
 .mm:    ld a,(hl)               ; B = min, C = max
@@ -2047,7 +2047,7 @@ c2end:  ld a,e
         ld (crow),a
         cp 64
         jp nz,c2row
-        ret
+        jp draw_skyline
 
 ; ---------------------------------------------------------------------
 ; gates: solid colour-3 rectangles OR-ed into BUFFER (far to near)
@@ -2249,7 +2249,7 @@ rect:   ld a,(RX1)
         ret z
         inc a
         ld (RY),a
-        jr .row
+        jp .row
 
 ; ---------------------------------------------------------------------
 ; MAKE_SKY_TOP: static sky image for rows 0..TOPROW-1 (bands 0 and 1)
@@ -2281,3 +2281,125 @@ make_sky_top:
         ld a,1
         ld (SKYDIRTY),a
         ret
+
+; ---------------------------------------------------------------------
+; DRAW_SKYLINE: distant mountains just above the horizon, panning with
+; the heading; written only on byte columns clear of track
+; ---------------------------------------------------------------------
+draw_skyline:
+        ld a,(SKYLN)
+        or a
+        ret z
+        ld a,(SPLIT)
+        ld (.sp+1),a
+        sub SKYL_H
+        jr c,.y0
+        cp TOPROW
+        jr nc,.y1
+.y0:    ld a,TOPROW
+.y1:    ld (SKY_Y),a
+        ld a,(HC)               ; s = 2*heading = 4q + 2sh
+        add a,a
+        ld c,a
+        rrca
+        rrca
+        and $3F
+        ld (.q+1),a
+        ld a,c
+        and 2                   ; B = 2sh
+        ld b,a
+        add a,a
+        add a,a
+        add a,a
+        sub b                   ; 14*sh: pointer-table offset of this shift
+        ld (.sb+1),a
+.row:   ld a,(SKY_Y)
+.sp:    cp 0
+        ret nc
+        ld (.cy+1),a
+        ld e,a
+        ld a,(.sp+1)
+        sub e                   ; h = split - y
+        dec a
+        add a,a
+.sb:    add a,0
+        add a,SKYPTR & 255
+        ld l,a
+        ld h,SKYPTR/256
+        ld a,(hl)
+        inc l
+        ld h,(hl)
+        ld l,a
+.q:     ld bc,0
+        add hl,bc               ; HL = source bytes
+        ld a,e                  ; DE = BUFFER + y*32
+        rrca
+        rrca
+        rrca
+        ld e,a
+        and $1F
+        add a,BUFFER/256
+        ld d,a
+        ld a,e
+        and $E0
+        ld e,a
+.cy:    ld a,0
+        push hl
+        ld l,a
+        ld h,ROWCL/256
+        ld b,(hl)               ; CL
+        add a,64
+        ld l,a
+        ld c,(hl)               ; CR
+        pop hl
+        ld a,b
+        inc a
+        jr nz,.cov
+        ld bc,32                ; no track on this row
+        ldir
+        jr .nx
+.cov:   ld a,b                  ; left of the track: min(32, (CL-64)/4) bytes
+        sub 64
+        jr c,.nol
+        rrca
+        rrca
+        and $3F
+        cp 33
+        jr c,.lok
+        ld a,32
+.lok:   or a
+        jr z,.nol
+        push bc
+        push hl
+        push de
+        ld c,a
+        ld b,0
+        ldir
+        pop de
+        pop hl
+        pop bc
+.nol:   ld a,c                  ; right of the track: from (CR-64)/4 + 1
+        sub 64
+        jr nc,.r1
+        xor a
+        jr .r2
+.r1:    rrca
+        rrca
+        and $3F
+        inc a
+.r2:    cp 32
+        jr nc,.nx
+        ld c,a
+        ld b,0
+        add hl,bc
+        ex de,hl
+        add hl,bc
+        ex de,hl
+        ld a,32
+        sub c
+        ld c,a
+        ldir
+.nx:    ld hl,SKY_Y
+        inc (hl)
+        jp .row
+

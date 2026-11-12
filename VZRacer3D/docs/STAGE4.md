@@ -117,3 +117,29 @@ Both modes are still byte-for-byte identical to the Python reference renderer (1
 At 4.3 fields we are just inside the brief's 12–20 fps range on most frames (frames alternate between 4 and 5 fields). The frame rate dips to about 5 fields when a gate is close and draws over the sky. The profile is flat again: no routine takes more than about 7% of the frame.
 
 **Next:** gameplay (boost pads, energy shield, rivals), keeping it forgiving. Further speed work continues alongside it.
+
+---
+
+# Stage 4 (part 4): v0.5 — open sky
+
+## Look
+
+- **Open blue sky** from the top of the screen to the horizon, so the HUD floats in the sky the way it does in WEC Le Mans.
+- **Distant mountains** on the horizon, panning as the craft turns. They are drawn only on sky that is clear of track, so crests still hide them.
+- **Two-line HUD:** `SPEED nnn` with the average fields per frame (and `H`) on the first line, and `AUTOPILOT` on the second while the demo drives. The second line will carry lap, time and position once the gameplay exists.
+- **Title card with the colour-set split:** a sunset gradient behind the title in colour set 1, and the key list in colour set 0. In attract mode the title card returns about every 200 frames.
+
+## Measured (cycle-exact emulator, 40 s)
+
+| Mode | Fields per frame | fps |
+|---|---|---|
+| Game, half-rate rows on (default) | 4.40 | 11.4 |
+| Game, half-rate rows off | 4.95 | 10.1 |
+| Game + M (HUD strip in colour set 1) | 9.02 | 5.5 |
+| Horizon split during the race (not used any more) | 15.98 | 3.1 |
+
+Byte-for-byte identical to the reference renderer, skyline included (16 of 16 test frames).
+
+## Why the split is so expensive
+
+The VZ only reports the start of each field; it has no timer and no line counter. To change colour set partway down the screen, the interrupt must count cycles from field sync until the beam reaches that line. Picture line 0 is already 120 lines after the start of field sync. So even a split just under the HUD (screen row 16) keeps the CPU busy for about 38,000 of the 70,630 cycles in every field, which halves the frame rate. The split costs nothing on the title card, because nothing else is running there. In the race, M is left in only so you can see how it looks.

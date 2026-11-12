@@ -25,12 +25,13 @@ RUNP 2 NRUN 1 SA 1 SB 1 RA 1 RB 1 TLV 1 TRV 1 KA 1 KB 1 L1V 1 R1V 1 RUNS0 2 CR_R
 CLV 1 OLDCL 1 CR1 1 C0V 1 SPLIT 1 BAND 1 BACC 1 BGV 1 SKYTAB 2 crow 1 RX0 1 RX1 1 RY0 1 RY1 1
 RY 1 MLEFT 1 MRIGHT 1 FIELDS 2 LASTF 2 ELAPSED 1 READY 1 FSPLIT 1 DSPLIT 1 COPIED 1
 SPLITMODE 1 STEER 1 THROT 1 BRAKE 1 IDLE 2 AUTO 1 MPREV 1 SPEED 1 LATV 1 SPSV 2 LATCHV 1
-HUDBUF 16 RUNBUF 16 FRAMES 2 CRF 1 FLG 1 PKX 2 PKY 2 HALFON 1 HPREV 1 SKYD 1 HUDFG 1
-SKYDIRTY 1 HUDFORCE 1 TOPCHG 1 HUDPREV 16 FACC 1 FCNT 1 FAVG 1"""
+RUNBUF 16 FRAMES 2 CRF 1 FLG 1 PKX 2 PKY 2 HALFON 1 HPREV 1 SKYD 1 HUDFG 1
+SKYDIRTY 1 HUDFORCE 1 TOPCHG 1 FACC 1 FCNT 1 FAVG 1
+SKYPTR 28 MKSH 1 SKYLN 1 SKY_Y 1 MSPLIT 1 CURMODE 1 ATIMER 2"""
 
 LAYOUT = dict(
     LATCH=0x6800, KEYROW=0x68EF, KEYH=0x687F, VRAM=0x7000,
-    SQPAGE=0xB0, SIN64=0xB400, COS64=0xB500, PATTAB=0xB600, LMASK=0xB620, SKY0=0xB630, SKY1=0xB638,
+    SQPAGE=0xB0, SIN64=0xB400, COS64=0xB500, PATTAB=0xB600, LMASK=0xB620, SKYA=0xB628, SKYH=0xB650, RIDGE=0xAF00, HUDBUF=0xDFC0, HUDPREV=0xDFE0, SKY0=0xB630, SKY1=0xB638,
     GLYPHT=0xB640, GLYPHM=0xB648, FONT=0xB660, SKYIMG=0xFA00, EXPTP=0xB800, EXP88L=0xBA00, LOGL=0xC200,
     TRK_H=0xD200, TRK_DY=0xD400, TRK_HBX=0xD600, TRK_HBY=0xD800, TRK_FL=0xDA00,
     IM2TAB=0xDC00, SPRITES=0xA400, SPRTAB=0xB7A0,
@@ -39,6 +40,7 @@ LAYOUT = dict(
 )
 CRAFTY = 52
 HALF_INIT = None
+ATTRACT_MODE = 0
 VMAX = 110
 COPYT = 128 * 204 + 60
 DLY_COPY = max(1, ((56 + 64) * 226 - COPYT - 450) // 26)
@@ -99,14 +101,14 @@ def equates():
               f'C_RAIL EQU {R.LOGT[R.RAIL_E] + R.LOGFX + R.BIAS}',
               f'C_SKIRT EQU {(R.LOGT[R.SKIRT_E] + R.LOGFY + R.BIAS) if R.SKIRT_ON else -4000}',
               f'LOD1 EQU {R.LOD1}', f'LOD2 EQU {R.LOD2}',
-              f'HALFROW EQU {R.HALFROW}', f'TOPROW EQU {R.TOPROW}', f'HALF_INIT EQU {HALF_INIT if HALF_INIT is not None else (1 if R.HALF_ON else 0)}',
+              f'HALFROW EQU {R.HALFROW}', f'TOPROW EQU {R.TOPROW}', f'SKYL_H EQU {R.SKYL_H}', f'ATTRACT_MODE EQU {ATTRACT_MODE}', f'HALF_INIT EQU {HALF_INIT if HALF_INIT is not None else (1 if R.HALF_ON else 0)}',
               f'C_GH EQU {R.LOGT[R.GATEH_E] + R.LOGFY + R.BIAS}',
               f'C_GW EQU {R.LOGT[R.GATEW_E] + R.LOGFX + R.BIAS}',
               f'C_GT EQU {R.LOGT[R.GATET_E] + R.LOGFY + R.BIAS}',
               f'SU_A EQU {R.SU_A}', f'SU_B EQU {R.SU_B}', f'RL_A EQU {R.RL_A}', f'RL_B EQU {R.RL_B}',
               f'SK EQU {R.SK}', f'VOID EQU {R.VOID}', f'HAZE EQU {R.HAZE}',
               f'CRAFTY EQU {CRAFTY}', f'VMAX EQU {VMAX}',
-              f'DLY_COPY EQU {DLY_COPY}', f'DLY_NOCOPY EQU {DLY_NOCOPY}', f'DLY_COPYP EQU {DLY_COPYP}', f'EXP88H EQU EXP88L+$400']
+              f'DLY_COPY EQU {DLY_COPY}', f'DLY_NOCOPY EQU {DLY_NOCOPY}', f'DLY_COPYP EQU {DLY_COPYP}', f'TDLY EQU {(64 + 34 * 3) * 226 // 26}', f'EXP88H EQU EXP88L+$400']
     return '\n'.join(lines)
 
 def copy_routine():
@@ -138,7 +140,7 @@ def data_section(T):
     parts = [
         ('SQPAGE*256', lo + hi), ('SIN64', R.SIN64), ('COS64', R.COS64),
         ('PATTAB', R.PATE + R.PATO), ('LMASK', [0xFF, 0x3F, 0x0F, 0x03, 0xC0, 0xF0, 0xFC, 0xFF]),
-        ('SKY0', R.SKY_CSS0), ('SKY1', R.SKY_CSS1), ('GLYPHT', glyph), ('FONT', font),
+        ('SKY0', R.SKY_CSS0), ('SKYA', R.SKY_A), ('SKYH', R.SKY_H), ('RIDGE', R.RIDGE), ('SKY1', R.SKY_CSS1), ('GLYPHT', glyph), ('FONT', font),
         ('GLYPHM', [sum(3 << (6 - 2 * q) for q in range(3) if (bits >> (2 - q)) & 1) for bits in range(8)]),
         ('EXPTP', R.EXPT), ('EXP88L', expl + exph), ('LOGL', logl + logh),
         ('TRK_H', T['H']), ('TRK_DY', T['DY']), ('TRK_HBX', T['HBX']), ('TRK_HBY', T['HBY']), ('TRK_FL', T['FL']),
@@ -148,6 +150,8 @@ def data_section(T):
     out = []
     for org, data in parts:
         out.append(f'        ORG {org}\n{db(data)}')
+    out.append('        ORG $DD01\n' + open(os.path.join(HERE, 'skyline_init.asm')).read()
+               + open(os.path.join(HERE, 'strings_title.asm')).read() + '\n@init_end:')
     out.append('        ORG $DDDD\n        jp isr')
     return '\n'.join(out)
 
@@ -165,45 +169,21 @@ def source(test_state=None):
         ld (CAM_LAT),hl
         ld a,{st['theta'] & 255}
         ld (CAM_TH),a
+        xor a
+        ld (AUTO),a
+        call mode_upd
         call render
         call compose
         call draw_gates
         halt'''
     else:
-        startup = '''        call cls_buf
-        ld hl,s_title
-        ld de,BUFFER+32*18+9
-        call text
-        ld hl,s_credit
-        ld de,BUFFER+32*26+7
-        call text
-        ld hl,s_keys1
-        ld de,BUFFER+32*40+2
-        call text
-        ld hl,s_keys2
-        ld de,BUFFER+32*48+2
-        call text
-        ld hl,BUFFER
-        ld de,VRAM
-        ld bc,2048
-        ldir
-        ld b,120
-.w:     ld a,(LATCH)
-        rla
-        jr nc,.w
-.w2:    ld a,(LATCH)
-        rla
-        jr c,.w2
-        djnz .w
+        startup = '''        call title_card
         ld a,IM2TAB/256
         ld i,a
         im 2
         ei
         jp main
-s_title:  DB "VZ RACER 3D",0
-s_credit: DB "VIBED BY BPM 2026",0
-s_keys1:  DB ", . STEER  SPACE GO  N BRAKE",0
-s_keys2:  DB "M SPLIT  H HALF ROWS  JOYSTICK",0'''
+'''
     src = open(os.path.join(HERE, 'race.asm')).read()
     src = src.replace('{EQUATES}', equates()).replace('{STARTUP}', startup)
     src = src.replace('{ENGINE}', eng).replace('{COPY}', copy_routine())
@@ -222,6 +202,7 @@ def assemble(src, name):
     code_end = asm.sym['FILL2'] + 66
     assert code_end <= 0xA400, f'code overruns sprites: ${code_end:04X}'
     assert org + len(data) <= 0xE000
+    assert asm.sym['INIT_END'] <= 0xDDDD, f"init code overruns: ${asm.sym['INIT_END']:04X}"
     vz = os.path.join(HERE, name)
     open(vz, 'wb').write(vz_file(name.split('.')[0][:16], org, data))
     return asm, org, data, vz

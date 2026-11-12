@@ -37,6 +37,19 @@ main:   CHKEI
         jr c,.e2
 .cap:   ld a,6
 .e2:    ld (ELAPSED),a
+        ld a,(AUTO)             ; attract mode: title card every ~200 frames
+        or a
+        ld hl,0
+        jr z,.at0
+        ld hl,(ATIMER)
+        inc hl
+        ld a,l
+        cp 200
+        jr c,.at0
+        call title_card
+        ei
+        ld hl,0
+.at0:   ld (ATIMER),hl
         call input
         ld a,(ELAPSED)
         ld b,a
@@ -54,8 +67,12 @@ main:   CHKEI
         call draw_hud
         call draw_gates
         call draw_craft
+        ld a,(SPLITMODE)        ; HUD-strip split: switch back at the top of the 3D view
+        cp 2
+        ld a,TOPROW
+        jr z,.fs
         ld a,(SPLIT)
-        ld (FSPLIT),a
+.fs:    ld (FSPLIT),a
         ld a,1
         ld (READY),a
         ld hl,(FRAMES)
@@ -195,21 +212,9 @@ input:  xor a
         jr z,.nm
         or a
         jr z,.nm
-        ld a,(SPLITMODE)
+        ld a,(MSPLIT)           ; M: colour-set split on the HUD strip
         xor 1
-        ld (SPLITMODE),a
-        or a
-        ld hl,SKY0
-        jr z,.sk
-        ld hl,SKY1
-.sk:    ld (SKYTAB),hl
-        ld a,(SPLITMODE)        ; HUD text: yellow on the CSS0 sky, orange on the CSS1 sky
-        or a
-        ld a,$55
-        jr z,.hc
-        ld a,$FF
-.hc:    ld (HUDFG),a
-        call make_sky_top
+        ld (MSPLIT),a
 .nm:    ld a,(KEYH)             ; H toggles half-rate rows (edge)
         cpl
         and 1
@@ -222,7 +227,8 @@ input:  xor a
         ld a,(HALFON)
         xor 1
         ld (HALFON),a
-.nh:    ld a,(AUTO)
+.nh:    call mode_upd
+        ld a,(AUTO)
         or a
         jr nz,autopilot
         ; steering
@@ -544,11 +550,22 @@ draw_hud:
         ld a,(hl)
         and 3
         ret nz
-.go:
-        ld a,(SPEED)            ; speed as 3 digits, top left
+.go:    ld hl,HUDBUF            ; line 1: "SPEED nnn" ... "n.nF H"
+        ld b,28
+.sp:    ld (hl),' '
+        inc hl
+        djnz .sp
+        ld (hl),0
+        inc hl
+        ld a,(AUTO)
+        ld (hl),a               ; byte 29: autopilot flag (line 2)
+        ld hl,s_speed
+        ld de,HUDBUF
+        ld bc,6
+        ldir
+        ld a,(SPEED)
         ld l,a
         ld h,0
-        ld de,HUDBUF
         ld bc,100
         call .dig
         ld bc,10
@@ -556,11 +573,6 @@ draw_hud:
         ld a,l
         add a,'0'
         ld (de),a
-        inc de
-        ld a,' '
-        ld (de),a
-        inc de
-        push de                 ; fields per frame, 16-frame average, one decimal
         ld a,(FAVG)             ; tenths = sum*10/16 = sum*5/8
         ld l,a
         ld h,0
@@ -575,7 +587,7 @@ draw_hud:
         rr l
         srl h
         rr l
-        pop de
+        ld de,HUDBUF+22
         ld bc,10
         call .dig
         ld a,'.'
@@ -591,28 +603,15 @@ draw_hud:
         ld a,(HALFON)
         or a
         jr z,.nhh
+        inc de
         ld a,'H'
         ld (de),a
-        inc de
-.nhh:   ld a,(AUTO)
-        or a
-        jr z,.na
-        ld hl,s_auto
-.ca:    ld a,(hl)
-        or a
-        jr z,.na
-        ld (de),a
-        inc hl
-        inc de
-        jr .ca
-.na:    xor a
-        ld (de),a
-        ld a,(HUDFORCE)         ; sky freshly restored: just draw
+.nhh:   ld a,(HUDFORCE)         ; sky freshly restored: just draw
         or a
         jr nz,.dr
         ld hl,HUDBUF            ; unchanged text: nothing to do
         ld de,HUDPREV
-        ld b,16
+        ld b,30
 .cmp:   ld a,(de)
         cp (hl)
         jr nz,.chg
@@ -620,9 +619,9 @@ draw_hud:
         inc de
         djnz .cmp
         ret
-.chg:   ld hl,SKYIMG+2*32       ; clear the HUD rows back to sky
-        ld de,BUFFER+2*32
-        ld bc,6*32
+.chg:   ld hl,SKYIMG+1*32       ; clear the HUD rows back to sky
+        ld de,BUFFER+1*32
+        ld bc,12*32
         ldir
 .dr:    xor a
         ld (HUDFORCE),a
@@ -630,10 +629,16 @@ draw_hud:
         ld (TOPCHG),a
         ld hl,HUDBUF
         ld de,HUDPREV
-        ld bc,16
+        ld bc,30
         ldir
         ld hl,HUDBUF
-        ld de,BUFFER+2*32+1
+        ld de,BUFFER+1*32+1
+        call text_t
+        ld a,(AUTO)
+        or a
+        ret z
+        ld hl,s_auto
+        ld de,BUFFER+8*32+1
         jp text_t
 .dig:   ld a,'0'
 .d1:    or a
@@ -686,12 +691,19 @@ text:   ; HL -> zero-terminated text, DE -> buffer address (one byte per glyph c
         inc hl
         jr .ch
 
-s_auto: DB " AUTO",0
+s_auto: DB "AUTOPILOT",0
+s_speed: DB "SPEED "
 
 text_t: ; transparent text: only the glyph pixels are drawn, in HUDFG colour
 .ch:    ld a,(hl)
         or a
         ret z
+        cp ' '
+        jr nz,.gl
+        inc hl
+        inc de
+        jr .ch
+.gl:
         push hl
         push de
         sub 32
@@ -737,24 +749,137 @@ text_t: ; transparent text: only the glyph pixels are drawn, in HUDFG colour
         inc hl
         jr .ch
 
+; display mode: 0 game (open sky, skyline), 1 attract (sunset sky in colour
+; set 1, split at the horizon), 2 game with the HUD strip in colour set 1
+mode_upd:
+        ld a,(AUTO)
+        or a
+        ld a,ATTRACT_MODE
+        jr nz,.m
+        ld a,(MSPLIT)
+        add a,a
+.m:     ld hl,CURMODE
+        cp (hl)
+        ret z
+        ld (hl),a
+        ld (SPLITMODE),a
+        or a
+        jr z,.m0
+        dec a
+        jr z,.m1
+        ld hl,SKYH
+        ld a,1
+        ld b,$FF
+        jr .set
+.m1:    ld hl,SKY1
+        xor a
+        ld b,$FF
+        jr .set
+.m0:    ld hl,SKYA
+        ld a,1
+        ld b,$55
+.set:   ld (SKYTAB),hl
+        ld (SKYLN),a
+        ld a,b
+        ld (HUDFG),a
+        ld a,1
+        ld (HUDFORCE),a
+        jp make_sky_top
+
+; title card with the colour-set split (title block in set 1); ~3 s, interrupts off
+title_card:
+        di
+        call cls_buf
+        ld de,BUFFER            ; sunset gradient behind the title (shown in colour set 1)
+        ld c,0
+.g:     ld hl,.bands
+.gb:    ld a,c
+        cp (hl)
+        inc hl
+        jr nc,.gn
+        ld a,(hl)
+        bit 0,c
+        jr z,.ge
+        add a,16
+.ge:    add a,PATTAB & 255
+        ld l,a
+        ld h,PATTAB/256
+        ld a,(hl)
+        ld b,32
+.gf:    ld (de),a
+        inc de
+        djnz .gf
+        inc c
+        ld a,c
+        cp 34
+        jr nz,.g
+        jr .tt
+.gn:    inc hl
+        jr .gb
+.bands: DB 8,1, 14,9, 22,2, 28,10, 34,3
+.tt:    ld a,(HUDFG)
+        push af
+        xor a                   ; buff text
+        ld (HUDFG),a
+        ld hl,s_title
+        ld de,BUFFER+32*18+9
+        call text_t
+        ld hl,s_credit
+        ld de,BUFFER+32*26+7
+        call text_t
+        pop af
+        ld (HUDFG),a
+        ld hl,s_keys1
+        ld de,BUFFER+32*40+2
+        call text
+        ld hl,s_keys2
+        ld de,BUFFER+32*48+2
+        call text
+        ld hl,BUFFER
+        ld de,VRAM
+        ld bc,2048
+        ldir
+        ld b,150
+.w:     ld a,(LATCH)            ; field sync: title block in colour set 1
+        rla
+        jr c,.w
+        ld a,$18
+        ld (LATCH),a
+.w2:    ld a,(LATCH)            ; end of sync, then count down to row 34
+        rla
+        jr nc,.w2
+        ld de,TDLY
+.t:     dec de
+        ld a,d
+        or e
+        jr nz,.t
+        ld a,$08
+        ld (LATCH),a
+        djnz .w
+        ld a,1                  ; the game screen must be rebuilt in full
+        ld (SKYDIRTY),a
+        ld (TOPCHG),a
+        ld hl,(FIELDS)
+        ld (LASTF),hl
+        ret
+
 init_vars:
         ld hl,VARS              ; clear variables
         ld b,0
 .c:     ld (hl),0
         inc hl
         djnz .c
-        ld hl,SKY0
-        ld (SKYTAB),hl
         ld a,1
         ld (AUTO),a
         ld a,HALF_INIT
         ld (HALFON),a
-        ld a,$55
-        ld (HUDFG),a
         ld a,16
         ld (FCNT),a
         ld (TOPCHG),a
-        call make_sky_top
+        ld a,255
+        ld (CURMODE),a
+        call make_skyline
+        call mode_upd
         ld hl,4
         ld (CAM_I),hl
         ret
