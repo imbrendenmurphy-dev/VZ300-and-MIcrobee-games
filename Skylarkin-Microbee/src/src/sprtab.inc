@@ -35,13 +35,13 @@
 	dw $4F14 : db 3
 	dw $5000 : db 3
 	dw $5104 : db 3
-	dw $52A0 : db 3
-	dw $5444 : db 3
-	dw $55E8 : db 3
-	dw $566C : db 3
-	dw $5778 : db 3
-	dw $5940 : db 3
-	dw $5BF8 : db 3
-	dw $5CB4 : db 3
+	dw $51E8 : db 3
+	dw $52AE : db 3
+	dw $5374 : db 3
+	dw $53F8 : db 3
+	dw $5504 : db 3
+	dw $56CC : db 3
+	dw $5984 : db 3
+	dw $5A40 : db 3
 	ds 447
 	ds 192

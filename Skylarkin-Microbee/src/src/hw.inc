@@ -79,6 +79,7 @@ DL_CODE     EQU $D800       ;   glyph code (80h+n)
 DL_BANK     EQU $D880       ;   bank (FFh = void: taken over by the pool)
 DL_INK      EQU $D900       ;   ink
 GLYPHBUF    EQU $D980       ; 16 bytes
+ELIST       EQU $D990       ; live enemy boxes: 18 x 6 bytes
 RL0         EQU $DA00       ; restore list of page 0: video addresses (dw), 256
 RL1         EQU $DC00       ; page 1
 BL0         EQU $DE00       ; boss cells drawn on page 0 (dw), 128

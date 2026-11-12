@@ -448,9 +448,9 @@ shot_boss:
 .no:    or a
         ret
 .hx:    ld a,h
-        or a
+        cp 2
         ld a,255
-        ret nz
+        ret nc
         srl h
         rr l
         ld a,l

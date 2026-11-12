@@ -1822,6 +1822,15 @@ shot_box:
         ret
 
 shots_vs:
+        call make_elist
+        xor a                   ; any bells about?
+        ld hl,bells
+        ld de,BE_SIZE
+        ld b,NBELL
+.bc:    or (hl)
+        add hl,de
+        djnz .bc
+        ld (sv_bells),a
         ld ix,shots
         ld b,NSHOT
 .l:     push bc
@@ -1835,52 +1844,60 @@ shots_vs:
         ret
 .one:   call shot_box
         ret c
-        ; bells first: a shot bounces them
-        call shot_bells
+        ld a,(sv_bells)         ; bells first: a shot bounces them
+        or a
+        call nz,shot_bells
         ld a,(ix+0)
         or a
         ret z
-        call shot_boss
+        ld a,(boss_on)
+        or a
+        call nz,shot_boss
         ld a,(ix+0)
         or a
         ret z
-        push ix
-        pop iy                  ; IY = the shot
-        ld hl,ebox
-        ld ix,enemies
-        ld b,NENEMY
-.e:     ld a,(hl)
-        cp 255
-        jr z,.ne
+        ld a,(nelist)
+        or a
+        ret z
+        ld b,a
+        ld hl,ELIST
         ld a,(sx1)
-        cp (hl)
-        jr c,.ne
-        inc hl
-        ld a,(hl)
-        dec hl
         ld c,a
         ld a,(sx0)
-        cp c
-        jr nc,.ne
-        inc hl
-        inc hl
+        ld d,a
         ld a,(sy1)
-        cp (hl)
-        dec hl
-        dec hl
-        jr c,.ne
-        inc hl
-        inc hl
-        inc hl
-        ld a,(hl)
-        dec hl
-        dec hl
-        dec hl
-        ld c,a
+        ld e,a
+.e:     ld a,c
+        cp (hl)                 ; shot right edge < x0?
+        jr c,.n0
+        inc l
+        ld a,d
+        cp (hl)                 ; shot left edge >= x1?
+        jr nc,.n1
+        inc l
+        ld a,e
+        cp (hl)                 ; shot bottom < y0?
+        jr c,.n2
+        inc l
         ld a,(sy0)
-        cp c
-        jr nc,.ne
-        ; a hit
+        cp (hl)                 ; shot top >= y1?
+        jr nc,.n3
+        ; a hit: the enemy pointer follows
+        inc l
+        ld a,(hl)
+        inc l
+        push hl
+        ld h,(hl)
+        ld l,a
+        push bc
+        push de
+        push ix
+        pop iy                  ; IY = the shot
+        push hl
+        pop ix                  ; IX = the enemy
+        ld a,(ix+E_TYPE)
+        or a
+        jr z,.back              ; (destroyed by this frame's earlier shots)
         ld a,(iy+0)
         cp ST_BEAM
         jr z,.pierce
@@ -1892,32 +1909,78 @@ shots_vs:
         jr z,.bomb
         ld (iy+0),0
         ld e,(iy+7)
-        push hl
         call en_damage
-        pop hl
-        jr .fin
+        jr .back
 .pierce:
         ld a,(ix+E_FLASH)
         or a
-        jr nz,.ne
+        jr nz,.back
         ld e,(iy+7)
-        push hl
-        push bc
         call en_damage
-        pop bc
-        pop hl
-        jr .ne
+        jr .back
 .bomb:  push iy
         pop ix
+        push ix
         call bomb_burst
-        jr .fin
-.ne:    ld de,4
-        add hl,de
+        pop iy
+.back:  push iy
+        pop ix
+        pop de
+        pop bc
+        pop hl
+        inc l
+        ld a,(ix+0)
+        or a
+        ret z                   ; the shot is spent
+        djnz .e
+        ret
+.n0:    inc l
+.n1:    inc l
+.n2:    inc l
+.n3:    inc l
+        inc l
+        inc l
+        djnz .e
+        ret
+
+; make_elist: the live enemy boxes from ebox, packed: x0 x1 y0 y1, dw enemy
+make_elist:
+        ld hl,ebox
+        ld de,ELIST
+        ld ix,enemies
+        ld b,NENEMY
+        ld c,0
+.l:     ld a,(hl)
+        cp 255
+        jr z,.n
+        inc c
+        push bc
+        ldi
+        ldi
+        ldi
+        ldi
+        pop bc
+        ld a,ixl
+        ld (de),a
+        inc e
+        ld a,ixh
+        ld (de),a
+        inc e
+        dec hl
+        dec hl
+        dec hl
+        dec hl
+.n:     inc hl
+        inc hl
+        inc hl
+        inc hl
+        push de
         ld de,EN_SIZE
         add ix,de
-        djnz .e
-.fin:   push iy
-        pop ix
+        pop de
+        djnz .l
+        ld a,c
+        ld (nelist),a
         ret
 
 ; shot IX vs the bells
@@ -2306,6 +2369,8 @@ wv_yv:  db 0
 cur_grp:    db 0
 groups:     ds 16           ; per group: size (0 = free), killed
 ebox:       ds NENEMY*4
+nelist:     db 0
+sv_bells:   db 0
 bbox:       ds 4
 sx0:    db 0
 sx1:    db 0

@@ -287,13 +287,16 @@ def explosion(k):
 
 
 def shield_ring(phase):
-    """22 x 16 dotted ring around the pilot"""
+    """22 x 16 box: a dotted arc in front of the pilot (a force field; only
+    the front is drawn, which keeps it to a few cells)"""
     w, h = 22, 16
     a = np.zeros((h, w), bool)
     for i in range(36):
         if (i + phase) % 3 == 0:
             continue
         t = i * 2 * math.pi / 36
+        if math.cos(t) < 0.3:
+            continue
         x = int(round(10.5 + 10.5 * math.cos(t)))
         y = int(round(7.5 + 7.5 * math.sin(t)))
         a[y, x] = True

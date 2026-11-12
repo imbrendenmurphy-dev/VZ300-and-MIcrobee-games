@@ -147,6 +147,7 @@ trailpos:   db 0
 optx:       ds 4
 opty:       ds 4
 hud_dirty:  db 0
+sc_tab:     ds 16           ; live shots per owner (0-2) and class (1-3)
 ; objects
 NSHOT       equ 20
 SH_SIZE     equ 12

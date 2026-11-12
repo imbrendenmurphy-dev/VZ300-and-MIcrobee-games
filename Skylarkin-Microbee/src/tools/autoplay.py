@@ -23,6 +23,8 @@ def step(pp, n=4, extra=()):
     px = peekw(pp, 'px'); py = peek(pp, 'py')
     en = [e for e in enemies(pp) if e[1] > px - 8]
     k = ['SPACE'] + list(extra)
+    if peek(pp, 'boss_on') and peek(pp, 'boss_st') == 5:
+        en = [(0, 0, peek(pp, 'boss_y') + 46)]
     if en:
         tx, ty = min((e[1], e[2]) for e in en)
         if ty + 4 < py - 3: k.append('UP')

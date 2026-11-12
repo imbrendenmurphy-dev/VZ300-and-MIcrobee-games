@@ -41,6 +41,9 @@ hud_update:
 .nw:    ld a,(hud_dirty)
         or a
         ret z
+        ld a,(ticks)            ; at most every fourth frame (score runs
+        and 3                   ; would otherwise redraw it every frame)
+        ret nz
 .go:    xor a
         ld (hud_dirty),a
         ; score

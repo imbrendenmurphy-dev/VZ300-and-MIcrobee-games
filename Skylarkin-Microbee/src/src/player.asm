@@ -562,6 +562,8 @@ volley:
         ld c,2
         call count_class
         jr nc,.dbl
+        ld a,1
+        ld (vo_class),a
         ld hl,(vo_x)
         ld de,14
         add hl,de
@@ -591,28 +593,22 @@ volley:
 .mo:    jp missile_fire
 
 ; count_class: B = class, C = limit -> NC if the owner has that many already
+; (sc_tab: live shots per owner and class, counted by shots_update and
+; raised by shot_new)
 count_class:
-        ld ix,shots
-        ld de,SH_SIZE
-        ld a,NSHOT
-        ld (tmp+4),a
-        ld l,0
-.l:     ld a,(ix+0)
-        or a
-        jr z,.n
-        ld a,(ix+10)
-        cp b
-        jr nz,.n
+        push hl
+        push de
         ld a,(vo_own)
-        cp (ix+8)
-        jr nz,.n
-        inc l
-.n:     add ix,de
-        ld a,(tmp+4)
-        dec a
-        ld (tmp+4),a
-        jr nz,.l
-        ld a,l
+        add a,a
+        add a,a
+        add a,b
+        ld l,a
+        ld h,0
+        ld de,sc_tab
+        add hl,de
+        ld a,(hl)
+        pop de
+        pop hl
         cp c
         ret
 
@@ -633,6 +629,8 @@ shot_new:
         pop hl
         pop de
         pop af
+        ld a,1
+        ld (vo_class),a
         scf
         ret
 .got:   pop hl
@@ -654,6 +652,20 @@ shot_new:
         ld (ix+8),a
         ld a,(vo_class)
         ld (ix+10),a
+        push hl
+        and 3
+        ld e,a
+        ld a,(vo_own)
+        and 3
+        add a,a
+        add a,a
+        add a,e
+        ld e,a
+        ld d,0
+        ld hl,sc_tab
+        add hl,de
+        inc (hl)
+        pop hl
         ld a,1
         ld (vo_class),a
         or a
@@ -858,13 +870,34 @@ ST_RING     equ 8
 ST_BOOMER   equ 9
 
 shots_update:
+        ld hl,sc_tab
+        ld b,16
+.z:     ld (hl),0
+        inc hl
+        djnz .z
         ld ix,shots
         ld b,NSHOT
 .l:     push bc
         ld a,(ix+0)
         or a
         call nz,.one
-        ld de,SH_SIZE
+        ld a,(ix+0)             ; still flying: count it
+        or a
+        jr z,.nc
+        ld a,(ix+10)
+        and 3
+        ld e,a
+        ld a,(ix+8)
+        and 3
+        add a,a
+        add a,a
+        add a,e
+        ld e,a
+        ld d,0
+        ld hl,sc_tab
+        add hl,de
+        inc (hl)
+.nc:    ld de,SH_SIZE
         add ix,de
         pop bc
         djnz .l
@@ -1122,7 +1155,13 @@ draw_shots:
         jr z,.boom
         ld b,K_BLOB
 .k:     ld a,b
-        jp obj_draw
+        cp K_DASH
+        jr nz,.kk
+        ld a,(spr_x)            ; dashes move 8 px a frame: drawn on whole
+        and $F8                 ; cells, one glyph each
+        ld (spr_x),a
+        ld a,b
+.kk:    jp obj_draw
 .beam:  ld a,BMAGENTA
         ld (spr_ink),a
         ld a,(ix+11)
