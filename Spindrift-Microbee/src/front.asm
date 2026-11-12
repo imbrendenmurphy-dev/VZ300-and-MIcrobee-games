@@ -792,11 +792,11 @@ enter_name:
         ld de,t_initials
         ld c,WHITE
         call print_s
-        ld hl,20*40+4
+        ld hl,20*40+5
         ld de,t_enter1
         ld c,GREY
         call print_s
-        ld hl,21*40+6
+        ld hl,22*40+13
         ld de,t_enter2
         ld c,GREY
         call print_s

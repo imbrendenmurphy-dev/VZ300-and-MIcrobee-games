@@ -14,7 +14,6 @@ keymap:
         db K_RIGHT,0,1, K_LEFT,0,2, K_UP,0,4, K_DOWN,0,8
         db K_P,0,1, K_O,0,2, K_Q,0,4, K_A,0,8
         db K_SPACE,0,16, K_Z,0,32, K_X,0,64
-        db $FE                  ; the rest, every fourth frame
         db K_ESC,1,1, K_H,1,2, K_S,1,4, K_C,1,8, K_M,1,16, K_R,1,32
         db $FF
 
@@ -61,23 +60,12 @@ read_input:
         out (P_ROMLAT),a
         xor a
         ld (rk_pad),a
-        ld a,(frameno)
-        and 3
-        jr nz,.k0
-        ld (rk_keys),a
-.k0:    ld hl,keymap
+        ld (rk_keys),a          ; every key, every frame: a quick tap of
+        ld hl,keymap            ; H, R or M must never be missed
 .scan:  ld a,(hl)
         cp $FF
         jr z,.done
         inc hl
-        cp $FE
-        jr nz,.key
-        ld a,(frameno)
-        and 3
-        jr z,.scan
-        ld a,(rk_keys)          ; keep last time's
-        ld (rk_keys),a
-        jr .done
 .key:
         call keytest
         jr z,.nk
