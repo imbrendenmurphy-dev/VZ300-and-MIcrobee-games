@@ -2,34 +2,45 @@
 ; DROPBEAR 3D - a first-person bear hunt for the VZ300
 ; mode 1 (128x64, 4 colours), 32-column textured raycaster
 ; VIBED BY BPM 2026
-; Tables, textures, sprites, levels and text come from build.py
+; Tables, textures, sprites, the world and text come from build.py
 ; ---------------------------------------------------------------
-TURN: equ 10
-MARG: equ 80
-SIDE: equ 40
-EMARG: equ 72
-ESPD: equ 12
-BOSSSPD: equ 8
-BITE: equ 7
-BOSSBITE: equ 14
-BEARHP: equ 2
-BOSSHP: equ 12
-NOBJ: equ 16
-MUSP: equ 14
+TURN:   equ 10
+MARG:   equ 80
+SIDE:   equ 40
+EMARG:  equ 72
+NOBJ:   equ 16
+NENEMY: equ 5
+MUSP:   equ 14
 
         org CODEORG
 start:  di
         ld sp,stacktop
         call joyinit
 main:   call titlescreen
-        ld a,1
-        ld (level),a
-        ld a,40
-        ld (ammo),a
-lvl:    call introscreen
-        call loadlevel
+        ld hl,PG_INTRO
+        call textpage
+        call newgame
 gloop:  call getinput
-        call turnmove
+        ld a,(mapkey)
+        or a
+        jr z,gl1
+        call areaflag
+        bit 0,(hl)
+        jr z,gl0
+        call drawmap
+        call blit
+        xor a
+        ld (fcnt),a
+        jr gloop
+gl0:    ld a,(msgt)
+        or a
+        jr nz,gl1
+        ld hl,MSG_NOMAP
+        call setmsg
+gl1:    call turnmove
+        ld a,(goarea)
+        or a
+        call nz,changearea
         call fire
         call render
         call objects
@@ -45,55 +56,37 @@ gloop:  call getinput
         or a
         jr z,gloop
         call jingle_up
-        ld a,(level)
-        inc a
-        ld (level),a
-        cp 4
-        jr nz,lvl
+        call cls
         ld hl,PG_WIN
-        call textpage
+        call showpage
+        ld a,(opals)
+        ld de,WINNUM
+        call print2
+        call waitfire
         jp main
 dead:   call jingle_down
         ld hl,PG_DEAD
         call textpage
-        jr lvl
+        ld a,100
+        ld (hp),a
+        ld hl,OBJ+7             ; give the player a breather
+        ld b,NOBJ
+        ld de,8
+dd1:    ld (hl),150
+        add hl,de
+        djnz dd1
+        call spawn
+        call cls
+        call hudinit
+        jp gloop
 
 ; ---------------- screens ---------------------------------------
-introscreen:
-        call levptr
-        ld a,(hl)
-        ld (latchbase),a
-        call setlatch
-        ld a,(level)
-        dec a
-        add a,a
-        ld e,a
-        ld d,0
-        ld hl,PGTAB
-        add hl,de
-        ld a,(hl)
-        inc hl
-        ld h,(hl)
-        ld l,a
 textpage:
         push hl
         call cls
         pop hl
         call showpage
         jp waitfire
-
-levptr: ld a,(level)
-        dec a
-        add a,a
-        ld e,a
-        ld d,0
-        ld hl,LEVTAB
-        add hl,de
-        ld a,(hl)
-        inc hl
-        ld h,(hl)
-        ld l,a
-        ret
 
 setlatch:
         ld a,(latch)
@@ -323,45 +316,118 @@ ttx:    ld hl,BUF
         ld (s_base),hl
         ret
 
-; ---------------- level setup -----------------------------------
-loadlevel:
-        call levptr
+; ---------------- the world -------------------------------------
+; area record: theme, flags, name (16 + $FF), exit count, exits (cell, to area,
+; to cell, facing), object count, objects (type, x, y), map (two cells a byte)
+areaptr:
+        ld a,(area)
+        add a,a
+        ld e,a
+        ld d,0
+        ld hl,ATAB
+        add hl,de
         ld a,(hl)
-        ld (latchbase),a
         inc hl
+        ld h,(hl)
+        ld l,a
+        ret
+
+areaflag:
+        ld a,(area)
+        ld e,a
+        ld d,0
+        ld hl,aflags
+        add hl,de
+        ret
+
+; the saved state of an area: 256 map bytes then 128 object bytes
+liveptr:
+        ld a,(area)
+        ld h,a
+        ld l,0
+        srl h
+        rr l
+        add a,h
+        ld h,a
+        ld de,LIVE
+        add hl,de
+        ret
+savearea:
+        ld a,3                  ; area states live in the second SRAM bank
+        out ($37),a
+        call liveptr
+        ex de,hl
+        ld hl,MAP
+        ld bc,256
+        ldir
+        ld hl,OBJ
+        ld bc,128
+        ldir
+        jr bank1
+getarea:
+        ld a,3
+        out ($37),a
+        call liveptr
+        ld de,MAP
+        ld bc,256
+        ldir
+        ld de,OBJ
+        ld bc,128
+        ldir
+bank1:  ld a,1                  ; back to the bank holding the art
+        out ($37),a
+        ret
+
+; A = type -> HL = its entry in TYPES
+typeptr:
+        dec a
+        ld l,a
+        ld h,0
+        add hl,hl
+        ld e,l
+        ld d,h
+        add hl,hl
+        add hl,de
+        add hl,hl
+        ld de,TYPES
+        add hl,de
+        ret
+
+; unpack the fresh copy of one area into MAP and OBJ
+expand: call areaptr
+        inc hl
+        ld b,(hl)
+        push hl
+        call areaflag
+        ld (hl),b
+        pop hl
+        ld de,18
+        add hl,de
         ld a,(hl)
-        ld (px+1),a
         inc hl
-        ld a,(hl)
-        ld (py+1),a
-        inc hl
-        ld a,128
-        ld (px),a
-        ld (py),a
-        ld e,(hl)
-        inc hl
-        ld d,(hl)
-        inc hl
-        ld (pang),de
+        add a,a
+        add a,a
+        ld e,a
+        ld d,0
+        add hl,de
         ld a,(hl)
         inc hl
         push hl
         ld hl,OBJ
         ld b,NOBJ*8
-ll1:    ld (hl),0
+ex0:    ld (hl),0
         inc hl
-        djnz ll1
+        djnz ex0
         pop hl
+        or a
+        jr z,ex4
         ld b,a
-        ld c,0
         ld de,OBJ
-ll2:    ld a,(hl)
+ex2:    ld a,(hl)
+        ld (otype),a
         ld (de),a
         inc de
-        cp 3
-        jr nc,ll3
-        inc c
-ll3:    inc hl
+        inc hl
         ld a,128
         ld (de),a
         inc de
@@ -377,51 +443,170 @@ ll3:    inc hl
         inc de
         inc hl
         push hl
-        ld hl,-5
+        push de
+        ld a,(otype)
+        call typeptr
+        ld de,6
         add hl,de
         ld a,(hl)
+        pop de
         pop hl
-        cp 2
-        ld a,BOSSHP
-        jr z,ll4
-        ld a,BEARHP
-ll4:    ld (de),a
+        ld (de),a
         inc de
         inc de
         inc de
-        djnz ll2
-        ld a,c
-        ld (bears),a
-        ld de,MAP
-        ld bc,256
-        ldir
+        djnz ex2
+ex4:    ld de,MAP
+        ld b,128
+ex5:    ld a,(hl)
+        rrca
+        rrca
+        rrca
+        rrca
+        and $0F
+        ld (de),a
+        inc de
+        ld a,(hl)
+        and $0F
+        ld (de),a
+        inc de
+        inc hl
+        djnz ex5
+        ret
+
+newgame:
+        xor a
+        ld (keys),a
+        ld (opals),a
+        ld (leveldone),a
+        ld (goarea),a
+        ld (msgt),a
+        ld (musict),a
+        ld (recht),a
+        ld a,40
+        ld (ammo),a
         ld a,100
         ld (hp),a
         xor a
-        ld (key),a
-        ld (leveldone),a
-        ld (msgt),a
+ng1:    ld (area),a
+        call expand
+        call savearea
+        ld a,(area)
+        inc a
+        cp NAREA
+        jr nz,ng1
+        xor a
+        ld (area),a
+        ld a,STARTCELL
+        ld (entrycell),a
+        ld a,STARTANG
+        ld (entryang),a
+        ld hl,GTUNE
+        ld (gtptr),hl
+        call loadarea
+        call spawn
+        call cls
+        jp hudinit
+
+loadarea:
+        call getarea
+        call areaptr
+        ld a,(hl)
+        push hl
+        ld l,a
+        ld h,0
+        ld e,l
+        ld d,h
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        add hl,de
+        ld de,THEMES
+        add hl,de
+        ld de,latchbase
+        ld bc,9
+        ldir
+        call loadtex
+        pop hl
+        inc hl
+        inc hl
+        push hl
+        ld de,17
+        add hl,de
+        ld (aexits),hl
+        call setlatch
+        pop hl
+        call setmsg
+        ld a,1
+        ld (huddirty),a
+        ret
+
+spawn:  ld a,(entrycell)
+        and $0F
+        ld (px+1),a
+        ld a,(entrycell)
+        rrca
+        rrca
+        rrca
+        rrca
+        and $0F
+        ld (py+1),a
+        ld a,128
+        ld (px),a
+        ld (py),a
+        ld a,(entryang)
+        ld (pang+1),a
+        xor a
+        ld (pang),a
         ld (gunflash),a
         ld (hurtflash),a
-        ld (musict),a
-        ld (recht),a
         ld (fcnt),a
         ld hl,0
         ld (target),hl
-        ld a,(ammo)
-        cp 20
-        jr nc,ll5
-        ld a,20
-        ld (ammo),a
-ll5:    ld a,25
+        ld a,25
         ld (firecd),a
         ld a,2
         ld (steps),a
         ld (lastf),a
-        ld hl,GTUNE
-        ld (gtptr),hl
-        call setlatch
-        call cls
+        ret
+
+; copy this area's four wall textures from the library in the second bank
+loadtex:
+        ld a,3
+        out ($37),a
+        ld de,BUF
+        ld hl,tlib
+        ld b,4
+lt1:    push bc
+        push hl
+        ld h,(hl)
+        ld l,0
+        ld bc,256
+        ldir
+        pop hl
+        inc hl
+        pop bc
+        djnz lt1
+        ld a,1
+        out ($37),a
+        ld hl,BUF
+        ld de,ACTTEX
+        ld bc,1024
+        ldir
+        ret
+
+changearea:
+        xor a
+        ld (goarea),a
+        call savearea
+        ld a,(newarea)
+        ld (area),a
+        call loadarea
+        call spawn
+        ld e,160
+        ld c,-8
+        ld a,12
+        jp sweep
 
 hudinit:
         ld hl,$7600
@@ -431,12 +616,6 @@ hi1:    ld (hl),$FF
         djnz hi1
         ld hl,PG_HUD
         call showpage
-        ld a,(level)
-        add a,27
-        ld (numbuf+1),a
-        ld hl,numbuf+1
-        ld de,$7000+57*32+13
-        call print
         ld a,1
         ld (huddirty),a
         ret
@@ -482,7 +661,10 @@ gi6:    ld a,($68EF)            ; M SPACE , - . N
         bit 4,a
         jr nz,gi7
         set 6,c
-gi7:    ld a,(joyon)
+gi7:    cpl
+        and $20
+        ld (mapkey),a
+        ld a,(joyon)
         or a
         jr z,gi9
         in a,($2D)
@@ -730,13 +912,38 @@ my1:    add hl,de
 bump:   cp 3
         jr z,bdoor
         cp 4
+        jr z,bexit
+        cp 6
+        jr z,block
+        cp 7
+        jr z,bswitch
+        cp 10
         ret nz
-        ld a,(key)
+        ld (hl),0               ; secret wall
+        ld hl,MSG_SECRET
+        call setmsg
+        ld e,60
+        ld c,-3
+        ld a,16
+        jp sweep
+bdoor:  ld (hl),0
+        ld hl,MSG_DOOR
+        call setmsg
+bdsnd:  ld e,120
+        ld c,20
+        ld a,6
+        jp sweep
+block:  ld a,(keys)
         or a
         jr z,bnokey
+        dec a
+        ld (keys),a
+        ld (hl),0
         ld a,1
-        ld (leveldone),a
-        ret
+        ld (huddirty),a
+        ld hl,MSG_UNLOCK
+        call setmsg
+        jr bdsnd
 bnokey: ld a,(msgt)
         or a
         ret nz
@@ -745,13 +952,56 @@ bnokey: ld a,(msgt)
         ld de,230
         ld b,6
         jp beep
-bdoor:  ld (hl),0
-        ld hl,MSG_DOOR
+bswitch:
+        ld (hl),8
+        call opengates
+        ld hl,MSG_GATE
         call setmsg
-        ld e,120
-        ld c,20
-        ld a,6
+        ld e,200
+        ld c,-10
+        ld a,14
         jp sweep
+bexit:  ld c,l
+        ld hl,(aexits)
+        ld b,(hl)
+        inc hl
+be1:    ld a,(hl)
+        cp c
+        jr z,be2
+        inc hl
+        inc hl
+        inc hl
+        inc hl
+        djnz be1
+        ret
+be2:    inc hl
+        ld a,(hl)
+        cp $FF
+        jr nz,be3
+        ld a,1
+        ld (leveldone),a
+        ret
+be3:    ld (newarea),a
+        inc hl
+        ld a,(hl)
+        ld (entrycell),a
+        inc hl
+        ld a,(hl)
+        ld (entryang),a
+        ld a,1
+        ld (goarea),a
+        ret
+
+opengates:
+        ld hl,MAP
+        ld b,0
+og1:    ld a,(hl)
+        cp 9
+        jr nz,og2
+        ld (hl),0
+og2:    inc hl
+        djnz og1
+        ret
 
 setmsg: ld a,150
         ld (msgt),a
@@ -808,13 +1058,23 @@ fi1:    dec a
 fi2:    ld (hl),0
         ld hl,0
         ld (target),hl
-        ld hl,bears
-        dec (hl)
-        ld hl,MSG_GOTONE
         ld a,(otype)
-        cp 2
-        jr nz,fi3
-        ld hl,MSG_BOSS
+        call typeptr
+        ld de,9
+        add hl,de
+        ld a,(hl)
+        inc hl
+        ld e,(hl)
+        inc hl
+        ld d,(hl)
+        ex de,hl
+        rrca
+        jr nc,fi3
+        push hl                 ; a boss: whatever it guarded is now open
+        call opengates
+        pop hl
+        call setmsg
+        jp jingle_up
 fi3:    call setmsg
         ld e,40
         ld c,5
@@ -1019,16 +1279,77 @@ hb4:    ld c,a
         ld a,(ammo)
         ld de,$7000+50*32+20
         call print2
-        ld hl,STR_KEY
-        ld a,(key)
-        or a
-        jr nz,hb5
-        ld hl,STR_NOKEY
-hb5:    ld de,$7000+50*32+24
+        ld a,(keys)
+        add a,27
+        ld (numbuf+1),a
+        ld hl,numbuf+1
+        ld de,$7000+50*32+28
         call print
-        ld a,(bears)
+        ld a,(opals)
         ld de,$7000+57*32+6
         jp print2
+
+; ---------------- the map screen --------------------------------
+drawmap:
+        ld hl,MAP
+        ld de,BUF
+        ld a,16
+dmr:    push af
+        push de
+        ld b,16
+dmc:    ld a,(hl)
+        inc hl
+        push hl
+        push bc
+        add a,a
+        ld c,a
+        ld b,0
+        ld hl,MAPPAT
+        add hl,bc
+        ld a,(hl)
+        ld (de),a
+        inc de
+        inc hl
+        ld a,(hl)
+        ld (de),a
+        inc de
+        pop bc
+        pop hl
+        djnz dmc
+        pop bc
+        push hl
+        ld h,b
+        ld l,c
+        ld bc,64
+        ldir
+        pop hl
+        pop af
+        dec a
+        jr nz,dmr
+        ld a,(py+1)             ; you are here
+        ld l,a
+        ld h,0
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        ld d,h
+        ld e,l
+        add hl,hl
+        add hl,de
+        ld a,(px+1)
+        add a,a
+        add a,32
+        ld e,a
+        ld d,0
+        add hl,de
+        ld de,BUF
+        add hl,de
+        ld (hl),$FF
+        inc hl
+        ld (hl),$FF
+        ret
 
 ; ---------------- walls -----------------------------------------
 render: ld hl,COLS
@@ -1058,8 +1379,23 @@ rcol:   call poll
         ld h,ZBUF_HI
         ld a,(hidx)
         ld (hl),a
+        ld hl,fogz              ; too far to see in the dark?
+        cp (hl)
+        ld a,0
+        jr nc,rc1
+        inc a
+rc1:    ld (fogged),a
+        or a
+        jr nz,rc3
         call texsrc
         ld de,TEXBUF
+        ld a,(side)
+        or a
+        jr z,rc2
+        ld b,DARK_HI
+        call DARKCOPY
+        jr rc3
+rc2:    ldi
         ldi
         ldi
         ldi
@@ -1075,8 +1411,7 @@ rcol:   call poll
         ldi
         ldi
         ldi
-        ldi
-        ld a,(hidx)
+rc3:    ld a,(hidx)
         ld l,a
         ld h,0
         add hl,hl
@@ -1097,15 +1432,27 @@ rcol:   call poll
         ld e,(hl)
         inc hl
         ld d,(hl)
+        inc hl
         ld (dc3+1),de
-        ld a,(coln)
+        ld a,(fogged)
+        or a
+        jr z,rc4
+        ld e,(hl)
+        inc hl
+        ld d,(hl)
+        ld (dc2+1),de
+rc4:    ld a,(coln)
         ld l,a
         ld h,BUF_HI
         ld de,32
-        ld c,$55                ; sky
+        ld a,(skyc)
+        ld c,a
 dc1:    call 0
+        ld a,(fogc)
+        ld c,a
 dc2:    call 0
-        ld c,$00                ; ground
+        ld a,(groundc)
+        ld c,a
 dc3:    call 0
         ld hl,coln
         inc (hl)
@@ -1283,18 +1630,17 @@ ts_y:   ld a,(cidx)
         jr ts_d
 ts_s:   sub h
 ts_d:   and $F0
-        ld l,a
+        ld c,a
         ld a,(cell)
-        dec a
-        add a,a
-        ld h,a
-        ld a,(side)
-        add a,h
-        add a,TEX_HI
-        ld h,a
+        ld e,a
+        ld d,0
+        ld hl,TTEX-1
+        add hl,de
+        ld h,(hl)
+        ld l,c
         ret
 
-; ---------------- things: bears, pickups ------------------------
+; ---------------- things: creatures, pickups --------------------
 ; object: type, x(2), y(2), hp, flags (bit 7 awake, low 4 hurt timer), bite cooldown
 objects:
         xor a
@@ -1336,7 +1682,14 @@ ob0:    push bc
         call abshl
         ld (ady),hl
         ld a,(otype)
-        cp 3
+        call typeptr
+        ld (otp),hl
+        ld de,9
+        add hl,de
+        ld a,(hl)
+        ld (oflg),a
+        ld a,(otype)
+        cp NENEMY+1
         jr nc,ob2
         call ai
         jr ob3
@@ -1373,13 +1726,25 @@ pick:   ld hl,(adx)
         cp $70
         ret nc
         ld a,(otype)
-        cp 3
+        cp 6
         jr z,pk_h
-        cp 4
+        cp 7
         jr z,pk_a
-        ld a,1
-        ld (key),a
+        cp 8
+        jr z,pk_k
+        cp 9
+        jr z,pk_o
+        call areaflag           ; the map
+        set 0,(hl)
+        ld hl,MSG_MAP
+        jr pk_d
+pk_k:   ld hl,keys
+        inc (hl)
         ld hl,MSG_KEY
+        jr pk_d
+pk_o:   ld hl,opals
+        inc (hl)
+        ld hl,MSG_OPAL
         jr pk_d
 pk_h:   ld a,(hp)
         cp 100
@@ -1441,7 +1806,15 @@ ai2:    ld (hl),a
         jr c,ai4
 ai3:    ld a,1
         ld (oframe),a
-ai4:    ld a,(oflags)
+ai4:    ld a,(oflg)
+        and 8
+        jr z,ai4b
+        ld a,(animt)            ; flyers flap
+        rrca
+        rrca
+        and 1
+        ld (oframe),a
+ai4b:   ld a,(oflags)
         rlca
         ret nc
         ld a,(animt)
@@ -1474,16 +1847,19 @@ ai4:    ld a,(oflags)
         add hl,de
         ld (hl),50
         ld a,1
-        ld (oframe),a
         ld (huddirty),a
-        ld a,3
+        ld a,(oflg)
+        and 8
+        jr nz,ai4c
+        ld a,1
+        ld (oframe),a
+ai4c:   ld a,3
         ld (hurtflash),a
-        ld a,(otype)
-        cp 2
-        ld b,BITE
-        jr nz,ai5
-        ld b,BOSSBITE
-ai5:    ld a,(hp)
+        ld hl,(otp)
+        ld de,8
+        add hl,de
+        ld b,(hl)
+        ld a,(hp)
         sub b
         jr nc,ai6
         xor a
@@ -1495,11 +1871,25 @@ ai6:    ld (hp),a
         ld a,8
         jp sweep
 
-ai_ch:  ld a,(otype)
-        cp 2
-        ld c,ESPD
-        jr nz,ac0
-        ld c,BOSSSPD
+ai_ch:  ld hl,(otp)
+        ld de,7
+        add hl,de
+        ld c,(hl)               ; speed
+        ld a,(oflg)
+        bit 1,a
+        jr z,ac0a
+        ld a,(animt)            ; chargers rush, then catch their breath
+        and $40
+        ret z
+        ld a,(oflg)
+ac0a:   bit 2,a
+        jr z,ac0
+        ld hl,(optr)            ; the angrier, the faster
+        ld de,5
+        add hl,de
+        ld a,27
+        sub (hl)
+        ld c,a
 ac0:    ld a,(steps)
         ld b,a
         xor a
@@ -1724,16 +2114,10 @@ pj7:    srl h
         ld h,HITAB_HI
         ld a,(hl)
         ld (oz),a
-        ld a,(otype)
-        dec a
-        ld l,a
-        add a,a
-        add a,l
-        add a,a
-        ld l,a
-        ld h,0
-        ld de,TYPES
-        add hl,de
+        ld hl,fogz              ; lost in the dark
+        cp (hl)
+        ret c
+        ld hl,(otp)
         ld e,(hl)
         inc hl
         ld d,(hl)
@@ -1762,6 +2146,7 @@ pj8:    ld e,(hl)
         add hl,de
         ld (orec),hl
         ld a,(hl)
+        and $7F
         ld (ow),a
         inc hl
         ld a,(hl)
@@ -1772,7 +2157,16 @@ pj8:    ld e,(hl)
         ld a,(scol)
         sub b
         ld (oleft),a
-        ld a,(oz)
+        ld a,(oflg)
+        and 8
+        jr z,pj8a
+        ld a,(oh)               ; flyers hang at eye level
+        srl a
+        ld b,a
+        ld a,21
+        sub b
+        jr pj8b
+pj8a:   ld a,(oz)
         ld l,a
         ld h,0
         ld de,BOT
@@ -1782,7 +2176,7 @@ pj8:    ld e,(hl)
         sub (hl)
         ld hl,obob
         sub (hl)
-        ld (otop),a
+pj8b:   ld (otop),a
         ld a,(scol)
         cp 32
         jr nc,pj9
@@ -1793,7 +2187,7 @@ pj8:    ld e,(hl)
         cp (hl)
         jr c,pj9
         ld a,(otype)
-        cp 3
+        cp NENEMY+1
         jr nc,pj9
         ld hl,(optr)
         ld de,6
@@ -1889,10 +2283,13 @@ drawgun:
         jr z,drawspr
         ld hl,GUN1
 
-; HL -> sprite record (width bytes, height, data); s_left, s_top, s_z set
+; HL -> sprite record: width in bytes (bit 7 = stored whole, otherwise only the
+; left half is stored and the right half is drawn mirrored), height, data
 drawspr:
         ld a,(hl)
-        ld (s_w),a
+        ld b,a
+        and $7F
+        ld c,a
         inc hl
         ld a,(hl)
         ld (s_h),a
@@ -1901,6 +2298,20 @@ drawspr:
         inc hl
         ld d,(hl)
         ld (s_ptr),de
+        ld a,c
+        bit 7,b
+        jr nz,ds0
+        inc a
+        srl a
+ds0:    ld (s_n1),a
+        ld b,a
+        ld a,c
+        sub b
+        ld (s_n2),a
+        ld c,a
+        ld a,b
+        sub c
+        ld (s_odd),a
         ld a,(s_top)
         ld l,a
         ld h,0
@@ -1952,17 +2363,75 @@ ds_skip:
         ld (s_ptr),hl
         ld hl,s_left
         inc (hl)
-        ld hl,s_w
+        ld hl,s_n1
         dec (hl)
         jr nz,ds_col
+        ld a,(s_n2)             ; now the mirrored half, walking back through the columns
+        or a
+        ret z
+        ld a,(s_odd)
+        or a
+        jr z,dm_col
+        ld hl,(s_ptr)
+        ld de,(s_adv)
+        or a
+        sbc hl,de
+        ld (s_ptr),hl
+dm_col: ld hl,(s_ptr)
+        ld de,(s_adv)
+        or a
+        sbc hl,de
+        ld (s_ptr),hl
+        ld a,(s_left)
+        cp 32
+        jr nc,dm_skip
+        add a,ZBUF_LO
+        ld l,a
+        ld h,ZBUF_HI
+        ld a,(s_z)
+        cp (hl)
+        jr c,dm_skip
+        ld hl,(s_row)
+        ld a,(s_left)
+        ld e,a
+        ld d,0
+        add hl,de
+        ld de,32
+        ld a,(s_h)
+        ld b,a
+        exx
+        ld h,MIR_HI
+        ld sp,(s_ptr)
+dm_l:   pop de
+        ld l,e
+        ld a,(hl)
+        ld l,d
+        ld d,(hl)
+        exx
+        and (hl)
+        exx
+        or d
+        exx
+        ld (hl),a
+        add hl,de
+        dec b
+        exx
+        jr nz,dm_l
+        ld sp,(s_sp)
+dm_skip:
+        ld hl,s_left
+        inc (hl)
+        ld hl,s_n2
+        dec (hl)
+        jr nz,dm_col
         ret
 
 ; copy the finished view to the screen
 blit:   ld hl,BUF
         ld de,$7000
-        ld b,6
+        ld b,12
 bl1:    push bc
-        call BLIT8
+        call BLIT4
         push hl
         push de
         call poll
@@ -1977,11 +2446,34 @@ QTAB:   db $0C,$10,0,0
         db $0D,$10,1,0
         db $0D,$F0,1,1
         db $0C,$F0,0,1
+MAPPAT: db $00,$00              ; floor
+        db $AA,$AA,$AA,$AA      ; walls
+        db $7D,$7D              ; door
+        db $55,$55              ; way out
+        db $AA,$AA
+        db $F7,$DF              ; locked door
+        db $5F,$F5,$AA,$AA      ; switch
+        db $E6,$E6              ; gate
+        db $AA,$AA              ; secrets stay secret
 latch:  db 1
-latchbase: db $08
+latchbase: db $08               ; theme block: these 9 bytes are copied in together
+skyc:   db $55
+groundc: db 0
+fogz:   db 0
+fogc:   db $AA
+tlib:   ds 4
 s_base: dw BUF
 numbuf: db 0,0,$FF
-level:  db 1
+aflags: ds 12
+area:   db 0
+newarea: db 0
+goarea: db 0
+entrycell: db 0
+entryang: db 0
+keys:   db 0
+opals:  db 0
+mapkey: db 0
+fogged: db 0
 px:     dw 0
 py:     dw 0
 pang:   dw 0
@@ -2000,24 +2492,26 @@ adx:    dw 0
 ady:    dw 0
 depth:  dw 0
 optr:   dw 0
+otp:    dw 0
 orec:   dw 0
 target: dw 0
 best:   dw 0
 gtptr:  dw 0
 ttptr:  dw 0
+aexits: dw 0
 s_ptr:  dw 0
 s_row:  dw 0
 s_adv:  dw 0
 s_sp:   dw 0
-s_w:    db 0
+s_n1:   db 0
+s_n2:   db 0
+s_odd:  db 0
 s_h:    db 0
 s_left: db 0
 s_top:  db 0
 s_z:    db 0
 hp:     db 0
 ammo:   db 0
-key:    db 0
-bears:  db 0
 leveldone: db 0
 huddirty: db 0
 msgt:   db 0
@@ -2057,6 +2551,7 @@ scol:   db 0
 nvis:   db 0
 tz:     db 0
 otype:  db 0
+oflg:   db 0
 oflags: db 0
 ocool:  db 0
 oframe: db 0

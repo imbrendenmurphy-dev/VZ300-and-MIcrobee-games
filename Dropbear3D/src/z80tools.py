@@ -98,6 +98,7 @@ def assemble(src, syms):
                     b=[0xEB] if a==['de','hl'] else None
                 elif op in ROT: b=[0xCB,ROT[op]<<3|R8[a[0]]]
                 elif op=='in': b=[0xDB,V(a[1])&255]
+                elif op=='out': b=[0xD3,V(a[0])&255]
                 elif op in('bit','res','set'):
                     b=[0xCB,{'bit':0x40,'res':0x80,'set':0xC0}[op]|V(a[0])<<3|R8[a[1]]]
                 assert b is not None
@@ -112,6 +113,14 @@ class Z80:
     def __init__(s,mem):
         s.m=mem; s.r=[0]*8; s.r2=[0]*8; s.fc=s.fz=s.fs=0; s.sp=0; s.pc=0; s.t=0
         s.latch=0; s.keys={}; s.ioreads=[]; s.FIELD=70630; s.SYNC=12740; s.logio=False
+        s.bank=1; s.other=bytearray(0x2800); s.outs=[]
+    def out(s,port,v):
+        s.outs.append((port,v))
+        if port==0x37:
+            assert v in (1,3), 'unexpected mapper value %d'%v
+            nb=v
+            if nb!=s.bank:
+                cur=bytes(s.m[0x4000:0x6800]); s.m[0x4000:0x6800]=s.other; s.other=bytearray(cur); s.bank=nb
     def rd(s,a):
         if 0x6800<=a<0x7000:
             if s.logio: s.ioreads.append(s.t)
@@ -123,6 +132,7 @@ class Z80:
     def wr(s,a,v):
         if a>=0x7000: s.m[a]=v
         elif a>=0x6800: s.latch=v
+        elif a>=0x4000: s.m[a]=v
     def g(s,i): return s.rd(s.r[4]<<8|s.r[5]) if i==6 else s.r[i]
     def p(s,i,v):
         if i==6: s.wr(s.r[4]<<8|s.r[5],v)
@@ -220,6 +230,7 @@ class Z80:
                 elif y==5: r[2],r[3],r[4],r[5]=r[4],r[5],r[2],r[3]; s.t+=4
                 elif y in(6,7): s.t+=4
                 elif y==3: s.imm(); s.r[7]=0xFF; s.t+=11
+                elif y==2: s.out(s.imm(),s.r[7]); s.t+=11
                 else: raise Exception('op %02x'%op)
             elif z==4:
                 a=s.imm16()
