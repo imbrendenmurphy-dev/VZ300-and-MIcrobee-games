@@ -20,6 +20,7 @@ entry:  di
         INCLUDE "game.asm"
         INCLUDE "sound.asm"
         INCLUDE "tables.inc"
+        INCLUDE "regions.inc"
         INCLUDE "snd.inc"
         INCLUDE "sprtab.inc"
 prog_end:

@@ -65,7 +65,8 @@ want_start: ds 1
 hud_dirty:  ds 1
 hearts:     ds 1
 bugs:       ds 1
-collected:  ds 8
+collected:  ds 16
+region:     ds 1
 hudname:    ds 17
 ; Bluff
 hx:         ds 2

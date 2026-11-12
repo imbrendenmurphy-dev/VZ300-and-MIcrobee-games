@@ -17,22 +17,35 @@ Bluff wants his dinner back. He cannot hurt a thing. He can only *bluff*:
 * **Run flat out and he bolts** — upright on his hind legs, the way real
   frillies do — fast enough to leap further and to run across water.
 
+Not everything falls for it. **Magpies** swoop on him from above (a bluff sends
+them off squawking), and a **goanna** is simply not impressed: it charges,
+faster than Bluff can walk, so he has to jump it, climb away or outrun it.
+
 | | |
 |---|---|
 | ![](screenshots/00-title.png) | ![](screenshots/00-title-amber.png) |
 | ![](screenshots/01-the-bluff.png) | ![](screenshots/02-sprinting-the-billabong.png) |
 | ![](screenshots/04-the-old-gum.png) | ![](screenshots/05-the-canopy.png) |
 | ![](screenshots/06-lookout-rock.png) | ![](screenshots/07-amber-canopy.png) |
+| ![](screenshots/10-magpie-swoop.png) | ![](screenshots/11-goanna-not-impressed.png) |
+| ![](screenshots/12-the-gorge.png) | ![](screenshots/13-rock-art-cave.png) |
+| ![](screenshots/14-stone-tops.png) | ![](screenshots/15-amber-cave.png) |
 
 ## What is playable
 
-**The Red Dirt**, the first region: six rooms from the savanna to the treetops —
-The Red Dirt, the Billabong, Mound City, the Old Gum, the Canopy and Lookout
-Rock — with 22 bugs to find and King Bufo's larder (a jar of pinched bugs) at
-the end. A title screen with its own two-voice theme, a game-over screen and a
-region-clear screen. Still to come: the other four regions, more creatures,
-King Bufo himself, saving to disk and an ending (see
-[docs/DESIGN.md](docs/DESIGN.md)).
+Two regions, twelve rooms, 34 bugs:
+
+* **The Red Dirt** — the savanna, the billabong, Mound City, up the Old Gum
+  into the Canopy, and Lookout Rock.
+* **Stone Country** — the escarpment, a gorge with a waterfall (glide across
+  it), a cave of ochre hand stencils, a chimney climbed ledge by ledge, the
+  moonlit stone tops, and the Great Rock.
+
+Each region ends at a jar of King Bufo's pinched bugs. A title screen with its
+own two-voice theme; lose your hearts and you try again from the start of the
+region, keeping every bug you found (ESC goes back to the title). Still to
+come: the other three regions, King Bufo himself, saving to disk and an
+ending (see [docs/DESIGN.md](docs/DESIGN.md)).
 
 ## To run it
 
@@ -48,6 +61,7 @@ at the title.
 | Frill: bluff on the ground, glide in the air | ↑ or Q | up |
 | Drop through a branch | ↓ (or A) + jump | down + fire |
 | Sprint | keep running flat out on the ground | |
+| Back to the title | ESC | |
 
 Needs a Premium Plus: 1 MB RAM, 32K PCG RAM.
 

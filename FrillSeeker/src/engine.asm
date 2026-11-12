@@ -477,11 +477,7 @@ sprite:
         ld h,0
         add hl,hl
         add hl,hl
-        ld d,h
-        ld e,l
-        add hl,hl
-        add hl,hl
-        add hl,de               ; x 20
+        add hl,hl               ; x 8
         ld de,sprtab
         add hl,de
         ld a,(cur_blk)
@@ -549,6 +545,10 @@ sprite:
         sub 8
         ld (ds_cy),a
         pop hl
+        ld a,(hl)               ; the frame's eight variants: a table in its block
+        inc hl
+        ld h,(hl)
+        ld l,a
         ld a,(ds_sh)
         add a,a
         ld e,a
@@ -1011,7 +1011,7 @@ keytest:
 
 ; in the game: the arrow keys or O P (left, right), Q (frill), A (down),
 ; SPACE (jump); a joystick too
-keymap: db K_RIGHT,1, K_LEFT,2, K_UP,4, K_SPACE,16, K_DOWN,8, K_P,1, K_O,2, K_Q,4, K_A,8
+keymap: db K_RIGHT,1, K_LEFT,2, K_UP,4, K_SPACE,16, K_DOWN,8, K_P,1, K_O,2, K_Q,4, K_A,8, K_ESC,128
         db $FF
 keymenu: db K_M,32, K_C,64, K_SPACE,16, K_ESC,128
         db $FF

@@ -152,7 +152,7 @@ snd_until:
 ;  HL = song: events (p1, p2, len): p = half-period in loops (0 = rest),
 ;  len in fiftieths, b7 set = run straight on (no gap). $FF = from the
 ;  top, $FE = the end. tw_hook is called before each event.
-;  -> Z: the song ended; NZ: SPACE or fire was pressed
+;  -> Z: the song ended; NZ: SPACE/fire or ESC was pressed (A = $10 / $80)
 ; =====================================================================
 TW_ITER     EQU 760         ; 89 T loops in a fiftieth of a second
 TW_GAP      EQU 2600        ; 26 T loops in a fiftieth
@@ -183,7 +183,7 @@ tws_1:  cp $FE
         call read_menu
         pop de
         ld a,(padnew)
-        and $10
+        and $90                 ; SPACE (or fire), or ESC
         ret nz
         ld a,d
         or a

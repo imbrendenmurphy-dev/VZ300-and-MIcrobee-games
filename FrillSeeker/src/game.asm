@@ -21,6 +21,11 @@ O_TOAD      EQU 2
 O_START     EQU 3
 O_SPARK     EQU 4
 O_GOAL      EQU 5
+O_MAGPIE    EQU 6
+O_GOANNA    EQU 7
+E_A         EQU 11          ; (magpie) home x, a word
+E_C         EQU 13          ; (magpie) set up
+E_D         EQU 14          ; cool-down before it attacks again
 SPRINTV     EQU $0200       ; 2 px a tick
 SPRINT_T    EQU 40          ; ticks of flat-out running before he bolts
 WATER_T     EQU 45          ; ticks he can sprint on water
@@ -104,6 +109,8 @@ title_screen:
 .again: ld hl,song_title
         call tw_song
         jr z,.again
+        and $10
+        jr z,.again
         ld hl,hook_none
         ld (tw_hook),hl
         jp game_start
@@ -147,60 +154,134 @@ end_game:
         call cls
         pop af
         dec a
-        jr nz,.over
-        ld hl,t_clear1
-        ld de,$0409
+        jp nz,.over
+        ; a region cleared
+        ld a,(region)
+        call reg_name_a
+        ld d,3
         ld c,YELLOW
-        call print
-        ld hl,t_clear2
-        ld de,$080A
+        call print_centred
+        ld hl,t_isclear
+        ld d,5
+        ld c,YELLOW
+        call print_centred
+        ld hl,t_found
+        ld de,$090A
         ld c,WHITE
         call print
         ld a,(bugs)
-        ld de,$0815
+        ld de,$0915
         ld c,YELLOW
         call print_num
-        ld a,TOTAL_BUGS
-        ld de,$081B
+        ld a,(region)
+        ld hl,reg_total
+        call index_hl
+        ld de,$091B
         ld c,YELLOW
         call print_num
-        ld hl,t_clear3
-        ld de,$0E0A
-        ld c,BCYAN
-        call print
-        ld hl,t_clear4
-        ld de,$100E
-        ld c,BCYAN
-        call print
-        ld hl,song_clear
-        jr .tail
-.over:  ld hl,t_over1
-        ld de,$080F
-        ld c,BRED
-        call print
-        ld hl,t_over2
-        ld de,$0C07
+        ld a,(region)
+        inc a
+        cp NREGIONS
+        jr nc,.last
+        ld hl,t_next
+        ld d,14
         ld c,WHITE
-        call print
-        ld hl,song_over
-.tail:  push hl
-        ld hl,t_again
-        ld de,$160E
-        ld c,BGREEN
-        call print
-        call display_on
-        pop hl
+        call print_centred
+        ld a,(region)
+        inc a
+        call reg_name_a
+        ld d,16
+        ld c,BCYAN
+        call print_centred
+        call .press
+        ld hl,song_clear
         call tw_song
-        call wait_key
+        call z,wait_key         ; a key during the jingle counts
+        ld hl,region
+        inc (hl)
+        jp region_restart
+.last:  ld hl,t_clear3
+        ld d,14
+        ld c,BCYAN
+        call print_centred
+        ld hl,t_clear4
+        ld d,16
+        ld c,BCYAN
+        call print_centred
+        call .press
+        ld hl,song_clear
+        call tw_song
+        call z,wait_key         ; a key during the jingle counts
         jp title_screen
+.over:  ld hl,t_over1
+        ld d,8
+        ld c,BRED
+        call print_centred
+        ld hl,t_over2
+        ld d,12
+        ld c,WHITE
+        call print_centred
+        ld hl,t_over3
+        ld d,17
+        ld c,BGREEN
+        call print_centred
+        ld hl,t_over4
+        ld d,19
+        ld c,GREY
+        call print_centred
+        call display_on
+        ld hl,song_over
+        call tw_song
+        call z,wait_choice
+        and $80
+        jp nz,title_screen
+        jp region_restart
+.press: ld hl,t_again
+        ld d,22
+        ld c,BGREEN
+        call print_centred
+        jp display_on
 
-t_clear1: db "THE RED DIRT IS CLEAR!",0
-t_clear2: db "BUGS FOUND    OF",0
+t_isclear: db "IS CLEAR!",0
+t_found:  db "BUGS FOUND    OF",0
+t_next:   db "NEXT STOP",0
 t_clear3: db "MORE OF THE TOP END",0
 t_clear4: db "COMING SOON",0
 t_over1:  db "GAME OVER",0
 t_over2:  db "THE TOADS HAVE IT - FOR NOW",0
+t_over3:  db "SPACE - TRY AGAIN",0
+t_over4:  db "ESC - BACK TO THE TITLE",0
 t_again:  db "PRESS SPACE",0
+
+; HL = string, D = row, C = colour: printed in the middle of the row
+print_centred:
+        push hl
+        ld b,0
+.l:     ld a,(hl)
+        or a
+        jr z,.d
+        inc b
+        inc hl
+        jr .l
+.d:     ld a,40
+        sub b
+        srl a
+        ld e,a
+        pop hl
+        jp print
+
+; wait for SPACE or ESC: NZ = ESC
+wait_choice:
+.r:     call read_menu
+        ld a,(pad)
+        and $90
+        jr nz,.r
+.w:     call read_menu
+        ld a,(padnew)
+        and $90
+        jr z,.w
+        and $80
+        ret
 
 ; A = number (0-99), D = row, E = column, C = colour: two digits
 print_num:
@@ -234,10 +315,23 @@ wait_key:
 
 ; ---------------------------------------------------------------------
 game_start:
+        xor a
+        ld (bugs),a
+        ld (region),a
+        ld hl,collected
+        ld b,16
+.c:     ld (hl),0
+        inc hl
+        djnz .c
+        ; fall into region_restart
+
+; (re)start the current region at its first room, three hearts. Bugs
+; already found stay found.
+region_restart:
+        ld sp,STACK
         ld a,3
         ld (hearts),a
         xor a
-        ld (bugs),a
         ld (game_end),a
         ld (h_hurt),a
         ld (h_inv),a
@@ -245,21 +339,43 @@ game_start:
         ld (hvx),hl
         ld (hvy),hl
         call sprint_stop
-        ld hl,collected
-        ld b,8
-.c:     ld (hl),0
-        inc hl
-        djnz .c
         ld a,1
         ld (want_start),a
         ld (mus_on),a
         ld hl,tune
         ld (mus_ptr),hl
-        xor a
+        ld a,(region)
+        ld hl,reg_start
+        call index_hl
         call enter_room
+        jp main_loop
+
+; HL = table, A = index -> A = (HL + A)
+index_hl:
+        ld e,a
+        ld d,0
+        add hl,de
+        ld a,(hl)
+        ret
+
+; A = region -> HL = its name
+reg_name_a:
+        add a,a
+        ld e,a
+        ld d,0
+        ld hl,reg_name
+        add hl,de
+        ld a,(hl)
+        inc hl
+        ld h,(hl)
+        ld l,a
+        ret
 
 main_loop:
         call read_input
+        ld a,(pad)
+        rla                     ; ESC: back to the title
+        jp c,title_screen
         ld a,(fields)
         or a
         jr nz,.f1
@@ -1128,7 +1244,35 @@ scare:  ld hl,sfx_hiss
         ld ix,ENTS
         ld b,NENT
 .l:     ld a,(ix+E_TYPE)
-        cp O_TOAD
+        cp O_MAGPIE
+        jr nz,.nm
+        ld a,(ix+E_STATE)
+        cp 3
+        jr z,.n
+        call ent_dx
+        cp 88
+        jr nc,.n
+        call ent_dy
+        cp 88
+        jr nc,.n
+        ld (ix+E_STATE),3       ; off it goes, the other way
+        call ent_face_hero
+        xor 1
+        ld (ix+E_FACE),a
+        ld hl,sfx_squawk
+        call play_sfx
+        jr .n
+.nm:    cp O_GOANNA
+        jr nz,.nt
+        ld a,(ix+E_STATE)       ; a goanna is not impressed
+        dec a
+        jr z,.n
+        call ent_dx
+        cp 120
+        jr nc,.n
+        call goanna_charge
+        jr .n
+.nt:    cp O_TOAD
         jr nz,.n
         ld a,(ix+E_STATE)
         cp 2
@@ -1192,6 +1336,10 @@ ents_tick:
         call z,spark_tick
         cp O_GOAL
         call z,goal_tick
+        cp O_MAGPIE
+        call z,magpie_tick
+        cp O_GOANNA
+        call z,goanna_tick
         pop bc
         ld de,E_SIZE
         add ix,de
@@ -1414,6 +1562,255 @@ toad_look:
 ; ---------------------------------------------------------------------
 ;  draw everything, back to front
 ; ---------------------------------------------------------------------
+;  entity helpers
+; ---------------------------------------------------------------------
+; A = signed step: x += A
+ent_addx:
+        ld e,a
+        rla
+        sbc a,a
+        ld d,a
+        ld l,(ix+E_X)
+        ld h,(ix+E_X+1)
+        add hl,de
+        ld (ix+E_X),l
+        ld (ix+E_X+1),h
+        ret
+; A = signed step: y += A
+ent_addy:
+        ld e,a
+        rla
+        sbc a,a
+        ld d,a
+        ld l,(ix+E_Y)
+        ld h,(ix+E_Y+1)
+        add hl,de
+        ld (ix+E_Y),l
+        ld (ix+E_Y+1),h
+        ret
+; A = n -> A = n the way the entity faces
+ent_dirstep:
+        bit 0,(ix+E_FACE)
+        ret z
+        neg
+        ret
+; turn to face Bluff (A = the new facing)
+ent_face_hero:
+        ld l,(ix+E_X)
+        ld h,(ix+E_X+1)
+        ld de,(hx)
+        or a
+        sbc hl,de
+        ld a,0
+        jr c,.r
+        ld a,1
+.r:     ld (ix+E_FACE),a
+        ret
+
+; ---------------------------------------------------------------------
+;  the magpie: drifts about its home in the sky, and when Bluff walks
+;  underneath it swoops. A bluff sends it off, squawking.
+;  states: 0 drifting, 1 swooping, 2 climbing back, 3 leaving
+; ---------------------------------------------------------------------
+magpie_tick:
+        ld a,(ix+E_C)
+        or a
+        jr nz,.go
+        inc (ix+E_C)
+        ld a,(ix+E_X)
+        ld (ix+E_A),a
+        ld a,(ix+E_X+1)
+        ld (ix+E_A+1),a
+        ld a,(ix+E_Y)
+        ld (ix+E_HOME),a
+        ld (ix+E_D),60
+.go:    ld a,(ix+E_STATE)
+        or a
+        jr z,.drift
+        dec a
+        jp z,.dive
+        dec a
+        jp z,.climb
+        ; leaving: up and away, then gone until Bluff comes back
+        ld a,3
+        call ent_dirstep
+        call ent_addx
+        ld a,-3
+        call ent_addy
+        bit 7,(ix+E_Y+1)
+        jr z,.ret
+        ld (ix+E_TYPE),0
+.ret:   ld a,O_MAGPIE
+        ret
+.drift: inc (ix+E_T)
+        bit 0,(ix+E_T)
+        jr nz,.cool
+        ld a,1
+        call ent_dirstep
+        call ent_addx
+        ld l,(ix+E_X)
+        ld h,(ix+E_X+1)
+        ld e,(ix+E_A)
+        ld d,(ix+E_A+1)
+        or a
+        sbc hl,de
+        call absb
+        cp 40
+        jr c,.cool
+        call .homeward
+.cool:  ld a,(ix+E_D)
+        or a
+        jr z,.look
+        dec (ix+E_D)
+        jp .touch
+.look:  call ent_dx
+        cp 44
+        jr nc,.touch
+        ld hl,(hy)              ; Bluff well below?
+        ld de,-12
+        add hl,de
+        ld e,(ix+E_Y)
+        ld d,(ix+E_Y+1)
+        or a
+        sbc hl,de
+        jr c,.touch
+        ld (ix+E_STATE),1
+        ld (ix+E_T),0
+        call ent_face_hero
+        ld hl,sfx_swoop
+        call play_sfx
+        jr .touch
+.dive:  ld a,2
+        call ent_dirstep
+        call ent_addx
+        ld a,3
+        call ent_addy
+        inc (ix+E_T)
+        ld a,(ix+E_T)
+        cp 45
+        jr nc,.up
+        ld hl,(hy)              ; down to Bluff's head
+        ld de,-8
+        add hl,de
+        ld e,(ix+E_Y)
+        ld d,(ix+E_Y+1)
+        or a
+        sbc hl,de
+        jr c,.up
+        ld a,(ix+E_Y)
+        cp 168
+        jr c,.touch
+.up:    ld (ix+E_STATE),2
+        jr .touch
+.climb: ld a,2
+        call ent_dirstep
+        call ent_addx
+        ld a,-2
+        call ent_addy
+        ld a,(ix+E_Y)
+        cp (ix+E_HOME)
+        jr z,.home
+        jr nc,.touch
+.home:  ld (ix+E_STATE),0
+        ld (ix+E_D),90
+        call .homeward
+.touch: ld a,(ix+E_STATE)
+        cp 3
+        jp z,.ret
+        call ent_dx
+        cp 10
+        jp nc,.ret
+        call ent_dy
+        cp 12
+        call c,hero_hurt
+        jp .ret
+; face back towards home
+.homeward:
+        ld l,(ix+E_X)
+        ld h,(ix+E_X+1)
+        ld e,(ix+E_A)
+        ld d,(ix+E_A+1)
+        or a
+        sbc hl,de
+        ld a,0
+        jr c,.hw
+        ld a,1
+.hw:    ld (ix+E_FACE),a
+        ret
+
+; ---------------------------------------------------------------------
+;  the goanna: patrols its patch, and when Bluff is on its level it
+;  charges, faster than he can walk. It cannot be bluffed (a bluff just
+;  sets it off): jump it, climb away, or sprint.
+;  states: 0 patrolling, 1 charging, 2 resting, tongue out
+; ---------------------------------------------------------------------
+goanna_tick:
+        ld a,(ix+E_STATE)
+        or a
+        jr z,.patrol
+        dec a
+        jr z,.charge
+        dec (ix+E_T)
+        jr nz,.touch
+        ld (ix+E_STATE),0
+        ld (ix+E_D),50
+        jr .touch
+.patrol:
+        inc (ix+E_T)
+        bit 0,(ix+E_T)
+        jr nz,.p2
+        call toad_look
+        ld a,1
+        call ent_dirstep
+        call ent_addx
+.p2:    ld a,(ix+E_D)
+        or a
+        jr z,.see
+        dec (ix+E_D)
+        jr .touch
+.see:   call ent_dy
+        cp 20
+        jr nc,.touch
+        call ent_dx
+        cp 120
+        jr nc,.touch
+        call goanna_charge
+        jr .touch
+.charge:
+        inc (ix+E_T)
+        ld a,(ix+E_FACE)
+        push af
+        call toad_look
+        pop bc
+        ld a,(ix+E_FACE)
+        cp b
+        jr nz,.stop             ; an edge or a wall ahead
+        ld a,(ix+E_T)
+        and 1
+        inc a                   ; 1, 2, 1, 2: a pixel and a half a tick
+        call ent_dirstep
+        call ent_addx
+        ld a,(ix+E_T)
+        cp 110
+        jr c,.touch
+.stop:  ld (ix+E_STATE),2
+        ld (ix+E_T),60
+.touch: call ent_dx
+        cp 16
+        jr nc,.r
+        call ent_dy
+        cp 12
+        call c,hero_hurt
+.r:     ld a,O_GOANNA
+        ret
+goanna_charge:
+        ld (ix+E_STATE),1
+        ld (ix+E_T),0
+        call ent_face_hero
+        ld hl,sfx_goanna
+        jp play_sfx
+
+; ---------------------------------------------------------------------
 draw_all:
         ; Bluff first: where sprites share a cell, his colour wins
         ld a,(h_inv)
@@ -1463,6 +1860,10 @@ draw_all:
         jr z,.spark
         cp O_GOAL
         jr z,.jar
+        cp O_MAGPIE
+        jr z,.mag
+        cp O_GOANNA
+        jr z,.goa
         ; toad
         ld c,BGREEN
         ld a,(ix+E_STATE)
@@ -1483,6 +1884,28 @@ draw_all:
 .slow:  and 16
         jr z,.go
         ld b,SF_TOAD_BACK1
+        jr .go
+.mag:   ld c,WHITE
+        ld b,SF_MAG_DIVE
+        ld a,(ix+E_STATE)
+        cp 1
+        jr z,.go
+        ld b,SF_MAG_UP
+        ld a,(gtick)
+        and 4
+        jr z,.go
+        ld b,SF_MAG_DOWN
+        jr .go
+.goa:   ld c,GREY
+        ld b,SF_GOAN2
+        ld a,(ix+E_STATE)
+        cp 2
+        jr z,.go
+        ld b,SF_GOAN0
+        ld a,(ix+E_X)
+        and 4
+        jr z,.go
+        ld b,SF_GOAN1
         jr .go
 .jar:   ld c,BCYAN
         ld b,SF_JAR

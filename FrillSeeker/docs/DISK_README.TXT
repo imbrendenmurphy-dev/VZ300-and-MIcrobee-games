@@ -1,4 +1,4 @@
-FRILLSEEKER - THE RED DIRT
+FRILLSEEKER - THE RED DIRT AND STONE COUNTRY
 for the Microbee Premium Plus (1MB RAM, 32K PCG)
 VIBED BY BPM 2026
 
@@ -19,5 +19,9 @@ A joystick works too (fire = jump, up = frill).
 
 A toad on its back is a trampoline. Eat the bugs.
 
-The first region: six rooms, 22 bugs, and King
-Bufo's larder at the end. More of the Top End soon.
+Magpies swoop: bluff them. Goannas are not
+impressed: jump them, climb, or run.
+
+Two regions, twelve rooms, 34 bugs. Lose your
+hearts and try again from the start of the
+region; ESC goes back to the title.

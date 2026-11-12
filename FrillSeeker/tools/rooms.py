@@ -21,7 +21,7 @@ GROUND = 144             # the usual ground line (tile row 9)
 # tile flags
 T_EMPTY, T_SOLID, T_ONEWAY, T_WATER = 0, 1, 2, 3
 # object types
-O_BUG, O_TOAD, O_START, O_GOAL = 1, 2, 3, 5
+O_BUG, O_TOAD, O_START, O_GOAL, O_MAGPIE, O_GOANNA = 1, 2, 3, 5, 6, 7
 
 SKY_BANDS = [(5, BLACK), (4, BLUE), (4, MAGENTA), (3, RED), (6, BROWN)]   # cell rows, top to bottom
 
@@ -110,7 +110,91 @@ ROOMS = [
              "####################",
              "####################",
              "####################"]),
+    dict(name='ESCARPMENT', left=-1, right=7, sun=(60, 100, 26),
+         mesa=[(0, 112), (120, 112), (128, 96), (220, 96), (228, 104), (320, 104)],
+         trees=[(40, 144, 70)], map=[
+             "....................",
+             "....................",
+             "..B..P..........B...",
+             "....................",
+             "..............RRRRRR",
+             "..........B.::RRRRRR",
+             "........::......G...",
+             "S.........RRRRRRRRRR",
+             "......RRRRRRRRRRRRRR",
+             "####################",
+             "####################"]),
+    dict(name='THE GORGE', left=6, right=8, moon=(270, 24),
+         mesa=[(0, 104), (320, 104)],
+         falls=[(140, 172, 0, 148)], map=[
+             "....................",
+             "....................",
+             ".........B..........",
+             ".......P.........B..",
+             "RRRRR..........RRRRR",
+             "RRRRR.::....::.RRRRR",
+             "RRRRR..........RRRRR",
+             "RRRRR....::....RRRRR",
+             "RRRRR..........RRRRR",
+             "RRRRR~~~~~~~~~~RRRRR",
+             "RRRRRRRRRRRRRRRRRRRR"]),
+    dict(name='ROCK ART CAVE', left=7, right=9, cave=True,
+         art=[('hand', 120, 40), ('hand', 140, 52), ('lizard', 230, 64), ('hand', 280, 44), ('hand', 298, 58),
+              ('hand', 180, 100)], map=[
+             "RRRRRRRRRRRRRRRRRRRR",
+             "RRRRRRRRRRRRRRRRRRRR",
+             "....................",
+             "..........B.........",
+             "RRRR................",
+             "RRRRR.....::........",
+             "RRRRRR..........B...",
+             "RRRRRRR.............",
+             "RRRRRRRR.T.....T....",
+             "RRRRRRRRRRRRRRRRRRRR",
+             "RRRRRRRRRRRRRRRRRRRR"]),
+    dict(name='THE CHIMNEY', left=8, right=-1, up=10, cave=True,
+         art=[('hand', 130, 150), ('hand', 40, 150)], map=[
+             "RRRRRR........RRRRRR",
+             "RRRRRR.:::....RRRRRR",
+             "RRRRRR........RRRRRR",
+             "RRRRRR....:::.RRRRRR",
+             "RRRRRR...P....RRRRRR",
+             "RRRRRR.:::....RRRRRR",
+             "RRRRRR.....B..RRRRRR",
+             "..........:::.RRRRRR",
+             "..............RRRRRR",
+             "RRRRRRRRRRRRRRRRRRRR",
+             "RRRRRRRRRRRRRRRRRRRR"]),
+    dict(name='STONE TOPS', left=-1, right=11, down=9, moon=(60, 30),
+         bands=[(12, BLACK), (10, BLUE)], map=[
+             "....................",
+             "....................",
+             "..B...........P.....",
+             "....................",
+             "...........B........",
+             "....::.........::...",
+             "....................",
+             ".................G..",
+             "RRRRRR........RRRRRR",
+             "RRRRRR........RRRRRR",
+             "RRRRRR.::::::.RRRRRR"]),
+    dict(name='THE GREAT ROCK', left=10, right=-1, moon=(40, 28),
+         bands=[(12, BLACK), (10, BLUE)], map=[
+             "....................",
+             ".........P..........",
+             ".......B.......J....",
+             ".............RRRRRRR",
+             "......::.....RRRRRRR",
+             "...B.........RRRRRRR",
+             "..::......::.RRRRRRR",
+             "......G......RRRRRRR",
+             "RRRRRRRRRRRRRRRRRRRR",
+             "RRRRRRRRRRRRRRRRRRRR",
+             "RRRRRRRRRRRRRRRRRRRR"]),
 ]
+
+REGIONS = [dict(name='THE RED DIRT', start=0, rooms=range(0, 6)),
+           dict(name='STONE COUNTRY', start=6, rooms=range(6, 12))]
 
 
 class Paint:
@@ -254,14 +338,89 @@ def leaves(p, cx, cy, rx, ry, density=40):
         p.m[m & ((p.xx + p.yy) % 2 == 0)] = 15
 
 
+def sandstone(p, mp, tx, ty):
+    """Stone Country: banded sandstone, jointed into blocks, lit on its top
+    and its sunward (left) face"""
+    x0, y0 = tx * TW, ty * TH
+    r = p.rect(x0, y0, x0 + TW, y0 + TH)
+    p.put(r, BROWN, 0)
+    p.m[r & ((p.xx + p.yy * 2) % 4 == 0)] = 15      # amber: rock is stippled, the cave wall is not
+    for k, yy in enumerate((3, 8, 13)):
+        y = y0 + yy + (tx % 2 if k == 1 else 0)
+        line = p.rect(x0, y, x0 + TW, y + 1) & ((p.xx + ty * 3 + k) % 5 != 0)
+        p.put(line, (RED, YELLOW, RED)[k], 1 if k == 1 else None)
+    jx = x0 + (4 if ty % 2 else 11)
+    p.put(p.rect(jx, y0, jx + 1, y0 + TH) & (p.yy % 3 != 2), BLACK, None)
+    for i in range(4):
+        p.c[y0 + p.rng.randint(0, TH), x0 + p.rng.randint(0, TW)] = BLACK
+    if ty > 0 and not solid_at(mp, tx, ty - 1):
+        p.put(p.rect(x0, y0, x0 + TW, y0 + 1), YELLOW, 1)
+        p.put(p.rect(x0, y0 + 1, x0 + TW, y0 + 2), BROWN, 0)
+        if p.rng.rand() < 0.5:
+            gx = x0 + p.rng.randint(2, TW - 2)
+            for k in range(p.rng.randint(3, 6)):
+                if y0 - 1 - k >= 0:
+                    p.c[y0 - 1 - k, gx + (k // 3)] = BGREEN
+                    p.m[y0 - 1 - k, gx + (k // 3)] = 15
+    if tx > 0 and not solid_at(mp, tx - 1, ty):
+        p.put(p.rect(x0, y0, x0 + 1, y0 + TH) & (p.yy % 2 == 0), YELLOW, 1)
+    if tx < MW - 1 and not solid_at(mp, tx + 1, ty):
+        p.put(p.rect(x0 + TW - 1, y0, x0 + TW, y0 + TH), BLACK, 1)
+
+
+def cave(p):
+    """the inside of the escarpment: dark rock, speckled, faint strata"""
+    p.put(p.rect(0, 0, PW, PH), BLACK, 0)
+    sp = ((p.xx * 13 + p.yy * 7) % 23 == 0) | ((p.xx * 5 + p.yy * 11) % 37 == 0)
+    p.put(sp, BROWN, None)
+    p.m[((p.xx * 13 + p.yy * 7) % 23 == 0)] = 15
+    for y in range(12, PH, 24):
+        p.put(p.rect(0, y, PW, y + 1) & ((p.xx // 2 + y) % 5 == 0), RED, None)
+
+
+def rock_art(p, kind, x, y):
+    """ochre hand stencils, and a frilled lizard painted long ago"""
+    if kind == 'hand':
+        palm = ((p.xx - x) / 3.2) ** 2 + ((p.yy - (y + 3)) / 4.0) ** 2 < 1
+        fing = np.zeros_like(palm)
+        for dx, h in ((-3, 6), (-1, 8), (1, 8), (3, 6)):
+            fing |= (p.xx == x + dx) & (p.yy <= y) & (p.yy > y - h)
+        fing |= (abs((p.xx - x) + (p.yy - y - 4)) < 1) & (p.xx < x - 3) & (p.xx > x - 8)
+        shape = palm | fing
+        ring = ((p.xx - x) ** 2 + ((p.yy - y) * 1.2) ** 2 < 100) & ~shape & ((p.xx * 3 + p.yy * 5) % 4 == 0)
+        p.put(ring, RED, 1)
+        p.put(shape, BROWN, None)
+    else:
+        m = np.zeros((PH, PW), bool)
+        m |= (abs(p.yy - y) < 1) & (p.xx >= x - 8) & (p.xx <= x + 6)                       # body
+        m |= (abs(p.yy - (y + (p.xx - (x - 8)) ** 2 // 30)) < 1) & (p.xx >= x - 20) & (p.xx < x - 8)
+        for lx in (x - 5, x + 3):                                                            # legs
+            m |= (p.xx == lx) & (p.yy >= y - 4) & (p.yy <= y + 4)
+        d = ((p.xx - (x + 9)) ** 2 + ((p.yy - y) * 1.1) ** 2)
+        m |= (d < 30) & (d > 18)                                                             # the frill
+        m |= (p.xx >= x + 9) & (p.xx <= x + 12) & (abs(p.yy - y) < 1)                        # head
+        p.put(m, WHITE, 1)
+
+
+def falls(p, x0, x1, y0, y1):
+    """a waterfall: streaks that fall three pixels a phase, foam at its foot"""
+    r = p.rect(x0, y0, x1, y1)
+    p.put(r, BLUE, 0)
+    st = r & (((p.xx * 7) % 5) < 2) & (((p.yy - p.ph * 3 + p.xx * 3) % 12) < 6)
+    p.put(st, BCYAN, 1)
+    p.put(r & ((p.xx == x0) | (p.xx == x1 - 1)), WHITE, 1)
+    foam = p.rect(x0 - 6, y1 - 6, x1 + 6, y1) & (((p.xx + p.yy * 3 + p.ph * 2) % 5) < 2)
+    p.put(foam, WHITE, 1)
+
+
 def solid_at(mp, tx, ty):
     if ty < 0:
         return False
     if ty >= MH:
         return True
     if tx < 0 or tx >= MW:
-        return mp[ty][max(0, min(MW - 1, tx))] == '#'
-    return mp[ty][tx] in '#M='
+        return mp[ty][max(0, min(MW - 1, tx))] in '#R'
+    return mp[ty][tx] in '#M=R'
 
 
 def dirt(p, mp, tx, ty):
@@ -319,8 +478,8 @@ def dirt(p, mp, tx, ty):
 def ledge(p, mp, tx, ty):
     """sandstone shelf: a slab in the top two thirds of the tile"""
     x0, y0 = tx * TW, ty * TH
-    left = tx > 0 and mp[ty][tx - 1] == '='
-    right = tx < MW - 1 and mp[ty][tx + 1] == '='
+    left = tx > 0 and mp[ty][tx - 1] in '=:'
+    right = tx < MW - 1 and mp[ty][tx + 1] in '=:'
     xa = x0 + (0 if left else 1)
     xb = x0 + TW - (0 if right else 1)
     slab = p.rect(xa, y0, xb, y0 + 11)
@@ -469,6 +628,12 @@ def paint_room(idx, ph=0):
         gum_tree(p, *t)
     for lv in room.get('leaves', []):
         leaves(p, *lv)
+    if room.get('cave'):
+        cave(p)
+    for kind, x, y in room.get('art', []):
+        rock_art(p, kind, x, y)
+    for f in room.get('falls', []):
+        falls(p, *f)
     tm = np.zeros((MH, MW), np.uint8)
     objs = []
     for ty in range(MH):
@@ -478,8 +643,14 @@ def paint_room(idx, ph=0):
                 tm[ty, tx] = T_SOLID
             elif ch == '=':
                 tm[ty, tx] = T_SOLID
-            elif ch == 'M':
+            elif ch in 'MR':
                 tm[ty, tx] = T_SOLID
+            elif ch == ':':
+                tm[ty, tx] = T_ONEWAY
+            elif ch == 'P':
+                objs.append((O_MAGPIE, tx * TW + 8, ty * TH + 16))
+            elif ch == 'G':
+                objs.append((O_GOANNA, tx * TW + 8, ty * TH + 16))
             elif ch == '-':
                 tm[ty, tx] = T_ONEWAY
             elif ch == '~':
@@ -511,7 +682,7 @@ def paint_room(idx, ph=0):
             ch = mp[ty][tx]
             if ch == 'M':
                 mound(p, mp, tx, ty)
-            elif ch == '=':
+            elif ch in '=:':
                 ledge(p, mp, tx, ty)
             elif ch == '-':
                 branch(p, mp, tx, ty)
@@ -519,6 +690,8 @@ def paint_room(idx, ph=0):
         for tx in range(MW):
             if mp[ty][tx] == '#':
                 dirt(p, mp, tx, ty)
+            elif mp[ty][tx] == 'R':
+                sandstone(p, mp, tx, ty)
     return p, tm, objs
 
 

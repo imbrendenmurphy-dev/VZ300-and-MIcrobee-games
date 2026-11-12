@@ -325,19 +325,46 @@ right *and up*:
 * **Frame rate,** measured in every room: a steady 25 (98–100 % of frames on
   time; the Canopy is the busiest).
 
-**Not yet:** the other four regions, more creatures, King Bufo, an attract
-mode, checkpoint saves to disk, key set-up, in-game music worth the name, an
-ending.
+**Stone Country** (the second region, added 12 Nov): six more rooms joined
+left, right, up and down — Escarpment, The Gorge, Rock Art Cave, The Chimney,
+Stone Tops, The Great Rock — in a new material, banded and jointed
+sandstone, with one-way rock ledges to jump up through.
+
+* **The magpie** drifts round its patch of sky and swoops when Bluff walks
+  beneath it (a whistle gives it away). A bluff sends it off squawking for
+  the rest of the visit. The way to use the frill against something that
+  flies.
+* **The goanna** patrols its ground and charges, at 1.5 pixels a tick
+  (Bluff walks at 1.25 and sprints at 2), when he is on its level. It cannot
+  be bluffed — a bluff just sets it off. Jump it, climb away, or sprint.
+* **The waterfall** in the Gorge is living background: streaks fall three
+  pixels a phase, foam churns at its foot, at no cost to the frame.
+* **Rock art:** ochre hand stencils and an old painting of a frilled lizard
+  in the cave, painted into the room like everything else.
+* **Regions:** clearing a region shows what you found and where you are going
+  next, then carries on there. Losing your last heart offers to try again
+  from the start of the region with every bug kept (or ESC for the title).
+* **A key pressed during a jingle counts**: long notes are played in short
+  pieces so a quick press is never missed.
+* **Room for more code:** the room shadows moved up into an unused 1K, and
+  each sprite frame's eight pre-shift pointers now live in its graphics block
+  rather than the program. The program is 8.5K with 2.8K to spare.
+* **Frame rate:** a steady 25 in every room but the Escarpment, where Bluff,
+  a charging goanna and a magpie together make it 23.5.
+
+**Disk and memory:** the two regions take 138 of the disk's 196 blocks and
+RAM blocks 4–21. A third region will need the rooms compressed on the disk
+(the LZ packer from the Australian Open Tennis disk is already in `tools/`)
+and loaded a region at a time.
+
+**Not yet:** the other three regions, King Bufo, an attract mode, checkpoint
+saves to disk, key set-up, in-game music worth the name, an ending.
 
 ## 6. Next
 
-1. **Feel on the real machine:** the sprint's speed and how long it takes to
-   build, the jump, the glide.
-2. **Re-plumb for size.** The program is 8.4K at 8000h with about 1.5K to
-   spare before the room shadows. Move game logic and the front end into
-   their own 32K block; keep the renderer and sound upstairs.
-3. **More creatures:** something that flies (a magpie that swoops — bluffing
-   it sends it off), something that can't be bluffed (a goanna that has to be
-   outrun with the sprint).
-4. **Stone Country**, the second region, and a world map between regions.
-5. **Saving** progress to the disk, an attract mode, King Bufo, the ending.
+1. **Feel on the real machine**, especially the sprint, the magpie's swoop
+   and the goanna's charge.
+2. **Rooms compressed and loaded by region**, to make room on the disk and in
+   memory for the rest of the Top End.
+3. **The Diggings**: an opal mine — dark, glittering, minecarts.
+4. **Saving** progress to the disk, an attract mode, King Bufo, the ending.

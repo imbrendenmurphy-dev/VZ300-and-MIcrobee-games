@@ -34,9 +34,9 @@ MEMV        MACRO blk
 BLK_WORK    EQU 1
 BLK_SPR     EQU 4           ; sprite frames, blocks 4..7
 BLK_GFX     EQU 8           ; font
-BLK_ROOMC   EQU 12          ; rooms, colour art: two rooms a block
-BLK_ROOMM   EQU 16          ; rooms, monochrome art
-BLK_TITLE   EQU 20          ; the title picture: colour at 0000, mono at 4000
+BLK_ROOMC   EQU 9           ; rooms, colour art: two rooms a block (9-14)
+BLK_ROOMM   EQU 15          ; rooms, monochrome art (15-20)
+BLK_TITLE   EQU 21          ; the title picture: colour at 0000, mono at 4000
 
 ; ---- the title record (tools/title.py)
 T_SCR       EQU $0100
@@ -60,10 +60,10 @@ COLS        EQU 40
 
 ; ---- upper memory (block 0). The four 1K cell tables are 400h apart:
 ; code relies on it.
-COLSH       EQU $A800       ; the room's colours
-SCRSH       EQU $AC00       ; the room's screen codes (background)
-ATTSH       EQU $B000       ; the room's glyph banks (b4: busy cell)
-CELLMAP     EQU $B400       ; this frame's pool slot for each cell (0 = none)
+COLSH       EQU $AC00       ; the room's colours
+SCRSH       EQU $B000       ; the room's screen codes (background)
+ATTSH       EQU $B400       ; the room's glyph banks (b4: busy cell)
+CELLMAP     EQU $B800       ; this frame's pool slot for each cell (0 = none)
 TILEPAT     EQU $C000       ; the room's glyph patterns, 1024 x 8
 POOLBUF     EQU $E000       ; this frame's composed glyphs, 8 bytes a slot
 LISTA       EQU $E400       ; cell lists (CELLMAP addresses), 2 bytes a slot
