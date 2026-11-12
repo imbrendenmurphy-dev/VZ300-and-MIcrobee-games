@@ -326,3 +326,54 @@ Every build is also run in the project's test emulator first, but the emulator o
 - **Shadows:** a green ellipse under each fighter, narrower in the air, drawn as byte spans.
 - **Whip balance:** Whip Crack is now 9/2/14 ticks and 11 damage (was 7/2/9 and 14). Ankle Snare is 9/2/15 and 10 damage (was 8/2/11 and 12). The CPU throws the whip about half as often.
 - **Memory:** the variables moved to $FA00, the SD DOS work area, which is free because the game never calls the DOS. That left about 1.4K spare in the program.
+
+---
+
+## 13. The world tour (replaces the travelling-show circuit)
+
+The single-player game is a Street Fighter-style world tour: eight fighters, eight home stages, then a final bout. Main Street, Arizona, is one stop. Mock-ups of every stage are in `mockups/worldtour/` as real 128x64 pictures in the VZ's own palettes.
+
+### Two palettes
+
+The VZ300's Mode 1 has a second colour set, CSS1: buff (white), cyan, magenta and orange. Your machine has already passed a timed CSS-switch test. Switching palette per stage gives:
+- **Sunset and night stages** in CSS0: green, yellow, blue, red.
+- **Daylight stages** in CSS1.
+
+The readability rules are written by palette position, so they hold in both:
+
+| Position | CSS0 | CSS1 | Use |
+|---|---|---|---|
+| 0 | green | white | Plain ground behind the fighters' bodies (rows 28-45) |
+| 1 | yellow | cyan | Line work, the glow or sky at hat height, the street |
+| 2 | blue | magenta | Player 1. Only above head height or at the edges |
+| 3 | red | orange | Player 2. The same |
+
+In CSS1, player 1 is magenta and player 2 orange, with cyan detail. The HUD text uses white in CSS1, for contrast on the magenta band.
+
+### The tour
+
+| Stop | Stage | Palette | Home fighter | Style |
+|---|---|---|---|---|
+| USA | Main Street, at sunset | CSS0 | Dusty Marlowe, rodeo rider | Long reach (whip) |
+| Australia | Never Never Station: woolshed at sunrise, Uluru, ghost gum, sheep yards | CSS0 | Flick Finnegan, shearer | Rushdown |
+| Greece | Oia Cliffs: white chapels and bell tower over the Aegean at sunset | CSS1 | Nikos Kalogeros, sponge diver | Heavy grappler, anchor swing |
+| Japan | Snow Temple, Kyoto: temple hall, torii gate, pagoda, lanterns, falling snow | CSS1 | Hana Saeki, temple bell keeper | Staff, mid-range |
+| Egypt | Nile by Night: temple columns, pyramids, palms, a felucca, the moon | CSS0 | Amun Sadek, felucca boatman | Oar, keep-away |
+| Iceland | Harbour Lights, Reykjavik: coloured houses, lighthouse, fish racks, aurora | CSS0 | Sigrun Halla, trawler captain | Power, armoured charge |
+| Mexico | Mercado, Oaxaca: papel picado, church front, market stalls, a pinata | CSS1 | Lupe "La Chispa" Ortega, luchadora | Aerial |
+| India | Palace of Winds, Jaipur: pink honeycomb palace, kites, a domed pavilion | CSS1 | Ravi Menon, kabaddi champion | Agile, slides and grabs |
+| Final | (to design) | - | Maxwell Sable, the tour's promoter | Boss |
+
+### Tour order
+
+- Pick a fighter, then fight the other seven, each on their home stage.
+- Then a mirror match, then Sable.
+- Continues stay unlimited, and you re-fight only the opponent who beat you.
+
+### What building it needs (next steps)
+
+1. **Per-stage settings.** Palette, HUD text colour and shadow colour. These are small changes; the engine already redraws the stage from data.
+2. **Loading stages and fighters per match.** Each stage is 2.6K, plus its 2-pixel copy built at load time. Each fighter is 9-12.5K with shifted frames. Only two fighters and one stage are needed at a time, but v0.6 overwrites the SD DOS to fit two fighters. So the tour needs one of two things:
+   - **(a) The 18K high bank:** port $37 bit 2 swaps $B800-$FFFF. Earlier tests were inconclusive, so a test program comes first.
+   - **(b) Keeping the DOS intact:** fighter frames go in bank 1 and main RAM, shifted copies are dropped where needed, and `RUMBLE.DAT` is loaded between matches.
+3. **Six new fighters.** They use the same pose renderer as Flick and Dusty, with two signature moves each.
