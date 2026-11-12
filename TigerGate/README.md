@@ -18,8 +18,15 @@ fortress beyond the Tiger Gate. Ren, his last student, follows. Alone. Barehande
 | 5 | The Inner Gate | two guards then the Gate Oni (slow, heavy, long wind-ups) back to back | endurance |
 | 6 | The Tiger Throne | Kurokage: feints, flurries, gets faster when hurt | wait for the real blow |
 
-Story scenes: the opening (the dojo burns), Kurokage before the Lantern Hall, Master Hoshi
-caged before the final duel, the ending at sunrise, a cast roll and the credits.
+Story scenes: four illustrated opening pictures (the dojo burns, the fortress beyond the Tiger Gate,
+Ren in the ashes at dawn, the mountain road), Kurokage before the Lantern Hall, Master Hoshi caged
+before the final duel, the ending at sunrise, a cast roll and the credits.
+
+Music: the title theme, ending theme and jingles use a three-voice beeper player (bass, melody,
+harmony interleaved on the one-bit speaker at about 16.5 kHz). In play, the stage music stays as
+slow single blips so the fight keeps its speed.
+
+The high-score screen (Hall of Masters) has a picture header and a marching, colour-cycling border.
 
 ## Presentation
 
@@ -41,7 +48,8 @@ caged before the final duel, the ending at sunrise, a cast roll and the credits.
 | Punch | Q | A | Z |
 | Kick | W | S | X |
 
-M back, comma forward (hold forward to run when the way is clear), N guard, B bow,
+M back, comma forward. Between bouts hold either to run left or right and look round the
+scenery; in a duel they step. N guard, B bow,
 SPACE stance. Joystick: fire punch, arm kick, both guard, up/down aims high/low.
 Title: D difficulty, M music, E effects, S starting stage (stages you have reached this session).
 
@@ -52,10 +60,10 @@ Health creeps back while you go unhit. A knockdown offers an instant retry of th
 ## SD card files (all in one folder)
 
     TIGRGATE.VZ      launcher, engine, Ren's frames, font, music  (loads at $8000)
-    TGFRONT.DAT      title picture and opening scene
+    TGFRONT.DAT      title picture, four story pictures, high-score header, title theme
     TGFOES1-6.DAT    each stage's opponent frames (copied into SRAM bank B at $4000)
     TGSTAGE1-6.DAT   each stage's scenery layers, floor, animations, AI levels, script, scene
-    TGEND.DAT        ending picture and cast portraits
+    TGEND.DAT        ending picture, cast portraits, ending theme
 
 Every data file carries a "T?" header, number and checksum. If one is missing or damaged
 the screen shows its name: fire retries, Q returns to the title.
@@ -76,8 +84,8 @@ High scores and stage unlocks are kept for the session only (SD writes are not u
 ## Technical
 
 - No interrupts; the loop syncs to field sync on the latch: 25 game ticks a second.
-- Memory: vars/stack $7800-$7FFF, resident $8000-$B9BF, pack $C800-$E7FF, buffers
-  $E800-$EE5F, DOS stack $F7F0 during loads, sector buffer $F800. Nothing at $FA00+.
+- Memory: vars/stack $7800-$7FFF, resident $8000-$BE7F, pack $C800-$E7FF (the front
+  pack runs on to $EFFF), buffers $E800-$EE5F, DOS stack $F7F0 during loads, sector buffer $F800. Nothing at $FA00+.
 - SD loading calls the DOS exactly as Graves 'n' Gargoyles does ($5F00/$5F03/$5F09).
 - Screen rows 0-19 come straight from the far layer, rows 20-31 are far and mid layers
   composited (blue in the mid layer is see-through), rows 32-57 are a 48-byte-wide work

@@ -21,6 +21,7 @@ def seal(p, m2, num, nsec):
 # ---------------------------------------------------------------- resident
 hero = frames(HERO)
 open(OUT+'/hero.bin', 'wb').write(fb(hero))
+open(OUT+'/herol.bin', 'wb').write(fb([mirror(f) for f in hero[:5]]))
 with open(OUT+'/frames.asm', 'w') as f:
     for i, (n, _) in enumerate(POSES): f.write('F_%s equ %d\n' % (n, i))
 masktab = bytes(sum((0 if (b >> s) & 3 else 3) << s for s in (0, 2, 4, 6)) for b in range(256))
@@ -64,19 +65,78 @@ def tune(name, beat, notes, gap=0.3):
             s += ' dw 0,%d,0\n' % max(1, round(beat*b*gap/1000*CLK/26))
         else: s += ' dw 0,%d,0\n' % min(65535, round(beat*b/1000*CLK/26))
     return s+' dw $FFFF\n'
-m = ''
-m += tune('tune_title', 150, [('A4',1),('C5',1),('E5',2),('F5',1),('E5',1),('C5',2),('B4',1),('C5',1),('E5',1),('C5',1),('B4',2),('A4',2),
+# ---- three-voice tunes (bass / melody / harmony) for the play3 engine
+SR = CLK/214.0
+CHORDS = {'Am': ('A2', ['A3', 'C4', 'E4']), 'F': ('F2', ['F3', 'A3', 'C4']), 'E': ('E2', ['E3', 'G#3', 'B3']),
+          'Dm': ('D2', ['D3', 'F3', 'A3']), 'C': ('C3', ['C4', 'E4', 'G4']), 'G': ('G2', ['G3', 'B3', 'D4'])}
+def pc(n): return NOTE[n[:-1]]
+def harmonise(mel, bar):
+    t = 0; bars = {}
+    for n, b in mel:
+        if n:
+            bars.setdefault(int(t//bar), []).append((pc(n), b))
+        t += b
+    out = []
+    for k in range(int(math.ceil(t/bar))):
+        best = 'Am'; bs = -1
+        for name in ('Am', 'F', 'E', 'C', 'Dm', 'G'):
+            tones = {pc(x) for x in CHORDS[name][1]}
+            sc = sum(b for p, b in bars.get(k, []) if p in tones)
+            if sc > bs: bs = sc; best = name
+        out.append(best)
+    return out, t
+def inc(n): return 0 if n is None else round(freq(n)*65536/SR)
+def poly(name, unit_ms, mel, bar=4, chords=None, stac=0.72):
+    chords, total = harmonise(mel, bar) if chords is None else (chords, sum(b for _, b in mel))
+    ev = [[], [], []]
+    t = 0
+    for n, b in mel:
+        if n: ev[1].append((t, b*stac, n))
+        t += b
+    for k, c in enumerate(chords):
+        root, tones = CHORDS[c]; t0 = k*bar
+        up = root[:-1]+str(int(root[-1])+1)
+        for o, (n, d) in enumerate(((root, 0.8), (up, 0.45), (root, 0.8), (tones[2][:-1]+str(int(tones[2][-1])-1), 0.45))):
+            if t0+o < total: ev[0].append((t0+o, d, n))
+        for o in range(bar):
+            if t0+o < total: ev[2].append((t0+o, 0.55, tones[(0, 1, 2, 1)[o % 4]]))
+    cuts = {0.0, float(total)}
+    for ch in ev:
+        for s0, d, n in ch: cuts.add(round(s0, 3)); cuts.add(round(s0+d, 3))
+    cuts = sorted(cuts)
+    rows = []
+    for a, b in zip(cuts, cuts[1:]):
+        if b-a < 1e-6: continue
+        f = []
+        for ch in ev:
+            cur = None
+            for s0, d, n in ch:
+                if s0 <= a+1e-6 and a < s0+d-1e-6: cur = n
+            f.append(inc(cur))
+        n = round((b-a)*unit_ms/1000*SR)
+        if rows and rows[-1][1:] == f: rows[-1][0] += n
+        else: rows.append([n]+f)
+    data = b''.join(bytes([r[0] & 255, r[0] >> 8, r[1] & 255, r[1] >> 8, r[2] & 255, r[2] >> 8, r[3] & 255, r[3] >> 8])
+                    for r in rows if r[0] < 65536)+b'\0\0'
+    return data
+def asmbytes(name, data):
+    return name+':\n'+''.join(' db '+','.join(str(b) for b in data[i:i+16])+'\n' for i in range(0, len(data), 16))
+TITLE_MEL = [('A4',1),('C5',1),('E5',2),('F5',1),('E5',1),('C5',2),('B4',1),('C5',1),('E5',1),('C5',1),('B4',2),('A4',2),
  ('A4',1),('C5',1),('E5',2),('F5',1),('E5',1),('A5',2),('F5',1),('E5',1),('C5',1),('B4',1),('A4',3),(None,1),
  ('E5',1),('E5',1),('F5',1),('E5',1),('C5',2),('B4',2),('C5',1),('B4',1),('A4',1),('F4',1),('E4',2),(None,2),
- ('A4',1),('B4',1),('C5',1),('E5',1),('F5',2),('E5',2),('C5',1),('B4',1),('A4',4)])
-m += tune('tune_end', 170, [('E4',1),('A4',1),('B4',1),('C5',2),('B4',1),('A4',1),('E5',3),(None,1),
+ ('A4',1),('B4',1),('C5',1),('E5',1),('F5',2),('E5',2),('C5',1),('B4',1),('A4',4)]
+END_MEL = [('E4',1),('A4',1),('B4',1),('C5',2),('B4',1),('A4',1),('E5',3),(None,1),
  ('F5',1),('E5',1),('C5',1),('B4',1),('A4',2),('C5',2),('B4',4),(None,1),
  ('A4',1),('C5',1),('E5',1),('A5',2),('G5',1),('F5',1),('E5',2),('C5',1),('E5',1),('F5',2),('E5',2),
- ('C5',1),('B4',1),('A4',1),('B4',1),('C5',2),('E5',2),('A5',6)])
-m += tune('tune_stage', 120, [('E4',1),('A4',1),('E5',1),('A5',3)])
-m += tune('tune_win', 110, [('A4',1),('C5',1),('E5',1),('A5',2)])
-m += tune('tune_clear', 130, [('A4',1),('B4',1),('C5',1),('E5',1),('F5',1),('E5',1),('A5',3)])
-m += tune('tune_lose', 200, [('E4',1),('C4',1),('B3',1),('A3',3)], 0.2)
+ ('C5',1),('B4',1),('A4',1),('B4',1),('C5',2),('E5',2),('A5',6)]
+title_tune = poly('title', 150, TITLE_MEL)
+end_tune = poly('end', 170, END_MEL)
+m = ''
+m += asmbytes('tune_stage', poly('s', 120, [('E4',1),('A4',1),('E5',1),('A5',3)], bar=6, chords=['Am']))
+m += asmbytes('tune_win', poly('w', 110, [('A4',1),('C5',1),('E5',1),('A5',2)], bar=5, chords=['Am']))
+m += asmbytes('tune_clear', poly('c', 130, [('A4',1),('B4',1),('C5',1),('E5',1),('F5',1),('E5',1),('A5',3)], bar=4, chords=['Am', 'F', 'Am']))
+m += asmbytes('tune_lose', poly('l', 200, [('E4',1),('C4',1),('B3',1),('A3',3)], bar=3, chords=['E', 'Am'], stac=0.85))
+print('title tune %d bytes, ending %d bytes' % (len(title_tune), len(end_tune)))
 BL = ['A4', 'B4', 'C5', 'E5', 'F5', 'A5', 'E4', 'F4']
 m += 'bliptab:\n'+''.join(' dw %d,%d,%d\n' % rec(freq(n), 9) for n in BL)
 for nm, f, ms in [('r_step', 1500, 2), ('r_thud', 110, 28), ('r_ko1', 420, 45), ('r_ko2', 280, 45), ('r_ko3', 150, 70),
@@ -168,10 +228,19 @@ for n, sd in enumerate(STAGES, 1):
     previews.append(st)
 
 # front: title + opening scene
-fr = bytearray(256)+packrows(title().rows())+packrows(scene_open().rows())
-open(SD+'/TGFRONT.DAT', 'wb').write(seal(fr, 'R', 0, 7))
+fr = bytearray(256)+packrows(title().rows())
+for sc in (scene_open, scene_fort, scene_ashes, scene_road): fr += packrows(sc().rows())
+fr += packrows(hi_header().rows())
+assert len(fr) == 8192
+fr[4] = (PACK+8192) & 255; fr[5] = (PACK+8192) >> 8
+fr += title_tune
+assert len(fr) <= 20*512 and PACK+len(fr) <= 0xF000
+open(SD+'/TGFRONT.DAT', 'wb').write(seal(fr, 'R', 0, 20))
 # end: ending scene + cast frames
 cast = [mirror(frames(STYLES[k])[pidx('FIGHT1')]) for k in ('keeper', 'guard', 'monk', 'scout', 'oni', 'kuro')]
 en = bytearray(256)+packrows(scene_end().rows())+fb(cast)
-open(SD+'/TGEND.DAT', 'wb').write(seal(en, 'E', 0, 6))
+en[4] = (PACK+len(en)) & 255; en[5] = (PACK+len(en)) >> 8
+en += end_tune
+assert len(en) <= 12*512
+open(SD+'/TGEND.DAT', 'wb').write(seal(en, 'E', 0, 12))
 print('gen ok')

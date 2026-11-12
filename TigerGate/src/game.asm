@@ -128,7 +128,8 @@ democnt equ vars0+39     ; 2 bytes
 animfr equ vars0+41      ; 8
 parts equ vars0+49       ; 4 x (x, y, t)
 manual equ vars0+61
-VARS0LEN equ 62
+hfacing equ vars0+62
+VARS0LEN equ 63
 stage equ VARS+100
 diff equ VARS+101
 musicon equ VARS+102
@@ -162,6 +163,8 @@ gf_hl equ VARS+138
 gf_bc equ VARS+140
 gf_de equ VARS+142
 tmpcnt equ VARS+144
+p3ptr equ VARS+190
+p3acc equ VARS+192
 herovis equ VARS+145
 hitab equ VARS+150      ; 5 x (3 letters, score word)
 numbuf equ VARS+180
@@ -294,7 +297,7 @@ errname: ds 14
 ensurefront:
     ld a,(curpack) : cp 'F' : ret z
     call loadingmsg
-    ld hl,n_front : ld b,7 : ld e,'R' : ld c,0 : call getfile : jr c,ensurefront
+    ld hl,n_front : ld b,20 : ld e,'R' : ld c,0 : call getfile : jr c,ensurefront
     ld a,'F' : ld (curpack),a : ret
 loadingmsg:
     ld a,$AA : call cls
@@ -330,7 +333,7 @@ titlescr:                       ; -> NZ start game, Z timed out
     ld a,(tplayed) : or a : jr nz,.wait
     inc a : ld (tplayed),a
     ld a,1 : ld (tunekeys),a
-    ld hl,tune_title : call playtune : jr nz,.key
+    ld hl,(PACK+4) : call playtune : jr nz,.key
 .wait: ld bc,450
 .w: push bc : call waitvs : call menukey : pop bc : jr nz,.key
     dec bc : ld a,b : or c : jr nz,.w
@@ -403,7 +406,9 @@ joydet:                         ; joystick ports must idle high or they are igno
 
 opening:                        ; -> NZ if a key skipped it
     ld hl,PACK+2304 : ld de,open_txt : call scene : ret nz
-    ld hl,story_txt : jp textscr
+    ld hl,PACK+3584 : ld de,fort_txt : call scene : ret nz
+    ld hl,PACK+4864 : ld de,ashes_txt : call scene : ret nz
+    ld hl,PACK+6144 : ld de,road_txt : jp scene
 
 scene:                          ; HL = 128x40 picture, DE = text -> NZ if a key ended it
     push de : push hl
@@ -415,7 +420,7 @@ scene:                          ; HL = 128x40 picture, DE = text -> NZ if a key 
     push hl : push de : call waitvs : pop de : pop hl
     pop bc : djnz .r
     pop hl : call printlines
-    ld bc,500 : jp waitkeyto
+    ld bc,350 : jp waitkeyto
 
 textscr:                        ; HL = text table -> NZ if a key ended it
     push hl : call waitnokey : ld a,$AA : call cls : pop hl
@@ -536,11 +541,13 @@ num5:                           ; HL value -> DE 5 digits
     sbc hl,bc : ld (de),a : inc de : ret
 
 hiscr:                          ; -> NZ if a key ended it
+    call ensurefront
     call waitnokey
     ld a,$AA : call cls
+    ld hl,PACK+7424 : ld de,VRAM : ld bc,768 : ldir
     ld a,$FF : ld (txtcol),a
-    ld hl,hall_txt : ld de,4*256+8 : call printat
-    ld ix,hitab : ld d,16 : ld b,5 : ld c,'1'
+    ld hl,hall_txt : ld de,26*256+8 : call printat
+    ld ix,hitab : ld d,33 : ld b,5 : ld c,'1'
 .l: push bc : push de
     ld a,c : ld (hiline),a
     ld a,(ix+0) : ld (hiline+3),a : ld a,(ix+1) : ld (hiline+4),a : ld a,(ix+2) : ld (hiline+5),a
@@ -548,10 +555,27 @@ hiscr:                          ; -> NZ if a key ended it
     pop de : push de
     ld a,$55 : ld (txtcol),a
     ld hl,hiline : ld e,9 : call printat
-    pop de : ld a,d : add a,8 : ld d,a
+    pop de : ld a,d : add a,6 : ld d,a
     ld bc,5 : add ix,bc
     pop bc : inc c : djnz .l
-    ld bc,400 : jp waitkeyto
+    ld bc,400
+.w: push bc : call waitvs : call anykey : pop bc : ret nz
+    ld a,c : and 3 : jr nz,.nb
+    push bc : ld a,c : rrca : rrca : and 3 : call hiborder : pop bc
+.nb: dec bc : ld a,b : or c : jr nz,.w
+    ret
+hiborder:                       ; marching, colour-cycling frame round the table
+    ld b,a : inc b : ld a,$1B
+.r: dec b : jr z,.d
+    rlca : rlca : jr .r
+.d: ld hl,VRAM+24*32 : ld b,32
+.t: ld (hl),a : inc hl : djnz .t
+    ld hl,VRAM+63*32 : ld b,32
+.u: ld (hl),a : inc hl : djnz .u
+    rlca : rlca
+    ld hl,VRAM+25*32 : ld de,31 : ld b,38
+.s: ld (hl),a : add hl,de : ld (hl),a : inc hl : rlca : rlca : djnz .s
+    ret
 hiline: db "1. AAA   00000",0
 
 hientry:                        ; insert the score in the table if it earns a place
@@ -605,7 +629,7 @@ onech: db "A",0
 
 ending:
     call loadingmsg
-    ld hl,n_end : ld b,6 : ld e,'E' : ld c,0 : call getfile : ret c
+    ld hl,n_end : ld b,12 : ld e,'E' : ld c,0 : call getfile : ret c
     ld a,'E' : ld (curpack),a
     ld hl,PACK+256 : ld de,end_txt : call scene
     ld ix,casttab : ld b,7
@@ -620,7 +644,7 @@ ending:
     ld bc,4 : add ix,bc
     pop bc : djnz .cast
     ld hl,credit_txt : call textscr0
-    ld hl,tune_end : call playtune_nk
+    ld hl,(PACK+4) : call playtune_nk
     ld bc,600 : jp waitkeyto
 textscr0:
     push hl : call waitnokey : ld a,$AA : call cls : pop hl : jp printlines
@@ -743,8 +767,12 @@ render:
     ld a,(enemy+FFR) : call sprat
 .ne: ld a,(herovis) : or a : jr z,.nh
     ld a,(hero+FX) : ld e,a
-    ld a,(hero+FGFX) : ld h,a : ld l,0
-    ld a,(hero+FFR) : call sprat
+    ld a,(hfacing) : or a : jr z,.hr
+    ld a,(hero+FFR) : cp 5 : jr nc,.hr
+    ld hl,herol : jr .hd
+.hr: ld a,(hero+FGFX) : ld h,a : ld l,0
+    ld a,(hero+FFR)
+.hd: call sprat
 .nh: jp drawrock
 sprat:                          ; A = frame, HL = frame set, E = column (buffer)
     push de
@@ -1009,7 +1037,8 @@ herorun:
     ld a,(tick) : and 1 : ret nz
     ld a,(tick) : and 7 : jr nz,.ns
     ld a,SFX_STEP : call sfx
-.ns: ld a,(hero+FX) : cp HRUNX : jr c,.walk
+.ns: ld a,(hfacing) : or a : jr nz,.left
+    ld a,(hero+FX) : cp HRUNX : jr c,.walk
     ld a,(scrollpos) : ld hl,scrollmax : cp (hl) : jr nc,.walk
     inc a : ld (scrollpos),a
     call setptrs
@@ -1019,6 +1048,19 @@ herorun:
     xor a : ld (epresent),a : inc a : ld (huddirty),a : ret
 .walk: ld hl,hero+FX : inc (hl) : ld a,(hl) : cp 40 : ret c
     xor a : ld (herovis),a : inc a : ld (stagedone),a : ret
+.left: ld a,(hero+FX) : cp 12 : jr nc,.wl
+    ld a,(scrollpos) : or a : jr z,.edge
+    ld a,(epresent) : or a : jr z,.sb
+    ld a,(enemy+FX) : cp 40 : jr c,.sb
+    ld a,(enemy+FST) : cp ST_DEAD : ret nz
+    xor a : ld (epresent),a : inc a : ld (huddirty),a
+.sb: ld hl,scrollpos : dec (hl)
+    call setptrs
+    ld a,1 : ld (topdirty),a
+    ld a,(epresent) : or a : ret z
+    ld hl,enemy+FX : inc (hl) : ret
+.edge: ld a,(hero+FX) : cp HXMIN+1 : ret c
+.wl: ld hl,hero+FX : dec (hl) : ret
 
 enemyupd:
     ld a,(epresent) : or a : ret z
@@ -1172,11 +1214,18 @@ s_up:
     ld (ix+FFR),F_STAND
     bit 5,c : jr nz,gobow
     bit 4,c : jr nz,.man
-    bit 1,c : ret z
+    bit 1,c : jr nz,.fw
+    bit 0,c : ret z
+    bit 7,(ix+FDIR) : ret nz
+    ld a,(threat) : or a : jr nz,gostance
+    ld a,1 : ld (hfacing),a
+    ld (ix+FST),ST_RUN : ret
+.fw: xor a : ld (hfacing),a
     ld a,(threat) : or a : jr nz,gostance
     ld (ix+FST),ST_RUN : ret
 .man: ld a,1 : ld (manual),a
 gostance:
+    xor a : ld (hfacing),a
     ld (ix+FST),ST_STANCE : ret
 gobow:
     ld (ix+FST),ST_BOW : ld (ix+FTM),14
@@ -1184,7 +1233,10 @@ gobow:
 s_run:
     ld a,(tick) : rra : and 3 : add a,F_RUN1 : ld (ix+FFR),a
     ld a,(threat) : or a : jr nz,gostance
+    ld a,(hfacing) : or a : jr nz,.l
     bit 1,c : ret nz
+    ld (ix+FST),ST_UP : ret
+.l: bit 0,c : ret nz
     ld (ix+FST),ST_UP : ret
 s_stance:
     ld a,(tick) : rra : rra : rra : and 1 : add a,F_FIGHT1 : ld (ix+FFR),a
@@ -1523,25 +1575,51 @@ x_ko: ld b,90 : ld c,16 : call noise
 
 playtune_nk:                    ; play a tune, no key abort
     xor a : ld (tunekeys),a
-playtune:                       ; HL = tune -> NZ if a key stopped it
-    ld a,(musicon) : or a : jr nz,.l
+playtune:                       ; HL = three-voice tune -> NZ if a key stopped it
+    ld a,(musicon) : or a : jr nz,.go
     xor a : ret
-.l: ld e,(hl) : inc hl : ld d,(hl) : inc hl
-    ld a,d : and e : inc a : ret z
+.go: ld a,(latchv) : ld (.x1+1),a : ld (.x2+1),a : ld (.x3+1),a
+    ld (p3ptr),hl
+    ld hl,0 : ld ix,0
+    exx : ld hl,$4000 : exx
+.row: ld (p3acc),hl
+    ld hl,(p3ptr)
+    ld e,(hl) : inc hl : ld d,(hl) : inc hl
+    ld a,d : or e : jr z,.end
     push de
     ld e,(hl) : inc hl : ld d,(hl) : inc hl
     ld c,(hl) : inc hl : ld b,(hl) : inc hl
-    ex (sp),hl
-    ld a,h : or l : jr z,.rest
-    call ptone
-    jr .chk
-.rest:
-.d: dec de : ld a,d : or e : jr nz,.d
-.chk: pop hl
-    ld a,(tunekeys) : or a : jr z,.l
+    push bc
+    ld c,(hl) : inc hl : ld b,(hl) : inc hl
+    ld (p3ptr),hl
+    exx : pop de : pop bc : exx
+    ld hl,(p3acc)
+.lp: add hl,de                  ; voice 1: bass
+    ld a,h : rla : sbc a,a : and $21
+.x1: xor 0
+    ld (LATCH),a
+    exx
+    add hl,de                   ; voice 2: melody (longest slot, loudest)
+    ld a,h : rla : sbc a,a : and $21
+.x2: xor 0
+    ld (LATCH),a
+    dec bc
+    ld a,b : or c
+    exx
+    jr z,.done
+    add ix,bc                   ; voice 3: harmony
+    push ix : pop af
+    rla : sbc a,a : and $21
+.x3: xor 0
+    ld (LATCH),a
+    jp .lp
+.done: ld a,(tunekeys) : or a : jr z,.row
     push hl : call menukey : pop hl
-    jr z,.l
-    ret
+    jr z,.row
+    ld a,(latchv) : ld (LATCH),a
+    or 1 : ret
+.end: ld a,(latchv) : ld (LATCH),a
+    xor a : ret
 
 ; ---------------------------------------------------------------------------
 ;  Text
@@ -1584,20 +1662,26 @@ open_txt:
     db 1,50,$55,"MASTER HOSHI IS DRAGGED AWAY",0
     db 4,57,$FF,"INTO THE NIGHT.",0
     db $FF
-story_txt:
-    db 11,2,$FF,"TIGER GATE",0
-    db 1,12,$55,"KUROKAGE'S RAIDERS BURNED THE",0
-    db 0,20,$55,"DOJO AT THREE PINES AND DRAGGED",0
-    db 0,28,$55,"OLD MASTER HOSHI TO THE FORTRESS",0
-    db 5,36,$55,"BEYOND THE TIGER GATE.",0
-    db 0,46,$00,"REN, HIS LAST STUDENT, FOLLOWS.",0
-    db 7,54,$00,"ALONE. BAREHANDED.",0
+fort_txt:
+    db 1,43,$55,"KUROKAGE, LORD OF THE MOUNTAIN,",0
+    db 0,50,$55,"LOCKS HIS PRIZE IN THE FORTRESS",0
+    db 5,57,$FF,"BEYOND THE TIGER GATE.",0
+    db $FF
+ashes_txt:
+    db 2,43,$55,"AT DAWN REN WALKS THE ASHES.",0
+    db 3,50,$55,"HIS MASTER'S RED SASH LIES",0
+    db 1,57,$FF,"IN THE EMBERS. HE TIES IT ON.",0
+    db $FF
+road_txt:
+    db 1,43,$55,"ALONE AND BAREHANDED, THE LAST",0
+    db 0,50,$55,"STUDENT TAKES THE MOUNTAIN ROAD",0
+    db 6,57,$FF,"TO THE ROPE BRIDGE.",0
     db $FF
 ctrl_txt:
     db 3,1,$FF,"THE WAY OF THE EMPTY HAND",0
     db 3,10,$55,"Q A Z   PUNCH HIGH MID LOW",0
     db 3,17,$55,"W S X   KICK  HIGH MID LOW",0
-    db 2,24,$55,"M AND , STEP BACK OR FORWARD",0
+    db 1,24,$55,"M AND , STEP, OR RUN LEFT/RIGHT",0
     db 1,31,$55,"N GUARD   B BOW   SPACE STANCE",0
     db 1,39,$00,"JOYSTICK: FIRE PUNCH, ARM KICK",0
     db 1,46,$00,"BOTH BUTTONS GUARD. UP OR DOWN",0
@@ -1650,5 +1734,6 @@ rockgfx: incbin "gen/rock.bin"
 masktab: incbin "gen/tables.bin"
 bmask equ masktab+256
 herogfx: incbin "gen/hero.bin"
+herol: incbin "gen/herol.bin"
 resend:
     assert resend <= PACK

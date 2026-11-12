@@ -713,6 +713,86 @@ def scene_end():
         cv.line([(bx_-2, by_-1), (bx_, by_), (bx_+2, by_-1)], B)
     return cv
 
+def tiny(cv, x, y, col, old=False):
+    """a 3x5 walking figure"""
+    cv.px(x+1, y, Y if old else col); cv.rect(x, y+1, x+2, y+2, col)
+    cv.px(x, y+3, col); cv.px(x+2, y+3, col); cv.px(x, y+4, col); cv.px(x+2, y+4, col)
+
+def scene_fort():
+    cv = Cv(128, 40)
+    rnd = random.Random(81)
+    for i in range(45): cv.px(rnd.randrange(128), rnd.randrange(20), Y)
+    cv.ell(108, 8, 9, 6, R); cv.ell(112, 6, 7, 5, B)
+    cv.poly([(20, 40), (52, 16), (64, 13), (78, 17), (112, 40)], G)
+    cv.poly([(52, 16), (64, 13), (78, 17), (72, 20), (64, 18), (58, 21)], Y)
+    for k in range(5): cv.line([(66+k*3, 21+k*2), (60+k*3, 31+k*2)], B)
+    cv.rect(50, 10, 78, 15, R); cv.rect(50, 10, 78, 10, Y)
+    for tx in (52, 76):
+        cv.rect(tx-3, 5, tx+3, 15, R); cv.poly([(tx-6, 5), (tx+6, 5), (tx+3, 2), (tx-3, 2)], Y)
+        cv.rect(tx-1, 8, tx+1, 10, Y)
+    pagoda(cv, 64, 10, tiers=3, w=12, th=3)
+    road = [(40, 40), (70, 35), (50, 30), (72, 25), (62, 19)]
+    cv.line(road, Y, 2)
+    for (x, y, c) in ((52, 31, R), (57, 30, R), (62, 29, Y), (67, 28, R)):
+        tiny(cv, x, y-4, c, old=(c == Y))
+    # the Tiger Gate at the foot of the road
+    gx = 16
+    cv.rect(gx, 22, gx+3, 40, R); cv.rect(gx+30, 22, gx+33, 40, R)
+    cv.rect(gx-3, 18, gx+36, 21, R); cv.px(gx-4, 17, R); cv.px(gx+37, 17, R)
+    for x in range(gx, gx+34, 4): cv.line([(x, 19), (x+2, 20)], Y)
+    cv.rect(gx+4, 24, gx+29, 40, B)
+    for x in range(gx+6, gx+29, 5):
+        for y in range(27, 40, 5): cv.px(x, y, Y)
+    return cv
+
+def scene_ashes():
+    cv = Cv(128, 40, Y)
+    for y in range(14, 40):
+        for x in range(128):
+            if (x+y) % (3 if y > 24 else 5) == 0: cv.px(x, y, R)
+    cv.ell(96, 30, 18, 12, R)
+    cv.rect(0, 32, 127, 39, B)
+    rnd = random.Random(82)
+    for (x, h, lean) in ((30, 18, 1), (44, 12, -2), (58, 22, 0), (74, 9, 2), (86, 16, -1)):
+        cv.line([(x, 33), (x+lean, 33-h)], B, 2)
+    cv.line([(28, 18), (62, 13)], B, 2); cv.line([(56, 14), (90, 20)], B)
+    cv.poly([(24, 33), (34, 27), (50, 30), (66, 26), (84, 29), (96, 33)], B)
+    for i in range(30):
+        x = rnd.randint(26, 94); cv.px(x, rnd.randint(29, 33), R)
+    for k, sx in enumerate((40, 62, 80)):
+        for y in range(0, 26):
+            x = sx+3*math.sin(y/3.0+k)+(26-y)*0.3
+            if y % 2 == 0: cv.px(x, y, B); cv.px(x+1, y, B)
+    cv.blit(figure(HERO, 'BOW', 1), 2, 10)
+    return cv
+
+def scene_road():
+    cv = Cv(128, 40)
+    cv.ell(24, 7, 9, 6, R)
+    cloud(cv, 34, 3, 16); cloud(cv, 96, 5, 14)
+    for i, (cx, tp, hw) in enumerate([(70, 12, 30), (110, 16, 26), (30, 18, 26)]):
+        peak(cv, cx, tp, 41, hw, seed=i+90)
+    cv.rect(66, 6, 74, 12, R); cv.poly([(63, 6), (77, 6), (74, 3), (66, 3)], Y)
+    ridge(cv, 30, 2, G, seed=10, base=40)
+    road = [(0, 39), (30, 36), (60, 33), (40, 29), (70, 24), (60, 20), (70, 14)]
+    cv.line(road, Y, 3)
+    cv.line([(96, 18), (122, 18)], Y); cv.line([(96, 20), (122, 20)], Y)
+    for x in range(96, 123, 4): cv.line([(x, 18), (x, 20)], Y)
+    trunk = [(114, 40), (110, 32), (116, 26)]
+    cv.line(trunk, Y, 2)
+    foliage(cv, 100, 22, 128, 30, seed=91, dens=8, specks=0.5)
+    cv.blit(figure(HERO, 'RUN2', 1), 4, 15)
+    return cv
+
+def hi_header():
+    cv = Cv(128, 24)
+    cv.ell(64, 14, 22, 13, Y)
+    torii(cv, 46, 23, 36, 20, col=R)
+    for x in range(0, 128, 6): cv.px(x, 23, Y)
+    cv.blit(figure(HERO, 'BOW', 1), 10, 0)
+    cv.blit(figure(OLD, 'BOW', 1, flip=True), 86, 0)
+    return cv
+
 LOGO = {
  'T': ['#####', '#####', '..#..', '..#..', '..#..', '..#..', '..#..'],
  'I': ['.###.', '..#..', '..#..', '..#..', '..#..', '..#..', '.###.'],
