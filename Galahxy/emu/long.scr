@@ -1,0 +1,135 @@
+mapper 1
+crash 1
+okpc 8000 A5C5
+okpc B800 E07A
+okpc E400 F7A7
+okpc 0038 003A
+okpc 7D7D 7D7F
+okpc 5F00 5F0A
+sd build/sd
+vz build/sd/GALAHXY.VZ
+tmark AB0A build/tm.txt
+watch ABD0
+frames 1000
+poke ACCD 1
+poke ACA6 60
+frames 250
+poke ACA6 60
+screen build/shots/e00.ppm
+frames 250
+poke ACA6 60
+screen build/shots/e01.ppm
+frames 250
+poke ACA6 60
+screen build/shots/e02.ppm
+frames 250
+poke ACA6 60
+screen build/shots/e03.ppm
+frames 250
+poke ACA6 60
+screen build/shots/e04.ppm
+frames 250
+poke ACA6 60
+screen build/shots/e05.ppm
+frames 250
+poke ACA6 60
+screen build/shots/e06.ppm
+frames 250
+poke ACA6 60
+screen build/shots/e07.ppm
+frames 250
+poke ACA6 60
+screen build/shots/e08.ppm
+frames 250
+poke ACA6 60
+screen build/shots/e09.ppm
+frames 250
+poke ACA6 60
+screen build/shots/e10.ppm
+frames 250
+poke ACA6 60
+screen build/shots/e11.ppm
+frames 250
+poke ACA6 60
+screen build/shots/e12.ppm
+frames 250
+poke ACA6 60
+screen build/shots/e13.ppm
+frames 250
+poke ACA6 60
+screen build/shots/e14.ppm
+frames 250
+poke ACA6 60
+screen build/shots/e15.ppm
+frames 250
+poke ACA6 60
+screen build/shots/e16.ppm
+frames 250
+poke ACA6 60
+screen build/shots/e17.ppm
+frames 250
+poke ACA6 60
+screen build/shots/e18.ppm
+frames 250
+poke ACA6 60
+screen build/shots/e19.ppm
+frames 250
+poke ACA6 60
+screen build/shots/e20.ppm
+frames 250
+poke ACA6 60
+screen build/shots/e21.ppm
+frames 250
+poke ACA6 60
+screen build/shots/e22.ppm
+frames 250
+poke ACA6 60
+screen build/shots/e23.ppm
+frames 250
+poke ACA6 60
+screen build/shots/e24.ppm
+frames 250
+poke ACA6 60
+screen build/shots/e25.ppm
+frames 250
+poke ACA6 60
+screen build/shots/e26.ppm
+frames 250
+poke ACA6 60
+screen build/shots/e27.ppm
+frames 250
+poke ACA6 60
+screen build/shots/e28.ppm
+frames 250
+poke ACA6 60
+screen build/shots/e29.ppm
+frames 250
+poke ACA6 60
+screen build/shots/e30.ppm
+frames 250
+poke ACA6 60
+screen build/shots/e31.ppm
+frames 250
+poke ACA6 60
+screen build/shots/e32.ppm
+frames 250
+poke ACA6 60
+screen build/shots/e33.ppm
+frames 250
+poke ACA6 60
+screen build/shots/e34.ppm
+frames 250
+poke ACA6 60
+screen build/shots/e35.ppm
+frames 250
+poke ACA6 60
+screen build/shots/e36.ppm
+frames 250
+poke ACA6 60
+screen build/shots/e37.ppm
+frames 250
+poke ACA6 60
+screen build/shots/e38.ppm
+frames 250
+poke ACA6 60
+screen build/shots/e39.ppm

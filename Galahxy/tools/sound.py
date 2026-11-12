@@ -1,0 +1,98 @@
+"""GALAHXY sound: one-bit effects and blip music (original tunes).
+Engine as in Zephyr Zone (proven on the VZ300): the field ISR plays one speaker sample per two copied
+rows (64 LDIs + sample = ROW_T), and the idle wait plays samples paced to match. Nothing sounds while
+game logic runs, so music is slow "dink ... dink-dink" blips and the rest of the frame is free.
+SFX entry: db fields, dw step, db mask (bit5 speaker B = half, bit0 speaker A, bit7 noise); db 0 ends.
+Tune: db blip (fields a note sounds, 0 = up to the next note), then db fields-to-next, db note ...; db 0 loops."""
+ROW_T = 1097
+FS = 3546900 / ROW_T
+WAIT_D = 60
+def step(f): return max(1, min(65535, round(f * 65536 / FS)))
+def midi(n): return 440 * 2 ** ((n - 69) / 12)
+NOTE = {n: i for i, n in enumerate(['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'])}
+def nm(s):
+    if s in ('.', '-'): return 0
+    o = int(s[-1]); return 12 * (o + 1) + NOTE[s[:-1]]
+FULL, HALF, NOISE = 0x21, 0x20, 0x80
+F = lambda hz: hz          # effect pitches are given in Hz
+SFX = {
+    'SHOT':   [(1, F(1900), HALF), (1, F(1300), HALF)],
+    'BEAM':   [(1, F(2600), HALF), (1, F(2900), HALF)],
+    'TOAST':  [(1, F(500), FULL), (1, F(380), HALF)],
+    'BOMB':   [(1, F(300), HALF), (1, F(240), HALF)],
+    'KILL':   [(1, F(2400), FULL), (2, 0, FULL | NOISE), (1, F(1400), FULL), (1, F(900), FULL), (1, F(600), HALF)],
+    'KNOCK':  [(1, F(1900), FULL), (1, 0, FULL | NOISE)],
+    'HURT':   [(2, F(220), FULL), (2, F(160), FULL), (2, F(120), FULL)],
+    'DIE':    [(3, 0, FULL | NOISE), (2, F(500), FULL), (2, F(380), FULL), (2, F(290), FULL), (2, F(220), FULL),
+               (2, F(160), FULL), (4, 0, HALF | NOISE)],
+    'PAV':    [(2, midi(76), FULL), (2, midi(81), FULL), (2, midi(88), FULL)],
+    'BUY':    [(2, midi(72), FULL), (2, midi(76), FULL), (2, midi(79), FULL), (2, midi(84), FULL), (4, midi(88), FULL)],
+    'COIN':   [(1, midi(88), FULL), (2, midi(93), FULL)],
+    'WARN':   [(4, F(620), FULL), (4, F(470), FULL), (4, F(620), FULL), (4, F(470), FULL), (4, F(620), FULL), (4, F(470), FULL)],
+    'BIG':    [(3, 0, FULL | NOISE), (3, F(70), FULL), (3, 0, FULL | NOISE), (3, F(55), FULL), (4, 0, HALF | NOISE)],
+    'CREAK':  [(4, F(180), HALF), (3, F(210), HALF), (5, F(160), HALF), (4, F(230), HALF)],
+    'WHIRR':  [(1, F(300), HALF), (1, F(400), HALF), (1, F(520), HALF), (1, F(680), HALF), (1, F(850), HALF), (1, F(1050), HALF)],
+    'HONK':   [(5, midi(55), FULL), (2, 0, 0), (8, midi(60), FULL)],
+    'HISS':   [(2, 0, HALF | NOISE), (2, 0, HALF | NOISE), (2, 0, HALF | NOISE)],
+    'SIZZLE': [(1, 0, HALF | NOISE), (1, F(240), HALF)],
+    'SECRET': [(2, midi(84), FULL), (2, midi(79), FULL), (2, midi(76), FULL), (2, midi(84), FULL), (2, midi(88), FULL),
+               (2, midi(91), FULL), (6, midi(96), FULL)],
+    'MENU':   [(1, F(1100), HALF)],
+    'START':  [(2, midi(67), FULL), (2, midi(72), FULL), (2, midi(76), FULL), (6, midi(79), FULL)],
+    'HEAL':   [(2, midi(72), FULL), (2, midi(79), FULL), (4, midi(84), FULL)],
+    'LIFE':   [(2, midi(72), FULL), (2, midi(76), FULL), (2, midi(79), FULL), (2, midi(84), FULL), (2, midi(79), FULL),
+               (2, midi(84), FULL), (6, midi(88), FULL)],
+}
+ORDER = list(SFX)
+TUNES = {
+    # title: "Galah Galop" - a cheeky larrikin march in G major, bass pluck on the beat, tune above
+    'title': (0, 4, "G3 . B4 . D4 . G4 B4 G3 . C5 . B4 . A4 . "
+                    "D3 . A4 . F#4 . D4 A4 D3 . C5 . A4 . F#4 . "
+                    "G3 . B4 . D4 . G4 B4 E3 . E5 . D5 . C5 . "
+                    "D3 . B4 . A4 . F#4 . G4 . . . D4 . G3 . "
+                    "C3 . E5 . G4 . E5 . B2 . D5 . G4 . D5 . "
+                    "A2 . C5 . E4 . A4 . D3 . F#4 . A4 . C5 . "
+                    "G3 . B4 . D5 . G5 . E3 . E5 . C5 . A4 . "
+                    "D3 . F#4 . A4 . D5 . G3 . . . G4 . . . "),
+    # stage 1: "Backyard Bop" - slow, bouncy blips; plenty of rests so the game keeps the CPU
+    'stage1': (2, 7, "C4 . G4 . E4 G4 . . A4 . G4 . E4 . C4 . "
+                     "D4 . A4 . F4 A4 . . B4 . A4 . F4 . D4 . "
+                     "C4 . G4 . E4 G4 . . C5 . B4 . G4 . E4 . "
+                     "F4 . E4 . D4 . G3 . C4 . . . . . . . "),
+    # midboss: creaky, wonky waltz-ish clothesline theme
+    'hoist':  (2, 6, "E3 . . G3 B3 . E3 . . G3 C4 . E3 . . G3 B3 . A3 . G3 F#3 . . "),
+    # boss: "The Grillfather" - a menacing minor tango stomp
+    'boss':   (2, 6, "D3 . D3 . A3 . D3 . F3 . E3 . D3 . C#3 . "
+                     "D3 . D3 . A3 . D3 . A#3 . A3 . G3 . A3 . "),
+    # cast select: a jaunty two-bar vamp
+    'select': (0, 5, "C4 . G4 . C5 . G4 . F3 . A4 . C5 . A4 . G3 . B4 . D5 . B4 . C4 . E5 . G4 . . . "),
+    # stage clear jingle (plays once, then loops on rests)
+    'clear':  (0, 5, "C4 E4 G4 C5 . E5 . G5 . . . . . . . . . . . . . . . . "),
+    # game over: a sad trombone
+    'over':   (0, 10, "G3 F#3 F3 E3 . . . . . . . . . . . . . . "),
+}
+
+def asm():
+    L = ['; generated by tools/sound.py', 'WAIT_D equ %d' % WAIT_D]
+    for i, n in enumerate(ORDER): L.append('SFX_%s equ %d' % (n, i))
+    L.append('sfx_tab:')
+    for n in ORDER: L.append('            dw sfx_%s' % n.lower())
+    for n in ORDER:
+        L.append('sfx_%s:' % n.lower())
+        for f, hz, m in SFX[n]:
+            L.append('            db %d : dw %d : db $%02X' % (f, step(hz) if hz else 0, m))
+        L.append('            db 0')
+    lo = 40; hi = 100
+    L.append('NOTE0 equ %d' % lo)
+    L.append('note_steps:')
+    for n in range(lo, hi): L.append('            dw %d' % step(midi(n)))
+    for name, (blip, beat, s) in TUNES.items():
+        L.append('tune_%s:' % name)
+        L.append('            db %d' % blip)
+        for t in s.split():
+            L.append('            db %d,%d' % (beat, nm(t)))
+        L.append('            db 0')
+    return '\n'.join(L).replace(' : ', '\n            ') + '\n'
+
+if __name__ == '__main__':
+    print(asm()[:400])
