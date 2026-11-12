@@ -78,9 +78,13 @@ CRTC_V  equ $21
 ;               R0  R1  R2  R3  R4  R5  R6  R7  R8  R9  R10 R11 R12 R13 R14 R15
 crtc_tab:       db $35,$28,$2C,$34,$26,$01,$19,CRTC_V,$48,$07,$20,$07,$00,$00,$00,$00
 
-; clock40: nothing to do. MODES.COM writes no clock port; kept as the
-; one place to add a switch if a later board ever needs it.
+; clock40: the 40-column dot clock. The real Premium Plus needs this as
+; well as the 6545 table: with the table alone it scans at twice the line
+; rate and the monitor shows four small pictures (found on BPM's machine
+; with FRILLSEEKER and with this game).
 clock40:
+        ld a,1
+        in a,($09)
         ret
 
 ; A = block -> A = port 50h value (ROMs off, video window at F000)

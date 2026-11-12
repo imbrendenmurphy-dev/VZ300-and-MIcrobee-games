@@ -18,7 +18,7 @@ P_LV        EQU $1C
 
 ; blocks (must match src/hw.inc and tools/build.py)
 STG_PROG    EQU 28          ; the program, staged (moved to 8000h at the end)
-N_BLOCKS    EQU 30          ; blocks checked (0..29)
+N_BLOCKS    EQU 32          ; blocks checked (0..31)
 
 DMA         EQU $A800       ; record buffer (upper TPA)
 PROG_LEN    EQU $5000       ; SKY.BIN: 8000h onwards (to D000h)

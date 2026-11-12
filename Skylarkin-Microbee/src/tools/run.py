@@ -4,7 +4,11 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import numpy as np
-from mbee import Mbee, FRAME_T, KEY
+import os
+if os.environ.get('RASTER'):        # the raster-accurate model (video RAM waits, the 40-column clock)
+    from mbee_raster import Mbee, FRAME_T, KEY
+else:
+    from mbee import Mbee, FRAME_T, KEY
 
 ROOT = Path(__file__).resolve().parent.parent
 BUILD = ROOT / 'build'
@@ -59,7 +63,10 @@ def tap(pp, k, n=3):
 def to_game(pp, mono=False, pilot=0):
     pp.run_frames(30)
     tap(pp, 'M' if mono else 'C')
-    pp.run_frames(20)
+    pp.run_frames(40)
+    tap(pp, 'SPACE')                # title -> pilot select
+    pp.run_frames(30)
     for _ in range(pilot):
         tap(pp, 'RIGHT')
+        pp.run_frames(4)
     tap(pp, 'SPACE')
