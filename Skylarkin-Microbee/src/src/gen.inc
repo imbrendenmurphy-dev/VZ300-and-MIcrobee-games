@@ -84,5 +84,23 @@ S1_BW equ 80
 S1_BH equ 64
 BLK_S1A equ 4
 BLK_S1B equ 5
+; stage 2
+SF_THONG0 equ 192
+SF_THONG1 equ 193
+SF_GULL0 equ 194
+SF_GULL1 equ 195
+SF_SNAG0 equ 196
+SF_SNAG1 equ 197
+SF_BALL equ 198
+SF_CRAB0 equ 199
+SF_CRAB1 equ 200
+SF_LILO equ 201
+SF_SMOKE0 equ 202
+SF_SMOKE1 equ 203
+S2_BW equ 80
+S2_BH equ 64
+BLK_S2A equ 7
+BLK_S2B equ 8
 stage_blk:
 	db 4,5
+	db 7,8

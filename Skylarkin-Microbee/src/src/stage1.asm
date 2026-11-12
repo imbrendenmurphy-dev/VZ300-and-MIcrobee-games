@@ -14,6 +14,7 @@
         jp boss_touch
         jp draw_boss_objs
         jp on_kill
+        dw warn1,warn2
         ds OVL+32-$
 E_PLANE     equ 1
 E_SHEET     equ 2
@@ -913,6 +914,8 @@ draw_boss_objs:
         jr z,.l
         ret
 
+warn1:      db "! TONER LOW !   ",0
+warn2:      db "! TONER LOW !   ",0
 ovl_end:
         ASSERT ovl_end <= OVL_END
         SAVEBIN "../build/OVL1.BIN",OVL,ovl_end-OVL

@@ -84,6 +84,66 @@ A2 r A2 r A2 r G2 r  A2 r A2 r A2 r C3 r
 A2 r A2 r A2 r G2 r  F2 r E2 r E2 r E2 r
 """
     song('boss', 3, boss, bossb, loop=True)
+    # BARBIE BEACH: a surf twang in E minor (the hook is the sliding riff)
+    g2 = """
+E5 r E5 D5 E5 r G5 r  E5 r D5 r B4 r r r
+E5 r E5 D5 E5 r G5 r  A5 r G5 r E5 r r r
+D5 r D5 C5 D5 r F#5 r  D5 r C5 r A4 r r r
+B4 r C5 r D5 r E5 r  r r r r E4 r r r
+"""
+    g2b = """
+E2 r E3 r E2 r E3 r  E2 r E3 r D3 r B2 r
+E2 r E3 r E2 r E3 r  A2 r A3 r G3 r E3 r
+D2 r D3 r D2 r D3 r  D2 r D3 r C3 r A2 r
+B2 r B2 r B2 r B2 r  E2 r E3 r E2 r r r
+"""
+    song('game2', 4, g2, g2b, loop=True)
+    # BIG THINGS HIGHWAY: a bush band jig in G (fiddle hook, oom-pah bass)
+    g3 = """
+G4 B4 D5 G5 r D5 B4 r  C5 E5 G5 E5 r C5 A4 r
+D5 F#5 A5 F#5 r D5 C5 r  B4 G4 B4 D5 - - r r
+G4 B4 D5 G5 r D5 B4 r  C5 E5 G5 E5 r C5 E5 r
+D5 r C5 r B4 r A4 r  G4 - - r G5 - - r
+"""
+    g3b = """
+G2 r D3 r G2 r D3 r  C3 r G2 r C3 r G2 r
+D3 r A2 r D3 r A2 r  G2 r D3 r G2 r D3 r
+G2 r D3 r G2 r D3 r  C3 r G2 r C3 r G2 r
+D3 r D3 r D3 r F#2 r  G2 r D3 r G2 r r r
+"""
+    song('game3', 4, g3, g3b, loop=True)
+    # PUB ROCK: a riff in A with a shout-along hook (the notes the enemies play)
+    g4 = """
+A4 r A4 C5 r A4 D5 r  A4 r C5 r A4 r r r
+A4 r A4 C5 r A4 D5 r  E5 r D5 r C5 r r r
+D5 r D5 F5 r D5 G5 r  D5 r F5 r D5 r r r
+E5 r E5 r D5 r C5 r  B4 r A4 r r r r r
+"""
+    g4b = """
+A2 A2 r A2 A2 r A2 r  A2 A2 r A2 G2 r G2 r
+A2 A2 r A2 A2 r A2 r  A2 A2 r A2 C3 r C3 r
+D3 D3 r D3 D3 r D3 r  D3 D3 r D3 C3 r C3 r
+E3 E3 r E3 D3 r D3 r  E3 r E3 r E2 r r r
+"""
+    song('game4', 3, g4, g4b, loop=True)
+    # HEAD OFFICE: a boardroom march in C minor
+    g5 = """
+C5 r r C5 D#5 r G5 r  F5 r D#5 r D5 r r r
+D#5 r r D#5 G5 r A#5 r  G#5 r G5 r F5 r r r
+G5 r r F5 D#5 r D5 r  C5 r D5 r D#5 r r r
+D5 r r C5 B4 r D5 r  C5 r r r r r r r
+"""
+    g5b = """
+C3 r G2 r C3 r G2 r  F2 r C3 r G2 r D3 r
+D#3 r A#2 r D#3 r A#2 r  G#2 r D#3 r A#2 r F3 r
+C3 r G2 r C3 r G2 r  G#2 r D#3 r A#2 r F3 r
+G2 r D3 r G2 r G2 r  C3 r G2 r C3 r r r
+"""
+    song('game5', 5, g5, g5b, loop=True)
+    # the CEO's theme: the march, louder and faster
+    song('boss5', 3, g5, g5b, loop=True)
+    # the ending: the title tune, a fanfare first
+    song('end', 4, 'C5 E5 G5 C6 - - G5 C6 E6 - - - G6 - - - - - - r', 'C3 G3 C3 G3 C3 G3 C3 G3 E3 G3 E3 G3 G2 G3 G2 G3 C3 - - r')
     song('ready', 4, 'C5 E5 G5 C6 - - - r', 'C3 r C4 r C3 C4 C3 r')
     song('clear', 4, 'C5 E5 G5 C6 - E6 - G6 - - - r C6 - - - r',
          'C3 C3 C2 C3 C2 C3 C2 C3 G2 G3 G2 G3 C3 - - r')

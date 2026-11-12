@@ -257,6 +257,13 @@ SFX_JAM     equ 21
 SFX_BEAM    equ 22
 SFX_BOSSHIT equ 23
 SFX_MENU    equ 24
+SFX_SQUAWK  equ 25
+SFX_SIZZLE  equ 26
+SFX_HISS    equ 27
+SFX_CLACK   equ 28
+SFX_HONK    equ 29
+SFX_STAMP   equ 30
+SFX_NOTE    equ 31
 sfxtab:
         dw 2600,-260 : db 2,0,1,0       ; shot: a short pew
         dw 3800,0 : db 1,0,1,0          ; tink: hit, not dead
@@ -283,4 +290,11 @@ sfxtab:
         dw 7000,0 : db 4,2,5,0          ; toner beam: hiss
         dw 1000,-100 : db 3,3,3,0       ; boss hit
         dw 2200,0 : db 2,0,1,0          ; menu tick
-        ASSERT $-sfxtab == 25*8
+        dw 4200,-350 : db 6,1,5,0       ; squawk (a seagull: MINE!)
+        dw 9000,0 : db 6,2,2,0          ; sizzle
+        dw 12000,-150 : db 10,2,4,0     ; gas hiss
+        dw 3500,0 : db 2,3,5,0          ; clack (tongs)
+        dw 600,20 : db 10,0,5,0         ; honk (road train)
+        dw 500,-20 : db 8,3,7,0         ; stamp: THUD
+        dw 3000,0 : db 4,0,2,0          ; a note (pub rock)
+        ASSERT $-sfxtab == 32*8

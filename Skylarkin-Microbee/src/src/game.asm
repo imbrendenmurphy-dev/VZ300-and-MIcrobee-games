@@ -327,9 +327,27 @@ sn4:    db "PUB ROCK",0
 sn5:    db "HEAD OFFICE",0
 
 stage_music:
-        ld hl,mus_game_0
-        ld de,mus_game_1
+        ld a,(stage)
+        dec a
+        add a,a
+        add a,a
+        ld e,a
+        ld d,0
+        ld hl,stage_tunes
+        add hl,de
+        ld e,(hl)
+        inc hl
+        ld d,(hl)
+        inc hl
+        ld a,(hl)
+        inc hl
+        ld h,(hl)
+        ld l,a
+        ex de,hl
         jp play_music
+stage_tunes:
+        dw mus_game_0,mus_game_1, mus_game2_0,mus_game2_1, mus_game3_0,mus_game3_1
+        dw mus_game4_0,mus_game4_1, mus_game5_0,mus_game5_1
 
 ; ---------------------------------------------------------------------
 stage_clear:
@@ -361,7 +379,7 @@ stage_clear:
         jp c,ending
         jp play_stage
 s_clear:    db "STAGE CLEAR!",0
-n_stages:   db 1
+n_stages:   db 2
 
 game_over:
         call stop_music

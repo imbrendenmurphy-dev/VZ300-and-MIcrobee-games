@@ -104,8 +104,12 @@ hud_update:
         jr z,.wc
         ld a,YELLOW+(RED<<4)
 .wc:    ld (txt_col),a
-        ld hl,s_warn
-        ld de,24*256+0
+        ld a,(warn_msg)         ; the stage's own words (OVL+24 / +26)
+        ld hl,(OVL+24)
+        dec a
+        jr z,.w1
+        ld hl,(OVL+26)
+.w1:    ld de,24*256+0
         call print
         jr .bar
 .nwarn: ld a,(boss_on)
@@ -212,7 +216,6 @@ hud_update:
 s_lives:    db "X3",0
 s_hi:       db "HI",0
 s_boss:     db "BOSS",0
-s_warn:     db "! TONER LOW !   ",0
 bar_names:
         db "SPEED",0,"MISSL",0,"DOUBL",0,"LASER",0,"OPTN ",0,"SHLD ",0," OI! ",0
 pow_names:

@@ -29,12 +29,12 @@ SPR_DATA = 0x3000          # sprite frames start here in a sprite block (store b
 BLK_SPR = 3
 BLK_STRIP = [29, 30, 31]
 N_COMMON = 192             # sprite frames 0..191 common, 192..255 the stage's
-STAGE_MODULES = ['stage1']
+STAGE_MODULES = ['stage1', 'stage2']
 
 OVL_SLOTS = {}
 OVL_LEN = {}
 STAGE_B = {}
-OVL_MAX = 0x1000            # each stage's code overlay (src/stageN.asm) runs at OVL, C000h
+OVL_MAX = 0x0C00            # each stage's code overlay (src/stageN.asm) runs at OVL, C400h
 
 
 def wfile(name, data):
@@ -286,17 +286,6 @@ def build_stage(num, mod, common, blocks):
     hdr[5:7] = a_.to_bytes(2, 'little')
     b_, a_ = P.put(row_info)
     hdr[7:9] = a_.to_bytes(2, 'little')
-    ups = [b for b in BLK_STRIP if len(sblob[b])]
-    hdr[9] = len(ups)
-    tot_raw = tot_pk = 0
-    for n, b in enumerate(ups):
-        pk = lz.pack(sblob[b])
-        assert lz.unpack(pk) == bytes(sblob[b])
-        tot_raw += len(sblob[b])
-        tot_pk += len(pk)
-        sb, sa = P.put(pk)
-        hdr[10 + 4 * n:14 + 4 * n] = bytes([sb]) + sa.to_bytes(2, 'little') + bytes([b])
-    print('  strips %d bytes packed to %d' % (tot_raw, tot_pk))
     base = bytearray()
     for r in range(23):
         if r in cells:
@@ -306,9 +295,6 @@ def build_stage(num, mod, common, blocks):
     b_, a_ = P.put(base)
     assert b_ == blocks[1]
     hdr[26:28] = a_.to_bytes(2, 'little')
-    mb, ma = P.put(st.blob(True)[:0x3000])
-    hdr[28] = mb
-    hdr[29:31] = ma.to_bytes(2, 'little')
     ceil, floor = mod.heights(near)
     b_, a_ = P.put(bytes(ceil))
     assert b_ == blocks[1]
@@ -331,6 +317,20 @@ def build_stage(num, mod, common, blocks):
     b_, a_ = P.put(st_tab)
     assert b_ == blocks[1]
     hdr[40:42] = a_.to_bytes(2, 'little')
+    ups = [b for b in BLK_STRIP if len(sblob[b])]
+    hdr[9] = len(ups)
+    tot_raw = tot_pk = 0
+    for n, b in enumerate(ups):
+        pk = lz.pack(sblob[b])
+        assert lz.unpack(pk) == bytes(sblob[b])
+        tot_raw += len(sblob[b])
+        tot_pk += len(pk)
+        sb, sa = P.put(pk)
+        hdr[10 + 4 * n:14 + 4 * n] = bytes([sb]) + sa.to_bytes(2, 'little') + bytes([b])
+    print('  strips %d bytes packed to %d' % (tot_raw, tot_pk))
+    mb, ma = P.put(st.blob(True)[:0x3000])
+    hdr[28] = mb
+    hdr[29:31] = ma.to_bytes(2, 'little')
     # the boss (its addresses depend on where it lands: place a dummy first)
     frames = mod.boss_frames()
     probe = boss_blob(frames, mod.BOSS_PAL, 0)

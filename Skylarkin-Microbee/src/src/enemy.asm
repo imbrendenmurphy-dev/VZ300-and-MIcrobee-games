@@ -452,6 +452,8 @@ B_DX        equ 5
 B_DY        equ 6
 ; bullet_new: HL = x, C = y (biased), D = dy, E = dx (1/16 px a frame)
 bullet_new:
+        ld a,c                  ; the y (also for the callers that come in here)
+        ld (tmp+6),a
         ld a,(demo)
         or a
         jr z,.d
