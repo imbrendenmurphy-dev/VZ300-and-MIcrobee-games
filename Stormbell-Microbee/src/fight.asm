@@ -541,7 +541,7 @@ B_ARMOUR    EQU 9
 
 brains:     dw br_ox,br_reed,br_sparrow,br_gorse,br_crow
 br_ox:      dw sc_ox
-            db 0,9,0,90,9
+            db 0,9,0,170,10
             dw tim_ox
             db 1
 br_reed:    dw sc_reed
@@ -553,7 +553,7 @@ br_sparrow: dw sc_sparrow
             dw tim_sparrow
             db 0
 br_gorse:   dw sc_gorse
-            db 215,2,1,120,11
+            db 150,2,1,120,11
             dw tim_gorse
             db 0
 br_crow:    dw sc_crow
@@ -575,8 +575,8 @@ sc_sparrow: db OP_FAR,11, OP_WAIT,16, OP_NEAR,RP, OP_PUNCH,0, OP_PUNCH,0
             db OP_FAR,10, OP_WAIT,8, OP_NEAR,RK, OP_KICK,0, OP_FAR,11, OP_WAIT,18, OP_LOOP,0
 ; CAPTAIN GORSE: closes behind his guard and answers every blow;
 ; drops the guard only to throw his own.
-sc_gorse:   db OP_NEAR,RK, OP_GUARD,30, OP_KICK,0, OP_WAIT,5
-            db OP_NEAR,RP, OP_GUARD,22, OP_PUNCH,0, OP_PUNCH,0, OP_FAR,8, OP_WAIT,8, OP_LOOP,0
+sc_gorse:   db OP_NEAR,RK, OP_GUARD,18, OP_KICK,0, OP_WAIT,5
+            db OP_NEAR,RP, OP_GUARD,14, OP_PUNCH,0, OP_PUNCH,0, OP_FAR,8, OP_WAIT,8, OP_LOOP,0
 ; LORD CURRAWONG: all of it, faster, with feints.
 sc_crow:    db OP_NEAR,RK, OP_KICK,0, OP_WAIT,3, OP_PUNCH,0, OP_FAR,10, OP_WAIT,10
             db OP_FEINT,0, OP_WAIT,6, OP_NEAR,RP, OP_PUNCH,0, OP_PUNCH,0, OP_KICK,0

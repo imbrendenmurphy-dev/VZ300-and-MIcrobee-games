@@ -508,9 +508,7 @@ draw_fighter:
         inc de
         inc h
         inc h
-        ld a,(hl)
-        and $F0
-        ld b,a
+        call fpaper
         ld a,(de)
         or b
         ld (hl),a
@@ -634,9 +632,7 @@ draw_fighter:
         ld (hl),BK_FONT
         inc h
         inc h
-        ld a,(hl)
-        and $F0
-        ld b,a
+        call fpaper
         ld a,(c_ink)
         or b
         ld (hl),a
@@ -659,3 +655,23 @@ draw_fighter:
         ld bc,FB_GLYPHS
         add hl,bc
         ret
+
+; HL = a WANT colour cell -> B = the paper a fighter stands on there:
+; the scenery's paper, dropped to its dark shade, so a silhouette always
+; stands out from the patch of background around it
+fpaper: ld a,(hl)
+        rrca
+        rrca
+        rrca
+        rrca
+        and $0F
+        push hl
+        ld hl,darkpaper
+        add a,l
+        ld l,a
+        ld b,(hl)
+        pop hl
+        ret
+        ALIGN 16
+;               BLK RED GRN BRN BLU MAG CYN GRY DGR BRD BGR YEL BBL BMG BCY WHT
+darkpaper:  db $00,$10,$20,$30,$40,$50,$60,$80,$80,$10,$20,$30,$40,$50,$60,$80

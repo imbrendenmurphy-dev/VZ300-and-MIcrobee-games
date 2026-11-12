@@ -316,7 +316,7 @@ def extra_bare(f, cv, where, L):
 
 FIGHTERS = [
     Fighter('WREN', 'WREN', scale=1.04, gi=WHITE, skin=YELLOW, belt=BRED, hair=BROWN, hat=hat_headband),
-    Fighter('OX', 'BRAMBLE THE OX', scale=1.15, bulk=1.34, gi=BROWN, skin=BRED, belt=YELLOW, hair=BRED,
+    Fighter('OX', 'BRAMBLE THE OX', scale=1.15, bulk=1.34, gi=YELLOW, skin=BRED, belt=WHITE, hair=BRED,
             hat=hat_bald, extra=extra_bare, arm=1.05,
             hint=('HE SWINGS SLOW AND HEAVY.', 'STEP BACK. STRIKE AS HE MISSES.')),
     Fighter('REED', 'OLD REED', scale=1.12, bulk=0.8, gi=BGREEN, skin=YELLOW, belt=WHITE, hair=YELLOW,

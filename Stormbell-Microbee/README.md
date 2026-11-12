@@ -79,6 +79,38 @@ The keys are shown on the title screen and on the pause screen.
 | 4. The Dojo Hall | **Captain Gorse** | Closes behind his guard and punches straight back at any blow he blocks. | Make him attack first. Never swing into his guard. |
 | 5. The Bell Tower | **Lord Currawong** | The Storm Lord: all of the above, faster, with feints. | Watch, wait, and punish only what you're sure of. |
 
+## Test results (v1.0, 12 Nov 2026)
+
+**Emulator** (`tools/emu`, Premium Plus model): `release/STORM.DS8` booted
+from its own boot sector to CP/M's `A>`, `DIR` listed the files, `STORM`
+loaded in about 12 seconds and showed the title. The scripted player
+(0.2 s reactions) then played straight through from the title to the
+ending with no retries:
+
+| Stage | Opponent | Result | Time | Wren's health left |
+|---|---|---|---|---|
+| 1 | Bramble the Ox | won | 11 s | 12 / 12 |
+| 2 | Old Reed | won | 18 s | 5 / 12 |
+| 3 | Sparrow | won | 23 s | 1 / 12 |
+| 4 | Captain Gorse | won | 48 s | 9 / 12 |
+| 5 | Lord Currawong | won | 22 s | 5 / 12 |
+
+Also checked:
+
+* Lord Currawong, 4 more duels: won 4 of 4. Captain Gorse: won 4 of 4
+  (about 30 s each). Sparrow: won 2 of 3.
+* A button-masher (holds advance, hammers punch and kick) scrapes past
+  Bramble 2 times in 3 with 4 health left, and loses to Old Reed.
+* Standing still loses. "YOU HAVE FALLEN", then **SPACE** restarts the
+  same duel at full health.
+* The duel runs at a steady 24 to 25 frames a second.
+
+![Try again](screenshots/08-try-again.png) ![Amber monitor](screenshots/09-amber-monitor.png)
+
+**Real hardware:** not tested yet. It uses the same 40-column set-up,
+loader and disk format as FRILLSEEKER and Dracula's Castle II, which run
+on a real Premium Plus.
+
 ## Building it
 
 You need Python 3 with **numpy** and **Pillow**, and **gcc** (only for the
@@ -135,9 +167,10 @@ that mashing loses.
   fighter is pre-cut into 8 × 8 glyphs held in the PCG (Wren in banks 5–8,
   the current opponent in banks 9–15). Drawing a fighter is just setting
   each cell's glyph, bank and ink. Nothing is erased and no pixels are moved.
-* **No colour clash on the fighters.** A fighter's cell keeps the scenery's
-  paper colour and takes the fighter's ink, so a fighter stands in a small
-  plain-coloured patch of the background instead of mixing colours with it.
+* **No colour clash on the fighters.** A fighter's cell takes the fighter's
+  ink over a dark shade of the scenery's paper, so a fighter stands in a
+  small plain, darker patch of the background instead of mixing colours
+  with it, and the silhouette always stands out.
 * **Where the two fighters touch**, a glyph is made on the spot for that cell
   (the lower fighter's pattern, the upper one's mask cut out, the upper one
   laid over it), from a small pool in the font bank.
