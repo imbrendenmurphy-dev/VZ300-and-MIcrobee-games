@@ -29,6 +29,7 @@ tq_code:    DS 1
 star_code:  DS 1
 rseed:      DS 2
 pl_bank:    DS 1
+shape:      DS 1
 mono:       DS 1
 colmap:     DS 16
 rowcell:    DS 50

@@ -178,6 +178,8 @@ sector_start:
         ld c,a
         ld a,1
         call msg
+        xor a
+        call warps_msg          ; "4 WARPS TO COMET LANES"
         ld a,PH_INTRO
         ld (phase),a
         ld a,75
@@ -306,7 +308,12 @@ ph_play:
         jr c,.s
         ld de,$0400
 .s:     call add_score
-.nb:    ; a shield segment back
+.nb:    ld a,(wave)             ; one more wave in this sector: count down
+        or a
+        jr nz,.nw
+        inc a
+        call warps_msg
+.nw:    ; a shield segment back
         ld a,(p_state)
         or a
         jr nz,.ns
@@ -743,6 +750,44 @@ msg_clear_all:
         call msg_clear
         ld a,2
         jp msg_clear
+
+; A = the wave about to be flown: "n WARPS TO <the next Guardian's
+; sector>" on message row 2. Two waves a sector; a Guardian closes every
+; second sector.
+warps_msg:
+        ld c,a
+        ld a,(sector)
+        ld b,a
+        ld a,2
+        sub c                   ; waves left in this sector
+        bit 0,b
+        jr nz,.e                ; a Guardian's sector: these are the last
+        add a,2                 ; and the two of the next
+.e:     ld hl,txtbuf
+        add a,'0'
+        ld (hl),a
+        inc hl
+        cp '1'
+        ld de,t_warp1
+        jr z,.c
+        ld de,t_warpn
+.c:     call strcpy
+        dec hl
+        push hl
+        ld a,b
+        or 1
+        call sector_ptr
+        ld e,(hl)
+        inc hl
+        ld d,(hl)
+        pop hl
+        call strcpy
+        ld de,txtbuf
+        ld a,2
+        ld c,YELLOW
+        jp msg
+t_warpn:    db " WARPS TO ",0
+t_warp1:    db " WARP TO ",0
 
 ; DE = source (0 ends), HL = destination -> HL past the 0
 strcpy: ld a,(de)

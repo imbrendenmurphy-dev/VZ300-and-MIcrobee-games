@@ -59,6 +59,8 @@ def to_title(mono=False):
     pp = boot()
     pp.run_frames(20)
     press(pp, ['M' if mono else 'C'])
+    pp.run_frames(20)
+    press(pp, ['SPACE'])            # the screen shape: as it is
     pp.run_frames(10)
     return pp
 

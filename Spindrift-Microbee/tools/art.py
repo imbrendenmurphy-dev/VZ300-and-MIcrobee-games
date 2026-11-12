@@ -289,9 +289,10 @@ def ship_frame(a):
     pixel box and where its top left corner goes"""
     x, y = polar(a, RIM)
     xi, yi = int(round(x)), int(round(y))
-    fx, fy = (CX - x) * PA, (CY - y)
-    n = math.hypot(fx, fy)
-    fx, fy = fx / n, fy / n
+    # nose to the centre of a round ring (the screen shape is set so the
+    # ring looks round): straight along the angle
+    t = a * 2 * math.pi / 256
+    fx, fy = -math.sin(t), -math.cos(t)
 
     def fn(X, Y, f):
         ly = -(X * fx + Y * fy)

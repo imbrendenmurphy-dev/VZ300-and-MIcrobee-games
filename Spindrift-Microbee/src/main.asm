@@ -16,7 +16,10 @@ entry:  di
         ld de,hiscore
         ld bc,3
         ldir
+        ld a,SHAPE_CRT
+        call set_shape
         call monitor_ask
+        call shape_ask
 .main:  call attract
         xor a
         ld (demo),a
@@ -31,6 +34,7 @@ entry:  di
         INCLUDE "game.asm"
         INCLUDE "boss.asm"
         INCLUDE "front.asm"
+        INCLUDE "shape.asm"
         INCLUDE "data.asm"
         INCLUDE "gen.inc"
         INCLUDE "snd.inc"

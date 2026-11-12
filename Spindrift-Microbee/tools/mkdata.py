@@ -28,6 +28,7 @@ FONT = 0x4400
 STARG = 0x4700
 SPR0 = 0x4800
 CORE_PAT = 0x2000             # in PIC.BNK
+DX136 = 0x3000                # in PIC.BNK, after the core
 
 
 # ------------------------------------------------------------------ font
@@ -254,6 +255,14 @@ def build():
         for r in range(5):
             for c in range(4):
                 pic += np.packbits(box[r * 8:r * 8 + 8, c * 8:c * 8 + 8], axis=1)[:, 0].tobytes()
+    # the pristine dx column of the position table (a 136-pixel orbit):
+    # src/shape.asm rescales the live table from it
+    assert len(pic) <= DX136
+    pic += bytes(DX136 - len(pic))
+    for ri in range(128):
+        f = art.radius_frac(ri)
+        for s in range(65):
+            pic.append(min(255, int(round(136.0 * f * math.sin(s * 2 * math.pi / 256)))))
     print('logo: %d x %d cells, %d glyphs' % (W // 8, H // 8, len(pats)))
 
     open(os.path.join(BUILD, 'TAB.BNK'), 'wb').write(bytes(tab.d))
@@ -264,7 +273,7 @@ def build():
          'ROWPTR      EQU $%04X' % ROWPTR, 'SIZECLS     EQU $%04X' % SIZECLS,
          'FONTPAT     EQU $%04X' % FONT, 'NFONT       EQU %d' % nfont, 'STARPAT     EQU $%04X' % STARG,
          'LOGO_W      EQU %d' % (W // 8), 'LOGO_H      EQU %d' % (H // 8), 'LOGO_NG     EQU %d' % len(pats),
-         'LOGO_MAP    EQU $1000', 'CORE_PAT    EQU $%04X' % CORE_PAT, 'NPOP        EQU %d' % len(POPS)]
+         'LOGO_MAP    EQU $1000', 'CORE_PAT    EQU $%04X' % CORE_PAT, 'DX136       EQU $%04X' % DX136, 'POSTAB      EQU 0', 'NPOP        EQU %d' % len(POPS)]
     for i, p in enumerate(POPS):
         L.append('POP_%s EQU %d' % (p, i))
     for k in ('ship', 'shot', 'bul', 'boom', 'pop', 'enm', 'core'):

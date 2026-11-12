@@ -227,7 +227,9 @@ title:
 .col:   xor a
 .mc:    ld (mono),a
         call set_colour_mode
-        jp .k
+        call snd_off
+        call shape_ask          ; a new monitor may want a new shape
+        jp title
 
 ; shots on the title: just fly (no enemies)
 shots_title:
