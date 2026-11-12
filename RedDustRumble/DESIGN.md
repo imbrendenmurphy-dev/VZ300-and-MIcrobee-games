@@ -306,3 +306,15 @@ Every build is also run in the project's test emulator first, but the emulator o
 3. `RUMBLE.DAT` and SD loading; second and third arenas.
 4. Bruno and Skink, then The Circuit with four fighters.
 5. Opal Annie, Professor Volt, Mr Sable, endings, bonus stage, title tune and optional in-fight pulse.
+
+---
+
+## 11. Changes made while building v0.5
+
+- **Setting:** the first arena is now Main Street of an outback town at sunset: saloon verandah with onlookers, mesas, a horse at the hitching rail and a windmill, with red dust underfoot. The other arenas in the roster keep their themes.
+- **HUD:** a dark band across the top with names above the bars, health anchored at the centre, lost health in red, and a big timer.
+- **Colour rule:** blue and red belong to the fighters (player 1 blue, player 2 red), so the play area uses them only as thin lines and dots. Big areas are green, yellow or a dither of the two.
+- **Memory:** the fighters' frames take more room than estimated (9.4K for Flick, 12.5K for Dusty, including the shifted copies). Flick fills bank 1 and Dusty uses bank 0, overwriting the DOS copy there, with about 2K spilling into main RAM. So v0.5 never calls the DOS, and quitting restarts through the SD loader. Section 6's plan to keep the DOS for loading `RUMBLE.DAT` between matches needs a rethink before SD loading is added, for example by restarting into the loader between matches or using smaller frames.
+- **Drawing:** each tick restores and copies only the columns used, and the copy runs in the frame interrupt. In the emulator, under half a percent of ticks during fighting run slow (a tick lasting three fields instead of two). The worst cases are both fighters doing their biggest moves at once.
+- **Two players:** both joysticks are supported, as the brief asked once joystick 2 is fixed. Joystick 2's directions are read from ports $29 and $23 together.
+- **Jumps:** lowered to peaks of 17 and 18 pixels, with Tin Roof rising 13, so the fighters stay below the HUD.
