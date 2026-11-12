@@ -379,7 +379,7 @@ stage_clear:
         jp c,ending
         jp play_stage
 s_clear:    db "STAGE CLEAR!",0
-n_stages:   db 4
+n_stages:   db 5
 
 game_over:
         call stop_music

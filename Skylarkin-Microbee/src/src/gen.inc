@@ -132,8 +132,26 @@ S4_BW equ 80
 S4_BH equ 64
 BLK_S4A equ 13
 BLK_S4B equ 14
+; stage 5
+SF_MANAGER0 equ 192
+SF_MANAGER1 equ 193
+SF_BRIEF0 equ 194
+SF_BRIEF1 equ 195
+SF_MEMO0 equ 196
+SF_MEMO1 equ 197
+SF_TAPE equ 198
+SF_SHRED0 equ 199
+SF_SHRED1 equ 200
+SF_ENVELOPE equ 201
+SF_PIE equ 202
+SF_STAMP equ 203
+S5_BW equ 80
+S5_BH equ 64
+BLK_S5A equ 16
+BLK_S5B equ 17
 stage_blk:
 	db 4,5
 	db 7,8
 	db 10,11
 	db 13,14
+	db 16,17

@@ -196,9 +196,11 @@ boss_draw:
         ; 8 lines of bitmap to the glyph
         ld hl,(bd_s)
         ld de,(bd_dst)
+        push bc                 ; (LDI counts BC down: C is the colour)
         REPT 8
         ldi
         ENDR
+        pop bc
         ld hl,8
         add hl,de
         ld (bd_dst),hl          ; (PCG glyphs are 16 bytes apart)
