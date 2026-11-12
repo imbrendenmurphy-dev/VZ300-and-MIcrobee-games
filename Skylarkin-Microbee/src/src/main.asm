@@ -22,7 +22,7 @@ entry:  di
         INCLUDE "enemy.asm"
         INCLUDE "boss.asm"
         INCLUDE "hud.asm"
-        INCLUDE "front.asm"
+        INCLUDE "frontstub.asm"
         INCLUDE "music.inc"
         INCLUDE "gen.inc"
 ; the sprite frame table: 192 common frames, 64 of the stage's

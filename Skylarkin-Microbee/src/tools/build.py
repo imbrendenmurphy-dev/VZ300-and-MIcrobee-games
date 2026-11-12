@@ -32,9 +32,10 @@ N_COMMON = 192             # sprite frames 0..191 common, 192..255 the stage's
 STAGE_MODULES = ['stage1', 'stage2', 'stage3', 'stage4', 'stage5']
 
 OVL_SLOTS = {}
+FRONT_SLOT = []
 OVL_LEN = {}
 STAGE_B = {}
-OVL_MAX = 0x0C00            # each stage's code overlay (src/stageN.asm) runs at OVL, C400h
+OVL_MAX = 0x1000            # each code overlay (stages, front end) runs at OVL, C000h
 
 
 def wfile(name, data):
@@ -423,6 +424,22 @@ def main():
         L.append('BLK_S%dB equ %d' % (num, used[1]))
         stage_blocks.append(used[:2])
         nxt = used[-1] + 1
+    # the front end: its code (at OVL) and the title and ending pictures
+    import front_art as FA
+    blk_front = nxt
+    t, nt = FA.title()
+    e, ne = FA.ending()
+    fb = bytearray(OVL_MAX)
+    pic_t = len(fb)
+    fb += t
+    pic_e = len(fb)
+    fb += e
+    assert len(fb) <= 32768
+    banks[blk_front] = bytes(fb)
+    FRONT_SLOT.append(blk_front)
+    print('front end: block %d, title %d glyphs, ending %d glyphs, %d bytes' % (blk_front, nt, ne, len(fb)))
+    L.append('BLK_FRONT equ %d' % blk_front)
+    open(os.path.join(BUILD, 'front.inc'), 'w').write('PIC_TITLE equ $%04X\nPIC_END equ $%04X\n' % (pic_t, pic_e))
     L.append('stage_blk:')
     for a, b in stage_blocks:
         L.append('\tdb %d,%d' % (a, b))
@@ -466,6 +483,14 @@ def overlays(banks):
         banks[ob] = bytes(blk)
         print('stage %d overlay: %d bytes' % (num, len(code)))
         OVL_LEN[num] = len(code)
+    subprocess.check_call([sys.executable, zasm, 'front.asm', '--sym=../build/front.sym'], cwd=SRC)
+    code = open(os.path.join(BUILD, 'FRONT.BIN'), 'rb').read()
+    assert len(code) <= OVL_MAX
+    fb = FRONT_SLOT[0]
+    blk = bytearray(banks[fb])
+    blk[0:len(code)] = code
+    banks[fb] = bytes(blk)
+    print('front end overlay: %d bytes' % len(code))
 
 
 if __name__ == '__main__':

@@ -195,4 +195,11 @@ bd_k:       db 0
 bd_cnt:     db 0
 ; scratch
 tmp:        ds 8
+; the saved things (SAVE.DAT): the hall of fame, unlocks, settings
+sv_first:
+hof:        ds 8*7          ; 8 x (4 bytes BCD score, 3 letters)
+unlocked:   db 0            ; b0 LOCKIE, b1 the game has been cleared
+automode:   db 0            ; 1: upgrades are taken automatically
+sv_diff:    db 0
+sv_end:
 vars_end:

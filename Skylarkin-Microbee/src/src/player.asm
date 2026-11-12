@@ -517,7 +517,38 @@ capsule_got:
         ld de,$0050
         call add_score
         ld a,SFX_CAPSULE
-        jp play_sfx
+        call play_sfx
+        ld a,(automode)         ; AUTO: take what you haven't got yet
+        or a
+        ret z
+        ld a,(barpos)
+        dec a
+        jr nz,.a1
+        ld a,(pspeed)           ; speed: up to 2
+        cp 2
+        ret nc
+        jp take_upgrade
+.a1:    dec a
+        jr nz,.a2
+        ld a,(pmissile)
+        jr .none
+.a2:    cp 3                    ; 1 double, 2 laser, 3 options, 4 shield, 5 OI!
+        jr nc,.a4
+        ld a,(pdouble)          ; double or laser: if neither
+        ld hl,plaser
+        or (hl)
+.none:  or a
+        ret nz
+        jp take_upgrade
+.a4:    jr nz,.a5
+        ld a,(poptions)         ; options: up to 2
+        cp 2
+        ret nc
+        jp take_upgrade
+.a5:    cp 4
+        ret nz
+        ld a,(pshield)
+        jr .none
 
 ; ---------------------------------------------------------------------
 ; volleys: the pilot and every option fire

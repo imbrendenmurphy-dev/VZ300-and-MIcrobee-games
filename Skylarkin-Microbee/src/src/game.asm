@@ -11,8 +11,7 @@ start:
         ld (musicon),a
         ld a,1
         ld (sfxon),a
-        call choose_monitor
-        jp front_main
+        jp front_boot
 
 ; ---------------------------------------------------------------------
 ; a new game: (pilot), (difficulty) set by the front end
@@ -398,8 +397,5 @@ game_over:
         call frame_wait
         pop bc
         djnz .w
-        jp front_main
+        jp game_end
 s_over:     db " GAME OVER ",0
-
-ending:
-        jp front_main

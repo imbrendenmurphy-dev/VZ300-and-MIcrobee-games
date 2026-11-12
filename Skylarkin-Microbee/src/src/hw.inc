@@ -91,7 +91,7 @@ STACK       EQU $EFFE
 
 ; ---- the stage overlay: each stage's enemy types, waves and boss, copied
 ; here from its B block when the stage loads (tools/build.py, src/stageN.asm)
-OVL         EQU $C400
+OVL         EQU $C000
 OVL_END     EQU $D000
 ovl_wave        EQU OVL+0       ; A = wave type, C = y
 ovl_boss_start  EQU OVL+3

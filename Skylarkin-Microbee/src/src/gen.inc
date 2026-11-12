@@ -149,6 +149,7 @@ S5_BW equ 80
 S5_BH equ 64
 BLK_S5A equ 16
 BLK_S5B equ 17
+BLK_FRONT equ 19
 stage_blk:
 	db 4,5
 	db 7,8
