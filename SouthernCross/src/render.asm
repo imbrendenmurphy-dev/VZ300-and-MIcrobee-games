@@ -3,37 +3,84 @@
 ; ============================================================================
 
 ; ---------------------------------------------------------------- background
-; Copy the 64 visible strip rows (from row `top`, wrapping at 256) into the
-; frame buffer with an unrolled LDI chain (16 T per byte).
+; The stage is a map of 32-row scenery blocks (in SRAM bank B).  Screen row r
+; shows stage row dist+63-r; each block's image runs top to bottom, so a
+; screen's 64 rows come from two or three blocks, each a contiguous run of
+; bytes, copied with an unrolled LDI chain (16 T per byte).
 compose_bg:
-        ld a,(top)
+        ld hl,(dist)
+        ld de,63
+        add hl,de
+        ld (cb_k),hl            ; stage row at the top of the screen
+        ld a,64
+        ld (cb_left),a
+        ld de,FBVIS
+.seg:   push de
+        ld hl,(cb_k)
+        ld a,l
+        and 31
+        ld c,a                  ; rows left in this block = c+1
+        add hl,hl
+        add hl,hl
+        add hl,hl               ; H = k / 32
+        ld l,h
+        ld h,0
+        ld de,STG_MAP
+        add hl,de
+        ld a,(hl)               ; block number
+        add a,a
+        ld l,a
+        ld h,0
+        ld de,STG_BLKADDR
+        add hl,de
+        ld e,(hl)
+        inc hl
+        ld d,(hl)               ; block image
+        ld a,31
+        sub c                   ; image row
         ld l,a
         ld h,0
         add hl,hl
         add hl,hl
-        add hl,hl               ; *8
+        add hl,hl
+        push de
         ld d,h
         ld e,l
-        add hl,hl               ; *16
+        add hl,hl
         add hl,de               ; *24
-        ld de,SRAMSTRIP
+        pop de
         add hl,de               ; source
-        ld de,FBVIS
-        ld a,(top)
-        neg                     ; rows before the wrap = 256 - top (0 = 256)
-        jr z,.one
-        cp 64
-        jr nc,.one
-        ; two segments: A rows, then 64-A rows from the strip start
-        ld (.n2+1),a
+        pop de
+        ld a,c
+        inc a                   ; rows in this block
+        ld b,a
+        ld a,(cb_left)
+        cp b
+        jr c,.n
+        ld a,b
+.n:     ld b,a                  ; this segment
+        ld a,(cb_left)
+        sub b
+        ld (cb_left),a
+        push bc
+        ld a,b
         call ldi_rows
-.n2:    ld a,0
-        neg
-        add a,64
-        ld hl,SRAMSTRIP
-        jr ldi_rows
-.one:   ld a,64
-; A = rows (1..64), HL = source, DE = destination
+        pop bc
+        push hl
+        ld hl,(cb_k)
+        ld a,l
+        sub b
+        ld l,a
+        jr nc,$+3
+        dec h
+        ld (cb_k),hl
+        pop hl
+        ld a,(cb_left)
+        or a
+        jr nz,.seg
+        ret
+
+; A = rows (1..32), HL = source, DE = destination
 ldi_rows:
         push hl
         ld l,a
@@ -60,7 +107,7 @@ ldi_rows:
 ; ---------------------------------------------------------------- sprites
 ; HL = sprite descriptor (db height, width bytes / dw shift 0-3)
 ; B = x (0-95; caller keeps the sprite inside the playfield)
-; C = frame buffer row (0-79; 8 = top screen row)
+; C = frame buffer row (FBTOP = top screen row)
 draw_spr:
         ld a,(hl)
         ld (ds_rows),a
@@ -103,6 +150,8 @@ draw_spr:
         jr z,ds2
         cp 4
         jr z,ds4
+        cp 8
+        jp z,ds8
         ; general width
         ld c,a
         ld a,FBW
@@ -127,6 +176,88 @@ draw_spr:
         jr nc,$+3
         inc h
         djnz .row
+        ret
+
+ds8:
+.row:
+        ld a,(de)
+        and (hl)
+        inc de
+        ex de,hl
+        or (hl)
+        ex de,hl
+        ld (hl),a
+        inc de
+        inc hl
+        ld a,(de)
+        and (hl)
+        inc de
+        ex de,hl
+        or (hl)
+        ex de,hl
+        ld (hl),a
+        inc de
+        inc hl
+        ld a,(de)
+        and (hl)
+        inc de
+        ex de,hl
+        or (hl)
+        ex de,hl
+        ld (hl),a
+        inc de
+        inc hl
+        ld a,(de)
+        and (hl)
+        inc de
+        ex de,hl
+        or (hl)
+        ex de,hl
+        ld (hl),a
+        inc de
+        inc hl
+        ld a,(de)
+        and (hl)
+        inc de
+        ex de,hl
+        or (hl)
+        ex de,hl
+        ld (hl),a
+        inc de
+        inc hl
+        ld a,(de)
+        and (hl)
+        inc de
+        ex de,hl
+        or (hl)
+        ex de,hl
+        ld (hl),a
+        inc de
+        inc hl
+        ld a,(de)
+        and (hl)
+        inc de
+        ex de,hl
+        or (hl)
+        ex de,hl
+        ld (hl),a
+        inc de
+        inc hl
+        ld a,(de)
+        and (hl)
+        inc de
+        ex de,hl
+        or (hl)
+        ex de,hl
+        ld (hl),a
+        inc de
+        ld a,l
+        add a,FBW-7
+        ld l,a
+        jr nc,$+3
+        inc h
+        dec b
+        jp nz,.row
         ret
 
 ds2:
@@ -235,14 +366,12 @@ ds4:
         ret
 
 ; draw a sprite at an object position: HL = descriptor, B = x, C = y16
-; (skipped unless 8 <= y16 <= 80, i.e. inside the frame buffer margins)
+; (frame buffer row = y16 + 4; skipped below y16 = 80)
 draw_obj:
         ld a,c
-        cp 8
-        ret c
         cp 81
         ret nc
-        sub 8
+        add a,FBTOP-16
         ld c,a
         jp draw_spr
 
@@ -251,11 +380,10 @@ draw_obj:
 ; carry set if outside rows 0..77 of the visible area +margins
 pix_addr:
         ld a,c
-        sub 8
-        ret c
-        cp 78
+        cp 86
         ccf
         ret c
+        add a,FBTOP-16
         add a,a
         ld l,a
         ld h,YTAB>>8
@@ -561,3 +689,115 @@ hud_all:
         call hud_stars
         call hud_weapon
         jp hud_lives
+
+; ---------------------------------------------------------------- text
+; Text in a 7-row box straight into the frame buffer, one byte (4 px) a
+; character.  HL = string (0 ends), B = byte column 0-23 (255 = centre),
+; C = screen row, D = ink byte, E = paper byte ($55 yellow, $AA blue, ...)
+draw_text:
+        ld a,b
+        inc a
+        jr nz,.at
+        push hl                 ; centre it
+        ld b,0
+.ln:    ld a,(hl)
+        or a
+        jr z,.lnd
+        inc b
+        inc hl
+        jr .ln
+.lnd:   pop hl
+        ld a,24
+        sub b
+        srl a
+        ld b,a
+.at:    ld a,c
+        add a,FBTOP
+        add a,a
+        push hl
+        ld l,a
+        ld h,YTAB>>8
+        ld a,(hl)
+        inc l
+        ld h,(hl)
+        ld l,a
+        ld a,b
+        add a,l
+        ld l,a
+        jr nc,$+3
+        inc h
+        ex de,hl                ; DE = destination, H = ink, L = paper
+        ld (dt_col),hl
+        pop hl
+.ch:    ld a,(hl)
+        or a
+        ret z
+        inc hl
+        push hl
+        push de
+        sub 32
+        ld l,a
+        ld h,0
+        ld b,h
+        ld c,l
+        add hl,hl
+        add hl,hl
+        add hl,bc               ; *5
+        ld bc,FONT4
+        add hl,bc               ; glyph
+        ld a,(dt_paper)
+        ld (de),a               ; top row
+        ld b,5
+.gr:    ex de,hl
+        ld a,l
+        add a,FBW
+        ld l,a
+        jr nc,$+3
+        inc h
+        ex de,hl
+        push hl
+        ld a,(hl)
+        ld hl,EXPAND
+        add a,l
+        ld l,a
+        jr nc,$+3
+        inc h
+        ld c,(hl)               ; mask of ink pixels
+        ld a,(dt_ink)
+        and c
+        ld l,a
+        ld a,c
+        cpl
+        ld c,a
+        ld a,(dt_paper)
+        and c
+        or l
+        ld (de),a
+        pop hl
+        inc hl
+        djnz .gr
+        ex de,hl
+        ld a,l
+        add a,FBW
+        ld l,a
+        jr nc,$+3
+        inc h
+        ld a,(dt_paper)
+        ld (hl),a               ; bottom row
+        pop de
+        inc de
+        pop hl
+        jr .ch
+
+; A (0-99) -> two ASCII digits at (HL), (HL+1); HL moves past them
+put_dec2:
+        ld b,'0'-1
+.t:     inc b
+        sub 10
+        jr nc,.t
+        add a,10+'0'
+        ld (hl),b
+        inc hl
+        ld (hl),a
+        inc hl
+        ret

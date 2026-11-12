@@ -9,22 +9,31 @@ the Southern Cross pattern. Stars fire with you and each one soaks a hit. A knoc
 tumbles away and can be caught again. **Cross Burst** flings every star outward to clear the
 screen, and they fly back home afterwards.
 
-![Engine test](screenshots/sctest_montage.png)
+![Stage 1](screenshots/scross_v02_montage.png)
 
-## Status: Phase 2 engine test (SCTEST.VZ)
+## Status: v0.2, Stage 1 complete (the Coral Sea)
 
 | | |
 |---|---|
-| **Done, tested in the emulator** | 25 fps full-screen vertical scrolling, no snow, no tearing (frame copied to video RAM inside vertical blank); masked, pre-shifted sprites; ship with banking frames; the star mechanic (attach, fire, knock loose, re-catch, Cross Burst, fly home); player shots and weapon levels; three enemy types (drones in path formations, diving darts, gunboats that surface from ripples); telegraphed, aimed enemy fire; collisions; four-frame explosions; star shards and weapon pods; score / hi / lives / weapon / star diagram panels; blip-style music and ten sound effects; title, READY, pause and game over; a spare-CPU meter |
-| **Not yet tested** | Anything on a real VZ300 |
-| **Not started** | Bosses, stages 2-6, SD stage packs, attract mode, high-score entry and saving, ending |
+| **Done, tested in the emulator** | Title screen with full-screen art and a three-voice Cybernoid-style tune (drums, arpeggio chords, bass), twinkling stars, high score. Stage 1: about two and a half minutes of hand-placed waves over scenery built from a block map (open sea, reefs, cays, a wreck, a lighthouse, a jetty, the atoll arena), with a mid-stage checkpoint. New enemy: the Rust Hornet (strafes the top of the screen, three-way fire). WARNING sequence with siren. The boss, the Crown of Thorns. Stage-clear tally with star bonus. Game over with CONTINUE? countdown, restarting from the last checkpoint. All the SCTEST engine features. |
+| **Tested on the real VZ300** | The SCTEST engine (v0.1): it runs and plays well. v0.2 adds SD loading, so it needs a fresh check. |
+| **Not started** | Stages 2-6, attract mode, high-score table and saving, ending |
+
+### The Crown of Thorns
+
+A mechanical starfish hovers over the atoll. Five turrets orbit its armoured body on banded arms, and each fires an aimed shot in turn after a yellow glint. Shots bounce off the body ("tink") while any arm survives. Every arm you destroy makes it spin faster and fire sooner. With all five gone, the shell opens and the core fires five-way spreads with gaps to slip through. While the boss is on screen your ship is kept below it.
 
 ## Loading
 
-Copy `release/SCTEST.VZ` to the SD card and run it from the loader. It loads at
-$8000-$E08A (low, like Xevious 1.2 and Graves 'n' Gargoyles), makes no SD calls, and maps
-SRAM bank B at $4000 (port $37 = 3) as Graves 'n' Gargoyles does. If that SRAM isn't there
-it shows a red screen with a blue bar.
+Copy all three files to the same folder on the SD card and run `SCROSS.VZ`:
+
+| File | What it is | Loaded into |
+|---|---|---|
+| `SCROSS.VZ` | the program | $8000-$D5A0 (low, no mapper writes) |
+| `SCROSS00.DAT` | title art and title tune | main RAM, whenever the title appears |
+| `SCROSS01.DAT` | Stage 1: scenery blocks, map, waves, boss art | SRAM bank B, when a game starts |
+
+The packs are loaded with the same DOS calls Graves 'n' Gargoyles uses on your machine: sector buffer at $F800, the frame buffer as the DOS's stack, interrupts off after every call. Sectors are copied into SRAM bank B with port $37 switched around the copy, as 13 Ghosts does. If a file can't be read you get a red screen with a yellow bar; press FIRE to retry.
 
 ## Controls
 
@@ -34,33 +43,14 @@ it shows a red screen with a blue bar.
 | Fire | SPACE | FIRE |
 | Cross Burst | M | ARM |
 | Pause | H | |
-| Scroll speed (test) | S cycles 1, 3/4, 1/2, 1/4 rows a frame | |
 
-FIRE or ARM starts a game from the title.
+FIRE or ARM starts a game from the title and continues after a game over.
 
-## Please check on the real machine
+## Measured performance (emulator)
 
-1. Does it load and show the title over the scrolling reef?
-2. Is the scrolling smooth, with no specks ("snow") or tearing in the playfield?
-3. Do the keys and both joysticks work, including ARM for the burst?
-4. How does the sound come across? The music is deliberately "dink, dink-dink" blips.
-5. Is 1 row a frame a good scroll speed on your TV? Press S to compare the slower speeds.
-6. The CPU bar (bottom right) shows spare time: yellow is plenty, red is under 25%.
-
-## Measured performance (emulator, 5-minute random-input soak test)
-
-- 7,494 frames in 15,000 fields: a steady **25 fps**, no late frames.
-- Worst frame: 6.6% of the CPU spare. Average: about 31% spare.
-- Snow (video RAM touched during the display): none, apart from the one-off screen clear at start-up.
-
-Average CPU use during play (profiler):
-
-| Work | Share |
-|---|---|
-| Sound output loop (idle time) and the field-sync wait | 40% |
-| Background strip → frame buffer (LDI chain) | 17% |
-| Frame buffer → video RAM (stack copy in vertical blank) | 14% |
-| Sprites, game logic, collisions, HUD | 29% |
+- **10-minute random-input run, normal build:** no late frames and no snow, including the title, both SD loads and the screen changes. The random player reached the boss using continues.
+- **Through the stage:** usually 20-35% of the CPU spare. During the boss fight it drops to about 4% at the busiest moment, but frames stay on time.
+- **Title tune:** notes measured within about 10 cents of true pitch. Only the work at the start of each field is silent (about 5-8%, against about 14% in Cybernoid).
 
 ## Technical design
 
@@ -81,8 +71,8 @@ panels only change when the HUD changes, and they're copied in the other field.
 
 ### Frame pipeline (25 fps, two fields a frame)
 
-1. The background strip (256 rows × 24 bytes, seamless top to bottom, in SRAM bank B) is
-   copied into the frame buffer at the current scroll position with an unrolled LDI chain.
+1. The scenery for the current scroll position (two or three 32-row blocks from SRAM bank B)
+   is copied into the frame buffer with an unrolled LDI chain.
 2. Objects are drawn over it: ground targets, shots, enemies, pickups, explosions, stars,
    the ship, then enemy bullets on top so they are always visible.
 3. `frame_end` marks the frame ready. The next field-sync interrupt copies it to video
@@ -90,30 +80,46 @@ panels only change when the HUD changes, and they're copied in the other field.
    changed.
 4. While waiting, the CPU runs the sound loop, which also counts the idle time.
 
-Sprites are pre-shifted to all four pixel positions with masks. 2-, 3- and 4-byte widths
-have unrolled loops. Fixed-position text and the logo are stored at one shift only. The
-unrolled blits and the LDI chain (6.6K of regular code) are generated at start-up into the
-space the strip occupied in the load image.
+Sprites are pre-shifted to all four pixel positions with masks. 2-, 3-, 4- and 8-byte widths
+have unrolled loops. The boss body is stored at two shifts and moves in 2-pixel steps. Captions
+are drawn with a 3x5 font straight into the frame buffer. The unrolled frame blit and the LDI
+chain are built at game start in the overlay that holds the title pack the rest of the time.
 
 ### Memory map
 
 ```
-$4000-$57FF  SRAM bank B (port $37 = 3): background strip
-$7000-$77FF  video RAM - written only in vertical blank
+$4000-$67FF  SRAM bank B (port $37 = 3): the stage pack (blocks, map, waves, boss art)
+$7000-$77FF  video RAM - written only before the display starts
 $7800-$7AE8  left alone (ROM / SD DOS system area)
 $7B00-$7CFF  HUD shadow (64 rows x 8 bytes)
 $7D00-$7D7C  stack                $7D7D jp isr
-$7D80-$7DFF  test build: last 128 spare-CPU readings, for the emulator
-$7E00-$7E9F  frame buffer row table
+$7D80-$7DFF  test: last 128 spare-CPU readings, for the emulator
+$7E00-$7EB7  frame buffer row table (92 rows)
 $7F00-$8000  IM2 vector table
-$8000-$C861  program, sprites, HUD art, paths, music, variables
-$C862-$E08A  strip in the load image, then code built at start-up (to $E488)
-$EE00-$F57F  frame buffer, 80 rows x 24 bytes (8-row margins top and bottom)
+$8000-$D5A0  program, sprites, HUD art, paths, font, music, variables
+$D600-$EBFF  overlay: the front pack on the title, or the copy code built
+             for play (32-row LDI chain + the frame blit)
+$EE00-$F69F  frame buffer, 92 rows x 24 (20-row margin on top so the boss can
+             slide in), and the DOS's stack during SD loads
+$F800-$F9FF  DOS sector buffer
 $FA00-$FFFF  BennVenn DOS RAM - never touched
 ```
 
-The full game will load each stage's strip or tile map, sprites, boss and music into SRAM
-banks from SD during the stage-clear tally. RASTEST measured 16K in 0.4 s.
+### Scenery
+
+Each stage is a map of 32-row blocks, each 96 x 32 pixels (768 bytes). Every block has open water along its top and bottom edges, so they join in any order. Stage 1 uses nine blocks and a 256-entry map, which is enough for the whole stage plus an atoll arena that repeats under the boss. The frame is composed from two or three block segments with the LDI chain.
+
+### Title player (three voices)
+
+The title runs with interrupts off and owns the CPU, as Cybernoid's front end does. Three pulse voices share one 188 T-state pass (18.9 kHz):
+
+- voice 1 in HL/DE/B;
+- voice 2 in the alternate registers;
+- voice 3 in IX with the **stack pointer as its pitch step** (safe because interrupts are off).
+
+The pass ends by reading the field-sync flag. When field sync starts, the program saves the voices and plays any snare or hat burst (noise read from the ROM). It then steps the sequencer, updates the screen while video RAM is free, reads the controls, and jumps back into the voices.
+
+The sequencer works Cybernoid-style. Instruments have duty-cycle envelopes (volume shapes) and arpeggio tables, which give the fast-arpeggio chords and the dropping-pitch kick drum.
 
 ### Audio
 
@@ -151,15 +157,16 @@ What carries over:
 ## Building
 
 ```
-./build.sh                      # -> build/SCTEST.VZ (needs python3 + Pillow)
+./build.sh                      # -> build/SCROSS.VZ, SCROSS00.DAT, SCROSS01.DAT
+./build.sh cheat                # test build: the ship can't be hit
 gcc -O2 -o emu/vzemu emu/vzemu.c
-emu/vzemu build/SCTEST.VZ -f 3000 -i emu/play1.txt -s 1000 -p shot
+cd build && ../emu/vzemu SCROSS.VZ -S . -f 6000 -i ../emu/play2.txt -s 5400 -p shot
 ```
 
-- `tools/mkassets.py` generates the reef strip, sprites, HUD art, paths, aim table, waves,
-  music and sound effects into `src/gen/`.
+- `tools/mkassets.py` generates the sprites, HUD art, font, paths, tables, in-game music and sound
+  effects; `tools/stage1.py` builds the Stage 1 pack and `tools/front.py` the title pack.
 - `tools/z80asm.py` and `emu/vzemu.c` are the assembler and test emulator from Graves 'n'
   Gargoyles.
-- `emu/play1.txt` and `emu/soak.txt` are input scripts for testing.
+- `emu/play*.txt` and `emu/soak.txt` are input scripts for testing.
 
 The emulator's Z80 core looks like superzazu/z80 (MIT licence). It's used only for testing.

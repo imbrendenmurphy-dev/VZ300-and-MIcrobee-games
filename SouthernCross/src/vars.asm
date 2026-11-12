@@ -43,10 +43,44 @@ mode:           ds 1            ; 0 title, 1 play, 2 game over
 mode_tm:        ds 2
 paused:         ds 1
 ; scrolling
-top:            ds 1            ; strip row shown on the top screen row
+dist:           ds 2            ; stage rows travelled (bottom screen row)
 scroll_acc:     ds 1
 scroll_rate:    ds 1            ; 0 = 1 row a frame, else rows*256 per frame
 scroll_step:    ds 1            ; rows scrolled this frame (0/1)
+cb_k:           ds 2
+cb_left:        ds 1
+; stage progress
+cp_ptr:         ds 2            ; checkpoint: wave pointer, delay, distance
+cp_tm:          ds 1
+cp_dist:        ds 2
+warn_tm:        ds 1
+clear_tm:       ds 2
+cont_tm:        ds 2
+tink_tm:        ds 1
+; boss
+boss_ph:        ds 1            ; 0 none 1 arriving 2 arms 3 core 4 dying
+bx:             ds 1
+by:             ds 1
+bang:           ds 1
+bspeed:         ds 1
+bdir:           ds 1
+bsway:          ds 1
+bfire_tm:       ds 1
+bnext:          ds 1
+barms:          ds 1
+bdie_tm:        ds 1
+bvolley:        ds 1
+lb_cx:          ds 1
+lb_cy:          ds 1
+lb_dx:          ds 1
+lb_dy:          ds 1
+lb_x:           ds 4
+lb_y:           ds 4
+en_top:         ds 1
+txtbuf:         ds 24
+dt_col:
+dt_paper:       ds 1
+dt_ink:         ds 1
 flash_tm:       ds 1
 ; player
 px:             ds 1
@@ -83,3 +117,27 @@ EXTAB:          ds NEX*EXSIZE
 PUTAB:          ds NPU*PUSIZE
 STTAB:          ds 4*STSIZE
 VARS_END:
+; title player (cleared on the title)
+TITLEVARS:
+TCH1:           ds TCSIZE
+TCH2:           ds TCSIZE
+TCH3:           ds TCSIZE
+td_ptr:         ds 2
+td_dur:         ds 1
+t_acc1:         ds 2
+t_acc2:         ds 2
+t_acc3:         ds 2
+t_cnt:          ds 1
+t_nlen:         ds 1
+t_npos:         ds 2
+t_upload:       ds 1
+t_upsrc:        ds 2
+t_updst:        ds 2
+TITLEVARS_END:
+; SD loader
+DOSMAP:         ds 1
+ld_dest:        ds 2
+ld_left:        ds 2
+ld_bank:        ds 1
+ld_name:        ds 2
+ld_sp:          ds 2

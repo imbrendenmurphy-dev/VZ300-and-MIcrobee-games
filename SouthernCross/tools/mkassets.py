@@ -274,9 +274,6 @@ def text_rows(s, fg='y', edge='b'):
         grid[y][x] = fg
     return [''.join(r) for r in grid]
 
-SPR['t_press'] = text_rows("PRESS FIRE")
-SPR['t_vibed'] = text_rows("VIBED BY BPM 2026", 'y', 'b')
-SPR['t_test'] = text_rows("ENGINE TEST", 'y', 'r')
 SPR['t_over'] = text_rows("GAME OVER", 'y', 'r')
 SPR['t_ready'] = text_rows("READY!", 'y', 'r')
 SPR['t_pause'] = text_rows("PAUSED", 'y', 'r')
@@ -314,10 +311,20 @@ def logo_rows(s):
         if y in (5, 6) and (x + y) % 3:
             grid[y][x] = 'y' if y == 5 else 'r'
     return [''.join(r) for r in grid]
-SPR['logo1'] = logo_rows("SOUTHERN")
-SPR['logo2'] = logo_rows("CROSS")
 
-FLASHABLE = ['drone0', 'drone1', 'dart0', 'dart1', 'boat0']
+SPR['hornet0'] = ["r.r....r.r",
+                  "rrryyyyrrr",
+                  ".rrybbyrr.",
+                  "..ryyyyr..",
+                  "...rrrr...",
+                  "....yy...."]
+SPR['hornet1'] = ["..........",
+                  "rrryyyyrrr",
+                  "rrrybbyrrr",
+                  "..ryyyyr..",
+                  "...rrrr...",
+                  "....yy...."]
+FLASHABLE = ['drone0', 'drone1', 'dart0', 'dart1', 'boat0', 'hornet0']
 for n in FLASHABLE:
     SPR[n + 'w'] = flash_variant(SPR[n])
 
@@ -474,6 +481,53 @@ def gen_hud():
         t.append('        db ' + ','.join('$%02X' % b for r in rows for b in r) + '\n')
     return ''.join(t)
 
+# ------------------------------------------------------------------ text font
+def gen_font():
+    t = ['FONT4:                  ; ASCII 32-95, 5 rows of 4-bit patterns (3 px + gap)\n']
+    for c in range(32, 96):
+        g = F35.get(chr(c), F35[' '])
+        rows = [int(g[j * 3:j * 3 + 3] + '0', 2) for j in range(5)]
+        t.append('        db ' + ','.join('$%X' % r for r in rows) + '\n')
+    t.append('EXPAND:                 ; 4-bit pattern -> 2 bits per pixel mask\n        db ')
+    vals = []
+    for p in range(16):
+        v = 0
+        for k in range(4):
+            v <<= 2
+            if p & (8 >> k):
+                v |= 3
+        vals.append('$%02X' % v)
+    t.append(','.join(vals) + '\n')
+    return ''.join(t)
+
+# boss arm geometry: 256 angles, radius 22 px across, 14 rows down (tall pixels)
+def gen_tables():
+    t = ['PODDX:\n']
+    vals = [int(round(22 * math.cos(2 * math.pi * a / 256))) for a in range(256)]
+    for i in range(0, 256, 16):
+        t.append('        db ' + ','.join('%d' % (v & 255) for v in vals[i:i + 16]) + '\n')
+    t.append('PODDY:\n')
+    vals = [int(round(14 * math.sin(2 * math.pi * a / 256))) for a in range(256)]
+    for i in range(0, 256, 16):
+        t.append('        db ' + ','.join('%d' % (v & 255) for v in vals[i:i + 16]) + '\n')
+    # five-way spread from the boss core, two sets (offset by half a step)
+    t.append('SPREAD:                 ; vx, vy (1/256 px per frame)\n')
+    for off in (0, 10):
+        for k in range(5):
+            ang = math.radians(90 + (k - 2) * 22 + off - 5)
+            sp = 1.15
+            vx = int(round(math.cos(ang) * sp * 256))
+            vy = int(round(math.sin(ang) * sp * 256 / 1.5 * 1.15))
+            t.append('        dw %d,%d\n' % (vx, vy))
+    # hornet three-way: straight down and +-25 degrees
+    t.append('SPREAD3:\n')
+    for k in (-1, 0, 1):
+        ang = math.radians(90 + k * 25)
+        vx = int(round(math.cos(ang) * 1.2 * 256))
+        vy = int(round(math.sin(ang) * 1.2 * 256 / 1.5 * 1.15))
+        t.append('        dw %d,%d\n' % (vx, vy))
+    return ''.join(t)
+
 # ------------------------------------------------------------------ blits
 def gen_blits():
     t = []
@@ -563,7 +617,7 @@ PATHS = [('PATH_SWOOPR', p_swoop(+1)), ('PATH_SWOOPL', p_swoop(-1)),
          ('PATH_SINE', p_sine()), ('PATH_DART', p_dart()), ('PATH_LOOP', p_loop())]
 
 def gen_paths():
-    t = []
+    t = ['PATHTAB:\n        dw ' + ','.join(n for n, _ in PATHS) + '\n']
     for name, steps in PATHS:
         t.append('%s:\n' % name)
         flat = []
@@ -590,7 +644,7 @@ def gen_aim():
 
 # ------------------------------------------------------------------ waves
 # (delay, type, path, x, count, spacing)  type: 1 drone 2 dart 3 boat
-T_DRONE, T_DART, T_BOAT = 1, 2, 3
+T_DRONE, T_DART, T_BOAT, T_HORNET = 1, 2, 3, 4
 WAVES = [
     (50, T_DRONE, 'PATH_SWOOPR', 8, 5, 7),
     (110, T_DRONE, 'PATH_SWOOPL', 80, 5, 7),
@@ -682,7 +736,30 @@ def gen_music():
         for n, d in seq(s, 4):
             t.append('        db %d,%d\n' % (n, d))
         t.append('        db $FE\n')
+    # the boss: faster, lower, insistent
+    boss_a = ("D4 - D4 - F4 - D4 - G#4 - G4 - F4 - D4 - "
+              "D4 - D4 - F4 - D4 - A4 - G#4 - G4 - F4 - "
+              "C5 - - - A#4 - - - G#4 - G4 - F4 - G4 - "
+              "D4 - - - - - - - D5 - C5 - A#4 - A4 - ")
+    boss_b = ("D2 D2 D3 D2 D2 D2 D3 D2 D2 D2 D3 D2 D2 D2 D3 D2 "
+              "D2 D2 D3 D2 D2 D2 D3 D2 D2 D2 D3 D2 D2 D2 D3 D2 "
+              "A#1 A#1 A#2 A#1 A#1 A#1 A#2 A#1 G#1 G#1 G#2 G#1 G1 G1 G2 G1 "
+              "D2 D2 D3 D2 D2 D2 D3 D2 A1 A1 A2 A1 A1 A1 A2 A1")
+    for name, s2, u in (('SONG_BOSS_A', boss_a, 4), ('SONG_BOSS_B', boss_b, 4)):
+        t.append('%s:\n' % name)
+        for n, d in seq(s2, u):
+            t.append('        db %d,%d\n' % (n, d))
+        t.append('        db $FF\n')
+    clr_a = "D5 F5 A5 D6 - - C6 A#5 A5 - - G5 F5 E5 F5 D5 - - - - - - - -"
+    clr_b = "D3 - - D3 - - F3 - - G3 - - A3 - - A2 - - D3 - - - - -"
+    for name, s2 in (('SONG_CLEAR_A', clr_a), ('SONG_CLEAR_B', clr_b)):
+        t.append('%s:\n' % name)
+        for n, d in seq(s2, 5):
+            t.append('        db %d,%d\n' % (n, d))
+        t.append('        db $FE\n')
     t.append('SONG_GAME:\n        dw SONG_GAME_A,SONG_GAME_B\n')
+    t.append('SONG_BOSS:\n        dw SONG_BOSS_A,SONG_BOSS_B\n')
+    t.append('SONG_CLEAR:\n        dw SONG_CLEAR_A,SONG_CLEAR_B\n')
     t.append('SONG_JINGLE:\n        dw SONG_JINGLE_A,SONG_JINGLE_B\n')
     return t and ''.join(t)
 
@@ -700,8 +777,10 @@ def gen_sfx():
     fx['LOST'] = [(1200 - i * 90, 50) for i in range(10)]
     fx['BURST'] = [(300 + i * 160, 80) for i in range(8)] + [(1500 - i * 120, 60) for i in range(10)]
     fx['DIE'] = [(rnd.uniform(60, 500) * (1 - i / 40), 100 - i * 2) for i in range(36)]
+    fx['TINK'] = [(3000, 20), (2400, 12)]
     fx['SHARD'] = [(1568, 40), (2093, 40), (1568, 30), (2093, 30)]
     fx['POWER'] = [(f, 64) for f in (392, 523, 659, 784, 1046, 1318, 1568, 2093)] + [(2093, 40)] * 4
+    fx['SIREN'] = ([(600 + i * 60, 80) for i in range(12)] + [(1320 - i * 60, 80) for i in range(12)]) * 2
     t = ['SFXTAB:\n']
     names = list(fx)
     for n in names:
@@ -726,21 +805,19 @@ def gen_strip():
     return ''.join(t), img
 
 if __name__ == '__main__':
-    strip, img = gen_strip()
-    emit('strip.asm', strip)
     emit('sprites.asm', gen_sprites())
     emit('hud.asm', gen_hud())
-    emit('paths.asm', gen_paths() + gen_aim() + gen_waves())
-    emit('music.asm', gen_notes() + gen_music() + gen_sfx())
-    # preview of the strip
+    emit('paths.asm', gen_paths() + gen_aim() + gen_font() + gen_tables())
+    import stage1, front
+    st, m, blks, bb = stage1.gen_stage1()
+    emit('stage1.asm', st)
+    fr, timg = front.gen_front()
+    emit('front.asm', fr)
     try:
-        from PIL import Image
-        pal = [(48, 210, 0), (193, 229, 0), (76, 58, 180), (154, 50, 54)]
-        im = Image.new('RGB', (PFW, STRIP_ROWS))
-        for y in range(STRIP_ROWS):
-            for x in range(PFW):
-                im.putpixel((x, y), pal[img[y][x]])
-        im.resize((PFW * 4, STRIP_ROWS * 6), Image.NEAREST).save(os.path.join(OUT, '..', '..', 'build', 'strip_preview.png'))
+        os.makedirs(os.path.join(OUT, '..', '..', 'build'), exist_ok=True)
+        stage1.preview(m, blks, os.path.join(OUT, '..', '..', 'build', 'stage1_map.png'), 48)
+        front.preview(timg, os.path.join(OUT, '..', '..', 'build', 'title_preview.png'))
     except Exception as e:
         print('preview skipped', e)
+    emit('music.asm', gen_notes() + gen_music() + gen_sfx())
     print('assets written to', OUT)

@@ -37,63 +37,15 @@ EO_H2   equ 16          ; hit height + 2 (shots are 3 rows)
 T_DRONE equ 1
 T_DART  equ 2
 T_BOAT  equ 3
+T_HORNET equ 4
+T_POD   equ 5           ; boss arm turret
+T_CORE  equ 6           ; boss core
 
 ST_NONE equ 0
 ST_ON   equ 1           ; attached to the ship
 ST_LOOSE equ 2          ; knocked loose, can be caught again
 ST_BURST equ 3          ; flung outward by a Cross Burst
 ST_BACK equ 4           ; flying home after a burst
-
-; ---------------------------------------------------------------- title
-title:
-        xor a
-        ld (mode),a
-        ld (paused),a
-        ld (scroll_rate),a
-        ld hl,0
-        ld (mode_tm),hl
-        call clear_objects
-        ld a,1
-        ld (wlevel),a
-        call stop_music
-        ld hl,SONG_GAME
-        call play_song
-        call hud_all
-.loop:  call read_input
-        call tick_mode
-        call scroll_one
-        call compose_bg
-        ld hl,SPR_LOGO1
-        ld b,0
-        ld c,8+4
-        call draw_spr
-        ld hl,SPR_LOGO2
-        ld b,18
-        ld c,8+17
-        call draw_spr
-        ld hl,SPR_T_TEST
-        ld b,26
-        ld c,8+31
-        call draw_spr
-        ld a,(mode_tm)
-        and 16
-        jr z,.nop
-        ld hl,SPR_T_PRESS
-        ld b,28
-        ld c,8+42
-        call draw_spr
-.nop:   ld hl,SPR_T_VIBED
-        ld b,14
-        ld c,8+54
-        call draw_spr
-        call hud_cpu
-        call frame_end
-        ld a,(keys_new)
-        bit K_FIRE,a
-        jr nz,start_game
-        bit K_BURST,a
-        jr nz,start_game
-        jr .loop
 
 tick_mode:
         ld hl,(mode_tm)
@@ -118,8 +70,14 @@ scroll_one:
 .st:    ld (scroll_step),a
         or a
         ret z
-        ld hl,top
-        dec (hl)
+        ld hl,(dist)
+        inc hl
+        ld a,h                  ; the boss arena (atoll blocks) repeats:
+        cp $1F                  ; keep the distance inside the map
+        jr c,.d
+        ld de,-64
+        add hl,de
+.d:     ld (dist),hl
         ret
 
 clear_objects:
@@ -132,46 +90,64 @@ clear_objects:
 
 ; ---------------------------------------------------------------- start
 start_game:
-        ld a,1
-        ld (mode),a
+        di
+        ld sp,STACKTOP
+        ld hl,PK_STAGE1         ; stage 1 into SRAM bank B
+        call must_load
+        call build_code         ; copy code into the overlay (over the front pack)
+        ld hl,HUD_INIT
+        ld de,HUDBUF
+        ld bc,512
+        ldir
+        ld hl,VRAM              ; clear the screen a quarter per field,
+        ld b,4                  ; in vertical blank (no snow)
+.cl:    push bc
+        push hl
+        call vb_wait
+        pop hl
+        ld d,h
+        ld e,l
+        inc de
+        ld (hl),$AA
+        ld bc,511
+        ldir
+        inc hl
+        pop bc
+        djnz .cl
+        call vb_wait
+        call blit_hud
         ld hl,0
-        ld (mode_tm),hl
         ld (score),hl
         ld (score+2),hl
+        ld (dist),hl
         call clear_objects
-        ld a,3
-        ld (lives),a
-        ld a,1
-        ld (wlevel),a
-        ld a,44
-        ld (px),a
-        ld a,16+48
-        ld (py),a
-        ld a,60
-        ld (pinv),a
         xor a
-        ld (pdead),a
-        ld (firecd),a
-        ld (spawn_left),a
-        ld (game_song),a
-        ; start with the two wing stars
-        ld ix,STTAB+1*STSIZE
-        ld (ix+0),ST_ON
-        ld ix,STTAB+2*STSIZE
-        ld (ix+0),ST_ON
-        call place_stars
-        ld hl,WAVES
-        ld (wave_ptr),hl
+        ld (fieldcnt),a
+        ld (frame_ready),a
+        ld (scroll_rate),a
+        ld (paused),a
+        ld hl,STG_WAVES         ; checkpoint = the start of the stage
+        ld (cp_ptr),hl
         ld a,(hl)
-        ld (wave_tm),a
-        call hud_all
-        call stop_music
+        ld (cp_tm),a
+        ld hl,0
+        ld (cp_dist),hl
+        ld a,$28
+        ld (latch),a
+        ld (latch_next),a
+        ld (LATCH),a
+        im 2
+        ei
+        call new_life_set
         ld hl,SONG_JINGLE
         call play_song
 
 ; ---------------------------------------------------------------- play loop
 game_loop:
         call read_input
+        ld a,(mode)
+        cp 1
+        jr nz,.np
         ld a,(keys_new)
         bit K_PAUSE,a
         jr z,.np
@@ -181,21 +157,14 @@ game_loop:
 .np:    ld a,(paused)
         or a
         jp nz,.pause
-        ld a,(keys_new)
-        bit K_SPEED,a           ; test key: cycle the scroll speed
-        jr z,.ns
-        ld a,(scroll_rate)
-        sub 64
-        cp 64
-        jr nc,.sr
-        xor a
-.sr:    ld (scroll_rate),a
-.ns:    call tick_mode
+        call tick_mode
         call scroll_one
         call upd_player
         call upd_stars
         call upd_shots
         call spawner
+        call upd_warning
+        call upd_boss
         call upd_enemies
         call upd_ebullets
         call upd_pickups
@@ -224,22 +193,141 @@ game_loop:
         call frame_end
         ld a,(mode)
         cp 2
-        jr nz,game_loop
-        ld hl,(mode_tm)
-        ld a,h
-        or a
-        jr nz,.tt
-        ld a,l
-        cp 150
-        jr c,game_loop
-.tt:    jp title
+        jp z,.over
+        cp 3
+        jp z,.clear
+        jr game_loop
 .pause: call draw_all
         ld hl,SPR_T_PAUSE
         ld b,35
-        ld c,8+29
+        ld c,FBTOP+29
         call draw_spr
         call frame_end
         jp game_loop
+
+        ; game over: CONTINUE? with a countdown
+.over:  ld hl,(cont_tm)
+        dec hl
+        ld (cont_tm),hl
+        ld a,h
+        or l
+        jr z,.toti
+        ld a,(keys_new)
+        and (1<<K_FIRE)|(1<<K_BURST)
+        jp z,game_loop
+        ld hl,(mode_tm)         ; (ignore presses in the first second)
+        ld a,h
+        or a
+        jr nz,.cont
+        ld a,l
+        cp 25
+        jp c,game_loop
+.cont:  call continue_game
+        jp game_loop
+.toti:  di
+        jp title
+
+        ; stage clear: the tally, then back to the title (more stages to come)
+.clear: ld hl,(clear_tm)
+        inc hl
+        ld (clear_tm),hl
+        ld a,h
+        or a
+        jr nz,.cl2
+        ld a,l
+        cp 100
+        call z,star_bonus
+        jp game_loop
+.cl2:   ld a,l
+        cp 120                  ; 376 frames, about 15 seconds
+        jp c,game_loop
+        call new_hiscore
+        di
+        jp title
+
+; fresh ship, two wing stars, from the checkpoint
+new_life_set:
+        call clear_objects
+        ld a,1
+        ld (mode),a
+        ld hl,0
+        ld (mode_tm),hl
+        ld a,3
+        ld (lives),a
+        ld a,1
+        ld (wlevel),a
+        ld a,44
+        ld (px),a
+        ld a,16+48
+        ld (py),a
+        ld a,60
+        ld (pinv),a
+        xor a
+        ld (pdead),a
+        ld (firecd),a
+        ld (spawn_left),a
+        ld (game_song),a
+        ld (warn_tm),a
+        ld (boss_ph),a
+        ld (flash_tm),a
+        ld ix,STTAB+1*STSIZE
+        ld (ix+0),ST_ON
+        ld ix,STTAB+2*STSIZE
+        ld (ix+0),ST_ON
+        call place_stars
+        ld hl,(cp_ptr)
+        ld (wave_ptr),hl
+        ld a,(cp_tm)
+        ld (wave_tm),a
+        ld hl,(cp_dist)
+        ld (dist),hl
+        ld a,$28
+        ld (latch_next),a
+        jp hud_all
+
+continue_game:
+        ld hl,0
+        ld (score),hl
+        ld (score+2),hl
+        call new_life_set
+        call stop_music
+        ld hl,SONG_JINGLE
+        jp play_song
+
+; stars still on the ship at the end of the stage: 2000 each
+star_bonus:
+        ld ix,STTAB
+        ld b,4
+.l:     ld a,(ix+0)
+        cp ST_ON
+        jr nz,.n
+        push bc
+        ld de,$2000
+        call add_score
+        pop bc
+.n:     ld de,STSIZE
+        add ix,de
+        djnz .l
+        ld a,FX_POWER
+        jp play_sfx
+
+new_hiscore:
+        ld hl,score
+        ld de,hiscore
+        ld b,4
+.c:     ld a,(de)
+        cp (hl)
+        jr c,.new
+        ret nz
+        inc hl
+        inc de
+        djnz .c
+        ret
+.new:   ld hl,score
+        ld de,hiscore
+        ld bc,4
+        ldir
+        ret
 
 ; Cross Burst flash: the other colour set for a few frames
 do_flash:
@@ -260,9 +348,14 @@ do_flash:
 
 ; ---------------------------------------------------------------- player
 upd_player:
+        ld hl,tink_tm
+        ld a,(hl)
+        or a
+        jr z,$+3
+        dec (hl)
         ld a,(mode)
-        cp 1
-        ret nz
+        cp 2
+        ret z
         ld a,(pdead)
         or a
         jr z,.alive
@@ -317,13 +410,21 @@ upd_player:
         ld (pbank),a
         ld a,b
 .nr:    ld (px),a
+        ld a,(boss_ph)          ; keep out of the boss's reach
+        or a
+        ld b,22
+        jr z,$+4
+        ld b,46
         ld a,(py)
-        bit K_UP,c
+        cp b
+        jr nc,.yb
+        inc a                   ; (pushed down as the boss arrives)
+.yb:    bit K_UP,c
         jr z,.nu
         dec a
-        cp 22
+        cp b
         jr nc,.nu
-        ld a,22
+        ld a,b
 .nu:    bit K_DOWN,c
         jr z,.nd
         inc a
@@ -331,6 +432,9 @@ upd_player:
         jr c,.nd
         ld a,67
 .nd:    ld (py),a
+        ld a,(mode)             ; no shooting after the stage is clear
+        cp 3
+        ret z
         ; fire
         ld a,(firecd)
         or a
@@ -754,26 +858,38 @@ spawner:
         ld hl,spawn_left
         dec (hl)
         ret
-.wave:  ld hl,wave_tm
+.wave:  ld a,(warn_tm)          ; nothing new during the warning or the boss
+        or a
+        ret nz
+        ld a,(boss_ph)
+        or a
+        ret nz
+        ld hl,wave_tm
         dec (hl)
         ret nz
-        ld hl,(wave_ptr)
+        ld hl,(wave_ptr)        ; delay, type, path, x, count, spacing
         inc hl
-        ld a,(hl)               ; type
+        ld a,(hl)
         cp $FF
         jr nz,.go
-        ld hl,WAVES
-        ld (wave_ptr),hl
-        ld a,(hl)
+        ld a,255                ; end of the script: wait
         ld (wave_tm),a
         ret
 .go:    ld (spawn_type),a
         inc hl
+        ld a,(hl)               ; path number
+        inc hl
+        push hl
+        add a,a
+        ld e,a
+        ld d,0
+        ld hl,PATHTAB
+        add hl,de
         ld e,(hl)
         inc hl
         ld d,(hl)
-        inc hl
         ld (spawn_path),de
+        pop hl
         ld b,(hl)               ; x
         inc hl
         ld c,(hl)               ; count
@@ -790,7 +906,22 @@ spawner:
         ld a,(spawn_type)
         or a
         ret z                   ; a pause
-        ld a,b
+        cp $FE
+        jr nz,.nc
+        ld (cp_ptr),hl          ; checkpoint: continue from here
+        ld a,(wave_tm)
+        ld (cp_tm),a
+        ld hl,(dist)
+        ld (cp_dist),hl
+        ret
+.nc:    cp $FD
+        jr nz,.en
+        ld a,100                ; the boss: warning first
+        ld (warn_tm),a
+        call stop_music
+        ld a,FX_SIREN
+        jp play_sfx
+.en:    ld a,b
         ld (spawn_x),a
         ld a,c
         ld (spawn_left),a
@@ -815,6 +946,18 @@ spawner:
         ld a,(spawn_type)
         ld (hl),a
         ret
+
+; WARNING: siren and flashing text, then the boss arrives
+upd_warning:
+        ld a,(warn_tm)
+        or a
+        ret z
+        dec a
+        ld (warn_tm),a
+        ret nz
+        call boss_init
+        ld hl,SONG_BOSS
+        jp play_song
 
 ; A = group -> HL
 grp_addr:
@@ -879,19 +1022,24 @@ spawn_enemy:
         ld (ix+EO_W),a
         ret
 
-HPTAB:  db 1,2,6
-EWTAB:  db 8,7,12
-EHTAB:  db 6,8,8
-PTSTAB: dw $0100,$0150,$0500
+HPTAB:  db 1,2,6,6,10,45
+EWTAB:  db 8,7,12,10,7,16
+EHTAB:  db 6,8,8,6,7,12
+PTSTAB: dw $0100,$0150,$0500,$0800,$1000,$5000
 
 ; ---------------------------------------------------------------- enemies
 upd_enemies:
         ld ix,ETAB
         ld b,NEN
+        xor a
+        ld (en_top),a
 .l:     push bc
         ld a,(ix+EO_T)
         or a
         jr z,.n
+        ld a,NEN+1              ; slot number + 1 = NEN+1-B
+        sub b
+        ld (en_top),a
         inc (ix+EO_TM)
         ld a,(ix+EO_FL)
         or a
@@ -900,6 +1048,12 @@ upd_enemies:
 .nf:    ld a,(ix+EO_T)
         cp T_BOAT
         jr z,.boat
+        cp T_HORNET
+        jr z,.hor
+        cp T_POD
+        jr z,.pod
+        cp T_CORE
+        jr z,.core
         call follow_path
         ; left the playfield?
         ld a,(ix+EO_X)
@@ -936,6 +1090,12 @@ upd_enemies:
         ld (ix+EO_DX),30        ; boats keep their fire timer here
         jr .n
 .surf:  call boat_fire
+        jr .n
+.hor:   call hornet_upd
+        jr .n
+.pod:   call pod_fire
+        jr .n
+.core:  call core_fire
         jr .n
 
 follow_path:
@@ -1097,6 +1257,66 @@ boat_fire:
         ld (ix+EO_FC),9
         ret
 
+; hornets: drop in, strafe across the top firing three-way, then dive away
+hornet_upd:
+        ld a,(ix+EO_ST)
+        or a
+        jr nz,.s1
+        inc (ix+EO_Y)
+        ld a,(ix+EO_Y)
+        cp 26
+        ret c
+        ld (ix+EO_ST),1
+        ld (ix+EO_DX),1
+        ld (ix+EO_PL),230       ; strafing time
+        ld (ix+EO_DY),30        ; first volley
+        ret
+.s1:    cp 1
+        jr nz,.s2
+        ld a,(ix+EO_X)
+        add a,(ix+EO_DX)
+        ld (ix+EO_X),a
+        cp 4
+        jr c,.fl
+        cp 82
+        jr c,.ok
+.fl:    ld a,(ix+EO_DX)
+        neg
+        ld (ix+EO_DX),a
+.ok:    ld a,(ix+EO_FC)
+        or a
+        jr z,.ft
+        dec (ix+EO_FC)
+        jr nz,.tm
+        ld a,(ix+EO_X)
+        add a,4
+        and $FE
+        ld b,a
+        ld a,(ix+EO_Y)
+        add a,5
+        ld c,a
+        ld hl,SPREAD3
+        ld a,3
+        call spread_fire
+        jr .tm
+.ft:    ld a,(pdead)
+        or a
+        jr nz,.tm
+        dec (ix+EO_DY)
+        jr nz,.tm
+        ld (ix+EO_DY),46
+        ld (ix+EO_FC),10
+.tm:    dec (ix+EO_PL)
+        ret nz
+        ld (ix+EO_ST),2
+        ret
+.s2:    ld a,(ix+EO_Y)
+        add a,2
+        ld (ix+EO_Y),a
+        cp 84
+        ret c
+        jp enemy_escaped
+
 ; fire an aimed bullet from (B,C)
 fire_at:
         ld a,b
@@ -1106,6 +1326,8 @@ fire_at:
         call aim
         pop bc
         ret c
+; B = x, C = y16, HL = vx, DE = vy (1/256 px per frame)
+add_ebullet:
         push hl
         push de
         ld hl,EBTAB
@@ -1172,6 +1394,8 @@ kill_enemy:
         ld a,(ix+EO_T)
         cp T_BOAT
         jr z,.big
+        cp T_CORE
+        jr z,.big
         call add_expl
         ld a,FX_SMALLX
         call play_sfx
@@ -1192,8 +1416,11 @@ kill_enemy:
         call add_expl
         ld a,FX_BIGX
         call play_sfx
-.grp:   ld (ix+EO_T),0
+.grp:   ld a,(ix+EO_T)
+        ld (ix+EO_T),0
         ld (ix+EO_W),0
+        cp T_POD
+        jp nc,boss_part_killed
         ld a,(ix+EO_G)
         call grp_addr
         dec (hl)
@@ -1427,7 +1654,10 @@ hit_enemy_at:
         ld l,a                  ; L = shot bottom row
         ld ix,ETAB
         ld de,EOSIZE
-        ld b,NEN
+        ld a,(en_top)
+        or a
+        ret z
+        ld b,a
 .l:     ld a,h
         sub (ix+EO_X)
         cp (ix+EO_W)
@@ -1448,7 +1678,27 @@ hit_enemy_at:
 ; A = damage to enemy IX
 damage_enemy:
         ld d,a
-        ld a,(ix+EO_HP)
+        ld a,(ix+EO_T)
+        cp T_CORE
+        jr nz,.dm
+        ld a,(boss_ph)
+        cp 3
+        jr z,.dm
+        ld a,(tink_tm)          ; armour: a tink (not every frame)
+        or a
+        ret nz
+        ld a,6
+        ld (tink_tm),a
+        push bc
+        push de
+        push hl
+        ld a,FX_TINK
+        call play_sfx
+        pop hl
+        pop de
+        pop bc
+        ret
+.dm:    ld a,(ix+EO_HP)
         sub d
         jr z,.k
         jr c,.k
@@ -1582,6 +1832,18 @@ col_bodies:
         jr z,.n
         cp T_BOAT
         jr z,.n
+        cp T_CORE
+        jr z,.n
+        ld a,(px)               ; nowhere near the ship and its stars?
+        sub (ix+EO_X)
+        add a,20
+        cp 40
+        jr nc,.n
+        ld a,(py)
+        sub (ix+EO_Y)
+        add a,16
+        cp 34
+        jr nc,.n
         ; ship: enemy box (x+1..x+5, y+1..y+4) against px+2..px+5, py+2..py+5
         ld a,(pinv)
         or a
@@ -1634,7 +1896,8 @@ col_bodies:
 .n:     pop bc
         ld de,EOSIZE
         add ix,de
-        djnz .l
+        dec b
+        jp nz,.l
         ret
 
 ; pickups against the ship
@@ -1716,6 +1979,9 @@ FILLORD: db 1,2,0,3
 
 ; the ship has been hit: a star takes it if there is one
 player_hit:
+        ld a,CHEAT              ; test builds only: invincible
+        or a
+        ret nz
         ld a,(pinv)
         or a
         ret nz
@@ -1794,26 +2060,11 @@ game_over:
         ld (mode),a
         ld hl,0
         ld (mode_tm),hl
+        ld hl,10*25+12
+        ld (cont_tm),hl
         call stop_music
-        ; new high score?
-        ld hl,score
-        ld de,hiscore
-        ld b,4
-.c:     ld a,(de)
-        cp (hl)
-        jr c,.new
-        jr nz,.old
-        inc hl
-        inc de
-        djnz .c
-        jr .old
-.new:   ld hl,score
-        ld de,hiscore
-        ld bc,4
-        ldir
-        call hud_hi
-.old:   ld a,(lives)
-        ret
+        call new_hiscore
+        jp hud_hi
 
 ; ---------------------------------------------------------------- drawing
 draw_all:
@@ -1866,6 +2117,7 @@ draw_all:
 .psn:   ld de,PSSIZE
         add hl,de
         djnz .ps
+        call boss_draw
         ; flying enemies
         ld ix,ETAB
         ld b,NEN
@@ -1873,6 +2125,10 @@ draw_all:
         ld a,(ix+EO_T)
         cp T_DRONE
         jr z,.dr
+        cp T_HORNET
+        jr z,.hn
+        cp T_POD
+        jr z,.pd2
         cp T_DART
         jr nz,.enn
         ld hl,SPR_DART0
@@ -1883,6 +2139,25 @@ draw_all:
         or a
         jr z,.ed
         ld hl,SPR_DART0W
+        jr .ed
+.hn:    ld hl,SPR_HORNET0
+        bit 2,(ix+EO_TM)
+        jr z,.hw
+        ld hl,SPR_HORNET1
+.hw:    ld a,(ix+EO_FL)
+        or a
+        jr z,.ed
+        ld hl,SPR_HORNET0W
+        jr .ed
+.pd2:   ld hl,SPR_TURRET0
+        ld a,(anim)
+        and 4
+        jr z,.pw
+        ld hl,SPR_TURRET1
+.pw:    ld a,(ix+EO_FL)
+        or a
+        jr z,.ed
+        ld hl,SPR_TURRETW
         jr .ed
 .dr:    ld hl,SPR_DRONE0
         bit 2,(ix+EO_TM)
@@ -1901,7 +2176,8 @@ draw_all:
 .enn:   pop bc
         ld de,EOSIZE
         add ix,de
-        djnz .en
+        dec b
+        jp nz,.en
         ; pickups
         ld ix,PUTAB
         ld b,NPU
@@ -2066,7 +2342,27 @@ draw_all:
         ld a,(mode)
         cp 2
         jr z,.over
-        ld hl,(mode_tm)
+        cp 3
+        jp z,draw_tally
+        ld a,(warn_tm)
+        or a
+        jr z,.nw
+        and 4
+        ret z
+        ld a,(warn_tm)          ; WARNING! and the name take turns
+        and 16
+        jr z,.w2
+        ld hl,STR_WARN
+        ld b,255
+        ld c,22
+        ld de,$FF55             ; red on yellow
+        jp draw_text
+.w2:    ld hl,STR_WARN2
+        ld b,255
+        ld c,22
+        ld de,$55AA
+        jp draw_text
+.nw:    ld hl,(mode_tm)
         ld a,h
         or a
         ret nz
@@ -2075,12 +2371,85 @@ draw_all:
         ret nc
         ld hl,SPR_T_READY
         ld b,36
-        ld c,8+28
+        ld c,FBTOP+28
         jp draw_spr
 .over:  ld hl,SPR_T_OVER
         ld b,30
-        ld c,8+28
-        jp draw_spr
+        ld c,FBTOP+20
+        call draw_spr
+        ld hl,(cont_tm)         ; CONTINUE? 9 .. 0
+        ld a,l
+        ld b,h
+        ld c,25
+        call div8
+        ld hl,STR_CONT
+        ld de,txtbuf
+        ld bc,10
+        ldir
+        add a,'0'
+        ld (de),a
+        inc de
+        xor a
+        ld (de),a
+        ld hl,txtbuf
+        ld b,255
+        ld c,34
+        ld de,$55AA
+        jp draw_text
+
+; the stage clear tally (mode 3)
+draw_tally:
+        ld hl,STR_CLEAR
+        ld b,255
+        ld c,12
+        ld de,$55FF             ; yellow on red
+        call draw_text
+        ld hl,(clear_tm)
+        ld a,h
+        or a
+        jr nz,.t2
+        ld a,l
+        cp 60
+        ret c
+.t2:    ld hl,STR_STARS
+        ld b,255
+        ld c,24
+        ld de,$55AA
+        call draw_text
+        ld hl,(clear_tm)
+        ld a,h
+        or a
+        jr nz,.t3
+        ld a,l
+        cp 200
+        ret c
+.t3:    ld hl,STR_NEXT
+        ld b,255
+        ld c,40
+        ld de,$00AA             ; green on blue
+        jp draw_text
+
+; BA / C -> A (8-bit quotient; BA < 256*C)
+div8:   ld h,b
+        ld l,a
+        ld b,8
+        xor a
+.l:     add hl,hl
+        rla
+        cp c
+        jr c,.n
+        sub c
+        inc l
+.n:     djnz .l
+        ld a,l
+        ret
+
+STR_WARN:  db "WARNING!",0
+STR_WARN2: db "CROWN OF THORNS",0
+STR_CONT:  db "CONTINUE? "
+STR_CLEAR: db "CORAL SEA CLEAR!",0
+STR_STARS: db "STARS LEFT X 2000",0
+STR_NEXT:  db "NEXT: THE DAINTREE",0
 
 CRUXTAB: dw SPR_CRUX_C0,SPR_CRUX_C1,SPR_CRUX_L0,SPR_CRUX_L1,SPR_CRUX_R0,SPR_CRUX_R1
 EXPLTAB: dw SPR_EXPL0,SPR_EXPL1,SPR_EXPL2,SPR_EXPL3

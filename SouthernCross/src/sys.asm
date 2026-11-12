@@ -7,26 +7,7 @@ init:
         ld sp,STACKTOP
         ld a,$28                ; mode 1, colour set 0, speaker bit 5 set
         ld (LATCH),a
-        ; SRAM bank B at $4000-$67FF (as Graves 'n' Gargoyles does), holding
-        ; the background strip; check it really is RAM
-        ld a,3
-        out ($37),a
-        ld hl,STRIP
-        ld de,SRAMSTRIP
-        ld bc,STRIP_END-STRIP
-        ldir
-        ld hl,STRIP
-        ld de,SRAMSTRIP
-        ld bc,STRIP_END-STRIP
-.ck:    ld a,(de)
-        cp (hl)
-        jp nz,no_sram
-        inc hl
-        inc de
-        dec bc
-        ld a,b
-        or c
-        jr nz,.ck
+        call dos_probe          ; before port $37 is touched
         ; clear variables
         ld hl,VARS
         ld de,VARS+1
@@ -47,18 +28,6 @@ init:
         inc ix
         add hl,de
         djnz .yt
-        call build_code
-        ; HUD shadow, then the whole screen once (start-up only)
-        ld hl,HUD_INIT
-        ld de,HUDBUF
-        ld bc,512
-        ldir
-        ld hl,VRAM
-        ld de,VRAM+1
-        ld bc,$7FF
-        ld (hl),$AA
-        ldir
-        call BLIT_HUD
         ; IM2 vectors
         ld hl,IM2TAB
         ld de,IM2TAB+1
@@ -83,30 +52,15 @@ init:
         ld (hiscore+1),a
         ld a,$50                ; HI 00005000
         ld (hiscore+2),a
-        ei
         jp title
 
-; no SRAM: a red screen with a blue bar, and stop
-no_sram:
-        ld hl,VRAM
-        ld de,VRAM+1
-        ld bc,$7FF
-        ld (hl),$FF
-        ldir
-        ld hl,VRAM+30*32
-        ld de,VRAM+30*32+1
-        ld bc,4*32-1
-        ld (hl),$AA
-        ldir
-.st:    jr .st
-
 ; ---------------------------------------------------------------- code builder
-; The unrolled copy routines are generated here rather than stored in the
-; load image (they're 6.6K of very regular code).
+; The unrolled copy routines are built in the overlay when a game starts
+; (the title's front pack lives there the rest of the time).
 build_code:
         ; LDI chain: 1536 x LDI, then RET
         ld hl,LDICHAIN
-        ld bc,64*FBW
+        ld bc,32*FBW
 .ld:    ld (hl),$ED
         inc hl
         ld (hl),$A0
@@ -176,48 +130,6 @@ build_code:
         ld (hl),e
         inc hl
         ld (hl),d
-        ; BLIT_HUD: ld hl,HUDBUF / 64 x (ld de,row: 4 LDI / ld de,row+28: 4 LDI) / ret
-        ld hl,BLIT_HUD
-        ld (hl),$21
-        inc hl
-        ld (hl),HUDBUF&255
-        inc hl
-        ld (hl),HUDBUF>>8
-        inc hl
-        ld de,VRAM
-        ld b,64
-.bh:    xor a
-        call .ldde
-        ld a,28
-        call .ldde
-        push hl
-        ld hl,32
-        add hl,de
-        ex de,hl
-        pop hl
-        djnz .bh
-        ld (hl),$C9
-        ret
-; emit ld de,(DE+A) followed by 4 x LDI
-.ldde:  push de
-        add a,e
-        ld e,a
-        jr nc,$+3
-        inc d
-        ld (hl),$11
-        inc hl
-        ld (hl),e
-        inc hl
-        ld (hl),d
-        inc hl
-        pop de
-        ld c,4
-.l4:    ld (hl),$ED
-        inc hl
-        ld (hl),$A0
-        inc hl
-        dec c
-        jr nz,.l4
         ret
 ; emit ld sp,DE+A
 .ldsp:  push de
@@ -254,6 +166,37 @@ build_code:
         inc hl
         ret
 
+; wait for the start of field sync (interrupts off)
+vb_wait:
+        ld a,(LATCH)
+        rla
+        jr nc,vb_wait
+.w:     ld a,(LATCH)
+        rla
+        jr c,.w
+        ret
+
+; HUD shadow (64 x 8 bytes) -> the two side panels
+blit_hud:
+        ld hl,HUDBUF
+        ld de,VRAM
+        ld a,64
+.l:     ldi
+        ldi
+        ldi
+        ldi
+        ex de,hl
+        ld bc,24
+        add hl,bc
+        ex de,hl
+        ldi
+        ldi
+        ldi
+        ldi
+        dec a
+        jr nz,.l
+        ret
+
 ; ---------------------------------------------------------------- ISR
 ; The interrupt line is held low for the 56 lines of field sync.  Video RAM
 ; may only be touched before the display starts (94 lines after the
@@ -288,7 +231,7 @@ isr_nob:
         jr z,isr_common
         xor a
         ld (hud_dirty),a
-        call BLIT_HUD           ; 64 x 8 bytes, ~10,100 T
+        call blit_hud           ; 64 x 8 bytes, ~11,000 T
 isr_common:
         push ix
         push iy

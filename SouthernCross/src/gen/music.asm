@@ -176,8 +176,130 @@ SONG_JINGLE_B:
         db 22,16
         db 27,32
         db $FE
+SONG_BOSS_A:
+        db 39,8
+        db 39,8
+        db 42,8
+        db 39,8
+        db 45,8
+        db 44,8
+        db 42,8
+        db 39,8
+        db 39,8
+        db 39,8
+        db 42,8
+        db 39,8
+        db 46,8
+        db 45,8
+        db 44,8
+        db 42,8
+        db 49,16
+        db 47,16
+        db 45,8
+        db 44,8
+        db 42,8
+        db 44,8
+        db 39,32
+        db 51,8
+        db 49,8
+        db 47,8
+        db 46,8
+        db $FF
+SONG_BOSS_B:
+        db 15,4
+        db 15,4
+        db 27,4
+        db 15,4
+        db 15,4
+        db 15,4
+        db 27,4
+        db 15,4
+        db 15,4
+        db 15,4
+        db 27,4
+        db 15,4
+        db 15,4
+        db 15,4
+        db 27,4
+        db 15,4
+        db 15,4
+        db 15,4
+        db 27,4
+        db 15,4
+        db 15,4
+        db 15,4
+        db 27,4
+        db 15,4
+        db 15,4
+        db 15,4
+        db 27,4
+        db 15,4
+        db 15,4
+        db 15,4
+        db 27,4
+        db 15,4
+        db 11,4
+        db 11,4
+        db 23,4
+        db 11,4
+        db 11,4
+        db 11,4
+        db 23,4
+        db 11,4
+        db 9,4
+        db 9,4
+        db 21,4
+        db 9,4
+        db 8,4
+        db 8,4
+        db 20,4
+        db 8,4
+        db 15,4
+        db 15,4
+        db 27,4
+        db 15,4
+        db 15,4
+        db 15,4
+        db 27,4
+        db 15,4
+        db 10,4
+        db 10,4
+        db 22,4
+        db 10,4
+        db 10,4
+        db 10,4
+        db 22,4
+        db 10,4
+        db $FF
+SONG_CLEAR_A:
+        db 51,5
+        db 54,5
+        db 58,5
+        db 63,15
+        db 61,5
+        db 59,5
+        db 58,15
+        db 56,5
+        db 54,5
+        db 53,5
+        db 54,5
+        db 51,45
+        db $FE
+SONG_CLEAR_B:
+        db 27,15
+        db 27,15
+        db 30,15
+        db 32,15
+        db 34,15
+        db 22,15
+        db 27,30
+        db $FE
 SONG_GAME:
         dw SONG_GAME_A,SONG_GAME_B
+SONG_BOSS:
+        dw SONG_BOSS_A,SONG_BOSS_B
+SONG_CLEAR:
+        dw SONG_CLEAR_A,SONG_CLEAR_B
 SONG_JINGLE:
         dw SONG_JINGLE_A,SONG_JINGLE_B
 SFXTAB:
@@ -189,8 +311,10 @@ SFXTAB:
         dw SFX_LOST
         dw SFX_BURST
         dw SFX_DIE
+        dw SFX_TINK
         dw SFX_SHARD
         dw SFX_POWER
+        dw SFX_SIREN
 SFX_SHOT:
         dw 6678
         db 22
@@ -437,6 +561,12 @@ SFX_DIE:
         dw 82
         db 30
         dw 0
+SFX_TINK:
+        dw 7705
+        db 20
+        dw 6164
+        db 12
+        dw 0
 SFX_SHARD:
         dw 4027
         db 40
@@ -473,6 +603,104 @@ SFX_POWER:
         dw 5375
         db 40
         dw 0
+SFX_SIREN:
+        dw 1541
+        db 80
+        dw 1695
+        db 80
+        dw 1849
+        db 80
+        dw 2003
+        db 80
+        dw 2157
+        db 80
+        dw 2311
+        db 80
+        dw 2466
+        db 80
+        dw 2620
+        db 80
+        dw 2774
+        db 80
+        dw 2928
+        db 80
+        dw 3082
+        db 80
+        dw 3236
+        db 80
+        dw 3390
+        db 80
+        dw 3236
+        db 80
+        dw 3082
+        db 80
+        dw 2928
+        db 80
+        dw 2774
+        db 80
+        dw 2620
+        db 80
+        dw 2466
+        db 80
+        dw 2311
+        db 80
+        dw 2157
+        db 80
+        dw 2003
+        db 80
+        dw 1849
+        db 80
+        dw 1695
+        db 80
+        dw 1541
+        db 80
+        dw 1695
+        db 80
+        dw 1849
+        db 80
+        dw 2003
+        db 80
+        dw 2157
+        db 80
+        dw 2311
+        db 80
+        dw 2466
+        db 80
+        dw 2620
+        db 80
+        dw 2774
+        db 80
+        dw 2928
+        db 80
+        dw 3082
+        db 80
+        dw 3236
+        db 80
+        dw 3390
+        db 80
+        dw 3236
+        db 80
+        dw 3082
+        db 80
+        dw 2928
+        db 80
+        dw 2774
+        db 80
+        dw 2620
+        db 80
+        dw 2466
+        db 80
+        dw 2311
+        db 80
+        dw 2157
+        db 80
+        dw 2003
+        db 80
+        dw 1849
+        db 80
+        dw 1695
+        db 80
+        dw 0
 FX_SHOT equ 0
 FX_HIT equ 1
 FX_SMALLX equ 2
@@ -481,5 +709,7 @@ FX_CATCH equ 4
 FX_LOST equ 5
 FX_BURST equ 6
 FX_DIE equ 7
-FX_SHARD equ 8
-FX_POWER equ 9
+FX_TINK equ 8
+FX_SHARD equ 9
+FX_POWER equ 10
+FX_SIREN equ 11
