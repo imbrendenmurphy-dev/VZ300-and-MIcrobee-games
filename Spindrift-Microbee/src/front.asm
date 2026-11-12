@@ -141,7 +141,7 @@ title:
         ld de,hitab
         ld c,WHITE
         call print3_s
-        ld hl,22*40+11
+        ld hl,21*40+11
         ld de,t_vibed
         ld c,BCYAN
         call print_s
