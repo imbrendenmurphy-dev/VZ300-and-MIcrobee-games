@@ -1,0 +1,8 @@
+gen_code.asm
+gen_data.asm
+fs_pp.asm
+syms.json
+VZFLIGHT.VZ
+__pycache__/
+*.png
+runs/

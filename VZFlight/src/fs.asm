@@ -260,6 +260,7 @@ vx88:   ds 2
 vz88:   ds 2
 prate:  ds 2
 rrate:  ds 2
+facc:   ds 1
 fltend:
 ckbuf:  ds fltend-fltvars
 bssend:

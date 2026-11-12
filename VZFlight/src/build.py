@@ -187,7 +187,7 @@ def page_scripts():
           (17, Y, 'IN AUSTRALIA BY DICK SMITH', False),
           (23, Y, 'ELECTRONICS, FOUNDED IN 1968.', False),
           (31, G, 'HE LAUNCHED AUSTRALIAN', False),
-          (37, G, 'GEOGRAPHIC IN 1985 AND JOINED', False),
+          (37, G, 'GEOGRAPHIC IN 1986 AND JOINED', False),
           (43, G, 'THE AUSTRALIAN AVIATION HALL', False),
           (49, G, 'OF FAME IN 2013.', False),
           (56, R, 'AN UNOFFICIAL TRIBUTE', True)]
