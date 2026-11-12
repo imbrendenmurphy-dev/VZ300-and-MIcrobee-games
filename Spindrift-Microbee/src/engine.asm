@@ -1034,7 +1034,24 @@ tq_apply:
         ld l,0
 .e:     ld e,(hl)
         inc hl
-        ld a,(tq_page)
+        ; the flash's paper only in the playfield (cells 40-959): the
+        ; HUD rows are never flashed, so never given it
+        ld c,0
+        ld a,(hl)
+        or a
+        jr nz,.h1
+        ld a,e
+        cp 40
+        jr c,.nf
+        jr .pf
+.h1:    cp 3
+        jr c,.pf
+        ld a,e
+        cp 960-768
+        jr nc,.nf
+.pf:    ld a,(flashpaper)
+        ld c,a
+.nf:    ld a,(tq_page)
         add a,(hl)
         ld d,a
         inc hl
@@ -1054,7 +1071,7 @@ tq_apply:
         ld a,COL_ON
         out (P_COLCTL),a
         set 3,d
-        ld a,(flashpaper)
+        ld a,c
         or (hl)                 ; colour (on the flash's paper, in a flash)
         inc hl
         ld (de),a

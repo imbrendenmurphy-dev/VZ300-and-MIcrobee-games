@@ -459,6 +459,8 @@ boss_dying:
         jr nc,.go
         xor a
         ld (bossmode),a
+        ld a,$FF
+        ld (hud_dirty),a        ; the sector's name back in place of the bar
         jp core_hide
 .go:    and 3
         ret nz
