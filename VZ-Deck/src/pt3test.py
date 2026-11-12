@@ -3,7 +3,7 @@ from mtest import *
 import pt3ref
 sy=json.load(open('out/playpt3.json'))
 def runplug(files,target,secs,keys=()):
-    im=FatImg(); allf={'VZDOS.VZ':open('out/VZDOS.VZ','rb').read(),'SHELL.VZ':open('out/SHELL.VZ','rb').read()}; allf.update(files)
+    import os; im=FatImg(spc=int(os.environ.get('SPC','8'))); allf={'VZDOS.VZ':open('out/VZDOS.VZ','rb').read(),'SHELL.VZ':open('out/SHELL.VZ','rb').read()}; allf.update(files)
     for n,d in allf.items(): im.addfile(2,n,d)
     im.finish(); names=sorted(allf)
     m=boot(im); m.tsync=True
@@ -23,7 +23,7 @@ def runplug(files,target,secs,keys=()):
     go(m,tap('DOWN',idx)+tap('RET')+[(None,1)]*2+[(k,1) for k in keys],extra=10**9,maxsteps=10**9,cond=cond)
     return m,st
 if __name__=='__main__':
-    d=pt3ref.make_test()
+    d=open('out/TEST.PT3','rb').read()
     ref=pt3ref.PT3(d); R=[]
     while True:
         r=ref.tick()

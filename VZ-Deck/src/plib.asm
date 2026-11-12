@@ -29,6 +29,9 @@ entry:  DI
         LD (fsize),HL
         LD A,(HO+9)
         LD (fsize+2),A
+        LD A,(HO+30)       ; the view chosen last time
+        AND 3
+        LD (vmode),A
         CALL fmt_init      ; NZ = can't play it, HL = message
         JR NZ,fail
         CALL screen
@@ -265,6 +268,8 @@ dv_1:   INC E
 drums:  LD A,(dreq)
         OR A
         RET Z
+        CP 3
+        JR Z,kick
         LD B,50
         CP 1
         JR Z,dm_1
@@ -295,6 +300,29 @@ ns_2:   DEC C
         JR NZ,ns_2
         DJNZ ns_l
         LD (nseed),HL
+        RET
+
+kick:   XOR A              ; a falling tone: about 11 ms
+        LD (dreq),A
+        LD HL,0
+        LD DE,1051
+        LD B,120
+kk_l:   ADD HL,DE
+        LD A,H
+        RLCA
+        SBC A,A
+o_ka:   AND 0x21
+o_kx:   XOR 0x20
+o_ko:   LD (SPK),A
+        LD A,E
+        SUB 6
+        LD E,A
+        JR NC,kk_1
+        DEC D
+kk_1:   LD C,14
+kk_2:   DEC C
+        JR NZ,kk_2
+        DJNZ kk_l
         RET
 
 ; ---- the sound loop, run until the next field starts (50 ticks a second)
@@ -365,10 +393,12 @@ outset: AND 3
         LD A,(HL)
         LD (andv),A
         LD (o_na+1),A
+        LD (o_ka+1),A
         INC HL
         LD A,(HL)
         LD (xorv),A
         LD (o_nx+1),A
+        LD (o_kx+1),A
         INC HL
         LD A,(HL)
         LD (xorm),A
@@ -394,6 +424,8 @@ os_1:   LD (ksl),HL
         LD HL,o_e1
         CALL os_w
         LD HL,o_e2
+        CALL os_w
+        LD HL,o_ko
         CALL os_w
         LD HL,o_no
 os_w:   LD (HL),B
@@ -434,19 +466,7 @@ screen: CALL CLS
         CALL putc
         LD B,3
         CALL putn
-        LD DE,VRAM+6*32
-        LD HL,s_ca
-        CALL puts
-        LD DE,VRAM+8*32
-        LD HL,s_cb
-        CALL puts
-        LD DE,VRAM+10*32
-        LD HL,s_cc
-        CALL puts
-        LD A,0xFF
-        LD (blen),A
-        LD (blen+1),A
-        LD (blen+2),A
+        CALL vinit
         JP fmt_title
 ; text from HL, at most B characters, stops at a zero; lower case made upper
 ptext:  LD A,(HL)
@@ -496,7 +516,43 @@ vs2:    LD A,(0x6800)
         JR C,vs2
         RET
 
-; ---- one voice row per tick, status line every 8 ticks
+; ---- views: 0 bars, 1 scope, 2 piano roll, 3 the format's own (tracker / registers)
+vinit:  LD HL,VRAM+5*32       ; clear the view area and draw its fixed parts
+        LD DE,VRAM+5*32+1
+        LD BC,7*32-1
+        LD (HL),0x20
+        LDIR
+        LD HL,blen
+        LD B,9
+vi_c:   LD (HL),0xFF          ; forget what is on screen (blen, dlast, slast)
+        INC HL
+        DJNZ vi_c
+        LD C,0
+        LD A,(vmode)
+        OR A
+        JR Z,vi_b
+        CP 2
+        JR Z,vi_r
+        CP 3
+        JP Z,fmt_v3i
+vi_b:   LD DE,VRAM+6*32       ; bars and scope: channel labels
+        LD HL,s_ca
+        CALL puts
+        LD DE,VRAM+8*32
+        LD HL,s_cb
+        CALL puts
+        LD DE,VRAM+10*32
+        LD HL,s_cc
+        JP puts
+vi_r:   LD HL,VRAM+5*32
+        LD DE,VRAM+5*32+1
+        LD BC,6*32-1
+        LD (HL),0x80
+        LDIR
+        LD DE,VRAM+11*32
+        LD HL,s_ruler
+        JP puts
+
 draw:   LD HL,dcnt2
         INC (HL)
         LD A,(HL)
@@ -515,30 +571,44 @@ draw:   LD HL,dcnt2
         DEC A
         LD (dshow),A
         RET NZ
-        LD DE,VRAM+12*32+6
+        LD DE,VRAM+13*32
         LD HL,s_blank
         LD C,0
         JP puts
-dw_v:   LD C,A            ; voice
+dw_v:   LD C,A                ; A = this tick's voice
+        LD A,(vmode)
+        OR A
+        JR Z,dw_bar
+        DEC A
+        JP Z,scope
+        DEC A
+        JP Z,roll
+        LD A,C
+        JP fmt_v3
+; voice C: B = level 0-15 (0 if silent) -> DE = 2*voice
+vlevel: LD A,C
         ADD A,A
         LD E,A
         LD D,0
         LD HL,vamp
         ADD HL,DE
-        LD A,(HL)
-        LD B,A
-        LD HL,vton+0
+        LD B,(HL)
+        LD HL,vton
         ADD HL,DE
         LD A,(HL)
         OR A
-        JR NZ,dw_1
+        JR NZ,vl_1
         LD B,0
-dw_1:   LD A,B
+vl_1:   LD A,B
         CP 16
-        JR C,dw_2
+        RET C
         LD B,15
-dw_2:   LD HL,vnote
+        RET
+dw_bar: CALL vlevel
+        LD HL,vnote
+        PUSH DE
         LD E,C
+        LD D,0
         ADD HL,DE
         LD A,B
         OR A
@@ -555,26 +625,20 @@ dw_3:   LD (dnote),A
         ADD HL,DE
         LD A,(dnote)
         CP (HL)
+        POP DE
         RET Z
-dw_4:   LD HL,blen
+        PUSH DE
+dw_4:   POP DE
+        LD E,C
+        LD D,0
+        LD HL,blen
         ADD HL,DE
         LD (HL),B
         LD HL,dlast
         ADD HL,DE
         LD A,(dnote)
         LD (HL),A
-        LD A,C
-        ADD A,A
-        ADD A,A
-        ADD A,A
-        ADD A,A
-        ADD A,A
-        ADD A,A
-        LD L,A
-        LD H,0
-        LD DE,VRAM+6*32+4
-        ADD HL,DE
-        EX DE,HL          ; DE = bar start
+        CALL vrow             ; DE = bar start
         LD HL,barcol
         LD A,C
         ADD A,L
@@ -597,13 +661,14 @@ dw_6:   PUSH AF
         INC DE
         LD C,0
         LD A,(dnote)
-        CP 0xFF
-        JR NZ,dw_n
+; note A (0 = C-1, FF none, FE off) as three characters at DE
+pnote:  CP 0xFE
+        JR C,dw_n
         LD A,'-'
+        JR NZ,pn_1
+        LD A,'='
+pn_1:   CALL putc
         CALL putc
-        LD A,'-'
-        CALL putc
-        LD A,'-'
         JP putc
 dw_n:   LD B,0
 dw_o:   CP 12
@@ -626,10 +691,228 @@ dw_p:   ADD A,A
         LD A,B
         ADD A,'1'
         JP putc
+vrow:   LD A,C                ; voice C -> DE = its row, column 4
+        ADD A,A
+        ADD A,A
+        ADD A,A
+        ADD A,A
+        ADD A,A
+        ADD A,A
+        LD L,A
+        LD H,0
+        LD DE,VRAM+6*32+4
+        ADD HL,DE
+        EX DE,HL
+        RET
+
+; ---- scope: each voice as a square wave, wider for lower notes
+scope:  CALL vlevel           ; B = level, DE = 2*voice
+        LD HL,vper
+        ADD HL,DE
+        LD A,(HL)
+        INC HL
+        LD H,(HL)
+        LD L,A
+        LD A,B
+        OR A
+        JR NZ,sc_1
+        LD HL,0
+sc_1:   LD A,H                ; half a cycle in cells: period / 32, 1-26
+        AND 0x0F
+        LD H,A
+        ADD HL,HL
+        ADD HL,HL
+        ADD HL,HL
+        LD A,H
+        OR A
+        JR NZ,sc_2
+        LD A,L
+        OR A
+        JR Z,sc_2
+        LD A,1
+sc_2:   CP 27
+        JR C,sc_3
+        LD A,26
+sc_3:   LD B,A
+        LD HL,slast
+        LD A,L
+        ADD A,C
+        LD L,A
+        JR NC,sc_4
+        INC H
+sc_4:   LD A,(HL)
+        CP B
+        RET Z
+        LD (HL),B
+        PUSH BC
+        CALL vrow
+        POP BC
+        LD HL,barcol
+        LD A,L
+        ADD A,C
+        LD L,A
+        JR NC,sc_5
+        INC H
+sc_5:   LD A,(HL)
+        AND 0xF0
+        LD C,A                ; colour
+        LD A,B
+        OR A
+        JR NZ,sc_on
+        LD B,26
+        LD A,0x80
+sc_m:   LD (DE),A
+        INC DE
+        DJNZ sc_m
+        RET
+sc_on:  LD H,B                ; H = half cycle, L = count down
+        LD L,B
+        LD B,26
+        LD A,0x0C
+sc_l:   PUSH AF
+        OR C
+        LD (DE),A
+        POP AF
+        INC DE
+        DEC L
+        JR NZ,sc_n
+        LD L,H
+        XOR 0x0F
+sc_n:   DJNZ sc_l
+        RET
+
+; ---- piano roll: every fourth tick scroll up a line and drop a dot per voice
+roll:   LD A,C
+        OR A
+        RET NZ
+        LD HL,VRAM+6*32
+        LD DE,VRAM+5*32
+        LD BC,5*32
+        LDIR
+        LD H,D
+        LD L,E
+        LD B,32
+rl_c:   LD (HL),0x80
+        INC HL
+        DJNZ rl_c
+        LD C,0
+rl_v:   PUSH BC
+        CALL vlevel
+        POP BC
+        LD A,B
+        OR A
+        JR Z,rl_n
+        LD HL,vnote
+        LD A,L
+        ADD A,C
+        LD L,A
+        JR NC,rl_1
+        INC H
+rl_1:   LD A,(HL)
+        CP 0xFE
+        JR NC,rl_n
+        SUB 12                ; C2 at the left edge
+        JR NC,rl_2
+        XOR A
+rl_2:   CP 64
+        JR C,rl_3
+        LD A,63
+rl_3:   LD B,A
+        SRL A
+        LD E,A
+        LD D,0
+        LD HL,VRAM+10*32
+        ADD HL,DE
+        EX DE,HL
+        LD HL,barcol
+        LD A,L
+        ADD A,C
+        LD L,A
+        JR NC,rl_4
+        INC H
+rl_4:   LD A,(HL)
+        AND 0xF0
+        BIT 0,B
+        JR Z,rl_5
+        OR 0x05
+        JR rl_6
+rl_5:   OR 0x0A
+rl_6:   LD (DE),A
+rl_n:   INC C
+        LD A,C
+        CP 3
+        JR C,rl_v
+        RET
+
+; ---- tracker view for formats with rows: the format fills rownote/rowinst
+;      and sets rowflag; a row is a row number and three note + instrument pairs
+trkview: LD A,(rowflag)
+        OR A
+        RET Z
+        XOR A
+        LD (rowflag),A
+        LD HL,VRAM+7*32
+        LD DE,VRAM+6*32
+        LD BC,4*32
+        LDIR
+        LD DE,VRAM+10*32
+        LD C,0
+        LD A,(rownum)
+        CALL prhex
+        LD A,' '
+        CALL putc
+        LD HL,rownote
+        LD B,3
+tv_l:   PUSH BC
+        PUSH HL
+        LD A,' '
+        CALL putc
+        LD A,' '
+        CALL putc
+        LD A,(HL)
+        CALL pnote
+        LD A,' '
+        CALL putc
+        POP HL
+        PUSH HL
+        INC HL
+        INC HL
+        INC HL
+        LD A,(HL)
+        OR A
+        JR NZ,tv_i
+        LD A,'.'
+        CALL putc
+        LD A,'.'
+        CALL putc
+        JR tv_n
+tv_i:   CALL prhex
+tv_n:   POP HL
+        INC HL
+        POP BC
+        DJNZ tv_l
+        LD HL,rownote
+        LD B,3
+tv_c:   LD (HL),0xFF
+        INC HL
+        DJNZ tv_c
+        LD B,3
+tv_d:   LD (HL),0
+        INC HL
+        DJNZ tv_d
+        RET
+trkinit: LD DE,VRAM+5*32
+        LD HL,s_v3hdr
+        LD C,0x40
+        JP puts
+
 ; mark a drum hit on screen
-showdrum: LD DE,VRAM+12*32+6
+showdrum: LD DE,VRAM+13*32
         LD HL,s_hat
         CP 1
+        JR Z,sd_1
+        LD HL,s_kick
+        CP 3
         JR Z,sd_1
         LD HL,s_snare
 sd_1:   LD C,0x40
@@ -638,11 +921,10 @@ sd_1:   LD C,0x40
         LD (dshow),A
         RET
 
-; ---- keys: RETURN / fire stop, SPACE / P pause
+; ---- keys: RETURN / fire stop, SPACE / P pause, V change view
 keys:   CALL kscan
         OR A
         JR NZ,ky_1
-        LD (armed),A
         INC A
         LD (armed),A
         RET
@@ -658,7 +940,15 @@ ky_1:   LD B,A
         INC A
         LD (stopf),A
         RET
-ky_p:   XOR A
+ky_p:   CP 2
+        JR NZ,ky_pp
+        LD A,(vmode)
+        INC A
+        AND 3
+        LD (vmode),A
+        LD (HO+30),A
+        JP vinit
+ky_pp:  XOR A
         LD (SPK),A
         LD DE,VRAM+14*32+24
         LD HL,s_paused
@@ -680,7 +970,7 @@ ky_w3:  LD DE,VRAM+14*32+24
         LD HL,s_blank8
         LD C,0
         JP puts
-kscan:  LD A,(0x68BF)
+kscan:  LD A,(0x68BF)         ; 1 stop, 2 pause, 3 view
         CPL
         LD B,A
         BIT 2,B
@@ -694,6 +984,11 @@ kscan:  LD A,(0x68BF)
         AND 0x10
         LD A,2
         RET NZ
+        LD A,(0x68FB)
+        CPL
+        AND 0x20
+        LD A,3
+        RET NZ
         LD A,(HO+2)
         OR A
         RET Z
@@ -706,13 +1001,15 @@ kscan:  LD A,(0x68BF)
 
 barcol: DB 0x9F,0xDF,0xBF
 nnames: DB "C-C#D-D#E-F-F#G-G#A-A#B-"
-s_top:  DB "VZ-DECK 0.8  ",0
-s_help: DB "SPACE:PAUSE        RETURN:STOP  ",0
+s_top:  DB "VZ-DECK 0.9  ",0
+s_help: DB "V:VIEW  SPACE:PAUSE  RETURN:STOP",0
+s_ruler: DB "C2    C3    C4    C5    C6    C7",0
 s_ca:   DB "A",0
 s_cb:   DB "B",0
 s_cc:   DB "C",0
 s_hat:  DB "HAT  ",0
 s_snare: DB "SNARE",0
+s_kick: DB "KICK ",0
 s_blank: DB "     ",0
 s_blank8: DB "        ",0
 s_paused: DB "PAUSED",0

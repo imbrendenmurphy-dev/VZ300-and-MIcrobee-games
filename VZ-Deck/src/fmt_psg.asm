@@ -255,3 +255,36 @@ s_fmt:  DB "PSG PLAYER",0
 s_ay:   DB "AY REGISTER DUMP",0
 s_time: DB "TIME ",0
 s_notpsg: DB "NOT A PSG FILE",13,0
+
+; ---- view 3: the AY registers, live
+fmt_v3i: LD DE,VRAM+5*32
+        LD HL,s_v3hdr
+        LD C,0x40
+        CALL puts
+        LD DE,VRAM+7*32
+        LD HL,s_r0
+        LD C,0
+        CALL puts
+        LD DE,VRAM+9*32
+        LD HL,s_r7
+        JP puts
+fmt_v3: CP 2
+        RET NC
+        LD HL,regs
+        LD DE,VRAM+7*32+4
+        OR A
+        JR Z,pv_1
+        LD HL,regs+7
+        LD DE,VRAM+9*32+4
+pv_1:   LD C,0
+        LD B,7
+pv_l:   LD A,(HL)
+        CALL prhex
+        LD A,' '
+        CALL putc
+        INC HL
+        DJNZ pv_l
+        RET
+s_v3hdr: DB "AY REGISTERS                    ",0
+s_r0:   DB "0-6",0
+s_r7:   DB "7-D",0

@@ -1676,7 +1676,7 @@ wstart: DB 0x80,0x80,0x60
 baraddr: DW VRAM+5*32+6, VRAM+7*32+6, VRAM+9*32+6
 barcol: DB 0x9F,0xDF,0xBF
 nnames: DB "C-C#D-D#E-F-F#G-G#A-A#B-"
-s_ptitle: DB "VZ-DECK 0.8        MUSIC PLAYER ",0
+s_ptitle: DB "VZ-DECK 0.9        MUSIC PLAYER ",0
 s_phelp: DB "V:VIEW  SPACE:PAUSE  RETURN:STOP",0
 s_lead: DB "LEAD",0
 s_bass: DB "BASS",0

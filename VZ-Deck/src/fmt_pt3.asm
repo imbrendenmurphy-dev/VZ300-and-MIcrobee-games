@@ -30,6 +30,7 @@ C_OUTN  EQU 35
 C_NOIS  EQU 36
 C_NEWN  EQU 37
 C_PREVN EQU 38
+C_IDX   EQU 39
 CHSZ    EQU 40
 
 fmt_init: CALL loadall
@@ -72,6 +73,13 @@ pi_3:   LD (delay),A
         CALL chinit
         LD A,1
         LD (dcnt),A
+        LD (chB+C_IDX),A
+        INC A
+        LD (chC+C_IDX),A
+        LD A,0xFF
+        LD (rownote),A
+        LD (rownote+1),A
+        LD (rownote+2),A
         XOR A
         LD (posi),A
         LD (nbase),A
@@ -127,7 +135,8 @@ sp_1:   LD E,(HL)
         POP HL
         RET
 
-setsmp: ADD A,A           ; A = sample number
+setsmp: LD (cursmp),A
+        ADD A,A           ; A = sample number
         LD E,A
         LD D,0
         LD HL,fbuf+0x69
@@ -160,6 +169,10 @@ fmt_tick: LD HL,dcnt
         JR NZ,ft_r
         LD A,(delay)
         LD (HL),A
+        LD A,1
+        LD (rowflag),A
+        LD HL,rownum
+        INC (HL)
         LD IX,chA
         DEC (IX+C_SKIPC)
         JR NZ,ft_b
@@ -174,6 +187,7 @@ fmt_tick: LD HL,dcnt
         RET NZ
         XOR A
         LD (nbase),A
+        LD (rownum),A
         LD IX,chA
 ft_a:   CALL interp
 ft_b:   LD IX,chB
@@ -292,6 +306,8 @@ in_2:   CP 0xD0
         JP in_n
 in_3:   CP 0xC0
         JR NZ,in_4
+        LD A,0xFE
+        CALL rowrec
         CALL chreset
         LD (IX+C_EN),0
         JP in_q
@@ -317,6 +333,7 @@ in_7:   CP 0x50
         JR C,in_8
         SUB 0x50
         LD (IX+C_NOTE),A
+        CALL rowrec
         CALL chreset
         LD (IX+C_EN),1
         LD (IX+C_NEWN),1
@@ -772,3 +789,23 @@ fmt_status: LD HL,s_pos
 s_fmt:  DB "PT3 PLAYER",0
 s_pos:  DB "POS ",0
 s_notpt3: DB "NOT A PT3 FILE",13,0
+
+rowrec: PUSH HL           ; A = note (FE = off) into this channel's tracker column
+        PUSH DE
+        LD E,(IX+C_IDX)
+        LD D,0
+        LD HL,rownote
+        ADD HL,DE
+        LD (HL),A
+        INC HL
+        INC HL
+        INC HL
+        LD A,(cursmp)
+        LD (HL),A
+        POP DE
+        POP HL
+        RET
+
+fmt_v3  EQU trkview
+fmt_v3i EQU trkinit
+s_v3hdr: DB "ROW    A        B        C     ",0

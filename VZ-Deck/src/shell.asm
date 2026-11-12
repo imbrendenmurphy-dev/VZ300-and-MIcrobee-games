@@ -1,4 +1,4 @@
-; VZ-DECK 0.8.  VIBED BY BPM 2026
+; VZ-DECK 0.9.  VIBED BY BPM 2026
 VRAM    EQU 0x7000
 ENT     EQU 0x9A00
 RECSZ   EQU 24
@@ -1412,7 +1412,7 @@ di_t:   CALL puts
         LD A,(0xF816)
         JP prhex
 
-s_title: DB "VZ-DECK 0.8    VIBED BY BPM 2026",0
+s_title: DB "VZ-DECK 0.9    VIBED BY BPM 2026",0
 s_help:  DB "RET:OPEN B:BASIC C:CLI O:OUTPUT ",0
 s_dir:   DB " <DIR>",0
 s_huge:  DB "  HUGE",0

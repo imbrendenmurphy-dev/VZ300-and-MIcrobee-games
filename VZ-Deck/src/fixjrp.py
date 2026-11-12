@@ -1,14 +1,11 @@
 import re,sys,bplug
-from asm import assemble
-fmt=sys.argv[1]; FILES=('plib.asm','fmt_%s.asm'%fmt)
-for it in range(60):
+fmt=sys.argv[1]; FILES=('plib.asm','fmt_%s.asm'%fmt,'plib_rnd.asm')
+for it in range(80):
     try: bplug.build(fmt); break
     except Exception as e:
-        m=re.match(r'line (\d+): JR range',str(e))
+        m=re.match(r'line (\d+): JR range -?\d+: (.*)$',str(e))
         if not m: raise
-        rate=0
-        src='KSTEP EQU 1\n'+open('plib.asm').read()+'\n'+open('fmt_%s.asm'%fmt).read()
-        line=src.split('\n')[int(m.group(1))-1]
+        line=m.group(2)
         fixed=False
         for fn in FILES:
             t=open(fn).read()

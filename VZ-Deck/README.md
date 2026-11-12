@@ -1,15 +1,15 @@
 # VZ-DECK
 
 A boot-time game launcher and music player for the Dick Smith **VZ300 / VZ200** with the
-**BennVenn SD loader + 128K**. VIBED BY BPM 2026. Version 0.8.
+**BennVenn SD loader + 128K**. VIBED BY BPM 2026. Version 0.9.
 
 Switch the VZ on and VZ-DECK comes up instead of BASIC. It shows the folders and files on
 the SD card, so games that need DAT files can live in folders of their own, and it runs any
 `.VZ` file you pick. It also plays music through the VZ's 1-bit speaker: MIDI and MOD files
-are built in, and PT3 and PSG files play through plug-in players.
+are built in, and PT3, PSG and S3M files play through plug-in players.
 
 ```
-VZ-DECK 0.8    VIBED BY BPM 2026
+VZ-DECK 0.9    VIBED BY BPM 2026
 /GAMES/                    5/ 12
 ■ ..            <DIR> 06-11-26
 ■ ARCADE        <DIR> 06-11-26
@@ -31,11 +31,12 @@ Copy these from `release/` to the **root** of the card:
 | `SHELL.VZ` | VZ-DECK itself: the browser and the MIDI/MOD player |
 | `PLAYPT3.VZ` | Plug-in player for PT3 (ProTracker 3 / Vortex Tracker) music |
 | `PLAYPSG.VZ` | Plug-in player for PSG (AY register dump) music |
+| `PLAYS3M.VZ` | Plug-in player for S3M (Scream Tracker 3) music |
 
 Keep a copy of your original `VZDOS.VZ`. If anything goes wrong, delete the patched one
 from the card and the loader's built-in BIOS takes over again.
 
-`DEMO.PT3` and `DEMO.PSG` are small test tunes made for checking the players.
+`DEMO.PT3`, `DEMO.PSG` and `DEMO.S3M` are small test tunes made for checking the players.
 
 ## Power-on
 
@@ -79,20 +80,26 @@ A game of your own can return to VZ-DECK at any time with:
 |---|---|---|
 | `.MID` | built in | Any size. Up to about 24K loads whole; bigger files play straight off the card with a short pause on each card read |
 | `.MOD` | built in | 15- and 31-instrument modules. Only the note data is read, so the samples don't count against memory |
-| `.PT3` | `PLAYPT3.VZ` | ProTracker 3 / Vortex Tracker II, up to about 18K |
+| `.PT3` | `PLAYPT3.VZ` | ProTracker 3 / Vortex Tracker II, up to about 17K |
 | `.PSG` | `PLAYPSG.VZ` | AY register dumps, any size. Many PC tools convert YM, VTX, AY and other chip tunes to PSG |
+| `.S3M` | `PLAYS3M.VZ` | Scream Tracker 3, any size, up to 32 channels. Patterns are read from the card as they come up (up to 8K each) |
 
 Everything is played as three square-wave voices plus drum bursts:
 
 - **MIDI and MOD:** the highest note sounding takes the lead, the lowest takes the bass,
   and the most recently struck of the rest takes the middle voice. Drums are picked from
   the MIDI drum channel, or from MOD instrument names (kick, snare, hat...).
+- **S3M:** like MOD, reduced to lead, bass and middle voices, with drums picked from
+  instrument names. Speed, tempo, pattern break and jump are followed; a jump backwards
+  (a song's loop point) ends the song.
 - **PT3 and PSG:** the three AY channels map straight onto the three voices, with volume
   as pulse width. Ornaments, samples, slides and portamento are followed. Noise becomes a
   hat or snare burst.
 
-Keys while playing: **SPACE** (or P) pause, **RETURN** or fire stop, **V** change view
-(MIDI and MOD: bars, scope, piano roll, and a tracker view for MODs).
+Keys while playing: **SPACE** (or P) pause, **RETURN** or fire stop, **V** change view.
+Every player has bars, scope and piano roll views. The fourth view is a tracker view for
+MOD, PT3 and S3M (the notes of each row as it plays) and the live AY registers for PSG.
+The plug-ins remember the view you last chose.
 
 ### Sound output (O in the browser)
 
