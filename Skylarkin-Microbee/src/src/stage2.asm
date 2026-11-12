@@ -593,7 +593,9 @@ cb_enter:
 ; roll up and down (slowly) after the pilot
 cb_bob: ld a,(py)
         sub 34
-        cp 32+8
+        jr nc,cb_to
+        xor a
+cb_to:  cp 32+8
         jr nc,.a
         ld a,32+8
 .a:     cp 32+112
@@ -662,7 +664,7 @@ cb_smoke:
         ld a,E_SMOKE
         call en_new
         jr c,.p
-        ld (ix+E_FLAGS),EF_SHIELD
+        ld (ix+E_FLAGS),EF_SHIELD+EF_HARMLESS
         ld (ix+E_DXL),$40
         ld (ix+E_DXH),$FE
         ld (ix+E_DYL),$C0
@@ -722,7 +724,9 @@ cb_warn:
         jp cb_next
 cb_aim: ld a,(py)
         sub 26
-        jp cb_bob.a
+        jr nc,$+3
+        xor a
+        jp cb_to
 
 ; the tongs: a band at the tongs' height, across to the left edge
 cb_tongs:

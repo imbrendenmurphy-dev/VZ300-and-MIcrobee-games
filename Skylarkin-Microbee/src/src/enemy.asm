@@ -26,6 +26,7 @@ E_ANIM      equ 19
 EF_CAPS     equ 1
 EF_BELL     equ 2
 EF_SHIELD   equ 4
+EF_HARMLESS equ 8           ; doesn't hurt the pilot, isn't a target (smoke, screwed-up paper)
 
 ; enemy types: dw handler, db first frame, db frames, db ink, db hp, db w, db h, dw score/10 (BCD)
 ET_SIZE     equ 10
@@ -1266,7 +1267,7 @@ oi_shout:
         ld a,(ix+E_TYPE)
         or a
         jr z,.n
-        bit 2,(ix+E_FLAGS)
+        bit 3,(ix+E_FLAGS)
         jr nz,.n
         call en_vis
         jr c,.n
@@ -1308,7 +1309,7 @@ nearest_enemy:
 .l:     ld a,(ix+E_TYPE)
         or a
         jr z,.n
-        bit 2,(ix+E_FLAGS)
+        bit 3,(ix+E_FLAGS)
         jr nz,.n
         ld a,(ix+E_XH)
         or a
@@ -1718,7 +1719,7 @@ player_vs:
         jr z,.ne
         call box_hits
         jr nc,.ne
-        bit 2,(ix+E_FLAGS)      ; harmless (e.g. screwed-up paper)
+        bit 3,(ix+E_FLAGS)      ; harmless (e.g. screwed-up paper)
         jr nz,.ne
         push hl
         ld a,(bellpow)
@@ -1942,7 +1943,7 @@ bell_bonk:
         call box_hits
         pop hl
         jr nc,.n
-        bit 2,(ix+E_FLAGS)
+        bit 3,(ix+E_FLAGS)
         jr nz,.n
         ld a,(ix+E_FLASH)
         or a

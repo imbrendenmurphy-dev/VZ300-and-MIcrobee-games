@@ -374,7 +374,7 @@ on_kill:
         ; a sheet of copier paper: screwed up, it flies back at the copier
         ld (ix+E_TYPE),E_CRUMPLE
         ld (ix+E_HP),99
-        ld (ix+E_FLAGS),EF_SHIELD
+        ld (ix+E_FLAGS),EF_SHIELD+EF_HARMLESS
         ld a,SFX_CRUMPLE
         call play_sfx
         or 1
@@ -476,7 +476,9 @@ cb_enter:
 ; follow the pilot up and down (slowly)
 cb_bob: ld a,(py)
         sub 30
-        cp 32
+        jr nc,cb_to
+        xor a
+cb_to:  cp 32
         jr nc,.a
         ld a,32
 .a:     cp 32+104
@@ -593,7 +595,9 @@ cb_warn:
 ; line the mouth up with the pilot
 cb_aim: ld a,(py)
         sub 34
-        jp cb_bob.a
+        jr nc,$+3
+        xor a
+        jp cb_to
 
 cb_fire:
         ld a,(boss_t)

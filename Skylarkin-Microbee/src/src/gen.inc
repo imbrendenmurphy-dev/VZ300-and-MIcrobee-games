@@ -101,6 +101,24 @@ S2_BW equ 80
 S2_BH equ 64
 BLK_S2A equ 7
 BLK_S2B equ 8
+; stage 3
+SF_FLY0 equ 192
+SF_FLY1 equ 193
+SF_ROO0 equ 194
+SF_ROO1 equ 195
+SF_EMU0 equ 196
+SF_EMU1 equ 197
+SF_WEED equ 198
+SF_GALAH0 equ 199
+SF_GALAH1 equ 200
+SF_CAB equ 201
+SF_GLOB equ 202
+SF_TRAILER equ 203
+S3_BW equ 80
+S3_BH equ 64
+BLK_S3A equ 10
+BLK_S3B equ 11
 stage_blk:
 	db 4,5
 	db 7,8
+	db 10,11

@@ -125,6 +125,9 @@ hud_update:
         ld hl,hiscore
         ld de,27*256+0
         call print_bcd
+        ld hl,s_pad4            ; (wipes the end of a warning)
+        ld de,36*256+0
+        call print
         jr .bar
 .boss:  ld a,BRED+(BLACK<<4)
         ld (txt_col),a
@@ -216,6 +219,7 @@ hud_update:
 s_lives:    db "X3",0
 s_hi:       db "HI",0
 s_boss:     db "BOSS",0
+s_pad4:     db "    ",0
 bar_names:
         db "SPEED",0,"MISSL",0,"DOUBL",0,"LASER",0,"OPTN ",0,"SHLD ",0," OI! ",0
 pow_names:
