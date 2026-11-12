@@ -1,9 +1,9 @@
 # FRILLSEEKER
 
-**An original mascot platform game for the Microbee Premium Plus — engine prototype.**
+**An original mascot platform game for the Microbee Premium Plus — in development.**
 *VIBED BY BPM 2026*
 
-![Bluff](screenshots/frillseeker-prototype.gif)
+![Bluff](screenshots/frillseeker.gif)
 
 **Bluff** is a frilled-neck lizard: the smallest dragon in the Top End, with the
 biggest act. King Bufo's cane toads have pinched every bug in the bush and
@@ -14,28 +14,32 @@ Bluff wants his dinner back. He cannot hurt a thing. He can only *bluff*:
 * **A toad on its back is a trampoline.** Bounce off its belly to reach what a
   jump cannot.
 * **In the air, the frill is a parachute.** Glide.
+* **Run flat out and he bolts** — upright on his hind legs, the way real
+  frillies do — fast enough to leap further and to run across water.
 
 | | |
 |---|---|
-| ![](screenshots/01-the-bluff.png) | ![](screenshots/03-gliding-the-billabong.png) |
-| ![](screenshots/04-mound-city.png) | ![](screenshots/06-amber-billabong.png) |
+| ![](screenshots/00-title.png) | ![](screenshots/00-title-amber.png) |
+| ![](screenshots/01-the-bluff.png) | ![](screenshots/02-sprinting-the-billabong.png) |
+| ![](screenshots/04-the-old-gum.png) | ![](screenshots/05-the-canopy.png) |
+| ![](screenshots/06-lookout-rock.png) | ![](screenshots/07-amber-canopy.png) |
 
-## This is a prototype
+## What is playable
 
-Three linked rooms that prove the character, the mechanics and the engine.
-Not yet a game: no title sequence, map, save or ending. The full plan, the
-hardware investigation and the measurements are in
-[docs/DESIGN.md](docs/DESIGN.md).
-
-The disk boots and the game runs on a real Premium Plus. The first
-40-column build came up as four small pictures (the dot clock select was
-missing); this build adds it and is waiting to be tried.
+**The Red Dirt**, the first region: six rooms from the savanna to the treetops —
+The Red Dirt, the Billabong, Mound City, the Old Gum, the Canopy and Lookout
+Rock — with 22 bugs to find and King Bufo's larder (a jar of pinched bugs) at
+the end. A title screen with its own two-voice theme, a game-over screen and a
+region-clear screen. Still to come: the other four regions, more creatures,
+King Bufo himself, saving to disk and an ending (see
+[docs/DESIGN.md](docs/DESIGN.md)).
 
 ## To run it
 
 `release/FRILL.DS8` is a double-sided 80-track Microbee disk image. Boot it,
 and at the `A>` prompt type **FRILL**. Press **C** for a colour monitor or
-**M** for a monochrome one (the art is drawn separately for each).
+**M** for a monochrome one (the art is drawn separately for each), then SPACE
+at the title.
 
 | | Keys | Joystick |
 |---|---|---|
@@ -43,6 +47,7 @@ and at the `A>` prompt type **FRILL**. Press **C** for a colour monitor or
 | Jump (hold for higher) | SPACE | fire |
 | Frill: bluff on the ground, glide in the air | ↑ or Q | up |
 | Drop through a branch | ↓ (or A) + jump | down + fire |
+| Sprint | keep running flat out on the ground | |
 
 Needs a Premium Plus: 1 MB RAM, 32K PCG RAM.
 
@@ -62,7 +67,9 @@ Needs a Premium Plus: 1 MB RAM, 32K PCG RAM.
 * **Bluff is a puppet**, posed by code and rendered to pixels, so the megabyte
   can hold every in-between: each frame is stored sixteen times, pre-shifted.
 * **Every room is a painting,** generated as one picture with its own
-  textures, in colour and again for amber.
+  textures, in colour and again for amber. The title picture is painted the
+  same way, with Bluff drawn three times the size by the same puppet.
+* **Two-voice music** for the title and jingles, from a single speaker bit.
 * **A steady 25 frames a second**, with more than half of every frame left
   to make sound in (unlocked, the engine manages 50 with Bluff and a toad).
 

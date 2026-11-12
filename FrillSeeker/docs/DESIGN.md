@@ -285,32 +285,59 @@ tested by loading the blocks directly.
 
 ## 5. Status
 
-**Working in the prototype:** the 40-column mode; the cell renderer;
-the living background; Bluff's 21 frames (idle, blink, run, jump, fall, glide,
-flare, hurt) facing both ways; cane toads (sit, hop, fright, on their back);
-the bluff, the trampoline, the glide; three linked rooms; hearts; falls
-return you to solid ground; sound effects and a walking tune; colour or
-monochrome art chosen at the start; a bootable disk image.
+**Seen on the real machine:** the game boots, loads and plays; the art reads
+well on BPM's amber monitor; the 40-column mode works with the dot clock
+select (§1.1). Locked to 25 fps (BPM's call).
 
-**Not yet:** a title sequence, the sprint, the world map and its other four
-regions, more creatures, bosses, the save, configurable keys, music for the
-title, an ending.
+**Playable now:** the first region, **The Red Dirt**, six rooms joined left,
+right *and up*:
 
-**Not verified:** real hardware. Seen on the real machine so far: the art on
-the amber monitor (good), and the 40-column mode without its clock select
-(four pictures; fixed, §1.1). Still to check: that the fixed picture is
-full-width and centred, that it is clean when Bluff moves, the sound.
+| Room | What it asks of you |
+|---|---|
+| The Red Dirt | the basics: jump, bluff a toad, glide off its belly |
+| Billabong | lily pads to hop — or sprint straight across the water |
+| Mound City | a termite tower too tall to jump: bluff the toad, bounce to the ledge |
+| The Old Gum | climb the branches and leap out of the top of the screen |
+| The Canopy | the treetops at night; the branches lead right |
+| Lookout Rock | a crevice, two toads, and King Bufo's larder: the end of the region |
 
----
+* **The sprint:** about a second of flat-out running on the ground and Bluff
+  rears up and bolts at 1.6 times the speed (8 extra frames of animation).
+  It survives a jump, so a sprinting leap clears a termite mound; on water he
+  stays up for nearly a second, enough to cross the billabong pad to pad. A
+  wall, a bluff or a knock ends it.
+* **Rooms join up and down** as well as sideways: jump out of the top of one
+  and you are in the room above; fall out of the bottom and you are in the
+  room below (or, with nothing below, it costs a heart).
+* **A front end:** monitor choice, then the title picture (painted like a
+  room, Bluff three times the size, in colour and amber) with an original
+  two-voice theme; game-over and region-clear screens with jingles; back to
+  the title.
+* **Two-voice music:** two square waves counted down in a fixed 89 T loop and
+  XORed on to the speaker bit, measured in tune. (A rest first made the loop
+  run slow and the other voice two semitones flat; a rest now counts from
+  255 so the loop keeps its time.)
+* **Colour rule refined:** a cell busy with its own detail keeps its ink under
+  a sprite only if it is solid ground. In the air (leaves, trunks) the
+  sprite's colour wins, so Bluff never vanishes into scenery. On amber, a
+  fully lit cell is now stored as ink, since a monochrome monitor shows only
+  ink.
+* **Frame rate,** measured in every room: a steady 25 (98–100 % of frames on
+  time; the Canopy is the busiest).
+
+**Not yet:** the other four regions, more creatures, King Bufo, an attract
+mode, checkpoint saves to disk, key set-up, in-game music worth the name, an
+ending.
 
 ## 6. Next
 
-1. **Re-plumb for size.** The engine and game logic share 10K at 8000h.
-   Move game logic into its own 32K block; keep only the renderer upstairs.
-   A per-cell table of pattern addresses would save a further ~90 T a cell.
-2. **The sprint**, then tune the feel on real keys.
-3. **A proper front end:** title picture with Bluff, title music with the
-   whole CPU to itself (two voices), attract mode, key set-up.
-4. **The Red Dirt complete:** ~12 rooms on a map, two more creatures, a
-   checkpoint/save, the first boss. That is the "is this a game?" milestone.
-5. Then the other four regions, the ending, and a release package.
+1. **Feel on the real machine:** the sprint's speed and how long it takes to
+   build, the jump, the glide.
+2. **Re-plumb for size.** The program is 8.4K at 8000h with about 1.5K to
+   spare before the room shadows. Move game logic and the front end into
+   their own 32K block; keep the renderer and sound upstairs.
+3. **More creatures:** something that flies (a magpie that swoops — bluffing
+   it sends it off), something that can't be bluffed (a goanna that has to be
+   outrun with the sprint).
+4. **Stone Country**, the second region, and a world map between regions.
+5. **Saving** progress to the disk, an attract mode, King Bufo, the ending.
