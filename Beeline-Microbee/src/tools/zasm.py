@@ -417,6 +417,8 @@ class Assembler:
         elif mnu == 'BSS':
             # from here on DS/ALIGN only reserve space (nothing is written to the binary)
             self.bss = True
+        elif mnu == 'DATA':
+            self.bss = False
         elif mnu == 'INCLUDE':
             self.run_file(os.path.join(base, args.strip().strip('"')), pass_no, strict)
         elif mnu == 'INCBIN':
@@ -447,7 +449,7 @@ class Assembler:
             self.run_file(fname, p, p == 2)
         return self.out
 
-TABLE_MNEMONICS = set(k.split(' ')[0] for k in TABLE) | {'ORG','EQU','DB','DW','DS','DEFB','DEFW','DEFS','INCLUDE','INCBIN','ALIGN','END','ASSERT','DM','BSS'}
+TABLE_MNEMONICS = set(k.split(' ')[0] for k in TABLE) | {'ORG','EQU','DB','DW','DS','DEFB','DEFW','DEFS','INCLUDE','INCBIN','ALIGN','END','ASSERT','DM','BSS','DATA'}
 
 def main():
     ap = argparse.ArgumentParser()
@@ -457,6 +459,8 @@ def main():
     ap.add_argument('-s', '--sym')
     ap.add_argument('--base', type=lambda x: int(x, 0), default=None,
                     help='first address written to the binary (default: lowest emitted)')
+    ap.add_argument('--split', nargs=2, metavar=('ADDR', 'FILE'),
+                    help='bytes at ADDR and above go to FILE instead')
     a = ap.parse_args()
     asm = Assembler()
     try:
@@ -466,6 +470,15 @@ def main():
         sys.exit(1)
     if not out:
         print('nothing assembled', file=sys.stderr); sys.exit(1)
+    if a.split:
+        sa = int(a.split[0], 0)
+        hi_out = {k: v for k, v in out.items() if k >= sa}
+        out = {k: v for k, v in out.items() if k < sa}
+        if hi_out:
+            d2 = bytearray(max(hi_out) - sa + 1)
+            for k, v in hi_out.items(): d2[k - sa] = v
+            open(a.split[1], 'wb').write(d2)
+            print('%s: %d bytes, %04X-%04X' % (a.split[1], len(d2), sa, max(hi_out)))
     lo = a.base if a.base is not None else min(out)
     hi = max(out)
     data = bytearray(hi - lo + 1)

@@ -25,7 +25,7 @@ a = ap.parse_args()
 here = os.path.dirname(os.path.abspath(__file__))
 emu = os.path.join(here, '..', 'build', 'beemu')
 os.makedirs(a.outdir, exist_ok=True)
-for f in glob.glob(os.path.join(a.outdir, 'f*.ppm')): os.remove(f)
+for f in glob.glob(os.path.join(a.outdir, 'f*.p?m')) + glob.glob(os.path.join(a.outdir, 'f*.png')): os.remove(f)
 prof = os.path.join(a.outdir, 'prof.csv')
 cmd = [emu, a.com, '-sym', a.sym, '-frames', str(a.frames), '-dump', a.outdir,
        '-every', str(a.every), '-first', str(a.first), '-keys', a.keys, '-prof', prof]

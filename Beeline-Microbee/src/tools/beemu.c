@@ -431,6 +431,38 @@ static int exec_ed(void)
     return 8;  /* NOP-like */
 }
 
+/* minimal CP/M BDOS (functions 2, 9, 15 open, 20 read sequential, 26 set DMA) */
+static char progdir[512];
+static FILE *bdos_f;
+static u16 bdos_dma = 0x80;
+static void bdos_call(void)
+{
+    u16 de = (D << 8) | E;
+    switch (C) {
+    case 15: {
+        char nm[16]; int k = 0;
+        for (int i = 1; i <= 8; i++) { u8 c = mem_rd(de + i) & 127; if (c != ' ') nm[k++] = c; }
+        nm[k++] = '.';
+        for (int i = 9; i <= 11; i++) { u8 c = mem_rd(de + i) & 127; if (c != ' ') nm[k++] = c; }
+        nm[k] = 0;
+        char path[600]; snprintf(path, sizeof path, "%s/%s", progdir, nm);
+        if (bdos_f) fclose(bdos_f);
+        bdos_f = fopen(path, "rb");
+        A = bdos_f ? 0 : 0xFF;
+        fprintf(stderr, "BDOS open %s -> %02X\n", path, A);
+        break; }
+    case 20: {
+        u8 buf[128]; memset(buf, 0x1A, 128);
+        size_t n = bdos_f ? fread(buf, 1, 128, bdos_f) : 0;
+        if (n == 0) { A = 1; break; }
+        for (int i = 0; i < 128; i++) mem_wr(bdos_dma + i, buf[i]);
+        A = 0; break; }
+    case 26: bdos_dma = de; A = 0; break;
+    default: A = 0; break;
+    }
+    H = 0; L = A; B = 0;
+}
+
 static int step(void)
 {
     u8 op;
@@ -707,7 +739,9 @@ int main(int argc, char **argv)
     size_t n = fread(ram + 0x100, 1, 0xEF00, f); fclose(f);
     memcpy(lowblk[curblk], ram, 0x8000);   /* program lives in CP/M's lower block */
     lowblk[curblk][0] = 0x76;  /* warm boot -> HALT (stop) */
-    lowblk[curblk][5] = 0xC9;  /* BDOS -> RET */
+    lowblk[curblk][5] = 0xC9;  /* BDOS -> RET (calls handled by bdos_call) */
+    lowblk[curblk][6] = 0x06; lowblk[curblk][7] = 0xD8;  /* BDOS at D806h, as on the BEELINE boot disk */
+    { strncpy(progdir, prog, sizeof progdir - 1); char *sl = strrchr(progdir, '/'); if (sl) *sl = 0; else strcpy(progdir, "."); }
     for (int k = 0; k < npokes; k++) { if (pokes[k][0] < 0x8000) lowblk[curblk][pokes[k][0]] = pokes[k][1]; else ram[pokes[k][0]] = pokes[k][1]; }
     PC = 0x100; SP = 0xEFF0; push(0x0000);
     if (symf) load_syms(symf);
@@ -726,6 +760,7 @@ int main(int argc, char **argv)
     int in_vblank = 0;
     while (frame_no < frames && !stopped) {
         if (pf && markmap[PC]) fprintf(pf, "%d,%llu,%s\n", frame_no, (unsigned long long)T, marks[markmap[PC] - 1].name);
+        if (PC == 0x0005) bdos_call();
         { u16 pc0 = PC; int t = step(); t += (int)wait_extra; wait_extra = 0; T += t; if (do_hist) hist[pc0] += t; }
         int ln = cur_line();
         if (!in_vblank && ln >= disp_lines()) {

@@ -170,12 +170,23 @@ FONT = {
  '.': ['....', '....', '....', '....', '....', '.#..', '.#..'],
  '-': ['....', '....', '....', '###.', '....', '....', '....'],
  '/': ['...#', '...#', '..#.', '.#..', '.#..', '#...', '#...'],
+ 'J': ['...#', '...#', '...#', '...#', '#..#', '#..#', '.##.'],
+ 'Q': ['.##.', '#..#', '#..#', '#..#', '#.##', '#..#', '.###'],
+ '!': ['.#..', '.#..', '.#..', '.#..', '.#..', '....', '.#..'],
+ '+': ['....', '.#..', '.#..', '###.', '.#..', '.#..', '....'],
+ "'": ['.#..', '.#..', '#...', '....', '....', '....', '....'],
+ '?': ['.##.', '#..#', '...#', '..#.', '.#..', '....', '.#..'],
+ '*': ['....', '#.#.', '.#..', '###.', '.#..', '#.#.', '....'],
 }
 font_idx = {}
 for ch, rows in FONT.items():
     lines = [0] + [expand4(int(r.replace('#', '1').replace('.', '0'), 2)) for r in rows]
     font_idx[ch] = alloc(dbl(lines))
 font_idx[' '] = None   # use ROM space 0x20
+
+# ------------------------------------------------------------------ title logo
+import mklogo as _mklogo
+LOGO = [[(code_attr(alloc(d)) if d else (0x20, 0)) for d in row] for row in _mklogo.render()]
 
 # ------------------------------------------------------------------ sky + panorama
 # sky gradient rows use dither chars between two colours
@@ -324,6 +335,13 @@ for sq, lo, hi, ent in edge_tables:
         sub = ent[r::4]
         if sub: db(sub)
 
+# title logo: 3 rows x 32 cells (codes, then attributes)
+L.append('LOGOW        equ %d' % _mklogo.COLS)
+L.append('LOGOC:')
+for row in LOGO: db([c for c, a in row])
+L.append('LOGOA:')
+for row in LOGO: db([a for c, a in row])
+
 # HUD font map: ascii 32..95 -> code, attr
 L.append('FONTMAP:')
 vals = []
@@ -358,18 +376,10 @@ for pose in car_poses:
 L.append('CARPART:')
 for data in car_partials:
     db(data)
-# CARROAD: each partial car cell pre-composited over plain road, per line and
-# band phase: 64-byte aligned blocks, line l phase p at +l*6+p*2 (2 scanlines)
-L.append('        align 64')
-L.append('CARROAD:')
-for data in car_partials:
-    blk = []
-    for l in range(8):
-        for ph in range(3):
-            for sc in range(2):
-                nm, ink = data[(l * 2 + sc) * 2], data[(l * 2 + sc) * 2 + 1]
-                blk.append((PATS[2][ph][sc] & nm) | ink)
-    db(blk + [0] * (64 - len(blk)))
+# CARROAD (each partial car cell pre-composited over plain road, line l phase p at
+# +l*6+p*2) is built at start-up by gen_carroad from CARPART and ROADPAT
+L.append('NCARPART     equ %d' % len(car_partials))
+L.append('ROADPAT:'); db([PATS[2][ph][sc] for ph in range(3) for sc in range(2)])
 
 # slope table: d = x7-x0 in -32..32 -> clamp(round(d*4/7)) + 16
 L.append('        align 256')

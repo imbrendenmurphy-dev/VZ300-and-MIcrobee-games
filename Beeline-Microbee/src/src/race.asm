@@ -20,6 +20,11 @@
         include "hw.asm"
         include "math.asm"
         include "road.asm"
+        include "track.asm"
+        include "traffic.asm"
+        include "game.asm"
+        include "ui.asm"
+        include "snd.asm"
 
 MAXSPD  equ 400
 FRAMEFIELDS equ 4              ; 50/4 = 12.5 fps locked (a frame that overruns waits for the 5th field)
@@ -32,46 +37,34 @@ CAR_COL equ 27
 K_C     equ 3
 
 start:
+        ld sp,LSTACK
+        call load_dat           ; BEELINE.DAT -> 9000h (CP/M still running)
         di
-        ld sp,0EF00h
+        ld sp,STACKTOP
         call map_video
+        call gen_carroad
         call init_video
         call init_uniform
         ld hl,0
-        ld (camPos),hl
-        ld (camX),hl
-        ld (speed),hl
         ld (panX),hl
         ld (fields),hl
         ld (lastf),hl
-        xor a
-        ld (fpsacc),a
-        ld (fpscnt),a
-        ld (theme),a
-        ld (ckey),a
+        ld (flipf),hl
         ld hl,ROWTYPE
         ld de,ROWTYPE+1
         ld bc,31
         ld (hl),0
         ldir
-        ld a,99
-        ld (fpsval),a
-        call set_theme
         xor a
         ld (page),a
-        call hud_static
-        ld a,1
-        ld (page),a
-        call hud_static
-        xor a
-        ld (page),a
+        jp game_start
 
 ; --------------------------------------------------------------------------
-; main loop: input, physics (once per elapsed 50Hz field), project, draw
-; the hidden page, wait for vertical blank, flip, blit stripe characters.
+; run_frame: one frame - input, physics (once per elapsed 50Hz field),
+; rivals, track, projection, draw the hidden page, wait, flip.
 ; --------------------------------------------------------------------------
 P_frame:
-mainloop:
+run_frame:
         ld hl,(fields)
         ld de,(lastf)
         ld (lastf),hl
@@ -90,9 +83,9 @@ mainloop:
         jr nz,.dt3
         ld a,b
 .dt3    ld (dt),a
-        call fps_update
         call vbpoll
         call read_input
+        call input_filter
         call vbpoll
         ld a,(dt)
         ld b,a
@@ -101,22 +94,25 @@ mainloop:
         call vbpoll
         pop bc
         djnz .ph
+        call traffic_move
+        call traffic_update
+        call vbpoll
+        call track_stream
         call project
+        call traffic_prep
+        call lit_restore
 P_rows:
         call draw_page
+        call lit_close
         call vbpoll
+        call hud_update
         call draw_hud
         call vbpoll
         call draw_car
+        call ovr_paint
 P_wait:
-.w      call wait_vb            ; steady pacing: flip every FRAMEFIELDS fields
-        ld hl,(fields)
-        ld de,(flipf)
-        or a
-        sbc hl,de
-        ld a,l
-        cp FRAMEFIELDS
-        jr c,.w
+        call snd_frame
+        call snd_wait           ; steady pacing: flip every FRAMEFIELDS fields
         ld hl,(fields)
         ld (flipf),hl
         ld a,12                 ; flip: show the page just drawn
@@ -133,7 +129,7 @@ P_flip:
         ld a,(page)
         xor 1
         ld (page),a
-        jp mainloop
+        ret
 
 ; --------------------------------------------------------------------------
 ; input -> (keys) bit0 left, bit1 right, bit2 accel, bit3 brake
@@ -156,38 +152,17 @@ read_input:
         ld b,a
 .nk     inc hl
         jr .k
-.done   ld a,(autodrive)
-        or a
+.done   ld a,b
+        ld (rawkeys),a
+        ld a,(apilot)
+        ld hl,autodrive
+        or (hl)
+        ld hl,demo
+        or (hl)
         jr z,.man
-        ld b,4                  ; autopilot: accelerate, steer back to centre
-        ld hl,(camX)
-        ld de,-40
-        call cmp_signed
-        jr nc,.a1
-        set 1,b
-.a1     ld de,40
-        call cmp_signed
-        jr c,.man
-        set 0,b
+        call autopilot
 .man    ld a,b
         ld (keys),a
-        ; C cycles the colour theme (on key-down)
-        ld a,K_C
-        call keytest
-        ld hl,ckey
-        jr z,.nc
-        ld a,(hl)
-        or a
-        ret nz
-        ld (hl),1
-        ld a,(theme)
-        inc a
-        cp NTHEMES
-        jr c,.t
-        xor a
-.t      ld (theme),a
-        jp set_theme
-.nc     ld (hl),0
         ret
 keymap: db K_Z,1, K_COMMA,1, K_LEFT,1
         db K_X,2, K_DOT,2, K_RIGHT,2
@@ -241,6 +216,7 @@ physics:
         ld de,(camPos)
         add hl,de
         ld (camPos),hl
+        call advance_dist
         ld hl,(speed)           ; steering: +-(speed/16 + 4) when moving
         ld a,h
         or l
@@ -464,6 +440,16 @@ draw_sky:
 .none   ret
 .ch     ld a,1                  ; horizon row moved: whole sky
         ld (.gdirty),a
+        push hl
+        ld a,(page)             ; the overlay text must be painted again
+        ld e,a
+        ld d,0
+        ld hl,OVRDIRTY
+        add hl,de
+        ld a,(OVRACT)
+        or (hl)
+        ld (hl),a
+        pop hl
         ld a,(toprow)
         ld (hl),a
         inc hl
@@ -854,179 +840,6 @@ draw_car:
 .attrs  ds 10
 .cols   ds 10
 
-; --------------------------------------------------------------------------
-; HUD: row 0.  Static text written once per page, digits updated per frame.
-; --------------------------------------------------------------------------
-HUD_SPD equ 6
-HUD_TIM equ 20
-HUD_FPS equ 29
-HUDTXT: db "SPEED 000 KMH  TIME 000  FPS 00                VIBED BY BPM 2026"
-HUDLEN  equ 64
-
-hud_static:
-        xor a
-        ld (crow),a
-        call row_addr
-        push hl
-        ld de,HUDTXT
-        ld b,HUDLEN
-        ld c,0
-        call .w
-        ld a,X1C_ATTR
-        out (PORT_1C),a
-        pop hl
-        push hl
-        ld de,HUDTXT
-        ld b,HUDLEN
-        ld c,1
-        call .w
-        ld a,X1C
-        out (PORT_1C),a
-        ld a,40h
-        out (PORT_08),a
-        pop hl
-        ld de,800h
-        add hl,de
-        ld a,(HUDCOL)
-        ld b,64
-        call fillb
-        xor a
-        out (PORT_08),a
-        ret
-.w      ld a,(de)
-        sub 32
-        add a,a
-        add a,c
-        push hl
-        push de
-        ld e,a
-        ld d,0
-        ld hl,FONTMAP
-        add hl,de
-        ld a,(hl)
-        pop de
-        pop hl
-        ld (hl),a
-        inc hl
-        inc de
-        djnz .w
-        ret
-
-draw_hud:
-        ld hl,(speed)           ; km/h = speed*3/4
-        ld d,h
-        ld e,l
-        add hl,hl
-        add hl,de
-        srl h
-        rr l
-        srl h
-        rr l
-        ld de,HUDTXT+HUD_SPD
-        call put3
-        ld hl,(fields)
-        ld bc,50
-        call div16
-        ld de,HUDTXT+HUD_TIM
-        call put3
-        ld a,(fpsval)
-        ld l,a
-        ld h,0
-        ld de,HUDTXT+HUD_FPS
-        call put2
-        ld a,(page)             ; digits unchanged on this page? nothing to do
-        add a,a
-        add a,a
-        add a,a
-        ld e,a
-        ld d,0
-        ld hl,HUDLAST
-        add hl,de
-        ex de,hl
-        ld hl,HUDTXT+HUD_SPD
-        ld b,3
-        call .chk
-        ld hl,HUDTXT+HUD_TIM
-        ld b,3
-        call .chk
-        ld hl,HUDTXT+HUD_FPS
-        ld b,2
-        call .chk
-        ld a,(.chg)
-        or a
-        ret z
-        xor a
-        ld (.chg),a
-        ld (crow),a
-        call row_addr
-        push hl
-        ld c,0
-        call .dig
-        ld a,X1C_ATTR
-        out (PORT_1C),a
-        pop hl
-        ld c,1
-        call .dig
-        ld a,X1C
-        out (PORT_1C),a
-        ret
-.dig    push hl
-        ld de,HUD_SPD
-        add hl,de
-        ex de,hl
-        ld hl,HUDTXT+HUD_SPD
-        ld b,3
-        call .cp
-        pop hl
-        push hl
-        ld de,HUD_TIM
-        add hl,de
-        ex de,hl
-        ld hl,HUDTXT+HUD_TIM
-        ld b,3
-        call .cp
-        pop hl
-        ld de,HUD_FPS
-        add hl,de
-        ex de,hl
-        ld hl,HUDTXT+HUD_FPS
-        ld b,2
-.cp     ld a,(hl)
-        sub 32
-        add a,a
-        add a,c
-        push hl
-        ld l,a
-        ld h,0
-        push de
-        ld de,FONTMAP
-        add hl,de
-        pop de
-        ld a,(hl)
-        pop hl
-        ld (de),a
-        inc hl
-        inc de
-        djnz .cp
-        ret
-
-; draw_hud.chk: compare B chars at HL with the page's last-drawn copy at DE,
-;   updating the copy and setting draw_hud.chg when they differ
-draw_hud.chk:
-        ld a,(de)
-        cp (hl)
-        jr z,.same
-        ld a,(hl)
-        ld (de),a
-        ld a,1
-        ld (draw_hud.chg),a
-.same   inc hl
-        inc de
-        djnz draw_hud.chk
-        ret
-draw_hud.chg: db 0
-HUDLAST: ds 16
-
 ; put3: HL = value (0..999) -> 3 ascii digits at DE
 put3:   ld bc,100
         call .dig
@@ -1062,47 +875,24 @@ div16:  ld de,0
 .d      ex de,hl
         ret
 
-; fps = 800 / fields over the last 16 frames
-fps_update:
-        ld a,(dt)
-        ld hl,fpsacc
-        add a,(hl)
-        ld (hl),a
-        ld hl,fpscnt
-        inc (hl)
-        ld a,(hl)
-        cp 16
-        ret c
-        ld (hl),0
-        ld a,(fpsacc)
-        ld c,a
-        ld b,0
-        xor a
-        ld (fpsacc),a
-        ld hl,800
-        call div16
-        ld a,l
-        cp 100
-        jr c,.ok
-        ld a,99
-.ok     ld (fpsval),a
-        ret
-
 ; --------------------------------------------------------------------------
 ; colour themes.  The ground is ONE colour on black (two shades: far rows,
 ; near rows); verge, kerb and road differ only by dither pattern.
 ;  per theme: ground far, ground near, tail light, peaks, mountains,
 ;             sky0..sky4 (top -> horizon), HUD colour
 ; --------------------------------------------------------------------------
-NTHEMES equ 3
+NTHEMES equ 5
 THEMES:
-        db 4,12, 9,  5,0,  4,4,4,5,13,   0Dh    ; DUSK: blue ground, violet/magenta sky
-        db 8,7,  9,  7,0,  1,1,9,9,15,   09h    ; SNOWLINE: grey ground, red sky
-        db 2,10, 11, 15,0, 4,4,12,12,14, 0Bh    ; DAYTIME: green ground, blue sky
+        db 4,12, 9,  5,0,  4,4,4,5,13,   0Dh    ; 0 DUSK: blue ground, violet/magenta sky
+        db 8,7,  9,  7,0,  1,1,9,9,15,   09h    ; 1 SNOWLINE: grey ground, red sky
+        db 2,10, 9,  15,0, 4,4,12,12,14, 0Bh    ; 2 DAYTIME: green ground, blue sky
+        db 1,9,  11, 3,0,  4,12,12,6,11, 0Bh    ; 3 RED CENTRE: red earth, blue to gold sky
+        db 4,6,  9,  4,0,  0,0,0,0,4,    0Eh    ; 4 NIGHT: dark ground, black sky
 THEMESZ equ 11
 FARROWS equ 10                  ; rows 1..9 use the far shade
 
 set_theme:
+        call vbpoll
         ld a,(theme)
         ld b,a
         ld hl,THEMES
@@ -1190,10 +980,13 @@ set_theme:
         push af
         xor a
         ld (page),a
+        call vbpoll
         call hud_static
+        call vbpoll
         ld a,1
         ld (page),a
         call hud_static
+        call vbpoll
         pop af
         ld (page),a
         ret
@@ -1220,14 +1013,101 @@ SKYTAB: db 20h,0,0
         db D50_CODE,D50_ATTR,0
         db 20h,0,0
 
+; --------------------------------------------------------------------------
+; load_dat: read BEELINE.DAT into DATSTART..DATEND through BDOS, before the
+; program takes the machine over.  Returns to CP/M with a message on error.
+; --------------------------------------------------------------------------
+BDOS    equ 5
+load_dat:
+        ld a,(7)                ; BDOS page must lie above the data
+        cp high(DATEND)+1
+        ld de,M_TPA
+        jr c,.fail
+        ld de,DATFCB
+        ld c,15
+        call BDOS
+        inc a
+        ld de,M_NODAT
+        jr z,.fail
+        ld hl,DATSTART
+.rd     push hl
+        ex de,hl
+        ld c,26
+        call BDOS
+        ld de,DATFCB
+        ld c,20
+        call BDOS
+        pop hl
+        or a
+        jr nz,.eof
+        ld de,128
+        add hl,de
+        ld de,DATEND
+        or a
+        push hl
+        sbc hl,de
+        pop hl
+        jr c,.rd
+        ret
+.eof    ld de,DATEND            ; file shorter than expected?
+        or a
+        sbc hl,de
+        ret nc
+        ld de,M_NODAT
+.fail   ld c,9
+        call BDOS
+        jp 0
+DATFCB: db 0,"BEELINE DAT"
+        ds 24
+M_TPA:  db "BEELINE: not enough memory (needs CP/M with a TPA to D800h)",13,10,"$"
+M_NODAT: db "BEELINE: cannot read BEELINE.DAT",13,10,"$"
+        ds 64
+LSTACK:
+
+; gen_carroad: CARROAD = every partial car cell composited over plain road,
+;   line l, phase p, scanline s at +l*6+p*2+s  (64 bytes per cell)
+gen_carroad:
+        ld iy,CARPART
+        ld de,CARROAD
+        ld b,NCARPART
+.c      push bc
+        ld c,8
+.l      ld hl,ROADPAT
+        ld b,3
+.ph     ld a,(hl)
+        and (iy+0)
+        or (iy+1)
+        ld (de),a
+        inc de
+        inc hl
+        ld a,(hl)
+        and (iy+2)
+        or (iy+3)
+        ld (de),a
+        inc de
+        inc hl
+        djnz .ph
+        inc iy
+        inc iy
+        inc iy
+        inc iy
+        dec c
+        jr nz,.l
+        ex de,hl
+        ld bc,16
+        add hl,bc
+        ex de,hl
+        pop bc
+        djnz .c
+        ret
+
 ; ==========================================================================
         include "../build/gfx.inc"
-PCGDATA:
-        incbin "../build/pcg.bin"
 
 ; ---------------------------------------------------------------- variables
 camPos: dw 0
 autodrive: db 0
+demo:   db 0                    ; test (emulator -poke): autopilot in a normal game
 fixdt:  db 0                    ; test mode (emulator -poke): physics steps per frame                 ; set by the emulator (-poke) / attract mode
 camX:   dw 0
 speed:  dw 0
@@ -1312,8 +1192,8 @@ steerT: db 0
 PTS:    ds (NSEG+1)*8              ; per projected point: sy, sx, sw, phase
 ENDIMAGE:
         assert ENDIMAGE < 8000h         ; the .COM must load below 8000h
-; ---- runtime-only buffers above 9000h (used after map_video, never loaded)
-        org 9000h
+; ---- runtime-only buffers at 8000h (usable once map_video has run)
+        org 8000h
         bss
 LINEK:  ds 128
 PHT:    ds NSEG+1
@@ -1324,5 +1204,28 @@ LPH2:   ds 128                  ; per line: phase*2 (carroad offsets), LPH + 256
 ECODE:  ds 256
 SLOTMASK: ds 256                ; per screen code: mask index of its character
 SLOTPAGE: ds 256                ; per screen code: RES page of its character
+OVRBUF: ds OVR_N*128            ; overlay rows: 64 codes + 64 attributes each
 ENDPROG:
-        assert ENDPROG < 0E000h        ; stub at E000h, stack below EF00h
+        assert ENDPROG <= 8E00h
+STACKTOP equ 9000h                      ; stack: 8E00h-8FFFh
+
+; ==========================================================================
+; BEELINE.DAT: loaded at 9000h by load_dat (must end below CP/M's BDOS)
+; ==========================================================================
+        org 9000h
+        data
+DATSTART:
+PCGDATA:
+        incbin "../build/pcg.bin"
+        include "../build/track.inc"
+        include "../build/traffic.inc"
+        include "../build/sound.inc"
+DATEND:
+        assert DATEND <= 0D800h        ; BDOS of the BEELINE boot disk is at D806h
+
+; ---- runtime-only buffers from D000h (CP/M and the vidmap stub are gone)
+        bss
+        org 0D800h
+CARROAD: ds NCARPART*64
+ENDBSS2:
+        assert ENDBSS2 <= 0F000h        ; video window above

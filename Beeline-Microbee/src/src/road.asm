@@ -73,6 +73,8 @@ project:
         ld iy,PTS+8             ; point records: sy, sx, sw (words), phase
         ; point loop -------------------------------------------------------
 .kl     call vbpoll
+        ld a,(maxy)             ; occlusion line in front of this point (traffic)
+        ld (iy+7),a
         ; advance PSTEP[p] segments, accumulating the curve
         ld a,(kk)
         ld e,a
@@ -251,7 +253,12 @@ project:
         ld a,(hl)
         cp NSEG+1
         jp c,.kl
-.done   ld a,(maxy)
+.done   ld a,(kk)               ; last point with a valid record
+        cp NSEG+1
+        jr c,.km
+        ld a,NSEG
+.km     ld (kmax),a
+        ld a,(maxy)
         ld (LTOP),a
         ld b,a                  ; lines above the horizon in its row: sky phase
         and 7
@@ -1392,10 +1399,14 @@ write_row:
         cp 3
         jr c,.ig
 .igdone call vbpoll
-        ; slot records are only needed under the car
+        ; slot records are only needed under the cars
         ld a,(crow)
-        cp CAR_ROW
-        jr c,.norec
+        ld e,a
+        ld d,0
+        ld hl,RECROW
+        add hl,de
+        bit 0,(hl)
+        jr z,.norec
         ld hl,16D5h             ; PUSH DE / LD D,n
         jr .setrec
 .norec  ld hl,0918h             ; JR $+11
@@ -1561,6 +1572,7 @@ write_row:
         jp nz,.pl
 .done   ld a,X1C
         out (PORT_1C),a
+        call traffic_row        ; rival cars on this row
         ld a,(crow)             ; car rows: remember what lies under the car
         cp CAR_ROW
         ret c

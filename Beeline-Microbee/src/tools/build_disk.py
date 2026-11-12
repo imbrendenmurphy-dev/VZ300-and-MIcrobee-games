@@ -60,7 +60,7 @@ def main():
     B = ROOT / 'build'
     sysdisk = (ROOT / 'resources' / 'boot_tracks.bin').read_bytes()
     files = {}
-    for n in ('RACE.COM', 'BENCH.COM', 'CUBE.COM'):
+    for n in ('BEELINE.COM', 'BEELINE.DAT', 'BENCH.COM', 'CUBE.COM'):
         files[n] = (B / n).read_bytes()
     files['CCP.SYS'] = (ROOT / 'resources' / 'CCP.SYS').read_bytes()
     txt = (ROOT / 'docs' / 'DISK_README.TXT').read_text().replace('\r\n', '\n').replace('\n', '\r\n')
