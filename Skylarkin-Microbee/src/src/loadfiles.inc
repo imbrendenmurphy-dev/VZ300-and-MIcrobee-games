@@ -1,0 +1,5 @@
+	DB STG_PROG, $00, "SKY     BIN"
+	DB 3, $00, "B03     BNK"
+	DB 4, $00, "B04     BNK"
+	DB 5, $00, "B05     BNK"
+	DB 6, $00, "B06     BNK"
