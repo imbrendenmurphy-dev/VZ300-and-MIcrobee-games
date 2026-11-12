@@ -1,0 +1,1 @@
+CHEAT equ 0
