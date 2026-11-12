@@ -16,6 +16,8 @@ snd_field:
         call snd_until
 .p2:    ld e,$20
         call snd_until
+        xor a
+        ld (vb_age),a
         ld a,$20
         ld (vlast),a
         ld hl,fields

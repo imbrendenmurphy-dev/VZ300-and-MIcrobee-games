@@ -73,6 +73,14 @@ hw_init:
         ld a,BK_FONT
         ld bc,NFONT
         call pcg_load
+        ld a,MP_PIC
+        out (P_MEM),a
+        ld hl,CORE_PAT
+        ld a,BK_CORE
+        ld bc,60
+        call pcg_load
+        ld a,MP_TAB
+        out (P_MEM),a
         ld hl,STARPAT
         ld a,BK_POOL0
         ld bc,17
@@ -231,8 +239,8 @@ screen_reset:
         ld a,WHITE
         call fill
         call win_screen
-        ld hl,CELLHI
-        ld bc,$800
+        ld hl,CELLHI            ; the cell tables and the glyph buffers
+        ld bc,POOLBUF+$400-CELLHI
         xor a
         call fill
         xor a
@@ -318,7 +326,14 @@ vbpoll: push af
         jr z,.s
         ld hl,fields
         inc (hl)
-.s:     pop hl
+        xor a
+        ld (vb_age),a           ; a blanking has just begun
+        jr .x
+.s:     ld hl,vb_age            ; polls since: how stale the blanking is
+        inc (hl)
+        jr nz,.x
+        dec (hl)
+.x:     pop hl
         pop af
         ret
 
@@ -338,9 +353,17 @@ frame_end:
         jr nc,.late
         call snd_field
         jr .w
-.late:  in a,(P_CRTCA)
+.late:  ; a late frame commits now only if this blanking has just begun:
+        ; started late, the commit would run into the picture, where the
+        ; 6545 holds the CPU on every video access
+        in a,(P_CRTCA)
         and $20
-        call z,snd_field        ; not in a blanking now: wait for the next
+        jr z,.wt
+        ld a,(vb_age)
+        cp 3
+        jr c,.go
+.wt:    call snd_field          ; wait for the start of the next one
+.go:
         xor a
         ld (fields),a
         ld a,$20
@@ -398,11 +421,19 @@ commit:
         djnz .cl
         ld sp,(save_sp)
 .noclr:
-        ; ---- text, and a flash of the background
-        call tq_apply
+        ; ---- a flash of the background, then text over it (a flash
+        ; repaints every cell's colour: what follows keeps its own)
+        xor a
+        ld (flashpaper),a
         ld a,(flashcnt)
         or a
-        call nz,flash_fill
+        jr z,.nofl
+        call tq_total           ; not on a frame already heavy with text:
+        cp 40                   ; the flash waits a frame
+        jr nc,.nofl
+        ld a,(flashcnt)
+        call flash_fill
+.nofl:  call tq_apply
         ; ---- the new cells
         ld a,(lcount)
         or a
@@ -432,9 +463,12 @@ commit:
         ld d,a
         ld e,l
         ld sp,hl
+        ld a,(flashpaper)
+        ld c,a
 .cc:    pop hl
         set 3,h
         ld a,(de)
+        or c                    ; the flash's paper, in a flash
         ld (hl),a
         inc e
         djnz .cc
@@ -480,14 +514,26 @@ cleanup:
         sub $91
         ret z
         ld b,a
+        push bc
         ld hl,CELLPTR
         xor a
 .l:     ld e,(hl)
-        inc hl
+        inc l
         ld d,(hl)
-        inc hl
+        inc l
         ld (de),a
         djnz .l
+        ; and their glyph buffers cleared for the next frame
+        pop bc
+        ld (save_sp),sp
+        ld sp,(nextbuf)
+        ld de,0
+.z:     push de
+        push de
+        push de
+        push de
+        djnz .z
+        ld sp,(save_sp)
         ret
 
 ; the background of the playfield (rows 1-23) flashes: two frames of the
@@ -500,37 +546,44 @@ flash_fill:
         jr nc,.f
         ld a,WHITE
 .f:     ld c,a
+        and $F0
+        ld (flashpaper),a
+        ld b,c
         ld a,COL_ON
         out (P_COLCTL),a
-        ld a,(page)
+        ld a,(page)             ; rows 1-23 of the back page's colours,
+        add a,a                 ; filled from the end by the stack
         add a,a
-        add a,a
-        add a,$F8
+        add a,$F8+3
         ld h,a
-        ld l,40
-        ld de,23*40/8
-.l:     ld (hl),c
-        inc hl
-        ld (hl),c
-        inc hl
-        ld (hl),c
-        inc hl
-        ld (hl),c
-        inc hl
-        ld (hl),c
-        inc hl
-        ld (hl),c
-        inc hl
-        ld (hl),c
-        inc hl
-        ld (hl),c
-        inc hl
-        dec de
-        ld a,d
-        or e
+        ld l,$C0                ; cell 960
+        ld (save_sp),sp
+        ld sp,hl
+        ld a,23
+.l:     REPT 20
+        push bc
+        ENDR
+        dec a
         jr nz,.l
+        ld sp,(save_sp)
         xor a
         out (P_COLCTL),a
+        ret
+
+; A = the number of text cells queued for this commit (both queues)
+tq_total:
+        ld a,(tqcur)
+        add a,3
+        ld h,a
+        ld l,$FF
+        ld b,(hl)
+        ld a,(tqprev)
+        add a,3
+        ld h,a
+        ld a,(hl)
+        add a,b
+        ret nc
+        ld a,255
         ret
 
 ; A = paper colour: flash the background
@@ -740,14 +793,14 @@ alloc:
         ld b,a
         inc a
         ld (nextcode),a
-        ld (alloc_hl),hl
-        ; the slot's cell, for the clean-up
+        push hl
+        ; the slot's cell, for the clean-up (CELLPTR is page aligned)
         ex de,hl
         ld hl,(lp_cell)
         ld (hl),e
-        inc hl
+        inc l
         ld (hl),d
-        inc hl
+        inc l
         ld (lp_cell),hl
         ; this frame's list: screen address, code, colour
         ld hl,(vdelta)
@@ -767,29 +820,14 @@ alloc:
         dec h
         inc l
         ld (lp_code),hl
-        ; the glyph buffer, cleared
+        ; the glyph buffer (already clear: see cleanup)
         ld hl,(nextbuf)
         ld d,h
         ld e,l
-        xor a
-        ld (hl),a
-        inc l
-        ld (hl),a
-        inc l
-        ld (hl),a
-        inc l
-        ld (hl),a
-        inc l
-        ld (hl),a
-        inc l
-        ld (hl),a
-        inc l
-        ld (hl),a
-        inc l
-        ld (hl),a
-        inc hl
+        ld bc,8
+        add hl,bc
         ld (nextbuf),hl
-        ld hl,(alloc_hl)
+        pop hl
         ld (hl),d
         set 2,h
         ld (hl),e
@@ -1016,7 +1054,8 @@ tq_apply:
         ld a,COL_ON
         out (P_COLCTL),a
         set 3,d
-        ld a,(hl)               ; colour
+        ld a,(flashpaper)
+        or (hl)                 ; colour (on the flash's paper, in a flash)
         inc hl
         ld (de),a
         xor a

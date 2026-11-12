@@ -13,11 +13,13 @@ lfront:     DS 1
 vdelta:     DS 2
 dcol:       DS 1
 vlast:      DS 1
+vb_age:     DS 1
 fields:     DS 1
 frameno:    DS 2
 commit_late:DS 1
 flashcnt:   DS 1
 flashcol:   DS 1
+flashpaper: DS 1
 tqcur:      DS 1
 tqprev:     DS 1
 tq_page:    DS 1
@@ -150,6 +152,8 @@ nodmg:      DS 1
 bossmode:   DS 1
 boss_id:    DS 1
 msg_len:    DS 3
+msg_ptr:    DS 6            ; each message row's text and colour, to
+msg_col:    DS 3            ;  show again after a flash
 txtbuf:     DS 44
 ; the player
 p_af:       DS 1
@@ -174,6 +178,7 @@ boss_alive: DS 1
 eye:        DS 1
 eye_tim:    DS 1
 core_hurt:  DS 1
+core_shown: DS 1
 spiral_n:   DS 1
 spiral_a:   DS 1
 atk_i:      DS 1

@@ -27,6 +27,7 @@ SIZECLS = 0x4300
 FONT = 0x4400
 STARG = 0x4700
 SPR0 = 0x4800
+CORE_PAT = 0x2000             # in PIC.BNK
 
 
 # ------------------------------------------------------------------ font
@@ -241,6 +242,18 @@ def build():
     pic += bytes(0x1000 - len(pic))
     for row in cmap:
         pic += bytes(row)
+    # the Guardian's core: drawn where draw_spr would put a 26 x 32 sprite
+    # centred on the vanishing point, cut into its 4 x 5 cells at column
+    # 18, row 10 (pixel 144, 80): 20 glyphs a face, three faces
+    pic += bytes(CORE_PAT - len(pic))
+    for f in range(3):
+        bm = art.raster(art.core_shape, 26, 32, f)
+        box = np.zeros((40, 32), bool)
+        ox, oy = (160 - 26 // 2) - 144, (100 - 32 // 2) - 80
+        box[oy:oy + 32, ox:ox + 26] = bm
+        for r in range(5):
+            for c in range(4):
+                pic += np.packbits(box[r * 8:r * 8 + 8, c * 8:c * 8 + 8], axis=1)[:, 0].tobytes()
     print('logo: %d x %d cells, %d glyphs' % (W // 8, H // 8, len(pats)))
 
     open(os.path.join(BUILD, 'TAB.BNK'), 'wb').write(bytes(tab.d))
@@ -251,7 +264,7 @@ def build():
          'ROWPTR      EQU $%04X' % ROWPTR, 'SIZECLS     EQU $%04X' % SIZECLS,
          'FONTPAT     EQU $%04X' % FONT, 'NFONT       EQU %d' % nfont, 'STARPAT     EQU $%04X' % STARG,
          'LOGO_W      EQU %d' % (W // 8), 'LOGO_H      EQU %d' % (H // 8), 'LOGO_NG     EQU %d' % len(pats),
-         'LOGO_MAP    EQU $1000', 'NPOP        EQU %d' % len(POPS)]
+         'LOGO_MAP    EQU $1000', 'CORE_PAT    EQU $%04X' % CORE_PAT, 'NPOP        EQU %d' % len(POPS)]
     for i, p in enumerate(POPS):
         L.append('POP_%s EQU %d' % (p, i))
     for k in ('ship', 'shot', 'bul', 'boom', 'pop', 'enm', 'core'):

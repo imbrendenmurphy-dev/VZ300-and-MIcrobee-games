@@ -459,14 +459,21 @@ play_game:
         jr .loop
 .run:   call input_used
         call phase_update
+        call vbpoll
         call player_update
         call vbpoll
         call shots_update
+        call vbpoll
         call enemies_update
+        call vbpoll
         call bullets_update
+        call vbpoll
         call fx_update
         call stars_update
+        call vbpoll
         call hud_update
+        call flash_reshow
+        call vbpoll
         call snd_tick
         call draw_all
         call frame_end

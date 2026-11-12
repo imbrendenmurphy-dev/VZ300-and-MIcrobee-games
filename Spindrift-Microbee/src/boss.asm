@@ -57,6 +57,8 @@ boss_start:
         ld (ring_spin),de
         ld hl,0
         ld (ring_a),hl
+        ld a,$FE
+        ld (core_shown),a       ; not shown yet: the first draw places it
         ld a,1
         ld (boss_alive),a
         ld (bossmode),a
@@ -457,7 +459,7 @@ boss_dying:
         jr nc,.go
         xor a
         ld (bossmode),a
-        ret
+        jp core_hide
 .go:    and 3
         ret nz
         call random
@@ -490,6 +492,10 @@ boss_dying:
         jp play_sfx
 
 ; draw the core and its pods (BLK_ENM mapped)
+; The core never moves, so it is not a sprite: its three faces are 60
+; glyphs in PCG bank 12, placed as fixed cells through the text queue,
+; and re-queued only when the face or its colour changes. Sprites that
+; cross it (its own bullets leaving, shots arriving) pass behind it.
 boss_draw:
         call boss_rec
         ld a,(boss_alive)
@@ -497,9 +503,11 @@ boss_draw:
         jr nz,.al
         ld a,(ph_tim)
         cp 20
-        ret c
+        jr c,.hid
         and 2
-        ret z                   ; dying: it flickers
+        jr nz,.al
+.hid:   ld a,$FF                ; dying: it flickers
+        jr .sig
 .al:    ld a,(core_hurt)
         or a
         ld b,2
@@ -508,23 +516,17 @@ boss_draw:
         ld a,(eye)
         ld b,a
         ld a,(iy+BR_CCOL)
-        or a
-.c:     push bc
-        call setcol
-        pop bc
+.c:     and 15
+        ld c,a
         ld a,b
-        add a,a
-        ld l,a
-        ld h,0
-        ld de,rec_core
-        add hl,de
-        ld a,(hl)
-        inc hl
-        ld h,(hl)
-        ld l,a
-        ld de,CX
-        ld c,CY
-        call draw_spr
+        rlca
+        rlca
+        rlca
+        rlca
+        or c                    ; face << 4 | colour
+.sig:   ld hl,core_shown
+        cp (hl)
+        call nz,core_put
         ld a,(boss_alive)
         or a
         ret z
@@ -554,7 +556,7 @@ boss_draw:
         ld c,a
         ld a,(ix+2)
         cp RINGB
-        ld a,4
+        ld a,3                  ; 10 lines near (fewer cells than 13)
         jr nc,.sz
         ld a,2
 .sz:    add a,c
@@ -578,6 +580,70 @@ boss_draw:
         jr .p
 .e:     pop bc
         ret
+
+; A = face << 4 | colour, or FFh to take the core away
+CORE_C  EQU 18                  ; its 4 x 5 cells start at column 18, row 10
+CORE_R  EQU 10
+core_put:
+        ld (core_shown),a
+        cp $FF
+        jr z,core_clear
+        ld b,a
+        and 15
+        ld hl,colmap
+        add a,l
+        ld l,a
+        jr nc,.n
+        inc h
+.n:     ld c,(hl)               ; the colour, through the monitor's map
+        ld a,b
+        rrca
+        rrca
+        rrca
+        rrca
+        and 15
+        ld b,a
+        add a,a
+        add a,a
+        add a,b
+        add a,a
+        add a,a
+        add a,$80               ; the face's first glyph: 80h + face * 20
+        ld hl,CORE_R*40+CORE_C
+        ld e,5
+.r:     ld d,4
+.c:     ld b,BK_CORE
+        call tq_put
+        inc a
+        inc hl
+        dec d
+        jr nz,.c
+        push de
+        ld de,40-4
+        add hl,de
+        pop de
+        dec e
+        jr nz,.r
+        ret
+core_clear:
+        ld hl,CORE_R*40+CORE_C
+        ld e,5
+.r:     ld b,4
+        call clear_q
+        push de
+        ld de,40-4
+        add hl,de
+        pop de
+        dec e
+        jr nz,.r
+        ret
+; take the core away if it is shown
+core_hide:
+        ld a,(core_shown)
+        cp $FF
+        ret z
+        ld a,$FF
+        jp core_put
 
 ; the Guardian's health instead of the sector's name
 boss_bar:

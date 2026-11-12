@@ -547,7 +547,6 @@ force_tune_if:
 msg:    push bc
         push de
         push af
-        call msg_clear
         ld b,0
 .n:     ld a,(de)
         or a
@@ -561,12 +560,127 @@ msg:    push bc
         ld d,0
         ld hl,msg_len
         add hl,de
+        ld c,(hl)               ; the old length
         ld (hl),b
+        ld a,c
+        or a
+        call nz,msg_unclear
+        pop af
+        pop de
+        pop bc
+        push bc
+        push de
+        push af
+        ld l,a
+        ld h,0
+        push hl
+        ld de,msg_col
+        add hl,de
+        ld (hl),c
+        pop hl
+        add hl,hl
+        ld de,msg_ptr
+        add hl,de
+        pop af
+        pop de
+        push de
+        push af
+        ld (hl),e
+        inc hl
+        ld (hl),d
         pop af
         call msg_cell
         pop de
         pop bc
         jp print_q
+
+; row E had a message C long and gets one B long: blank the old cells the
+; new text will not cover (fewer cells for the commit to write)
+msg_unclear:
+        ld a,40
+        sub b
+        srl a
+        ld (tmp1),a             ; the new text's first column
+        add a,b
+        ld (tmp2),a             ; and one past its last
+        ld a,e
+        add a,a
+        add a,9
+        ld l,a
+        ld h,0
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        push hl
+        add hl,hl
+        add hl,hl
+        pop de
+        add hl,de               ; the row's first cell
+        ld a,40
+        sub c
+        srl a
+        ld e,a
+        ld d,0
+        add hl,de               ; the old text's first cell
+        ld b,c
+.cl:    ld a,(tmp1)
+        ld d,a
+        ld a,e
+        cp d
+        jr c,.clr               ; left of the new text
+        ld a,(tmp2)
+        ld d,a
+        ld a,e
+        cp d
+        jr c,.keep              ; under it: about to be written anyway
+.clr:   call tq_clr
+.keep:  inc hl
+        inc e
+        djnz .cl
+        ret
+
+; a flash has repainted the playfield's colours: once it starts to put
+; them back, show the messages and the Guardian's core again
+flash_reshow:
+        ld a,(flashcnt)
+        cp 2
+        ret nz
+        ld a,(mono)
+        or a
+        ret nz
+        ld b,0
+.m:     ld hl,msg_len
+        ld e,b
+        ld d,0
+        add hl,de
+        ld a,(hl)
+        or a
+        jr z,.n
+        ld hl,msg_col
+        add hl,de
+        ld c,(hl)
+        ld hl,msg_ptr
+        add hl,de
+        add hl,de
+        ld e,(hl)
+        inc hl
+        ld d,(hl)
+        ld a,b
+        push bc
+        call msg_cell
+        call print_q
+        pop bc
+.n:     inc b
+        ld a,b
+        cp 3
+        jr c,.m
+        ld a,(bossmode)
+        or a
+        ret z
+        ld a,(core_shown)
+        cp $FE
+        ret nc
+        jp core_put
 
 ; A = message row -> HL = its first cell (centred by msg_len)
 msg_cell:
@@ -927,9 +1041,18 @@ star_new:
         ld (ix+4),0
         ret
 
+; half the stars while a Guardian is on screen (it is the busiest scene)
+star_count:
+        ld b,NSTAR
+        ld a,(bossmode)
+        or a
+        ret z
+        ld b,NSTAR/2
+        ret
+
 stars_update:
         ld ix,stars
-        ld b,NSTAR
+        call star_count
 .l:     ld e,(ix+3)
         ld d,(ix+4)
         ld a,(warp)
@@ -962,7 +1085,7 @@ stars_draw:
         ld a,MP_TAB
         out (P_MEM),a
         ld ix,stars
-        ld b,NSTAR
+        call star_count
 .l:     push bc
         ld a,(ix+0)
         ld b,(ix+2)
@@ -1005,9 +1128,22 @@ hud_update:
         or a
         ret z
         ld b,a
+        ld a,(tqcur)            ; a frame already busy with text: the HUD
+        add a,3                 ; waits (the commit must fit the blanking)
+        ld h,a
+        ld l,$FF
+        ld a,(hl)
+        cp 24
+        ret nc
         xor a
         ld (hud_dirty),a
-        push bc
+        bit 7,b
+        jr z,.top
+        ld a,b                  ; the bottom row is due (and maybe more)
+        and $7F
+        ld (hud_dirty),a
+        jr .bottom
+.top:   push bc
         ld hl,score
         ld de,txtbuf
         call bcd_text
@@ -1049,6 +1185,10 @@ hud_update:
         ld de,txtbuf
         ld c,WHITE
         call print_q
+        ld a,$80                ; the bottom row next frame
+        ld (hud_dirty),a
+        ret
+.bottom:
         ; ships in reserve
         ld hl,24*40
         ld a,(lives)
@@ -1097,11 +1237,13 @@ hud_update:
         ld a,(bossmode)
         or a
         jp nz,boss_bar
-        ; the sector's name, right-aligned (over spaces)
-        ld hl,24*40+19
-        ld de,t_spaces
-        ld c,WHITE
-        call print_q
+        ; the sector's name, right-aligned in 21 cells
+        ld hl,txtbuf
+        ld b,21
+.sp:    ld (hl),' '
+        inc hl
+        djnz .sp
+        ld (hl),0
         ld hl,(sec_ptr)
         ld e,(hl)
         inc hl
@@ -1114,13 +1256,19 @@ hud_update:
         inc de
         inc b
         jr .nl
-.ne:    pop de
-        ld a,40
+.ne:    ld a,21
         sub b
-        ld l,a
-        ld h,0
-        ld bc,24*40
-        add hl,bc
+        ld e,a
+        ld d,0
+        ld hl,txtbuf
+        add hl,de
+        ex de,hl
+        pop hl
+        ld c,b
+        ld b,0
+        ldir
+        ld hl,24*40+19
+        ld de,txtbuf
         ld a,(hudcol)
         ld c,a
         jp print_q

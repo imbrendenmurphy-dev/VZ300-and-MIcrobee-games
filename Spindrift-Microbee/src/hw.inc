@@ -57,6 +57,7 @@ PAGE1       EQU $0400       ; second screen page (6545 start address)
 BK_FONT     EQU 0           ; 64 characters
 BK_HUD      EQU 1           ; icons
 BK_PIC      EQU 2           ; title picture: banks 2..9
+BK_CORE     EQU 12          ; the Guardian's core: 3 faces x 20 glyphs
 BK_POOL0    EQU 14          ; page 0: blank, 16 star dots, 111 sprite glyphs
 BK_POOL1    EQU 15
 
