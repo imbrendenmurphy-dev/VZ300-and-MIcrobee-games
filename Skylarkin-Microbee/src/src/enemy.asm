@@ -83,7 +83,8 @@ en_new: push af
         pop af
         scf
         ret
-.got:   push ix
+.got:   push bc
+        push ix
         pop hl
         ld d,h
         ld e,l
@@ -91,6 +92,7 @@ en_new: push af
         ld (hl),0
         ld bc,EN_SIZE-1
         ldir
+        pop bc                  ; C = y
         pop hl
         pop af
         ld (ix+E_TYPE),a
@@ -478,6 +480,20 @@ en_move:
         ld (ix+E_Y),a
         ret
 
+; en_vis: NC if enemy IX is on screen (0 <= x < 320)
+en_vis: ld l,(ix+E_XL)
+        ld h,(ix+E_XH)
+x_vis:  ld a,h
+        or a
+        ret z
+        dec a
+        scf
+        ret nz
+        ld a,l
+        cp 64
+        ccf
+        ret
+
 ; leaving: far off any side -> gone (its formation loses the bonus)
 en_offscreen:
         ld a,(ix+E_TYPE)
@@ -612,9 +628,10 @@ en_chair:                       ; rolls along the floor
         ld de,7
         add hl,de
         ld a,h
-        or a
-        ret nz
-        srl l
+        cp 2
+        ret nc
+        srl h
+        rr l
         ld a,l
         call floor_at
         add a,32-12
@@ -634,16 +651,16 @@ en_turret:                      ; sits on the floor and shoots
         ld de,7
         add hl,de
         ld a,h
-        or a
-        jr nz,.f
-        srl l
+        cp 2
+        jr nc,.f
+        srl h
+        rr l
         ld a,l
         call floor_at
         add a,32-8
         ld (ix+E_Y),a
-.f:     ld a,(ix+E_XH)
-        or a
-        ret nz
+.f:     call en_vis
+        ret c
         dec (ix+E_FIRE)
         ret nz
         ld a,(difficulty)
@@ -1602,9 +1619,8 @@ oi_shout:
         jr z,.n
         cp E_CRUMPLE
         jr z,.n
-        ld a,(ix+E_XH)
-        or a
-        jr nz,.n
+        call en_vis
+        jr c,.n
         ld e,12
         call en_damage
 .n:     ld de,EN_SIZE
@@ -1690,11 +1706,11 @@ en_boxes:
         ld de,16
         add hl,de               ; (biased by 16 so the left edge stays positive)
         ld a,h
-        or a
-        jr nz,.nop
-        ld a,l
-        srl a
-        ld c,a
+        cp 2
+        jr nc,.nop
+        srl h
+        rr l
+        ld c,l
         pop hl
         ld (hl),c
         inc hl
@@ -1737,20 +1753,21 @@ shot_box:
         ld d,0
         or a
         sbc hl,de
-        ld a,h
-        or a
         ld a,0
+        bit 7,h
         jr nz,.b0
+        srl h
+        rr l
         ld a,l
-        srl a
 .b0:    ld (sx0),a
         pop hl
         ld a,h
-        or a
-        ld a,167
-        jr nz,.b1
+        cp 2
+        ld a,255
+        jr nc,.b1
+        srl h
+        rr l
         ld a,l
-        srl a
 .b1:    ld (sx1),a
         ld a,(ix+3)
         ld (sy0),a
@@ -1759,11 +1776,12 @@ shot_box:
         or a
         ret
 .nb:    ld a,h
-        or a
-        scf
-        ret nz
+        cp 2
+        ccf
+        ret c
+        srl h
+        rr l
         ld a,l
-        srl a
         ld (sx0),a
         ld c,a
         ld a,(ix+0)
@@ -1916,11 +1934,11 @@ shot_bells:
         ld de,16
         add hl,de
         ld a,h
-        or a
-        jr nz,.n
-        ld a,l
-        srl a
-        ld c,a                  ; bell x0
+        cp 2
+        jr nc,.n
+        srl h
+        rr l
+        ld c,l                  ; bell x0
         ld a,(sx1)
         cp c
         jr c,.n

@@ -226,7 +226,7 @@ pages_from_base:
 clear_objects:
         ld hl,shots
         ld de,shots+1
-        ld bc,tmp-shots-1
+        ld bc,boss_hdr-shots-1   ; (the boss header and table stay)
         ld (hl),0
         ldir
         ret

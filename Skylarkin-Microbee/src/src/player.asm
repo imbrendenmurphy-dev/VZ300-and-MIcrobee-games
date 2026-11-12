@@ -894,10 +894,10 @@ sh_bounds:
         jr c,sh_kill
         cp 32+184
         jr nc,sh_kill
-        ld a,(ix+2)
-        or a
-        jr nz,sh_kill
-        ret
+        ld l,(ix+1)
+        ld h,(ix+2)
+        call x_vis
+        ret nc
 sh_kill:
         ld (ix+0),0
         ret
