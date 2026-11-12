@@ -21,7 +21,7 @@ GROUND = 144             # the usual ground line (tile row 9)
 # tile flags
 T_EMPTY, T_SOLID, T_ONEWAY, T_WATER = 0, 1, 2, 3
 # object types
-O_BUG, O_TOAD, O_START = 1, 2, 3
+O_BUG, O_TOAD, O_START, O_GOAL = 1, 2, 3, 5
 
 SKY_BANDS = [(5, BLACK), (4, BLUE), (4, MAGENTA), (3, RED), (6, BROWN)]   # cell rows, top to bottom
 
@@ -54,7 +54,7 @@ ROOMS = [
              "................T...",
              "##~~~oo~~~oo~~~#####",
              "####################"]),
-    dict(name='MOUND CITY', left=1, right=-1, sun=None, moon=(256, 22),
+    dict(name='MOUND CITY', left=1, right=3, sun=None, moon=(256, 22),
          mesa=[(0, 112), (56, 112), (64, 128), (176, 128), (184, 120), (320, 120)],
          trees=[(24, 144, 76)], map=[
              "....................",
@@ -66,6 +66,48 @@ ROOMS = [
              ".............M......",
              ".B...........M......",
              ".....M..T...MM..T...",
+             "####################",
+             "####################"]),
+    dict(name='THE OLD GUM', left=2, right=-1, up=4, moon=None,
+         bands=[(4, BLUE), (5, MAGENTA), (5, RED), (8, BROWN)],
+         mesa=[(0, 120), (60, 120), (68, 128), (320, 128)],
+         trees=[(200, 144, 250, 16)], map=[
+             "....................",
+             "........---.........",
+             "..B.................",
+             "...---.......---....",
+             "...........B........",
+             ".......---..........",
+             "..---.........B.....",
+             "..........---.......",
+             ".....T..............",
+             "####################",
+             "####################"]),
+    dict(name='THE CANOPY', left=-1, right=5, down=3, moon=(60, 30),
+         bands=[(12, BLACK), (10, BLUE)],
+         leaves=[(150, 124, 110, 40, 110), (50, 62, 44, 22, 70), (262, 58, 54, 26, 70)], map=[
+             "....................",
+             "...............B....",
+             "..........---.......",
+             "....B...............",
+             "...---.......-------",
+             "..........B.........",
+             "........---.........",
+             "....................",
+             "..---........---....",
+             "................B...",
+             ".......-----........"]),
+    dict(name='LOOKOUT ROCK', left=4, right=-1, moon=None,
+         bands=[(12, BLACK), (10, BLUE)], map=[
+             "....................",
+             "..B..........B......",
+             "......B.......T..J..",
+             "............########",
+             "............########",
+             "##########..########",
+             "##########B.########",
+             "####################",
+             "####################",
              "####################",
              "####################"]),
 ]
@@ -99,7 +141,7 @@ class Paint:
 
 def sky(p, room):
     y = 0
-    for rows, col in SKY_BANDS:
+    for rows, col in room.get('bands', SKY_BANDS):
         p.put(p.rect(0, y, PW, y + rows * CH), col, 0)
         y += rows * CH
     # stars in the dark bands; every fourth one twinkles
@@ -162,7 +204,7 @@ def mesa(p, room):
         p.put(line, RED, 1 if k == 0 else None)
 
 
-def gum_tree(p, bx, by, hgt):
+def gum_tree(p, bx, by, hgt, w0=5):
     """a ghost gum: pale trunk, bare forks, bunches of leaves"""
     trunk = np.zeros((PH, PW), bool)
     leaves = np.zeros((PH, PW), bool)
@@ -174,7 +216,9 @@ def gum_tree(p, bx, by, hgt):
             x = x0 + (x1 - x0) * t + math.sin(t * 5 + x0) * 0.8
             y = y0 + (y1 - y0) * t
             w = w0 + (w1 - w0) * t
-            trunk[max(0, int(y)):int(y) + 1, max(0, int(round(x - w / 2))):int(round(x + w / 2)) + 1] = True
+            xa, xb = int(round(x - w / 2)), int(round(x + w / 2)) + 1
+            if 0 <= y < PH and xb > 0:
+                trunk[int(y), max(0, xa):min(PW, xb)] = True
         if depth > 0:
             for s in (-1, 1):
                 L = (y0 - y1) * (0.55 + 0.2 * p.rng.rand())
@@ -187,7 +231,7 @@ def gum_tree(p, bx, by, hgt):
                 d = ((p.xx - cx) / 7.0) ** 2 + ((p.yy - cy) / 4.0) ** 2
                 leaves[(d < 1) & (((p.xx * 3 + p.yy * 5) % 7 < 4) | (d < 0.3))] = True
 
-    limb(bx, by, bx + 3, by - hgt * 0.45, 5, 3.4, 2)
+    limb(bx, by, bx + 3, by - hgt * 0.45, w0, w0 * 0.68, 2)
     p.put(leaves, GREEN, None)
     p.m[leaves & ((p.xx + p.yy) % 2 == 0)] = 15
     p.m[leaves & ((p.xx + p.yy) % 2 == 1)] = 0
@@ -195,6 +239,19 @@ def gum_tree(p, bx, by, hgt):
     p.m[p.outline(trunk)] = 15
     knots = trunk & ((p.xx * 7 + p.yy * 3) % 23 == 0)
     p.put(knots, GREY, None)
+
+
+def leaves(p, cx, cy, rx, ry, density=40):
+    """a gum crown: clumps of leaves, dithered, round an oval"""
+    for k in range(int(rx * ry / density) + 3):
+        a = p.rng.rand() * 2 * math.pi
+        d = math.sqrt(p.rng.rand())
+        x = cx + math.cos(a) * rx * d
+        y = cy + math.sin(a) * ry * d
+        m = (((p.xx - x) / 7.0) ** 2 + ((p.yy - y) / 4.0) ** 2) < 1
+        m &= ((p.xx * 3 + p.yy * 5) % 7 < 3)
+        p.put(m, GREEN, None)
+        p.m[m & ((p.xx + p.yy) % 2 == 0)] = 15
 
 
 def solid_at(mp, tx, ty):
@@ -406,9 +463,12 @@ def paint_room(idx, ph=0):
     mp = room['map']
     p = Paint(1000 + idx * 77, ph)
     sky(p, room)
-    mesa(p, room)
-    for bx, by, hgt in room.get('trees', []):
-        gum_tree(p, bx, by, hgt)
+    if room.get('mesa'):
+        mesa(p, room)
+    for t in room.get('trees', []):
+        gum_tree(p, *t)
+    for lv in room.get('leaves', []):
+        leaves(p, *lv)
     tm = np.zeros((MH, MW), np.uint8)
     objs = []
     for ty in range(MH):
@@ -430,6 +490,8 @@ def paint_room(idx, ph=0):
                 objs.append((O_BUG, tx * TW + 8, ty * TH + 9))
             elif ch == 'T':
                 objs.append((O_TOAD, tx * TW + 8, ty * TH + 16))
+            elif ch == 'J':
+                objs.append((O_GOAL, tx * TW + 8, ty * TH + 16))
             elif ch == 'S':
                 objs.append((O_START, tx * TW + 8, ty * TH + 16))
     # water first, then land over it
@@ -478,16 +540,20 @@ def compile_room(idx, mono):
     but a few cells of living background)."""
     ps = [paint_room(idx, ph) for ph in range(NPH)]
     p, tm, objs = ps[0]
-    pats, ink, pap = cells_from_images([(q[0].m if mono else q[0].c) for q in ps])
+    pats, ink, pap = cells_from_images([(q[0].m if mono else q[0].c) for q in ps], solid=mono)
     static = {bytes(CH): 0}
     dyn = {}                 # tuple of patterns -> dyn index
     scr = np.full(COLS * ROWS, 0x80, np.uint8)
     attr = np.zeros(COLS * ROWS, np.uint8)
     col = np.full(COLS * ROWS, 0x0F, np.uint8)
 
+    def solid_cell(i):
+        r, c = i // COLS - PF_ROW0, i % COLS
+        return tm[r // 2, c // 2] == T_SOLID
+
     def setcell(i, g, pat0, c):
         scr[i] = 0x80 | (g & 0x7F)
-        attr[i] = (g >> 7) | (0x10 if busy(pat0) else 0)
+        attr[i] = (g >> 7) | (0x10 if busy(pat0) and solid_cell(i) else 0)
         col[i] = 0x0F if mono else c
 
     for r in range(PF_ROWS):
@@ -554,7 +620,7 @@ def compile_room(idx, mono):
             g = DYN_BASE + ndyn
             ndyn += 1
             ids.append(g)
-            keep = busy(base)
+            keep = busy(base) and solid_cell(i)
             cc = int(col[i]) if (keep or mono) else ((int(col[i]) & 0xF0) | WHITE)
             scr[i] = 0x80 | (g & 0x7F)
             attr[i] = (g >> 7) | (0x10 if keep else 0)
@@ -609,6 +675,8 @@ def room_bytes(rc):
     d[R_NPAT + 1] = rc['n'] >> 8
     d[R_NPAT + 2] = rc['room']['left'] & 255
     d[R_NPAT + 3] = rc['room']['right'] & 255
+    d[R_NPAT + 4] = rc['room'].get('up', -1) & 255
+    d[R_NPAT + 5] = rc['room'].get('down', -1) & 255
     nm = rc['room']['name'].encode('ascii')[:20]
     d[R_NAME:R_NAME + len(nm)] = nm
     assert R_PAT + len(rc['pat']) <= R_ANIM, len(rc['pat'])

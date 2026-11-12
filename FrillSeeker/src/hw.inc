@@ -36,6 +36,13 @@ BLK_SPR     EQU 4           ; sprite frames, blocks 4..7
 BLK_GFX     EQU 8           ; font
 BLK_ROOMC   EQU 12          ; rooms, colour art: two rooms a block
 BLK_ROOMM   EQU 16          ; rooms, monochrome art
+BLK_TITLE   EQU 20          ; the title picture: colour at 0000, mono at 4000
+
+; ---- the title record (tools/title.py)
+T_SCR       EQU $0100
+T_ATTR      EQU $0500
+T_COL       EQU $0900
+T_PAT       EQU $0D00
 
 ; ---- a room record (16K; see tools/rooms.py)
 R_SCR       EQU $0000
@@ -43,7 +50,7 @@ R_ATTR      EQU $0400
 R_COL       EQU $0800
 R_TMAP      EQU $0C00
 R_OBJ       EQU $0D00       ; type, x (word), y ... 0
-R_NPAT      EQU $0D40       ; dw glyphs, db left room, db right room
+R_NPAT      EQU $0D40       ; dw glyphs; rooms left, right, up, down ($FF = none)
 R_NAME      EQU $0D50
 R_PAT       EQU $0E00       ; up to 768 glyphs x 8
 R_ANIM      EQU $2600

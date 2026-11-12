@@ -107,6 +107,23 @@ HISS0 = [             # the bluff's shock wave
 ]
 
 
+JAR = [               # King Bufo's larder: a jar of pinched bugs
+    "..##########..",
+    "..#oooooooo#..",
+    "..##########..",
+    ".#..........#.",
+    "#..#......#..#",
+    "#.#o#.##.#o#.#",
+    "#....#oo#....#",
+    "#..#..##..#..#",
+    "#.#o#....#o#.#",
+    "#....#..#....#",
+    "#...#o##o#...#",
+    "#............#",
+    ".############.",
+]
+
+
 def pad(rows):
     """a one-pixel empty border, so the halo survives"""
     w = max(len(r) for r in rows)
@@ -121,7 +138,7 @@ def frames():
     F = {}
     for name, rows, ox in (('TOAD_SIT', TOAD_SIT, 8), ('TOAD_HOP', TOAD_HOP, 8), ('TOAD_EEK', TOAD_EEK, 8),
                            ('TOAD_BACK0', TOAD_BACK0, 8), ('TOAD_BACK1', TOAD_BACK1, 8),
-                           ('BUG0', BUG0, 4), ('BUG1', BUG1, 4), ('SPARK0', SPARK0, 4), ('SPARK1', SPARK1, 4)):
+                           ('BUG0', BUG0, 4), ('BUG1', BUG1, 4), ('SPARK0', SPARK0, 4), ('SPARK1', SPARK1, 4), ('JAR', JAR, 7)):
         p = pad(rows)
         ink, cut = parse(p)
         F[name] = (ink, cut, ox + 1, len(p) - 1)

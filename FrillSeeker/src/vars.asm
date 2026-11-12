@@ -1,9 +1,9 @@
 ; =====================================================================
-;  variables (EE00-EE7F), entities (EE80-EEFF), the tile map (ED00, 20 x 11)
+;  variables (EE00-EEFF), entities (EF00-EF7F), the tile map (ED00, 20 x 11)
 ; =====================================================================
 TMAP        EQU $ED00
 scratch     EQU $EDF0
-ENTS        EQU $EE80
+ENTS        EQU $EF00       ; 8 x 16; the stack grows down from EFF0 to meet it
 
         ORG VARS
 cur_blk:    ds 1
@@ -13,6 +13,16 @@ roombase_h: ds 1
 rm_npat:    ds 2
 nb_left:    ds 1
 nb_right:   ds 1
+nb_up:      ds 1
+nb_down:    ds 1
+game_end:   ds 1
+t_count:    ds 1
+tt_base:    ds 2
+tw_ptr:     ds 2
+tw_start:   ds 2
+tw_len:     ds 1
+tw_cnt:     ds 1
+tw_hook:    ds 2
 mono:       ds 1
 pl_bank:    ds 1
 vlast:      ds 1
@@ -79,6 +89,11 @@ h_glide:    ds 1
 h_hurt:     ds 1
 h_inv:      ds 1
 h_run:      ds 1
+h_vmax:     ds 2
+h_scnt:     ds 1
+h_spr:      ds 1
+h_sface:    ds 1
+h_wet:      ds 1
 ; sound
 snd_per:    ds 1
 spk:        ds 1

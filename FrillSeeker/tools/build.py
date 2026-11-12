@@ -25,8 +25,9 @@ import hero
 import critters
 import rooms
 import font
+import title
 
-BLK_SPR, BLK_GFX, BLK_ROOMC, BLK_ROOMM = 4, 8, 12, 16
+BLK_SPR, BLK_GFX, BLK_ROOMC, BLK_ROOMM, BLK_TITLE = 4, 8, 12, 16, 20
 
 
 def sprites():
@@ -84,6 +85,7 @@ def tables():
     L += dbs([round(7 * math.sin((i + 0.5) * math.pi / 16)) for i in range(16)])
     L.append('eekarc:')
     L += dbs([round(22 * math.sin((i + 0.5) * math.pi / 24)) for i in range(24)])
+    L.append('TOTAL_BUGS equ %d' % sum(''.join(r['map']).count('B') for r in rooms.ROOMS))
     open(os.path.join(SRC, 'tables.inc'), 'w').write('\n'.join(L) + '\n')
 
 
@@ -120,6 +122,9 @@ def sound():
     sfx('sfx_hurt', [(440 - 36 * i, 1) for i in range(9)] + [('N', 3)])
     sfx('sfx_boing', [(180 + 26 * i * i, 1) for i in range(9)] + [(900, 1), (1300, 2)])
     sfx('sfx_croak', [(95, 2), (0, 1), (80, 3)])
+    sfx('sfx_sprint', [('N', 2), (500, 1), (650, 1), (800, 1), (1000, 1), (1250, 2)])
+    sfx('sfx_splash', [('N', 2)])
+    L.extend(songs())
     # the walking tune: slow blips, each a note and then its wait in ticks
     tune = [('A3', 20), ('E4', 10), ('D4', 10), ('C4', 20), ('A3', 20),
             ('G3', 20), ('C4', 10), ('D4', 10), ('E4', 20), ('E4', 20),
@@ -132,6 +137,60 @@ def sound():
     L.extend(dbs(v))
     L.append('\tdb $FE')
     open(os.path.join(SRC, 'snd.inc'), 'w').write('\n'.join(L) + '\n')
+
+
+T_LOOP = 89          # T-states in a loop of the two-voice player
+
+
+def tw(name):
+    if name == '.':
+        return 0
+    return max(1, min(255, int(round(3375000 / (2.0 * hz(name) * T_LOOP)))))
+
+
+TITLE_BARS = [
+    ("G4 B4 D5 B4 G4 - A4 B4", "G"), ("C5 - E5 C5 G4 - E4 G4", "C"),
+    ("A4 B4 C5 D5 A4 - F#4 A4", "D"), ("G4 - - D4 G4 - . .", "G"),
+    ("E4 G4 B4 E5 D5 B4 G4 B4", "Em"), ("C5 E5 D5 C5 B4 A4 G4 E4", "C"),
+    ("D4 F#4 A4 D5 C5 A4 F#4 A4", "D"), ("D5 - C5 - B4 - A4 -", "D"),
+    ("E5 - E5 D5 C5 - G4 -", "C"), ("D5 - D5 C5 B4 - G4 -", "G"),
+    ("A4 C5 E5 C5 A4 C5 E5 C5", "Am"), ("D5 C5 B4 A4 F#4 A4 D5 .", "D"),
+    ("B4 - G4 B4 D5 - B4 D5", "G"), ("E5 D5 C5 E5 D5 C5 B4 A4", "C"),
+    ("G4 A4 B4 C5 D5 - F#4 -", "D"), ("G4 - - - . . . .", "G")]
+CHORDS = {'G': ('G2', 'D3'), 'C': ('C3', 'G3'), 'D': ('D3', 'A2'), 'Em': ('E2', 'B2'), 'Am': ('A2', 'E3')}
+
+
+def songs():
+    """the title theme (an original oom-pah strut in G) and the jingles"""
+    L = []
+    slots = []
+    for mel, ch in TITLE_BARS:
+        r, f = CHORDS[ch]
+        for k, tok in enumerate(mel.split()):
+            slots.append((tok, [r, '.', f, '.'][k % 4]))
+    ev = []
+    cur = '.'
+    for i, (tok, bass) in enumerate(slots):
+        if tok != '-':
+            cur = tok
+        nxt = slots[(i + 1) % len(slots)][0]
+        ev += [tw(cur), tw(bass), 6 | (0x80 if nxt == '-' else 0)]
+    L.append('song_title:')
+    L.extend(dbs(ev))
+    L.append('\tdb $FF')
+
+    def jingle(name, notes):
+        v = []
+        for m, bs, n in notes:
+            v += [tw(m), tw(bs), n]
+        L.append(name + ':')
+        L.extend(dbs(v))
+        L.append('\tdb $FE')
+    jingle('song_clear', [('G4', 'G2', 5), ('B4', '.', 5), ('D5', 'D3', 5), ('G4', 'G2', 4), ('B4', '.', 4),
+                          ('D5', 'D3', 4), ('G5', 'G2', 40)])
+    jingle('song_over', [('C5', 'C3', 14), ('.', '.', 4), ('B4', 'B2', 14), ('.', '.', 4), ('A#4', 'A#2', 14),
+                         ('.', '.', 4), ('A4', 'A2', 50)])
+    return L
 
 
 def build_rooms(shots=None):
@@ -156,6 +215,7 @@ def loadfiles(nspr, nroom):
     for i in range(nspr):
         names.append((BLK_SPR + i, 0, 'SPR%d' % i, 'BNK'))
     names.append((BLK_GFX, 0, 'GFX', 'BNK'))
+    names.append((BLK_TITLE, 0, 'TITLE', 'BNK'))
     for i in range(nroom):
         names.append((BLK_ROOMC + i, 0, 'ROOMC%d' % i, 'BNK'))
         names.append((BLK_ROOMM + i, 0, 'ROOMM%d' % i, 'BNK'))
@@ -198,6 +258,10 @@ if __name__ == '__main__':
     sound()
     open(os.path.join(BUILD, 'GFX.BNK'), 'wb').write(font.build())
     nroom = build_rooms()
+    tc, nc, _ = title.compile_title(False)
+    tm, nm, _ = title.compile_title(True)
+    open(os.path.join(BUILD, 'TITLE.BNK'), 'wb').write(tc + tm)
+    print('title picture: %d glyphs colour, %d mono' % (nc, nm))
     names = loadfiles(nspr, nroom)
     assemble(names)
     disk(names)

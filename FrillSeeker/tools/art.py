@@ -40,7 +40,7 @@ def byte_rows(bits):
     return (b * (1 << (7 - np.arange(8)))).sum(axis=2).astype(np.uint8)
 
 
-def cells_from_images(imgs):
+def cells_from_images(imgs, solid=False):
     """imgs: a list of (h, w) colour-index pictures of the same scene (the
     animation phases). -> patterns [phase](rows, cols, 6), ink, paper.
     Each cell keeps the two commonest colours over all phases; the rest go
@@ -59,6 +59,9 @@ def cells_from_images(imgs):
             order = vals[np.argsort(-cnt, kind='stable')]
             if len(order) == 1:
                 ink[r, c] = pap[r, c] = int(order[0])
+                if solid and order[0]:      # monochrome: a lit cell must be ink, the only thing shown
+                    for k in range(len(imgs)):
+                        pats[k][r, c] = 0xFF
                 continue
             a, b = int(order[0]), int(order[1])
             if LUM[a] > LUM[b]:
@@ -73,8 +76,8 @@ def cells_from_images(imgs):
     return pats, ink, pap
 
 
-def cells_from_image(img):
-    pats, ink, pap = cells_from_images([img])
+def cells_from_image(img, solid=False):
+    pats, ink, pap = cells_from_images([img], solid)
     return pats[0], ink, pap
 
 

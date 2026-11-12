@@ -13,20 +13,21 @@ from art import dilate, parse
 SS = 4
 W, H = 48, 40
 OX, OY = 22, 37          # the hot spot inside the canvas
+K = 1                    # drawing scale (3 for the title picture)
 
 
 class Cv:
     def __init__(self):
-        self.ink = np.zeros((H, W), bool)
-        self.cut = np.zeros((H, W), bool)
+        self.ink = np.zeros((H * K, W * K), bool)
+        self.cut = np.zeros((H * K, W * K), bool)
 
     # -- rasterisers: hi-res coverage -> low-res mask
     def _grid(self):
-        y, x = np.mgrid[0:H * SS, 0:W * SS]
-        return (x + 0.5) / SS - OX, (y + 0.5) / SS - OY
+        y, x = np.mgrid[0:H * K * SS, 0:W * K * SS]
+        return (x + 0.5) / SS / K - OX, (y + 0.5) / SS / K - OY
 
     def _down(self, hi, th=0.5):
-        return hi.reshape(H, SS, W, SS).mean(axis=(1, 3)) >= th
+        return hi.reshape(H * K, SS, W * K, SS).mean(axis=(1, 3)) >= th
 
     def ellipse(self, cx, cy, rx, ry, ang=0.0):
         x, y = self._grid()
@@ -45,7 +46,7 @@ class Cv:
         return self._down(d <= r0 + (r1 - r0) * t, th)
 
     def chain(self, pts, r0, r1, th=0.5):
-        m = np.zeros((H, W), bool)
+        m = np.zeros((H * K, W * K), bool)
         n = len(pts) - 1
         for i in range(n):
             a = r0 + (r1 - r0) * i / n
@@ -84,10 +85,13 @@ class Cv:
     def bitmap(self, rows, x, y, outline=True):
         ink, cut = parse(rows)
         h, w = ink.shape
-        mi = np.zeros((H, W), bool)
-        mc = np.zeros((H, W), bool)
-        mi[OY + y:OY + y + h, OX + x:OX + x + w] = ink
-        mc[OY + y:OY + y + h, OX + x:OX + x + w] = cut
+        mi = np.zeros((H * K, W * K), bool)
+        mc = np.zeros((H * K, W * K), bool)
+        if K > 1:
+            ink = np.kron(ink, np.ones((K, K), bool))
+            cut = np.kron(cut, np.ones((K, K), bool))
+        mi[(OY + y) * K:(OY + y) * K + h * K, (OX + x) * K:(OX + x) * K + w * K] = ink
+        mc[(OY + y) * K:(OY + y) * K + h * K, (OX + x) * K:(OX + x) * K + w * K] = cut
         self.stamp(mi | mc, outline)
         self.ink &= ~mc
         self.cut |= mc
@@ -197,7 +201,7 @@ def frill(c, nx, ny, t):
 
 def spokes(c, nx, ny, t):
     cx, cy, a0, a1, R = frill_geom(nx, ny, t)
-    m = np.zeros((H, W), bool)
+    m = np.zeros((H * K, W * K), bool)
     n = max(3, int(round(3 + 8 * t)))
     for i in range(1, n):
         a = math.radians(a0 + (a1 - a0) * i / n)
@@ -236,7 +240,7 @@ def pose(head=HEAD, lean=0.0, bob=0.0, legs=((1.5, 0), (-1.5, 0)), tail=0.0, tai
         fm = c.ellipse(ccx, ccy, 14.0, 6.4)
         fm &= ~c.ellipse(ccx, ccy + 5.4, 13.4, 5.6)
         c.stamp(fm, True)
-        sp = np.zeros((H, W), bool)
+        sp = np.zeros((H * K, W * K), bool)
         for a in (-152, -128, -106, -90, -74, -52, -28):
             r = math.radians(a)
             sp |= c.capsule(ccx + 5 * math.cos(r), ccy + 1.6 * math.sin(r) + 1.0,
@@ -300,6 +304,18 @@ def frames():
         arms = ((4.2 + 2.6 - sw, -13.2 + bob + 3.6), (4.2 + 2.6 + sw, -13.2 + bob + 3.2))
         add('RUN%d' % i, pose(lean=2.6, bob=bob, legs=ank, tailup=0.62, tail=1.3 * math.sin(ph * 2),
                               arms=arms, head_dx=0.6, foot=(0.5 * math.sin(ph), 0.5 * math.sin(ph + math.pi))))
+    # the sprint: reared up, head down, arms swept back, tail straight out
+    for i in range(N):
+        ph = 2 * math.pi * i / N
+        ank = []
+        for off in (0, math.pi):
+            p = ph + off
+            ank.append((1.0 + 5.8 * math.cos(p), -max(0.0, 3.2 * math.sin(p))))
+        bob = -1.1 * abs(math.sin(ph))
+        sw = 0.9 * math.cos(ph)
+        add('SPR%d' % i, pose(lean=4.4, bob=bob, legs=ank, tailup=0.82, tail=0.5 * math.sin(ph * 2),
+                              arms=((3.2 + sw, -10.6 + bob), (3.8 - sw, -11.0 + bob)), head_dx=1.6, head_dy=0.8,
+                              foot=(0.5 * math.sin(ph), 0.5 * math.sin(ph + math.pi))))
     # jump (rising) and fall
     add('JUMP', pose(lean=1.2, legs=((2.8, -2.6), (0.4, -1.6)), tailup=0.2, tail=-1.0,
                      arms=((5.6, -17.0), (6.6, -15.6)), foot=(0.9, 0.9)))

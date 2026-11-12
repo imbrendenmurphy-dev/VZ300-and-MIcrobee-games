@@ -316,6 +316,12 @@ room_load:
         inc hl
         ld a,(hl)
         ld (nb_right),a
+        inc hl
+        ld a,(hl)
+        ld (nb_up),a
+        inc hl
+        ld a,(hl)
+        ld (nb_down),a
         ; glyph patterns: to TILEPAT (for compositing) and to the PCG
         ld hl,(rm_npat)
         add hl,hl
@@ -343,6 +349,48 @@ room_load:
         ld (nslots),a
         ld (nold),a
         ret
+
+; the title picture (colour or mono) from its block, straight on to the
+; screen: glyphs into PCG banks 0-10, then the cells
+title_show:
+        call display_off
+        ld a,BLK_TITLE
+        call map_blk
+        ld hl,0
+        ld a,(mono)
+        or a
+        jr z,.c
+        ld h,$40
+.c:     ld (tt_base),hl
+        ld c,(hl)
+        inc hl
+        ld b,(hl)
+        ld de,T_PAT-1
+        add hl,de
+        xor a
+        call pcg_load
+        ld hl,(tt_base)
+        ld de,T_SCR
+        add hl,de
+        call win_screen
+        ld de,VIDEO
+        ld bc,NCELL
+        ldir
+        ld hl,(tt_base)
+        ld de,T_ATTR
+        add hl,de
+        call win_attr
+        ld de,VIDEO
+        ld bc,NCELL
+        ldir
+        ld hl,(tt_base)
+        ld de,T_COL
+        add hl,de
+        call win_col
+        ld de,PCGWIN
+        ld bc,NCELL
+        ldir
+        jp win_screen
 
 ; the shadows -> the screen
 room_show:

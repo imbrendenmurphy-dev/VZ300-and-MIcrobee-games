@@ -11,7 +11,9 @@ entry:  di
         ld sp,STACK
         MEMV BLK_WORK
         call hw_init
-        jp title
+        ld hl,hook_none
+        ld (tw_hook),hl
+        jp monitor_select
 
         INCLUDE "engine.asm"
         INCLUDE "anim.asm"

@@ -20,6 +20,10 @@ O_BUG       EQU 1
 O_TOAD      EQU 2
 O_START     EQU 3
 O_SPARK     EQU 4
+O_GOAL      EQU 5
+SPRINTV     EQU $0200       ; 2 px a tick
+SPRINT_T    EQU 40          ; ticks of flat-out running before he bolts
+WATER_T     EQU 45          ; ticks he can sprint on water
 
 NENT        EQU 8
 E_TYPE      EQU 0
@@ -34,7 +38,7 @@ E_OBJ       EQU 10
 E_SIZE      EQU 16
 
 ; ---------------------------------------------------------------------
-title:
+monitor_select:
         ld a,$0F
         call cls
         ld hl,t_name
@@ -42,11 +46,11 @@ title:
         ld c,YELLOW
         call print
         ld hl,t_l1
-        ld de,$0808
+        ld de,$080C
         ld c,WHITE
         call print
         ld hl,t_l2
-        ld de,$0A09
+        ld de,$0A0E
         ld c,WHITE
         call print
         ld hl,t_l3
@@ -54,11 +58,11 @@ title:
         ld c,BCYAN
         call print
         ld hl,t_l4
-        ld de,$110B
+        ld de,$110C
         ld c,BCYAN
         call print
-        ld hl,t_l5
-        ld de,$160B
+        ld hl,t_credit
+        ld de,$160A
         ld c,BGREEN
         call print
         call display_on
@@ -77,14 +81,156 @@ title:
         ld (mono),a
         ld a,BLK_ROOMC
 .go:    ld (roomblk0),a
+        ; fall into the title
+
+; ---------------------------------------------------------------------
+;  the title: the picture, the theme in two voices, SPACE to play
+; ---------------------------------------------------------------------
+title_screen:
+        ld sp,STACK
+        xor a
+        ld (mus_on),a
+        ld (sfx_on),a
+        ld (t_count),a
+        out (P_PIOB),a
+        call title_show
+        ld hl,t_press
+        ld de,$160A
+        ld c,WHITE
+        call print
+        call display_on
+        ld hl,title_hook
+        ld (tw_hook),hl
+.again: ld hl,song_title
+        call tw_song
+        jr z,.again
+        ld hl,hook_none
+        ld (tw_hook),hl
         jp game_start
 
-t_name: db "FRILLSEEKER",0
-t_l1:   db "AN ENGINE PROTOTYPE FOR",0
-t_l2:   db "THE MICROBEE PREMIUM PLUS",0
-t_l3:   db "C - COLOUR MONITOR",0
-t_l4:   db "M - MONO MONITOR",0
-t_l5:   db "VIBED BY BPM 2026",0
+; every 64 notes, swap the line under the picture
+title_hook:
+        ld hl,t_count
+        inc (hl)
+        ld a,(hl)
+        and $3F
+        ret nz
+        ld a,(hl)
+        and $40
+        ld hl,t_press
+        jr z,.p
+        ld hl,t_credit
+.p:     ld de,$160A
+        ld c,WHITE
+        jp print
+
+t_name:   db "FRILLSEEKER",0
+t_l1:     db "FOR THE MICROBEE",0
+t_l2:     db "PREMIUM PLUS",0
+t_l3:     db "C - COLOUR MONITOR",0
+t_l4:     db "M - MONO MONITOR",0
+t_press:  db "PRESS SPACE TO PLAY",0
+t_credit: db " VIBED BY BPM 2026 ",0
+
+; ---------------------------------------------------------------------
+;  the end of a game: the region cleared, or out of hearts
+; ---------------------------------------------------------------------
+end_game:
+        ld sp,STACK
+        push af
+        xor a
+        ld (sfx_on),a
+        ld (mus_on),a
+        out (P_PIOB),a
+        call display_off
+        ld a,$0F
+        call cls
+        pop af
+        dec a
+        jr nz,.over
+        ld hl,t_clear1
+        ld de,$0409
+        ld c,YELLOW
+        call print
+        ld hl,t_clear2
+        ld de,$080A
+        ld c,WHITE
+        call print
+        ld a,(bugs)
+        ld de,$0815
+        ld c,YELLOW
+        call print_num
+        ld a,TOTAL_BUGS
+        ld de,$081B
+        ld c,YELLOW
+        call print_num
+        ld hl,t_clear3
+        ld de,$0E0A
+        ld c,BCYAN
+        call print
+        ld hl,t_clear4
+        ld de,$100E
+        ld c,BCYAN
+        call print
+        ld hl,song_clear
+        jr .tail
+.over:  ld hl,t_over1
+        ld de,$080F
+        ld c,BRED
+        call print
+        ld hl,t_over2
+        ld de,$0C07
+        ld c,WHITE
+        call print
+        ld hl,song_over
+.tail:  push hl
+        ld hl,t_again
+        ld de,$160E
+        ld c,BGREEN
+        call print
+        call display_on
+        pop hl
+        call tw_song
+        call wait_key
+        jp title_screen
+
+t_clear1: db "THE RED DIRT IS CLEAR!",0
+t_clear2: db "BUGS FOUND    OF",0
+t_clear3: db "MORE OF THE TOP END",0
+t_clear4: db "COMING SOON",0
+t_over1:  db "GAME OVER",0
+t_over2:  db "THE TOADS HAVE IT - FOR NOW",0
+t_again:  db "PRESS SPACE",0
+
+; A = number (0-99), D = row, E = column, C = colour: two digits
+print_num:
+        ld b,'0'-1
+.d:     inc b
+        sub 10
+        jr nc,.d
+        add a,10+'0'
+        push af
+        push de
+        push bc
+        ld a,b
+        call putch
+        pop bc
+        pop de
+        pop af
+        inc e
+        jp putch
+
+; wait for SPACE (or fire) to be let go of, then pressed
+wait_key:
+.r:     call read_menu
+        ld a,(pad)
+        and $10
+        jr nz,.r
+.w:     call read_menu
+        ld a,(padnew)
+        and $10
+        jr z,.w
+        ret
 
 ; ---------------------------------------------------------------------
 game_start:
@@ -92,6 +238,13 @@ game_start:
         ld (hearts),a
         xor a
         ld (bugs),a
+        ld (game_end),a
+        ld (h_hurt),a
+        ld (h_inv),a
+        ld hl,0
+        ld (hvx),hl
+        ld (hvy),hl
+        call sprint_stop
         ld hl,collected
         ld b,8
 .c:     ld (hl),0
@@ -125,6 +278,9 @@ main_loop:
         inc a
         jr nz,.room
         djnz .t
+        ld a,(game_end)
+        or a
+        jp nz,end_game
         call vpoll
         call frame_begin
         call draw_all
@@ -428,6 +584,7 @@ hero_tick:
         jr z,.noflare
         ld hl,0
         ld (hvx),hl
+        call sprint_stop
         ld a,(h_flare)
         inc a
         cp 56
@@ -471,12 +628,13 @@ hero_tick:
         add hl,de
         bit 7,h
         jr nz,.sx
-        ld de,WALKV+1
+        ld de,(h_vmax)
+        inc de
         or a
         sbc hl,de
         add hl,de
         jr c,.sx
-        ld hl,WALKV
+        ld hl,(h_vmax)
         jr .sx
 .left:  ld a,1
         ld (h_face),a
@@ -485,14 +643,15 @@ hero_tick:
         add hl,de
         bit 7,h
         jr z,.sx
-        ld de,WALKV
+        ld de,(h_vmax)
         add hl,de
         bit 7,h
         jr z,.lok
         ld hl,0
-.lok:   ld de,-WALKV
-        add hl,de
+.lok:   or a
+        sbc hl,de
 .sx:    ld (hvx),hl
+        call sprint_tick
 .jump:  ld a,(padnew)
         bit PB_JUMP,a
         jr z,.j1
@@ -621,6 +780,7 @@ hero_tick:
         ld de,22
         add hl,de
 .hstop: ld (hx),hl
+        call sprint_stop        ; a wall ends the sprint
         ld hl,0
         ld (hvx),hl
         xor a
@@ -734,14 +894,24 @@ hero_tick:
         ld (newroom),a
         ret
 .inroom:
-        ; ---- fell out of the world, or into the billabong
+        ; ---- off the top or bottom: the room above or below, or a fall
         ld hl,(hy)
-        ld a,h
+        bit 7,h
+        jr z,.notup
+        ld a,(nb_up)
+        cp $FF
+        jp z,.anim
+        ld de,176
+        add hl,de
+        ld (hy),hl
+        ld (newroom),a
+        ret
+.notup: ld a,h
         or a
-        jr nz,.chkpit
+        jr nz,.down
         ld a,l
         cp 176
-        jr nc,.pit
+        jr nc,.down
         ; water under the feet?
         ld de,-3
         add hl,de
@@ -755,9 +925,14 @@ hero_tick:
         jr c,.anim
 .pit:   call hero_fell
         jr .anim
-.chkpit:
-        bit 7,h
+.down:  ld a,(nb_down)
+        cp $FF
         jr z,.pit
+        ld de,-176
+        add hl,de
+        ld (hy),hl
+        ld (newroom),a
+        ret
 .anim:  ld a,(hvx+1)
         ld hl,hvx
         or (hl)
@@ -772,11 +947,18 @@ hero_tick:
         cp T_SOLID
         scf
         ret z
-        cp T_ONEWAY
+        cp T_WATER
+        jr nz,.f1
+        ld a,(h_spr)            ; sprinting: water holds him up
+        or a
+        jr z,.fno
+        jr .above
+.f1:    cp T_ONEWAY
         jr nz,.fno
         ld a,(h_drop)
         or a
         jr nz,.fno
+.above:
         ; only from above: was the old feet line at or above the tile top?
         ld hl,(hy)
         ld a,l
@@ -796,6 +978,68 @@ hero_tick:
         add hl,bc
         call tile_at
         cp T_SOLID
+        ret
+
+; the sprint: run flat out on the ground for a moment and he rears up and
+; bolts. It lasts while a direction is held and he keeps going; on water
+; he stays up for a second, then sinks.
+sprint_tick:
+        ld a,(pad)
+        and 3
+        jr z,sprint_stop
+        ld hl,(hvx)
+        ld a,h
+        or l
+        jr z,sprint_stop
+        ld a,(h_face)
+        ld hl,h_sface
+        cp (hl)
+        ld (hl),a
+        jr nz,sprint_stop
+        ld a,(h_spr)
+        or a
+        jr nz,.on
+        ld a,(h_on)
+        or a
+        ret z
+        ld hl,h_scnt
+        inc (hl)
+        ld a,(hl)
+        cp SPRINT_T
+        ret c
+        ld a,1
+        ld (h_spr),a
+        ld hl,SPRINTV
+        ld (h_vmax),hl
+        ld hl,sfx_sprint
+        jp play_sfx
+.on:    ld a,(h_on)
+        or a
+        jr z,.dry
+        ld de,(hx)
+        ld hl,(hy)
+        call tile_at
+        cp T_WATER
+        jr nz,.dry
+        ld hl,h_wet
+        inc (hl)
+        ld a,(hl)
+        cp WATER_T
+        jr nc,sprint_stop
+        and 7
+        ret nz
+        ld hl,sfx_splash
+        jp play_sfx
+.dry:   xor a
+        ld (h_wet),a
+        ret
+sprint_stop:
+        xor a
+        ld (h_scnt),a
+        ld (h_spr),a
+        ld (h_wet),a
+        ld hl,WALKV
+        ld (h_vmax),hl
         ret
 
 ; DE = x -> NZ if a solid tile is in the way at any of three heights
@@ -833,6 +1077,7 @@ hero_hurt:
         ld a,(h_inv)
         or a
         ret nz
+        call sprint_stop
         ld a,16
         ld (h_hurt),a
         ld hl,-$0280
@@ -859,15 +1104,13 @@ lose_heart:
         ld hl,hearts
         dec (hl)
         ret nz
-        ; out of hearts: the prototype just starts you again
-        ld (hl),3
-        ld a,1
-        ld (want_start),a
-        xor a
-        ld (newroom),a
+        ; out of hearts
+        ld a,2
+        ld (game_end),a
         ret
 
 hero_fell:
+        call sprint_stop
         ld hl,(rs_x)
         ld (hx),hl
         ld hl,(rs_y)
@@ -947,6 +1190,8 @@ ents_tick:
         call z,toad_tick
         cp O_SPARK
         call z,spark_tick
+        cp O_GOAL
+        call z,goal_tick
         pop bc
         ld de,E_SIZE
         add ix,de
@@ -984,6 +1229,19 @@ bug_tick:
         ld hl,sfx_bug
         call play_sfx
 .no:    ld a,O_BUG
+        ret
+
+; King Bufo's larder: reach it and the region is clear
+goal_tick:
+        call ent_dx
+        cp 12
+        jr nc,.n
+        call ent_dy
+        cp 16
+        jr nc,.n
+        ld a,1
+        ld (game_end),a
+.n:     ld a,O_GOAL
         ret
 
 spark_tick:
@@ -1203,6 +1461,8 @@ draw_all:
         jp z,.n
         cp O_SPARK
         jr z,.spark
+        cp O_GOAL
+        jr z,.jar
         ; toad
         ld c,BGREEN
         ld a,(ix+E_STATE)
@@ -1223,6 +1483,9 @@ draw_all:
 .slow:  and 16
         jr z,.go
         ld b,SF_TOAD_BACK1
+        jr .go
+.jar:   ld c,BCYAN
+        ld b,SF_JAR
         jr .go
 .spark: ld c,YELLOW
         ld b,SF_SPARK0
@@ -1293,7 +1556,14 @@ hero_frame:
         ld hl,hvx
         or (hl)
         jr z,.idle
+        ld a,(h_spr)
+        or a
+        jr z,.walk
         ld a,(h_run)
+        and 7
+        add a,SF_SPR0
+        ret
+.walk:  ld a,(h_run)
         rrca
         and 7
         add a,SF_RUN0

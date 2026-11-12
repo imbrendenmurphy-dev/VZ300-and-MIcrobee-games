@@ -41,12 +41,27 @@ def boot():
 
 
 def start(mono=False):
+    """boot, choose the monitor, pass the title, into the first room"""
     pp = boot()
     pp.run_frames(30)
     pp.keys = ['M' if mono else 'C']
     pp.run_frames(6)
     pp.keys = []
-    pp.run_frames(20)
+    pp.run_frames(30)
+    pp.keys = ['SPACE']
+    pp.run_frames(8)
+    pp.keys = []
+    pp.run_frames(30)
+    return pp
+
+
+def title(mono=False):
+    pp = boot()
+    pp.run_frames(30)
+    pp.keys = ['M' if mono else 'C']
+    pp.run_frames(6)
+    pp.keys = []
+    pp.run_frames(60)
     return pp
 
 
