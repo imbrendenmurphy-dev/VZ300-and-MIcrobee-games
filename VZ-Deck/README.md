@@ -6,7 +6,7 @@ A boot-time game launcher and music player for the Dick Smith **VZ300 / VZ200** 
 Switch the VZ on and VZ-DECK comes up instead of BASIC. It shows the folders and files on
 the SD card, so games that need DAT files can live in folders of their own, and it runs any
 `.VZ` file you pick. It also plays music through the VZ's 1-bit speaker: MIDI and MOD files
-are built in, and PT3, PSG and S3M files play through plug-in players.
+are built in, and PT3, PSG, S3M, XM and VGM files play through plug-in players.
 
 ```
 VZ-DECK 0.9    VIBED BY BPM 2026
@@ -32,11 +32,13 @@ Copy these from `release/` to the **root** of the card:
 | `PLAYPT3.VZ` | Plug-in player for PT3 (ProTracker 3 / Vortex Tracker) music |
 | `PLAYPSG.VZ` | Plug-in player for PSG (AY register dump) music |
 | `PLAYS3M.VZ` | Plug-in player for S3M (Scream Tracker 3) music |
+| `PLAYXM.VZ` | Plug-in player for XM (FastTracker 2) music |
+| `PLAYVGM.VZ` | Plug-in player for VGM music for the SN76489 chip (Master System, Game Gear, BBC Micro, ColecoVision...) |
 
 Keep a copy of your original `VZDOS.VZ`. If anything goes wrong, delete the patched one
 from the card and the loader's built-in BIOS takes over again.
 
-`DEMO.PT3`, `DEMO.PSG` and `DEMO.S3M` are small test tunes made for checking the players.
+`DEMO.PT3`, `DEMO.PSG`, `DEMO.S3M`, `DEMO.XM` and `DEMO.VGM` are small test tunes made for checking the players.
 
 ## Power-on
 
@@ -82,7 +84,9 @@ A game of your own can return to VZ-DECK at any time with:
 | `.MOD` | built in | 15- and 31-instrument modules. Only the note data is read, so the samples don't count against memory |
 | `.PT3` | `PLAYPT3.VZ` | ProTracker 3 / Vortex Tracker II, up to about 17K |
 | `.PSG` | `PLAYPSG.VZ` | AY register dumps, any size. Many PC tools convert YM, VTX, AY and other chip tunes to PSG |
-| `.S3M` | `PLAYS3M.VZ` | Scream Tracker 3, any size, up to 32 channels. Patterns are read from the card as they come up (up to 8K each) |
+| `.S3M` | `PLAYS3M.VZ` | Scream Tracker 3, up to 32 channels. Patterns are read from the card as they come up (up to 8K each) |
+| `.XM` | `PLAYXM.VZ` | FastTracker 2, up to 32 channels heard (more are read past). Patterns are read from the card as they come up (up to 12K each) |
+| `.VGM` | `PLAYVGM.VZ` | SN76489 music, streamed from the card. Other chips in the file are skipped. Compressed `.VGZ` files must be unzipped on a PC first (rename the result to `.VGM`) |
 
 Everything is played as three square-wave voices plus drum bursts:
 
@@ -92,13 +96,21 @@ Everything is played as three square-wave voices plus drum bursts:
 - **S3M:** like MOD, reduced to lead, bass and middle voices, with drums picked from
   instrument names. Speed, tempo, pattern break and jump are followed; a jump backwards
   (a song's loop point) ends the song.
+- **XM:** the same as S3M: lead, bass and middle voices, drums from instrument or sample
+  names, and speed, BPM, volume, pattern break and jump followed. Key-off stops a note.
+- **VGM:** the SN76489's three tone channels map straight onto the three voices, with
+  volume as pulse width. White noise becomes a hat or snare burst.
 - **PT3 and PSG:** the three AY channels map straight onto the three voices, with volume
   as pulse width. Ornaments, samples, slides and portamento are followed. Noise becomes a
   hat or snare burst.
 
+S3M, XM and VGM files are read from the card as they play. Files are fine up to 255 card
+clusters (about 1 MB on a card with 4K clusters); past that the rest of the file reads as silence.
+
 Keys while playing: **SPACE** (or P) pause, **RETURN** or fire stop, **V** change view.
 Every player has bars, scope and piano roll views. The fourth view is a tracker view for
-MOD, PT3 and S3M (the notes of each row as it plays) and the live AY registers for PSG.
+MOD, PT3, S3M and XM (the notes of each row as it plays), the live AY registers for PSG
+and the live SN76489 registers for VGM.
 The plug-ins remember the view you last chose.
 
 ### Sound output (O in the browser)

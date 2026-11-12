@@ -1,6 +1,6 @@
 ; ================================================================ random access to the music file
 D_NCLUS EQU 0x49F8
-; list the file's clusters (up to 128)
+; list the file's clusters (up to MAXCLT)
 mkclt:  LD HL,0xFFFF
         LD (cursec),HL
         LD HL,HO+3
@@ -23,7 +23,7 @@ mk_c:   LD DE,(clp)
         LD HL,nclt
         INC (HL)
         LD A,(HL)
-        CP 128
+        CP MAXCLT
         RET Z
         CALL D_NCLUS
         DI
