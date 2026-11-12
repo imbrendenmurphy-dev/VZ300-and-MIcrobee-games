@@ -77,12 +77,7 @@ draw_fighter:
         add hl,de
         push hl
         pop iy                  ; IY = directory entry
-        ld l,(ix+F_XL)
-        ld h,(ix+F_XH)
-        srl h
-        rr l
-        srl h
-        rr l                    ; HL = x in pixels
+        call scr_x              ; HL = x on the screen
         ld e,(iy+6)             ; anchor
         ld d,0
         ld a,(ix+F_FACE)
@@ -483,7 +478,8 @@ hline:
         pop af
         and 3
         ld d,$3F
-        ld e,$40
+hl_bits_op:
+        ld e,$40                ; colour pattern (self-modified: $40 yellow, 0 green)
         jr z,.px
 .sh:    rrc d
         rrc d
@@ -964,12 +960,8 @@ hud_pips:
         jr nz,.pl
         ret
 
-; floor_names: the floor is plain street now (names live in the HUD)
+; floor_names: the street needs nothing printed now (names live in the HUD)
 floor_names:
-        ld hl,backdrop+56*32
-        ld de,BG+56*32
-        ld bc,8*32
-        ldir
         ret
 
 ; char_name: A = character -> HL = name

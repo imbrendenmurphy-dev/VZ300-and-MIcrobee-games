@@ -318,3 +318,11 @@ Every build is also run in the project's test emulator first, but the emulator o
 - **Drawing:** each tick restores and copies only the columns used, and the copy runs in the frame interrupt. In the emulator, under half a percent of ticks during fighting run slow (a tick lasting three fields instead of two). The worst cases are both fighters doing their biggest moves at once.
 - **Two players:** both joysticks are supported, as the brief asked once joystick 2 is fixed. Joystick 2's directions are read from ports $29 and $23 together.
 - **Jumps:** lowered to peaks of 17 and 18 pixels, with Tin Roof rising 13, so the fighters stay below the HUD.
+
+## 12. v0.6: the Main Street stage and scrolling
+
+- **The arena:** rebuilt from the approved mock-up rules in `mockups/README.md`. The far side of the street is a row of false fronts: livery stable, saloon, store, bank, hotel and jail. A sunset sky sits above them, and the sun sets onto a mesa in the gap between two shacks. Behind the fighters' heads, bodies and arms there is only green and thin yellow line work.
+- **Scrolling:** the stage is 192 pixels, one and a half screens. The camera follows the midpoint of the fight, ignores drift of up to 12 pixels, and moves 2 pixels a tick. It locks while a message is on screen. The screen edges are the walls, so the fighters can never be further apart than the screen.
+- **Shadows:** a green ellipse under each fighter, narrower in the air, drawn as byte spans.
+- **Whip balance:** Whip Crack is now 9/2/14 ticks and 11 damage (was 7/2/9 and 14). Ankle Snare is 9/2/15 and 10 damage (was 8/2/11 and 12). The CPU throws the whip about half as often.
+- **Memory:** the variables moved to $FA00, the SD DOS work area, which is free because the game never calls the DOS. That left about 1.4K spare in the program.

@@ -51,9 +51,9 @@ moves_dusty:
         ; B jumping
         db 3,5,0, 11,  0,28,  0,14, MF_HIGH+MF_AIR,  8,5, FR_JUMP, FR_JUMP, FR_JB, 0, 0
         ; WHIP CRACK (A+B): hits only at the tip, 34-56 pixels out
-        db 7,2,9, 14, 34,56, 12,30, MF_SPEC,        10,5, FR_SP1_S, FR_SP1_W, FR_SP1_S, 0, 1
+        db 9,2,14, 11, 34,56, 12,30, MF_SPEC,        10,5, FR_SP1_S, FR_SP1_W, FR_SP1_S, 0, 1
         ; ANKLE SNARE (down + A+B): low whip, knocks down
-        db 8,2,11, 12, 30,50, 0, 6, MF_SPEC+MF_LOW+MF_KD, 0,5, FR_SP2_S, FR_SP2_W, FR_SP2_S, 0, $82
+        db 9,2,15, 10, 30,50, 0, 6, MF_SPEC+MF_LOW+MF_KD, 0,5, FR_SP2_S, FR_SP2_W, FR_SP2_S, 0, $82
 
 ; ---------------------------------------------------------------------------
 ; sounds: db fields, mode (0 rest 1 tone 2 noise), dw step ; 0 = end

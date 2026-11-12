@@ -4,12 +4,20 @@ A one-on-one fighting game for the Dick Smith VZ300, in the style of Street Figh
 
 VIBED BY BPM 2026
 
-![Title](screenshots/title.png) ![Fight](screenshots/fight3.png)
+![Title](screenshots/title.png) ![Fight](screenshots/fight1.png)
 
-## Status: v0.5 first playable (emulator-tested, not yet run on a real VZ300)
+## Status: v0.6 (emulator-tested, not yet run on a real VZ300)
+
+New in v0.6:
+
+- **Main Street arena:** rebuilt from the mock-up (see `mockups/`).
+- **Scrolling stage:** 192 pixels wide, with the camera following the fight in 2-pixel steps. The screen edges act as walls, and the starry top of the sky stays still.
+- **Shadows:** a small shadow under each fighter.
+- **Messages:** big messages now sit on a dark banner.
+- **Dusty's whip:** slower and weaker, and the CPU uses it less.
 
 - Flick Finnegan (fast, close-range) and Dusty Marlowe (slow, long reach), each with six normal attacks and two signature moves
-- One arena: Main Street at sunset
+- One arena: Main Street at sunset, a 1.5-screen scrolling stage
 - Best of three rounds, health bars, 60-second timer, K.O. and time-out
 - 1 player against the CPU (Easy / Normal / Hard), with either fighter on either side
 - 2 players: joystick 1 against joystick 2, with keyboard controls as well
@@ -56,11 +64,22 @@ Photos of both screens will show whether anything needs changing.
 ## How it works
 
 - **Display:** mode 1 (128×64, 4 colours). Every tick is composed in a shadow screen and copied to video RAM by the frame interrupt, starting at the top of field sync, ahead of the beam, so the picture never tears. Only the area the fighters and effects touched is restored and copied.
+- **Scrolling:** the stage is 48 bytes wide, rows 10-63. There is a second copy shifted by 2 pixels, built at start-up, so the camera can move in 2-pixel steps. Sprites are erased straight from the stage. On a tick when the camera moves, every scrolling row is redrawn and copied. The camera only moves when the fight drifts more than 12 pixels from the centre of the screen.
+- **Speed:** in ten minutes of CPU-against-CPU demo, 1.7% of ticks ran slow (three fields instead of two), almost all of them during Dusty's whip specials while the camera was moving.
 - **Timing:** logic runs at 25 ticks a second (two fields). The controls are read every field and button presses are latched, so a quick tap is never lost.
 - **Banked RAM:** each fighter has 22 frames, stored once and given a 2-pixel-shifted copy at start-up. Flick's frames live in SRAM bank 1 (port $37 = 3). Dusty's live in bank 0 (port $37 = 1), the bank the SD DOS normally occupies, with a few frames in main RAM. Mirroring and player 2's red colouring are done with lookup tables while drawing.
 - Because bank 0 is overwritten, the game doesn't call the SD DOS. Quitting restarts the machine through the SD loader, which reloads the DOS from the card.
 
-Memory map: `$4000-$67FF` banks 0/1 (frames), `$8000-$E399` program and data, `$E000` shadow screen, `$E800` clean backdrop, `$F000-$F7FF` draw tables, `$F800` interrupt table and stack. `$FA00` and up is never touched.
+Memory map:
+
+- `$4000-$67FF`: SRAM banks 0 and 1 (fighter frames)
+- `$8000-$E5BF`: program and data
+- `$D400`: the 2-pixel-shifted stage, built over spent start-up data
+- `$E000`: shadow screen
+- `$E800`: clean view (still sky and messages)
+- `$F000-$F7FF`: draw tables
+- `$F800`: interrupt table and stack
+- `$FA00`: variables. That area is the SD DOS's workspace, and the game never calls the DOS.
 
 ## Building
 
@@ -70,7 +89,9 @@ Needs only Python 3 with Pillow (used for the art):
 ./build.sh        # -> build/RUMBLE.VZ
 ```
 
-- `tools/art.py` draws the fighters (posed skeletons rendered as thick shapes) and the Main Street backdrop.
+- `tools/art.py` draws the fighters (posed skeletons rendered as thick shapes).
+- `tools/stage.py` draws the 192-pixel Main Street stage.
+- `tools/mockup.py` renders exact 128×64 mock-ups from it.
 - `tools/mktables.py` generates the sprite blitter and the lookup tables.
 - `emu/` is the test emulator (`gcc -O2 -o vzemu vzemu.c`). Its joystick 2 now has a second button.
 

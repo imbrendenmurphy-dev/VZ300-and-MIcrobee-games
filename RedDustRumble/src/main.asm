@@ -13,12 +13,14 @@
 ;                only read at start-up; Dusty's overflow frames are built over
 ;                Flick's masters afterwards)
 ;   $E000-$E7FF  SB  shadow screen: every frame is composed here
-;   $E800-$EFFF  BG  clean arena backdrop
+;   $D400-$DE1F  the stage shifted 2 pixels (built at start-up over
+;                Dusty's spent master frames)
+;   $E800-$EFFF  BG  clean view of the arena at the current camera
 ;   $F000-$F7FF  draw tables: 4 colour/mirror transforms, each followed by
 ;                a copy of the mask table
 ;   $F800-$F900  IM2 vector table (257 x $F9) -> jp isr at $F9F9
 ;   $F901-$F9F0  stack
-;   $FA00-$FFFF  untouched (BennVenn DOS RAM)
+;   $FA00-$FFFF  variables (the DOS work area: the DOS is never called)
 ;
 LATCH    equ $6800
 VRAM     equ $7000
@@ -30,6 +32,8 @@ XF_RED   equ $F4
 XF_FRED  equ $F6
 IM2TAB   equ $F800
 ISRJP    equ $F9F9
+STAGE2   equ $D400          ; 54 rows x 48 bytes, the stage shifted 2 pixels
+STAGE2END equ STAGE2+54*48
 STACKTOP equ $F9F0
 
 BANK_FLICK equ 3          ; port $37 value: SRAM bank 1
@@ -50,9 +54,11 @@ HUDROWS  equ 10
         include "front.asm"
         include "data.asm"
         include "gen/font.asm"
-        include "gen/backdrop.asm"
+        include "gen/stage.asm"
         include "vars.asm"
 ; master frames last: only needed at start-up
         include "gen/fighters.asm"
 LOAD_END:
+        assert STAGE2END <= SB
+        assert VARSEND <= $10000
         assert LOAD_END <= BG       ; the master frames may run into SB: they are used up before SB is

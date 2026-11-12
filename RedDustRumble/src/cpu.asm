@@ -410,6 +410,6 @@ habits_dusty:
         db 34
         db 40,A_SA, 40,A_CA, 30,A_SB, 30,A_CB, 50,A_BACK, 20,A_JBACK, 25,A_BLOCK, 0,A_WAIT
         db 58
-        db 80,A_SP1, 40,A_SP2, 30,A_SB, 30,A_WAIT, 30,A_BACK, 20,A_CBLOCK, 0,A_FWD
+        db 40,A_SP1, 24,A_SP2, 36,A_SB, 50,A_WAIT, 30,A_BACK, 26,A_CBLOCK, 0,A_FWD
         db 255
         db 120,A_FWD, 80,A_WAIT, 20,A_JFWD, 0,A_BACK

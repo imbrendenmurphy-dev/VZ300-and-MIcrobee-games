@@ -8,6 +8,13 @@ init:
         ld sp,STACKTOP
         ld a,$28                ; mode 1, CSS 0, speaker idle
         ld (LATCH),a
+        ld hl,VARS              ; clear the variables
+        ld de,VARS+1
+        ld bc,VARSEND-VARS-1
+        ld (hl),0
+        ldir
+        ld a,SB>>8
+        ld (txt_page),a
         ld hl,VRAM              ; blue screen while starting up
         ld de,VRAM+1
         ld bc,$7FF
@@ -56,11 +63,12 @@ init:
         or a
         sbc hl,de
         jp nc,no_sram           ; (can't happen: the build checks the sizes)
-        ; backdrop
-        ld hl,backdrop
-        ld de,BG
-        ld bc,2048
-        ldir
+        ; the stage shifted 2 pixels, for odd camera steps
+        call build_stage2
+        ld a,32
+        ld (cam),a
+        ld (src_cam),a
+        call bg_build
         ; IM2 vector table
         ld hl,IM2TAB
         ld de,IM2TAB+1
@@ -1085,3 +1093,133 @@ quit_to_sd:
         xor a
         out ($37),a
         jp 0
+
+; ---------------------------------------------------------------------------
+; THE SCROLLING STAGE: 192 pixels (48 bytes) wide, rows 10-63.  Rows below
+; SKYROWS (the starry sky) never scroll; they always come from camera 32.
+; ---------------------------------------------------------------------------
+; build_stage2: STAGE2 = stage0 shifted left by 2 pixels
+build_stage2:
+        ld hl,stage0
+        ld bc,STAGE2
+        ld a,54
+.r:     push af
+        ld d,STAGEW-1
+.b:     ld a,(hl)
+        inc hl
+        add a,a
+        add a,a
+        add a,a
+        add a,a
+        ld e,a
+        ld a,(hl)
+        rrca
+        rrca
+        rrca
+        rrca
+        and $0F
+        or e
+        ld (bc),a
+        inc bc
+        dec d
+        jr nz,.b
+        ld a,(hl)
+        inc hl
+        add a,a
+        add a,a
+        add a,a
+        add a,a
+        ld (bc),a
+        inc bc
+        pop af
+        dec a
+        jr nz,.r
+        ret
+
+; stage_src: C = row (10-63), B = camera (even, 0-64) -> HL = first byte
+stage_src:
+        ld a,c
+        sub 10
+        ld l,a
+        ld h,0
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        add hl,hl               ; row * 16
+        ld d,h
+        ld e,l
+        add hl,hl
+        add hl,de               ; row * 48
+        ld a,b
+        rrca
+        rrca
+        and $3F
+        ld e,a
+        ld d,0
+        add hl,de
+        ld de,stage0
+        bit 1,b
+        jr z,.s0
+        ld de,STAGE2
+.s0:    add hl,de
+        ret
+
+; stage_rows: A = first row, B = rows, DE = where they go (a 32-byte-wide
+; buffer, already at that row).  Rows below SKYROWS use camera 32, the rest
+; camera (src_cam).
+stage_rows:
+        cp SKYROWS
+        jr nc,.scroll
+        ; the still rows first (camera 32)
+        push af
+        push bc
+        push de
+        ld c,a
+        ld b,32
+        call stage_src
+        pop de
+        pop bc
+        pop af
+.s1:    push bc
+        call ldirow
+        ld bc,STAGEW-32
+        add hl,bc
+        pop bc
+        inc a
+        dec b
+        ret z
+        cp SKYROWS
+        jr c,.s1
+.scroll:
+        push af
+        push bc
+        push de
+        ld c,a
+        ld a,(src_cam)
+        ld b,a
+        call stage_src
+        pop de
+        pop bc
+        pop af
+.s2:    push bc
+        call ldirow
+        ld bc,STAGEW-32
+        add hl,bc
+        pop bc
+        djnz .s2
+        ret
+
+; bg_build: BG = the HUD band and the stage seen from camera (src_cam)
+bg_build:
+        ld hl,BG
+        ld de,BG+1
+        ld bc,HUDROWS*32-1
+        ld (hl),$AA
+        ldir
+        ld a,10
+        ld b,54
+        ld de,BG+10*32
+        call stage_rows
+        ld a,(src_cam)
+        ld (bg_cam),a
+        ret

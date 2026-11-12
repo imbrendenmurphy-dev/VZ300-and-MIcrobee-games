@@ -153,6 +153,12 @@ title_base:
         ld hl,s_red_dust
         ld c,1
         call big_text
+        ld a,$AA
+        ld b,0
+        ld c,10
+        ld d,32
+        ld e,16
+        call fill_rect          ; dark band behind the second line of the logo
         ld hl,s_rumble
         ld c,13
         call big_text
@@ -716,12 +722,20 @@ pause:
 
 ; round_setup: fighters to their marks, fresh health, arena redrawn
 round_setup:
+        ld a,32
+        ld (cam),a
+        ld (src_cam),a
+        xor a
+        ld (scrolled),a
+        ld (bg_stale),a
+        ld (cam_lock),a
+        call bg_build
         ld ix,p1
-        ld hl,36*4
+        ld hl,(32+36)*4
         xor a
         call .one
         ld ix,p2
-        ld hl,92*4
+        ld hl,(32+92)*4
         ld a,1
         call .one
         ld a,60
@@ -736,7 +750,6 @@ round_setup:
         call hide_msg
         ld a,2
         ld (tick_len),a
-        call floor_names
         call bg_to_sb
         call hud_all
         call band_full
@@ -1142,10 +1155,14 @@ ct_field:
         jr nz,.bit
         ret
 
-; clean_floor: the floor rows of BG back to plain sawdust
+; clean_floor: menus show the middle of the stage; fighters drawn at
+; screen positions (camera 0)
 clean_floor:
-        ld hl,backdrop+56*32
-        ld de,BG+56*32
-        ld bc,8*32
-        ldir
+        ld a,32
+        ld (src_cam),a
+        call bg_build
+        xor a
+        ld (cam),a
+        ld (scrolled),a
+        ld (bg_stale),a
         ret

@@ -111,8 +111,10 @@ MV_JB  equ 5
 MV_SP1 equ 6
 MV_SP2 equ 7
 
-XMIN    equ 8*4
-XMAX    equ 119*4
+SCRLO   equ 8           ; screen edges the fighters can't pass (pixels)
+SCRHI   equ 119
+CAMMAX  equ 64          ; camera range: 0..64 pixels
+CAMSLACK equ 12         ; the camera ignores the fight drifting this far
 MINSEP  equ 13*4
 SPECWIN equ 3       ; ticks allowed between A and B for a signature move
 
@@ -178,27 +180,103 @@ move_x:
         ld l,(ix+F_XL)
         ld h,(ix+F_XH)
         add hl,de
-; set_x: HL = new x, clamped
+; set_x: HL = new x, kept between the screen edges (camera + 8 .. + 119)
 set_x:
+        push hl
+        ld a,(cam)
+        ld l,a
+        ld h,0
+        add hl,hl
+        add hl,hl
+        ld de,SCRLO*4
+        add hl,de
+        ex de,hl                ; DE = left edge
+        pop hl
         bit 7,h
         jr nz,.lo
         push hl
-        ld de,XMIN
         or a
         sbc hl,de
         pop hl
         jr nc,.ok1
-.lo:    ld hl,XMIN
+.lo:    ex de,hl
         jr .st
 .ok1:   push hl
-        ld de,XMAX+1
+        ex de,hl
+        ld de,(SCRHI-SCRLO)*4
+        add hl,de
+        ex de,hl                ; DE = right edge
+        pop hl
+        push hl
         or a
         sbc hl,de
         pop hl
         jr c,.st
-        ld hl,XMAX
+        ex de,hl
 .st:    ld (ix+F_XL),l
         ld (ix+F_XH),h
+        ret
+
+; scr_x: IX = fighter -> HL = its x on the screen in pixels (signed)
+scr_x:
+        ld l,(ix+F_XL)
+        ld h,(ix+F_XH)
+        srl h
+        rr l
+        srl h
+        rr l
+        ld a,(cam)
+        ld e,a
+        ld d,0
+        or a
+        sbc hl,de
+        ret
+
+; cam_update: the camera follows the fighters' midpoint, 2 pixels a tick
+cam_update:
+        ld a,(cam_lock)
+        or a
+        ret nz
+        ld hl,(p1+F_XL)
+        ld de,(p2+F_XL)
+        add hl,de
+        srl h
+        rr l
+        srl h
+        rr l
+        srl h
+        rr l                    ; midpoint in pixels
+        ld de,64
+        or a
+        sbc hl,de
+        jr nc,.p
+        ld hl,0
+.p:     ld a,h
+        or a
+        jr nz,.max
+        ld a,l
+        cp CAMMAX+1
+        jr c,.ok
+.max:   ld a,CAMMAX
+.ok:    and $FE
+        ld b,a                  ; where the camera would centre the fight
+        ; dead zone: only move when that is more than CAMSLACK away
+        ld a,(cam)
+        sub b
+        jr nc,.pos
+        neg
+.pos:   cp CAMSLACK+1
+        ret c
+        ld a,(cam)
+        cp b
+        ret z
+        jr c,.up
+        sub 2
+        jr .set
+.up:    add a,2
+.set:   ld (cam),a
+        ld a,1
+        ld (scrolled),a
         ret
 
 ; get_rel: held directions relative to facing -> (ix+F_REL)
@@ -1086,14 +1164,9 @@ away_held:
 .left:  and 8
         ret
 
-; x64: A = (ix) x in pixels + 64
+; x64: A = (ix) x on the screen + 64 (hit boxes are worked out on screen)
 x64:
-        ld l,(ix+F_XL)
-        ld h,(ix+F_XH)
-        srl h
-        rr l
-        srl h
-        rr l
+        call scr_x
         ld a,l
         add a,64
         ret
@@ -1300,25 +1373,54 @@ game_logic:
         ld ix,p2
         ld iy,p1
         call check_hit
-        jp separate
+        call separate
+        jp cam_update
 
 ; ---------------------------------------------------------------------------
 ; render_fight: compose the arena for this tick
 ; ---------------------------------------------------------------------------
 render_fight:
-        ; put back the backdrop where things were drawn last tick
+        ; put back the backdrop where things were drawn last tick.  If the
+        ; camera moved, the scrolling rows all come straight from the stage
+        ; (and BG is rebuilt on the next still tick).
         ld a,(band_top)
         ld (rc_top),a
         ld a,BANDBOT
         ld (rc_bot),a
-        ld a,(band_l)
+        ld a,(scrolled)
+        or a
+        jr z,.still
+        ld a,SKYROWS
+        ld (rc_bot),a
+.still: ld a,(band_l)
         ld (rc_l),a
         ld a,(band_r)
         ld (rc_r),a
-        ld hl,BG
-        ld de,SB
-        call rect_copy
+        call rect_restore
         ld a,BANDBOT
+        ld (copy_bot),a
+        ld a,(scrolled)
+        or a
+        jr z,.ns0
+        xor a
+        ld (scrolled),a
+        inc a
+        ld (bg_stale),a
+        ld a,(cam)
+        ld (src_cam),a
+        ld a,SKYROWS
+        ld b,64-SKYROWS
+        ld de,SB+SKYROWS*32
+        call stage_rows
+        ld a,64
+        ld (copy_bot),a
+        ld a,SKYROWS
+        ld (band_top),a
+        xor a
+        ld (band_l),a
+        ld a,32
+        ld (band_r),a
+.ns0:   ld a,BANDBOT
         ld (cur_top),a
         ld a,32
         ld (cur_l),a
@@ -1326,6 +1428,11 @@ render_fight:
         ld (cur_r),a
         ld a,ARENATOP
         ld (clip_top),a
+        ; shadows first, under everything
+        ld ix,p1
+        call draw_shadow
+        ld ix,p2
+        call draw_shadow
         ; the one attacking is drawn last, so the strike is on top
         ld ix,p1
         ld iy,p2
@@ -1372,8 +1479,6 @@ render_fight:
         jr nc,$+4
         ld a,ARENATOP
         ld (copy_top),a
-        ld a,BANDBOT
-        ld (copy_bot),a
         ld a,(cur_l)
         ld b,a
         ld a,(band_l)
@@ -1460,12 +1565,9 @@ draw_one:
         cpl
         ld d,a
         inc de
-.r:     ld l,(ix+F_XL)
-        ld h,(ix+F_XH)
-        srl h
-        rr l
-        srl h
-        rr l
+.r:     push de
+        call scr_x
+        pop de
         add hl,de
         ld (pt_x),hl
         ld a,GROUND
@@ -1605,15 +1707,39 @@ show_msg:
         push hl
         push de
         push af
+        ld a,1
+        ld (cam_lock),a
+        call bg_fresh
         call hide_msg
+        ld a,1
+        ld (cam_lock),a
         pop af
         ld (msg_row),a
         pop de
         pop hl
         ld (msg_big),hl
         ld (msg_small),de
+        ; a dark banner across the arena behind the words
+        ld a,(msg_row)
+        sub 2
+        ld c,a
+        ld b,0
+        call sb_addr
+        ld de,BG-SB
+        add hl,de
+        ld d,h
+        ld e,l
+        inc de
+        ld (hl),$AA
+        ld bc,15*32-1
+        ld a,(msg_small+1)
+        or a
+        jr z,$+5
+        ld bc,21*32-1
+        ldir
         ld a,BG>>8
         ld (txt_page),a
+        ld hl,(msg_big)
         ld a,h
         or l
         jr z,.ns
@@ -1633,8 +1759,10 @@ show_msg:
         ld (txt_page),a
         jp band_full
 
-; hide_msg: put the backdrop back where the message was
+; hide_msg: put the stage back where the message was; free the camera
 hide_msg:
+        xor a
+        ld (cam_lock),a
         ld hl,(msg_big)
         ld a,h
         or l
@@ -1642,27 +1770,39 @@ hide_msg:
         or h
         or l
         ret z
+        ld a,(bg_cam)
+        ld (src_cam),a
         ld a,(msg_row)
-        ld c,a
-        ld b,0
-        call sb_addr
-        ld de,backdrop-SB
-        add hl,de               ; source in the backdrop data
-        push hl
-        ld a,(msg_row)
+        sub 2
         ld c,a
         ld b,0
         call sb_addr
         ld de,BG-SB
         add hl,de
         ex de,hl
-        pop hl
-        ld bc,19*32
-        ldir
+        ld a,(msg_row)
+        sub 2
+        ld b,21
+        call stage_rows
         ld hl,0
         ld (msg_big),hl
         ld (msg_small),hl
         jp band_full
+
+; bg_fresh: make BG match the camera (after it has been scrolling)
+bg_fresh:
+        ld a,(bg_stale)
+        or a
+        ret z
+        xor a
+        ld (bg_stale),a
+        ld a,(cam)
+        ld (src_cam),a
+        ld (bg_cam),a
+        ld a,SKYROWS
+        ld b,64-SKYROWS
+        ld de,BG+SKYROWS*32
+        jp stage_rows
 
 ; band_full: next tick restores and copies the whole arena
 band_full:
@@ -1672,4 +1812,251 @@ band_full:
         ld (band_l),a
         ld a,32
         ld (band_r),a
+        ret
+
+; draw_shadow: IX = fighter.  A small green ellipse on the street, narrower
+; the higher the fighter is off the ground.  Drawn as spans: whole bytes in
+; the middle, masked bytes at the ends.
+draw_shadow:
+        ld a,(ix+F_Y)
+        srl a
+        srl a
+        cp 6
+        jr c,$+4
+        ld a,6
+        neg
+        add a,9
+        ld (sh_w),a             ; half width
+        call scr_x
+        ld (sh_x),hl
+        ld a,GROUND+1
+        ld c,2
+        call .row
+        ld a,GROUND+2
+        ld c,0
+        call .row
+        ld a,GROUND+3
+        ld c,3
+.row:   ld (pt_row),a
+        ld a,(sh_w)
+        sub c
+        ret c
+        ret z
+        ld c,a                  ; half width for this row
+        ld hl,(sh_x)
+        ld e,c
+        ld d,0
+        or a
+        sbc hl,de               ; left end
+        bit 7,h
+        jr z,$+5
+        ld hl,0
+        ld a,h
+        or a
+        ret nz
+        ld a,l
+        cp 128
+        ret nc
+        ld b,a                  ; x0
+        ld a,c
+        add a,a
+        add a,b                 ; x1 = x0 + 2w
+        jr c,.cl
+        cp 128
+        jr c,.ok
+.cl:    ld a,127
+.ok:    ld c,a                  ; x1 (inclusive)
+        ; widen this tick's area
+        ld a,(pt_row)
+        ld hl,cur_top
+        cp (hl)
+        jr nc,$+3
+        ld (hl),a
+        ld a,b
+        rrca
+        rrca
+        and $1F
+        ld hl,cur_l
+        cp (hl)
+        jr nc,$+3
+        ld (hl),a
+        ld a,c
+        rrca
+        rrca
+        and $1F
+        inc a
+        inc hl
+        cp (hl)
+        jr c,$+3
+        ld (hl),a
+        ; first and last bytes
+        push bc
+        ld a,b
+        rrca
+        rrca
+        and $1F
+        ld b,a
+        ld a,(pt_row)
+        ld c,a
+        call sb_addr            ; HL = first byte
+        pop bc
+        ld a,b
+        and 3
+        ld e,a
+        ld d,0
+        push hl
+        ld hl,sh_lmask
+        add hl,de
+        ld e,(hl)               ; keep-mask for the first byte
+        pop hl
+        ld a,b
+        rrca
+        rrca
+        and $1F
+        ld d,a                  ; first column
+        ld a,c
+        rrca
+        rrca
+        and $1F
+        sub d                   ; columns after the first
+        jr nz,.multi
+        ; one byte: both masks together
+        ld a,c
+        and 3
+        push hl
+        ld hl,sh_rmask
+        add a,l
+        ld l,a
+        jr nc,$+3
+        inc h
+        ld a,(hl)
+        or e
+        pop hl
+        and (hl)
+        ld (hl),a
+        ret
+.multi: ld d,a
+        ld a,(hl)
+        and e
+        ld (hl),a
+        inc hl
+        dec d
+        jr z,.last
+.mid:   ld (hl),0
+        inc hl
+        dec d
+        jr nz,.mid
+.last:  ld a,c
+        and 3
+        ld e,a
+        ld d,0
+        push hl
+        ld hl,sh_rmask
+        add hl,de
+        ld a,(hl)
+        pop hl
+        and (hl)
+        ld (hl),a
+        ret
+
+; keep-masks: first byte starting at pixel 0-3, last byte ending at pixel 0-3
+sh_lmask: db $00,$C0,$F0,$FC
+sh_rmask: db $3F,$0F,$03,$00
+
+; rect_restore: put the clean picture back in SB over rows rc_top..rc_bot-1,
+; byte columns rc_l..rc_r-1.  The still sky (and everything, while a message
+; is up and the camera is locked) comes from BG; the scrolling rows come
+; straight from the stage, so a moving camera never needs BG rebuilt.
+rect_restore:
+        ld a,(cam_lock)
+        or a
+        jr z,.split
+        ld hl,BG
+        ld de,SB
+        jp rect_copy
+.split: ld a,(rc_top)
+        cp SKYROWS
+        jr nc,.stage
+        ; still rows from BG
+        ld a,(rc_bot)
+        push af
+        cp SKYROWS
+        jr c,$+4
+        ld a,SKYROWS
+        ld (rc_bot),a
+        ld a,(rc_l)
+        push af
+        ld a,(rc_r)
+        push af
+        ld hl,BG
+        ld de,SB
+        call rect_copy
+        pop af
+        ld (rc_r),a
+        pop af
+        ld (rc_l),a
+        pop af
+        ld (rc_bot),a
+        ld a,SKYROWS
+        ld (rc_top),a
+.stage: ld a,(rc_bot)
+        ld b,a
+        ld a,(rc_top)
+        ld c,a
+        ld a,b
+        sub c
+        ret z
+        ret c
+        ld (rr_rows),a
+        ld a,(rc_r)
+        ld b,a
+        ld a,(rc_l)
+        ld c,a
+        ld a,b
+        sub c
+        ret z
+        ret c
+        add a,a
+        ld e,a
+        ld d,0
+        ld hl,ldirow_end
+        or a
+        sbc hl,de
+        ld (.call+1),hl
+        ; source: the stage at the camera, plus the left column
+        ld a,(rc_top)
+        ld c,a
+        ld a,(cam)
+        ld b,a
+        call stage_src
+        ld a,(rc_l)
+        ld e,a
+        ld d,0
+        add hl,de
+        push hl
+        ld a,(rc_l)
+        ld b,a
+        ld a,(rc_top)
+        ld c,a
+        call sb_addr
+        ex de,hl                ; DE = SB destination
+        pop hl
+        ld a,(rr_rows)
+        ld b,a
+.row:   push hl
+        push de
+        push bc
+.call:  call ldirow_end
+        pop bc
+        pop de
+        pop hl
+        push bc
+        ld bc,STAGEW
+        add hl,bc
+        ex de,hl
+        ld bc,32
+        add hl,bc
+        ex de,hl
+        pop bc
+        djnz .row
         ret

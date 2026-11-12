@@ -1,4 +1,4 @@
-# Main Street arena mock-up (v2)
+# Main Street arena mock-up (v2, as built in v0.6)
 
 Real 128x64 Mode 1 pictures, using exactly the four MC6847 CSS0 colours: green #07FF00, yellow #FFFF00, blue #3B08FF, red #CC003B.
 
@@ -10,13 +10,15 @@ They are made by `tools/mockup.py`, which draws the backdrop and stamps on the H
 | File | Shows |
 |---|---|
 | `mockup_x6.png` | Squaring off |
-| `mockup_air_x6.png` | Flick's jump kick over Dusty's crouching block |
-| `mockup_ko_x6.png` | A knock-down |
+| `mockup_left_x6.png` | The camera at the left end of the stage (stable and saloon) |
+| `mockup_right_x6.png` | The camera at the right end (hotel and jail) |
+| `stage_x6.png` | The whole 192-pixel stage |
 | `mockup_bg_x6.png` | The backdrop alone |
 
 ## Composition rules
 
 - The fighters are blue or red with yellow detail. Green is the only colour that contrasts with all three, so behind their bodies and arms (rows 28-46) the town fronts are green, with yellow posts, trim and rails. Blue appears there only in small windows and doorways.
+- Rows 28-46 (the fighters' heads to their waists) have no dark windows, signs or awnings. Windows and doors there are yellow outlines.
 - Hat height (rows 17-26) is a yellow sunset glow, so both Dusty's hat and Flick's jumps stay readable. The sun is red on the glow. The mesa is green with a red sunlit rim, so it works behind either fighter.
 - Big masses of blue and red sit above head height (the dusk sky, the saloon's false front) or at the edges (the barrel, the trough).
 - Depth comes from layers, back to front: dusk sky, sun and mesa, windmill, the skyline of false fronts (saloon, store, bank, hotel), the boardwalk, the street, and props in the corners.
