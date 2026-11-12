@@ -88,3 +88,17 @@ SCRATCH     EQU $E000       ; 1K scratch: bounce buffer, stage expansion
 BOUNCE      EQU $E000
 VARS        EQU $E400
 STACK       EQU $EFFE
+
+; ---- the stage overlay: each stage's enemy types, waves and boss, copied
+; here from its B block when the stage loads (tools/build.py, src/stageN.asm)
+OVL         EQU $C000
+OVL_END     EQU $D000
+ovl_wave        EQU OVL+0       ; A = wave type, C = y
+ovl_boss_start  EQU OVL+3
+ovl_boss_update EQU OVL+6
+ovl_shot_boss   EQU OVL+9       ; shot IX against the boss
+ovl_boss_area   EQU OVL+12      ; E = blast damage
+ovl_boss_touch  EQU OVL+15      ; the pilot's box (hx0..hy1) against the boss
+ovl_boss_objs   EQU OVL+18      ; beams etc., drawn with the small objects
+ovl_on_kill     EQU OVL+21      ; IX = enemy shot down -> NZ if handled
+ETYPE_TAB       EQU OVL+32

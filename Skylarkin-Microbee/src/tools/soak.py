@@ -12,6 +12,7 @@ for pilot in range(4):
     rnd = random.Random(pilot)
     pp = boot(); to_game(pp, pilot=pilot); S = pp.S
     end = S['spr_tab']
+    ok_pc = lambda pc: 0x8000 <= pc < end or S['OVL'] <= pc < S['OVL_END']
     for t in range(N // 4):
         if t % 3:
             step(pp, 4, ['X'] if rnd.random() < 0.1 else ())
@@ -23,7 +24,7 @@ for pilot in range(4):
                 pp.poke(S[k], v)
             pp.poke(S['lives'], 3)
         pc, sp = pp.cpu.pc, pp.cpu.sp
-        if not (0x8000 <= pc < end) or not (0xD000 <= sp <= 0xEFFE or pc < S['cell_alloc']):
+        if not ok_pc(pc) or not (0xD000 <= sp <= 0xEFFE or pc < S['cell_alloc']):
             print('pilot', pilot, 'FAIL at field', t * 4, hex(pc), hex(sp)); ok = False; break
     print('pilot', pilot, 'scroll', peekw(pp, 'scrollx'), 'gstate', peek(pp, 'gstate'), 'stage', peek(pp, 'stage'), 'boss_hp', peekw(pp, 'boss_hp'))
 print('OK' if ok else 'FAILED')

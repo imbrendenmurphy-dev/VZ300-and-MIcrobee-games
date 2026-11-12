@@ -29,30 +29,6 @@ EF_SHIELD   equ 4
 
 ; enemy types: dw handler, db first frame, db frames, db ink, db hp, db w, db h, dw score/10 (BCD)
 ET_SIZE     equ 10
-E_PLANE     equ 1
-E_SHEET     equ 2
-E_STAPLER   equ 3
-E_MUG       equ 4
-E_CHAIR     equ 5
-E_PRINTER   equ 6
-E_BALLOON   equ 7
-E_BUBBLE    equ 8
-E_SWARM     equ 9
-E_CRUMPLE   equ 10
-E_RPLANE    equ 11
-etype_tab:
-        dw 0 : db 0,1,0,1,8,8 : dw 0
-        dw en_line    : db SF_PLANE0,2,WHITE,1,12,6 : dw $0010
-        dw en_sine    : db SF_SHEET0,2,WHITE,1,8,7 : dw $0010
-        dw en_hover   : db SF_STAPLER0,2,BRED,3,12,8 : dw $0030
-        dw en_mug     : db SF_MUG0,2,BROWN,2,10,10 : dw $0020
-        dw en_chair   : db SF_CHAIR0,2,GREY,4,14,12 : dw $0030
-        dw en_turret  : db SF_PRINTER0,2,WHITE,6,14,8 : dw $0050
-        dw en_balloon : db SF_BALLOON,1,BMAGENTA,1,10,9 : dw $0010
-        dw en_bubble  : db SF_BUBBLE,1,BCYAN,1,6,5 : dw $0005
-        dw en_swarm   : db SF_SHEET0,2,WHITE,1,8,7 : dw $0001
-        dw en_crumple : db SF_CRUMPLE,1,WHITE,99,5,5 : dw $0000
-        dw en_line    : db SF_PLANE0,2,BRED,2,12,6 : dw $0020
 
 ; IY -> the type entry of enemy IX
 etype_iy:
@@ -64,7 +40,7 @@ etype_iy:
         add a,a                 ; *10
         ld e,a
         ld d,0
-        ld iy,etype_tab
+        ld iy,ETYPE_TAB
         add iy,de
         ret
 
@@ -119,27 +95,6 @@ en_new: push af
 
 ; ---------------------------------------------------------------------
 ; waves
-wave_start:
-        ld (wv_y),a
-        ld a,c
-        ld (wv_yv),a
-        ld a,(wv_y)
-        add a,a
-        ld l,a
-        ld h,0
-        ld de,wave_jt
-        add hl,de
-        ld a,(hl)
-        inc hl
-        ld h,(hl)
-        ld l,a
-        xor a
-        ld (cur_grp),a
-        jp (hl)
-wave_jt:
-        dw wv_vplanes,wv_snake,wv_staplers,wv_mugs,wv_chairs,wv_printer,wv_balloon,wv_bubbles,wv_carrier
-
-; a formation: (cur_grp) = a fresh group of B enemies
 new_group:
         ld hl,groups
         ld c,1
@@ -160,271 +115,6 @@ new_group:
         ld (hl),0
         ld a,c
         ld (cur_grp),a
-        ret
-
-wv_vplanes:
-        ld b,5
-        call new_group
-        ld hl,vform
-        ld b,5
-.l:     push bc
-        ld e,(hl)
-        inc hl
-        ld a,(wv_yv)
-        add a,32
-        add a,(hl)
-        inc hl
-        push hl
-        ld c,a
-        ld l,e
-        ld h,0
-        ld de,328
-        add hl,de
-        ld a,E_PLANE
-        call en_new
-        jr c,.n
-        ld (ix+E_DXL),$80
-        ld (ix+E_DXH),$FD       ; -2.5
-        ld a,(ix+E_Y)
-        ld (ix+E_P1),a
-.n:     pop hl
-        pop bc
-        djnz .l
-        ret
-vform:  db 0,0, 14,-12, 14,12, 28,-24, 28,24
-
-wv_snake:
-        ld b,6
-        call new_group
-        ld b,6
-.l:     push bc
-        ld a,b
-        add a,a
-        add a,a
-        add a,a
-        add a,a                 ; 16 px apart
-        ld l,a
-        ld h,0
-        ld de,312
-        add hl,de
-        ld a,(wv_yv)
-        add a,32
-        ld c,a
-        ld a,E_SHEET
-        call en_new
-        jr c,.n
-        ld (ix+E_DXL),$00
-        ld (ix+E_DXH),$FE       ; -2
-        ld a,(ix+E_Y)
-        ld (ix+E_P1),a          ; the middle line
-        pop bc
-        push bc
-        ld a,b
-        add a,a
-        add a,a
-        add a,a
-        ld (ix+E_T),a           ; phase
-.n:     pop bc
-        djnz .l
-        ret
-
-wv_staplers:
-        ld b,3
-.l:     push bc
-        ld a,b
-        dec a
-        ld c,a
-        add a,a
-        add a,c                 ; 0, 3, 6
-        add a,a
-        add a,a
-        add a,a                 ; *8: 0, 24, 48
-        ld c,a
-        ld a,(wv_yv)
-        cp 100
-        jr c,.y
-        ld a,100
-.y:     add a,32
-        add a,c
-        ld c,a
-        ld a,b
-        add a,a
-        add a,a
-        add a,a
-        add a,a
-        ld l,a
-        ld h,0
-        ld de,320
-        add hl,de
-        ld a,E_STAPLER
-        call en_new
-        jr c,.n
-        pop bc
-        push bc
-        ld a,b
-        add a,a
-        add a,a
-        add a,a
-        add a,a
-        add a,196               ; where it stops
-        ld (ix+E_P1),a
-        ld (ix+E_FIRE),20
-.n:     pop bc
-        djnz .l
-        ret
-
-wv_mugs:
-        ld b,3
-.l:     push bc
-        ld a,b
-        add a,a
-        add a,a
-        add a,a
-        add a,a
-        add a,a                 ; 32 px apart
-        ld l,a
-        ld h,0
-        ld de,300
-        add hl,de
-        ld a,b
-        add a,a
-        add a,a
-        add a,a
-        ld c,a
-        ld a,(wv_yv)
-        cp 90
-        jr c,.y
-        ld a,90
-.y:     add a,32
-        add a,c
-        ld c,a
-        ld a,E_MUG
-        call en_new
-        jr c,.n
-        ld (ix+E_DXL),$C0
-        ld (ix+E_DXH),$FE       ; -1.25
-        ld a,(ix+E_Y)
-        ld (ix+E_P1),a
-        pop bc
-        push bc
-        ld a,b
-        add a,a
-        add a,a
-        add a,a
-        add a,a
-        ld (ix+E_FIRE),a
-.n:     pop bc
-        djnz .l
-        ret
-
-wv_chairs:
-        ld b,2
-.l:     push bc
-        ld a,b
-        dec a
-        add a,a
-        add a,a
-        add a,a
-        add a,a
-        add a,a
-        add a,a                 ; 0 or 64
-        ld l,a
-        ld h,0
-        ld de,330
-        add hl,de
-        ld c,32+160
-        ld a,E_CHAIR
-        call en_new
-        jr c,.n
-        ld (ix+E_DXH),$FC       ; -4
-.n:     pop bc
-        djnz .l
-        ld a,(difficulty)
-        or a
-        ret z
-        ; one sneaks up from behind
-        ld hl,-16
-        ld c,32+160
-        ld a,E_CHAIR
-        call en_new
-        ret c
-        ld (ix+E_DXH),$02
-        ld (ix+E_P2),1
-        ret
-
-wv_printer:
-        ld hl,332
-        ld c,32+150
-        ld a,E_PRINTER
-        call en_new
-        ret c
-        ld (ix+E_FLAGS),EF_CAPS
-        ld (ix+E_FIRE),40
-        ret
-
-wv_balloon:
-        ld hl,328
-        ld a,(wv_yv)
-        add a,32+40
-        cp 32+150
-        jr c,.y
-        ld a,32+150
-.y:     ld c,a
-        ld a,E_BALLOON
-        call en_new
-        ret c
-        ld (ix+E_FLAGS),EF_BELL
-        ld (ix+E_DXL),$00
-        ld (ix+E_DXH),$FF       ; -1
-        ld (ix+E_DYL),$B0
-        ld (ix+E_DYH),$FF       ; floats up
-        ret
-
-wv_bubbles:
-        ld b,4
-.l:     push bc
-        ld a,b
-        add a,a
-        add a,a
-        add a,a
-        add a,a
-        add a,a
-        ld l,a
-        ld h,0
-        ld de,220
-        add hl,de
-        ld c,32+170
-        ld a,E_BUBBLE
-        call en_new
-        jr c,.n
-        ld (ix+E_DXL),$80
-        ld (ix+E_DXH),$FE
-        pop bc
-        push bc
-        ld a,b
-        add a,a
-        add a,a
-        add a,a
-        add a,a
-        neg
-        ld (ix+E_DYL),a
-        ld (ix+E_DYH),$FC       ; jumps up
-.n:     pop bc
-        djnz .l
-        ret
-
-wv_carrier:
-        ld hl,328
-        ld a,(wv_yv)
-        add a,32
-        ld c,a
-        ld a,E_RPLANE
-        call en_new
-        ret c
-        ld (ix+E_FLAGS),EF_CAPS
-        ld (ix+E_DXH),$FD       ; -3
-        ld a,(ix+E_Y)
-        ld (ix+E_P1),a
         ret
 
 ; ---------------------------------------------------------------------
@@ -700,42 +390,6 @@ en_bubble:                      ; bounces along the floor
         ld (ix+E_Y),a
         ret
 
-en_swarm:                       ; the copier's paper: flutters at the pilot
-        ld a,(ix+E_T)
-        and 7
-        jr nz,.m
-        ld a,(py)
-        add a,4
-        cp (ix+E_Y)
-        ld a,$60
-        jr nc,.d
-        ld a,$A0
-.d:     ld (ix+E_DYL),a
-        add a,a
-        sbc a,a
-        ld (ix+E_DYH),a
-.m:     jp en_move
-
-en_crumple:                     ; screwed-up paper flying back into the copier
-        ld (ix+E_DXL),0
-        ld (ix+E_DXH),6
-        call en_move
-        ld a,(boss_on)
-        or a
-        ret z
-        ld l,(ix+E_XL)
-        ld h,(ix+E_XH)
-        ld de,(boss_x)
-        or a
-        sbc hl,de
-        ret c
-        ld (ix+E_TYPE),0        ; swallowed
-        ld hl,boss_jam
-        inc (hl)
-        ld a,SFX_GULP
-        jp play_sfx
-
-; en_aim: an aimed pellet from enemy IX
 en_aim: ld l,(ix+E_XL)
         ld h,(ix+E_XH)
         ld a,(ix+E_Y)
@@ -1486,15 +1140,8 @@ en_damage:
         ld a,SFX_TINK
         jp play_sfx
 en_kill:
-        ld a,(ix+E_TYPE)
-        cp E_SWARM
-        jr nz,.n
-        ; a sheet of copier paper: screwed up, it flies back at the copier
-        ld (ix+E_TYPE),E_CRUMPLE
-        ld (ix+E_HP),99
-        ld (ix+E_FLAGS),EF_SHIELD
-        ld a,SFX_CRUMPLE
-        jp play_sfx
+        call ovl_on_kill        ; the stage's own deaths (NZ: it took over)
+        ret nz
 .n:     push iy
         call etype_iy
         ld e,(iy+8)
@@ -1594,7 +1241,7 @@ area_damage:
         ; and the boss
         ld a,(ad_d)
         ld e,a
-        jp boss_area
+        jp ovl_boss_area
 abs_hl: bit 7,h
         ret z
         ld a,l
@@ -1617,8 +1264,8 @@ oi_shout:
         ld a,(ix+E_TYPE)
         or a
         jr z,.n
-        cp E_CRUMPLE
-        jr z,.n
+        bit 2,(ix+E_FLAGS)
+        jr nz,.n
         call en_vis
         jr c,.n
         ld e,12
@@ -1645,7 +1292,7 @@ oi_shout:
 .bn:    add hl,de
         djnz .b
         ld e,10
-        call boss_area
+        call ovl_boss_area
         ld a,SFX_OI
         jp play_sfx
 
@@ -1659,8 +1306,8 @@ nearest_enemy:
 .l:     ld a,(ix+E_TYPE)
         or a
         jr z,.n
-        cp E_CRUMPLE
-        jr z,.n
+        bit 2,(ix+E_FLAGS)
+        jr nz,.n
         ld a,(ix+E_XH)
         or a
         jr nz,.n
@@ -1852,7 +1499,7 @@ shots_vs:
         ret z
         ld a,(boss_on)
         or a
-        call nz,shot_boss
+        call nz,ovl_shot_boss
         ld a,(ix+0)
         or a
         ret z
@@ -2069,9 +1716,8 @@ player_vs:
         jr z,.ne
         call box_hits
         jr nc,.ne
-        ld a,(ix+E_TYPE)
-        cp E_CRUMPLE
-        jr z,.ne
+        bit 2,(ix+E_FLAGS)      ; harmless (e.g. screwed-up paper)
+        jr nz,.ne
         push hl
         ld a,(bellpow)
         cp BP_GREEN
@@ -2131,7 +1777,7 @@ player_vs:
 .nb:    ld de,BU_SIZE
         add ix,de
         djnz .b
-        call boss_touch
+        call ovl_boss_touch
         ; capsules and bells: the whole pilot picks them up
         ld hl,(px)
         ld de,16
@@ -2294,9 +1940,8 @@ bell_bonk:
         call box_hits
         pop hl
         jr nc,.n
-        ld a,(ix+E_TYPE)
-        cp E_CRUMPLE
-        jr z,.n
+        bit 2,(ix+E_FLAGS)
+        jr nz,.n
         ld a,(ix+E_FLASH)
         or a
         jr nz,.n

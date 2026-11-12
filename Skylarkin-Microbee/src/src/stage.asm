@@ -20,6 +20,9 @@ H_BOSSB     equ 37
 H_BOSSA     equ 38
 H_SPRT      equ 40
 H_BPAL      equ 42
+H_OVLB      equ 58
+H_OVLA      equ 59
+H_OVLN      equ 61
 
 ; load_stage: A = stage (1..5)
 load_stage:
@@ -77,6 +80,13 @@ load_stage:
         ld hl,(stg_hdr+H_SPRT)
         ld de,spr_tab+192*3
         ld bc,64*3
+        ldir
+        ; the stage's code overlay
+        ld a,(stg_hdr+H_OVLB)
+        call map_blk
+        ld hl,(stg_hdr+H_OVLA)
+        ld de,OVL
+        ld bc,(stg_hdr+H_OVLN)
         ldir
         ; the boss header and its variant table
         ld a,(stg_hdr+H_BOSSB)

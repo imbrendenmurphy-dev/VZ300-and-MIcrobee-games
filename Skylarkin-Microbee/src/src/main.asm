@@ -29,7 +29,7 @@ entry:  di
 spr_tab:
         INCLUDE "sprtab.inc"
 code_end:
-        ASSERT code_end <= CELLMAP
+        ASSERT code_end <= OVL
         SAVEBIN "../build/SKY.BIN",$8000,code_end-$8000
         DISPLAY "code end: ",code_end
 

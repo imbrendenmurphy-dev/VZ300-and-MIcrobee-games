@@ -7,6 +7,7 @@ from gfx import (BLACK, RED, GREEN, BROWN, BLUE, MAGENTA, CYAN, GREY, DGREY, BRE
                  BMAGENTA, BCYAN, WHITE)
 
 NAME = 'OPEN PLAN'
+WAVE_TYPES = ['VPLANES', 'SNAKE', 'STAPLERS', 'MUGS', 'CHAIRS', 'PRINTER', 'BALLOON', 'BUBBLES', 'CARRIER']
 MW = 600                    # map columns (8 px); the scroll stops at MW - 40
 NEAR_ROWS = [0, 1, 17, 18, 19, 20, 21, 22]
 FAR_ROWS = [4, 5]

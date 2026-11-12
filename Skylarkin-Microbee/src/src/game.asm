@@ -81,7 +81,7 @@ game_loop:
         call capsules_update
         call bells_update
         call effects_update
-        call boss_update
+        call ovl_boss_update
         call collide_all
         call powers_tick
         ; ---- drawing
@@ -98,7 +98,7 @@ game_loop:
         call map_blk
         call draw_shots
         call draw_bullets
-        call draw_boss_objs
+        call ovl_boss_objs
         call frame_end
         call hud_update
         ld hl,ticks
@@ -133,7 +133,7 @@ scroll_step:
         jr c,.go
         xor a
         ld (scrolling),a
-        jp boss_start
+        jp ovl_boss_start
 .go:    ld hl,(scrollx)
         inc hl
         inc hl
@@ -174,7 +174,7 @@ waves_step:
         ld c,(hl)
         inc hl
         ld (wave_ptr),hl
-        jp wave_start           ; A = type, C = y
+        jp ovl_wave           ; A = type, C = y
 
 ; ---------------------------------------------------------------------
 ; the pages: both from the base picture (RT block), all 1000 cells
