@@ -22,7 +22,7 @@ import maze_native as MN
 VPBUF = 0xDA60            # work buffer in the game's upper memory
 PLANE = 640               # spacing of its code / attribute / colour planes
 ATLAS_MAX = 13 * 128 + 64  # PCG banks 0..12 plus the unused tails of the two font banks
-SLOTS = {1: (0, 80), 2: (80, 32), 3: (112, 16)}   # bank 13: run-time object glyphs
+SLOTS = {1: (0, 80), 2: (80, 30), 3: (110, 18)}   # bank 13: run-time object glyphs
 
 
 def glyph_ref(i):

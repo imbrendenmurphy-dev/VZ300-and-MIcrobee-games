@@ -108,19 +108,53 @@ run on a real Microbee yet.**
   map page and the gallery layout did not need changes (the gallery shows the
   new rooms).
 
+## Third pass (12 November 2026): the Groovy Ghoulies
+
+- **All twelve monsters redrawn as cartoon characters** (`tools/ghoulies.py`),
+  following the art brief: bold black ink lines, flat colour with dithered
+  shading, big expressive eyes and a personality each. The bat is a round,
+  furry pup with yellow eyes and scalloped wings; the skeleton grins with a
+  missing tooth behind a dented shield; the ghost blushes; the gargoyle
+  crouches on its plinth with glowing red eyes; the grell is a glossy eyeball
+  on wriggling tentacles; the zombie has mismatched eyes, a stitched head and
+  a bone poking out; the slime has eyes on stalks and a bone inside; the Ghoul
+  King has a jewelled crown and ermine robes; the knight has a plumed helm
+  with eyes glowing in the slit; the Bat Lord scowls under his crown; Dracula
+  opens a crimson-lined cape; the bride smirks under a drifting veil. Each
+  still has its idle, idle-variation and attack frames, and the ghost keeps
+  its eight-pose idle animation.
+- **The art is made for the Microbee's cells, not converted to them.** Each
+  monster is painted cell by cell: any 8x8 cell it touches gets a black
+  halo, and cells that would hold three colours keep the two that matter,
+  protecting eyes, teeth and mouths. The encoder now changes almost nothing
+  (0 to 14 cells per frame, down from 200 to 300), so what you see in the
+  previews is what the machine shows. Dracula's and the bride's faces were
+  laid out on the cell grid by hand so their eyes survive.
+- **Title screen redone.** The logo sits on a dripping crimson banner, with
+  the subtitle under it and the cast lined up in front: ghost, skeleton,
+  Dracula, zombie and slime, drawn from the new monster art. The amber
+  version uses a black banner with a dotted border so the letters stay
+  readable.
+- **All 21 maze floor objects redrawn** (`tools/maze_objects.py`) in the same
+  style, replacing the enlarged VZ sprites: chests open and shut, graves,
+  bones, the stone angel, the suit of armour, the gargoyle statue, lecterns,
+  the eye-orb, the bell, the workbench, the coffin, the portrait on its easel,
+  both thrones, the sleeping Bat Lord, and the characters Grigor, Vesper, the
+  bookseller, Kaspar behind his bars and Otto with his monocle. Each cell is
+  one ink plus black, which is exactly what the run-time merge can show, so
+  objects no longer tint the wall beside them. The 128 object glyph slots
+  are split 80 / 30 / 18 across the three distances to fit.
+
 ## Known limits
 
 - **Emulator only.** Pacing, music and readability on the real machine and on
   the amber monitor still need your eyes.
 - Entering a new area still blanks the screen for about 2.3 s while its art
   unpacks, and opening the map for about 0.9 s.
-- Floor objects are the VZ drawings enlarged, not new illustrations, so they
-  are chunkier than the walls around them.
-- A floor object takes the colour of the cell it overlaps, so a little of the
-  wall next to a figure can pick up that figure's colour.
-- If two floor objects line up one behind the other, the nearer one's edge
-  cells show black instead of the farther object.
+- Floor objects stand in a black halo one cell deep. On the dark floors it is
+  barely visible; against a bright wall at a distance it can show.
+- If two floor objects line up one behind the other, the nearer one's halo
+  hides the edge of the farther one.
 - In the Great Hall and Clock Tower 26 of about 1,750 character shapes were
   merged with near-identical ones to fit the PCG; the difference is two or
   three pixels in a few views.
-- The spires on the title castle are faint against the sky.

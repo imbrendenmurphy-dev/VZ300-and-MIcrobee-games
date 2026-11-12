@@ -463,6 +463,11 @@ OBJ_TONE = {'y': 1.0, 'r': .75, 'g': .5}
 
 
 def object_image(name, d):
+    import maze_objects
+    return maze_objects.object_image(name, d, PALETTE)
+
+
+def object_image_vz(name, d):
     """Smoothly enlarged sprite: (ink map, opaque mask). 'b' is solid black."""
     art = OBJ[name]
     h, w = len(art), len(art[0])
@@ -512,7 +517,9 @@ def object_cells(img):
             if (blk < 0).all():
                 continue
             lit = blk > 0
-            fg = 0
+            # an all-black cell still gets an ink, so the merge writes a black
+            # background instead of keeping the colours underneath
+            fg = 15
             if lit.any():
                 vals, counts = np.unique(blk[lit], return_counts=True)
                 fg = int(vals[counts.argmax()])
@@ -557,7 +564,7 @@ def build_area(region, verbose=False):
     cache.mkdir(parents=True, exist_ok=True)
     key = hashlib.sha256(b''.join((ROOT / p).read_bytes() for p in (
         'tools/maze_native.py', 'original/tools/materials.py', 'original/tools/area.py',
-        'original/tools/objects.py'))).hexdigest()[:16]
+        'original/tools/objects.py', 'tools/maze_objects.py', 'tools/ghoulies.py'))).hexdigest()[:16]
     f = cache / f'area{region}-{key}.pickle'
     if f.exists():
         return pickle.loads(f.read_bytes())

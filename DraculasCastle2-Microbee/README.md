@@ -33,7 +33,11 @@ the first-person view for every area and makes it four to seven times faster.
 
 ![Library before and after](screenshots/library-before-after.png)
 
-![Title and battles](screenshots/title-and-battles.png)
+![Title](screenshots/title.png)
+
+![The Groovy Ghoulies](screenshots/ghoulies-colour.png)
+
+![Maze objects](screenshots/maze-objects.png)
 
 ## Building
 

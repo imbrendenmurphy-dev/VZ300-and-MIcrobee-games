@@ -91,6 +91,9 @@ ROLES=[(6,15,0,5),(8,15,0,7),(15,14,0,12),(8,15,0,7),(9,15,0,13),(2,11,0,10),
 
 @lru_cache(None)
 def monster(i,frame):
+    import ghoulies
+    if i in ghoulies.REDRAWS:
+        return ghoulies.monster(i,frame,PAL)
     if i in native_detail.REDRAWS:
         return native_detail.REDRAWS[i](PAL,frame)
     # Keep original pose choreography, but replace the drawing surface.
@@ -153,82 +156,84 @@ def backdrop(area,mono=False):
     d.line((0,185,319,185),fill=tuple(PAL[shadow]));d.line((0,197,319,197),fill=tuple(PAL[lit]))
     return im
 
-def title():
-    """Moonrise over the castle. Everything is ink on a black sky so the amber
-    screen gets the same picture; the moon is slightly flattened because
-    pixels are taller than wide on a 4:3 tube."""
+def half(sp):
+    """Halve a cartoon sprite: a 2x2 block keeps its ink line if two of its
+    pixels are black, otherwise its commonest colour."""
+    a=np.asarray(sp);h,w=a.shape[0]//2,a.shape[1]//2
+    out=np.zeros((h,w,4),np.uint8)
+    for y in range(h):
+        for x in range(w):
+            blk=a[y*2:y*2+2,x*2:x*2+2].reshape(4,4)
+            solid=blk[blk[:,3]>0]
+            if len(solid)<2:continue
+            dark=solid[solid[:,:3].sum(1)==0]
+            if len(dark)>=2:out[y,x]=(0,0,0,255);continue
+            lit=[tuple(p) for p in solid if p[:3].sum()>0]
+            out[y,x]=max(set(lit),key=lit.count)
+    return Image.fromarray(out,'RGBA')
+
+def logo(im,text,y,scale=3,bands=(15,11,11,9,9,1),drips=False):
+    """Big lettering: the display alphabet at triple size, filled in horizontal
+    bands that change only on 8-pixel cell rows, a black keyline and drips."""
+    m=dracula_font.mask(text);m=m.resize((m.width*scale,m.height*scale),Image.NEAREST)
+    x0=160-m.width//2;a=np.asarray(m)>0;px=im.load()
+    a=a.copy();a[:,1:]|=a[:,:-1].copy()            # one pixel bolder
+    for yy in range(a.shape[0]):
+        ink=tuple(int(v) for v in PAL[bands[min(len(bands)-1,((y+yy)//8)-(y//8))]])
+        for xx in range(a.shape[1]):
+            if a[yy,xx]:px[x0+xx,y+yy]=ink
+    # drips of blood from the bottoms of strokes
+    red=tuple(int(v) for v in PAL[9]);H=a.shape[0]
+    for xx in (range(1,a.shape[1]-1,1) if drips else ()):
+        if a[H-1,xx] and not a[H-1,xx-1]:
+            n=(xx*7)%5
+            if n<2:
+                for k in range(4+n*5):
+                    for dx in (0,1):px[x0+xx+dx,y+H+k]=red
+                px[x0+xx,y+H+4+n*5]=red
+    return x0,m.width
+
+def title(mono=False):
+    """The castle's cast under the logo. The logo changes colour only on cell
+    rows, the moon and castle sit clear of it, and each ghoulie is pasted on
+    the cell grid with its own black halo, so every 8x8 cell needs only two
+    colours."""
+    import ghoulies
     im=Image.new('RGB',(320,264),(0,0,0));d=ImageDraw.Draw(im);px=im.load()
     C=lambda i:tuple(int(v) for v in PAL[i])
-    def dither(box_fn,ink,level):
-        for y in range(0,176):
-            for x in range(320):
-                if box_fn(x,y) and level(x,y)>(BAYER[y%4,x%4]+.5)/16:px[x,y]=C(ink)
-    for i in range(70):
+    for i in range(90):
         x=(i*73+13)%320;y=(i*37+11)%150
         px[x,y]=C(15 if i%4==0 else 7)
-        if i%11==0:
-            for dx,dy in ((1,0),(-1,0),(0,1),(0,-1)):
-                if 0<=x+dx<320 and y+dy>=0:px[x+dx,y+dy]=C(7)
-    # moon with a soft halo and a few seas, rising behind the crag
-    mx,my,rx,ry=238,126,42,37
-    inside=lambda x,y,k=1.0:((x-mx)/(rx*k))**2+((y-my)/(ry*k))**2<1
-    dither(lambda x,y:inside(x,y,1.25) and not inside(x,y),3,lambda x,y:.2)
-    d.ellipse((mx-rx,my-ry,mx+rx,my+ry),fill=C(11))
-    for cx,cy,r in ((224,112,8),(252,134,11),(246,104,5),(222,138,5),(262,116,4)):
-        dither(lambda x,y,cx=cx,cy=cy,r=r:(x-cx)**2+((y-cy)*1.15)**2<r*r and inside(x,y),0,lambda x,y:.4)
-    # castle on the crag: night-blue stone, black where the moon is behind it
-    def stone(x0,y0,x1,y1):
-        for y in range(y0,y1):
-            for x in range(x0,x1):
-                if inside(x,y):px[x,y]=(0,0,0)
-                elif x==x0:px[x,y]=C(12)
-                else:px[x,y]=C(4) if ((x*5+y*3)%16<(9 if x<x0+(x1-x0)//2 else 5)) and y%6 else (0,0,0)
-    towers=[(92,104,18,0),(112,88,14,1),(128,112,36,0),(166,96,16,1),(184,108,20,0),(206,84,13,1)]
-    stone(92,128,220,150)
-    for x,y,w,tall in towers:
-        stone(x,y,x+w,150)
-        for bx in range(x,x+w,6):stone(bx,y-4,bx+3,y)
-        if tall:
-            for k in range(26):
-                half=(w/2+3)*(1-k/26)
-                yy=y-5-k
-                for xx in range(int(x+w/2-half),int(x+w/2+half)+1):
-                    px[xx,yy]=(0,0,0) if inside(xx,yy) else (C(12) if xx==int(x+w/2-half) else (C(4) if (xx+yy)%2 else (0,0,0)))
-        for yy in range(y+9,142,16):
-            d.rectangle((x+w//2-2,yy,x+w//2+1,yy+6),fill=C(11))
-    d.pieslice((138,128,156,166),180,360,fill=C(9));d.line((147,130,147,148),fill=(0,0,0))
-    # crag
-    ridge=[(0,168),(34,160),(60,164),(84,150),(228,150),(262,162),(290,156),(319,166)]
-    def ground(x):
-        for (x0,y0),(x1,y1) in zip(ridge,ridge[1:]):
-            if x0<=x<=x1:return y0+(y1-y0)*(x-x0)/max(1,x1-x0)
-        return 176
-    for x in range(320):
-        g=int(ground(x))
-        for y in range(g,176):
-            px[x,y]=C(5) if (y-g<2) else (C(5) if (.5-(y-g)/60)>(BAYER[y%4,x%4]+.5)/16 else (0,0,0))
-    for k in range(26):
-        y=150+k;x=147+int(10*math.sin(k/5.0))-k//2
-        for dx in range(-(1+k//7),2+k//7):
-            if (x+dx+y)%2==0:px[max(0,min(319,x+dx)),y]=C(3)
-    # bats
-    for bx,by,sz,ink in ((232,120,5,0),(258,108,4,0),(64,118,5,13),(40,96,4,13),(294,84,4,13),(74,140,3,13)):
-        d.polygon([(bx,by),(bx-sz*2,by-sz),(bx-sz,by),(bx-sz*2,by+sz//2),(bx,by+2),(bx+sz*2,by+sz//2),(bx+sz,by),(bx+sz*2,by-sz)],fill=C(ink))
-    # bare trees framing the scene
-    for x,side in ((14,1),(306,-1)):
-        d.line([(x,176),(x+side*4,120),(x,84)],fill=C(4),width=3)
-        for y,l in ((150,22),(128,26),(106,18),(92,12)):
-            d.line([(x+side*2,y),(x+side*l,y-14),(x+side*(l+6),y-30)],fill=C(4),width=1)
-            d.line([(x+side*2,y+6),(x-side*10,y-8)],fill=C(4),width=1)
-    for text,y,size in [("DRACULA'S",4,31),('CASTLE II',36,31)]:
-        dracula_font.draw(im,(162,y+2),text,size,C(1),center=True)
-        dracula_font.draw(im,(160,y),text,size,C(15),center=True)
-    # blood running from the lettering
-    for x,l in ((62,10),(101,16),(139,7),(183,13),(221,9),(257,15),(88,8),(240,6)):
-        for yy in range(66,66+l):
-            if px[x,yy]==(0,0,0) or yy>70:px[x,yy]=C(9);px[x+1,yy]=C(9) if yy<66+l-2 else px[x+1,yy]
-    d.rectangle((84,74,236,87),fill=(0,0,0))
-    dracula_font.draw(im,(160,75),'THE CASTLE AWAKENS',11,C(11),center=True)
+    # crescent moon, top right
+    for y in range(4,40):
+        for x in range(286,318):
+            dx,dy=(x-302)/15.0,(y-21)/13.0
+            if dx*dx+dy*dy<1 and (dx+.45)**2+(dy+.25)**2>.72:px[x,y]=C(11)
+    for bx,by,sz in ((296,50,4),(282,64,3),(14,22,4),(26,42,3),(10,60,3)):
+        d.polygon([(bx,by),(bx-sz*2,by-sz),(bx-sz,by),(bx-sz*2,by+sz//2),(bx,by+2),(bx+sz*2,by+sz//2),(bx+sz,by),(bx+sz*2,by-sz)],fill=C(13))
+    # a crimson banner with a dripping lower edge carries the logo
+    crimson=C(0 if mono else 1)
+    for x in range(40,280):
+        bottom=84+int(2*math.sin(x/7.0))
+        for y in range(0,bottom):px[x,y]=crimson
+        if mono and (x%4==0 or x in (40,279)):
+            px[x,0]=px[x,bottom-1]=C(7)
+        k=(x*37)%23
+        if k<3 and (44<x<84 or 236<x<276):
+            n=6+(x*13)%9
+            for y in range(bottom,bottom+n):
+                for dx in (0,1,2):px[x+dx,y]=crimson
+            for dx in (-1,0,1,2,3):px[x+dx,bottom+n]=crimson
+    if mono:
+        for y in range(0,84,4):px[40,y]=px[279,y]=C(7)
+    logo(im,"DRACULA'S",6,bands=(15,11,11,11,9))
+    logo(im,'CASTLE II',46,bands=(11,11,11,9,9))
+    dracula_font.draw(im,(160,91),'THE CASTLE AWAKENS',11,C(14),center=True)
+    # the cast, half size, on the cell grid with black halos
+    cast=[(2,0,0,88),(1,2,56,104),(10,2,120,104),(5,0,184,104),(6,2,240,88)]
+    for i,f,x,y in cast:
+        sp=ghoulies.cellfix(half(ghoulies.monster(i,f,PAL)),PAL)
+        im.paste(sp,(x,y),sp)
     return im
 
 def encode(im,mono=False,cell_height=11):
@@ -257,14 +262,16 @@ def encode(im,mono=False,cell_height=11):
 
 def build():
     out=ROOT/'build/native';out.mkdir(parents=True,exist_ok=True)
-    ti=title().crop((0,0,320,256))
-    ImageDraw.Draw(ti).rectangle((0,184,319,255),fill=(0,0,0))
-    credit=dracula_font.mask('VIBED BY BPM 2026')
-    credit=credit.resize((credit.width,16),Image.Resampling.NEAREST)
-    ImageDraw.Draw(ti).rectangle((84,176,236,191),fill=(0,0,0))
-    ti.paste(tuple(PAL[15]),(160-credit.width//2,176,160-credit.width//2+credit.width,192),credit)
+    def titled(mono):
+        ti=title(mono).crop((0,0,320,256))
+        ImageDraw.Draw(ti).rectangle((0,184,319,255),fill=(0,0,0))
+        credit=dracula_font.mask('VIBED BY BPM 2026')
+        credit=credit.resize((credit.width,16),Image.Resampling.NEAREST)
+        ImageDraw.Draw(ti).rectangle((84,176,236,191),fill=(0,0,0))
+        ti.paste(tuple(PAL[15]),(160-credit.width//2,176,160-credit.width//2+credit.width,192),credit)
+        return ti
     def gallery(mono):
-        images=[('title',ti)]
+        images=[('title',titled(mono))]
         for i,(name,*_) in enumerate(M.MONSTERS):
             for frame in range(3):
                 im=backdrop(M.HOME_BBG.get(name,0),mono).crop((0,0,320,256));sp=monster(i,frame)

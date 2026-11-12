@@ -11,7 +11,7 @@ def build():
         for mode in ('colour','mono'):
             for phase in range(8):
                 im=art.backdrop(1,mode=='mono').crop((0,0,320,256))
-                sp=native_detail.ghost(art.PAL,0,phase)
+                sp=__import__('ghoulies').ghost(0,phase).image(art.PAL)
                 im.paste(sp,(80,18),sp)
                 d=ImageDraw.Draw(im);d.rectangle((0,200,319,255),fill=(0,0,0))
                 if variant=='monster':

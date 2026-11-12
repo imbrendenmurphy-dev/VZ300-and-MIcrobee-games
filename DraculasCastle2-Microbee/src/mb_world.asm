@@ -1032,7 +1032,7 @@ vp_object:  ld a,31
             out ($1C),a
             ld a,1
             jp mb_bank
-vp_slots:   db 0,80,112
+vp_slots:   db 0,80,110
 
 ; B = PCG bank of a cell, C = its slot -> HL = that glyph's 8 bytes (block 31)
 vp_glyph:   ld a,b

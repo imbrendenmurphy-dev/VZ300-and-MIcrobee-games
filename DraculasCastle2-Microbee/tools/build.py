@@ -148,11 +148,11 @@ def native_files(used_banks=()):
     import native_art
     import pcg_validate
     folder=ROOT/'build/native';manifest=folder/'manifest.json'
-    sources=[ROOT/'tools/native_art.py',ROOT/'tools/native_detail.py',ROOT/'tools/dracula_font.py',ROOT/'original/tools/monsters.py']
+    sources=[ROOT/'tools/native_art.py',ROOT/'tools/native_detail.py',ROOT/'tools/ghoulies.py',ROOT/'tools/dracula_font.py',ROOT/'original/tools/monsters.py']
     if not manifest.exists() or any(p.stat().st_mtime>manifest.stat().st_mtime for p in sources):native_art.build()
     import animation_art
     stamp=folder/'animation.stamp'
-    if not stamp.exists() or any((ROOT/'tools'/f).stat().st_mtime>stamp.stat().st_mtime for f in ('animation_art.py','native_detail.py','native_art.py')):animation_art.build()
+    if not stamp.exists() or any((ROOT/'tools'/f).stat().st_mtime>stamp.stat().st_mtime for f in ('animation_art.py','native_detail.py','native_art.py','ghoulies.py')):animation_art.build()
     checked=pcg_validate.validate_assets(folder)
     print('PCG validation:',checked['assets'],'assets,',checked['total_cells'],'cells, no invalid cells')
     # 28: loader staging, then recent views. 30: decode/encounter workspace.
