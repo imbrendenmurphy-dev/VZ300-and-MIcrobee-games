@@ -28,15 +28,16 @@ SPLITMODE 1 STEER 1 THROT 1 BRAKE 1 IDLE 2 AUTO 1 MPREV 1 SPEED 1 LATV 1 SPSV 2 
 RUNBUF 16 FRAMES 2 CRF 1 FLG 1 PKX 2 PKY 2 HALFON 1 HPREV 1 SKYD 1 HUDFG 1
 SKYDIRTY 1 HUDFORCE 1 TOPCHG 1 FACC 1 FCNT 1 FAVG 1
 SKYPTR 28 MKSH 1 SKYLN 1 SKY_Y 1 MSPLIT 1 CURMODE 1 ATIMER 2 RVANY 1"""
+CVARS = """CUPN 1 PTS 4 SCORES 8 TSC 2 ORDERP 4 WEAPON 1 AIRT 1 AIRTOT 1 VOLTCD 2 RAZECD 2 PHITT 1
+OBJCOL 2 LATBASE 1 FIREPREV 1 SHOTT 1 MINEOWN 1 OBJK 2"""
 GVARS = """GSTATE 1 STIMER 2 LAPN 1 RTIME 2 LAPT0 2 BESTLAP 2 SHIELD 1 BOOSTT 1 STALLT 1 BUMPT 1 POS 1
 FINPOS 1 NEWBEST 1 SFXT 1 SFXK 1 BANT 1 BANP 2 SPREV 1 TMPT 1 TPOS 2 LOWERFN 2 TBUF 20 RVDH 2 RVDC 1 SPLAIN 1 CLEAN 1 DMIN 1 CPYROW 1 EXSRC 2 EXDST 2 EXS 2 EXFREE 2"""
 
 LAYOUT = dict(
     LATCH=0x6800, KEYROW=0x68EF, KEYH=0x687F, VRAM=0x7000,
-    SQPAGE=0xB0, SIN64=0xB400, COS64=0xB500, PATTAB=0xB600, LMASK=0xB620, SKYA=0xB628, SKYH=0xB650, RIDGE=0xAF00, HUDBUF=0x7E20, HUDPREV=0x7E60, GVARS=0x7D80, RV=0x7DC0, TOPT=0x7EA0, LOGO=0xDE40, SKY0=0xB630, SKY1=0xB638,
+    SQPAGE=0xB0, SIN64=0xB400, COS64=0xB500, PATTAB=0xB600, LMASK=0xB620, SKYA=0xB628, SKYH=0xB650, RIDGE=0xAF00, HUDBUF=0x7E20, HUDPREV=0x7E60, GVARS=0x7D80, RV=0x7EC0, CVARS=0x7DC0, MARK=0x7E00, TOPT=0x7EA0, LOGO=0xDE40, SKY0=0xB630, SKY1=0xB638,
     GLYPHT=0xB640, GLYPHM=0xB648, FONT=0xB660, SKYIMG=0xFA00, EXPTP=0xB800, EXP88L=0xBA00, LOGL=0xC200,
-    TRK_H=0xD200, TRK_DY=0xD400, TRK_HBX=0xD600, TRK_HBY=0xD800, TRK_FL=0xDA00,
-    IM2TAB=0xDC00, SPRITES=0xA700, 
+    IM2TAB=0xDC00, 
     XMIN=0xE000, XMAX=0xE100, TMIN=0xE200, TMAX=0xE300, ROWCL=0xE400, ROWLP=0xE500,
     GATES=0xE600, BGROW=0xDE00, VARS=0xE700, SECS=0xE800, LISTS=0xEA00, BUFFER=0xF200, STACKTOP=0xE6FE,
 )
@@ -105,7 +106,14 @@ def equates():
         lines.append(f'{name:10s} EQU GVARS+{off}'); off += int(size)
     assert off <= 0x40, off
     lines.append(f'LOG_RIVW EQU {R.LOGT[36]}')
+    off = 0
+    toks = CVARS.split()
+    for name, size in zip(toks[0::2], toks[1::2]):
+        lines.append(f'{name:10s} EQU CVARS+{off}'); off += int(size)
+    assert off <= 64, off
     lines.append(f'SPRDESC EQU ${SPR_DESC_AT:04X}')
+    lines.append(f'STAGE EQU ${STAGE:04X}')
+    lines.append(f'STG_TRK EQU ${STG_TRK:04X}')
     for k in ('P0', 'SH', 'N_red0', 'M_red0', 'N_blue0', 'M_blue0'):
         lines.append(f'SPR_{k.upper()} EQU ${SPR_SYMS[k]:04X}')
     lines += [f'NEARZ EQU {R.NEARZ}', f'CH EQU {R.CH}', f'HORIZ EQU {R.HORIZ}', f'DEPTH EQU {R.DEPTH}',
@@ -117,7 +125,7 @@ def equates():
               f'C_GH EQU {R.LOGT[R.GATEH_E] + R.LOGFY + R.BIAS}',
               f'C_GW EQU {R.LOGT[R.GATEW_E] + R.LOGFX + R.BIAS}',
               f'C_GT EQU {R.LOGT[R.GATET_E] + R.LOGFY + R.BIAS}',
-              f'SU_A EQU {R.SU_A}', f'BOOST_A EQU {R.BOOST_A}', f'BOOST_B EQU {R.BOOST_B}', f'SU_B EQU {R.SU_B}', f'RL_A EQU {R.RL_A}', f'RL_B EQU {R.RL_B}',
+              f'SU_A EQU {R.SU_A}', f'BOOST_A EQU {R.BOOST_A}', f'BOOST_B EQU {R.BOOST_B}', f'RAMP_A EQU {R.RAMP_A}', f'RAMP_B EQU {R.RAMP_B}', f'SU_B EQU {R.SU_B}', f'RL_A EQU {R.RL_A}', f'RL_B EQU {R.RL_B}',
               f'SK EQU {R.SK}', f'VOID EQU {R.VOID}', f'HAZE EQU {R.HAZE}',
               f'CRAFTY EQU {CRAFTY}', f'VMAX EQU {VMAX}',
               f'DLY_COPY EQU {DLY_COPY}', f'DLY_NOCOPY EQU {DLY_NOCOPY}', f'DLY_COPYP EQU {DLY_COPYP}', f'LOGO_TOP EQU {logo.TOP}', f'LOGO_N EQU {len(LOGO_RLE)}', f'TDLY EQU {(64 + 34 * 3) * 226 // 26}', f'EXP88H EQU EXP88L+$400']
@@ -142,9 +150,14 @@ def copy_routine():
     return '\n'.join(L)
 
 LOGO_RLE = logo.rle(logo.logo())
-SPR_SRC, SPR_DESC, SPR_SYMS, _ = craft2.build(0xA700)
-SPR_DESC_AT = 0xA700 + len(SPR_SRC)
-assert SPR_DESC_AT + len(SPR_DESC) <= 0xAF00
+STAGE = 0xE800                      # loaded with the program, moved into SRAM bank B at start-up
+SPR_SRC, SPR_DESC, SPR_SYMS, SPR_END = craft2.build(STAGE)
+SPR_DESC_AT = STAGE + len(SPR_SRC)
+STG_TRK = SPR_DESC_AT + len(SPR_DESC)  # track tables (4 x 512) follow
+assert STG_TRK + 2048 <= 0xF800, hex(STG_TRK + 2048)
+BANK_TRK = SPR_END                     # their home in bank B
+assert BANK_TRK + 2048 <= 0x6800
+LAYOUT.update(TRK_H=BANK_TRK, TRK_DY=BANK_TRK + 512, TRK_HBX=BANK_TRK + 1024, TRK_HBY=BANK_TRK + 1536)
 assert len(LOGO_RLE) <= 0xE000 - 0xDE40, len(LOGO_RLE)
 
 def data_section(T):
@@ -166,14 +179,22 @@ def data_section(T):
         ('SKY0', R.SKY_CSS0), ('SKYA', R.SKY_A), ('SKYH', R.SKY_H), ('RIDGE', R.RIDGE), ('SKY1', R.SKY_CSS1), ('GLYPHT', glyph), ('FONT', font),
         ('GLYPHM', [sum(3 << (6 - 2 * q) for q in range(3) if (bits >> (2 - q)) & 1) for bits in range(8)]),
         ('EXPTP', R.EXPT), ('EXP88L', expl + exph), ('LOGL', logl + logh),
-        ('TRK_H', T['H']), ('TRK_DY', T['DY']), ('TRK_HBX', T['HBX']), ('TRK_HBY', T['HBY']), ('TRK_FL', T['FL']),
-        ('IM2TAB', [0xDD] * 257), ('LOGO', LOGO_RLE), ('SPRITES', SPR_SRC + SPR_DESC),
+        ('STAGE', SPR_SRC + SPR_DESC + T['H'] + T['DY'] + T['HBX'] + T['HBY']),
+        ('IM2TAB', [0xDD] * 257), ('LOGO', LOGO_RLE),
     ]
     out = []
     for org, data in parts:
         out.append(f'        ORG {org}\n{db(data)}')
     out.append('        ORG $DD01\n' + open(os.path.join(HERE, 'skyline_init.asm')).read()
                + open(os.path.join(HERE, 'strings_title.asm')).read() + '\n@init_end:')
+    objs = []
+    for n in range(16):                       # pickups: boost, energy, missile, mine in turn
+        k = 20 + 32 * n
+        objs += [k & 255, k >> 8, (-28, 0, 28, 0)[n % 4] & 255, n % 4]
+    for k in (40, 168, 296, 424):             # boost arrows on the pads
+        objs += [k & 255, k >> 8, 0, 4]
+    out.append('        ORG $D200\n' + open(os.path.join(HERE, 'game2.asm')).read()
+               + '\nOBJTAB:\n' + db(objs) + '\n@game2_end:')
     out.append('        ORG $DDDD\n        jp isr')
     return '\n'.join(out)
 
@@ -204,7 +225,6 @@ def source(test_state=None):
 .bt:    ld (hl),$FF
         inc hl
         djnz .bt
-        call expand_sprites
         call demo_reset
         ld hl,lower_keys
         call title_card
@@ -232,8 +252,9 @@ def assemble(src, name):
     org, data = asm.assemble(src, HERE)
     code_end = max(asm.sym['FILL2'] + 66, asm.sym['LOGO_END'])
     assert asm.sym['CODE_END_REAL'] <= asm.sym['FILL2']
-    assert code_end <= 0xA700, f'code overruns sprites: ${code_end:04X}'
-    assert org + len(data) <= 0xE000
+    assert code_end <= 0xAF00, f'code overruns the skyline ridge: ${code_end:04X}'
+    assert org + len(data) <= 0xF800
+    assert asm.sym['GAME2_END'] <= 0xDC00, f"game2 overruns: ${asm.sym['GAME2_END']:04X}"
     assert asm.sym['INIT_END'] <= 0xDDDD, f"init code overruns: ${asm.sym['INIT_END']:04X}"
     vz = os.path.join(HERE, name)
     open(vz, 'wb').write(vz_file(name.split('.')[0][:16], org, data))

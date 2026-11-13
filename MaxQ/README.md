@@ -6,9 +6,9 @@ Real-time solid-polygon 3D racing on the Dick Smith VZ300: an anti-gravity hover
 Target: VZ300 + BennVenn SD loader + 128K RAM. Mode 1 (128x64, 4 colours).
 VIBED BY BPM 2026
 
-**Status: v0.8 — playable.** Hand-drawn hovercraft for you and two rival teams, which bank, dip and turn with the track (sprites kept in the BennVenn SRAM bank B). Three-lap races against three rival hover craft, boost pads, a forgiving energy shield, beeper sound effects, best times, and an attract sequence (title card, best times, demo race).
+**Status: v0.9 — the MAX Q CUP.** Four races against VOLT, NOVA and RAZE, with points and standings. There are pickups (boost, energy, missile, mine), boost arrows, speed jumps and dusk races. No track sides, and about 10.8 fps.
 
-![v0.8 race](screenshots/maxq_v08_race.gif)
+![v0.9 race](screenshots/maxq_v09_race.gif)
 
 ## Loading
 
@@ -21,11 +21,10 @@ Copy `release/MAXQ.VZ` to the SD card and run it from the loader. The attract se
 | Key | Action |
 |---|---|
 | `,` / `.` | Steer left / right |
-| SPACE | Start a race (in attract mode); accelerate |
+| SPACE / joystick up | Start the cup (in attract mode); accelerate |
+| M / joystick fire | Use your weapon (missile or mine) |
 | N | Brake |
-| M | HUD strip in colour set 1 on/off. The VZ has no timer, so the split halves the frame rate; it's shown for free on the title card instead |
 | H | Half-rate rows on/off (on by default) |
-| Joystick 1 | Steer, fire to accelerate |
 
 The HUD floats in the open sky: speed, lap, position, race time, shield bar, and the average fields per frame (`4.8F` = 50 / 4.8 ≈ 10.5 fps; `H` when half-rate rows are on).
 

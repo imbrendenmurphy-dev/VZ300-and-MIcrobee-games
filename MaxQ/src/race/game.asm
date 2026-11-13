@@ -59,6 +59,23 @@ race_reset:
         ld (BUMPT),a
         ld (BANT),a
         ld (STEER),a
+        ld (WEAPON),a
+        ld (AIRT),a
+        ld (PHITT),a
+        ld (OBJCOL),a
+        ld (OBJCOL+1),a
+        ld (REC_SHOT+R_ACT),a
+        ld (REC_MINE+R_ACT),a
+        ld (RV+R_HIT),a
+        ld (RV+32+R_HIT),a
+        ld (RV+64+R_HIT),a
+        ld (RV+R_AIR),a
+        ld (RV+32+R_AIR),a
+        ld (RV+64+R_AIR),a
+        ld hl,700
+        ld (VOLTCD),hl
+        ld hl,900
+        ld (RAZECD),hl
         ld a,64
         ld (SHIELD),a
         ld hl,rv_grid
@@ -77,9 +94,9 @@ race_reset:
         djnz .r
         ret
 rv_grid: ; I lo, I hi, F, lap, lat, speed, base, lane
-        DB 4,0,0,0,-28,0,104,-28
-        DB 4,0,0,0,28,0,100,26
-        DB 2,0,96,0,26,0,107,-4
+        DB 4,0,0,0,-28,0,103,-28      ; VOLT
+        DB 4,0,0,0,28,0,106,26        ; NOVA
+        DB 2,0,96,0,26,0,101,-4       ; RAZE
 
 ; ---------------------------------------------------------------------
 ; STATE_FRAME: once per frame - attract cycle, start, finish
@@ -92,7 +109,7 @@ state_frame:
         jr nz,.na
         ld a,c
         or a
-        jr nz,start_race
+        jp nz,cup_start
         ld hl,(ATIMER)          ; demo for ~450 frames, then the cards
         inc hl
         ld (ATIMER),hl
@@ -108,9 +125,7 @@ state_frame:
         ld a,h
         or l
         ret nz
-        call result_card        ; results, then back to the attract cycle
-        call attract_cards
-        jp demo_reset
+        jp cup_next             ; results, standings, next round
 
 start_race:
         call race_reset
@@ -220,6 +235,16 @@ field_tick:
         ld (STIMER),hl
 .nf:    call physics
         call rv_tick
+        call weapon_tick
+        ld hl,AIRT              ; airborne
+        ld a,(hl)
+        or a
+        jr z,.na
+        dec (hl)
+        jr nz,.na
+        ld a,SFX_BUMP           ; landing thump
+        call sfx
+.na:
         ld a,(GSTATE)           ; race clock
         cp GS_RACE
         jr nz,.nt
@@ -295,6 +320,7 @@ new_section:
         ld a,h
         or l
         call z,lap_done
+        call obj_section
         ld a,(CAM_I)            ; boost pad under the craft (one section ahead)?
         inc a
         and 126
@@ -327,7 +353,10 @@ lap_done:
         sbc hl,de
         jr c,.nbl
         ld (BESTLAP),de
-.nbl:   ld hl,LAPN
+.nbl:   xor a                   ; pickups come back each lap
+        ld (OBJCOL),a
+        ld (OBJCOL+1),a
+        ld hl,LAPN
         inc (hl)
         ld a,(hl)
         cp NLAPS
@@ -346,8 +375,7 @@ lap_done:
         ld (STIMER),hl
         ld a,1
         ld (AUTO),a
-        ld a,(POS)
-        ld (FINPOS),a
+        call cup_score
         ld hl,s_finished
         ld a,250
         call banner
@@ -588,7 +616,8 @@ rv_one: call rv_dist            ; rubber band: ease off far ahead, push on far b
         jr .col
 .inc:   inc (ix+R_LAT)
         ; ---- collision with the player craft (one section ahead of the camera)
-.col:   ld a,(BUMPT)
+.col:   call rv_extra
+        ld a,(BUMPT)
         or a
         ret nz
         ld hl,(RVDH)
@@ -711,7 +740,7 @@ rv_hook:
         ld a,(DEPTHV)
         ld c,a
         ld ix,RV
-        ld b,3
+        ld b,NREC
 .h:     ld a,(ix+R_D)
         cp c
         jr nz,.n
@@ -833,7 +862,7 @@ rv_point:
 ; after rendering: screen position, size and occlusion of each visible rival
 rv_project:
         ld ix,RV
-        ld b,3
+        ld b,NREC
 .r:     push bc
         ld a,(ix+R_VIS)
         or a
@@ -887,10 +916,34 @@ rv_project:
         ret
 
 ; far ones first
+; MARK[d] = 1 for every depth that holds a rival or an object this frame
+mark_build:
+        ld hl,MARK
+        ld b,32
+.c:     ld (hl),0
+        inc l
+        djnz .c
+        ld ix,RV
+        ld b,NREC
+        ld de,32
+.r:     ld a,(ix+R_D)
+        cp 32
+        jr nc,.n
+        ld l,a
+        ld (hl),1
+.n:     add ix,de
+        djnz .r
+        ret
+
 draw_rivals:
         ld c,DEPTH-3
-.d:     ld ix,RV
-        ld b,3
+.d:     ld l,c                  ; nothing at this depth: skip
+        ld h,MARK/256
+        ld a,(hl)
+        or a
+        jr z,.e
+        ld ix,RV
+        ld b,NREC
 .r:     ld a,(ix+R_VIS)
         or a
         jr z,.n
@@ -898,17 +951,36 @@ draw_rivals:
         cp c
         jr nz,.n
         push bc
-        call draw_rival
-        pop bc
+        ld a,b                  ; records 3.. are track objects
+        cp NREC-2
+        jr nc,.rv
+        call draw_object
+        jr .dn
+.rv:    call draw_rival
+.dn:    pop bc
 .n:     ld de,32
         add ix,de
         djnz .r
-        dec c
+.e:     dec c
         jr nz,.d
         ret
 
 draw_rival:
-        ld a,(ix+R_SX)          ; keep well inside the biased range
+        ld a,(ix+R_HIT)         ; spinning out: flicker
+        and 4
+        ret nz
+        ld a,(ix+R_AIR)         ; in the air over a ramp: lift (sprite drawn higher)
+        or a
+        jr z,.ng
+        cp 15
+        jr c,.a1
+        neg
+        add a,30
+.a1:    srl a
+        neg
+        add a,(ix+R_SY)
+        ld (ix+R_SY),a
+.ng:    ld a,(ix+R_SX)          ; keep well inside the biased range
         cp 24
         ret c
         cp 232
@@ -1502,8 +1574,9 @@ sfx_isr:
 .stall: ld a,40                 ; falling
         sub b
         ld c,a
-.play:  ld d,96                 ; ~1,600 T of square wave per field, half-period C*16 T
-.cy:    ld a,$09
+.play:  ld d,64                 ; ~1,000 T of square wave per field, half-period C*16 T
+.cy:    ld a,(LATBASE)
+        inc a
         ld (LATCH),a
         ld e,c
 .d1:    dec e
@@ -1512,7 +1585,8 @@ sfx_isr:
         sub c
         ld d,a
         jr c,.end
-        ld a,$28
+        ld a,(LATBASE)
+        add a,$20
         ld (LATCH),a
         ld e,c
 .d2:    dec e
@@ -1521,7 +1595,7 @@ sfx_isr:
         sub c
         ld d,a
         jr nc,.cy
-.end:   ld a,$08
+.end:   ld a,(LATBASE)
         ld (LATCH),a
         ret
 

@@ -181,7 +181,10 @@ tr_loop:
         ld a,(hl)
         sub b
         ld (DANG),a
-        ld a,(RVANY)            ; a rival in this section?
+        ld a,(DEPTHV)           ; a rival or object at this depth?
+        ld l,a
+        ld h,MARK/256
+        ld a,(hl)
         or a
         call nz,rv_hook
         ; level of detail
@@ -886,7 +889,17 @@ stripfill:
         jr z,.c1a
         ld a,BOOST_B
 .c1a:   ld (SUC),a
-.c1b:
+.c1b:   ld a,(KK)               ; jump ramp sections: (k & 254) == 228
+        and 254
+        cp 228
+        jr nz,.c1d
+        ld a,(KK)
+        and 1
+        ld a,RAMP_A
+        jr z,.c1c
+        ld a,RAMP_B
+.c1c:   ld (SUC),a
+.c1d:
         ld a,(KK)
         rrca
         and 1
@@ -1198,17 +1211,7 @@ strip_row:
         cp b
         jr c,.nsv
         ld c,a
-        inc h                   ; TMIN
-        ld a,(hl)
-        cp 3
-        jr nz,.t1
-        set 2,d
-.t1:    inc h                   ; TMAX
-        ld a,(hl)
-        dec a
-        jr nz,.t2
-        set 3,d
-.t2:    set 0,d
+        set 0,d                 ; (no side rails)
 .nsv:
 @sr3_s1:
         ld a,0

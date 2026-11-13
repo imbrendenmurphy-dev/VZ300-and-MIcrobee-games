@@ -81,6 +81,7 @@ def skyline(img, fr):
             img[y * 32 + j] = sum(sky_pix(s + 4 * j + p, h) << (6 - 2 * p) for p in range(4))
 SU_A, SU_B, RL_A, RL_B, SK = 0, 4, 1, 7, 5
 BOOST_A, BOOST_B = 7, 1
+RAMP_A, RAMP_B = 3, 5
 VOID, HAZE = 2, 8
 
 # ------------------------------------------------------------- track
@@ -128,7 +129,7 @@ def pxof(v, lz, lf):
     e = expt_or(LOGT[m] - lz + lf + BIAS)
     return e if v > 0 else -e
 
-LOD1, LOD2 = 6, 12          # every section up to LOD1, every 2nd up to LOD2, every 4th beyond
+LOD1, LOD2 = 4, 10          # every section up to LOD1, every 2nd up to LOD2, every 4th beyond
 SKIRT_ON = False
 HALF_ON = True
 HALFROW = 36              # screen rows >= HALFROW are built every second row
@@ -255,6 +256,7 @@ def strip(fr, P, rw, s, k):
             x88 = (x88 + slope) & 0xFFFF
     su = SU_A if ((k >> 2) & 1) == 0 else SU_B
     if (k & 126) == 40: su = BOOST_A if (k & 1) == 0 else BOOST_B    # boost pad: two glowing sections every 128
+    if (k & 254) == 228: su = RAMP_A if (k & 1) == 0 else RAMP_B      # jump ramp: red / red-blue
     rl = RL_B if ((k >> 1) & 1) else RL_A
     top = None
     for y in range(yr0, yr1 + 1):
@@ -267,7 +269,7 @@ def strip(fr, P, rw, s, k):
         runs = []
         if sv:
             Sa, Sb = fr.XMIN[y], fr.XMAX[y]
-            railL = fr.TMIN[y] == 3; railR = fr.TMAX[y] == 1
+            railL = railR = False             # v0.9: no side rails (faster, cleaner floating track)
             a, b = Sa, Sb
             if kv:
                 Ka, Kb = fr.XMIN[ky], fr.XMAX[ky]

@@ -1,7 +1,7 @@
 ; =====================================================================
 ;  RACE.ASM - VZ300 3D racer, Stage 3: first moving track
 ;  VIBED BY BPM 2026
-;  Loads at $8000, no ROM or DOS calls, no mapper writes.
+;  Loads at $8000-$F7FF; maps BennVenn SRAM bank B at $4000 (port $37 = 3).
 ;  IM2 field interrupt (table $DC00, vector $DDDD) copies the finished
 ;  frame to video RAM during field sync, ahead of the beam (tear-free).
 ; =====================================================================
@@ -13,6 +13,7 @@ start:  di
         ld a,$08
         ld (LATCH),a
         ld (LATCHV),a
+        call setup_banks
         call init_vars
 {STARTUP}
 
@@ -46,6 +47,9 @@ main:   CHKEI
         pop bc
         djnz .ph
         call rv_prep
+        call obj_prep
+        call dyn_prep
+        call mark_build
         call render
         call rv_project
         ; wait until the interrupt has shown the previous frame
@@ -173,7 +177,7 @@ isr:    push af
         ld a,b
         or c
         jr nz,.dl
-.css0:  ld a,$08                ; track in colour set 0
+.css0:  ld a,(LATBASE)          ; colour set 0 (day) or 1 (dusk races)
         ld (LATCH),a
         call sfx_isr
         pop iy
@@ -221,18 +225,28 @@ input:  xor a
         ld b,a
         ld a,c
         or b
-        ; split toggle on M (edge)
+        ; fire the weapon: M or joystick fire (fresh press, racing only)
         ld a,c
         and $20
+        ld d,a
+        ld a,b
+        and $10
+        or d
         ld hl,MPREV
         cp (hl)
         ld (hl),a
         jr z,.nm
         or a
         jr z,.nm
-        ld a,(MSPLIT)           ; M: colour-set split on the HUD strip
-        xor 1
-        ld (MSPLIT),a
+        ld a,(GSTATE)
+        cp GS_RACE
+        jr nz,.nm
+        ld a,(AUTO)
+        or a
+        jr nz,.nm
+        push bc
+        call fire
+        pop bc
 .nm:    ld a,(KEYH)             ; H toggles half-rate rows (edge)
         cpl
         and 1
@@ -263,11 +277,11 @@ input:  xor a
 .r:     ld a,(STEER)
         inc a
         ld (STEER),a
-.nr:    ld a,c                  ; throttle: SPACE, joystick up or fire
+.nr:    ld a,c                  ; throttle: SPACE or joystick up
         and $10
         ld d,a
         ld a,b
-        and $11
+        and $01
         or d
         jr z,.nt
         ld a,1
@@ -281,7 +295,12 @@ input:  xor a
         jr z,.nb
         ld a,1
         ld (BRAKE),a
-.nb:    ret
+.nb:    ld a,(AIRT)             ; no steering in the air
+        or a
+        ret z
+        xor a
+        ld (STEER),a
+        ret
 
 autopilot:
         ld a,1
@@ -332,7 +351,13 @@ autopilot:
 ;  physics, one field: forgiving hover handling, no falling off
 ; =====================================================================
 physics:
-        call vcap
+        ld a,(AIRT)             ; airborne: speed holds
+        or a
+        jr z,.gnd
+        ld a,(SPEED)
+        ld b,a
+        jp .sp3
+.gnd:   call vcap
         ld c,a                  ; C = speed limit (normal, boost, stalled)
         ld a,(SPEED)
         ld b,a
@@ -462,8 +487,10 @@ physics:
 .hitn:  ld hl,-60
 .bounce:
         ld (CAM_LAT),hl
-        ld a,(BUMPT)            ; scraping the barrier costs a little shield
-        or a
+        ld a,(AIRT)             ; scraping the barrier costs a little shield
+        ld b,a
+        ld a,(BUMPT)
+        or b
         jr nz,.nbh
         ld a,12
         ld (BUMPT),a
@@ -552,13 +579,28 @@ draw_craft:
 .s0:    add hl,de
         djnz .s0
 .s1:    ex de,hl                ; DE = source
-        ld a,(FIELDS)           ; gentle hover bob
+        ld a,(AIRT)             ; jump: rise and fall over the shadow
+        or a
+        jr z,.gb
+        ld b,a
+        ld a,(AIRTOT)
+        sub b
+        cp b
+        jr c,.g1
+        ld a,b
+.g1:    srl a
+        cp 11
+        jr c,.g2
+        ld a,10
+.g2:    ld b,a
+        jr .g3
+.gb:    ld a,(FIELDS)           ; gentle hover bob
         rrca
         rrca
         rrca
         and 1
         ld b,a
-        ld a,CRAFTY+1
+.g3:    ld a,CRAFTY+1
         sub b
         call .dest
         ld bc,8*256+7
@@ -650,10 +692,10 @@ draw_hud:
         xor a
         ld (HUDBUF+31),a
         ld (HUDBUF+63),a
-        ; line 1: "SPEED nnn  LAP n/3  POS n/4"
+        ; line 1: "SPEED nnn  LAP n/3  POS n  n.nF"
         ld hl,s_hud1
         ld de,HUDBUF
-        ld bc,27
+        ld bc,24
         ldir
         ld de,HUDBUF+6
         ld a,(SPEED)
@@ -675,7 +717,33 @@ draw_hud:
         ld a,(POS)
         add a,'0'
         ld (HUDBUF+24),a
-        ; line 2: "TIME m:ss.t  ######## " or the demo prompt
+        ld a,(FAVG)             ; average fields per frame: tenths = sum*10/16
+        ld l,a
+        ld h,0
+        ld d,h
+        ld e,l
+        add hl,hl
+        add hl,hl
+        add hl,de
+        srl h
+        rr l
+        srl h
+        rr l
+        srl h
+        rr l
+        ld de,HUDBUF+27
+        ld bc,10
+        call .dig
+        ld a,'.'
+        ld (de),a
+        inc de
+        ld a,l
+        add a,'0'
+        ld (de),a
+        inc de
+        ld a,'F'
+        ld (de),a
+        ; line 2: "TIME m:ss  ########  MISSILE" or the demo prompt
         ld a,(GSTATE)
         or a
         jr nz,.race
@@ -683,7 +751,7 @@ draw_hud:
         ld de,HUDBUF+32
         ld bc,18
         ldir
-        jr .fps
+        jr .nhh
 .race:  ld hl,s_time
         ld de,HUDBUF+32
         ld bc,5
@@ -701,7 +769,7 @@ draw_hud:
         rrca
         and 15
         ld b,a
-        ld hl,HUDBUF+32+13
+        ld hl,HUDBUF+32+11
         ld c,8
 .bar:   ld a,b
         or a
@@ -713,38 +781,17 @@ draw_hud:
         inc hl
         dec c
         jr nz,.bar
-.fps:   ld a,(FAVG)             ; average fields per frame: tenths = sum*10/16
-        ld l,a
-        ld h,0
-        ld d,h
-        ld e,l
-        add hl,hl
-        add hl,hl
-        add hl,de
-        srl h
-        rr l
-        srl h
-        rr l
-        srl h
-        rr l
-        ld de,HUDBUF+32+24
-        ld bc,10
-        call .dig
-        ld a,'.'
-        ld (de),a
-        inc de
-        ld a,l
-        add a,'0'
-        ld (de),a
-        inc de
-        ld a,'F'
-        ld (de),a
-        inc de
-        ld a,(HALFON)
+        ld a,(WEAPON)           ; weapon in hand
         or a
         jr z,.nhh
-        ld a,'H'
-        ld (de),a
+        ld hl,s_msl
+        ld bc,7
+        dec a
+        jr z,.wp
+        ld hl,s_mine
+        ld bc,4
+.wp:    ld de,HUDBUF+32+21
+        ldir
 .nhh:   ld a,(HUDFORCE)         ; redraw each line only when its text changed
         ld (.frc+1),a
         xor a
@@ -856,7 +903,7 @@ text:   ; HL -> zero-terminated text, DE -> buffer address (one byte per glyph c
         inc hl
         jr .ch
 
-s_hud1: DB "SPEED 000  LAP 1/3  POS 1/4"
+s_hud1: DB "SPEED 000  LAP 1/3  POS 1"
 s_speed: DB "SPEED "
 
 text_t: ; transparent text: only the glyph pixels are drawn, in HUDFG colour
@@ -1026,6 +1073,15 @@ title_card:                     ; HL = routine that draws the lower half
         ret
 
 {GAME}
+
+; map SRAM bank B, build the sprites there and move the track tables in
+setup_banks:
+        call expand_sprites
+        ld hl,STG_TRK
+        ld de,TRK_H
+        ld bc,2048
+        ldir
+        ret
 
 jp_hl:  jp (hl)
 
