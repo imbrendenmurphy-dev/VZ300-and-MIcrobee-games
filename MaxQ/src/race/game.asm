@@ -1414,13 +1414,13 @@ lower_keys:
         ld de,BUFFER+32*48+2
         call text
         ld hl,s_press
-        ld de,BUFFER+32*57+7
-        jp text
+        ld de,BUFFER+32*56+7
+        jp hdr
 
 lower_best:
         ld hl,s_best
         ld de,BUFFER+32*35+11
-        call text
+        call hdr
         ld ix,TOPT
         ld hl,BUFFER+32*41+10
         ld (TPOS),hl
@@ -1463,8 +1463,8 @@ result_card:
 
 lower_result:
         ld hl,s_complete
-        ld de,BUFFER+32*37+9
-        call text
+        ld de,BUFFER+32*36+9
+        call hdr
         ld hl,s_posn            ; "POSITION 2ND"
         ld de,TBUF
         ld bc,9

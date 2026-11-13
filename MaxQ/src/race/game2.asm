@@ -841,8 +841,8 @@ obj_cols:       ; outer, inner
 ; ---------------------------------------------------------------------
 lower_intro:
         ld hl,s_cup
-        ld de,BUFFER+32*36+11
-        call text
+        ld de,BUFFER+32*35+11
+        call hdr
         ld hl,s_racen
         ld de,TBUF
         ld bc,5
@@ -871,7 +871,7 @@ lower_intro:
 lower_stand:
         ld hl,s_stand
         ld de,BUFFER+32*35+11
-        call text
+        call hdr
         call sort_pts
         ld ix,ORDERP
         ld hl,BUFFER+32*41+9
@@ -931,8 +931,8 @@ lower_stand:
 
 lower_champ:
         ld hl,s_champ
-        ld de,BUFFER+32*37+12
-        call text
+        ld de,BUFFER+32*36+12
+        call hdr
         call sort_pts
         ld a,(ORDERP)
         push af
@@ -951,6 +951,33 @@ lower_champ:
         ld hl,s_welldone
         ld de,BUFFER+32*54+7
         jp text
+
+; card heading: red letters with a green underline (the lower half is colour set 0,
+; so with yellow text on blue all four of its colours are on screen with the four above)
+hdr:    push de
+        push hl
+        ld a,(HUDFG)
+        push af
+        ld a,$FF
+        ld (HUDFG),a
+        call text_t
+        pop af
+        ld (HUDFG),a
+        pop hl
+        ld b,0
+.l:     ld a,(hl)
+        or a
+        jr z,.e
+        inc hl
+        inc b
+        jr .l
+.e:     pop hl
+        ld de,5*32
+        add hl,de
+.g:     ld (hl),$00
+        inc hl
+        djnz .g
+        ret
 
 name_hl:                        ; A = driver -> HL = 4-letter name (DE kept)
         push de
