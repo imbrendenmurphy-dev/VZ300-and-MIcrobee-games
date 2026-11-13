@@ -26,7 +26,7 @@ for mode in range(4):
         # voice-A spacing inside a chunk / pitch check
         w=[t for t,v in src if v in (0x01,0x06,0x07)]
         d=collections.Counter(np.diff(w)) if len(w)>2 else {}
-        hi={0:0x01,1:0x06,2:0x07,3:0x01}[mode]; lo={0:0x20,1:0x04,2:0x24,3:0x20}[mode]
+        hi={0:0x01,1:0x06,2:0x07,3:0x01}[mode]; lo={0:0x20,1:0x00,2:0x20,3:0x20}[mode]
         seq=[(t,v) for t,v in src if v in (hi,lo)]
         # instantaneous frequency: rising edges per time within contiguous sounding (exclude gaps > 1000T)
         ups=0; tt=0

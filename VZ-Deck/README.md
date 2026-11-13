@@ -127,7 +127,7 @@ to the VZ's normal green when you leave for BASIC, the command line or a game.
 | Output | What it drives |
 |---|---|
 | Speaker | the VZ's own speaker (latch bits 0 and 5) |
-| Cassette port | cassette out (latch bits 1 and 2, levels 4 and 6) into an amplifier |
+| Cassette port | cassette out (latch bits 1 and 2 together, levels 0 and 6) into headphones or an amplifier |
 | Speaker + cassette | both |
 | Printer port | `OUT (14),A` with the speaker's bit pattern, so data bits 0 and 5 of the printer plug carry the sound. Wire amplified speakers to those pins, or between them for twice the swing |
 
