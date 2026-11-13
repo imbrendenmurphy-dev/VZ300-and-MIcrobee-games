@@ -846,9 +846,7 @@ rl_c:   LD (HL),0x80
         INC HL
         DJNZ rl_c
         LD C,0
-rl_v:   PUSH BC
-        CALL vlevel
-        POP BC
+rl_v:   CALL vlevel           ; keeps C, B = this voice's level
         LD A,B
         OR A
         JR Z,rl_n
