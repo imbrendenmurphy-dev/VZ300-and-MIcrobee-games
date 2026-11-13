@@ -66,8 +66,8 @@ T_TONGS     equ 17
             assert $ <= STG_CODE
 
             org STG_CODE
-s1_name:    db "BACKYARD BLITZ",0
-            db "SUNDAY ARVO. THE BARBIE'S ALIVE!",0
+s1_name:    db "PARTY PLANET",0
+            db "THE PARTY SNACKS HAVE COME ALIVE",0
 
 ; ---- stage state (kept in the stage pack; reset by s1_init)
 seg_st:     db 0
@@ -88,9 +88,10 @@ s1_init:
             ld (mid_done),a
             ld (gnome_n),a
             ld (route),a
-            ld a,L_MODE|L_SPK0
+            ld a,L_MODE|L_CSS|L_SPK0
             ld (latchv),a
             ld hl,tune_stage1
+            ld (stage_tune),hl
             jp music
 
 s1_frame:   ret
@@ -142,8 +143,10 @@ s1_seg:
             ld (msg_p),bc
             ld a,80
             ld (msg_t),a
+            push hl
             ld a,SFX_SECRET
             call sfx
+            pop hl
             ld de,ROUTE_C
             jr .set
 .s3:        cp 3
@@ -157,8 +160,8 @@ s1_seg:
 .set:       ld (gm_p),hl
             ld (gm_left),de
             ret
-m_roof:     db 6,"OVER THE SHED ROOF!",0
-m_garden:   db 4,"THROUGH THE VEGGIE PATCH!",0
+m_roof:     db 6,"OVER THE CLOUD TOPS!",0
+m_garden:   db 4,"THROUGH THE LOLLY GARDEN!",0
 
 ; ---------------------------------------------------------------------
 ; hooked kills
@@ -216,8 +219,8 @@ s1_kill:
             ld hl,m_secret
             ld a,70
             jp s1_msg
-m_esky:     db 7,"PIES IN THE ESKY!",0
-m_gold:     db 6,"A GOLDEN GNOME?!",0
+m_esky:     db 5,"A CUPCAKE IN THE BOX!",0
+m_gold:     db 3,"A GOLDEN GINGERBREAD?!",0
 m_secret:   db 6,"SECRET! +5000",0
 
 ; HL = message, A = time
@@ -274,7 +277,7 @@ s1_hit:
             xor a
 .ok:        ld (boss_hp),a
             ld a,1
-            ld (hud_dirty),a
+            ld (bbar_dirty),a
             ld a,(boss_hp)
             or a
             jr z,.dead
@@ -371,8 +374,11 @@ hoist_ai:
 .sp:        and (ix+O_TM)
             jr nz,.ns
             ld a,(ix+O_SPR)
-            xor 1
-            ld (ix+O_SPR),a
+            cp SPR_HOIST
+            ld a,SPR_HOIST
+            jr nz,.sp1
+            inc a
+.sp1:       ld (ix+O_SPR),a
 .ns:        ld a,(ix+O_ST)
             or a
             jr nz,.fight
@@ -512,8 +518,8 @@ hoist_ai:
             call s1_msg
             ld hl,tune_stage1
             jp music
-m_hoist:    db 4,"THE HILLS HOIST SPINS UP!",0
-m_hoistdn:  db 7,"CLOTHESLINED! +5000",0
+m_hoist:    db 4,"THE CAROUSEL SPINS UP!",0
+m_hoistdn:  db 5,"MERRY-GO-DOWN! +5000",0
 
 ; ---------------------------------------------------------------------
 ; THE GRILLFATHER: waddles in, says G'DAY - then means business.
@@ -814,9 +820,9 @@ grill_ai:
             call s1_msg
             ld hl,tune_clear
             jp music
-m_gday:     db 10,"G'DAY, MATE!",0
-m_grill:    db 3,"WARNING! THE GRILLFATHER",0
-m_grilldn:  db 4,"SNAGGED HIM! +10000",0
+m_gday:     db 1,"PARDON ME. IS THIS THE PARTY?",0
+m_grill:    db 5,"WARNING! KING WOBBLE",0
+m_grilldn:  db 4,"JUST DESSERTS! +10000",0
 
 ; the tongs shoot out to the left edge, then snap back
 tongs_ai:
@@ -870,6 +876,7 @@ s1_tl:
             ; ---- after the HOIST: the side gate
             dw GATE_COL   : db TL_MSG : dw m_gate : db 120
             dw GATE_COL+6 : db TL_FORM, T_SNAG, 4, 24, 12, 4
+            dw GATE_COL+18 : db TL_SPAWN, T_SHOP, 132+XOFF, 22+YOFF
             dw GATE_COL+30 : db TL_SPAWN, T_TINNIE, 132+XOFF, 30+YOFF
             dw ROUTE_COL  : db TL_IFROUTE, 0 : dw .garden
             ; ---- ROOF: coin trails, possums, magpies
@@ -904,14 +911,15 @@ s1_tl:
             dw 660 : db TL_FORM, T_BLOWIE, 4, 22, 16, 1
             ; ---- the PATIO: the barbie
 .patio:     dw PATIO_COL    : db TL_MSG : dw m_patio : db 100
+            dw PATIO_COL+2  : db TL_SPAWN, T_SHOP, 132+XOFF, 18+YOFF
             dw PATIO_COL+8  : db TL_FORM, T_SNAG, 6, 30, 10, 2
             dw PATIO_COL+40 : db TL_CALL : dw boss_start
             dw PATIO_COL+40 : db TL_HOLD
             dw $7FFF : db TL_END
-m_intro:    db 3,"SUNDAY ARVO IN THE BURBS...",0
-m_wash:     db 8,"IT'S WASHING DAY!",0
-m_gate:     db 1,"FLY HIGH: ROOF  LOW: GARDEN",0
-m_patio:    db 4,"SMELLS LIKE A BARBIE...",0
+m_intro:    db 3,"WELCOME TO PARTY PLANET!",0
+m_wash:     db 3,"ALL ABOARD THE CAROUSEL!",0
+m_gate:     db 1,"UP: CLOUD TOPS  DOWN: LOLLIES",0
+m_patio:    db 4,"SOMEONE SET THE TABLE...",0
 
 ; ---- scenery and sprites
             include "gen/s1scen.inc"

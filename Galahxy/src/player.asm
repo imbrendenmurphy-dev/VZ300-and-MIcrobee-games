@@ -14,7 +14,7 @@ spd_y:      dw $00B0, $00F0, $0130, $0170
 PX_MIN      equ 0+XOFF
 PX_MAX      equ 118+XOFF
 PY_MIN      equ PF_TOP+YOFF
-PY_MAX      equ PF_BOT-5+YOFF
+PY_MAX      equ PF_BOT-7+YOFF
 
 player_reset:                           ; new life / new game position
             ld a,10+XOFF
@@ -694,6 +694,12 @@ buy_power:
             pop bc
             ret z
             ld a,b
+            call apply_power
+            xor a
+            ld (p_cursor),a
+            ret
+; A = slot (1 speed 2 bomb 3 shot 4 buddy 5 shield): power it up
+apply_power:
             cp 1
             jr nz,.b2
             ld hl,p_speed
@@ -716,9 +722,7 @@ buy_power:
             jr .done
 .b5:        ld a,3
             ld (p_shield),a
-.done:      xor a
-            ld (p_cursor),a
-            ld a,1
+.done:      ld a,1
             ld (bar_dirty),a
             ld a,SFX_BUY
             jp sfx
@@ -750,7 +754,7 @@ build_bar:
             pop bc
             push bc
             jr nz,.nf
-            ld a,0
+            ld a,2
             ld c,3
             call .slot
 .nf:        pop bc
@@ -758,8 +762,8 @@ build_bar:
             ld a,(p_cursor)
             cp b
             jr nz,.nc
-            ld a,3
-            ld c,1
+            ld a,2
+            ld c,0
             call .slot
 .nc:        pop bc
             inc b

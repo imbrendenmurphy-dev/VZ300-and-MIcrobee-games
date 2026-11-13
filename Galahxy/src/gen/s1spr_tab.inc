@@ -5,15 +5,15 @@ SPR_THONG equ 134
 SPR_TINNIE equ 136
 SPR_SPRINKLER equ 138
 SPR_ESKY equ 140
-SPR_GNOME equ 142
-SPR_HOTSNAG equ 144
-SPR_POSSUM equ 146
-SPR_HOIST equ 147
-SPR_PEG equ 149
-SPR_UNDIES equ 150
-SPR_GRILL equ 152
-SPR_TONGS equ 155
-s1spr_n equ 29
+SPR_GNOME equ 141
+SPR_HOTSNAG equ 143
+SPR_POSSUM equ 145
+SPR_HOIST equ 146
+SPR_PEG equ 148
+SPR_UNDIES equ 149
+SPR_GRILL equ 151
+SPR_TONGS equ 154
+s1spr_n equ 28
 s1spr_tab:
             dw s1spr_r0
             dw s1spr_r1
@@ -43,4 +43,3 @@ s1spr_tab:
             dw s1spr_r25
             dw s1spr_r26
             dw s1spr_r27
-            dw s1spr_r28

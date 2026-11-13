@@ -1,0 +1,36 @@
+mapper 1
+crash 1
+okpc 8000 AB6C
+okpc B800 E3B6
+okpc E400 F7E8
+okpc 0038 003A
+okpc 7D7D 7D7F
+okpc 5F00 5F0A
+sd build/sd
+vz build/sd/GALAHXY.VZ
+frames 200
+wav build/title.wav
+frames 500
+wavend
+screen build/shots/l1.ppm
+tap SPACE
+frames 40
+screen build/shots/l2.ppm
+tap P
+tap P
+tap T
+frames 30
+screen build/shots/l3.ppm
+tap O
+tap T
+tap SPACE
+frames 200
+screen build/shots/l4.ppm
+down SPACE
+wav build/game.wav
+frames 400
+wavend
+screen build/shots/l5.ppm
+down Q
+frames 40
+screen build/shots/l6.ppm

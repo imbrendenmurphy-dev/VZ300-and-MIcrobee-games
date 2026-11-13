@@ -1,0 +1,23 @@
+mapper 1
+crash 1
+okpc 8000 A99D
+okpc B800 E081
+okpc E400 F7A0
+okpc 0038 003A
+okpc 7D7D 7D7F
+okpc 5F00 5F0A
+sd build/sd
+vz build/sd/GALAHXY.VZ
+frames 300
+rand 4000 1
+tap SPACE
+rand 6000 2
+tap M
+rand 6000 3
+tap RETURN
+frames 50
+tap RETURN
+rand 8000 4
+rand 8000 5
+screen build/shots/z1.ppm
+regs

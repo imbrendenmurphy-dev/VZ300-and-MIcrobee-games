@@ -22,6 +22,7 @@ T_BOOM      equ 32
 T_PAV       equ 33
 T_COIN      equ 34
 T_PIE       equ 35
+T_SHOP      equ 37
 T_SPARK     equ 36
 ; behaviours
 BH_NONE     equ 0
@@ -42,6 +43,7 @@ com_types:  ; 32 BOOM, 33 PAV, 34 COIN, 35 PIE, 36 SPARK
             db BH_PICK, SPR_COIN, 0, 0,0,4,4, $00, (1<<F_PICK)|(1<<F_ANIM), 0
             db BH_PICK, SPR_PIE,  0, 0,0,5,3, $00, (1<<F_PICK), 0
             db BH_FX,   SPR_SPARK,0, 0,0,0,0, $00, (1<<F_FX), 1
+            db BH_PICK, SPR_SHOPBAL,0, 0,0,10,9, $00, (1<<F_PICK), 0
 
 beh_tab:    dw beh_none, beh_sine, beh_line, beh_dart, beh_swoop, beh_bounce
             dw beh_ground, beh_arc, beh_pick, beh_fx, beh_stage
@@ -534,7 +536,18 @@ obj_fire:
             inc c
 fire_at:    ; B,C = from
             push bc
-            ld e,40                 ; 1.25 px per frame
+            ld a,(round)            ; 1.25 px per frame, quicker on harder
+            add a,a                 ; skills and later rounds
+            add a,a
+            add a,a
+            ld e,a
+            ld a,(diff)
+            add a,a
+            add a,a
+            add a,a
+            add a,e
+            add a,36
+            ld e,a
             call aim
             ; 8.8 -> 1/32 units: >>3
             ld a,l
@@ -684,9 +697,13 @@ draw_objects:
             or a
             jr z,.n
             push bc
+            ld a,(frames)           ; hit flash one frame in four
+            and 3
+            ld a,0
+            jr nz,.nfl
             ld a,(ix+O_FL)
             and 1<<F_FLASH
-            ld (bl_flash),a
+.nfl:       ld (bl_flash),a
             res F_FLASH,(ix+O_FL)
             ld a,(ix+O_SPR)
             bit F_ANIM,(ix+O_FL)
@@ -834,10 +851,10 @@ collide:
             cp 3
             ret nc
             ld a,(p_x)
-            add a,2
-            ld (pb_x),a             ; player box: 4 x 2 at the body
+            add a,3
+            ld (pb_x),a             ; player box: 4 x 2 in the middle of the body
             ld a,(p_y)
-            add a,2
+            add a,3
             ld (pb_y),a
             ld ix,objs
             ld b,NOBJ
@@ -988,10 +1005,21 @@ kill_obj:
             ; whole formation shot down: PAV + 500 bonus
             ld de,$0050
             call add_score
-            ld a,1
-            jr .drop
+            jr .pav
 .ng:        ld a,(kill_flags)
             and 1<<F_CARRY
+            jr nz,.pav
+            ld a,(kill_flags)       ; ground things always pay a coin,
+            and 1<<F_GROUND         ; flyers one time in four
+            ld a,T_COIN
+            jr nz,.drop
+            call random
+            and 3
+            ld a,T_COIN
+            jr z,.drop
+            xor a
+            jr .drop
+.pav:       ld a,T_PAV
 .drop:      push af
             ld b,(ix+O_X)
             ld c,(ix+O_Y)
@@ -1001,8 +1029,8 @@ kill_obj:
             call spawn_obj
             pop bc
             pop af
+            or a
             ret z
-            ld a,T_PAV
             jp spawn_obj
 
 take_pickup:
@@ -1014,11 +1042,18 @@ take_pickup:
             jr nz,.pie
             ld hl,coins
             inc (hl)
-            ld a,SFX_COIN
+            ld hl,wallet
+            ld a,(hl)
+            cp 99
+            jr nc,.wf
+            inc (hl)
+.wf:        ld a,SFX_COIN
             call sfx
             ld a,$20                ; 200 x chain
             jp score_chain
-.pie:       cp T_PIE
+.pie:       cp T_SHOP
+            jp z,shop
+            cp T_PIE
             ret nz
             ld a,SFX_HEAL
             call sfx
@@ -1432,8 +1467,8 @@ msg_render:
             ld bc,159
             ld (hl),SKYBYTE
             ldir
-            ld a,1
-            ld c,2
+            ld a,2
+            ld c,1
             call text_col
             ld hl,(msg_p)
             ld a,(hl)

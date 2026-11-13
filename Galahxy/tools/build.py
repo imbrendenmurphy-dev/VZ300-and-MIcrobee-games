@@ -18,13 +18,23 @@ w('buildid.inc', 'BUILD_ID equ $%04X\n' % BUILD_ID)
 w('font.inc', font.asm())
 w('sound.inc', sound.asm())
 w('sine.inc', 'sine16:\n' + '\n'.join('            db %d' % round(16 * math.sin(i * 2 * math.pi / 64)) for i in range(64)) + '\n')
-tab, rec = sprites.asm(sprites.COMMON, 'com_spr', 0)
+sprites.LOW = {'BIGTOAST', 'SHOPBAL'}; sprites.LOW_SPLIT = True
+tab, rec, rec2 = sprites.asm(sprites.COMMON, 'com_spr', 0)
+sprites.LOW = set(); sprites.LOW_SPLIT = False
 w('comspr.inc', tab + rec)
+w('comspr_lo.inc', rec2)
 tab, rec = sprites.asm(sprites.STAGE1, 's1spr', 128)
 w('s1spr_tab.inc', tab)
 w('s1spr_rec.inc', rec)
 w('s1scen.inc', scenery.asm())
 w('logo.inc', logo.asm())
+tt = []
+for fg in range(4):
+    for bg in range(4):
+        for p in range(8):
+            px = [fg if p & d else bg for d in (4, 2, 1)] + [bg]
+            tt.append(px[0] << 6 | px[1] << 4 | px[2] << 2 | px[3])
+w('txtab.inc', 'tx_tabs:\n' + '\n'.join('            db ' + ','.join('$%02X' % v for v in tt[i:i + 16]) for i in range(0, 128, 16)) + '\n')
 
 a = Asm()
 cwd = os.getcwd(); os.chdir(SRC)

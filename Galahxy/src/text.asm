@@ -3,39 +3,29 @@
 ;  Strings: 0 ends; bytes 1-4 switch the ink to colour 0-3.
 ; =====================================================================
 
-; A = ink, C = paper -> build the expansion tables
+; A = ink, C = paper -> select the expansion table (tx_tabs, 16 x 8 bytes)
 text_col:
             ld (tx_fg),a
             ld a,c
             ld (tx_bg),a
 tx_rebuild:
-            ld hl,tx_exp
-            ld b,0                  ; pattern 0..7
-.p:         ld c,0
-            ld d,4                  ; pattern bit for the left pixel
-            ld e,3
-.px:        ld a,b
-            and d
-            ld a,(tx_bg)
-            jr z,.bg
+            push hl
+            push de
             ld a,(tx_fg)
-.bg:        sla c
-            sla c
-            or c
-            ld c,a
-            srl d
-            dec e
-            jr nz,.px
-            sla c
-            sla c
-            ld a,(tx_bg)
-            or c
-            ld (hl),a
-            inc hl
-            inc b
-            ld a,b
-            cp 8
-            jr nz,.p
+            add a,a
+            add a,a
+            ld hl,tx_bg
+            or (hl)
+            add a,a
+            add a,a
+            add a,a                 ; (fg*4+bg)*8
+            ld l,a
+            ld h,0
+            ld de,tx_tabs
+            add hl,de
+            ld (tx_ptr),hl
+            pop de
+            pop hl
             ret
 tx_bits:    db 1,2,4                ; pixel 2 (right) .. pixel 0 (left)
 tx_bg:      db 0
@@ -82,7 +72,7 @@ putc:
 .r:         ld a,(hl)
             inc hl
             push hl
-            ld hl,tx_exp
+            ld hl,(tx_ptr)
             add a,l
             ld l,a
             jr nc,.nc

@@ -73,6 +73,9 @@ scroll_sub: ds 1               ; fraction for slower/faster scrolling
 cloud_x:    ds 3
 ; ---- blitter
 bl_sp:      ds 2
+bl_ix:      ds 2
+bl_id:      ds 1
+bl_bc:      ds 2
 bl_step:    ds 2
 bl_flash:   ds 1
 bl_rec:     ds 2
@@ -84,7 +87,7 @@ bl_x:       ds 1
 bl_ys:      ds 1
 ; ---- text
 tx_fg:      ds 1
-tx_exp:     ds 8
+tx_ptr:     ds 2
 ; ---- player
 p_xf:       ds 1
 p_x:        ds 1               ; stored +XOFF
@@ -114,6 +117,7 @@ chain_t:    ds 1               ; fields left to keep the chain alive
 chain_max:  ds 1
 extra_at:   ds 1               ; next extra life at score (x10000, BCD)
 hud_dirty:  ds 1
+bbar_dirty: ds 1
 bar_dirty:  ds 1
 ; ---- stage
 stg_phase:  ds 1               ; 0 play, 1 midboss, 2 boss, 3 clear, 4 game over
@@ -172,6 +176,9 @@ pb_y:       ds 1
 kill_flags: ds 1
 spawn_y:    ds 1
 trainer:    ds 1
+in_game:    ds 1
+stage_tune: ds 2
+wallet:     ds 1               ; coins to spend in the shop
 ; ---- game
 stage_no:   ds 1               ; 1..
 stage_ld:   ds 1               ; stage pack in memory (0 none)

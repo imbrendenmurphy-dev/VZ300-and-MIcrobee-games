@@ -1,6 +1,7 @@
 vz build/sd/GALAHXY.VZ
 tmark $tmark build/tm.txt
 watch $stg_phase
+watch $route
 frames 1000
 poke $trainer 1
 poke $demo_t+1 60
@@ -124,3 +125,63 @@ screen build/shots/e38.ppm
 frames 250
 poke $demo_t+1 60
 screen build/shots/e39.ppm
+frames 250
+poke $demo_t+1 60
+screen build/shots/e40.ppm
+frames 250
+poke $demo_t+1 60
+screen build/shots/e41.ppm
+frames 250
+poke $demo_t+1 60
+screen build/shots/e42.ppm
+frames 250
+poke $demo_t+1 60
+screen build/shots/e43.ppm
+frames 250
+poke $demo_t+1 60
+screen build/shots/e44.ppm
+frames 250
+poke $demo_t+1 60
+screen build/shots/e45.ppm
+frames 250
+poke $demo_t+1 60
+screen build/shots/e46.ppm
+frames 250
+poke $demo_t+1 60
+screen build/shots/e47.ppm
+frames 250
+poke $demo_t+1 60
+screen build/shots/e48.ppm
+frames 250
+poke $demo_t+1 60
+screen build/shots/e49.ppm
+frames 250
+poke $demo_t+1 60
+screen build/shots/e50.ppm
+frames 250
+poke $demo_t+1 60
+screen build/shots/e51.ppm
+frames 250
+poke $demo_t+1 60
+screen build/shots/e52.ppm
+frames 250
+poke $demo_t+1 60
+screen build/shots/e53.ppm
+frames 250
+poke $demo_t+1 60
+screen build/shots/e54.ppm
+frames 250
+poke $demo_t+1 60
+screen build/shots/e55.ppm
+frames 250
+poke $demo_t+1 60
+screen build/shots/e56.ppm
+frames 250
+poke $demo_t+1 60
+screen build/shots/e57.ppm
+frames 250
+poke $demo_t+1 60
+screen build/shots/e58.ppm
+frames 250
+poke $demo_t+1 60
+screen build/shots/e59.ppm

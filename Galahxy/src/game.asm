@@ -6,7 +6,13 @@ NSTAGES     equ 1              ; stages in this build (the vertical slice)
 
 ; A = character -> play until the game ends, then back to the caller
 new_game:
-            ld (p_char),a
+            call .play
+            xor a
+            ld (in_game),a
+            ret
+.play:      ld (p_char),a
+            ld a,1
+            ld (in_game),a
             xor a
             ld (score),a
             ld (score+1),a
@@ -20,7 +26,7 @@ new_game:
             ld (round),a
             ld (credits),a
             ld (chain),a
-            ld (trainer),a
+            ld (wallet),a
             ld a,$01                ; first extra life at 100,000
             ld (extra_at),a
             ld a,(diff)
@@ -364,6 +370,15 @@ band_bb:
 show_hold:
             push af
             call present
+            call bb_wait            ; carry the picture over to the new draw buffer
+            ld a,(cps)
+            ld h,a
+            ld l,0
+            ld a,(bbh)
+            ld d,a
+            ld e,l
+            ld bc,COPYEND*32
+            ldir
             pop af
 .w:         push af
             ld a,1
@@ -426,7 +441,7 @@ stage_card:
             ld a,120
             jp show_hold
 str_stage:  db "STAGE  ",0
-str_round2: db "ROUND 2: IT'S HOTTER!",0
+str_round2: db "ROUND 2: THE PARTY NEVER ENDS!",0
 
 round_card:
             ld a,$AA
@@ -443,7 +458,7 @@ round_card:
             ld a,100
             jp show_hold
 str_round:  db "ROUND 2",0
-str_round_b: db "THE BACKYARD BITES BACK",0
+str_round_b: db "SECOND HELPINGS!",0
 
 loading_card:
             ld a,$AA
@@ -633,6 +648,10 @@ game_over_seq:
             call music
             ld a,40
             call wait_fields
+            ld hl,str_cont2
+            call bar_msg
+            ld a,1
+            ld (bar_dirty),a        ; (the power bar comes back afterwards)
             ld a,9
             ld (fe_sel),a
 .l:         call bb_wait
@@ -656,12 +675,6 @@ game_over_seq:
             ld de,36*32+24
             call bbde
             call putc
-            ld a,0
-            ld c,3
-            call text_col
-            ld hl,str_cont2
-            ld a,42
-            call small_centre
             call draw_hud
             ld a,SFX_MENU
             call sfx

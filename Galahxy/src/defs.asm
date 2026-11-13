@@ -24,7 +24,7 @@ L_SPK1      equ $20
 IM2TAB      equ $7C00          ; 257 bytes of $7D -> vector at $7D7D
 IM2VEC      equ $7D7D
 STACK_TOP   equ $8000          ; stack $7D80-$7FFF
-VARS        equ $AB00          ; variables + object tables $AB00-$AFFF
+VARS        equ $ABC0          ; variables + object tables $AB00-$AFFF
 BB          equ $B000          ; back buffer 0 (main RAM; also the SD bounce buffer)
 BB1         equ $F800          ; back buffer 1 (upper bank 1)
 HUDROWS     equ 6              ; rows 0-5: HUD, written straight into VRAM

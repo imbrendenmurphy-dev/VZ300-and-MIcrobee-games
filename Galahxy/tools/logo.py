@@ -28,25 +28,26 @@ def build():
                             Y = y0 + bounce[i] + r * ch + yy; X = x + k * cw + xx
                             if 0 <= Y < H and 0 <= X < W: ink[Y][X] = 1
         x += 5 * cw + 2
-    pix = [[2] * W for _ in range(H)]
+    pix = [[1] * W for _ in range(H)]
     # shadow (down-right), outline, then ink
     for Y in range(H):
         for X in range(W):
             if ink[Y][X]:
                 for dy, dx in ((1, 1), (1, 2), (0, 2)):
-                    if Y + dy < H and X + dx < W: pix[Y + dy][X + dx] = 3
+                    if Y + dy < H and X + dx < W: pix[Y + dy][X + dx] = 2
     for Y in range(H):
         for X in range(W):
             if ink[Y][X]:
                 for dy in (-1, 0, 1):
                     for dx in (-1, 0, 1):
-                        if 0 <= Y + dy < H and 0 <= X + dx < W and not ink[Y + dy][X + dx]: pix[Y + dy][X + dx] = 3
+                        if 0 <= Y + dy < H and 0 <= X + dx < W and not ink[Y + dy][X + dx]: pix[Y + dy][X + dx] = 2
     for Y in range(H):
         for X in range(W):
-            if ink[Y][X]: pix[Y][X] = 1
+            if ink[Y][X]: pix[Y][X] = 0
     # highlight stripe through the letters (green) for a bit of chrome
     for X in range(W):
-        if ink[5][X]: pix[5][X] = 0
+        if ink[5][X]: pix[5][X] = 3
+        if ink[6][X]: pix[6][X] = 3
     return pix
 
 def asm():
@@ -60,4 +61,4 @@ if __name__ == '__main__':
     import sys
     from vzpal import to_img
     p = build()
-    to_img(p + [[2] * 128] * 4).save(sys.argv[1])
+    to_img(p + [[1] * 128] * 4, 1).save(sys.argv[1])

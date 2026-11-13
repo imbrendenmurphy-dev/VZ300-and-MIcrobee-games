@@ -19,6 +19,8 @@ entry:      di
             include "objects.asm"
             include "hud.asm"
             include "game.asm"
+            include "hiscore.asm"
+            include "shop.asm"
 
 ; ---------------------------------------------------------------------
 boot:
@@ -45,7 +47,7 @@ boot:
             ld (cur_map),a
             ld hl,$6A5B
             ld (rng),hl
-            ld a,L_MODE|L_SPK0
+            ld a,L_MODE|L_CSS|L_SPK0   ; pastel palette (CSS1)
             ld (latchv),a
             ld a,HIGH(BB)
             ld (bbh),a
@@ -149,6 +151,17 @@ com_hi_end:
             org COM_LO
             include "gen/logo.inc"
             include "gen/font.inc"
+            include "gen/txtab.inc"
+            include "gen/comspr_lo.inc"
+hi_default: db "GX"
+            db $00,$50,$00,"BPM"
+            db $00,$40,$00,"GAZ"
+            db $00,$30,$00,"CUP"
+            db $00,$25,$00,"TST"
+            db $00,$20,$00,"PAV"
+            db $00,$15,$00,"SNG"
+            db $00,$10,$00,"ESK"
+            db $00,$05,$00,"MAG"
             include "gen/sound.inc"
 com_lo_end:
             assert com_lo_end <= HISCORES

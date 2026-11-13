@@ -1,8 +1,8 @@
 mapper 1
 crash 1
-okpc 8000 A5C5
-okpc B800 E07A
-okpc E400 F7A7
+okpc 8000 A96A
+okpc B800 E081
+okpc E400 F759
 okpc 0038 003A
 okpc 7D7D 7D7F
 okpc 5F00 5F0A

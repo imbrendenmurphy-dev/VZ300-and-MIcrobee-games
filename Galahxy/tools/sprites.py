@@ -1,8 +1,9 @@
-"""GALAHXY sprite art (all original). Mode 1, CSS0: g=green(0) y=yellow(1) b=blue(2) r=red(3)
-'.' = transparent. Pixels are about 1.5x taller than wide on a 4:3 screen.
+"""GALAHXY sprite art (all original). Mode 1, CSS1 pastel palette:
+w = buff(0)  c = cyan(1)  m = magenta(2)  o = orange(3)   '.' = transparent.
+Pixels are about 1.5x taller than wide on a 4:3 screen.
 Each sprite: name -> (list of frames, nph) ; nph 4 = pre-shifted (any x), 1 = byte-aligned x."""
 
-C = {'g': 0, 'y': 1, 'b': 2, 'r': 3}
+C = {'w': 0, 'c': 1, 'm': 2, 'o': 3}
 
 def G(s):
     rows = [r for r in s.strip('\n').split('\n')]
@@ -10,436 +11,450 @@ def G(s):
     return [[(C[ch] if ch in C else -1) for ch in r.ljust(w, '.')] for r in rows]
 
 S = {}
-# ---------------------------------------------------------------- the cast
-# GAZZA the rosy galah: pink-red body, yellow beak and crest
+# ================================================================ the cast (buff outline added below)
+# GAZZA the galah: pink (magenta) body, orange beak and crest
 S['GAZZA'] = ([G("""
-.yy.....
-..yy..ry
-.ryyrrrr
-rrrrrrry
-.rrrrr..
-..r..r..
+.oo.....
+..oo..mo
+.mwwmmmm
+mmmmmmmo
+.mmmmm..
+..o..o..
 """), G("""
 ........
-......ry
-.rrrrrrr
-rrrrrrry
-.ryyyr..
-..yyr...
+.oo...mo
+.mmmmmmm
+mmmmmmmo
+.mwwwm..
+..wwm...
 """)], 4)
-# CAPTAIN CUPPA the flying teapot: blue pot, yellow spout and lid knob
+# CAPTAIN CUPPA the flying teapot: orange pot, buff spout and lid, a cyan rose
 S['CUPPA'] = ([G("""
-..y.....
-.gggg...
-ggggggyy
-yggggggy
-gggggg..
-.yyyy...
+..w.....
+.oooo...
+oocooowww
+woooooow
+oooooo..
+.wwww...
 """), G("""
-..y...y.
-.gggg...
-ggggggyy
-ygggggg.
-gggggg..
-.yyyy...
+..w...w.
+.oooo...
+oocooowww
+wooooooo
+oooooo..
+.wwww...
 """)], 4)
-# TOASTIE the flying toaster: yellow chrome, red slots, toast popping
+# TOASTIE the flying toaster: buff chrome, magenta slots, orange toast popping
 S['TOASTIE'] = ([G("""
-.rr.rr..
-yyyyyyy.
-yryyryyy
-yyyyyyyr
-yyyyyyy.
-.r...r..
+.oo.oo..
+wwwwwww.
+wmwwmwww
+wwwwwwwo
+wwwwwww.
+.m...m..
 """), G("""
 ........
-yyyyyyy.
-yryyryyy
-yyyyyyyr
-yyyyyyy.
-.r...r..
+wwwwwww.
+wmwwmwww
+wwwwwwwo
+wwwwwww.
+.m...m..
 """)], 4)
-# player hit flash (white-ish not available: yellow silhouette)
-S['FLASH'] = ([G("""
-.yy.....
-yyyyyyyy
-yyyyyyyy
-yyyyyyyy
-.yyyyyy.
-..y..y..
-""")], 4)
-# sidekick: CHOOK the chick
+# sidekick: a chick in a party hat
 S['CHICK'] = ([G("""
-.yy.
-yyyr
-.yy.
+.m..
+.oo.
+ooom
+.oo.
 """), G("""
-.yy.
-yyyr
-y.y.
+.m..
+.oo.
+ooom
+o.o.
 """)], 4)
 S['SHIELD'] = ([G("""
-.yyyyyyyy.
-y........y
-y........y
-y........y
-y........y
-y........y
-.yyyyyyyy.
+.wwwwwwwwww.
+w..........w
+w..........w
+w..........w
+w..........w
+w..........w
+w..........w
+.wwwwwwwwww.
 """)], 4)
-# ---------------------------------------------------------------- player shots
+# ================================================================ player shots (buff: never confused with enemy fire)
 S['SEED'] = ([G("""
-yy
+ww
 """)], 4)
 S['BEAM'] = ([G("""
-yyyyyyyy
+wwwwwwww
 """)], 4)
 S['TOAST'] = ([G("""
-yyy
-yry
-yyy
+www
+wow
+www
 """)], 4)
 S['NUT'] = ([G("""
-rr
-rr
+ww
+wo
 """)], 4)
 S['TEABAG'] = ([G("""
-.y.
-yry
-.y.
+.w.
+wmw
+.w.
 """)], 4)
 S['VEGEMITE'] = ([G("""
-.rr
-rrr
-.rr
+.mw
+mmw
+.mw
 """)], 4)
-# ---------------------------------------------------------------- enemy bullets & pickups
+# ================================================================ enemy bullets & pickups
+# enemy bullet: orange core, buff ring - reads on cyan sky and magenta ground
 S['PELLET'] = ([G("""
-.yy.
-yrry
-.yy.
-""")], 4)
-S['FLAME'] = ([G("""
-.ryy
-ryyy
-.ryy
-"""), G("""
-.yry
-ryyr
-.yry
-""")], 4)
+.ww.
+wood
+.ww.
+""".replace('d', 'w'))], 4)
+# the PAV (pavlova): power capsule - buff meringue, magenta/orange fruit, it twinkles
 S['PAV'] = ([G("""
-.yyy.
-yrrry
-yyyyy
-.rrr.
+.mom.
+wwwww
+wwwww
+.www.
 """), G("""
-.rrr.
-ryyyr
-rrrrr
-.yyy.
+.omo.
+wwwww
+wmwww
+.www.
 """)], 4)
 S['COIN'] = ([G("""
-.yy.
-yrry
-yrry
-.yy.
+.oo.
+owwo
+owwo
+.oo.
 """), G("""
-.y..
-.yr.
-.yr.
-.y..
+.o.
+owo
+owo
+.o.
 """)], 4)
+# the cupcake (heals a heart)
 S['PIE'] = ([G("""
-.yyy.
-yyyyy
-rrrrr
+.mmm.
+mmwmm
+.ooo.
+.ooo.
 """)], 4)
 S['BOOM'] = ([G("""
-...y....
-.y.yy.y.
-..yrry..
-.yrrrry.
-..yrry..
-.y..y.y.
+.....
+..w..
+.wow.
+..w..
+.....
 """), G("""
-.y....y.
-..r..r..
-.r.yy.r.
-...yy...
-.r....r.
-y..r...y
+.w.w.
+w.o.w
+.ooo.
+w.o.w
+.w.w.
 """), G("""
-r......r
-........
-...r....
-....r...
-........
-.r....r.
+w...w
+..o..
+.o.o.
+..o..
+w...w
 """)], 4)
 S['SPARK'] = ([G("""
-y.y
-.y.
-y.y
+w.w
+.w.
+w.w
 """)], 4)
-# ---------------------------------------------------------------- stage 1 enemies
+# ================================================================ stage 1: PARTY PLANET
+# JELLYBEAN - wobbly sine flyers
 S['SNAG'] = ([G("""
-.rrrrrr.
-rryrrrrr
-.rrrrrr.
+.oooooo.
+oowooooo
+.oooooo.
 """), G("""
-.rrrrrr.
-rrrrryrr
-.rrrrrr.
+..oooo..
+oowoooooo
+.oooooo.
 """)], 4)
+# PARTY POPPER - hovers, then darts at you
 S['BLOWIE'] = ([G("""
-.yy.y.
-..yy..
-ggggg.
-rggggr
-.ggg..
+m..wm.
+.mmmmo
+mwmmmo
+m..wm.
 """), G("""
-......
-......
-ggggg.
-rggggr
-.gggg.
-..yyy.
+.w.wm.
+.mmmmo
+mwmmmo
+.w.wm.
 """)], 4)
+# PARTY PENGUIN - party hat, swoops down on you
 S['SWOOPER'] = ([G("""
-y.....y
-yy...yy
-.yyyyy.
-.yyryy.
-..yyy..
-...r...
+...o...
+..mmm..
+.mwwmo.
+mmwwmm.
+.mmmm..
 """), G("""
-.......
-.......
-yyyyyyy
-yyyryyy
-..yyy..
-...r...
+...o...
+..mmm..
+.mwwmo.
+mmwwmmm
+m.mm..m
 """)], 4)
+# BEACH BALL - bounces along the ground
 S['THONG'] = ([G("""
-...rr..
-yyyyyyy
-.yyyyy.
+.mwwo.
+mmwwoo
+.mwwo.
 """), G("""
-.yyyyy.
-yyyyyyy
-...rr..
+.owwm.
+oowwmm
+.owwm.
 """)], 4)
+# BALLOON carrier - always drops a PAV
 S['TINNIE'] = ([G("""
-.yy.
-rrrr
-ryrr
-rrrr
-.yy.
+.oo.
+owoo
+oooo
+.oo.
+..m.
 """), G("""
-....
-yrry
-yryy
-yrry
-....
+.oo.
+owoo
+oooo
+.oo.
+.m..
 """)], 4)
+# CANDY CANNON - a ground turret lobbing sprinkles
 S['SPRINKLER'] = ([G("""
-..b..
-.yyy.
-yryry
-.yyy.
+..ww.
+.mwmw
+wmwmw
+mmmmm
 """), G("""
-b...b
-.yyy.
-yryry
-.yyy.
+.ww..
+mwmw.
+wmwmw
+mmmmm
 """)], 4)
+# GIFT BOX - shoot it open for a cupcake
 S['ESKY'] = ([G("""
-.rrrrrr.
-bbbbbbbb
-byyyyyyb
-bbbbbbbb
-bbbbbbbb
-"""), G("""
-r......r
-.rrrrrr.
-byyyyyyb
-bbbbbbbb
-bbbbbbbb
+..m..m..
+...mm...
+oooommoo
+oooommoo
+mmmmmmmm
+oooommoo
 """)], 4)
+# GINGERBREAD MAN - shoot three and the golden one turns up
 S['GNOME'] = ([G("""
-..r..
-.rrr.
-rrrrr
-.yyy.
-yyyyy
-.bbb.
-.b.b.
+.ooo.
+owowo
+.ooo.
+ooooo
+.owo.
+.o.o.
+oo.oo
 """), G("""
-..y..
-.yyy.
-yyyyy
-.yyy.
-yyyyy
-.yyy.
-.y.y.
+.www.
+wmwmw
+.www.
+wwwww
+.wmw.
+.w.w.
+ww.ww
 """)], 4)
+# JELLY BLOB - lobbed by the king
 S['HOTSNAG'] = ([G("""
-.rrrr.
-ryyyyr
-.rrrr.
+.mmm.
+mwmmm
+mmmmm
 """), G("""
-.rr.
-rryr
-rrrr
-.rr.
+.mmm.
+mmwmm
+mmmmm
 """)], 4)
+# PARTY BUNNY - hops about on the cloud tops
 S['POSSUM'] = ([G("""
-.y..y.
-.yyyy.
-yryyry
-.yyyy.
-..rr..
+.w.w..
+.w.w..
+wwwww.
+wmwwww
+.wwww.
 """)], 4)
-# ---------------------------------------------------------------- midboss: THE HILLS HOIST
-# a rotary clothesline flying on its own spinning arms, undies flapping
+# ================================================================ midboss: THE CAROUSEL
+# a runaway merry-go-round spinning through the sky, horses on poles
 S['HOIST'] = ([G("""
-y..........y..........y
-.y.........y.........y.
-..y...rr...y...gg...y..
-...y..rr...y...gg..y...
-....y......y......y....
-yyyyyyyyyyyyyyyyyyyyyyy
-....y......y......y....
-...y.......y.......y...
-..y.......yyy.......y..
-.y........yry........y.
-y.........yyy.........y
-...........y...........
-...........y...........
-...........y...........
-..........yyy..........
-.........yyyyy.........
+...........o...........
+.........mmmmm.........
+.......mmwmwmwmm.......
+....mmmmmmmmmmmmmmm....
+..wwwwwwwwwwwwwwwwwww..
+..o...o...o.o...o...o..
+..o...o...o.o...o...o..
+.wwo..o..wwoo...o..wwo.
+wwww..o.wwwwo...o.wwww.
+.w.w..o..w.wo...o..w.w.
+..o..wwo..o.o..wwo..o..
+..o.wwww..o.o.wwww..o..
+..o..w.w..o.o..w.w..o..
+.mmmmmmmmmmmmmmmmmmmmm.
+..ooooooooooooooooooo..
+.....................
 """), G("""
-...........y...........
-.rr........y........gg.
-.rr....y...y...y....gg.
-.........y.y.y.........
-..........yyy..........
-yyyyyyyyyyyyyyyyyyyyyyy
-..........yyy..........
-.........y.y.y.........
-.......y..yyy..y.......
-.....y....yry....y.....
-...y......yyy......y...
-...........y...........
-...........y...........
-...........y...........
-..........yyy..........
-.........yyyyy.........
+...........o...........
+.........mmmmm.........
+.......mwmwmwmmm.......
+....mmmmmmmmmmmmmmm....
+..wwwwwwwwwwwwwwwwwww..
+..o...o...o.o...o...o..
+..o..wwo..o.o..wwo..o..
+..o.wwww..o.o.wwww..o..
+..o..w.w..o.o..w.w..o..
+.wwo..o..wwoo...o..wwo.
+wwww..o.wwwwo...o.wwww.
+.w.w..o..w.wo...o..w.w.
+..o...o...o.o...o...o..
+.mmmmmmmmmmmmmmmmmmmmm.
+..ooooooooooooooooooo..
+.....................
 """)], 1)
+# a wooden horse flung off the carousel (arcs and falls)
 S['PEG'] = ([G("""
-y.y
-.y.
-.y.
+ww.
+www
+o.o
 """)], 4)
+# streamers fluttering away from the carousel
 S['UNDIES'] = ([G("""
-rrrrr
-rr.rr
-r...r
+m.o.m
+.m.m.
+m.o.m
 """), G("""
-ggggg
-gg.gg
-g...g
+.m.o.
+m.m.m
+.m.o.
 """)], 4)
-# ---------------------------------------------------------------- boss: THE GRILLFATHER
-# a kettle barbecue on legs with a magnificent moustache; the lid is its mouth
+# ================================================================ boss: KING WOBBLE
+# a giant jelly in a crown on a cake-stand. frame 0 calm, 1 crown lifted (tell), 2 furious
 S['GRILL'] = ([G("""
-........rrrrrrrrrrrrrrrr........
-......rrrrrrrrrrrrrrrrrrrr......
-.....rrrryyyrrrrrrrryyyrrrr.....
-....rrrryyyyyrrrrrryyyyyrrrr....
-....rrrryybyyrrrrrryybyyrrrr....
-....rrrrryyyrrrrrrrryyyrrrrr....
-...yyyyyyyyyyyyyyyyyyyyyyyyyy...
-...yrrrrrrrrrrrrrrrrrrrrrrrry...
-..yyyyyyyyyyyyyyyyyyyyyyyyyyyy..
-..y.rrrrrrrrr.yyyy.rrrrrrrrr.y..
-..yrrrrrrrrrrryyyyrrrrrrrrrrry..
-..yyrrrrrrrrrrrrrrrrrrrrrrrryy..
-...yyrrrrrrrrrrrrrrrrrrrrrryy...
-....yyrrrrrrrrrrrrrrrrrrrryy....
-.....yyyyyyyyyyyyyyyyyyyyyy.....
-...........yy......yy...........
-..........yy........yy..........
-.........yy..........yy.........
-........yy....yyyy....yy........
-.......yy....yy..yy....yy.......
-......yy....yy....yy....yy......
-.....rrr...rrr....rrr...rrr.....
+.........o..o..o..o.............
+.........oooooooooo.............
+.........owomowomwo.............
+......mmmmmmmmmmmmmmmmmmmm......
+....mmmmmmmmmmmmmmmmmmmmmmmm....
+...mmmmwwwmmmmmmmmmmwwwmmmmmm...
+...mmmwwcwwmmmmmmmmwwcwwmmmmm...
+..mmmmmwwwmmmmmmmmmmwwwmmmmmmm..
+..mmmwmmmmmmmmmmmmmmmmmmmmmmmm..
+..mmmwmmmmmmmoooooommmmmmmmmmm..
+..mmmmmmmmmmmmoooommmmmmmmmmmm..
+...mmmmmmmmmmmmmmmmmmmmmmmmmm...
+....mmmmmmmmmmmmmmmmmmmmmmmm....
+..wwwwwwwwwwwwwwwwwwwwwwwwwwww..
+...w.w.w.w.w.w.w.w.w.w.w.w.w....
+..............ww................
+..............ww................
+.............wwww...............
+...........wwwwwwww.............
+........wwwwwwwwwwwwww..........
+.......oooooooooooooooo.........
+................................
 """), G("""
-........rrrrrrrrrrrrrrrr........
-......rrrrrrrrrrrrrrrrrrrr......
-.....rrrryyyrrrrrrrryyyrrrr.....
-....rrrryyyyyrrrrrryyyyyrrrr....
-....rrrryybyyrrrrrryybyyrrrr....
-...yyyyyyyyyyyyyyyyyyyyyyyyyy...
-..y.rrrrrrrrr.yyyy.rrrrrrrrr.y..
-..yrrrrrrrrrrryyyyrrrrrrrrrrry..
-..y..........................y..
-..y.r.r.r.r.r.r.r.r.r.r.r.r..y..
-..yyyyyyyyyyyyyyyyyyyyyyyyyyyy..
-..yyrrrrrrrrrrrrrrrrrrrrrrrryy..
-...yyrrrrrrrrrrrrrrrrrrrrrryy...
-....yyrrrrrrrrrrrrrrrrrrrryy....
-.....yyyyyyyyyyyyyyyyyyyyyy.....
-...........yy......yy...........
-..........yy........yy..........
-.........yy..........yy.........
-........yy....yyyy....yy........
-.......yy....yy..yy....yy.......
-......yy....yy....yy....yy......
-.....rrr...rrr....rrr...rrr.....
+.........o..o..o..o.............
+.........oooooooooo.............
+.........owomowomwo.............
+................................
+......mmmmmmmmmmmmmmmmmmmm......
+....mmmmmmmmmmmmmmmmmmmmmmmm....
+...mmmmwwwmmmmmmmmmmwwwmmmmmm...
+...mmmwwcwwmmmmmmmmwwcwwmmmmm...
+..mmmmmwwwmmmmmmmmmmwwwmmmmmmm..
+..mmmwmmmmmmooooooooommmmmmmmm..
+..mmmwmmmmmoowwwwwwoommmmmmmmm..
+..mmmmmmmmmoooooooooommmmmmmmm..
+...mmmmmmmmmmmmmmmmmmmmmmmmmm...
+..wwwwwwwwwwwwwwwwwwwwwwwwwwww..
+...w.w.w.w.w.w.w.w.w.w.w.w.w....
+..............ww................
+..............ww................
+.............wwww...............
+...........wwwwwwww.............
+........wwwwwwwwwwwwww..........
+.......oooooooooooooooo.........
+................................
 """), G("""
-........rrrrrrrrrrrrrrrr........
-......rrrrrrrrrrrrrrrrrrrr......
-.....rrrrrrrrrrrrrrrrrrrrrr.....
-....rrrryyrrrrrrrrrrrryyrrrr....
-....rrrrryyrrrrrrrrrryyrrrrr....
-....rrrryybyrrrrrrrrybyyrrrr....
-...yyyyyyyyyyyyyyyyyyyyyyyyyy...
-...yrrrrrrrrrrrrrrrrrrrrrrrry...
-..yyyyyyyyyyyyyyyyyyyyyyyyyyyy..
-..y.rrrrrrrrr.yyyy.rrrrrrrrr.y..
-..yrrrrrrrrrrryyyyrrrrrrrrrrry..
-..yyrrrrrrrrrrrrrrrrrrrrrrrryy..
-...yyrrrrrrrrrrrrrrrrrrrrrryy...
-....yyrrrrrrrrrrrrrrrrrrrryy....
-.....yyyyyyyyyyyyyyyyyyyyyy.....
-...........yy......yy...........
-..........yy........yy..........
-.........yy..........yy.........
-........yy....yyyy....yy........
-.......yy....yy..yy....yy.......
-......yy....yy....yy....yy......
-.....rrr...rrr....rrr...rrr.....
+..o.......o..o..o..o.......o....
+...o......oooooooooo......o.....
+..........owomowomwo............
+......mmmmmmmmmmmmmmmmmmmm......
+....mmmmoommmmmmmmmmmmoommmm....
+...mmmmmmooommmmmmmmooommmmmm...
+...mmmmwwcwwmmmmmmmmwwcwwmmmm...
+..mmmmmmwwwmmmmmmmmmmwwwmmmmmm..
+..mmmmmmmmmmmmmmmmmmmmmmmmmmmm..
+..mmmmmmmmmooooooooooommmmmmmm..
+..mmmmmmmmmowowowowowommmmmmmm..
+...mmmmmmmmoooooooooooommmmmm...
+....mmmmmmmmmmmmmmmmmmmmmmmm....
+..wwwwwwwwwwwwwwwwwwwwwwwwwwww..
+...w.w.w.w.w.w.w.w.w.w.w.w.w....
+..............ww................
+..............ww................
+.............wwww...............
+...........wwwwwwww.............
+........wwwwwwwwwwwwww..........
+.......oooooooooooooooo.........
+................................
 """)], 1)
+# the king's giant spoon, shot out at you
 S['TONGS'] = ([G("""
-yyyyyyyyyy.y
-...........y
-yyyyyyyyyy.y
+.wwwwwwwwwww
+ww.......www
+.wwwwwwwwwww
 """), G("""
-yyyyyyyyy.y.
-.........y..
-yyyyyyyyy.y.
+.wwwwwwwwwww
+www......www
+.wwwwwwwwwww
 """)], 4)
+S['SHOPBAL'] = ([G("""
+..wwwwww..
+.wwmmmmww.
+wwmwwwwwww
+wwwmmmwwww
+wwwwwwmwww
+wwmmmmwwww
+.wwwwwwww.
+..wwwwww..
+....oo....
+.....o....
+""")], 1)
 S['CLOUD'] = ([G("""
-....yyyy........
-..yyyyyyyy.yyy..
-.yyyyyyyyyyyyyyy
-yyyyyyyyyyyyyyyy
-.yyyyyyyyyyyyyy.
+....wwww........
+..wwwwwwww.www..
+.wwwwwwwwwwwwwww
+wwwwwwwwwwwwwwww
+.wwwwwwwwwwwwww.
 """)], 4)
+def outline(fr, c=0):
+    h = len(fr) + 2; w = len(fr[0]) + 2
+    g = [[-1] * w for _ in range(h)]
+    for y, row in enumerate(fr):
+        for x, v in enumerate(row): g[y + 1][x + 1] = v
+    out = [r[:] for r in g]
+    for y in range(h):
+        for x in range(w):
+            if g[y][x] < 0 and any(0 <= y + dy < h and 0 <= x + dx < w and g[y + dy][x + dx] >= 0
+                                   for dy, dx in ((0, 1), (0, -1), (1, 0), (-1, 0))):
+                out[y][x] = c
+    return out
+for n in ('GAZZA', 'CUPPA', 'TOASTIE'):
+    S[n] = ([outline(f) for f in S[n][0]], S[n][1])
 
 def big(n):
     f = S[n][0][0]
@@ -447,8 +462,8 @@ def big(n):
 for n, b in (('GAZZA', 'BIGGAZ'), ('CUPPA', 'BIGCUP'), ('TOASTIE', 'BIGTOAST')):
     S[b] = ([big(n)], 1)
 
-COMMON = ['BIGGAZ', 'BIGCUP', 'BIGTOAST', 'GAZZA', 'CUPPA', 'TOASTIE', 'FLASH', 'CHICK', 'SHIELD', 'SEED', 'BEAM', 'TOAST', 'NUT', 'TEABAG',
-          'VEGEMITE', 'PELLET', 'FLAME', 'PAV', 'COIN', 'PIE', 'BOOM', 'SPARK', 'CLOUD']
+COMMON = ['BIGGAZ', 'BIGCUP', 'BIGTOAST', 'GAZZA', 'CUPPA', 'TOASTIE', 'CHICK', 'SHIELD', 'SEED', 'BEAM', 'TOAST', 'NUT', 'TEABAG',
+          'VEGEMITE', 'PELLET', 'PAV', 'COIN', 'PIE', 'BOOM', 'SPARK', 'CLOUD', 'SHOPBAL']
 STAGE1 = ['SNAG', 'BLOWIE', 'SWOOPER', 'THONG', 'TINNIE', 'SPRINKLER', 'ESKY', 'GNOME', 'HOTSNAG', 'POSSUM',
           'HOIST', 'PEG', 'UNDIES', 'GRILL', 'TONGS']
 
@@ -472,6 +487,7 @@ def pack(frame, nph):
                 out += bytes([m, d])
     return bytes(out)
 
+LOW = set(); LOW_SPLIT = False
 def asm(names, label, base=0):
     """-> (table text, records text): SPR_name equ base+index ; label_tab: dw per frame"""
     lines = []; idx = base; recs = []
@@ -484,8 +500,10 @@ def asm(names, label, base=0):
     lines.append('%s_tab:' % label)
     for i, (n, f, nph) in enumerate(recs):
         lines.append('            dw %s_r%d' % (label, i))
-    R = []
+    R = []; R2 = []
     for i, (n, f, nph) in enumerate(recs):
+        if n in LOW:
+            R, R2 = R2, R
         b = pack(f, nph)
         st = b[0] * b[1] * 2
         b = b[:2] + bytes([st & 255, st >> 8]) + b[2:]
@@ -493,6 +511,9 @@ def asm(names, label, base=0):
         R.append('            db %d' % nph)
         for j in range(0, len(b), 24):
             R.append('            db ' + ','.join('$%02X' % x for x in b[j:j + 24]))
+        if n in LOW:
+            R, R2 = R2, R
+    if LOW_SPLIT: return '\n'.join(lines) + '\n', '\n'.join(R) + '\n', '\n'.join(R2) + '\n'
     return '\n'.join(lines) + '\n', '\n'.join(R) + '\n'
 
 def size(names):
