@@ -20,6 +20,7 @@ commit_late:DS 1
 flashcnt:   DS 1
 flashcol:   DS 1
 flashpaper: DS 1
+tq_mark:    DS 1            ; 80h while the HUD queues its text
 tqcur:      DS 1
 tqprev:     DS 1
 tq_page:    DS 1

@@ -649,20 +649,17 @@ core_hide:
 
 ; the Guardian's health instead of the sector's name
 boss_bar:
-        ld hl,24*40+22
+        ld hl,22*40+32          ; bottom right, where the warps were
         ld de,t_core
         ld c,YELLOW
         call print_q
-        ; segments lit = hp * 10 / max
+        ; segments lit = hp * 8 / max
         ld a,(core_hp)
         ld l,a
         ld h,0
-        ld d,h
-        ld e,l
         add hl,hl
         add hl,hl
-        add hl,de
-        add hl,hl               ; hp * 10
+        add hl,hl               ; hp * 8
         ld a,(core_max)
         ld c,a
         call sdiv
@@ -674,8 +671,8 @@ boss_bar:
         or a
         jr nz,.z
         inc e
-.z:     ld hl,24*40+28
-        ld b,10
+.z:     ld hl,23*40+32
+        ld b,8
 .l:     ld a,e
         or a
         ld a,$80+67
@@ -692,6 +689,4 @@ boss_bar:
         dec e
 .n:     inc hl
         djnz .l
-        ld hl,24*40+38
-        ld b,2
-        jp clear_q
+        ret

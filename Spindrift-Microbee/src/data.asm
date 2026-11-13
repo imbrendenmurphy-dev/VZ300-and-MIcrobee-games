@@ -268,6 +268,9 @@ t_score:    db "SCORE",0
 t_hi:       db "HI",0
 t_sector:   db "SECTOR",0
 t_shield:   db "SHIELD",0
+t_warps:    db "   WARPS",0
+t_lap:      db "   LAP "
+t_lapn:     db "2",0          ; (the lap number goes here)
 t_sectorn:  db "SECTOR ",0
 t_clear:    db "WAVE CLEAR",0
 t_nodmg:    db "NO DAMAGE BONUS",0
@@ -280,7 +283,7 @@ t_of40:     db " OF 40",0
 t_perfect:  db "PERFECT  10000",0
 t_gameover: db "GAME OVER",0
 t_paused:   db "PAUSED",0
-t_core:     db "CORE ",0
+t_core:     db "    CORE",0
 t_spaces:   db "                     ",0
 t_spindrift:db "S P I N D R I F T",0
 t_mon1:     db "PRESS C FOR A COLOUR MONITOR",0

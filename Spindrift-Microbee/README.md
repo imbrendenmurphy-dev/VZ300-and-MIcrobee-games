@@ -39,8 +39,8 @@ The joystick is read from PIO port A (active low, bit 7 fire), as in the earlier
 
 ## The game
 
-- **A round vortex.** The ring is drawn round on your screen, whatever it is: the screen-shape setting picks one of eight widths.
-- **"3 WARPS TO CINDER GATE".** Under each sector's name, and between its two waves, a countdown of the waves left to the next Guardian.
+- **A round vortex, full height.** The arena is all 25 rows: the HUD lives in the four corners (score and high score top left, sector top right, shield and ships bottom left, the warp count or the Guardian's core bottom right), where the ring never goes. The ring is drawn round on your screen, whatever it is: the screen-shape setting picks one of eight widths.
+- **"3 WARPS TO CINDER GATE".** Under each sector's name, and between its two waves, a countdown of the waves left to the next Guardian; the count stays in the HUD's corner.
 - **Eight sectors**, each with its own star colour, HUD colour, enemy types, entry paths and signature attack:
   Oort Drift, Comet Lanes, Ring Works, Cinder Gate, Gas Giant, Iron Belt, Corona, The Eye. After The Eye it goes round again, harder.
 - **Depth you can read.** Each of the nine enemy types is drawn at six sizes, so a far enemy is a proper small drawing, not a squashed big one. Far enemies are dim, near ones bright. Stars stream outward at perspective speed.
@@ -91,9 +91,9 @@ The game is locked to **25 frames a second**. Measured in the raster-accurate Pr
 
 | Scene | Frames a second | Frames on time |
 |---|---|---|
-| Sector waves (8 scenes) | 24.6 – 25.0 | 95 – 100% |
-| Guardians (4 scenes) | 23.9 – 24.8 | 91 – 98% |
-| **All play** | **24.7** | **97.5%** |
+| Sector waves (8 scenes) | 24.1 – 25.0 | 93 – 100% |
+| Guardians (4 scenes) | 23.7 – 25.0 | 89 – 100% |
+| **All play** | **24.6** | **97.0%** |
 
 The details, what was changed to get there, and how it was tested are in [docs/DESIGN.md](docs/DESIGN.md) and [docs/TESTING.md](docs/TESTING.md).
 

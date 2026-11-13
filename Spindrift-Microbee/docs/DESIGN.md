@@ -17,7 +17,9 @@
 
 **Theme.** Spindrift is the spray the wind tears off a wave. The player rides the rim of a vortex; the enemies are the spray it throws outward. Eight sectors run from the Oort cloud inward to the sun's corona and finally *The Eye*, the thing at the centre of the spiral.
 
-**The orbit.** The ship's angle is 8.8 fixed point (256 to a turn). Z and X sweep; the stick or arrows choose a side of the vortex and the ship takes the short way round. The orbit is 80 lines high and, by default, 73 pixels wide: round on a CRT, where a 40-column pixel shows about 1.1 lines wide. (Version 1.0 stretched it to 136 pixels to fill the width; it looked like an ellipse.) Because a screen that stretches the picture to fill 4:3 shows the pixel narrower (about 0.83), the width is a setting: the **screen shape** screen offers eight, 62 to 136 pixels. The position table's dx column is rebuilt from a pristine copy for a 136-pixel orbit (block 6) through a 256-entry scale map, in about 0.2 s. Everything else works in angle and depth, so aiming, hits and formations follow the shape by themselves.
+**The orbit.** The ship's angle is 8.8 fixed point (256 to a turn). Z and X sweep; the stick or arrows choose a side of the vortex and the ship takes the short way round. The orbit is 92 lines high (the arena is all 25 rows: the HUD is in the corners) and, by default, 84 pixels wide: round on a CRT, where a 40-column pixel shows about 1.1 lines wide. (Version 1.0 stretched it to 136 pixels to fill the width; it looked like an ellipse.) Because a screen that stretches the picture to fill 4:3 shows the pixel narrower (about 0.83), the width is a setting: the **screen shape** screen offers eight, 71 to 136 pixels. The position table's dx column is rebuilt from a pristine copy for a 136-pixel orbit (block 6) through a 256-entry scale map, in about 0.2 s. Everything else works in angle and depth, so aiming, hits and formations follow the shape by themselves.
+
+**The HUD in the corners.** Version 1.1 kept rows 0 and 24 for the HUD; 1.2 moves it into the four corners (8 columns by rows 0-4 and 22-24), where even the widest ring never reaches, and the arena gets the whole screen height: the orbit grew from 80 to 92 lines. Top left: SCORE and HI. Top right: SECTOR n, its name a word a row, the lap after the first. Bottom left: SHIELD and its pips, the ships in reserve. Bottom right: WARPS and the count, or the Guardian's CORE and its eight-segment bar. The corner cells are marked as text, so sprites and stars pass behind them; HUD text in the queue carries a mark (bit 7 of its colour) so a flash never paints it, and the flash itself fills the whole screen except the corners (rows 24-22 and 4-0 in the middle 24 columns, rows 21-5 the full width), 4.8 K T by stack pushes.
 
 **Warps.** "4 WARPS TO COMET LANES": two waves a sector, a Guardian every second sector, so the count runs 4, 3, 2, 1 to each Guardian, shown under the sector's name and between its waves, when nothing is on screen to hide.
 
@@ -92,11 +94,11 @@ Result, final build:
 
 | Scene | fps | frames on time |
 |---|---|---|
-| Sector 1–8, wave 2 | 24.6 – 25.0 | 95 – 100% |
-| Guardian, sectors 2/4/6/8 | 24.8 / 24.7 / 24.6 / 23.9 | 98 / 97 / 96 / 91% |
-| **All play** | **24.7** | **97.5%** |
+| Sector 1–8, wave 2 | 24.1 – 25.0 | 93 – 100% |
+| Guardian, sectors 2/4/6/8 | 25.0 / 24.7 / 24.4 / 23.7 | 100 / 98 / 95 / 89% |
+| **All play** | **24.6** | **97.0%** |
 
-(With the round ring, measured again after version 1.0: sprites near the rim now cover fewer cells.)
+(Measured again for 1.2: the round, full-height ring.)
 
 Controls are read once a frame (at most 40 ms old), and every key is scanned every frame.
 
@@ -111,7 +113,7 @@ Controls are read once a frame (at most 40 ms old), and every key is scanned eve
 
 | Where | What |
 |---|---|
-| Block 0, 8000h–C0ADh | The program (16 557 bytes) |
+| Block 0, 8000h–C175h | The program (16 757 bytes) |
 | C800h–D3FFh | Cell tables and glyph buffers |
 | D500h–D7FFh | Game objects: 16 enemies, shots, bullets, effects |
 | D800h–EBFFh | Three cell lists and two text queues |

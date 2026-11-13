@@ -536,7 +536,7 @@ cleanup:
         ld sp,(save_sp)
         ret
 
-; the background of the playfield (rows 1-23) flashes: two frames of the
+; the background of the playfield (all but the HUD's corners) flashes: two frames of the
 ; flash colour (one on each page), then two of black to put it back
 flash_fill:
         dec a
@@ -551,20 +551,48 @@ flash_fill:
         ld b,c
         ld a,COL_ON
         out (P_COLCTL),a
-        ld a,(page)             ; rows 1-23 of the back page's colours,
-        add a,a                 ; filled from the end by the stack
+        ; the back page's colours, filled from the end by the stack: the
+        ; whole screen but the HUD's four corners (8 columns, rows 0-4
+        ; and 22-24)
+        ld a,(page)
+        add a,a
         add a,a
         add a,$F8+3
         ld h,a
-        ld l,$C0                ; cell 960
+        ld l,$E0                ; cell 992: row 24, column 32
         ld (save_sp),sp
         ld sp,hl
-        ld a,23
-.l:     REPT 20
+        ld a,3                  ; rows 24-22: the middle 24 columns
+.b:     REPT 12
         push bc
         ENDR
         dec a
-        jr nz,.l
+        jr z,.mid
+        ld hl,-16
+        add hl,sp
+        ld sp,hl
+        jr .b
+.mid:   ld hl,-8
+        add hl,sp
+        ld sp,hl
+        ld a,17                 ; rows 21-5: all of them
+.m:     REPT 20
+        push bc
+        ENDR
+        dec a
+        jr nz,.m
+        ld hl,-8
+        add hl,sp
+        ld sp,hl
+        ld a,5                  ; rows 4-0: the middle 24 columns
+.t:     REPT 12
+        push bc
+        ENDR
+        ld hl,-16
+        add hl,sp
+        ld sp,hl
+        dec a
+        jr nz,.t
         ld sp,(save_sp)
         xor a
         out (P_COLCTL),a
@@ -960,7 +988,9 @@ tq_put: ld (tq_cell),hl
         inc hl
         ld (hl),b
         inc hl
-        ld (hl),c
+        ld a,(tq_mark)          ; 80h: HUD text, never on a flash's paper
+        or c
+        ld (hl),a
 .full:  pop de
         pop hl
         ld a,(tq_code)
@@ -1031,27 +1061,12 @@ tq_apply:
         or a
         ret z
         ld b,a
+        ld a,(flashpaper)
+        ld c,a
         ld l,0
 .e:     ld e,(hl)
         inc hl
-        ; the flash's paper only in the playfield (cells 40-959): the
-        ; HUD rows are never flashed, so never given it
-        ld c,0
-        ld a,(hl)
-        or a
-        jr nz,.h1
-        ld a,e
-        cp 40
-        jr c,.nf
-        jr .pf
-.h1:    cp 3
-        jr c,.pf
-        ld a,e
-        cp 960-768
-        jr nc,.nf
-.pf:    ld a,(flashpaper)
-        ld c,a
-.nf:    ld a,(tq_page)
+        ld a,(tq_page)
         add a,(hl)
         ld d,a
         inc hl
@@ -1071,8 +1086,13 @@ tq_apply:
         ld a,COL_ON
         out (P_COLCTL),a
         set 3,d
-        ld a,c
-        or (hl)                 ; colour (on the flash's paper, in a flash)
+        ld a,(hl)               ; colour: on the flash's paper in a flash,
+        bit 7,a                 ; unless it is the HUD's
+        jr z,.fp
+        and $7F
+        jr .cw
+.fp:    or c
+.cw:
         inc hl
         ld (de),a
         xor a

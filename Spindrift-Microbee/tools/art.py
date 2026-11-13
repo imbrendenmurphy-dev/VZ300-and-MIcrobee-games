@@ -11,7 +11,7 @@ import numpy as np
 PA = 1.25                   # pixel width / line height
 CX, CY = 160, 100           # the vanishing point
 RIM = 112                   # radius index (rr >> 1) of the player's orbit
-RX, RY = 136.0, 80.0        # the orbit's half-axes in pixels / lines
+RX, RY = 136.0, 92.0        # the orbit's half-axes in pixels / lines (RX: see src/shape.asm)
 DEPTH_POW = 1.5             # screen radius = (index / RIM) ** DEPTH_POW
 SIZES = [3, 5, 7, 10, 13, 16]
 SS = 4                      # supersampling

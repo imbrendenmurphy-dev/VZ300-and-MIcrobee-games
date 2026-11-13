@@ -13,11 +13,11 @@ SHAPE_CRT   EQU 2                   ; the default: round on a CRT
 MAPBUF      EQU POOLBUF             ; scratch (zeroed again afterwards)
 CHUNK       EQU POOLBUF+$100
 
-; orbit half-widths in pixels (the half-height is 80 lines), as 8.8
-; steps of the scale map: round(RX * 256 / 136)
+; orbit half-widths in pixels (the half-height is 92 lines: the arena is
+; all 25 rows), as 8.8 steps of the scale map: round(RX * 256 / 136)
 shape_step:
-        dw 62*256/136, 67*256/136, 73*256/136, 78*256/136
-        dw 85*256/136, 92*256/136, 100*256/136, 136*256/136
+        dw 71*256/136, 77*256/136, 84*256/136, 90*256/136
+        dw 98*256/136, 106*256/136, 115*256/136, 136*256/136
 
 ; A = shape 0..7: rebuild the dx column of the position table
 set_shape:

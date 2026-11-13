@@ -60,35 +60,29 @@ game_screen:
         ld a,(hl)
         ld (hudcol),a
         ld c,a
-        ld hl,0
+        ; the HUD lives in the four corners (the ring is widest in the
+        ; middle rows); the arena is all 25 rows
+        ld hl,0*40+0
         ld de,t_score
         call print_s
-        ld hl,15
+        ld hl,3*40+0
         ld de,t_hi
         call print_s
-        ld hl,28
+        ld hl,0*40+32
         ld de,t_sector
         call print_s
-        ld hl,24*40+8
+        ld hl,22*40+0
         ld de,t_shield
         ld c,GREY
         call print_s
-        ; mark the HUD rows so nothing is drawn over them
+        ; mark the corners so nothing is drawn over the HUD
         ld hl,CELLHI
-        ld b,40
-.m:     ld (hl),TRASH >> 8
-        set 2,h
-        ld (hl),TRASH & 255
-        res 2,h
-        inc hl
+        ld b,5
+.m:     call hud_mark
         djnz .m
-        ld hl,CELLHI+24*40
-        ld b,40
-.m2:    ld (hl),TRASH >> 8
-        set 2,h
-        ld (hl),TRASH & 255
-        res 2,h
-        inc hl
+        ld hl,CELLHI+22*40
+        ld b,3
+.m2:    call hud_mark
         djnz .m2
         ld a,$FF
         ld (hud_dirty),a
@@ -196,6 +190,8 @@ sector_start:
 
 ; the next wave of this sector (or the Guardian)
 next_wave:
+        ld a,$FF                ; the HUD again (the warps count)
+        ld (hud_dirty),a
         call msg_clear_all
         ld a,1
         ld (nodmg),a
@@ -1168,8 +1164,37 @@ stars_draw:
 ; ---------------------------------------------------------------------
 ; the HUD
 ; ---------------------------------------------------------------------
+; HL = a row's CELLHI entry: its two corner blocks marked as text
+; -> HL = the next row's
+hud_mark:
+        push bc
+        ld b,8
+.l:     call .one
+        djnz .l
+        ld de,24
+        add hl,de
+        ld b,8
+.r:     call .one
+        djnz .r
+        pop bc
+        ret
+.one:   ld (hl),TRASH >> 8
+        set 2,h
+        ld (hl),TRASH & 255
+        res 2,h
+        inc hl
+        ret
+
+; the HUD, in the four corners. Its text is marked so a flash never
+; paints it (tq_mark)
 hud_update:
-        ld a,(hud_dirty)
+        ld a,$80
+        ld (tq_mark),a
+        call .body
+        xor a
+        ld (tq_mark),a
+        ret
+.body:  ld a,(hud_dirty)
         or a
         ret z
         ld b,a
@@ -1184,7 +1209,7 @@ hud_update:
         ld (hud_dirty),a
         bit 7,b
         jr z,.top
-        ld a,b                  ; the bottom row is due (and maybe more)
+        ld a,b                  ; the bottom corners are due (maybe more)
         and $7F
         ld (hud_dirty),a
         jr .bottom
@@ -1192,13 +1217,13 @@ hud_update:
         ld hl,score
         ld de,txtbuf
         call bcd_text
-        ld hl,6
+        ld hl,1*40+0
         ld de,txtbuf
         ld c,WHITE
         call print_q
         pop bc
         ld a,b
-        and $FC
+        and $7C
         jr nz,.full
         bit 1,b                 ; the Guardian's health only
         ret z
@@ -1206,57 +1231,48 @@ hud_update:
         or a
         ret z
         jp boss_bar
-.full:
-        ld hl,hiscore
+.full:  ld hl,hiscore
         ld de,txtbuf
         call bcd_text
-        ld hl,18
+        ld hl,4*40+0
         ld de,txtbuf
         ld c,YELLOW
         call print_q
-        ; sector
+        ; the sector: its number, then its name a word a row, and the
+        ; lap after the first
         ld a,(sector)
         add a,'1'
         ld (txtbuf),a
-        ld a,(lap)
-        or a
-        ld a,' '
-        jr z,.l
-        ld a,'+'
-.l:     ld (txtbuf+1),a
         xor a
-        ld (txtbuf+2),a
-        ld hl,35
+        ld (txtbuf+1),a
+        ld hl,0*40+39
         ld de,txtbuf
         ld c,WHITE
         call print_q
-        ld a,$80                ; the bottom row next frame
+        ld a,(lap)
+        or a
+        jr z,.l1
+        add a,'1'
+        ld (t_lapn),a
+        ld hl,3*40+32
+        ld de,t_lap
+        ld c,GREY
+        call print_q
+.l1:
+        ld hl,(sec_ptr)
+        ld e,(hl)
+        inc hl
+        ld d,(hl)
+        ld hl,1*40+32
+        call hud_word
+        ld hl,2*40+32
+        call hud_word
+        ld a,$80                ; the bottom corners next frame
         ld (hud_dirty),a
         ret
 .bottom:
-        ; ships in reserve
-        ld hl,24*40
-        ld a,(lives)
-        ld c,a
-        ld b,6
-.sh:    ld a,c
-        or a
-        ld a,$80+64
-        jr nz,.s1
-        ld a,$80
-.s1:    push bc
-        ld b,BK_FONT
-        ld c,BCYAN
-        call tq_put
-        pop bc
-        ld a,c
-        or a
-        jr z,.s2
-        dec c
-.s2:    inc hl
-        djnz .sh
         ; the shield
-        ld hl,24*40+15
+        ld hl,23*40+0
         ld a,(p_shield)
         ld c,BGREEN
         cp 2
@@ -1279,44 +1295,111 @@ hud_update:
         dec e
 .p3:    inc hl
         djnz .p
+        ; ships in reserve
+        ld hl,24*40+0
+        ld a,(lives)
+        ld c,a
+        ld b,6
+.sh:    ld a,c
+        or a
+        ld a,$80+64
+        jr nz,.s1
+        ld a,$80
+.s1:    push bc
+        ld b,BK_FONT
+        ld c,BCYAN
+        call tq_put
+        pop bc
+        ld a,c
+        or a
+        jr z,.s2
+        dec c
+.s2:    inc hl
+        djnz .sh
         ld a,(bossmode)
         or a
         jp nz,boss_bar
-        ; the sector's name, right-aligned in 21 cells
+        ; the warps to the next Guardian
+        ld hl,22*40+32
+        ld de,t_warps
+        ld a,(hudcol)
+        ld c,a
+        call print_q
+        call warps_left
+        add a,'0'
+        ld (txtbuf+4),a
+        ld hl,$2020
+        ld (txtbuf),hl
+        ld (txtbuf+2),hl
+        xor a
+        ld (txtbuf+5),a
+        ld hl,23*40+35
+        ld de,txtbuf
+        ld c,WHITE
+        jp print_q
+
+; DE = text: its next word, right-aligned in the 8 cells from HL
+; -> DE past it (and past one space)
+hud_word:
+        push hl
         ld hl,txtbuf
-        ld b,21
+        ld b,8
 .sp:    ld (hl),' '
         inc hl
         djnz .sp
         ld (hl),0
-        ld hl,(sec_ptr)
-        ld e,(hl)
-        inc hl
-        ld d,(hl)
         push de
         ld b,0
-.nl:    ld a,(de)
+.n:     ld a,(de)
         or a
-        jr z,.ne
+        jr z,.e
+        cp ' '
+        jr z,.e
         inc de
         inc b
-        jr .nl
-.ne:    ld a,21
+        jr .n
+.e:     pop de
+        ld a,8
         sub b
-        ld e,a
-        ld d,0
-        ld hl,txtbuf
-        add hl,de
-        ex de,hl
-        pop hl
-        ld c,b
-        ld b,0
-        ldir
-        ld hl,24*40+19
+        ld l,a
+        ld h,0
+        push bc
+        ld bc,txtbuf
+        add hl,bc
+        pop bc
+        inc b
+        dec b
+        jr z,.c
+.cp:    ld a,(de)
+        ld (hl),a
+        inc de
+        inc hl
+        djnz .cp
+.c:     ld a,(de)
+        cp ' '
+        jr nz,.d
+        inc de
+.d:     pop hl
+        push de
         ld de,txtbuf
         ld a,(hudcol)
         ld c,a
-        jp print_q
+        call print_q
+        pop de
+        ret
+
+; A = the waves left to the next Guardian (this one included)
+warps_left:
+        ld a,(wave)
+        ld c,a
+        ld a,(sector)
+        ld b,a
+        ld a,2
+        sub c
+        bit 0,b
+        ret nz
+        add a,2
+        ret
 
 ; ---------------------------------------------------------------------
 ; drawing a frame. The first thing to claim a cell gives it its colour:
