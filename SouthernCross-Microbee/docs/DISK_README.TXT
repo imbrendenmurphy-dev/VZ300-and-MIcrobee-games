@@ -25,10 +25,10 @@ FLYING TIPS
   60-70 kt. Stall is about 43 kt: the nose drops by itself.
   Land at under ~700 ft/min sink with wings level.
 
-BENCHMARK (emulated at 3.375 MHz, on the runway)
-  Detail 1  about 15 fps
-  Detail 2  about 8 fps
-  Detail 3  about 5.5 fps
+BENCHMARK (emulated at 3.375 MHz)
+  Detail 1  about 19 fps on the runway
+  Detail 2  about 8 fps on the runway
+  Detail 3  about 5.5 fps on the runway, 5-8 fps in the air
   The panel shows the real FPS, timed by counting the 6545's
   vertical blanks (50 per second). Game speed follows the
   same count, so the plane flies at the right pace whatever

@@ -24,7 +24,7 @@ EXT     equ 80h                 ; extended PCG / attributes on
 ATTRSEL equ 10h                 ; attribute RAM at F000
 BANKA   equ 1
 BANKB   equ 5
-NEAR    equ 6                   ; near clip plane (half metres)
+NEAR    equ 10                  ; near clip plane (half metres)
 STALLV  equ 22                  ; stall speed m/s (43 kt)
 ROTATE  equ 27                  ; rotate speed m/s (52 kt)
 STKTOP  equ 7F00h
@@ -142,6 +142,15 @@ vi2:    ld a,c
         ld (backbank),a
         ld hl,SCREEN+400h
         ld (backscr),hl
+        ld hl,rngb
+        ld (rngback),hl
+        ld hl,rnga              ; nothing drawn yet: empty row ranges
+        ld b,8
+vi3:    ld (hl),0FFh
+        inc hl
+        ld (hl),0
+        inc hl
+        djnz vi3
         ret
 
 ; HL = colour page base (1024 cells)
@@ -275,15 +284,257 @@ cbk2:
         ld sp,(savsp)
         jp vbpoll
 
+; ---------------------------------------------------------------------
+;  Clear the back buffer: per strip, only rows ymin..ymax that were drawn
+;  on (recorded by dmark), with PUSH runs down each byte column.
+; ---------------------------------------------------------------------
 clrback:
+        ld hl,(rngback)
         ld a,(backbank)
+        ld (cbank),a
+        ld b,4
+cbs1:   push bc
+        ld e,(hl)               ; E = ymin, D = ymax
+        ld (hl),0FFh
+        inc hl
+        ld d,(hl)
+        ld (hl),0
+        inc hl
+        push hl
+        ld a,d
+        cp e
+        jr c,cbs2               ; nothing drawn in this strip
+        ld a,(cbank)
+        or EXT
+        out (LATCH),a
+        call vbpoll
+        ld a,d                  ; len = ymax-ymin+1
+        sub e
+        inc a
         ld c,a
-        ld e,4
-cb1:    ld a,c
-        call clrbank
-        inc c
-        dec e
-        jr nz,cb1
+        inc d                   ; top = ymax+1
+        bit 0,c
+        jr z,cbs3
+        inc c                   ; odd: one extra row, below unless ymin = 0
+        ld a,e
+        or a
+        jr nz,cbs3
+        inc d
+cbs3:   srl c                   ; pairs
+        ld a,64
+        sub c
+        ld l,a
+        ld h,0
+        ld bc,pblk1
+        add hl,bc
+        ld (cjp1+1),hl
+        ld bc,pblk2-pblk1
+        add hl,bc
+        ld (cjp2+1),hl
+        call cstrip
+cbs2:   ld hl,cbank
+        inc (hl)
+        pop hl
+        pop bc
+        djnz cbs1
+        ret
+
+; D = top row (exclusive), entry points patched: clear 16 byte columns
+cstrip: ld (savsp),sp
+        ld c,0F8h
+        ld b,8
+cst1:   ld h,c                  ; even column: (C<<8) + top
+        ld l,d
+        ld sp,hl
+        ld hl,0
+cjp1:   jp pblk1
+pret1:  ld h,c                  ; odd column: (C<<8) + 128 + top
+        ld a,d
+        add a,80h
+        ld l,a
+        jr nc,cst2
+        inc h
+cst2:   ld sp,hl
+        ld hl,0
+cjp2:   jp pblk2
+pret2:  inc c
+        djnz cst1
+        ld sp,(savsp)
+        ret
+
+pblk1:
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        jp pret1
+pblk2:
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        jp pret2
+
+; mark rows cy0..cy1 over strips of cx0..cx1 (cx0 <= cx1) as used
+dmark:  ld a,(cy0)
+        ld b,a
+        ld a,(cy1)
+        cp b
+        jr nc,dmk1
+        ld c,b
+        ld b,a
+        jr dmk2
+dmk1:   ld c,a                  ; B = low row, C = high row
+dmk2:   ld hl,(cx1)
+        add hl,hl
+        ld e,h                  ; strip of x1
+        ld hl,(cx0)
+        add hl,hl
+        ld a,h                  ; strip of x0
+        sub e
+        neg
+        inc a
+        ld d,a                  ; strips to mark
+        ld a,h
+        add a,a
+        ld l,a
+        ld h,0
+        push de
+        ld de,(rngback)
+        add hl,de
+        pop de
+dmk3:   ld a,b
+        cp (hl)
+        jr nc,dmk4
+        ld (hl),a
+dmk4:   inc hl
+        ld a,c
+        cp (hl)
+        jr c,dmk5
+        ld (hl),a
+dmk5:   inc hl
+        dec d
+        jr nz,dmk3
         ret
 
 flip:
@@ -305,11 +556,14 @@ flip:
         or a
         ld a,BANKB
         ld hl,SCREEN+400h
+        ld de,rngb
         jr z,fl1
         ld a,BANKA
         ld hl,SCREEN
+        ld de,rnga
 fl1:    ld (backbank),a
         ld (backscr),hl
+        ld (rngback),de
         ret
 
 ; =====================================================================
@@ -916,7 +1170,13 @@ mul168:
         xor h
         ld (msgn),a
         bit 7,h
-        call nz,neghl
+        jr z,$+8
+        xor a
+        sub l
+        ld l,a
+        sbc a,a
+        sub h
+        ld h,a
         ld a,c
         bit 7,a
         jr z,ml1
@@ -962,7 +1222,13 @@ ml1:    ld c,a
         ld a,(msgn)
         bit 7,a
         ret z
-        jp neghl
+        xor a
+        sub l
+        ld l,a
+        sbc a,a
+        sub h
+        ld h,a
+        ret
 
 ; A, B signed 8 -> HL = (A*B)>>7
 mulw:
@@ -1014,7 +1280,13 @@ sdiv168:
         ld a,h
         ld (msgn),a
         bit 7,h
-        call nz,neghl
+        jr z,$+8
+        xor a
+        sub l
+        ld l,a
+        sbc a,a
+        sub h
+        ld h,a
         ld b,16
         xor a
 sd1:    add hl,hl
@@ -1027,7 +1299,13 @@ sd2:    djnz sd1
         ld a,(msgn)
         bit 7,a
         ret z
-        jp neghl
+        xor a
+        sub l
+        ld l,a
+        sbc a,a
+        sub h
+        ld h,a
+        ret
 
 ; HL = signed numerator, DE = positive denominator
 ; -> HL = (num*256)/den clamped to +-15000
@@ -1035,7 +1313,13 @@ projdiv:
         ld a,h
         ld (dsgn),a
         bit 7,h
-        call nz,neghl
+        jr z,$+8
+        xor a
+        sub l
+        ld l,a
+        sbc a,a
+        sub h
+        ld h,a
         or a
         sbc hl,de
         add hl,de
@@ -1233,15 +1517,32 @@ pdsat:  ld hl,15000
 pdsg:   ld a,(dsgn)
         bit 7,a
         ret z
-        jp neghl
+        xor a
+        sub l
+        ld l,a
+        sbc a,a
+        sub h
+        ld h,a
+        ret
 
 ; HL = HL*0.672 (vertical pixel aspect for a 4:3 screen)
 vscale:
         bit 7,h
         jr z,vsc1
-        call neghl
+        xor a
+        sub l
+        ld l,a
+        sbc a,a
+        sub h
+        ld h,a
         call vsc1
-        jp neghl
+        xor a
+        sub l
+        ld l,a
+        sbc a,a
+        sub h
+        ld h,a
+        ret
 vsc1:   ld d,h
         ld e,l
         srl d
@@ -1316,14 +1617,24 @@ mkmatrix:
         ld b,a
         ld a,(spp)
         call mulw
-        call neghl
+        xor a
+        sub l
+        ld l,a
+        sbc a,a
+        sub h
+        ld h,a
         call clampb
         ld (u0),a
         ld a,(ch)
         ld b,a
         ld a,(spp)
         call mulw
-        call neghl
+        xor a
+        sub l
+        ld l,a
+        sbc a,a
+        sub h
+        ld h,a
         call clampb
         ld (u2),a
         ; m00 = cr*ch - sr*u0
@@ -1347,7 +1658,12 @@ mkmatrix:
         ld b,a
         ld a,(cpp)
         call mulw
-        call neghl
+        xor a
+        sub l
+        ld l,a
+        sbc a,a
+        sub h
+        ld h,a
         call clampb
         ld (m01),a
         ; m02 = -cr*sh - sr*u2
@@ -1362,7 +1678,12 @@ mkmatrix:
         call mulw
         pop de
         add hl,de
-        call neghl
+        xor a
+        sub l
+        ld l,a
+        sbc a,a
+        sub h
+        ld h,a
         call clampb
         ld (m02),a
         ; m10 = sr*ch + cr*u0
@@ -1425,7 +1746,12 @@ mkmatrix:
         add hl,de
         ld de,4
         add hl,de
-        call neghl
+        xor a
+        sub l
+        ld l,a
+        sbc a,a
+        sub h
+        ld h,a
         ld (nege),hl
         ld a,(m01)
         call mul168
@@ -1785,7 +2111,14 @@ dov1:   call vbpoll
         push de
         ldir
         pop hl
-        call fcode
+        push hl
+        ld b,3
+        ld c,0
+        call sgs1
+        pop hl
+        ld de,hT
+        ld bc,dT
+        call halfdist
         ld c,a
         ld a,(vidx)
         ld e,a
@@ -1793,7 +2126,8 @@ dov1:   call vbpoll
         ld hl,vcode
         add hl,de
         ld (hl),c
-        bit 4,c
+        ld a,c
+        or a
         jr nz,dov2
         ld a,(vidx)
         ld hl,vbuf
@@ -1855,7 +2189,6 @@ doedge: ld a,(ea)
         ret nz
         ld a,b
         or c
-        bit 4,a
         jr z,dog1
         ld a,(ea)
         ld hl,vbuf
@@ -1886,7 +2219,7 @@ dog1:   ld a,(ea)
         ld de,cy1
         ld bc,2
         ldir
-        jp clipdraw
+        jp fixdraw
 
 vcod:   ld e,a
         ld d,0
@@ -1989,62 +2322,143 @@ idx6:   push de
         pop de
         ret
 
-; Camera-space segment sega -> segb: frustum reject, near clip, project, draw
+; ---------------------------------------------------------------------
+;  Camera-space segment sega -> segb.  One-pass 3D clip (Liang-Barsky)
+;  to the view plus a 16 pixel margin (distances at half scale):
+;    0  f >= NEAR        1  r <= 17f/16    2  r >= -17f/16
+;    3  u <= 5f/16       4  u >= -5f/16
+;  Interpolation is full precision, so rounding stays inside the margin
+;  and edgefix then slides each end exactly onto the screen edge.
+; ---------------------------------------------------------------------
 segment:
         call vbpoll
-        ld hl,sega
-        call fcode
-        ld (fca),a
-        ld hl,segb
-        call fcode
-        ld (fcb),a
-        ld b,a
-        ld a,(fca)
-        and b
+        ld hl,(sega+4)          ; both behind the near plane? (cheap reject)
+        ld de,-NEAR
+        add hl,de
+        bit 7,h
+        jr z,sgf
+        ld hl,(segb+4)
+        add hl,de
+        bit 7,h
         ret nz
-        ld a,(fca)
-        bit 4,a
-        jr z,sg1
+sgf:    ld hl,sega              ; full scale if every |component| < 12288
+        ld b,6
+        ld c,0
+        call sgs1
         ld hl,sega
-        ld de,segb
-        call nearclip
-        jr sg2
-sg1:    bit 4,b
-        jr z,sg2
+        ld hl,sega
+        ld de,hA
+        ld bc,dA
+        call halfdist
+        ld (lcA),a
+        ld hl,segb
+        ld de,hB
+        ld bc,dB
+        call halfdist
+        ld (lcB),a
+        ld b,a
+        ld a,(lcA)
+        and b
+        ret nz                  ; both outside one plane
+        ld a,(lcA)
+        or b
+        jp z,sgdraw             ; both fully inside
+        ld (lbm),a
+        ld hl,0
+        ld (tmin),hl
+        ld hl,8000h
+        ld (tmax),hl
+        ld hl,dA
+        ld (lbpa),hl
+        ld hl,dB
+        ld (lbpb),hl
+lb1:    ld hl,lbm
+        srl (hl)
+        jr nc,lbnext
+        ld hl,(lbpa)            ; DE = dA
+        ld e,(hl)
+        inc hl
+        ld d,(hl)
+        ld hl,(lbpb)            ; BC = dB
+        ld c,(hl)
+        inc hl
+        ld b,(hl)
+        bit 7,d
+        jr z,lbleave
+        ; A outside, B inside: entering. t = -dA / (dB - dA)
+        ld h,b
+        ld l,c
+        or a
+        sbc hl,de
+        ex de,hl                ; DE = den
+        call neghl              ; HL = -dA
+        call tdiv
+        ex de,hl
+        ld hl,(tmin)
+        or a
+        sbc hl,de
+        jr nc,lbnext
+        ld (tmin),de
+        jr lbnext
+lbleave:                        ; A inside, B outside: t = dA / (dA - dB)
+        ld h,d
+        ld l,e
+        or a
+        sbc hl,bc
+        ex de,hl                ; DE = den, HL = dA
+        call tdiv
+        ex de,hl
+        ld hl,(tmax)
+        or a
+        sbc hl,de
+        jr c,lbnext
+        ld (tmax),de
+lbnext: ld hl,(lbpa)
+        inc hl
+        inc hl
+        ld (lbpa),hl
+        ld hl,(lbpb)
+        inc hl
+        inc hl
+        ld (lbpb),hl
+        ld a,(lbm)
+        or a
+        jr nz,lb1
+        ld hl,(tmin)
+        ld de,(tmax)
+        or a
+        sbc hl,de
+        ret nc                  ; nothing left
+        ; D = B - A (full scale, |D| unsigned + sign) ; keep the original A
         ld hl,segb
         ld de,sega
-        call nearclip
-sg2:    ld a,(fcb)
-        ld b,a
-        ld a,(fca)
-        or b
-        and 1Fh
-        jr z,sgp
-        ld hl,sega              ; guard band: keep |r|,|u| <= 40f so
-        call gcode              ; projections never saturate
-        ld (gca),a
+        ld bc,hD
+        call dsub
+        ld hl,segb+2
+        ld de,sega+2
+        ld bc,hD+3
+        call dsub
+        ld hl,segb+4
+        ld de,sega+4
+        ld bc,hD+6
+        call dsub
+        ld hl,sega
+        ld de,sega0
+        ld bc,6
+        ldir
+        ld de,(tmax)
+        ld a,d
+        cp 80h
+        jr z,lb2
         ld hl,segb
-        call gcode
-        ld b,a
-        ld a,(gca)
-        or b
-        jr z,sgp
-        ld a,(gca)
-        and b
-        ret nz
-        ld a,1
-        call gplane
-        ret c
-        ld a,2
-        call gplane
-        ret c
-        ld a,4
-        call gplane
-        ret c
-        ld a,8
-        call gplane
-        ret c
-sgp:    ld hl,sega
+        call interp
+lb2:    ld de,(tmin)
+        ld a,d
+        or e
+        jr z,sgdraw
+        ld hl,sega
+        call interp
+sgdraw: ld hl,sega
         call project
         ld (cx0),hl
         ld (cy0),de
@@ -2052,349 +2466,834 @@ sgp:    ld hl,sega
         call project
         ld (cx1),hl
         ld (cy1),de
-        jp clipdraw
-
+        ; fall through
 
 ; ---------------------------------------------------------------------
-;  Guard band.  HL -> camera point (f >= NEAR).  A = bits:
-;  1 r > 40f, 2 r < -40f, 4 u > 40f, 8 u < -40f
+;  fixdraw: (cx0,cy0)-(cx1,cy1) lie within a small margin of the view.
+;  Slide any end that is outside along the line onto the edge, draw.
 ; ---------------------------------------------------------------------
-gcode:  ld e,(hl)
-        inc hl
-        ld d,(hl)
-        inc hl
-        ld (gr),de
-        ld e,(hl)
-        inc hl
-        ld d,(hl)
-        inc hl
-        ld (gu),de
-        ld e,(hl)
-        inc hl
-        ld d,(hl)
+fixdraw:
+        ld hl,cx0
+        ld de,cx1
+        call efix
+        ret c
+        ld hl,cx1
+        ld de,cx0
+        call efix
+        ret c
+        jp drawline
+
+; HL -> this end (x,y), DE -> other end. Carry = line is not visible.
+efix:   ld (efp),hl
+        ld (efq),de
+        ; ---- x ----
+        call ldxy               ; BC = x, (efy) = y ; other: (eqx),(eqy)
+        bit 7,b
+        jr z,ef1
+        ld hl,0                 ; x < 0 -> edge 0
+        jr ef2
+ef1:    ld a,b
+        cp 2
+        jr c,ef3
+        ld hl,511               ; x > 511 -> edge 511
+ef2:    ld (efe),hl
+        ; y += (qy - y) * (e - x) / (qx - x)
+        ld de,(eqx)
+        ld h,b
+        ld l,c
         ex de,hl
-        bit 7,h
-        jr z,gc0
-        ld hl,0
-gc0:    srl h                   ; lim = f*5/8
-        rr l
-        ld d,h
-        ld e,l
-        srl h
-        rr l
-        srl h
-        rr l
-        add hl,de
-        ld (glim),hl
-        ld hl,(gu)
-        call gtest
-        add a,a
-        add a,a
-        ld c,a
-        ld hl,(gr)
-        call gtest
-        or c
-        ret
-
-; HL = value -> A = 1 if value/64 > lim, 2 if -value/64 > lim, else 0
-gtest:  ld b,1
-        bit 7,h
-        jr z,gt1
-        call neghl
-        ld b,2
-gt1:    ld a,l                  ; HL >>= 6
-        rlca
-        rlca
-        and 3
-        ld e,a
-        ld a,h
-        add a,a
-        add a,a
-        or e
-        ld l,a
-        ld a,h
-        rlca
-        rlca
-        and 3
-        ld h,a
-        ld de,(glim)
         or a
-        sbc hl,de
-        jr c,gt2
-        jr z,gt2
-        ld a,b
-        ret
-gt2:    xor a
-        ret
-
-; NZ if nmid is outside the plane in gmask (one component only)
-gone:   ld hl,(nmid+4)          ; lim = f*5/8
-        bit 7,h
-        jr z,go0
-        ld hl,0
-go0:    srl h
-        rr l
-        ld d,h
-        ld e,l
-        srl h
-        rr l
-        srl h
-        rr l
-        add hl,de
-        ld (glim),hl
-        ld a,(gmask)
-        ld hl,(nmid)
-        cp 4
-        jr c,go1
-        ld hl,(nmid+2)
-go1:    and 0Ah                 ; negative-side planes
-        call nz,neghl
-        bit 7,h
-        jr nz,go2               ; other side of the axis: inside
-        call gt1s
+        sbc hl,de               ; HL = qx - x
+        ld (efd),hl
+        ld hl,(efe)
         or a
-        ret
-go2:    xor a
-        ret
-; HL >= 0: A = 1 (NZ) if HL/64 > glim
-gt1s:   ld b,1
-        jp gt1
-
-; A = plane bit. Clips sega/segb to that plane. Carry = both outside.
-gplane: ld (gmask),a
-        ld hl,sega
-        call gcode
-        ld hl,gmask
-        and (hl)
-        ld (gca),a
-        ld hl,segb
-        call gcode
-        ld hl,gmask
-        and (hl)
-        ld b,a
-        ld a,(gca)
-        and b
-        jr z,gp1
+        sbc hl,bc               ; HL = e - x
+        call efstep             ; carry if other end is on the same side
+        ret c
+        ld hl,(efy)
+        add hl,de
+        ld (efy),hl
+        ld bc,(efe)
+        call stxy
+        call ldxy
+ef3:    ; ---- y ----
+        ld hl,(efy)
+        bit 7,h
+        jr z,ef4
+        ld hl,0
+        jr ef5
+ef4:    ld a,h
+        or a
+        jr nz,ef4a
+        ld a,l
+        cp 128
+        ccf
+        ret nc
+ef4a:   ld hl,127
+ef5:    ld (efe),hl
+        ld hl,(eqy)
+        ld de,(efy)
+        or a
+        sbc hl,de               ; HL = qy - y
+        ld (efd),hl
+        ld hl,(efe)
+        ld de,(efy)
+        or a
+        sbc hl,de               ; HL = e - y
+        ld (efy2),bc
+        ld bc,(eqx)
+        ld (efq2),bc
+        call efstepx            ; DE = x change
+        ret c
+        ld hl,(efy2)
+        add hl,de
+        ld b,h
+        ld c,l
+        ld hl,(efe)
+        ld (efy),hl
+        bit 7,b                 ; still off sideways -> not visible
         scf
-        ret
-gp1:    ld a,(gca)
-        or a
-        jr z,gp2
-        ld hl,sega
-        ld de,segb
-        call bclip
-        or a
-        ret
-gp2:    ld a,b
-        or a
-        ret z
-        ld hl,segb
-        ld de,sega
-        call bclip
+        ret nz
+        ld a,b
+        cp 2
+        ccf
+        ret c
+        call stxy
         or a
         ret
 
-; HL -> point outside plane (gmask), DE -> point inside: bisect,
-; the outside point is replaced by a point just inside the plane.
-bclip:  ld (ncdst),hl
-        push de
-        ld de,nlo
-        ld bc,6
-        ldir
-        pop hl
-        ld de,nhi
-        ld bc,6
-        ldir
-        ld a,12
-        ld (gcnt),a
-bc1:    call vbpoll
-        ld hl,(nlo)
-        sra h
-        rr l
+; HL = e - p (signed), (efd) = q - p.  Other-axis delta: (efy)/(eqy)
+; DE = (q' - p') * (e - p) / (q - p).  Carry if q is not across the edge.
+efstep: ld (efn),hl
+        ld hl,(eqy)
+        ld de,(efy)
+        or a
+        sbc hl,de
+        jr efs0
+efstepx:
+        ld (efn),hl
+        ld hl,(efq2)
+        ld de,(efy2)
+        or a
+        sbc hl,de
+efs0:   ld (efo),hl             ; other-axis delta
+        ld hl,(efd)             ; need |e-p| <= |q-p| with same sign
+        ld de,(efn)
+        ld a,h
+        xor d
+        scf
+        ret m                   ; opposite directions: q is on our side
+        bit 7,h
+        jr z,efs1
+        xor a
+        sub l
+        ld l,a
+        sbc a,a
+        sub h
+        ld h,a
         ex de,hl
-        ld hl,(nhi)
-        sra h
-        rr l
-        add hl,de
-        ld (nmid),hl
-        ld hl,(nlo+2)
-        sra h
-        rr l
+        xor a
+        sub l
+        ld l,a
+        sbc a,a
+        sub h
+        ld h,a
         ex de,hl
-        ld hl,(nhi+2)
-        sra h
-        rr l
+efs1:   or a                    ; HL = |q-p|, DE = |e-p|
+        sbc hl,de
+        ret c                   ; q is short of the edge too
         add hl,de
-        ld (nmid+2),hl
-        ld hl,(nlo+4)
-        sra h
-        rr l
+        ex de,hl                ; DE = |q-p| (den), HL = |e-p| (num)
+        call tdiv               ; HL = fraction 0..8000h
+        ld a,h                  ; clamp to 7FFFh for mulfu
+        cp 80h
+        jr c,efs2
+        ld hl,7FFFh
+efs2:   ex de,hl                ; DE = t
+        ld hl,(efo)
+        ld a,h
+        ld (dsg),a
+        bit 7,h
+        jr z,$+8
+        xor a
+        sub l
+        ld l,a
+        sbc a,a
+        sub h
+        ld h,a
+        ld b,h
+        ld c,l
+        call mulfu
+        ld a,(dsg)
+        bit 7,a
+        jr z,$+8
+        xor a
+        sub l
+        ld l,a
+        sbc a,a
+        sub h
+        ld h,a
         ex de,hl
-        ld hl,(nhi+4)
-        sra h
-        rr l
-        add hl,de
-        ld (nmid+4),hl
-        call gone
-        ld de,nlo
-        jr nz,bc2
-        ld de,nhi
-bc2:    ld hl,nmid
-        ld bc,6
-        ldir
-        ld hl,gcnt
-        dec (hl)
-        jr nz,bc1
-        ld hl,nhi
-        ld de,(ncdst)
-        ld bc,6
-        ldir
+        or a
         ret
 
-; HL -> camera point. A = frustum code: 1 left, 2 right, 4 above,
-; 8 below, 16 behind near plane. (Plane tests at half scale.)
-fcode:  ld e,(hl)
+; load this end -> BC = x, (efy) = y ; other end -> (eqx), (eqy)
+ldxy:   ld hl,(efp)
+        ld c,(hl)
+        inc hl
+        ld b,(hl)
+        inc hl
+        ld e,(hl)
         inc hl
         ld d,(hl)
-        inc hl
-        ld (fr),de
+        ld (efy),de
+        ld hl,(efq)
         ld e,(hl)
         inc hl
         ld d,(hl)
         inc hl
-        ld (fu),de
+        ld (eqx),de
         ld e,(hl)
         inc hl
         ld d,(hl)
-        ld c,0
+        ld (eqy),de
+        ret
+
+; store BC = x, (efy) = y into this end
+stxy:   ld hl,(efp)
+        ld (hl),c
+        inc hl
+        ld (hl),b
+        inc hl
+        ld de,(efy)
+        ld (hl),e
+        inc hl
+        ld (hl),d
+        ret
+
+; (HL) - (DE) words -> BC: |difference| ; bit n of dsgn2 records sign
+dsub:   ld a,(hl)
+        inc hl
+        ld h,(hl)
+        ld l,a
+        ex de,hl
+        ld a,(hl)
+        inc hl
+        ld h,(hl)
+        ld l,a
+        ex de,hl
+        ld a,h                  ; HL = B, DE = A.  17-bit sign of B-A:
+        xor d                   ; signs differ -> sign of B
+        ld a,h
+        jp m,dsb0
+        or a
+        sbc hl,de               ; same signs: no overflow, use bit 15
+        ld a,h
+        jr dsb2
+dsb0:   or a
+        sbc hl,de
+dsb2:   and 80h
+        ld (dsg),a
+        jr z,dsb1
+        xor a
+        sub l
+        ld l,a
+        sbc a,a
+        sub h
+        ld h,a
+dsb1:   ld a,l
+        ld (bc),a
+        inc bc
+        ld a,h
+        ld (bc),a
+        inc bc
+        ld a,(dsg)
+        ld (bc),a
+        ret
+
+; HL = x, DE = y -> clamped to 0..511, 0..127
+clampxy:
+        bit 7,h
+        jr z,cx1a
+        ld hl,0
+        jr cx2a
+cx1a:   ld a,h
+        cp 2
+        jr c,cx2a
+        ld hl,511
+cx2a:   bit 7,d
+        jr z,cx3a
+        ld de,0
+        ret
+cx3a:   ld a,d
+        or a
+        jr nz,cx4a
+        ld a,e
+        cp 128
+        ret c
+cx4a:   ld de,127
+        ret
+
+; HL -> B words: C counts components with |v| >= 12288, then sets scale
+sgs1:   ld a,(hl)
+        inc hl
+        ld a,(hl)
+        inc hl
+        bit 7,a
+        jr z,sgs2
+        cpl
+sgs2:   cp 30h
+        jr c,sgs3
+        inc c
+sgs3:   djnz sgs1
+; C = 0 -> full-scale distances, else half scale
+setscale:
+        ld a,c
+        or a
+        ld a,1
         ld hl,-NEAR
-        add hl,de
-        bit 7,h
-        jr z,fc0
-        set 4,c
-fc0:    sra d
-        rr e
-        ld hl,(fr)
-        sra h
-        rr l
-        push hl
-        add hl,de
-        bit 7,h
-        jr z,fc1
-        set 0,c
-fc1:    pop hl
-        or a
-        sbc hl,de
-        jr z,fc2
-        bit 7,h
-        jr nz,fc2
-        set 1,c
-fc2:    sra d
-        rr e
-        sra d
-        rr e
-        ld h,d
-        ld l,e
-        sra h
-        rr l
-        sra h
-        rr l
-        sra h
-        rr l
-        add hl,de
-        ex de,hl
-        ld hl,(fu)
-        sra h
-        rr l
-        push hl
-        or a
-        sbc hl,de
-        jr z,fc3
-        bit 7,h
-        jr nz,fc3
-        set 2,c
-fc3:    pop hl
-        add hl,de
-        bit 7,h
-        jr z,fc4
-        set 3,c
-fc4:    ld a,c
+        jr z,ssc1
+        xor a
+        ld hl,-NEAR/2
+ssc1:   ld (hfull),a
+        ld (hnear),hl
         ret
 
-; HL -> point behind the near plane, DE -> point in front.
-; Binary search along the segment; result replaces the behind point.
-nearclip:
-        ld (ncdst),hl
-        push de
-        ld de,nlo
-        ld bc,6
-        ldir
+; HL -> full-scale camera point, DE -> 6-byte half copy, BC -> 5 plane
+; distances (words).  Returns A = outside mask (bit n = plane n).
+halfdist:
+        push bc
+        ld c,(hl)               ; r/2 (or full scale)
+        inc hl
+        ld b,(hl)
+        inc hl
+        ld a,(hfull)
+        or a
+        jr nz,$+6
+        sra b
+        rr c
+        ld (hr),bc
+        ld a,c
+        ld (de),a
+        inc de
+        ld a,b
+        ld (de),a
+        inc de
+        ld c,(hl)               ; u/2 (or full scale)
+        inc hl
+        ld b,(hl)
+        inc hl
+        ld a,(hfull)
+        or a
+        jr nz,$+6
+        sra b
+        rr c
+        ld (hu),bc
+        ld a,c
+        ld (de),a
+        inc de
+        ld a,b
+        ld (de),a
+        inc de
+        ld c,(hl)               ; f/2 (or full scale)
+        inc hl
+        ld b,(hl)
+        ld a,(hfull)
+        or a
+        jr nz,$+6
+        sra b
+        rr c
+        ld (hf),bc
+        ld a,c
+        ld (de),a
+        inc de
+        ld a,b
+        ld (de),a
+        ld h,b                  ; kf = f + f/16
+        ld l,c
+        sra b
+        rr c
+        sra b
+        rr c
+        sra b
+        rr c
+        sra b
+        rr c
+        ld (hq2),bc             ; f/16
+        add hl,bc
+        ld (hq),hl
+        pop hl                  ; HL -> distances
+        ld c,0
+        ; 0: f - NEAR/2
+        push hl
+        ld hl,(hf)
+        ld de,(hnear)
+        add hl,de
+        ex de,hl
         pop hl
-        ld de,nhi
-        ld bc,6
-        ldir
-        ld b,15
-nc1:    call vbpoll
-        ld hl,(nlo+4)
-        sra h
-        rr l
-        ex de,hl
-        ld hl,(nhi+4)
-        sra h
-        rr l
-        add hl,de
-        ld (nmid+4),hl
-        ld hl,(nlo)
-        sra h
-        rr l
-        ex de,hl
-        ld hl,(nhi)
-        sra h
-        rr l
-        add hl,de
-        ld (nmid),hl
-        ld hl,(nlo+2)
-        sra h
-        rr l
-        ex de,hl
-        ld hl,(nhi+2)
-        sra h
-        rr l
-        add hl,de
-        ld (nmid+2),hl
-        ld hl,(nmid+4)
-        ld de,NEAR
+        ld (hl),e
+        inc hl
+        ld (hl),d
+        inc hl
+        ld a,d
+        rla
+        rr c
+        ; 1: kf - r
+        push hl
+        ld hl,(hq)
+        ld de,(hr)
         or a
         sbc hl,de
-        bit 7,h
-        jr z,nc2
-        ld hl,(nmid)
-        ld (nlo),hl
-        ld hl,(nmid+2)
-        ld (nlo+2),hl
-        ld hl,(nmid+4)
-        ld (nlo+4),hl
-        djnz nc1
-        jr nc3
-nc2:    ld de,4
+        ex de,hl
+        pop hl
+        ld (hl),e
+        inc hl
+        ld (hl),d
+        inc hl
+        ld a,d
+        rla
+        rr c
+        ; 2: kf + r
+        push hl
+        ld hl,(hq)
+        ld de,(hr)
+        add hl,de
+        ex de,hl
+        pop hl
+        ld (hl),e
+        inc hl
+        ld (hl),d
+        inc hl
+        ld a,d
+        rla
+        rr c
+        ; ku = f/4 + f/16
+        push hl
+        ld hl,(hf)
+        sra h
+        rr l
+        sra h
+        rr l
+        ld de,(hq2)
+        add hl,de
+        ld (hq),hl
+        ; 3: ku - u
+        ld de,(hu)
         or a
         sbc hl,de
-        ld hl,(nmid)
-        ld (nhi),hl
-        ld hl,(nmid+2)
-        ld (nhi+2),hl
-        ld hl,(nmid+4)
-        ld (nhi+4),hl
-        jr c,nc3
-        djnz nc1
-nc3:    ld hl,nhi
-        ld de,(ncdst)
-        ld bc,6
-        ldir
+        ex de,hl
+        pop hl
+        ld (hl),e
+        inc hl
+        ld (hl),d
+        inc hl
+        ld a,d
+        rla
+        rr c
+        ; 4: ku + u
+        push hl
+        ld hl,(hq)
+        ld de,(hu)
+        add hl,de
+        ex de,hl
+        pop hl
+        ld (hl),e
+        inc hl
+        ld (hl),d
+        ld a,d
+        rla
+        rr c
+        ld a,c
+        rrca
+        rrca
+        rrca
+        and 1Fh
         ret
 
-sra1:   sra h
+; HL = num, DE = den (unsigned, num <= den) -> HL = num*32768/den
+tdiv:   or a
+        sbc hl,de
+        jr c,td0
+        ld hl,8000h
+        ret
+td0:    add hl,de
+        xor a
+        ld c,a
+        add hl,hl
+        jr c,tdo0
+        sbc hl,de
+        jr nc,tdk0
+        add hl,de
+tdk0:  ccf
+        rl c
+        rla
+        jp tdn0
+tdo0:  ccf
+        sbc hl,de
+        scf
+        rl c
+        rla
+tdn0:
+        add hl,hl
+        jr c,tdo1
+        sbc hl,de
+        jr nc,tdk1
+        add hl,de
+tdk1:  ccf
+        rl c
+        rla
+        jp tdn1
+tdo1:  ccf
+        sbc hl,de
+        scf
+        rl c
+        rla
+tdn1:
+        add hl,hl
+        jr c,tdo2
+        sbc hl,de
+        jr nc,tdk2
+        add hl,de
+tdk2:  ccf
+        rl c
+        rla
+        jp tdn2
+tdo2:  ccf
+        sbc hl,de
+        scf
+        rl c
+        rla
+tdn2:
+        add hl,hl
+        jr c,tdo3
+        sbc hl,de
+        jr nc,tdk3
+        add hl,de
+tdk3:  ccf
+        rl c
+        rla
+        jp tdn3
+tdo3:  ccf
+        sbc hl,de
+        scf
+        rl c
+        rla
+tdn3:
+        add hl,hl
+        jr c,tdo4
+        sbc hl,de
+        jr nc,tdk4
+        add hl,de
+tdk4:  ccf
+        rl c
+        rla
+        jp tdn4
+tdo4:  ccf
+        sbc hl,de
+        scf
+        rl c
+        rla
+tdn4:
+        add hl,hl
+        jr c,tdo5
+        sbc hl,de
+        jr nc,tdk5
+        add hl,de
+tdk5:  ccf
+        rl c
+        rla
+        jp tdn5
+tdo5:  ccf
+        sbc hl,de
+        scf
+        rl c
+        rla
+tdn5:
+        add hl,hl
+        jr c,tdo6
+        sbc hl,de
+        jr nc,tdk6
+        add hl,de
+tdk6:  ccf
+        rl c
+        rla
+        jp tdn6
+tdo6:  ccf
+        sbc hl,de
+        scf
+        rl c
+        rla
+tdn6:
+        add hl,hl
+        jr c,tdo7
+        sbc hl,de
+        jr nc,tdk7
+        add hl,de
+tdk7:  ccf
+        rl c
+        rla
+        jp tdn7
+tdo7:  ccf
+        sbc hl,de
+        scf
+        rl c
+        rla
+tdn7:
+        add hl,hl
+        jr c,tdo8
+        sbc hl,de
+        jr nc,tdk8
+        add hl,de
+tdk8:  ccf
+        rl c
+        rla
+        jp tdn8
+tdo8:  ccf
+        sbc hl,de
+        scf
+        rl c
+        rla
+tdn8:
+        add hl,hl
+        jr c,tdo9
+        sbc hl,de
+        jr nc,tdk9
+        add hl,de
+tdk9:  ccf
+        rl c
+        rla
+        jp tdn9
+tdo9:  ccf
+        sbc hl,de
+        scf
+        rl c
+        rla
+tdn9:
+        add hl,hl
+        jr c,tdo10
+        sbc hl,de
+        jr nc,tdk10
+        add hl,de
+tdk10:  ccf
+        rl c
+        rla
+        jp tdn10
+tdo10:  ccf
+        sbc hl,de
+        scf
+        rl c
+        rla
+tdn10:
+        add hl,hl
+        jr c,tdo11
+        sbc hl,de
+        jr nc,tdk11
+        add hl,de
+tdk11:  ccf
+        rl c
+        rla
+        jp tdn11
+tdo11:  ccf
+        sbc hl,de
+        scf
+        rl c
+        rla
+tdn11:
+        add hl,hl
+        jr c,tdo12
+        sbc hl,de
+        jr nc,tdk12
+        add hl,de
+tdk12:  ccf
+        rl c
+        rla
+        jp tdn12
+tdo12:  ccf
+        sbc hl,de
+        scf
+        rl c
+        rla
+tdn12:
+        add hl,hl
+        jr c,tdo13
+        sbc hl,de
+        jr nc,tdk13
+        add hl,de
+tdk13:  ccf
+        rl c
+        rla
+        jp tdn13
+tdo13:  ccf
+        sbc hl,de
+        scf
+        rl c
+        rla
+tdn13:
+        add hl,hl
+        jr c,tdo14
+        sbc hl,de
+        jr nc,tdk14
+        add hl,de
+tdk14:  ccf
+        rl c
+        rla
+        jp tdn14
+tdo14:  ccf
+        sbc hl,de
+        scf
+        rl c
+        rla
+tdn14:
+        ld h,a
+        ld l,c
+        ret
+
+; BC = unsigned magnitude, DE = 0..32767 -> HL = BC*DE/32768 (rounded)
+mulfu:  ld hl,0
+        srl d
+        rr e
+        jr nc,$+3
+        add hl,bc
+        rr h
         rr l
+        srl d
+        rr e
+        jr nc,$+3
+        add hl,bc
+        rr h
+        rr l
+        srl d
+        rr e
+        jr nc,$+3
+        add hl,bc
+        rr h
+        rr l
+        srl d
+        rr e
+        jr nc,$+3
+        add hl,bc
+        rr h
+        rr l
+        srl d
+        rr e
+        jr nc,$+3
+        add hl,bc
+        rr h
+        rr l
+        srl d
+        rr e
+        jr nc,$+3
+        add hl,bc
+        rr h
+        rr l
+        srl d
+        rr e
+        jr nc,$+3
+        add hl,bc
+        rr h
+        rr l
+        srl d
+        rr e
+        jr nc,$+3
+        add hl,bc
+        rr h
+        rr l
+        srl d
+        rr e
+        jr nc,$+3
+        add hl,bc
+        rr h
+        rr l
+        srl d
+        rr e
+        jr nc,$+3
+        add hl,bc
+        rr h
+        rr l
+        srl d
+        rr e
+        jr nc,$+3
+        add hl,bc
+        rr h
+        rr l
+        srl d
+        rr e
+        jr nc,$+3
+        add hl,bc
+        rr h
+        rr l
+        srl d
+        rr e
+        jr nc,$+3
+        add hl,bc
+        rr h
+        rr l
+        srl d
+        rr e
+        jr nc,$+3
+        add hl,bc
+        rr h
+        rr l
+        srl d
+        rr e
+        jr nc,$+3
+        add hl,bc
+        rr h
+        rr l
+        ret nc                  ; last bit shifted out = rounding
+        inc hl
+        ret
+
+; DE = t, HL -> destination point: dest = sega0 + D*t
+interp: ld (itt),de
+        ld (idst),hl
+        ld hl,hD
+        ld (ioff),hl
+        ld hl,sega0
+        ld (isrc),hl
+        ld a,3
+        ld (icnt),a
+ip1:    ld hl,(ioff)
+        ld c,(hl)
+        inc hl
+        ld b,(hl)
+        inc hl
+        ld a,(hl)
+        inc hl
+        ld (ioff),hl
+        ld (dsg),a
+        ld de,(itt)
+        call mulfu
+        ld a,(dsg)
+        or a
+        jr z,$+8
+        xor a
+        sub l
+        ld l,a
+        sbc a,a
+        sub h
+        ld h,a
+        ex de,hl
+        ld hl,(isrc)
+        ld a,(hl)
+        inc hl
+        ld h,(hl)
+        ld l,a
+        add hl,de
+        ex de,hl
+        ld hl,(idst)
+        ld (hl),e
+        inc hl
+        ld (hl),d
+        inc hl
+        ld (idst),hl
+        ld hl,(isrc)
+        inc hl
+        inc hl
+        ld (isrc),hl
+        ld hl,icnt
+        dec (hl)
+        jr nz,ip1
         ret
 
 ; HL -> (r,u,f).  Returns HL = screen x, DE = screen y
@@ -2529,10 +3428,20 @@ hzden:
         neg
         push af
         ld hl,(ht0)
-        call neghl
+        xor a
+        sub l
+        ld l,a
+        sbc a,a
+        sub h
+        ld h,a
         ld (ht0),hl
         ld hl,(ht1)
-        call neghl
+        xor a
+        sub l
+        ld l,a
+        sbc a,a
+        sub h
+        ld h,a
         ld (ht1),hl
         pop af
 hzd1:   or a
@@ -2550,22 +3459,22 @@ sexta:  ld l,a
         ret
 
 reticle:
+        ld hl,64
+        ld (cy0),hl
+        ld (cy1),hl
         ld hl,236
         ld (cx0),hl
         ld hl,250
         ld (cx1),hl
+        call drawline
         ld hl,64
         ld (cy0),hl
         ld (cy1),hl
-        call clipdraw
         ld hl,262
         ld (cx0),hl
         ld hl,276
         ld (cx1),hl
-        ld hl,64
-        ld (cy0),hl
-        ld (cy1),hl
-        call clipdraw
+        call drawline
         ld hl,256
         ld (cx0),hl
         ld (cx1),hl
@@ -2573,7 +3482,7 @@ reticle:
         ld (cy0),hl
         ld hl,65
         ld (cy1),hl
-        jp clipdraw
+        jp drawline
 
 ; =====================================================================
 ;  2D CLIPPING  (midpoint subdivision, view 0-511 x 0-127)
@@ -2751,8 +3660,7 @@ cdpop:  ld hl,(cstkp)
 
 ; inside point (six,siy), outside point (sox,soy) -> boundary in six,siy
 search:
-srch1:  call vbpoll
-        ld hl,(six)
+srch1:  ld hl,(six)
         ld de,(sox)
         call near1
         jr nc,srch2
@@ -2804,12 +3712,48 @@ drawline:
         ld de,(cy1)
         ld (cy0),de
         ld (cy1),hl
-dl1:    ld hl,(cx1)
+dl1:    call dmark
+        ld hl,(cx1)
         ld de,(cx0)
         or a
         sbc hl,de
         ld (ldx),hl
+        ld a,h                  ; 256+ wide and sloping: draw as two
+        or a                    ; halves so the 8-bit slope stays exact
+        jr z,dl1b
         ld a,(cy0)
+        ld hl,cy1
+        cp (hl)
+        jr z,dl1b
+        ld hl,(cx1)
+        push hl
+        ld hl,(cy1)
+        push hl
+        ld hl,(cx0)             ; midpoint
+        ld de,(cx1)
+        add hl,de
+        srl h
+        rr l
+        ld (cx1),hl
+        ld a,(cy0)
+        pop de
+        push de
+        add a,e
+        rra                     ; (y0+y1)/2 (9-bit sum via carry)
+        ld (cy1),a
+        xor a
+        ld (cy1+1),a
+        call drawline
+        ld hl,(cx1)
+        ld (cx0),hl
+        ld hl,(cy1)
+        ld (cy0),hl
+        pop hl
+        ld (cy1),hl
+        pop hl
+        ld (cx1),hl
+        jp drawline
+dl1b:   ld a,(cy0)
         ld c,a
         ld a,(cy1)
         sub c
@@ -2819,8 +3763,8 @@ dl1:    ld hl,(cx1)
         ld d,2Dh                ; DEC L
 dl2:    ld (lady),a
         ld a,d
-        ld (xmys),a
         ld (ymys),a
+        ld (xrow),a
         ld hl,(cx0)
         ld a,l
         rla
@@ -2878,21 +3822,34 @@ dlx:    push hl
         ld a,(lady)
         call slopediv
 dlx2:   pop bc
+        call xmfix              ; D = slope, (xacc) = start, never overshoots
         pop hl
-        ld d,a
-        ld e,80h
+        call xmpatch            ; set the 8 row-step opcodes
         push hl
-        ld hl,(ldx)
+        ld hl,(ldx)             ; count = dx+1 -> B low, C outer
         inc hl
+        ld b,l
+        ld c,h
         ld a,l
         or a
-        ld a,h
         jr z,dlx3
-        inc a
-dlx3:   ld (xout),a
-        ld b,l
-        pop hl
-        jp xmloop
+        inc c
+dlx3:   ld a,(cx0)              ; entry block = x0 & 7
+        and 7
+        add a,a
+        ld l,a
+        ld h,0
+        push de
+        ld de,xmtab
+        add hl,de
+        ld e,(hl)
+        inc hl
+        ld d,(hl)
+        ex de,hl
+        pop de
+        ex (sp),hl              ; stack: entry, HL = address
+        ld a,(xacc)
+        ret                     ; jump to the entry block
 dly:    push hl
         push bc
         ld a,(lady)
@@ -2909,6 +3866,21 @@ dly:    push hl
         inc a
         ld b,a
         jp ymloop
+
+; HL / A (unsigned) -> HL
+div16u8:
+        ld c,a
+        xor a
+        ld b,16
+dv1:    add hl,hl
+        rla
+        jr c,dv2
+        cp c
+        jr c,dv3
+dv2:    sub c
+        inc l
+dv3:    djnz dv1
+        ret
 
 ; A = n, DE = d (>=1) -> A = n*256/d (255 if n >= d)
 slopediv:
@@ -2930,44 +3902,154 @@ sdv2:   add hl,hl
         or a
         rl c
         djnz sdv2
-        ld a,c
-        ret
+        jr sdv4
 sdv3:   scf
         rl c
         djnz sdv2
+sdv4:   add hl,hl               ; round: remainder*2 >= d -> +1
+        or a
+        sbc hl,de
         ld a,c
+        ret c
+        inc a
+        ret nz
+        dec a
         ret
 
-; x-major: B/xout = count, C = mask, D = slope, E = acc, HL = address
-xmloop: ld a,(hl)
-        or c
-        ld (hl),a
-        ld a,e
+; x-major, unrolled: A = acc, D = slope, B/C = count, HL = address
+xp0:    set 7,(hl)
         add a,d
-        ld e,a
-        jr nc,xm1
-xmys:   inc l
-xm1:    rrc c
-        jr c,xmbyte
-xm2:    djnz xmloop
-        ld a,(xout)
-        dec a
-        ld (xout),a
-        jr nz,xmloop
-        ret
-xmbyte: ld a,l
+        jr nc,$+3
+xs0:    inc l
+        dec b
+        jr z,xz0
+xp1:    set 6,(hl)
+        add a,d
+        jr nc,$+3
+xs1:    inc l
+        dec b
+        jr z,xz1
+xp2:    set 5,(hl)
+        add a,d
+        jr nc,$+3
+xs2:    inc l
+        dec b
+        jr z,xz2
+xp3:    set 4,(hl)
+        add a,d
+        jr nc,$+3
+xs3:    inc l
+        dec b
+        jr z,xz3
+xp4:    set 3,(hl)
+        add a,d
+        jr nc,$+3
+xs4:    inc l
+        dec b
+        jr z,xz4
+xp5:    set 2,(hl)
+        add a,d
+        jr nc,$+3
+xs5:    inc l
+        dec b
+        jr z,xz5
+xp6:    set 1,(hl)
+        add a,d
+        jr nc,$+3
+xs6:    inc l
+        dec b
+        jr z,xz6
+xp7:    set 0,(hl)
+        add a,d
+        jr nc,$+3
+xs7:    inc l
+        dec b
+        jr z,xz7
+xpnb:   ld e,a                  ; next byte column
+        ld a,l
         add a,80h
         ld l,a
-        jr nc,xm2
+        ld a,e
+        jp nc,xp0
         inc h
-        jr nz,xm2
-        ld h,0F8h
-        call vbpoll
+        jp nz,xp0
+        ld h,0F8h               ; next strip
         ld a,(curbank)
         inc a
         ld (curbank),a
         out (LATCH),a
-        jr xm2
+        call vbpoll
+        ld a,e
+        jp xp0
+xz0:    dec c
+        jp nz,xp1
+        ret
+xz1:    dec c
+        jp nz,xp2
+        ret
+xz2:    dec c
+        jp nz,xp3
+        ret
+xz3:    dec c
+        jp nz,xp4
+        ret
+xz4:    dec c
+        jp nz,xp5
+        ret
+xz5:    dec c
+        jp nz,xp6
+        ret
+xz6:    dec c
+        jp nz,xp7
+        ret
+xz7:    dec c
+        jp nz,xpnb
+        ret
+
+xmtab:  dw xp0,xp1,xp2,xp3,xp4,xp5,xp6,xp7
+
+; A = rounded slope. excess = s*dx - 256*dy; start acc = 128 - excess,
+; or use s-1 if the excess is over 128.  -> D = slope, (xacc)
+xmfix:  ld d,a
+        ld e,a
+        ld hl,(ldx)
+        push de
+        call mul16u8            ; HL = s*dx
+        pop de
+        ld a,(lady)
+        ld b,a
+        ld c,0                  ; BC = 256*dy
+        or a
+        sbc hl,bc
+        ld a,80h
+        jr c,xf1                ; no excess
+        jr z,xf1
+        ld a,h
+        or a
+        jr nz,xf2
+        ld a,l
+        cp 129
+        jr nc,xf2
+        ld a,80h
+        sub l
+        jr xf1
+xf2:    dec d
+        ld a,80h
+xf1:    ld (xacc),a
+        ret
+
+; A = INC L / DEC L opcode in (xrow) -> patch the 8 row steps
+xmpatch:
+        ld a,(xrow)
+        ld (xs0),a
+        ld (xs1),a
+        ld (xs2),a
+        ld (xs3),a
+        ld (xs4),a
+        ld (xs5),a
+        ld (xs6),a
+        ld (xs7),a
+        ret
 
 ; y-major
 ymloop: ld a,(hl)
@@ -2997,7 +4079,13 @@ ymbyte: ld a,l
         jr ym2
 
 ; horizontal line: whole bytes at a time
-dlh:    ld a,(cx0)
+dlh:    ld de,(cx0)
+        ld (spx0),de
+        ld de,(cx1)
+        ld (spx1),de
+; span: OR pixels spx0..spx1 into the row at HL (HL = byte of spx0).
+; Leaves HL at the byte of spx1.
+span:   ld a,(spx0)
         and 7
         ld e,a
         ld d,0
@@ -3005,16 +4093,16 @@ dlh:    ld a,(cx0)
         ld hl,rmask
         add hl,de
         ld b,(hl)
-        ld a,(cx1)
+        ld a,(spx1)
         and 7
         ld e,a
         ld hl,emask
         add hl,de
         ld c,(hl)
-        ld hl,(cx1)
+        ld hl,(spx1)
         call div8
         ld e,a
-        ld hl,(cx0)
+        ld hl,(spx0)
         call div8
         ld d,a
         ld a,e
@@ -3139,7 +4227,12 @@ pdg1:   inc a
 psdec:  ld a,'+'
         bit 7,h
         jr z,ps1
-        call neghl
+        xor a
+        sub l
+        ld l,a
+        sbc a,a
+        sub h
+        ld h,a
         ld a,'-'
 ps1:    ld (de),a
         inc de
@@ -3152,7 +4245,13 @@ angdeg: bit 7,a
         jr z,ang0
         neg
         call ang0
-        jp neghl
+        xor a
+        sub l
+        ld l,a
+        sbc a,a
+        sub h
+        ld h,a
+        ret
 ang0:   call sexta
         ld d,h
         ld e,l

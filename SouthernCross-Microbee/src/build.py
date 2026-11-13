@@ -59,7 +59,7 @@ vars_ = [
  ('tx',2),('ty',2),('tz',2),('vr',2),('vu',2),('vf',2),
  ('cvr',2),('cvu',2),('cvf',2),('svec',6),('lvec',6),('scount',1),
  ('sega',6),('segb',6),('ncdst',2),('nlo',6),('nhi',6),('nmid',6),
- ('pr',2),('fr',2),('fu',2),('ff',2),('ffh',2),('frh',2),('fca',1),('fcb',1),('gr',2),('gu',2),('glim',2),('gca',1),('gmask',1),('gcnt',1),('vblast',1),('fields',1),('lastfr',1),('fsec',1),('detail',1),('m11h',1),('vcnt',1),('vidx',1),('ea',1),('eb',1),('axx',24),('axy',24),('axz',24),('vbuf',96),('vcode',16),('vproj',64),('dkey',1),('pu',2),('pf',2),('psx',2),
+ ('pr',2),('fr',2),('fu',2),('ff',2),('ffh',2),('frh',2),('fca',1),('hA',6),('hB',6),('hD',9),('dsg',1),('isrc',2),('hT',6),('dA',10),('dB',10),('dT',10),('lcA',1),('lcB',1),('lbm',1),('lbpa',2),('lbpb',2),('tmin',2),('tmax',2),('sega0',6),('hdd',2),('hr',2),('hu',2),('hf',2),('hq',2),('hq2',2),('spx0',2),('spx1',2),('xrow',1),('rnga',8),('rngb',8),('rngback',2),('cbank',1),('xacc',1),('hfull',1),('hnear',2),('efp',2),('efq',2),('efe',2),('efy',2),('eqx',2),('eqy',2),('efd',2),('efn',2),('efo',2),('efy2',2),('efq2',2),('hcode',1),('itt',2),('idst',2),('ioff',2),('icnt',1),('fcb',1),('gr',2),('gu',2),('glim',2),('gca',1),('gmask',1),('gcnt',1),('vblast',1),('fields',1),('lastfr',1),('fsec',1),('detail',1),('m11h',1),('vcnt',1),('vidx',1),('ea',1),('eb',1),('axx',24),('axy',24),('axz',24),('vbuf',96),('vcode',16),('vproj',64),('dkey',1),('pu',2),('pf',2),('psx',2),
  ('ht0',2),('ht1',2),('hden',2),
  ('cx0',2),('cy0',2),('cx1',2),('cy1',2),('mx',2),('my',2),('smx',2),('smy',2),
  ('six',2),('siy',2),('sox',2),('soy',2),('oc0',1),('oc1v',1),('cstkp',2),

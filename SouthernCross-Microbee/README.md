@@ -25,13 +25,13 @@ Boot `release/SCROSS.DS8` (DS80) and type `SCROSS` at `A>`. Press RESET to exit.
 
 Rotate at about 52 kt, climb at 60–70 kt, stall is about 43 kt (the nose drops by itself). Land at under ~700 ft/min sink with the wings level.
 
-## Benchmark (emulator, 3.375 MHz, on the runway)
+## Benchmark (emulator, 3.375 MHz)
 
-| Detail | Scene | Frames per second |
-|---|---|---|
-| 1 | Horizon, runway outline | ~15 |
-| 2 | + centreline, threshold bars, hangar | ~8 |
-| 3 | + ground grid (default) | ~5.5 |
+| Detail | Scene | On the runway | In the air (average of 4 views) |
+|---|---|---|---|
+| 1 | Horizon, runway outline | ~19 fps | |
+| 2 | + centreline, threshold bars, hangar | ~8 fps | |
+| 3 | + ground grid (default) | ~5.5 fps | ~6.5 fps (5.0–8.0) |
 
 The panel shows the real frame rate, timed from the 6545 vertical blank (50 Hz); game speed uses the same count.
 
@@ -39,7 +39,10 @@ The panel shows the real frame rate, timed from the 6545 vertical blank (50 Hz);
 
 - 64 × 16 screen of 8 × 16 cells (512 × 256). The top half is a 512 × 128 bitmap made from 512 PCG glyphs arranged as four vertical strips, one 2K PCG bank each, so a pixel column is a contiguous 128-byte run and stepping a line up or down is `INC L`/`DEC L`.
 - Double buffered: page A (screen F000, banks 1–4) and page B (screen F400, banks 5–8), flipped with the 6545 start address.
-- 8-bit camera matrix rebuilt each frame; world in half-metre units; frustum culling, near-plane clipping, a 3D guard band (|r|,|u| ≤ 40f) so projections never overflow, midpoint 2D clipping; shared-vertex "lattice" objects and incremental line series.
+- 8-bit camera matrix rebuilt each frame; world in half-metre units; shared-vertex "lattice" objects and incremental line series.
+- One-pass 3D line clip (Liang–Barsky) against the view plus a 16-pixel margin, full-precision interpolation, then a small 2D "edge fix" slides each end exactly onto the screen edge.
+- Unrolled `SET n,(HL)` pixel loop for shallow lines (~45 T-states a pixel), long lines split at the midpoint so the 8-bit slope stays exact.
+- Only the rows each strip actually used are cleared next time round (PUSH runs down each byte column).
 - Flight model at 50 ticks per second of game time, driven by the vertical-blank field count (thrust, drag, gravity along the path, stall, bank-to-turn, ground roll, landing check).
 
 ## Building
