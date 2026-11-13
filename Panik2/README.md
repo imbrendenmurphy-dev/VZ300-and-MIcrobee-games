@@ -1,11 +1,11 @@
 # PANIK 2 — "Dig Deeper!"
 
 Sequel to the VZ200/VZ300 game *PANIK* (VZ-PANIC), for the Dick Smith VZ300 / VZ200 with a BennVenn SD loader and 128K RAM.
-ViBED by BPM 2026. All code, graphics and music are original. Nothing from the original game is included.
+VIBED BY BPM 2026. All code, graphics and music are original. Nothing from the original game is included.
 
-![title](screenshots/PANIK2_title.gif)
+**Version 1.1** (12 November 2026). The release blurb and tech specs are in [BLURB.md](BLURB.md).
 
-![gameplay](screenshots/PANIK2_gameplay.gif)
+![showcase](screenshots/PANIK2_showcase.gif)
 
 ## About the original
 
@@ -21,7 +21,7 @@ The sequel keeps the controls, the green station look, the dig-trap-bash loop, t
 
 ## Play it
 
-Copy `release/PANIK2.VZ` to the SD card and run it from the BennVenn SD menu. It's a single type F1 machine-code file that loads at $8000 (to $D57F) and starts straight away.
+Copy `release/PANIK2.VZ` to the SD card and run it from the BennVenn SD menu. It's a single type F1 machine-code file that loads at $8000 (to $D67F) and starts straight away.
 
 | Action | Keyboard | Joystick |
 |---|---|---|
@@ -101,6 +101,8 @@ Copy `release/PANIK2.VZ` to the SD card and run it from the BennVenn SD menu. It
 
 ![screens](screenshots/PANIK2_screens.png)
 
+Separate screenshots of each screen are in `screenshots/`, along with the title animation (`PANIK2_title.gif`) and a stretch of play (`PANIK2_gameplay.gif`).
+
 ## Hardware notes
 
 **Loading:**
@@ -114,10 +116,10 @@ Copy `release/PANIK2.VZ` to the SD card and run it from the BennVenn SD menu. It
 |---|---|
 | $4000–$5C1F | **BennVenn SRAM window**: sprite shift table and 36 pre-shifted, pre-masked sprites (built at start-up) |
 | $7000–$77FF | video RAM |
-| $7800–$7AAB | variables |
+| $7800–$7AAA | variables |
 | $7C00–$7C7F | VRAM commit queue |
 | $7FFE | stack (grows down) |
-| $8000–$D57F | code and data (the .VZ) |
+| $8000–$D67F | code and data (the .VZ) |
 | $E800–$EFFF | CLEAN: the composed playfield, used to restore under text and pop-ups |
 | $F000–$F10F | stage tables: holes, refill timers, floor types, ladders, alien arrival order |
 | $F600–$F7FF | sprite mask tables |
@@ -169,13 +171,14 @@ cd src
   - It has a **vblank timing marker**, which reports the scanline at which each frame's drawing finished.
   - It uses the superzazu/z80 CPU core (MIT licence, see `LICENSE-z80`).
 - `tools/playtest.py` runs the soak test. It pokes test-only RAM flags (`autoplay`, `godmode`, `forceclear`) so the computer player plays through every stage.
-- `tools/media.py` captures the screenshots, GIFs and audio.
+- `tools/showcase_capture.py` captures emulator frames for the release media. `tools/screens.py` turns them into the screenshots and GIFs, and `tools/showcase.py` makes the captioned showcase GIF.
+- `tools/media.py` captures the audio (and an older set of screenshots).
 - `tools/z80dis.py` is the small disassembler used to study the original.
 
 ## Testing
 
 **Tested in the emulator only:**
-- A 32,000-frame soak through every stage, all four gem digs, the coffee break, the ending and into lap 2: **no video-RAM access during the active display on any frame**, apart from the one-off screen clear at power-on. The latest-finishing frame ended on scanline 80; the picture starts at 81.
+- A 32,000-frame soak through every stage, all four gem digs, the coffee break, the ending and into lap 2: **no video-RAM access during the active display on any frame**, apart from the one-off screen clear at power-on. The latest-finishing frame ended on scanline 78; the picture starts at 81.
 - Keyboard play: walking, climbing, digging and holes refilling.
 - The full attract cycle and the demo.
 - Deaths, out-of-air, game over, initials entry and the Hall of Fame.
@@ -186,6 +189,19 @@ cd src
 - The sound level on your speaker.
 - Joystick feel on your interface.
 
-## Sound-effect fix (8 November 2026)
+## Version history
 
+**v1.1 (12 November 2026)**
+- The computer player (attract demo) now traps and bashes aliens properly. Before, turning to face a trapped alien moved it one pixel off its spot, so it shuffled back and forth until the alien escaped.
+- Sprites at the right-hand edge now use their own fast draw and erase. Busy frames (a squash combo, an extra life and a pick-up all at once) could overrun vblank by a couple of scanlines; the worst frame now finishes 3 scanlines early.
+- Two score pop-ups no longer overlap (a squash combo read as "10000").
+- The title message changes in a single frame instead of half at a time.
+
+**v1.0.2 (8 November 2026): sound-effect fix**
 The sound-effect table had 9 bytes per entry, but the code that plays an effect looks entries up 8 bytes apart. So every effect after the first one played the wrong values, and some came out as long, chirpy, lingering sweeps. The table now has 8-byte entries, so every effect plays as designed. Every effect plays at its original length, including the warbly bonus and power-up sounds. Nothing else changed.
+
+**v1.0.1 (6 November 2026)**
+- After the first death, every new life died on the spot. Respawning now clears the death flag.
+
+**v1.0 (6 November 2026)**
+- First release.

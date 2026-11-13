@@ -62,7 +62,7 @@ title_screen:
         call unpack
         call title_msg_clear
         call wipe_show
-        ld a,16
+        ld a,40
         ld (cbudget),a
         ld hl,mus_title_0
         ld de,mus_title_1
@@ -512,7 +512,7 @@ how_lines:
         db 3 : dw hl4
         db 0
 hl0:    db "SPACE: DIG A HOLE",0
-hl1:    db "ALIENS FALL IN - BASH THEM",0
+hl1:    db "ALIENS FALL IN. BASH THEM",0
 hl2:    db "DOWN THROUGH THE FLOOR!",0
 hl3:    db "BIG ONES NEED LONGER DROPS",0
 hl4:    db "AND WATCH YOUR OXYGEN!",0

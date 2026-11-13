@@ -983,7 +983,7 @@ dl_add:
         cp 30
         ld a,0
         jr c,.w3
-        inc a                   ; right edge: only 2 bytes
+        inc a                   ; right edge: 2 bytes wide (fast path)
 .w3:    ld hl,(dlptr)
         ld (hl),a
         inc hl
@@ -1046,16 +1046,21 @@ render:
         inc hl
         ld a,d
         or a
-        jr z,.edone
+        jp z,.edone
         ld b,(hl)
         inc hl
         ld c,(hl)
         inc hl
         push hl
         ex de,hl
+        ld a,c
+        cp 8
+        jr nz,.erow
         ld a,b
         cp 3
         jr z,.e3
+        cp 2
+        jp z,.e2
 .erow:  push bc
         ld d,h
         ld e,l
@@ -1077,25 +1082,156 @@ render:
         jr nz,.erow
         pop hl
         jp .e
-.e3:    ld a,c                  ; fast path: 3 bytes wide, BG -> VRAM with LDI
-        ld iyl,a
-        ld d,h
-        ld e,l
+.e3:    ld d,h                  ; fast path: 3 x 8 (all sprites), BG -> VRAM
+        ld e,l                  ; with LDI, unrolled
         ld a,h
         or $88
         ld h,a
-.e3r:   ldi
+        ldi
         ldi
         ldi
         ld a,e
         add a,29
         ld e,a
         ld l,a
-        jr nc,.e3c
+        jr nc,$+4
         inc d
         inc h
-.e3c:   dec iyl
-        jr nz,.e3r
+        ldi
+        ldi
+        ldi
+        ld a,e
+        add a,29
+        ld e,a
+        ld l,a
+        jr nc,$+4
+        inc d
+        inc h
+        ldi
+        ldi
+        ldi
+        ld a,e
+        add a,29
+        ld e,a
+        ld l,a
+        jr nc,$+4
+        inc d
+        inc h
+        ldi
+        ldi
+        ldi
+        ld a,e
+        add a,29
+        ld e,a
+        ld l,a
+        jr nc,$+4
+        inc d
+        inc h
+        ldi
+        ldi
+        ldi
+        ld a,e
+        add a,29
+        ld e,a
+        ld l,a
+        jr nc,$+4
+        inc d
+        inc h
+        ldi
+        ldi
+        ldi
+        ld a,e
+        add a,29
+        ld e,a
+        ld l,a
+        jr nc,$+4
+        inc d
+        inc h
+        ldi
+        ldi
+        ldi
+        ld a,e
+        add a,29
+        ld e,a
+        ld l,a
+        jr nc,$+4
+        inc d
+        inc h
+        ldi
+        ldi
+        ldi
+        pop hl
+        jp .e
+.e2:    ld d,h                  ; 2 x 8 (sprite at the right edge)
+        ld e,l
+        ld a,h
+        or $88
+        ld h,a
+        ldi
+        ldi
+        ld a,e
+        add a,30
+        ld e,a
+        ld l,a
+        jr nc,$+4
+        inc d
+        inc h
+        ldi
+        ldi
+        ld a,e
+        add a,30
+        ld e,a
+        ld l,a
+        jr nc,$+4
+        inc d
+        inc h
+        ldi
+        ldi
+        ld a,e
+        add a,30
+        ld e,a
+        ld l,a
+        jr nc,$+4
+        inc d
+        inc h
+        ldi
+        ldi
+        ld a,e
+        add a,30
+        ld e,a
+        ld l,a
+        jr nc,$+4
+        inc d
+        inc h
+        ldi
+        ldi
+        ld a,e
+        add a,30
+        ld e,a
+        ld l,a
+        jr nc,$+4
+        inc d
+        inc h
+        ldi
+        ldi
+        ld a,e
+        add a,30
+        ld e,a
+        ld l,a
+        jr nc,$+4
+        inc d
+        inc h
+        ldi
+        ldi
+        ld a,e
+        add a,30
+        ld e,a
+        ld l,a
+        jr nc,$+4
+        inc d
+        inc h
+        ldi
+        ldi
         pop hl
         jp .e
 .edone: ld hl,eraselist
@@ -1281,7 +1417,8 @@ render:
         ld (hl),a
         ld sp,(savesp)
         jp .next
-.f2:    pop de
+.f2:    ld bc,31                ; 2 bytes wide (right edge): unrolled
+        pop de
         ld a,(hl)
         and e
         or d
@@ -1293,12 +1430,97 @@ render:
         or d
         ld (hl),a
         pop de
-        ld a,l
-        add a,31
-        ld l,a
-        jr nc,.f2c
-        inc h
-.f2c:   djnz .f2
+        add hl,bc
+        pop de
+        ld a,(hl)
+        and e
+        or d
+        ld (hl),a
+        inc l
+        pop de
+        ld a,(hl)
+        and e
+        or d
+        ld (hl),a
+        pop de
+        add hl,bc
+        pop de
+        ld a,(hl)
+        and e
+        or d
+        ld (hl),a
+        inc l
+        pop de
+        ld a,(hl)
+        and e
+        or d
+        ld (hl),a
+        pop de
+        add hl,bc
+        pop de
+        ld a,(hl)
+        and e
+        or d
+        ld (hl),a
+        inc l
+        pop de
+        ld a,(hl)
+        and e
+        or d
+        ld (hl),a
+        pop de
+        add hl,bc
+        pop de
+        ld a,(hl)
+        and e
+        or d
+        ld (hl),a
+        inc l
+        pop de
+        ld a,(hl)
+        and e
+        or d
+        ld (hl),a
+        pop de
+        add hl,bc
+        pop de
+        ld a,(hl)
+        and e
+        or d
+        ld (hl),a
+        inc l
+        pop de
+        ld a,(hl)
+        and e
+        or d
+        ld (hl),a
+        pop de
+        add hl,bc
+        pop de
+        ld a,(hl)
+        and e
+        or d
+        ld (hl),a
+        inc l
+        pop de
+        ld a,(hl)
+        and e
+        or d
+        ld (hl),a
+        pop de
+        add hl,bc
+        pop de
+        ld a,(hl)
+        and e
+        or d
+        ld (hl),a
+        inc l
+        pop de
+        ld a,(hl)
+        and e
+        or d
+        ld (hl),a
+        pop de
         ld sp,(savesp)
         jp .next
 .text:  ld a,(ix+3)

@@ -234,19 +234,20 @@ ai_goto_b:
         ld c,AI_R
         ret
 
-; stand next to x (A) facing it, then fire
+; stand next to x (A) facing it, then fire.  Any spot within 3 px of the
+; ideal one digs/bashes the same slot (turning round moves the digger 1 px,
+; so an exact-spot test would make it shuffle back and forth for ever)
 ai_work_at:
         ld b,a
         ld a,(px)
         cp b
         jr nc,.right
-        ; we're left of it: stand at x-8 facing right
+        ; we're left of it: stand near x-8 facing right
         ld a,b
         sub 8
         ld b,a
-        ld a,(px)
-        cp b
-        jr nz,ai_goto_b
+        call ai_near
+        jr nc,ai_goto_b0
         ld a,(pdir)
         or a
         ld c,AI_R
@@ -256,14 +257,24 @@ ai_work_at:
 .right: ld a,b
         add a,8
         ld b,a
-        ld a,(px)
-        cp b
-        jr nz,ai_goto_b
+        call ai_near
+        jr nc,ai_goto_b0
         ld a,(pdir)
         or a
         ld c,AI_L
         ret z
         ld c,AI_F
+        ret
+ai_goto_b0:
+        ld a,(px)
+        jp ai_goto_b
+; ai_near: B = target x -> carry if |px - B| <= 3
+ai_near:
+        ld a,(px)
+        sub b
+        jr nc,.p
+        neg
+.p:     cp 4
         ret
 
 ; gem dig: the nearest buried gem on this floor, else another floor's

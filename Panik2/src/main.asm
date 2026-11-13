@@ -63,7 +63,7 @@ start:
         ld (seed),hl
         ld a,2
         ld (soundmode),a
-        ld a,28
+        ld a,22
         ld (cbudget),a
         ld hl,vb_none
         ld (vbhook),hl
@@ -217,7 +217,7 @@ wipe_show:
         cp 8
         jr nz,.p
         call flush_queue
-        ld a,28
+        ld a,22
         ld (cbudget),a
         ret
 
