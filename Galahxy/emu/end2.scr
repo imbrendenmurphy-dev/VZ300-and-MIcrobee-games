@@ -1,0 +1,100 @@
+mapper 1
+crash 1
+okpc 8000 A9B6
+okpc B800 E3FF
+okpc E400 F4A4
+okpc 0038 003A
+okpc 7D7D 7D7F
+okpc 5F00 5F0A
+sd build/sd
+vz build/sd/GALAHXY.VZ
+watch AC70
+tmark ABAA build/tms.txt
+frames 150
+tap SPACE
+frames 30
+down T
+frames 14
+up T
+frames 14
+down Q
+frames 14
+up Q
+frames 14
+down Q
+frames 14
+up Q
+frames 14
+down Q
+frames 14
+up Q
+frames 14
+down Q
+frames 14
+up Q
+frames 14
+down Q
+frames 14
+up Q
+frames 14
+down SPACE
+frames 14
+up SPACE
+frames 150
+poke ABB5 1
+poke AD46 127
+poke AD6D 0
+frames 250
+poke AD46 127
+screen build/shots/g00.ppm
+frames 250
+poke AD46 127
+screen build/shots/g01.ppm
+frames 250
+poke AD46 127
+screen build/shots/g02.ppm
+frames 250
+poke AD46 127
+screen build/shots/g03.ppm
+frames 250
+poke AD46 127
+screen build/shots/g04.ppm
+frames 250
+poke AD46 127
+poke ABB5 0
+poke AC70 3
+frames 100
+screen build/shots/e00.ppm
+frames 100
+screen build/shots/e01.ppm
+frames 100
+screen build/shots/e02.ppm
+frames 100
+screen build/shots/e03.ppm
+frames 100
+screen build/shots/e04.ppm
+frames 100
+screen build/shots/e05.ppm
+frames 100
+screen build/shots/e06.ppm
+down SPACE
+frames 14
+up SPACE
+frames 100
+screen build/shots/e07.ppm
+frames 100
+screen build/shots/e08.ppm
+down SPACE
+frames 14
+up SPACE
+frames 100
+screen build/shots/e09.ppm
+frames 100
+regs
+frames 1
+regs
+frames 3
+regs
+prof 1
+frames 20
+profsave build/prof.txt
