@@ -125,7 +125,7 @@ Also checked:
   duel with the same inputs replays it exactly.)
 * Bramble, 3 more duels: won 3 of 3 with 11 of 12 health left on average.
   A button-masher (holds advance, hammers punch and kick) beats him only
-  2 times in 4, with 2 or 3 health left, and loses to Old Reed every time.
+  2 times in 4, with 4 to 6 health left, and loses to Old Reed every time.
 * Standing still loses. "YOU HAVE FALLEN", then **SPACE** restarts the
   same duel at full health.
 * Frame rates: the duel runs at a steady 24 to 25 frames a second, the
