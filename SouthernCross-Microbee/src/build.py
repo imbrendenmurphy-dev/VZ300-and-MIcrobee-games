@@ -63,8 +63,17 @@ vars_ = [
  ('ht0',2),('ht1',2),('hden',2),
  ('cx0',2),('cy0',2),('cx1',2),('cy1',2),('mx',2),('my',2),('smx',2),('smy',2),
  ('six',2),('siy',2),('sox',2),('soy',2),('oc0',1),('oc1v',1),('cstkp',2),
+ ('gH',2),('gd',2),('gcolh',2),('gfcnt',1),('gnh',2),('gnd',2),('ga',1),('gb',1),('gpp',2),('gqp',2),('gnp',2),('gci',1),
+ ('gN',6),('gvok',1),('gvx',2),('gvy',2),('gvf',1),('gvu',1),('gcl0',1),('gcl1',1),('gq',2),('hzfl',1),('gT',2),('gg0',2),('gg1',2),('gmp',2),('gfr',1),('hzy0',2),('hzy1',2),
  ('ldx',2),('lady',1),('curbank',1),('lmask',1),('xout',1),('numbuf',6),
 ]
+gen.append('        align 256')
+gen.append('sqtab:')                       # floor(i*i/4): low bytes page, high bytes page
+sq = [i * i // 4 for i in range(256)]
+for part in (0, 1):
+    v = [(x >> (8 * part)) & 255 for x in sq]
+    for i in range(0, 256, 16):
+        gen.append('        db ' + ','.join(str(x) for x in v[i:i+16]))
 gen.append('vars:')
 for n, s in vars_:
     gen.append('%-10s ds %d' % (n, s))
@@ -72,7 +81,7 @@ gen.append('cstk       ds 64*8')
 gen.append('cstkend    equ $')
 gen.append('progend    equ $')
 
-src = open(os.path.join(here, 'scross.asm')).read() + '\n' + '\n'.join(gen) + '\n'
+src = open(os.path.join(here, 'scross.asm')).read().replace('        include_ggrid\n', open(os.path.join(here, 'ggrid.inc')).read()) + '\n' + '\n'.join(gen) + '\n'
 full = os.path.join(here, 'build', 'scross_full.asm')
 os.makedirs(os.path.join(here, 'build'), exist_ok=True)
 open(full, 'w').write(src)

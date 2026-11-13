@@ -1832,11 +1832,7 @@ render:
         ld a,(detail)
         cp 3
         jr c,rn0
-        call mkgrid
-        ld hl,gridns
-        call dser
-        ld hl,gridew
-        call dser
+        call ggrid
 rn0:    ld hl,o_rwy
         call dobj
         ld a,(detail)
@@ -1856,6 +1852,7 @@ rn1:    push bc
         djnz rn1
 rn2:    jp reticle
 
+        include_ggrid
 mkgrid:
         ld hl,(px)
         ld a,h
@@ -2112,6 +2109,11 @@ dov1:   call vbpoll
         ldir
         pop hl
         push hl
+        call fastin
+        pop hl
+        ld c,0
+        jr c,dovin
+        push hl
         ld b,3
         ld c,0
         call sgs1
@@ -2120,6 +2122,7 @@ dov1:   call vbpoll
         ld bc,dT
         call halfdist
         ld c,a
+dovin:
         ld a,(vidx)
         ld e,a
         ld d,0
@@ -2341,7 +2344,13 @@ segment:
         add hl,de
         bit 7,h
         ret nz
-sgf:    ld hl,sega              ; full scale if every |component| < 12288
+sgf:    ld hl,sega              ; both ends plainly in view: no clipping
+        call fastin
+        jr nc,sgslow
+        ld hl,segb
+        call fastin
+        jp c,sgdraw
+sgslow: ld hl,sega              ; full scale if every |component| < 12288
         ld b,6
         ld c,0
         call sgs1
@@ -3370,12 +3379,19 @@ hzf:    ld a,(m21)              ; t0 = m21-m01, t1 = m21+m01, den = m11
         ld de,64
         add hl,de
         ld (cy1),hl
+        ld (hzy1),hl
+        ld hl,(cy0)
+        ld (hzy0),hl
+        ld a,1
+        ld (hzfl),a
         ld hl,0
         ld (cx0),hl
         ld hl,511
         ld (cx1),hl
         jp clipdraw
-hzs:    ld a,(m11h)              ; q = 3*m11/8 ; t0 = m21+q, t1 = m21-q
+hzs:    xor a
+        ld (hzfl),a
+        ld a,(m11h)              ; q = 3*m11/8 ; t0 = m21+q, t1 = m21-q
         call sexta
         ld d,h
         ld e,l
@@ -4486,6 +4502,63 @@ tm2:    ld (ticks),a
         ld (fps),a
         xor a
         ld (secfr),a
+        ret
+
+; HL -> view-space point (r,u,f words).  Carry if it is in front of the
+; near plane and inside the view (|r| <= f, |u| <= f/4): no clip needed.
+fastin: ld e,(hl)
+        inc hl
+        ld d,(hl)
+        inc hl
+        ld c,(hl)
+        inc hl
+        ld b,(hl)
+        inc hl
+        ld a,(hl)
+        inc hl
+        ld h,(hl)
+        ld l,a
+        bit 7,h
+        jr nz,fifail
+        ld a,h
+        or a
+        jr nz,fi1
+        ld a,l
+        cp NEAR
+        jr c,fifail
+fi1:    bit 7,d
+        jr z,fi2
+        xor a
+        sub e
+        ld e,a
+        sbc a,a
+        sub d
+        ld d,a
+fi2:    push hl
+        or a
+        sbc hl,de
+        pop hl
+        jr c,fifail
+        ld d,b
+        ld e,c
+        bit 7,d
+        jr z,fi3
+        xor a
+        sub e
+        ld e,a
+        sbc a,a
+        sub d
+        ld d,a
+fi3:    srl h
+        rr l
+        srl h
+        rr l
+        or a
+        sbc hl,de
+        jr c,fifail
+        scf
+        ret
+fifail: or a
         ret
 
 ; =====================================================================

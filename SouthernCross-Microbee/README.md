@@ -29,9 +29,9 @@ Rotate at about 52 kt, climb at 60–70 kt, stall is about 43 kt (the nose drops
 
 | Detail | Scene | On the runway | In the air (average of 4 views) |
 |---|---|---|---|
-| 1 | Horizon, runway outline | ~19 fps | |
-| 2 | + centreline, threshold bars, hangar | ~8 fps | |
-| 3 | + ground grid (default) | ~5.5 fps | ~6.5 fps (5.0–8.0) |
+| 1 | Horizon, runway outline | ~21 fps | |
+| 2 | + centreline, threshold bars, hangar | ~9 fps | |
+| 3 | + ground grid (default) | ~7.3 fps | ~7.6 fps (6.2–8.4) |
 
 The panel shows the real frame rate, timed from the 6545 vertical blank (50 Hz); game speed uses the same count.
 
@@ -40,6 +40,8 @@ The panel shows the real frame rate, timed from the 6545 vertical blank (50 Hz);
 - 64 × 16 screen of 8 × 16 cells (512 × 256). The top half is a 512 × 128 bitmap made from 512 PCG glyphs arranged as four vertical strips, one 2K PCG bank each, so a pixel column is a contiguous 128-byte run and stepping a line up or down is `INC L`/`DEC L`.
 - Double buffered: page A (screen F000, banks 1–4) and page B (screen F400, banks 5–8), flipped with the 6545 start address.
 - 8-bit camera matrix rebuilt each frame; world in half-metre units; shared-vertex "lattice" objects and incremental line series.
+- Ground grid drawn straight in screen space: each grid line's screen line comes from the eye height and its sideways distance (no 3D clipping), cut off about 6.5 km out; lines lying on the horizon are skipped.
+- Lines with both ends plainly in view skip clipping altogether.
 - One-pass 3D line clip (Liang–Barsky) against the view plus a 16-pixel margin, full-precision interpolation, then a small 2D "edge fix" slides each end exactly onto the screen edge.
 - Unrolled `SET n,(HL)` pixel loop for shallow lines (~45 T-states a pixel), long lines split at the midpoint so the 8-bit slope stays exact.
 - Only the rows each strip actually used are cleared next time round (PUSH runs down each byte column).
