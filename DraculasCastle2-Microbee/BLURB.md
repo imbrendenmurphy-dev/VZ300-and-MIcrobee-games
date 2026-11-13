@@ -15,9 +15,10 @@ Fight twelve "groovy ghoulie" monsters in quick turn-based battles. The bat, ske
 
 | | |
 |---|---|
-| ![The Grounds](screenshots/gameplay/game_01_grounds.png) | ![The Great Hall](screenshots/gameplay/game_02_great_hall.png) |
-| ![A skeleton in the Library](screenshots/gameplay/game_07_battle_skeleton_in_the_library.png) | ![Fireball](screenshots/gameplay/game_15_effect_fireball.png) |
-| ![Title](screenshots/info/info_01_title.png) | ![Dracula](screenshots/gameplay/game_13_boss_dracula.png) |
+| ![Title](screenshots/title_screen.png) | ![The Grounds](screenshots/gameplay/stage_1_grounds.png) |
+| ![The Great Hall](screenshots/gameplay/stage_2_great_hall.png) | ![The Library](screenshots/gameplay/stage_3_library.png) |
+| ![A skeleton on the grounds](screenshots/gameplay/enemy_2_skeleton.png) | ![The Grell](screenshots/gameplay/boss_2_grell.png) |
+| ![Fireball](screenshots/gameplay/effect_2_fireball.png) | ![Dracula](screenshots/gameplay/boss_5_dracula.png) |
 
 ## Features
 - **Six areas in first person**, each with its own walls, floors, decorations and furniture: torchlit grounds under a crescent moon, a checkerboard great hall with suits of armour, bookshelves and candelabra, wet dungeon cells, turning clockwork gears, and black marble veined with red. Turning takes about a tenth of a second.
