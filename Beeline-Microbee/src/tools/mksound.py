@@ -51,6 +51,8 @@ SFX = {
     'timeup': [step(note(n), S) for n in ('G5', 'G5', 'E5', 'E5', 'C5', 'C5', 'G4', 'G4')],
     'finish': [step(note(n), S) for n in ('C6', 'E6', 'G6', 'C7', 'C7', 'G6', 'C7', 'C7', 'C7')],
     'tally':  [step(note('C7'), 2)],
+    'turbo':  [step(f, S, True) for f in (250, 320, 400, 500, 620, 760)],
+    'slip':   [step(note(n), S) for n in ('C6', 'D6', 'E6', 'G6', 'A6', 'C7')],
 }
 
 BLIP_MS = 3

@@ -17,7 +17,7 @@ OUT = sys.argv[1] if len(sys.argv) > 1 else 'build'
 os.makedirs(OUT, exist_ok=True)
 
 # ------------------------------------------------------------------ engine constants
-NSEG = 16          # projected points ahead (1 segment apart up to 8, then 2) -> 24 segments
+NSEG = 11          # projected points ahead (1 segment apart up to 4, then 2) -> 18 segments
 HY = 80            # horizon line (logical): low camera, lots of sky
 F = 128            # focal length
 CAMH = 94          # camera height (world units): CAMH*F/256 = 127-HY
@@ -294,7 +294,7 @@ for i in range(256):
 ty = [int(round(h)) for h in hill]
 
 # ------------------------------------------------------------------ tables
-PK = [0] + [p if p <= 8 else 8 + 2 * (p - 8) for p in range(1, NSEG + 1)]
+PK = [0] + [p if p <= 4 else 4 + 2 * (p - 4) for p in range(1, NSEG + 1)]
 INV = []
 HWT = []
 for p_ in range(NSEG + 1):

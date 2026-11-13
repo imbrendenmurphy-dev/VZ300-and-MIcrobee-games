@@ -106,7 +106,7 @@ snd_frame:
 ; snd_wait: wait for the flip time (FRAMEFIELDS fields since the last flip),
 ;   playing sound meanwhile.  A playing sound always gets at least BUDGET
 ;   delay counts (~3 ms) per frame, even when the frame is already late.
-BUDGET  equ 400
+BUDGET  equ 260
 snd_wait:
         ld hl,BUDGET
         ld (.bud),hl
@@ -180,6 +180,10 @@ snd_timeup: ld a,SND_TIMEUP
 snd_finish: ld a,SND_FINISH
             jp snd_sfx
 snd_tally:  ld a,SND_TALLY
+            jp snd_sfx
+snd_turbo:  ld a,SND_TURBO
+            jp snd_sfx
+snd_slip:   ld a,SND_SLIP
             jp snd_sfx
 
 spk:      db 0

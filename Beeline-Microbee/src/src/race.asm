@@ -27,7 +27,8 @@
         include "snd.asm"
 
 MAXSPD  equ 400
-FRAMEFIELDS equ 4              ; 50/4 = 12.5 fps locked (a frame that overruns waits for the 5th field)
+BOOSTV  equ 80                  ; extra top speed in a turbo or slipstream boost
+FRAMEFIELDS equ 3              ; 50/3 = 16.7 fps locked (a frame that overruns waits for the next field)
 ACC     equ 3
 DRAG    equ 1
 BRAKE   equ 8
@@ -91,15 +92,17 @@ run_frame:
         ld b,a
 .ph     push bc
         call physics
-        call vbpoll
         pop bc
         djnz .ph
+        call physics_frame
+        call vbpoll
         call traffic_move
         call traffic_update
         call vbpoll
         call track_stream
         call project
         call traffic_prep
+        call car_pose
         call lit_restore
 P_rows:
         call draw_page
@@ -108,7 +111,6 @@ P_rows:
         call hud_update
         call draw_hud
         call vbpoll
-        call draw_car
         call ovr_paint
 P_wait:
         call snd_frame
@@ -166,7 +168,7 @@ read_input:
         ret
 keymap: db K_Z,1, K_COMMA,1, K_LEFT,1
         db K_X,2, K_DOT,2, K_RIGHT,2
-        db K_M,4, K_SPACE,4, K_UP,4
+        db K_M,4, K_UP,4, K_SPACE,16
         db K_N,8, K_DOWN,8
         db 0
 
@@ -174,7 +176,17 @@ keymap: db K_Z,1, K_COMMA,1, K_LEFT,1
 ; physics: one 50Hz field step
 ; --------------------------------------------------------------------------
 physics:
-        ld a,(keys)
+        ld a,(boostt)           ; turbo / slipstream: higher top speed, more push
+        or a
+        jr z,.nb
+        dec a
+        ld (boostt),a
+        ld hl,(speed)
+        ld de,ACC+3
+        add hl,de
+        ld de,MAXSPD+BOOSTV
+        jr .lim
+.nb     ld a,(keys)
         ld hl,(speed)
         bit 2,a
         jr z,.noacc
@@ -192,9 +204,20 @@ physics:
         jr z,.p1
         ld hl,0
 .p1     ld de,MAXSPD
-        call cmp_signed
+.lim    call cmp_signed         ; over the top speed: ease back down
         jr c,.p2
-        ld hl,MAXSPD
+        push hl
+        ld hl,(speed)
+        call cmp_signed
+        pop hl
+        jr c,.p3                ; was below it: clamp
+        ld hl,(speed)
+        dec hl
+        dec hl
+        dec hl
+        call cmp_signed
+        jr nc,.p2
+.p3     ex de,hl
 .p2     push hl                 ; off-road slowdown
         ld hl,(camX)
         bit 7,h
@@ -242,7 +265,12 @@ physics:
         jr z,.nr
         add hl,de
 .nr     ld (camX),hl
-.nost   ld a,(camPos+1)         ; centrifugal: camX -= curve*speed/512
+.nost   ret
+
+; physics_frame: once per frame, for (dt) fields - the curve's pull and the
+; panorama scroll (the curve barely changes within a frame)
+physics_frame:
+        ld a,(camPos+1)         ; centrifugal: camX -= curve*speed/512 per field
         call get_curve
         ld (.c),a
         bit 7,a
@@ -260,7 +288,8 @@ physics:
         bit 7,a
         jr nz,.cn
         call neghl
-.cn     ld de,(camX)
+.cn     call times_dt
+        ld de,(camX)
         add hl,de
         ld de,500
         call cmp_signed
@@ -287,11 +316,24 @@ physics:
         ld a,(.c)
         bit 7,a
         call nz,neghl
+        call times_dt
         ld de,(panX)
         add hl,de
         ld (panX),hl
         ret
 .c      db 0
+
+; times_dt: HL = HL * (dt)
+times_dt:
+        ld a,(dt)
+        ld b,a
+        ld d,h
+        ld e,l
+        dec b
+        ret z
+.m      add hl,de
+        djnz .m
+        ret
 
 ; --------------------------------------------------------------------------
 ; draw_page: all rows of the back page
@@ -576,7 +618,7 @@ draw_sky:
 ; the ground under it (car_under) and the car's mask/ink (cellcomp).
 ; --------------------------------------------------------------------------
 P_car:
-draw_car:
+car_pose:
         ; target pose from steering, held steering leans further
         ld a,(keys)
         and 3
@@ -628,71 +670,65 @@ draw_car:
         add hl,de               ; *90
         ld de,CARDATA
         add hl,de
-        ld (.src),hl
-        xor a
-        ld (.cy),a
-.rowl   call vbpoll
-        ld a,(.cy)
-        add a,CAR_ROW
-        ld (crow),a
-        call row_addr
-        ld de,CAR_COL
-        add hl,de
-        ld (.dst),hl
-        call row_bank
-        call set_phases
-        call patch_comp
-        ld a,(.cy)
-        ld e,a
-        ld d,0
-        ld hl,CSLOT
-        add hl,de
-        ld a,(hl)
-        ld (.code),a
-        ld hl,CSDEST
-        add hl,de
-        add hl,de
-        ld a,(hl)
-        inc hl
-        ld h,(hl)
-        ld l,a
-        ld (.pdst),hl
-        ld a,(.cy)              ; CUNDER row pointer
-        ld b,a
-        add a,a
-        add a,a
-        add a,b
-        add a,a
-        add a,a
-        ld e,a
-        ld hl,CUNDER
-        add hl,de
-        ld (.und),hl
-        ld a,(crow)
-        ld e,a
-        ld hl,ROWCOL
-        add hl,de
-        ld a,(hl)
-        ld (.gcol),a
-        ld a,(rbank)
-        or X1C
-        out (PORT_1C),a
-        ; pass 1: codes, partial cells built.  Attribute and colour rows of
-        ; the car only change with the pose, so they are cached per page.
-        ld a,(page)
+        ld (carsrc),hl
+        ld a,(page)             ; attribute/colour rows change only with the pose
         ld e,a
         ld d,0
         ld hl,lastpose
         add hl,de
         ld a,(carpose)
         cp (hl)
+        ld (hl),a               ; (this page will show this pose)
         ld a,0
         jr z,.same
         inc a
-.same   ld (.newac),a
-        ld iy,(.src)
+.same   ld (carnewac),a
+        ret
+carsrc:   dw 0
+carnewac: db 0
+
+; --------------------------------------------------------------------------
+; car_row: the player's car on car row (crow), straight after write_row and
+;   traffic_row built the row (phases, slot allocator and ground records are
+;   all still current).  Cell types: 0 empty (ground stays), 1 static
+;   character, 2 static light character, 3 partial: a new slot, built from
+;   the ground under it (its code's slot records) and the car's mask/ink
+;   (CARROAD fast path over plain road, else cellcomp).
+; --------------------------------------------------------------------------
+car_row:
+        call vbpoll
+        call patch_comp
+        ld a,(crow)
+        sub CAR_ROW
+        ld b,a                  ; source = carsrc + 30*row
+        add a,a
+        ld c,a
+        add a,a
+        add a,a
+        add a,a
+        add a,a
+        sub c                   ; *30
+        ld e,a
+        ld d,0
+        ld iy,(carsrc)
+        add iy,de
+        ld hl,(raddr)
+        ld de,CAR_COL
+        add hl,de
+        ld (.dst),hl
+        ld a,(crow)
+        ld e,a
+        ld d,0
+        push hl
+        ld hl,ROWCOL
+        add hl,de
+        ld a,(hl)
+        ld (.gcol),a
+        pop hl
+        ld a,(rbank)
+        or X1C
+        out (PORT_1C),a
         ld ix,.attrs
-        ld hl,(.dst)
         ld b,10
 .cell   ld a,(iy+0)             ; type
         or a
@@ -718,27 +754,17 @@ draw_car:
         jp .nx
 .t3     push bc
         push hl
-        push ix
-        ld a,(.code)            ; screen code of the next free slot
+        ld e,(hl)               ; ground under it: its code's records
+        ld d,high(SLOTMASK)
+        ld a,(scode)            ; next free slot
         ld (hl),a
         inc a
-        ld (.code),a
-        ld a,(rbank)
-        ld (ix+0),a
-        ld a,(.gcol)
-        ld (ix+10),a
-        ld hl,(.und)            ; ground under this column: page, mask
-        ld a,10
-        sub b
-        add a,a
-        add a,l
-        ld l,a
-        jr nc,.u0
-        inc h
-.u0     ld a,(hl)
-        inc hl
-        ld c,(hl)
-        ld de,(.pdst)
+        ld (scode),a
+        ld a,(de)
+        ld c,a                  ; C = mask
+        inc d
+        ld a,(de)               ; A = RES page
+        ld de,(sdest)
         cp high(RESPAGES)+2     ; plain road under it? (road page, mask 0)
         jr nz,.slow
         inc c
@@ -756,7 +782,8 @@ draw_car:
         add hl,bc
         call carroad
         jr .made
-.slow   ld b,high(MASKLIB)
+.slow   push ix
+        ld b,high(MASKLIB)
         push af
         ld l,(iy+1)             ; IX = CARPART + 32*index
         ld h,0
@@ -774,10 +801,14 @@ draw_car:
         pop af
         ld h,a
         call cellcomp
-.made   inc de
-        ld (.pdst),de
-        call vbpoll
         pop ix
+.made   inc de
+        ld (sdest),de
+        call vbpoll
+        ld a,(rbank)
+        ld (ix+0),a
+        ld a,(.gcol)
+        ld (ix+10),a
         pop hl
         pop bc
 .nx     inc hl
@@ -787,13 +818,12 @@ draw_car:
         inc iy
         dec b
         jp nz,.cell
-        ld (.src),iy
+        call vbpoll
         ld a,X1C
         out (PORT_1C),a
-        ld a,(.newac)           ; pose unchanged on this page: skip attr/colour
+        ld a,(carnewac)         ; pose unchanged on this page: attr/colour stay
         or a
-        jr z,.skipac
-        ; pass 2: attributes, pass 3: colours
+        ret z
         ld hl,(.dst)
         ld a,X1C_ATTR
         out (PORT_1C),a
@@ -815,27 +845,8 @@ draw_car:
         ldir
         xor a
         out (PORT_08),a
-.skipac ld a,(.cy)
-        inc a
-        ld (.cy),a
-        cp 3
-        jp c,.rowl
-        ld a,(page)             ; this page now shows this pose
-        ld e,a
-        ld d,0
-        ld hl,lastpose
-        add hl,de
-        ld a,(carpose)
-        ld (hl),a
         ret
-.newac  db 0
-.src    dw 0
 .dst    dw 0
-.pdst   dw 0
-.und    dw 0
-.cy     db 0
-.pidx   db 0
-.code   db 0
 .gcol   db 0
 .attrs  ds 10
 .cols   ds 10
@@ -1115,6 +1126,7 @@ panX:   dw 0
 lastf:  dw 0
 flipf:  dw 0
 dt:     db 0
+boostt: db 0                    ; fields of boost left
 keys:   db 0
 ckey:   db 0
 theme:  db 0
@@ -1183,9 +1195,6 @@ unif:   db 0
 CRLINE: ds 8
         align 16
 PHOFF:  ds 8
-CUNDER: ds 60
-CSLOT:  ds 3
-CSDEST: ds 6
 carpose: db 2
 lastpose: db 0FFh,0FFh
 steerT: db 0

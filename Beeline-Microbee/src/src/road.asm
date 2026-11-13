@@ -391,14 +391,14 @@ line_geom:
         ld h,(ix-5)
         ld e,(ix+2)
         ld d,(ix+3)
-        call lerp
+        call lerpf
         ld (lcx),hl
         ld l,(ix-4)
         ld h,(ix-3)
         ld e,(ix+4)
         ld d,(ix+5)
         ld a,(.f)
-        call lerp
+        call lerpf
         ld (lhw),hl
         ret
 .y      db 0
@@ -1517,8 +1517,10 @@ write_row:
         ld a,(.fb)
         call fillb
 .efin   pop ix
+        push hl
+        call vbpoll             ; after each edge region that had cells
+        pop hl
 .pn     push hl
-        call vbpoll
         ld hl,(eprp)
         inc hl
         inc hl
@@ -1541,66 +1543,13 @@ write_row:
 .done   ld a,X1C
         out (PORT_1C),a
         call traffic_row        ; rival cars on this row
-        ld a,(crow)             ; car rows: remember what lies under the car
+        ld a,(crow)             ; then the player's car
         cp CAR_ROW
         ret c
-        jp car_under
+        jp car_row
 .fb     db 0
 .nfb    db 0
 .j      db 0
-
-; car_under: for car row (crow) record, for columns CAR_COL..CAR_COL+9,
-;   the RES page and mask index of the ground cell -> CUNDER[(row-13)*20],
-;   read back from the codes just written and the per-code slot records.
-car_under:
-        ld a,(crow)
-        sub CAR_ROW
-        ld b,a
-        add a,a
-        add a,a
-        add a,b
-        add a,a
-        add a,a                 ; *20
-        ld e,a
-        ld d,0
-        ld hl,CUNDER
-        add hl,de
-        ex de,hl                ; DE -> output
-        ld hl,(raddr)
-        ld bc,CAR_COL
-        add hl,bc
-        ld b,10
-.c      ld a,(hl)               ; screen code
-        inc hl
-        push hl
-        ld l,a
-        ld h,high(SLOTPAGE)
-        ld a,(hl)
-        ld (de),a
-        inc de
-        dec h
-        ld a,(hl)
-        ld (de),a
-        inc de
-        pop hl
-        djnz .c
-        ; remember the next free slot for the car cells
-        ld a,(crow)
-        sub CAR_ROW
-        ld e,a
-        ld d,0
-        ld hl,CSLOT
-        add hl,de
-        ld a,(scode)
-        ld (hl),a
-        ld hl,CSDEST
-        add hl,de
-        add hl,de
-        ld bc,(sdest)
-        ld (hl),c
-        inc hl
-        ld (hl),b
-        ret
 
 ; region tables per kerb-merge state (bit0 left merged, bit1 right merged)
 ; interior surfaces of regions 0,2,4,6,8 ; pairs of edge regions 1,3,5,7

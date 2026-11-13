@@ -80,16 +80,21 @@ set_state:
 ; read_ekeys: edge-triggered keys -> (ekeys)
 ;   bit0 SPACE/M  bit1 P  bit2 ESC  bit3 left  bit4 right
 read_ekeys:
+        ld a,(rawkeys)          ; go = accelerate or turbo (M, cursor up, SPACE)
+        ld b,a
+        and 14h
         ld c,0
-        ld a,K_SPACE
-        call .kt
-        jr z,.a
-        set 0,c
-.a      ld a,K_M
-        call .kt
-        jr z,.b
-        set 0,c
-.b      ld a,K_P
+        jr z,.g0
+        inc c
+.g0     bit 4,b                 ; turbo key -> bit 6
+        jr z,.g1
+        set 6,c
+.g1
+        ld a,(ekframe)          ; P, ESC and S are read on alternate frames
+        xor 1
+        ld (ekframe),a
+        jr z,.skip
+        ld a,K_P
         call .kt
         jr z,.c
         set 1,c
@@ -101,6 +106,11 @@ read_ekeys:
         call .kt
         jr z,.e
         set 5,c
+        jr .e
+.skip   ld a,(ekprev)           ; keep last frame's state of P, ESC, S
+        and 26h
+        or c
+        ld c,a
 .e      ld a,(rawkeys)
         and 3
         rlca
@@ -219,7 +229,7 @@ start_race:
 
 T_TAG:   db "A 5-LEG RACE AGAINST 19 RIVALS AND THE CLOCK",0
 T_PRESS: db "PRESS SPACE TO RACE",0
-T_KEYS:  db "Z X STEER   M ACCELERATE   N BRAKE   P PAUSE   S MUSIC",0
+T_KEYS:  db "Z X STEER  M GO  N BRAKE  SPACE TURBO  P PAUSE  S MUSIC",0
 T_BEST:  db "BEST DRIVERS",0
 
 ; ==========================================================================
@@ -251,6 +261,10 @@ race_init:
         djnz .z
         ld a,START_TIME
         ld (tsec),a
+        ld a,3
+        ld (turbos),a
+        xor a
+        ld (boostt),a
         ld a,50
         ld (tfld),a
         call hud_mode_race
@@ -380,8 +394,46 @@ race_tick:
         call snd_pass
         pop bc
 .e1     bit 2,c
+        push bc
         call nz,snd_crash
-        jp checkpoint
+        pop bc
+        bit 3,c                 ; slipstream boost
+        jr z,.e3
+        call snd_slip
+        ld hl,T_SLIP
+        call boost_msg
+.e3     ld a,(ekeys)            ; turbo
+        bit 6,a
+        jr z,.e4
+        ld a,(turbos)
+        or a
+        jr z,.e4
+        ld a,(boostt)
+        cp 20
+        jr nc,.e4
+        ld a,(turbos)
+        dec a
+        ld (turbos),a
+        ld a,150
+        ld (boostt),a
+        call snd_turbo
+        ld hl,T_TURBO
+        call boost_msg
+.e4     jp checkpoint
+
+; boost_msg: HL -> text for row 1, unless a bigger message is showing
+boost_msg:
+        ld a,(msgt)
+        or a
+        ret nz
+        ld a,1
+        ld b,15
+        call ovr_text_c
+        ld a,60
+        ld (msgt),a
+        ret
+T_SLIP:  db "SLIPSTREAM!",0
+T_TURBO: db "TURBO!",0
 
 ; checkpoint: past the end of this leg?
 checkpoint:
@@ -394,6 +446,8 @@ checkpoint:
         ld (leg),a
         call leg_theme
         call set_pace
+        ld a,3                  ; turbos topped up
+        ld (turbos),a
         ld a,(leg)              ; time bonus
         ld e,a
         ld d,0
@@ -489,7 +543,7 @@ pause:  ld a,(page)             ; "PAUSED" on the HUD of the shown page
         ld de,HUDTXT+24
         ld bc,16
         ldir
-        call draw_hud
+        call hud_static
 .w      call wait_vb
         call read_ekeys
         ld a,(ekeys)
@@ -499,7 +553,7 @@ pause:  ld a,(page)             ; "PAUSED" on the HUD of the shown page
         ld de,HUDTXT
         ld bc,64
         ldir
-        call draw_hud
+        call hud_static
         pop af
         ld (page),a
         ld hl,(fields)          ; no time passes during the pause

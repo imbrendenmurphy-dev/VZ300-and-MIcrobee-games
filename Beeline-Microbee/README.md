@@ -23,8 +23,9 @@ Also on the disk:
 
 | Key | Action |
 |---|---|
-| SPACE / M / cursor up | Start, accelerate |
+| M / cursor up | Start, accelerate |
 | N / cursor down | Brake |
+| SPACE | Turbo (three per leg, topped up at each checkpoint) |
 | Z X (or , . or cursor left/right) | Steer |
 | P | Pause |
 | S | Music on/off |
@@ -32,6 +33,7 @@ Also on the disk:
 
 - **The race.** The five legs are GREEN VALLEY, RED CENTRE, SNOWY RANGE, COAST AT DUSK and NIGHT RUN, and each has its own colours and road character. You start with 80 seconds. Every checkpoint adds time ("EXTENDED PLAY!"); finish leg 5 for a bonus of 10,000 points per second left, plus 500,000 for a win.
 - **Rivals.** You start last of 20. Pass rivals to move up (POS on the top line); if you dawdle, they pass you back. Rivals get quicker on each leg, and ordinary traffic is on the road too.
+- **Slipstream.** Sit right behind a car at speed for about a second and you get a free burst of speed ("SLIPSTREAM!"). A turbo does the same for 3 seconds: top speed rises from 300 to 360 km/h.
 - **Forgiving.** A bump or a trip onto the verge only costs speed. You lose no lives and there are no explosions.
 - **Scores.** Score comes from distance at speed, plus 1,000 points per overtake. The top five are kept with initials until the machine is reset.
 - **Title screen.** Shows the race on autopilot, cycling through all five legs, and alternates the logo with the best drivers.
@@ -59,7 +61,7 @@ Also on the disk:
 
 | | |
 |---|---|
-| BEELINE in a race | 12.3 fps average. The lock is 4 fields per frame (12.5 fps), and 96% of frames make it; the rest (several close rivals, sharp crests) take 5. |
+| BEELINE in a race | 16.0 fps average. The lock is 3 fields per frame (16.7 fps), and 88% of frames make it; the rest (several close rivals, sharp crests) take 4. |
 | Engine alone (v4) | 12.3 fps |
 | BENCH (blocks/s) | emulator 603 507 414 413 472 973 599 · real Premium Plus 603 517 415 413 465 954 527 |
 | CUBE | 18 fps |
@@ -67,6 +69,8 @@ Also on the disk:
 Still to be confirmed on the real machine: the frame rate in a race, and how the beeper sounds.
 
 ## Earlier milestones
+
+- **v6 — 3-field lock, turbo and slipstream.** The player's car is now drawn inside the road-row pass, reusing that row's phases and slot records. The road is projected at 11 points out to 18 segments instead of 16 out to 24 (no visible change). Curve physics runs once per frame, and the HUD and keys are polled more cheaply. The race average rose from 12.3 to 16.0 fps.
 
 - **v5.1 — kerbs off.** The roadside chevrons cost about 9% of every frame (about 23,000 T-states), and the frames that kept the lock rose from 91% to 96%. Every road row is now verge | road | verge.
 

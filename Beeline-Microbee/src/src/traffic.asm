@@ -20,7 +20,7 @@ NT      equ 6                   ; car slots
 CARSZ   equ 10                  ; act, pos(2), spd(2), tspd(2), lx, tlx, ahead
 PLAYZ   equ 280                 ; player car: world units ahead of the camera
 MINDZ   equ 300                 ; nearest drawn car
-MAXDZ   equ 23*256              ; furthest drawn car (last projected point = 24)
+MAXDZ   equ 17*256              ; furthest drawn car (last projected point = 18)
 FIELD   equ 19                  ; rivals in the race
 
 ; --------------------------------------------------------------------------
@@ -194,7 +194,8 @@ traffic_move:
 
 ; --------------------------------------------------------------------------
 ; traffic_update: once per frame - overtakes, collisions, despawn, spawn
-;   events (tevents): bit0 overtook a rival, bit1 got overtaken, bit2 crash
+;   events (tevents): bit0 overtook a rival, bit1 got overtaken, bit2 crash,
+;   bit3 slipstream boost
 ; --------------------------------------------------------------------------
 traffic_update:
         ld a,(bumpt)
@@ -266,7 +267,28 @@ traffic_update:
         jr z,.col
         ld hl,nahead
         inc (hl)
-.col    ; collision: |d - PLAYZ| < 150 and |x - camX| < 64
+.col    ; slipstream: right behind it (PLAYZ+60 .. +640) and in line
+        ld hl,(.d)
+        ld de,PLAYZ+60
+        call cmp_signed
+        jr c,.coll
+        ld de,PLAYZ+640
+        call cmp_signed
+        jr nc,.coll
+        ld a,(ix+7)
+        call lx_world
+        ld de,(camX)
+        or a
+        sbc hl,de
+        bit 7,h
+        call nz,neghl
+        ld de,44
+        or a
+        sbc hl,de
+        jr nc,.coll
+        ld a,1
+        ld (slipc),a
+.coll   ; collision: |d - PLAYZ| < 150 and |x - camX| < 64
         ld a,(bumpt)
         or a
         jp nz,.nx
@@ -339,6 +361,33 @@ traffic_update:
         pop bc
         dec b
         jp nz,.c
+        ; slipstream: 0.9 s in a rival's wake at speed -> a boost
+        ld a,(slipc)
+        or a
+        jr z,.ns
+        xor a
+        ld (slipc),a
+        ld hl,(speed)
+        ld de,260
+        call cmp_signed
+        jr c,.ns
+        ld a,(boostt)
+        or a
+        jr nz,.ns
+        ld a,(dt)
+        ld b,a
+        ld a,(slipt)
+        add a,b
+        ld (slipt),a
+        cp 45
+        jr c,.sd
+        ld a,100
+        ld (boostt),a
+        ld hl,tevents
+        set 3,(hl)
+.ns     xor a
+        ld (slipt),a
+.sd
         ; occasional lane change
         call rnd
         and 31
@@ -652,21 +701,21 @@ traffic_prep:
 car_inst:
         ld (ci_d),hl
         ; bracket the car between projected points p and p+1:
-        ; point p lies at 256*PK[p] - 8*fq, PK = 1..8 then 10, 12 .. 24
+        ; point p lies at 256*PK[p] - 8*fq, PK = 1..4 then 6, 8 .. 18
         ld a,(camPos)
         and 0F8h
         ld e,a
         ld d,0
         add hl,de               ; d' = d + 8*fq: segment k = d'>>8
         ld a,h
-        cp 8
+        cp 4
         jr nc,.far
         ld b,a                  ; p = k, t = d' & 255
         jr .t1
-.far    sub 8                   ; p = 8 + (k-8)/2, t = ((k-8)&1 : d'&255) / 2
+.far    sub 4                   ; p = 4 + (k-4)/2, t = ((k-4)&1 : d'&255) / 2
         srl a
-        rr l                    ; carry = (k-8)&1 -> top bit of t
-        add a,8
+        rr l                    ; carry = (k-4)&1 -> top bit of t
+        add a,4
         ld b,a
 .t1     ld a,b
         or a
@@ -1388,6 +1437,8 @@ nahead: db 0
 spawnt: db 0
 bumpt:  db 0
 tevents: db 0
+slipc:  db 0
+slipt:  db 0
 ninst:  db 0
 kmax:   db 0
 leg:    db 0

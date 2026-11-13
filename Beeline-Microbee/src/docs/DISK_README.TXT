@@ -12,10 +12,14 @@ THE RACE
   checkpoint adds time.  You start last of 20: overtake rivals to
   move up (POS on the top line).  Bumping a car or running off the
   road only costs speed.  Finish the fifth leg for a time bonus.
+  SLIPSTREAM: tuck in right behind a car at speed for a moment
+  and you get a free burst of speed to slingshot past.
 
 KEYS
-  SPACE or M      start / accelerate
-  N               brake
+  M (or cursor up)    accelerate (and start)
+  N (or cursor down)  brake
+  SPACE               TURBO - three per leg, topped up at
+                      every checkpoint
   Z X  (or , .)   steer   (cursor keys work too)
   P               pause
   S               music on/off

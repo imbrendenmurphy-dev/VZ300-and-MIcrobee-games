@@ -712,13 +712,14 @@ ovr_paint:
 ; that differ from what this page shows
 ; --------------------------------------------------------------------------
 HUD_TIME  equ 5
-HUD_SCORE equ 16
-HUD_POS   equ 31
-HUD_LEG   equ 43
-HUD_SPEED equ 55
+HUD_SCORE equ 15
+HUD_POS   equ 29
+HUD_LEG   equ 40
+HUD_TURBO equ 51
+HUD_SPEED equ 54
 HUD_HI    equ 11
 
-H_RACE:  db "TIME 70   SCORE 00000000   POS 20/20   LEG 1/5   SPEED 000 KMH "
+H_RACE:  db "TIME 70  SCORE 00000000  POS 20/20  LEG 1/5  TURBO 3  000 KMH   "
 H_TITLE: db "  HI-SCORE 00000000                            VIBED BY BPM 2026"
 
 hud_mode_title:
@@ -733,7 +734,22 @@ hud_mode:
         ld de,HUDTXT
         ld bc,64
         ldir
-        jp hud_update
+        call hud_update
+; hud_both: whole HUD row on both pages
+hud_both:
+        ld a,(page)
+        push af
+        xor a
+        ld (page),a
+        call hud_static
+        call vbpoll
+        ld a,1
+        ld (page),a
+        call hud_static
+        call vbpoll
+        pop af
+        ld (page),a
+        ret
 
 ; hud_update: fill the numbers in HUDTXT
 hud_update:
@@ -762,6 +778,9 @@ hud_update:
         ld a,(leg)
         add a,'1'
         ld (HUDTXT+HUD_LEG),a
+        ld a,(turbos)
+        add a,'0'
+        ld (HUDTXT+HUD_TURBO),a
         ld hl,(speed)           ; km/h = speed*3/4
         ld d,h
         ld e,l
@@ -845,50 +864,67 @@ hudlast_ptr:
         ret
 
 draw_hud:
+        ; only the characters hud_update can change are compared (HUDPOS list)
         call hudlast_ptr
-        ex de,hl
+        ld (.last),hl
         xor a
         ld (crow),a
         call row_addr
-        ex de,hl                ; HL -> last shown, DE -> screen row
-        ld bc,HUDTXT
-        ld a,64
-.l      ex af,af'
-        ld a,(bc)
+        ld (.scr),hl
+        ld a,(hudhalf)          ; race HUD: half the positions per frame,
+        inc a                   ; switching halves every two frames
+        and 3
+        ld (hudhalf),a
+        ld a,(hudmode)
+        or a
+        ld hl,HUDPOS_T
+        jr z,.l
+        ld hl,HUDPOS_R
+        ld a,(hudhalf)
+        cp 2
+        jr c,.l
+        ld hl,HUDPOS_R2
+.l      ld a,(hl)
+        cp 0FFh
+        ret z
+        inc hl
+        push hl
+        ld e,a
+        ld d,0
+        ld hl,HUDTXT
+        add hl,de
+        ld c,(hl)               ; new character
+        ld hl,(.last)
+        add hl,de
+        ld a,c
         cp (hl)
         jr z,.s
-        ld (hl),a               ; changed: code now, attribute below
+        ld (hl),a
+        ld hl,(.scr)
+        add hl,de
+        ld a,c
         push bc
         ld c,0
         call fontcell
-        ld (de),a
+        ld (hl),a
         ld a,X1C_ATTR
         out (PORT_1C),a
-        ld a,(hl)
+        pop bc
+        ld a,c
         ld c,1
         call fontcell
-        ld (de),a
+        ld (hl),a
         ld a,X1C
         out (PORT_1C),a
-        pop bc
-.s      inc bc
-        inc hl
-        inc de
-        ex af,af'
-        dec a
-        ret z
-        cp 32
-        jr nz,.l
-        ex af,af'
-        push hl
-        push de
-        push bc
-        call vbpoll
-        pop bc
-        pop de
-        pop hl
-        ex af,af'
+.s      pop hl
         jr .l
+.last   dw 0
+.scr    dw 0
+HUDPOS_R: db HUD_TIME,HUD_TIME+1,HUD_SCORE+4,HUD_SCORE+5,HUD_SCORE+6,HUD_SCORE+7
+        db HUD_SPEED,HUD_SPEED+1,HUD_SPEED+2,0FFh
+HUDPOS_R2: db HUD_TIME,HUD_TIME+1,HUD_SCORE,HUD_SCORE+1,HUD_SCORE+2,HUD_SCORE+3
+        db HUD_POS,HUD_POS+1,HUD_LEG,HUD_TURBO,0FFh
+HUDPOS_T: db HUD_HI,HUD_HI+1,HUD_HI+2,HUD_HI+3,HUD_HI+4,HUD_HI+5,HUD_HI+6,HUD_HI+7,0FFh
 
 ; put_bcd: HL -> B BCD bytes (big-endian) -> 2B ascii digits at DE
 put_bcd:
@@ -1043,6 +1079,8 @@ apilot:  db 0
 rawkeys: db 0
 ekeys:   db 0
 ekprev:  db 0FFh
+ekframe: db 0
+hudhalf: db 0
 titlet:  dw 0
 tpage:   db 0
 cdown:   db 0
@@ -1052,6 +1090,7 @@ erank:   db 0
 ename:   ds 3
 epos:    db 0
 tsec:    db 0
+turbos:  db 0
 tfld:    db 0
 hudmode: db 0
 bigslot: db 0
