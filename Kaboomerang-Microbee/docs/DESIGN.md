@@ -1,6 +1,6 @@
 # KABOOMERANG — design and technical plan
 
-Status: **engine build 0.1.** World 1 is playable on the Z80 engine in the test model (see the README). The 40 × 25 mode with 8 × 8 cells was proven on BPM's Premium Plus with the HULLBREACH mode test. The game uses the same CRTC values as BPM's MODES.COM test, which needs no separate clock switch. The game itself has not run on real hardware yet.
+Status: **engine build 0.1.** World 1 is playable on the Z80 engine in the test model (see the README). The 40 × 25 mode with 8 × 8 cells was proven on BPM's Premium Plus with the HULLBREACH mode test. The game sets the 40-column clock and CRTC exactly as BPM's MODES.COM test does. The game itself has not run on real hardware yet.
 
 ViBED by BPM 2026.
 
@@ -79,7 +79,7 @@ Native Z80 at 3.375 MHz. The engine starts from the one already proven in MICROB
 
 | Area | Decision | Status |
 |---|---|---|
-| Display | 40 × 25 cells of 8 × 8 at half dot clock (320 × 200). 1,000 cells, so two pages fit in the 2K screen, attribute and colour RAM. CRTC: R0 35h, R1 28h, R2 2Ch, R3 34h, R4 26h, R5 01h, R6 19h, R7 21h, R9 07h | **Proven on hardware** by BPM's mode test (40×24 and 40×32 with 8×8 cells, H sync 2Ch). MODES.COM shows no clock port is needed: the CRTC table alone does it. |
+| Display | 40 × 25 cells of 8 × 8 at half dot clock (320 × 200). 1,000 cells, so two pages fit in the 2K screen, attribute and colour RAM. CRTC: R0 35h, R1 28h, R2 2Ch, R3 34h, R4 26h, R5 01h, R6 19h, R7 21h, R9 07h | **Proven on hardware** by BPM's mode test (40×24 and 40×32 with 8×8 cells, H sync 2Ch). The half dot clock is selected by reading port 09h with 01h on the upper address lines (`LD A,1 : IN A,(09h)`; 00h restores 80 columns), as MODES.COM does. |
 | Fallback display | 64 × 16 cells of 8 × 16 (512 × 256), as in BILBIES!, AUSOPEN and HULLBREACH | proven on hardware |
 | Arena | 19 × 11 tiles of 2 × 2 cells (17 × 9 inside the border); 2 HUD rows above, a message row below | chosen |
 | Colour | Colour RAM at F800h via port 08h bit 6; paper high nibble, ink low; 1 red, 2 green, 4 blue, 8 dark grey, 9–15 bright | proven |

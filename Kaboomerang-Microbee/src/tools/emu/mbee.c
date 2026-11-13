@@ -232,7 +232,12 @@ static uint8_t pin(void *ctx, uint16_t port) {
     if (p >= 0x40 && p <= 0x48) return fdc_in(m, p);
     return 0xFF;
 }
+/* port write log (debugging) */
+static int plog_n; static uint8_t plog_p[65536], plog_v[65536]; static uint16_t plog_pc[65536];
+int mb_plog(uint8_t **p, uint8_t **v, uint16_t **pc) { *p = plog_p; *v = plog_v; *pc = plog_pc; int n = plog_n; return n; }
+void mb_plog_clear(void) { plog_n = 0; }
 static void pout(void *ctx, uint16_t port, uint8_t v) {
+    if (plog_n < 65536) { plog_p[plog_n] = port & 0xFF; plog_v[plog_n] = v; plog_pc[plog_n] = ((M *)ctx)->z.pc; plog_n++; }
     M *m = ctx;
     int p = port & 0xFF;
     if (p == 0x50) { m->p50 = v; m->lower = block_of(v); }
