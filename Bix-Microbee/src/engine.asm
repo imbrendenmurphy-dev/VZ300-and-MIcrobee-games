@@ -72,8 +72,6 @@ hw_init:
         ld (pcol_h),a
         ld a,YELLOW
         ld (hud_col),a
-        ld a,1
-        ld (smooth),a
         call lad_init
         ; the font
         ld a,BLK_GFX
@@ -1742,7 +1740,7 @@ keytest:
         pop bc
         ret
 
-keymap: db K_V,K_MONO, K_RIGHT,K_R, K_LEFT,K_L, K_UP,K_U, K_DOWN,K_D, K_SPACE,K_J
+keymap: db K_RIGHT,K_R, K_LEFT,K_L, K_UP,K_U, K_DOWN,K_D, K_SPACE,K_J
         db K_P,K_R, K_O,K_L, K_Q,K_U, K_A,K_D, K_M,K_J, K_X,K_R, K_Z,K_L
         db K_S,K_MUS, K_ESC,K_QUIT
         db $FF

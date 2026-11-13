@@ -105,10 +105,6 @@ title:  xor a
         ld de,$1103
         ld c,BCYAN
         call e_print
-        ld hl,t_5d
-        ld de,$1203
-        ld c,GREY
-        call e_print
         ld hl,t_7
         ld de,$170B
         ld c,BRED
@@ -158,7 +154,6 @@ t_4:    db "PROTOTYPE: WORLD 1-1 GUMLEAF GULLY",0
 t_5:    db "O P OR ARROWS: RUN   SPACE: JUMP",0
 t_5b:   db "A OR DOWN: DIG IN, THEN TUNNEL",0
 t_5c:   db "HOLD SPACE UNDERGROUND: BURST OUT",0
-t_5d:   db "V: SMOOTH / STEPPED VERTICAL SCROLL",0
 t_6c:   db "MONITOR: COLOUR  (M = MONO)   SPACE",0
 t_6m:   db "MONITOR: MONO  (C = COLOUR)   SPACE",0
 t_7:    db "VIBED BY BPM 2026",0
@@ -322,13 +317,7 @@ read_input:
         ld a,(mus_on)
         xor 1
         ld (mus_on),a
-.nm:    ld a,(padnew)
-        and K_MONO              ; V: the smooth vertical scroll on / off
-        jr z,.nv
-        ld a,(smooth)
-        xor 1
-        ld (smooth),a
-.nv:    ld a,(keys)
+.nm:    ld a,(keys)
         ld (keysold),a
         cpl
         and c
