@@ -16,6 +16,8 @@ def generate():
             s = s.replace('include "sys.asm"', 'include "sys.asm"\n            include "mb_hw.asm"')
             s = s.replace('assert code_end <= P2BASE', 'assert code_end <= VPBUF')
             s = s.replace('            include "gen/font.inc"\n', '')
+            s = s.replace('code_end:\n', '            include "gen/ovl.inc"\ncode_end:\n', 1)
+            s = s.replace('            assert code_end <= VPBUF', '            assert code_end <= DECBUF\n            include "mb_overlay.asm"')
         if p.name == 'vars.asm':
             s = s.replace('equ $F000', 'equ $2000').replace('equ $F800', 'equ $E300')
             s = s.replace('equ $C800', 'equ $0000').replace('equ $D900', 'equ $1100')
@@ -33,6 +35,11 @@ def generate():
             s=cut(s,'; draw one cell (rv_d, rv_l)\nblit_masked:','; build pixel-pair flip table')
         if p.name == 'explore.asm':
             s=s.replace("ld a,'['", "ld a,' '").replace("ld a,'$'", "ld a,'G'")
+            # The area's room and likely monsters are unpacked while it loads.
+            assert s.count('            call mark_seen\n            call draw_explore_screen\n')==1
+            s=s.replace('            call mark_seen\n            call draw_explore_screen\n','            call mark_seen\n            call bt_preload\n            call draw_explore_screen\n')
+            # Leaving an area: black blinds, not a blank story page.
+            s=s.replace('fade_out:\n            ld a,$AA\n            call cls_back\n            jp present_full','fade_out:\n            jp native_battle_wipe')
             s = s.replace('            call present_panel_top\n','')
             s = s.replace('draw_explore_screen:\n','draw_explore_screen:\n            call world_reset\n')
             for old,new in (('@','H'),('%','M')):
@@ -52,7 +59,7 @@ def generate():
             segment=s[a:b].replace('call read_input','call read_input\n            call mb_pause_display')
             s=s[:a]+segment+s[b:]
             s=s.replace(' N: MUSIC ON/OFF  Q: QUIT',' C:COLOUR M:MONO N:MUSIC Q:QUIT')
-            s=s.replace('" - PAUSED -     P: CONTINUE"','" - PAUSED -  P:GO  -/+:VOLUME"')
+            s=s.replace('" - PAUSED -     P: CONTINUE"','" - PAUSED - P:GO -/+:SOFT/VZ"')
         if p.name == 'title.asm':
             s=s.replace('title_screen:', 'legacy_title_screen:',1)
             a=s.index('legacy_title_screen:');b=s.index('\ntitle_note:',a)
@@ -85,6 +92,9 @@ def generate():
             s = (ROOT / 'src/mb_files.asm').read_text()
         if p.name == 'music.asm':
             s = s.replace('ld a,$20', 'ld a,$40').replace('ld a,$21', 'ld a,$40')
+            s = s.replace('snd_tick:\n            ld ix,chan1\n            call ch_tick\n            ld ix,chan2\n            call ch_tick\n            ld ix,chan3\n            call ch_tick\n',
+                          'snd_tick:\n            call music_beat\n            jr z,.effects\n            ld ix,chan1\n            call ch_tick\n            ld ix,chan2\n            call ch_tick\n            ld ix,chan3\n            call ch_tick\n.effects:\n', 1)
+            assert '.effects:' in s
             # Music voices go through nz_mute (mb_hw.asm), which also sets the volume.
             s = cut(s, 'nz_mute:', '; --- per channel tick')
             old3 = '            ld a,(music_on)\n            or a\n            ld a,(ix+CH_DUTY)\n            jr nz,.ch3\n            xor a\n            jr .ch3\n'
@@ -147,7 +157,8 @@ def cut(s, a, b, new=''):
 def native_combat(s):
     """Combat is drawn by mb_battle.asm from native maps. The VZ bitmap scene,
     its masks and effect strokes are never seen, so they are not composed."""
-    s = s.replace('            call sd_load\n            call build_masks\n', '            call sd_load\n', 1)
+    # The VZ monster frames and battle backdrop are never drawn: not loaded.
+    s = cut(s, '            ; monster frames from SD into main RAM', '            ld a,1\n            ld (bt_loaded),a')
     s = cut(s, '; build mask planes: frames were unpacked', '; ---------------------------------------------------------------------------\n; effects')
     s = cut(s, '; restore backdrop rows into BACK (bank 3)\ndraw_backdrop:', '; present the scene rows only',
             'draw_backdrop:\ndraw_monster:\ndraw_scene:\n            ret\n\n')
@@ -176,6 +187,43 @@ fx_death:
             ld a,16                 ; fully dissolved until the next battle
             ld (native_death),a
             jp present_monster
+
+""")
+    def steps(kind, n, wait):
+        return f"""            ld b,0
+.s:         push bc
+            ld a,b
+            ld (fx_step),a
+            ld a,{kind}
+            ld (fx_kind),a
+            call redraw_mon
+            ld b,{wait}
+            call wait_frames
+            pop bc
+            inc b
+            ld a,b
+            cp {n}
+            jr nz,.s
+"""
+    s = cut(s, 'fx_levelup:\n', '; monster lunges', 'fx_levelup:\n' + steps(5, 8, 1) +
+            '            xor a\n            ld (fx_kind),a\n            jp redraw_mon\n\n')
+    s = cut(s, '; player hit: screen shake', 'fx_player_dies:', """; player hit: claws rake the screen while the panel flashes
+fx_player_hit:
+            ld hl,sfx_hurt
+            call play_sfx
+            ld a,(bt_css)
+            xor 1
+            call set_css
+""" + steps(4, 4, 1) + """            xor a
+            ld (fx_kind),a
+            ld a,(bt_css)
+            call set_css
+            jp redraw_mon
+
+""")
+    s = cut(s, 'fx_player_dies:', '; monster death:', """fx_player_dies:
+""" + steps(6, 6, 6) + """            ld b,25
+            jp wait_frames
 
 """)
     s = cut(s, '; transition from exploration: blinds closing over the screen\nbattle_wipe:', 'present_full_fast:', """; transition from exploration: black blinds close over the maze

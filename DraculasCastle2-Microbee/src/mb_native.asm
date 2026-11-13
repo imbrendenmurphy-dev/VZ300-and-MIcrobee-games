@@ -27,6 +27,8 @@ native_crtc_set:
             ret
 
 native_leave:
+            call wait_frame
+            call vram_black             ; nothing stale shows during the mode change
             xor a
             ld (native_anim_enabled),a
             ld (world_loaded),a
@@ -148,105 +150,42 @@ native_show:
             pop ix
             ret
 
-native_get:
-            ld a,(native_left)      ; fast path: the next byte is buffered
-            or a
-            jr z,.refill
-            dec a
-            ld (native_left),a
-            push hl
-            ld hl,(native_read)
-            ld a,(hl)
-            inc hl
-            ld (native_read),hl
-            pop hl
-            ret
-.refill:    push bc
-            push de
-            push hl
-            ld a,(native_anim_loading)
-            or a
-            jr z,.fetch
-            ld a,(native_anim_load_tick)
-            inc a
-            and 7
-            ld (native_anim_load_tick),a
-            call z,wait_frame
-.fetch:
-            ld a,(native_bank)
-            call mb_bank
-            ld hl,(native_src)
-            ld de,$E300
-            ld bc,128
-            ldir
-            ld (native_src),hl
+; LZ2 decoder. The packed input is streamed through a buffer in
+; upper RAM ($D600, 1K), refilled from its bank before it can run short, so a
+; token never has to check the buffer: literals are one LDIR, matches one
+; LDIR. Destination: unpack_bank, or RAM 2. DE = where to write.
+DECBUF      equ $D600
+native_unpack:
             ld a,(unpack_bank)
             or a
-            jr nz,.destination
+            jr nz,.dest
             ld a,2
-.destination:
-            call mb_bank
-            ld hl,$E300
-            ld (native_read),hl
-            ld a,128
-            ld (native_left),a
-.ready:     ld hl,native_left
-            dec (hl)
-            ld hl,(native_read)
+.dest:      ld (dec_dest),a
+            ld hl,DECBUF+1024
+            call dec_refill
+.token:     ld a,h
+            cp (DECBUF>>8)+3
+            call nc,dec_refill
             ld a,(hl)
             inc hl
-            ld (native_read),hl
-            pop hl
-            pop de
-            pop bc
-            ret
-
-native_unpack:
-.token:     call native_get
             bit 7,a
             jr nz,.match
             inc a
-            ld b,a
-.literal:   ld a,(native_left)
-            or a
-            jr nz,.buffered
-            call native_get
-            ld (de),a
-            inc de
-            djnz .literal
-            jr .token
-.buffered:  cp b
-            jr c,.partial
-            sub b
-            ld (native_left),a
-            ld c,b
-            xor a
-            jr .literal_copy
-.partial:   ld c,a
-            xor a
-            ld (native_left),a
-            ld a,b
-            sub c
-.literal_copy:
-            push af
+            ld c,a
             ld b,0
-            ld hl,(native_read)
             ldir
-            ld (native_read),hl
-            pop af
-            or a
-            jr z,.token
-            ld b,a
-            jr .literal
+            jr .token
 .match:     ld b,a
-            call native_get
+            ld a,(hl)
+            inc hl
+            push hl
             cpl
             ld l,a
             ld a,b
             and $0F
             cpl
             ld h,a
-            add hl,de
+            add hl,de               ; HL = DE - offset - 1
             ld a,b
             rrca
             rrca
@@ -258,18 +197,61 @@ native_unpack:
             ld b,0
             cp 10
             jr nz,.copy
-            call native_get
+            ex (sp),hl
+            ld a,(hl)
+            inc hl
+            ex (sp),hl
             cp $FF
-            ret z
+            jr z,.end
             add a,10
             ld c,a
-            ld a,0
+            ld a,b
             adc a,0
             ld b,a
 .copy:      ldir
+            pop hl
             jr .token
+.end:       pop hl
+            ret
 
-; HL = zero-terminated ASCII, DE = F000-based destination cell.
+; Keep the unread bytes from HL, then fill the buffer up from the source.
+dec_refill: push de
+            ld a,(native_anim_loading)
+            or a
+            jr z,.move
+            push hl
+            call wait_frame         ; the Ghost's poses load while the tune plays
+            pop hl
+.move:      ld de,DECBUF
+            push hl
+            ld hl,DECBUF+1024
+            pop bc
+            or a
+            sbc hl,bc               ; bytes still unread
+            ld a,h
+            or l
+            jr z,.fill
+            push hl
+            ld h,b
+            ld l,c
+            pop bc
+            ldir
+.fill:      ld hl,DECBUF+1024
+            or a
+            sbc hl,de
+            ld b,h
+            ld c,l
+            ld a,(native_bank)
+            call mb_bank
+            ld hl,(native_src)
+            ldir
+            ld (native_src),hl
+            ld a,(dec_dest)
+            call mb_bank
+            ld hl,DECBUF
+            pop de
+            ret
+
 native_text:
             ld c,15
 native_text_colour:

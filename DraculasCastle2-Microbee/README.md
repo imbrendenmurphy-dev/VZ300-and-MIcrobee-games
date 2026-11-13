@@ -20,7 +20,7 @@ Needs a Premium Plus (1MB RAM, 32K PCG).
 
 W/I/up forward, A/J/left and D/L/right turn, S/K/down turn around.
 SPACE or RETURN acts. M map, E inventory, P pause, N music on/off,
-- and + (the ;+ key) music volume.
+- SOFT music (made for the Microbee speaker), + (the ;+ key) VZ music.
 C/M on the title or while paused changes the display. Q quits from pause.
 A joystick on PIO port A also works. Saves are RAM checkpoints and are lost at
 power-off, as on the VZ.
@@ -42,6 +42,8 @@ redraws every monster and makes battles about three times faster.
 ![Maze objects](screenshots/maze-objects.png)
 
 ![Ordinary monsters fight in the room you are in](screenshots/battle-rooms.png)
+
+![Battle effects](screenshots/battle-effects.png)
 
 ## Building
 

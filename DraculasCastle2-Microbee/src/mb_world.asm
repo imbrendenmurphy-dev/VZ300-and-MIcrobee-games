@@ -1546,11 +1546,12 @@ world_bar:
             djnz .cell
             ret
 
+; A scripted encounter used to flash the monster's bestiary card (with its
+; SPACE: NEXT footer) before the fight. The fight's own entrance now does that
+; job, so the story text leads straight into the blinds and the battle.
 world_cutscene:
-            cp 1
-            ld a,1
-            jr z,world_cinema
-            ld a,3
+            xor a
+            ret
 world_cinema:
             ld (native_monster),a
             call native_enter

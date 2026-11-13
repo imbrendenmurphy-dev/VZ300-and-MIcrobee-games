@@ -81,12 +81,15 @@ play_sfx:
 
 ; ---------------------------------------------------------------------------
 snd_tick:
+            call music_beat
+            jr z,.effects
             ld ix,chan1
             call ch_tick
             ld ix,chan2
             call ch_tick
             ld ix,chan3
             call ch_tick
+.effects:
             ld ix,chsfx
             call ch_tick
             ; --- write operands into the sample loop ---

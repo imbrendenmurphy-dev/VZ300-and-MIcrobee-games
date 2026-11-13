@@ -121,53 +121,53 @@ monsters:
             db 48,26,8,30,20,1,0,3
             dw f_dc2mon12
             db 0,5,0,0
-f_dc2mon1: dw 2112
+f_dc2mon1: dw 1
             db 4
-            dw 19456
+            dw 11008
 
-f_dc2mon2: dw 2112
+f_dc2mon2: dw 1
             db 4
-            dw 28160
+            dw 11520
 
-f_dc2mon3: dw 2112
+f_dc2mon3: dw 1
             db 4
-            dw 30336
+            dw 11648
 
-f_dc2mon4: dw 2112
-            db 5
-            dw 0
-
-f_dc2mon5: dw 2112
-            db 5
-            dw 2176
-
-f_dc2mon6: dw 2112
-            db 5
-            dw 4352
-
-f_dc2mon7: dw 2112
-            db 5
-            dw 6528
-
-f_dc2mon8: dw 2112
-            db 5
-            dw 8704
-
-f_dc2mon9: dw 2112
-            db 5
-            dw 10880
-
-f_dc2mon10: dw 2112
+f_dc2mon4: dw 1
             db 4
-            dw 21632
+            dw 11776
 
-f_dc2mon11: dw 2112
+f_dc2mon5: dw 1
             db 4
-            dw 23808
+            dw 11904
 
-f_dc2mon12: dw 2112
+f_dc2mon6: dw 1
             db 4
-            dw 25984
+            dw 12032
+
+f_dc2mon7: dw 1
+            db 4
+            dw 12160
+
+f_dc2mon8: dw 1
+            db 4
+            dw 12288
+
+f_dc2mon9: dw 1
+            db 4
+            dw 12416
+
+f_dc2mon10: dw 1
+            db 4
+            dw 11136
+
+f_dc2mon11: dw 1
+            db 4
+            dw 11264
+
+f_dc2mon12: dw 1
+            db 4
+            dw 11392
 
 mname_0: db "BAT",0
 mname_1: db "SKELETON",0
@@ -182,36 +182,36 @@ mname_9: db "BAT LORD",0
 mname_10: db "DRACULA",0
 mname_11: db "BRIDE",0
 NUM_MONSTERS equ 12
-f_dc2bbg0: dw 1472
+f_dc2bbg0: dw 1
             db 4
             dw 8192
 
-f_dc2bbg1: dw 1472
+f_dc2bbg1: dw 1
             db 4
-            dw 9728
+            dw 8320
 
-f_dc2bbg2: dw 1472
+f_dc2bbg2: dw 1
             db 4
-            dw 11264
+            dw 8448
 
-f_dc2bbg3: dw 1472
+f_dc2bbg3: dw 1
             db 4
-            dw 12800
+            dw 8576
 
-f_dc2bbg4: dw 1472
+f_dc2bbg4: dw 1
             db 4
-            dw 14336
+            dw 8704
 
-f_dc2bbg5: dw 1472
+f_dc2bbg5: dw 1
             db 4
-            dw 15872
+            dw 8832
 
 bbg_files: dw f_dc2bbg0,f_dc2bbg1,f_dc2bbg2,f_dc2bbg3,f_dc2bbg4,f_dc2bbg5
-f_title: dw 2048
-            db 5
-            dw 13056
+f_title: dw 1
+            db 4
+            dw 12544
 
 f_egg: dw 2048
             db 4
-            dw 17408
+            dw 8960
 

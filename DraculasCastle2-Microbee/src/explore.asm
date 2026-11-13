@@ -220,6 +220,7 @@ enter_area:
             ld a,(area_music)
             call play_music
             call mark_seen
+            call bt_preload
             call draw_explore_screen
             ld a,(show_intro)
             or a
@@ -241,9 +242,7 @@ draw_explore_screen:
 
 ; quick black-out (blue) of the screen
 fade_out:
-            ld a,$AA
-            call cls_back
-            jp present_full
+            jp native_battle_wipe
 
 ; ---------------------------------------------------------------------------
 ; main exploration loop

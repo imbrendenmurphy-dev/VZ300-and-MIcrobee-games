@@ -110,7 +110,7 @@ def files():
     banks={}; entries={}; bank=4; buf=bytearray()
     for p in sorted((ROOT/'baseline-release').glob('*.DAT')):
         data=p.read_bytes()
-        if re.fullmatch(r'DC2A\dP[12]',p.stem):
+        if re.fullmatch(r'DC2A\dP[12]|DC2MON\d+|DC2BBG\d|DC2TITLE',p.stem):
             # VZ wall, decoration and object bitmaps. Nothing draws them on the
             # Microbee, so one placeholder byte replaces each (about 69K freed).
             data=b'\0'
@@ -144,12 +144,12 @@ def files():
     write('build/assets.json',json.dumps(entries,indent=2))
     return banks
 
-def native_files(used_banks=()):
+def native_files(used_banks=(),seed=None):
     import native_art
     import pcg_validate
     import battle_rooms
     folder=ROOT/'build/native';manifest=folder/'manifest.json'
-    sources=[ROOT/'tools/native_art.py',ROOT/'tools/native_detail.py',ROOT/'tools/ghoulies.py',ROOT/'tools/dracula_font.py',ROOT/'original/tools/monsters.py']
+    sources=[ROOT/'tools/native_art.py',ROOT/'tools/battle_fx.py',ROOT/'tools/native_detail.py',ROOT/'tools/ghoulies.py',ROOT/'tools/dracula_font.py',ROOT/'original/tools/monsters.py']
     if not manifest.exists() or any(p.stat().st_mtime>manifest.stat().st_mtime for p in sources):native_art.build()
     import animation_art
     stamp=folder/'animation.stamp'
@@ -158,25 +158,28 @@ def native_files(used_banks=()):
     print('PCG validation:',checked['assets'],'assets,',checked['total_cells'],'cells, no invalid cells')
     # 28: loader staging, then recent views. 30: decode/encounter workspace.
     # 31: decoded perspective pieces and viewport, accessed in the same bank.
-    available=iter([b for b in (6,7,8,9,10,11,12,13,15,16,17,18,19,20,21,22,23,24,25,26,27,29) if b not in used_banks])
-    bank=next(available);buf=bytearray();banks={};table=[]
+    available=iter([b for b in (5,6,7,8,9,10,11,12,13,15,16,17,18,19,20,21,22,23,24,25,26,27,29) if b not in used_banks])
+    banks={};table=[]
+    # First fit: each packed asset goes in the first bank with room for it.
+    pool={b:bytearray(d) for b,d in (seed or {}).items()}
+    def place(data):
+        for b,d in pool.items():
+            if len(d)+len(data)<=32768:
+                off=len(d);d.extend(data);return b,off
+        b=next(available);pool[b]=bytearray(data);return b,0
     for entry in json.loads(manifest.read_text()):
         # Gallery/combat use shared-glyph groups; retain only standalone titles.
         if not entry['name'].startswith('title-'):continue
         data=(folder/(entry['name']+'.lz')).read_bytes()
-        if len(buf)+len(data)>32768:
-            banks[bank]=bytes(buf);bank=next(available);buf=bytearray()
-        table.append(f'            db {bank}\n            dw {len(buf)} ; {entry["name"]}\n')
-        buf.extend(data)
+        pb,po=place(data)
+        table.append(f'            db {pb}\n            dw {po} ; {entry["name"]}\n')
     auxiliary={}
     def store_animation(data):
-        nonlocal bank,buf
         if data in auxiliary:return auxiliary[data]
         packed=native_art.compress_fast(data)
-        if len(buf)+len(packed)>32768:
-            banks[bank]=bytes(buf);bank=next(available);buf=bytearray()
-        ref=f'            db {bank}\n            dw {len(buf)}\n'
-        buf.extend(packed);auxiliary[data]=ref
+        pb,po=place(packed)
+        ref=f'            db {pb}\n            dw {po}\n'
+        auxiliary[data]=ref
         return ref
     dictionaries={}
     for mode in ('colour','mono'):
@@ -222,10 +225,8 @@ def native_files(used_banks=()):
             allocations.append({'name':name,'glyphs':len(glyphs),'pcg_bytes':len(full_pcg),'bundle_pcg_bytes':length,'external_dictionary':monster==3,'packet_bytes':len(packet)})
             (folder/(name+'.raw')).write_bytes(packet)
             data=native_art.compress_fast(packet)
-            if len(buf)+len(data)>32768:
-                banks[bank]=bytes(buf);bank=next(available);buf=bytearray()
-            groups.append(f'            db {bank}\n            dw {len(buf)} ; {name}\n')
-            buf.extend(data)
+            pb,po=place(data)
+            groups.append(f'            db {pb}\n            dw {po} ; {name}\n')
             if monster!=3:
                 animation_entries.append('            db 0,0,0,0,0,0,0,0,0\n')
             else:
@@ -261,10 +262,8 @@ def native_files(used_banks=()):
                 assert len(stream)<=1728,(name,len(stream))
                 idle.extend(stream+bytes(1728-len(stream)))
             data=native_art.compress_fast(bytes(idle))
-            if len(buf)+len(data)>32768:
-                banks[bank]=bytes(buf);bank=next(available);buf=bytearray()
-            idle_entries.append(f'            db {bank}\n            dw {len(buf)} ; {name}\n')
-            buf.extend(data)
+            pb,po=place(data)
+            idle_entries.append(f'            db {pb}\n            dw {po} ; {name}\n')
     room_entries=[];sprite_entries=[];room_report=[]
     for mode in ('colour','mono'):
         for area in range(6):
@@ -278,6 +277,12 @@ def native_files(used_banks=()):
             raw=battle_rooms.sprite(monster,mode=='mono')
             sprite_entries.append(store_animation(raw));room_report.append({'sprite':monster,'mode':mode,'glyphs':int.from_bytes(raw[:2],'little')//16,'bytes':len(raw)})
     checked['battle_rooms']=room_report
+    import battle_fx
+    fx_entries=[]
+    for kind in sorted(battle_fx.DRAW):
+        data=battle_fx.blob(kind)
+        pb,po=place(data)
+        fx_entries.append(f'            db {pb}\n            dw {po},{len(data)}\n')
     import dracula_font
     import world_art
     import lz2
@@ -285,12 +290,8 @@ def native_files(used_banks=()):
     world_folder=ROOT/'build/world';world_folder.mkdir(exist_ok=True)
     world_entries=[];world_checks=[];second_entries=[];maze_report=[]
     def store(data):
-        nonlocal bank,buf
-        if len(buf)+len(data)>32768:
-            banks[bank]=bytes(buf);bank=next(available);buf=bytearray()
-        ref=f'            db {bank}\n            dw {len(buf)}\n'
-        buf.extend(data)
-        return ref
+        pb,po=place(data)
+        return f'            db {pb}\n            dw {po}\n'
     # One atlas per area serves colour and one-colour screens alike.
     area_refs=[]
     for region in range(6):
@@ -319,13 +320,11 @@ def native_files(used_banks=()):
         pixels=[sum(bool(mask.getpixel((x,y)))<<(7-x) for x in range(8)) for y in range(16)]
         for half in range(2):fontplanes[half].extend(bytes(pixels[half*8:half*8+8])+bytes(8))
     fontdata=b''.join(bytes(p)+bytes(512) for p in fontplanes)
-    if len(buf)+len(fontdata)>32768:
-        banks[bank]=bytes(buf);bank=next(available);buf=bytearray()
-    fontentry=f'native_font_asset: db {bank}\n            dw {len(buf)}\n'
-    buf.extend(fontdata)
-    banks[bank]=bytes(buf)
+    pb,po=place(fontdata)
+    fontentry=f'native_font_asset: db {pb}\n            dw {po}\n'
+    banks.update({b:bytes(d) for b,d in pool.items()})
     assert all(len(data)<=32768 for data in banks.values())
-    assert not {27,29}&set(banks),'RAM 27 and 29 hold the battle room and monster caches'
+    assert not {26,27,29}&set(banks),'RAM 26, 27 and 29 hold the battle room and monster caches'
     checked['group_allocations']=allocations
     checked['expanded_ram_bytes']=sum(map(len,banks.values()))
     checked['expanded_ram_banks']=list(banks)
@@ -334,7 +333,7 @@ def native_files(used_banks=()):
     (folder/'pcg-validation.json').write_text(json.dumps(checked,indent=2))
     for b,data in banks.items():write(f'build/DATA{b:02}.BNK',data)
     assert all('db 0,0,0,0,0,0,0,0,0' in e for i,e in enumerate(animation_entries) if i not in (2,14))
-    write('src/gen/native.inc','native_assets:\n'+''.join(table)+'native_groups:\n'+''.join(groups)+'native_idle_assets:\n'+''.join(idle_entries)+fontentry+'world_assets:\n'+''.join(world_entries)+'world_assets2:\n'+''.join(second_entries)+'native_anim_assets:\n'+animation_entries[2]+animation_entries[14]+'bt_rooms:\n'+''.join(room_entries)+'bt_sprites:\n'+''.join(sprite_entries))
+    write('src/gen/native.inc','native_assets:\n'+''.join(table)+'native_groups:\n'+''.join(groups)+'native_idle_assets:\n'+''.join(idle_entries)+fontentry+'world_assets:\n'+''.join(world_entries)+'world_assets2:\n'+''.join(second_entries)+'native_anim_assets:\n'+animation_entries[2]+animation_entries[14]+'bt_rooms:\n'+''.join(room_entries)+'bt_sprites:\n'+''.join(sprite_entries)+'fx_assets:\n'+''.join(fx_entries))
     write('src/gen/native_font.bin',fontdata)
     return banks
 
@@ -370,7 +369,7 @@ def loader(banks, size):
     write('build/loader.sym',''.join(f'{v:04X} {k}\n' for k,v in asm.sym.items()))
 
 def main():
-    port_source.generate(); patterns(); keys(); banks=files();banks.update(native_files(set(banks)))
+    port_source.generate(); patterns(); keys(); banks=files();banks.update(native_files(set(banks),banks))
     # Old packing attempts must not masquerade as active read-only asset banks.
     for old in (ROOT/'build').glob('DATA[0-9][0-9].BNK'):
         if int(old.stem[4:]) not in banks:old.unlink()
@@ -381,7 +380,26 @@ def main():
     # Retune the unchanged music sequences for 3.375 MHz / 210 T tone loop.
     vals=[min(65535,round(440*2**((n+23-69)/12)*65536/(3375000/210))) for n in range(1,96)]
     write('src/gen/notes.inc','note_steps:\n            dw '+','.join(map(str,vals))+'\n')
-    subprocess.run([sys.executable,str(ROOT/'original/tools/zasm.py'),str(ROOT/'src/main.asm'),'-o',str(ROOT/'build/GAME.BIN'),'--sym',str(ROOT/'build/game.sym'),'--start','0x8000'],check=True)
+    def assemble():
+        subprocess.run([sys.executable,str(ROOT/'original/tools/zasm.py'),str(ROOT/'src/main.asm'),'-o',str(ROOT/'build/GAME.BIN'),'--sym',str(ROOT/'build/game.sym'),'--start','0x8000'],check=True)
+        sym={}
+        for line in (ROOT/'build/game.sym').read_text().splitlines():
+            parts=line.split()
+            if len(parts)>=2:sym[parts[1]]=int(parts[0],16)
+        return (ROOT/'build/GAME.BIN').read_bytes(),sym
+    # The combat overlay is assembled at the maze work buffer, then stored in
+    # expanded RAM and copied there when a battle starts.
+    write('src/gen/ovl.inc','ovl_asset:  db 0\n            dw 0\n            dw 0\n')
+    image,sym=assemble()
+    ovl=image[sym['ovl_start']-0x8000:sym['ovl_end']-0x8000]
+    home=min((b for b in banks if b>=5 and len(banks[b])+len(ovl)<=32768),key=lambda b:32768-len(banks[b]))
+    off=len(banks[home]);banks[home]=banks[home]+ovl
+    write(f'build/DATA{home:02}.BNK',banks[home])
+    write('src/gen/ovl.inc',f'ovl_asset:  db {home}\n            dw {off}\n            dw {len(ovl)}\n')
+    image,sym2=assemble()
+    assert sym2==sym and image[sym['ovl_start']-0x8000:sym['ovl_end']-0x8000]==ovl
+    write('build/GAME.BIN',image[:sym['code_end']-0x8000])
+    print('combat overlay',len(ovl),'bytes in RAM',home,'; resident code ends',hex(sym['code_end']))
     loader(banks,(ROOT/'build/GAME.BIN').stat().st_size)
     fs={'DRACULA.COM':(ROOT/'build/DRACULA.COM').read_bytes(),'GAME.BIN':(ROOT/'build/GAME.BIN').read_bytes(),'PCG.BNK':(ROOT/'build/PCG.BNK').read_bytes()}
     fs.update({f'DATA{b:02}.BNK':data for b,data in banks.items()})
@@ -392,7 +410,7 @@ def main():
         b'(also on the title and while paused).\r\n\r\n'
         b'W/I/up forward. A/J/left, D/L/right turn. S/K/down turn around.\r\n'
         b'SPACE/RETURN act. M map. E inventory. P pause. Q quit (paused).\r\n'
-        b'N music on/off. - and + music volume.\r\n'
+        b'N music on/off. - SOFT music (for the speaker), + VZ music.\r\n'
         b'Joystick on PIO port A. Saves are RAM checkpoints, lost at power-off.\r\n\x1a')
     write('build/DISK_README.TXT',disk_readme)
     system=disk.unskew((ROOT/'resources/DRVB.DS8').read_bytes())

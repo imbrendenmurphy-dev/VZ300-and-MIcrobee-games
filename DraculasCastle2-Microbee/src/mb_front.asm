@@ -112,10 +112,11 @@ native_menu:
 .footer:    ld de,$F000+30*40+1
             call native_text
             ld a,(music_vol)
-            add a,'0'
-            ld (native_vol_n),a
-            ld hl,native_vol_text
-            ld de,$F000+30*40+13
+            dec a
+            ld hl,native_tone_soft
+            jr z,.tone
+            ld hl,native_tone_vz
+.tone:      ld de,$F000+30*40+13
             call native_text
             jp native32_commit
 
@@ -178,6 +179,6 @@ native_menu_gallery: db "  GHOUL GALLERY",0
 native_menu_cursor: db ">",0
 native_sound_on: db "N:MUSIC ON ",0
 native_sound_off: db "N:MUSIC OFF",0
-native_vol_text: db "-/+ VOL "
-native_vol_n: db "3  C:COLOUR M:MONO",0
+native_tone_soft: db "-/+ SOFT  C:COLOUR M:MONO",0
+native_tone_vz: db "-/+ VZ    C:COLOUR M:MONO",0
 native_no_save: db "NO CHECKPOINT - START A NEW GAME",0

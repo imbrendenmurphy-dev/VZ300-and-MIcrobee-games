@@ -464,7 +464,7 @@ pause_screen:
 .out:       call clear_msg_back
             jp present_msg
 
-str_paused: db " - PAUSED -  P:GO  -/+:VOLUME",1," C:COLOUR M:MONO N:MUSIC Q:QUIT",0
+str_paused: db " - PAUSED - P:GO -/+:SOFT/VZ",1," C:COLOUR M:MONO N:MUSIC Q:QUIT",0
 
 ; ---------------------------------------------------------------------------
 ; SAVE / LOAD  (SRAM bank 3 @ $6400: magic, checksum, data)

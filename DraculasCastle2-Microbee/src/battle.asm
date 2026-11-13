@@ -58,30 +58,6 @@ battle_load:
             ld (bt_charge),a
             ld a,(ix+8)
             ld (bt_css),a
-            ; monster frames from SD into main RAM, then build masks
-            ld l,(ix+10)
-            ld h,(ix+11)
-            push hl
-            pop ix
-            ld de,MONB
-            xor a
-            call sd_load
-            ; backdrop from SD into SRAM bank 3
-            ld a,(AREA_RAM+26)      ; the area's battle backdrop
-            add a,a
-            ld l,a
-            ld h,0
-            ld de,bbg_files
-            add hl,de
-            ld a,(hl)
-            inc hl
-            ld h,(hl)
-            ld l,a
-            push hl
-            pop ix
-            ld de,BBG
-            ld a,1
-            call sd_load
             ld a,1
             ld (bt_loaded),a
             ret
@@ -1040,20 +1016,23 @@ fx_heal:
             jp play_sfx
 
 fx_levelup:
-            ld b,4
-.l:         push bc
-            ld a,(bt_css)
-            xor 1
-            call set_css
-            ld b,4
-            call wait_frames
-            ld a,(bt_css)
-            call set_css
-            ld b,4
+            ld b,0
+.s:         push bc
+            ld a,b
+            ld (fx_step),a
+            ld a,5
+            ld (fx_kind),a
+            call redraw_mon
+            ld b,1
             call wait_frames
             pop bc
-            djnz .l
-            ret
+            inc b
+            ld a,b
+            cp 8
+            jr nz,.s
+            xor a
+            ld (fx_kind),a
+            jp redraw_mon
 
 ; monster lunges: grows down 2 rows and uses the attack frame
 fx_lunge:
@@ -1074,33 +1053,50 @@ fx_lunge:
             ld (bt_frame),a
             jp redraw_mon
 
-; player hit: screen shake via CSS flicker + red flash on UI
+; player hit: claws rake the screen while the panel flashes
 fx_player_hit:
             ld hl,sfx_hurt
             call play_sfx
             ld a,(bt_css)
             xor 1
             call set_css
-            ld b,2
-            call wait_frames
-            ld a,(bt_css)
-            jp set_css
-
-fx_player_dies:
-            ld b,6
-.l:         push bc
-            ld a,(bt_css)
-            xor 1
-            call set_css
-            ld b,5
-            call wait_frames
-            ld a,(bt_css)
-            call set_css
-            ld b,5
+            ld b,0
+.s:         push bc
+            ld a,b
+            ld (fx_step),a
+            ld a,4
+            ld (fx_kind),a
+            call redraw_mon
+            ld b,1
             call wait_frames
             pop bc
-            djnz .l
-            ret
+            inc b
+            ld a,b
+            cp 4
+            jr nz,.s
+            xor a
+            ld (fx_kind),a
+            ld a,(bt_css)
+            call set_css
+            jp redraw_mon
+
+fx_player_dies:
+            ld b,0
+.s:         push bc
+            ld a,b
+            ld (fx_step),a
+            ld a,6
+            ld (fx_kind),a
+            call redraw_mon
+            ld b,6
+            call wait_frames
+            pop bc
+            inc b
+            ld a,b
+            cp 6
+            jr nz,.s
+            ld b,25
+            jp wait_frames
 
 ; monster death: a quick ordered dissolve into the room
 fx_death:

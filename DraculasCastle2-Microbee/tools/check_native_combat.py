@@ -11,6 +11,8 @@ def call(p,name,a=None,frames=1000):
     invoke(p,s,name,a,frames)
 def present(p):
     t=p.tick;call(p,'native_battle_present');return (p.tick-t)/FRAME_T
+def fixed(p):
+    b=bytes(p.pcg);return b[:12*2048]+b[14*2048:]
 def scene(p):
     return p.screen_rgb()[16:200]
 
@@ -30,7 +32,7 @@ for mode,label in enumerate(('colour','mono')):
         assert p.crtc[1]==0,'scene stays blank until its first commit'
         assert bytes(p.pcg[14*2048:])==(ROOT/'src/gen/native_font.bin').read_bytes()
         call(p,'draw_battle_ui')
-        pcg=bytes(p.pcg)
+        fixed_pcg=fixed(p)
         poses=battle_rooms.poses(monster) if area is not None else None
         for frame in range(3):
             p.poke(s['bt_frame'],frame)
@@ -45,7 +47,7 @@ for mode,label in enumerate(('colour','mono')):
                 if key not in refs:refs[key]=np.asarray(battle_rooms.preview(monster,area,mode==1,pose))[16:200]
                 want=refs[key]
             assert np.array_equal(scene(p),want),(label,monster,area,frame)
-            assert bytes(p.pcg)==pcg and p.regs()['lower']==1
+            assert fixed(p)==fixed_pcg and p.regs()['lower']==1
             checks+=1
         p.poke(s['bt_frame'],0);present(p)
         base=p.screen_rgb().copy()
@@ -62,7 +64,7 @@ for mode,label in enumerate(('colour','mono')):
                 p.poke(s['fx_kind'],kind);p.poke(s['fx_step'],step)
                 costs['stroke'].append(present(p))
                 assert not np.array_equal(scene(p),base[16:200]),('effect',kind,step)
-                assert bytes(p.pcg)==pcg
+                assert fixed(p)==fixed_pcg,'effects may only use the spare PCG banks 12 and 13'
         p.poke(s['fx_kind'],0);present(p)
         assert np.array_equal(p.screen_rgb(),base),('effect restore',monster)
         p.poke(s['bt_flash'],1);present(p)

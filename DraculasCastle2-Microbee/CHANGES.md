@@ -227,15 +227,61 @@ Measured in the emulator on a one-hit skeleton fight with the keys mashed:
   effect, hit flash and dissolve with an independent Python drawing;
   `tools/check_animation.py` checks the ghost's eight poses in two rooms.
 
+## Fifth pass (13 November 2026): after the first hardware test
+
+- **Battle effects drawn for the Microbee** (`tools/battle_fx.py`). The VZ
+  drew its effects with font characters (`/` for the sword, `*` for fire,
+  `+` for holy water) and flickered the panel colours for hits. Now: a
+  curved white and cyan sword arc; a fireball that rises with a flame trail,
+  flares and bursts into a ring of embers; holy water that falls as drops,
+  then a gold cross with sparkles; three red claw rakes when you are hit;
+  rising gold and white sparkles on a level up; and red streaks running down
+  when the hero falls. The pixels are merged into a spare PCG bank over
+  whatever is in each cell, so the monster and the room show through. The
+  VZ's panel-colour flicker on hits and level ups is gone.
+- **The likely monsters are preloaded.** Entering an area now also unpacks
+  that area's room and the two or three monsters you can meet there (RAM
+  blocks 26, 27 and 29). A fight with one of them starts after 0.36 s of
+  black (0.63 s for the ghost) instead of 0.7 to 1.3 s. A one-hit skeleton
+  fight, start to finish, is now 3.1 s.
+- **Faster unpacking everywhere.** The decompressor reads its input through
+  a 1K buffer instead of fetching byte by byte, about a quarter quicker. That
+  paid for the preloading: entering an area takes about as long as before
+  (2.2 to 2.7 s) while now also preparing its monsters.
+- **More VZ leftovers removed.** Each fight still loaded the VZ monster and
+  backdrop pictures from disk before the native art; those loads (and the
+  files) are gone. The combat code now lives in an overlay that is copied
+  into the maze's work buffer when a fight starts, which freed the room for
+  all of the above. Assets are packed first-fit, so the disk holds 23 files
+  instead of 26.
+- **No blank parchment between areas.** Leaving an area used the VZ's
+  "clear the screen" page, which on the Microbee is the empty story leaf. It
+  now closes the black blinds instead.
+- **No card before scripted fights.** Before a story fight (the gargoyle,
+  for example) the game flashed the monster's bestiary card, with its
+  "SPACE: NEXT" footer, and then the battle started. The story text now leads
+  straight into the blinds and the fight. The blinds also blank the
+  characters, not just their colours, so nothing of the maze shows through
+  on an amber screen while the battle art loads.
+- **Music voicing instead of volume.** Narrowing the pulses only made the
+  tune thinner and scratchier, as you heard. The Microbee's cone speaker
+  reproduces the very thin, decaying pulses the VZ's piezo smoothed over, and
+  that is the grating edge. `-` now picks **SOFT**: every note keeps a pulse
+  at least about a tenth of the cycle wide (the envelope still decays), and
+  the tune runs at 15/16 speed. `+` picks **VZ**, exactly as the VZ300 played
+  it. SOFT is the default. In the emulator SOFT moves the sound's centre of
+  brightness from 2,320 Hz down to 2,060 Hz and cuts the share above 3 kHz
+  from 27% to 23%. Pitch is unchanged. `music-soft.wav` and `music-vz.wav`
+  are recordings of the Grounds tune in each voicing.
+
 ## Known limits
 
 - **Emulator only.** Pacing, music and readability on the real machine and on
   the amber monitor still need your eyes.
 - Entering a new area still blanks the screen for about 2.3 s while its art
   unpacks, and opening the map for about 0.9 s.
-- A battle takes 0.7 to 0.9 s of black screen to load (1.3 s for the ghost,
-  whose eight poses are composed into the room). Most of it is unpacking and
-  loading about 16K of character shapes.
+- A fight with a monster from outside the area's usual three, or a boss,
+  still takes 0.6 to 1.0 s of black screen to load.
 - When a message and a monster movement change in the same step, the lower
   rows can be written just after the beam passes them, so that one frame may
   show a tear. Movement alone and messages alone stay ahead of the beam.

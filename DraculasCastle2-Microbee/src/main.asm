@@ -24,5 +24,7 @@ entry:      di
 
             include "gen/geom.inc"
             include "data.asm"
+            include "gen/ovl.inc"
 code_end:
-            assert code_end <= VPBUF
+            assert code_end <= DECBUF
+            include "mb_overlay.asm"

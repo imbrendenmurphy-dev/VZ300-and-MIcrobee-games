@@ -19,6 +19,3 @@
             DB 21,0,"DATA21  BNK"
             DB 22,0,"DATA22  BNK"
             DB 23,0,"DATA23  BNK"
-            DB 24,0,"DATA24  BNK"
-            DB 25,0,"DATA25  BNK"
-            DB 26,0,"DATA26  BNK"
