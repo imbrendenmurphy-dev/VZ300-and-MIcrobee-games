@@ -9,4 +9,4 @@ SPACE/RETURN act. M map. E inventory. P pause. Q quit (paused).
 N music on/off. - SOFT music (for the speaker), + VZ music.
 Joystick on PIO port A. Saves are RAM checkpoints, lost at power-off.
 
-Emulator tested only - not yet run on a real Microbee.
+Played on a real Premium Plus with an amber monitor during development.

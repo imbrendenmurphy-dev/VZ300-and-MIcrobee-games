@@ -5,6 +5,8 @@ gothic RPG: six areas, twelve monsters, the hidden "Forgotten Maze 1984".
 
 Vibed by BPM, 2026.
 
+![showcase](showcase/showcase.gif)
+
 ![The six areas](screenshots/areas-colour.png)
 
 ## Running it
@@ -14,7 +16,9 @@ Boot `release/DRACULA.DS8` (819,200-byte DS80 image), and at the prompt type
 
 Needs a Premium Plus (1MB RAM, 32K PCG).
 
-**Status: tested in the emulator only. Not yet run on a real Microbee.**
+**Status: v1.0 release.** Played on a real Premium Plus with an amber monitor
+during development. See [BLURB.md](BLURB.md) for the release write-up and
+`release/DRACULA2_MICROBEE_v1.0.zip` for the download.
 
 ## Controls
 
