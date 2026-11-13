@@ -7,7 +7,7 @@ routines = ['keys','keytst','physics','tick','mkmatrix','clrback','clrbank','ren
 addrs = sorted((R.syms[n], n) for n in routines)
 keys_ = [a for a,_ in addrs]
 m = Bee(); cpu = Z80(m)
-data = open('build/SCROSS.COM','rb').read(); m.ram[0x100:0x100+len(data)] = data
+data = open('build/SCROSS_T.COM','rb').read(); m.ram[0x100:0x100+len(data)] = data
 hist = {}
 frames = 0; flip = R.syms['flip']; t0=None
 nfr = int(sys.argv[1]) if len(sys.argv)>1 else 3

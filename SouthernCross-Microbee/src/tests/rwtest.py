@@ -5,7 +5,7 @@ import run as R
 from z80emu import Bee, Z80
 S = R.syms
 m = Bee(); cpu = Z80(m)
-d = open('build/SCROSS.COM','rb').read(); m.ram[0x100:0x100+len(d)] = d
+d = open('build/SCROSS_T.COM','rb').read(); m.ram[0x100:0x100+len(d)] = d
 while cpu.pc != S['mloop']: cpu.step()
 def w16(n, v): m.ram[S[n]:S[n]+2] = (v & 0xffff).to_bytes(2, 'little')
 def r16(n): v = m.ram[S[n]] | m.ram[S[n]+1] << 8; return v - 65536 if v > 32767 else v

@@ -86,8 +86,8 @@ Proven on the VZ, so they carry straight over:
 ## Build stages
 1. Horizon, panel and flight model as a frame-rate benchmark — **done**
 2. Runway, take-off, landing and the landing grade — **done**
-3. Locale loader plus the first full locale, Coral Coast — **done (this build)**
-4. Missions, briefing and debrief screens, logbook and save/load
+3. Locale loader plus the first full locale, Coral Coast — **done**
+4. Missions, briefing and debrief screens, logbook — **done (this build)**; saving a flight in mid-air is still to come
 5. Title, attract sequence, music and information screens
 6. Riverbend, Red Centre and Ace mode
 7. Final polish and the SD disk image
@@ -152,4 +152,50 @@ Proven on the VZ, so they carry straight over:
 - **Also tried: a coarse table-based cull test** (dx, dz in 128 m steps). It was cheaper per object but needed safety margins, which let off-screen objects through. Two views got 10% slower, so it was reverted.
 - **Result.** In level flight, multiply time is down 43% (110k → 63k T on final) and views are 7–9% faster (runway 6.17 → 6.61, final 5.78 → 6.27, Turtle approach 8.68 → 9.48). Banked or pitched views are unchanged, because big coordinates still take the 7-step path. Averages: detail 2 6.54 → 6.73 fps, detail 3 4.51 → 4.62.
 - **What's left.** Large-coordinate multiplies are ~17% of a banked frame over the bay. Two further ideas: keep coastline and island vertices as small offsets from nearby local origins (more objects, but every multiply takes the fast path), or table multiply using a 1MB bank window.
+
+## Scaled axis values (tried after the multiply speed-up, reverted)
+- **Idea:** store big axis values as v / 2^s in 7 bits, so every object multiply becomes one exact 8×8 table product shifted right (7 − s). Coastline points would be rounded to 16 m; runway ends divide exactly.
+- **Result:** slower. The scaled path cost ~535 T a multiply (table product ~217 T, plus shifting, loop bookkeeping and memory adds) against ~400 T for shift-and-add. It also loses the multiply-by-zero shortcut. The views were 0–5% slower, so it was reverted. Even fully unrolled, the best case was about 2% of a frame. On this Z80 the multiply is near its floor; the bigger levers are fewer objects in view and fewer vertices.
+
+## Stage 4 notes
+- **Mission data** lives in the area file (version 4 header adds `mistab`, `nmis`). Each mission is a 320-byte record:
+  - an 18-character title and a 7 × 30 briefing;
+  - a start: on a runway, on final, or in the air at x, z, height and heading;
+  - a par time;
+  - up to 8 goals, each either a gate (x, z, axis, lowest and highest metres) or a landing (runway number).
+- **Coral Coast has five missions**, using the VZ Flight ideas:
+  - **First Solo:** a circuit of four gates, then land on 36.
+  - **Lighthouse Run:** six low gates up the beach and round the headland.
+  - **Island Hopper:** land at Turtle, then Hope.
+  - **Supply Ship:** a low pass along the ship's deck, then land.
+  - **Reef Patrol:** four gates along the breakers, then land at Hope.
+- **Screens:**
+  - The menu, briefing and debrief are full-screen text: page A shows all 16 rows as characters. Going back to flying re-runs the video set-up.
+  - The menu lists each mission's best time, best rating and times flown, the logbook's landing count and the best grade.
+  - The briefing shows the par time and your best.
+  - The debrief shows flying time, penalties, total, par, the last landing grade, the rating, any new best, and whether the logbook saved.
+- **In flight:**
+  - The title line shows the mission clock, which stops while you're crashed.
+  - For a gate, the approach line becomes a guide line: gate number, distance, which way to turn (AHEAD, < LEFT, << LEFT, <<< LEFT, TURN ROUND, and the same to the right), the height band in feet, and CLIMB, LOWER or OK.
+  - The next gate is drawn as a 60 m square frame between its heights.
+  - For a landing, the normal approach line and PAPI show, and the message line says where to land.
+- **Gate check:** each frame, the aircraft's distance along the gate's axis is compared with the last frame's. A sign change within 300 m is a crossing.
+  - Inside ±33 m and the height band, it counts.
+  - Otherwise it's "MISSED – WIDE / UNDER / OVER THE GATE. COME ROUND AND TRY AGAIN", with no penalty.
+- **Forgiving, from VZ Flight:**
+  - A crash, or R, puts you back at the last gate passed (at mid band, heading the way you went through) or on the runway you last landed on, with 15 seconds added. F and N are off during a mission; M returns to the menu.
+  - Landing anywhere other than the goal runway just counts as a landing.
+- **Rating:**
+  - ACE AVIATOR at or under par, CAPTAIN within 25%, FIRST OFFICER within ~56%, otherwise STUDENT PILOT.
+  - A mission that ends with a landing graded D or E drops one rating.
+- **Logbook:** `CORAL.LOG` (the area's name with .LOG), one 128-byte record holding the landings count, the best grade and, for each mission, the best time, best rating and times flown.
+  - It's read at start-up through CP/M, before the takeover, and written after each mission (delete, make, write, close).
+  - Interrupts are enabled around those disk calls, then our video latch, colour port and port 0Bh are put back. This is the one untested-on-hardware risk in this stage. If the save fails, the debrief says so and nothing else is affected.
+- **Memory:** the program is now 21K, so the area buffer moved to 5800h–7A00h (8.7K). CORAL.LOC is 3.6K with its missions.
+- **Testing:**
+  - The build also writes `SCROSS_T.COM`, which skips the menu, for the emulator scripts.
+  - `tests/mission.py N OUTDIR` drives the real menus by keypress and saves each text screen.
+    - It flies gates with a steering autopilot.
+    - For landing goals it places the aircraft on final for the goal runway and lands with the approach autopilot. It can't navigate across the sea, so this tests the mission logic, not the route.
+  - The emulator's CP/M now writes files (delete, make, write, close) for the logbook.
 

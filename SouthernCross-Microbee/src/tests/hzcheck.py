@@ -7,7 +7,7 @@ S = R.syms
 def w16(m, n, v): m.ram[S[n]:S[n]+2] = (v & 0xffff).to_bytes(2, 'little')
 def check(state, save=None):
     m = Bee(); cpu = Z80(m)
-    d = open('build/SCROSS.COM','rb').read(); m.ram[0x100:0x100+len(d)] = d
+    d = open('build/SCROSS_T.COM','rb').read(); m.ram[0x100:0x100+len(d)] = d
     flips = 0
     while True:
         if cpu.pc == S['flip']:

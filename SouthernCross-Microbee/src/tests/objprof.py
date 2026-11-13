@@ -15,7 +15,7 @@ for l in open('build/%s.lst' % loc):
     m = re.match(r'^(o\d+)\s+([0-9A-F]{4})$', l.strip())
     if m: labs[int(m.group(2), 16)] = m.group(1)
 m = Bee(); cpu = Z80(m)
-d = open('build/SCROSS.COM','rb').read(); m.ram[0x100:0x100+len(d)] = d
+d = open('build/SCROSS_T.COM','rb').read(); m.ram[0x100:0x100+len(d)] = d
 w16 = lambda n, v: m.ram.__setitem__(slice(S[n], S[n]+2), (v & 0xffff).to_bytes(2, 'little'))
 ents = {S['dobj']: 'dobj', S['dser']: 'dser', S['ggrid']: 'grid', S['horizon']: 'horizon', S['panel']: 'panel', S['dlcull']: 'cull'}
 fr = 0; stack = []; rows = []

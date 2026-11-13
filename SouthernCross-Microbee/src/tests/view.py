@@ -6,7 +6,7 @@ from z80emu import Bee, Z80
 S = R.syms
 def view(st, out, det=3):
     m = Bee(); cpu = Z80(m)
-    d = open('build/SCROSS.COM','rb').read(); m.ram[0x100:0x100+len(d)] = d
+    d = open('build/SCROSS_T.COM','rb').read(); m.ram[0x100:0x100+len(d)] = d
     w16 = lambda n, v: m.ram.__setitem__(slice(S[n], S[n]+2), (v & 0xffff).to_bytes(2, 'little'))
     fr = 0; ft = []
     while fr < 4:

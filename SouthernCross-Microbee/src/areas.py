@@ -3,10 +3,19 @@
 
 World units: metres, x east, z north, y up.  Object vertices are in half metres.
 Layout at LOCBUF:
-  db 'S','C',3                    magic + version
+  db 'S','C',4                    magic + version
   db name (16 chars)
   dw objtab, rwytab
   db number of runways
+  dw mistab
+  db number of missions
+mistab, 320 bytes a mission:
+  db title (18), briefing (7 lines x 30)
+  db start runway, start mode (0 on the runway, 1 on final, 2 in the air)
+  dw x, z, altitude (mode 2), db heading (0 north, 64 east)
+  dw par time (seconds), db number of goals (up to 8)
+  goals, 10 bytes each: db type (1 gate, 2 land), axis (gate: 0 fly north/south
+  through it, 1 east/west) or runway number (land), dw x, z, lowest, highest (m)
 objtab, 10 bytes an entry, 0 ends:
   db type (1 lattice, 2 series, +128 lies flat on the ground), min detail, cull (x256 m), radius (x16 m)
   dw centre x, centre z (m), data pointer
@@ -22,7 +31,16 @@ class Locale:
         self.name = name
         self.objs = []      # (type, mindet, cull, rad, cx, cz, label, asm lines)
         self.rwys = []
+        self.missions = []
         self.n = 0
+
+    def mission(self, title, brief, start, par, goals):
+        """start: ('rwy', name) | ('final', name) | ('air', x, z, alt, hdg).
+        goals: ('gate', x, z, axis, lo, hi) | ('land', runway name)"""
+        assert len(title) <= 18, title
+        assert len(brief) <= 7 and all(len(l) <= 30 for l in brief), brief
+        assert 1 <= len(goals) <= 8
+        self.missions.append((title, brief, start, par, goals))
 
     def _label(self):
         self.n += 1
@@ -118,10 +136,12 @@ class Locale:
 
     def asm(self, base):
         out = ['        org %d' % base,
-               "        db 'S','C',3",
+               "        db 'S','C',4",
                '        db "%-16s"' % self.name[:16],
                '        dw objtab,rwytab',
                '        db %d' % len(self.rwys),
+               '        dw mistab',
+               '        db %d' % len(self.missions),
                'objtab:']
         for typ, det, cull, rad, cx, cz, lab, _ in self.objs:
             out.append('        db %d,%d,%d,%d' % (typ, det, cull, min(255, int(rad / 16) + 1)))
@@ -136,6 +156,32 @@ class Locale:
             out.append('        db %d' % hw)
             out.append('        dw %d' % aim)
             out.append('        db "%-10s"' % name)
+        names = [r[6] for r in self.rwys]
+        out.append('mistab:')
+        for title, brief, start, par, goals in self.missions:
+            out.append('        db "%-18s"' % title)
+            for k in range(7):
+                out.append('        db "%-30s"' % (brief[k] if k < len(brief) else ''))
+            if start[0] == 'air':
+                out.append('        db 0,2')
+                out.append('        dw %d,%d,%d' % start[1:4])
+                out.append('        db %d' % start[4])
+            else:
+                out.append('        db %d,%d' % (names.index(start[1]), 0 if start[0] == 'rwy' else 1))
+                out.append('        dw 0,0,0')
+                out.append('        db 0')
+            out.append('        dw %d' % par)
+            out.append('        db %d' % len(goals))
+            for g in goals + [None] * (8 - len(goals)):
+                if g is None:
+                    out.append('        ds 10')
+                elif g[0] == 'gate':
+                    _, x, z, axis, lo, hi = g
+                    out.append('        db 1,%d' % axis)
+                    out.append('        dw %d,%d,%d,%d' % (x, z, lo, hi))
+                else:
+                    out.append('        db 2,%d' % names.index(g[1]))
+                    out.append('        dw 0,0,0,0')
         for o in self.objs:
             out += o[7]
         return '\n'.join(out) + '\n'
@@ -190,6 +236,60 @@ def coral():
     # the reef: broken line of breakers offshore
     for z in (-2500, 0, 2500, 5000):
         loc.series((3900, 0, z), (60, 0, 1000), (0, 0, 300), 3, det=3, cull=16)
+    # ---- missions (gates are 60 m wide; heights are the band to fly through, metres)
+    loc.mission('FIRST SOLO', [
+        'YOUR FIRST SOLO AT CORAL BAY!',
+        'TAKE OFF ON RUNWAY 36 AND FLY',
+        'THE CIRCUIT GATES: UPWIND,',
+        'CROSSWIND, DOWNWIND OVER THE',
+        'BEACH AND BASE, THEN LAND',
+        'BACK ON 36. T FULL POWER, A',
+        'LIFTS THE NOSE AT 52 KT.'],
+        ('rwy', 'CORAL BAY'), 330,
+        [('gate', 0, 2400, 0, 100, 330), ('gate', 1000, 3300, 1, 120, 350), ('gate', 1700, 1200, 0, 120, 350),
+         ('gate', 1000, -1300, 1, 80, 300), ('land', 'CORAL BAY')])
+    loc.mission('LIGHTHOUSE RUN', [
+        'A LOW-LEVEL RUN UP THE COAST.',
+        'FOLLOW THE BEACH NORTH, KEEP',
+        'BETWEEN 40 AND 140 METRES,',
+        'ROUND THE HEADLAND PAST THE',
+        'LIGHTHOUSE AND ON TO THE LAST',
+        'GATE OFF THE NORTH BEACH.',
+        'NO LANDING NEEDED.'],
+        ('air', 1250, -3000, 90, 0), 240,
+        [('gate', 1450, -1300, 0, 40, 140), ('gate', 1750, 300, 0, 40, 140), ('gate', 1700, 1700, 0, 40, 140),
+         ('gate', 2150, 2450, 0, 40, 140), ('gate', 2850, 3050, 0, 40, 140), ('gate', 2500, 4100, 0, 40, 140)])
+    loc.mission('ISLAND HOPPER', [
+        'SUPPLIES FOR THE ISLANDS.',
+        'FLY OUT TO TURTLE ISLAND AND',
+        'LAND ON ITS 500 M STRIP, THEN',
+        'TAKE OFF AGAIN AND LAND AT',
+        'HOPE ISLAND, 5 KM NORTH-WEST.',
+        'SHORT STRIPS: COME IN SLOW,',
+        'AROUND 50 KNOTS.'],
+        ('rwy', 'CORAL BAY'), 600,
+        [('land', 'TURTLE IS'), ('land', 'HOPE IS')])
+    loc.mission('SUPPLY SHIP', [
+        'THE SUPPLY SHIP AT ANCHOR',
+        'WANTS A LOOK AT THE NEW MAIL',
+        'PLANE. FLY A LOW PASS ALONG',
+        'HER DECK, SOUTH TO NORTH,',
+        'BETWEEN 20 AND 80 METRES,',
+        'THEN LAND BACK AT CORAL BAY.',
+        ''],
+        ('rwy', 'CORAL BAY'), 330,
+        [('gate', 3600, 1200, 0, 20, 80), ('land', 'CORAL BAY')])
+    loc.mission('REEF PATROL', [
+        'PATROL THE OUTER REEF FOR',
+        'BOATS IN TROUBLE. FOUR GATES',
+        'ALONG THE BREAKERS, 60 TO 260',
+        'METRES UP, THEN LAND ON THE',
+        'STRIP AT HOPE ISLAND TO',
+        'REPORT IN.',
+        ''],
+        ('air', 3900, -3600, 150, 0), 420,
+        [('gate', 3900, -1500, 0, 60, 260), ('gate', 3900, 500, 0, 60, 260), ('gate', 3900, 2500, 0, 60, 260),
+         ('gate', 3900, 4500, 0, 60, 260), ('land', 'HOPE IS')])
     return loc
 
 

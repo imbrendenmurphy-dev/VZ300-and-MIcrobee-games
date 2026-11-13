@@ -52,7 +52,7 @@ lldone: ld c,16                 ; close
         cp 'C'
         jr nz,llbad
         ld a,(LOCBUF+2)
-        cp 3
+        cp 4
         jr nz,llbad
         ld a,1
         jr llset
@@ -68,6 +68,10 @@ llset:  ld (locok),a
         ld (rwyp),hl
         ld a,(LOCBUF+23)
         ld (nrwy),a
+        ld hl,(LOCBUF+24)
+        ld (misp),hl
+        ld a,(LOCBUF+26)
+        ld (nmis),a
         ld hl,LOCBUF+3          ; area name into the title line
         ld de,paneltext+F_LOC-512
         ld bc,16

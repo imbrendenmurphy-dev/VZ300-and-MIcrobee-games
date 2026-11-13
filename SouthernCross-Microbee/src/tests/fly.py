@@ -8,7 +8,7 @@ S = R.syms
 K = {'N':14,'Q':17,'A':1,'O':15,'P':16,'T':20,'G':7,'R':18,'F':6,' ':55}
 mode = sys.argv[1]; out = sys.argv[2]; os.makedirs(out, exist_ok=True)
 m = Bee(); cpu = Z80(m)
-d = open('build/SCROSS.COM','rb').read(); m.ram[0x100:0x100+len(d)] = d
+d = open('build/SCROSS_T.COM','rb').read(); m.ram[0x100:0x100+len(d)] = d
 def r8(n, o=0): return m.ram[S[n]+o]
 def s8(n): v = r8(n); return v - 256 if v > 127 else v
 def r16(n): v = m.ram[S[n]] | m.ram[S[n]+1] << 8; return v - 65536 if v > 32767 else v

@@ -1,5 +1,5 @@
 ; =====================================================================
-;  SOUTHERN CROSS  -  Stage 3: area files from disk, Coral Coast
+;  SOUTHERN CROSS  -  Stage 4: missions, briefings, debriefs, logbook
 ;  Microbee Premium Plus (32K PCG), runs from the CP/M DOS prompt
 ;  VIBED BY BPM 2026
 ; ---------------------------------------------------------------------
@@ -39,7 +39,7 @@ K_P     equ 16
 K_Q     equ 17
 K_R     equ 18
 K_N     equ 14
-LOCBUF  equ 5000h
+LOCBUF  equ 5800h
 LOCEND  equ 7A00h
 K_T     equ 20
 K_SPC   equ 55
@@ -48,24 +48,23 @@ K_SPC   equ 55
 start:
         ld sp,STKTOP
         call loadloc            ; through CP/M, before taking over
+        call logload
         di
         call vinit
         call drawstatic
         ld a,'Z'
         ld (bestg),a
         call resetrwy
-        ld a,(locok)
-        or a
-        ld hl,m_noloc
-        call z,setmsg
         ld a,6
         ld (ticks),a
         ld a,2                  ; scenery on, ground grid off (D for more)
         ld (detail),a
+        call menu               ; mission menu first
 mloop:
         call keys
         call vbpoll
         call physics
+        call mission
         call vbpoll
         call mkmatrix
         call clrback
@@ -699,7 +698,35 @@ k9:     ld a,K_N
         call z,nextfld
         jr k9c
 k9b:    ld (hl),0
-k9c:    ld a,K_R
+k9c:    ld a,K_M               ; M: back to the mission menu
+        call keytst
+        ld hl,mkey
+        jr z,k9m
+        ld a,(hl)
+        ld (hl),1
+        or a
+        jr nz,k9e
+        xor a
+        out (ROMLAT),a
+        pop hl                  ; (leave keys1 and keys)
+        call menu
+        ret
+k9m:    ld (hl),0
+k9e:    ld a,(mact)             ; in a mission R = back to the last gate,
+        or a                    ; F and N are off
+        jr z,k9f
+        ld a,K_R
+        call keytst
+        ret z
+        ld a,(rkey)
+        or a
+        ret nz
+        ld a,1
+        ld (rkey),a
+        jp mrestart
+k9f:    xor a
+        ld (rkey),a
+        ld a,K_R
         call keytst
         call nz,resetrwy
         ld a,K_F
@@ -777,6 +804,9 @@ physics:
         ret
 phrs:   xor a
         ld (crtimer),a
+        ld a,(mact)
+        or a
+        jp nz,mrestart
         call resetfin
         ld hl,m_again
         jp setmsg
@@ -1936,11 +1966,13 @@ render:
         jr c,rn0
         call ggrid
 rn0:    call drawloc
+        call drawgate
         jp reticle
 
         include_ggrid
         include_stage2
         include_stage3
+        include_stage4
 ; Series: sx,sy,sz, tx,ty,tz (step), lx,ly,lz (segment), n
 ; Draws n segments: P(k) -> P(k)+L,  P(k) = S + k*T
 dser:
@@ -4771,8 +4803,30 @@ pn3:    ld a,(detail)
         ld de,F_DET
         call fadr
         ld (de),a
-        call pnappr
-        ld hl,msgbuf
+        ld a,(mact)             ; mission clock in the title line
+        or a
+        ld hl,s_notime
+        ld de,F_TIM
+        jr z,pnt1
+        ld hl,(mts)
+        call fadr
+        call ttime
+        jr pnt2
+pnt1:   call pstr
+pnt2:   ld a,(mact)             ; next gate: guide line instead of approach
+        or a
+        jr z,pna
+        ld a,(mdone)
+        or a
+        jr nz,pna
+        ld hl,(gptr)
+        ld a,(hl)
+        cp 1
+        jr nz,pna
+        call pngate
+        jr pnb
+pna:    call pnappr
+pnb:    ld hl,msgbuf
         ld de,F_MSG
         call fadr
         ld bc,62
@@ -4784,6 +4838,7 @@ s_air:   db "AIRBORNE    ",0
 s_stall: db "** STALL ** ",0
 s_crash: db "CRASHED     ",0
 s_nofps: db "--",0
+s_notime: db "     ",0
 
 ; =====================================================================
 ;  TIMING  (frames per second from the MC146818 clock)

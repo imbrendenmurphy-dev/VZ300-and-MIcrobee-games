@@ -5,14 +5,14 @@ here = os.path.dirname(os.path.abspath(__file__))
 
 # ---- panel layout (rows 8-15, 64 columns) ----
 rows = [
-    " SOUTHERN CROSS  STAGE 3  {LOC:16}  VIBED BY BPM 2026",
+    " SOUTHERN CROSS  {LOC:16}  {TIM:5}  VIBED BY BPM 2026",
     "-" * 64,
     " AIRSPEED {IAS:3} KT    ALTITUDE {ALT:5} FT    HEADING {HDG:3}",
     " THROTTLE {THR:3} %     CLIMB  {VS:6} FT/M   PITCH  {PIT:4}",
     " STATUS   {STAT:12}  GROUND  {GS:3} KT      BANK   {BNK:4}  {FPS:2} FPS",
     " {RWN:12} {RNG:5} M TO AIM  PAPI {PAPI:4} {GLD:9} {LIN:13}",
     " {MSG:62}",
-    " Q/A NOSE O/P BANK T/G POWER SPC LEVEL R RWY F FINAL N NEXT D{DET:1}",
+    " QA NOSE OP BANK TG POWER SPC LEVEL R RWY F FIN N NEXT M MENU D{DET:1}",
 ]
 import re
 text = []
@@ -34,7 +34,7 @@ assert len(paneltext) == 512
 
 # ---- locale files (assembled to load at LOCBUF), HOME embedded as the fallback
 import areas as LC
-LOCBUF = 0x5000; LOCEND = 0x7A00
+LOCBUF = 0x5800; LOCEND = 0x7A00
 os.makedirs(os.path.join(here, 'build'), exist_ok=True)
 locbin = {}
 for key, fn in LC.LOCALES.items():
@@ -83,7 +83,10 @@ vars_ = [
  ('gH',2),('gd',2),('gcolh',2),('gfcnt',1),('gnh',2),('gnd',2),('ga',1),('gb',1),('gpp',2),('gqp',2),('gnp',2),('gci',1),
  ('gN',6),('gvok',1),('gvx',2),('gvy',2),('gvf',1),('gvu',1),('gcl0',1),('gcl1',1),('gq',2),('hzfl',1),('locok',1),('objp',2),('rwyp',2),('nrwy',1),('otype',1),('ocull',1),('orad',1),('odx',2),('odz',2),('optr',2),('orm',2),('ofw',2),
  ('rwp',2),('rdx',2),('rdz',2),('rax',1),('rlen',2),('rhw',1),('raim',2),('ral',2),('rac',2),('rrh',1),('rrev',1),('selok',1),('srng',2),('rtmp',2),('sac',2),('selp',2),('srev',1),('sax',1),
- ('rpm',1),('curfld',1),('nkey',1),('tdon',1),('tdrh',1),('tdd',2),('tq2',2),('tq3',2),('tq4',2),('rollx',2),('rdy',1),('mlhi',1),('axskip',1),('lodfar',1),('lskip',2),('rdy2',1),('rqs',2),('rrs',1),('rr',1),('rq',2),('rsgn',1),('ry',1),('rk',1),('tdsink',2),('bounces',1),('rollz',2),('crtimer',1),('score',1),('worst',1),('wreason',2),('bestg',1),('lastg',1),('crreason',2),('tdoff',2),('tddist',2),('ltmp',1),('rng',2),('whites',1),('msgbuf',64),('gT',2),('gg0',2),('gg1',2),('gmp',2),('gfr',1),('hzy0',2),('hzy1',2),
+ ('rpm',1),('curfld',1),('nkey',1),('tdon',1),('tdrh',1),('tdd',2),('tq2',2),('tq3',2),('tq4',2),('rollx',2),('rdy',1),('gstat',2),('autoff',1),('misp',2),('nmis',1),('mact',1),('misno',1),('mptr',2),('mgi',1),('gptr',2),('mts',2),('mtf',1),('mpen',2),
+ ('mprevd',2),('mprevok',1),('mland',1),('mdone',1),('mdtim',1),('ckgate',2),('cklnd',1),('ckhdg',1),('mwasl',1),('gax',1),
+ ('gdx',2),('gdz',2),('glop',2),('glat',2),('gfw',2),('grt',2),('glo2',2),('ghi2',2),('gobj',64),('gbuf',64),('mtot',2),('mpar',2),
+ ('mrat',1),('newbest',1),('lsok',1),('ttsec',1),('mni',1),('mnrow',2),('mntmp',2),('mkey',1),('rkey',1),('logfcb',36),('logb',128),('mlhi',1),('axskip',1),('lodfar',1),('lskip',2),('rdy2',1),('rqs',2),('rrs',1),('rr',1),('rq',2),('rsgn',1),('ry',1),('rk',1),('tdsink',2),('bounces',1),('rollz',2),('crtimer',1),('score',1),('worst',1),('wreason',2),('bestg',1),('lastg',1),('crreason',2),('tdoff',2),('tddist',2),('ltmp',1),('rng',2),('whites',1),('msgbuf',64),('gT',2),('gg0',2),('gg1',2),('gmp',2),('gfr',1),('hzy0',2),('hzy1',2),
  ('ldx',2),('lady',1),('curbank',1),('lmask',1),('xout',1),('numbuf',6),
 ]
 gen.append('homeloc:')
@@ -105,7 +108,7 @@ gen.append('cstk       ds 64*8')
 gen.append('cstkend    equ $')
 gen.append('progend    equ $')
 
-src = open(os.path.join(here, 'scross.asm')).read().replace('        include_ggrid\n', open(os.path.join(here, 'ggrid.inc')).read()).replace('        include_stage2\n', open(os.path.join(here, 'stage2.inc')).read()).replace('        include_stage3\n', open(os.path.join(here, 'stage3.inc')).read()) + '\n' + '\n'.join(gen) + '\n'
+src = open(os.path.join(here, 'scross.asm')).read().replace('        include_ggrid\n', open(os.path.join(here, 'ggrid.inc')).read()).replace('        include_stage2\n', open(os.path.join(here, 'stage2.inc')).read()).replace('        include_stage3\n', open(os.path.join(here, 'stage3.inc')).read()).replace('        include_stage4\n', open(os.path.join(here, 'stage4.inc')).read()) + '\n' + '\n'.join(gen) + '\n'
 full = os.path.join(here, 'build', 'scross_full.asm')
 os.makedirs(os.path.join(here, 'build'), exist_ok=True)
 open(full, 'w').write(src)
@@ -119,6 +122,12 @@ pe = [l for l in open(os.path.join(here, 'build', 'scross.lst')) if l.split()[:1
 pe = int(pe[0].split()[1], 16)
 assert pe <= LOCBUF, 'program (%04X) runs into the locale buffer' % pe
 print('program ends %04X, locale buffer %04X-%04X' % (pe, LOCBUF, LOCEND))
+# test copy for the emulator scripts: skips the menu (free flight at once)
+af = [l for l in open(os.path.join(here, 'build', 'scross.lst')) if l.split()[:1] == ['autoff']]
+af = int(af[0].split()[1], 16)
+com = bytearray(open(os.path.join(here, 'build', 'SCROSS.COM'), 'rb').read())
+com[af - 0x100] = 1
+open(os.path.join(here, 'build', 'SCROSS_T.COM'), 'wb').write(com)
 
 # ---- bootable DS80 disk image (system tracks + CCP.SYS from the earlier Premium disks)
 sys.path.insert(0, os.path.join(here, 'tools'))

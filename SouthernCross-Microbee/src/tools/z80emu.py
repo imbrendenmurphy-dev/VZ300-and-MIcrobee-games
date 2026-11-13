@@ -23,7 +23,20 @@ class CPM:
             fn = os.path.join(FILEDIR, self.name(m, de))
             if os.path.exists(fn): self.open[de] = [open(fn, 'rb').read(), 0]; a = 0
             else: a = 0xFF
-        elif c == 16: self.open.pop(de, None)
+        elif c == 16:
+            f = self.open.pop(de, None)
+            if f and len(f) > 2:            # a file we wrote: save it
+                open(f[2], 'wb').write(bytes(f[0]))
+        elif c == 19:
+            fn = os.path.join(FILEDIR, self.name(m, de))
+            a = 0 if os.path.exists(fn) else 0xFF
+            if a == 0: os.remove(fn)
+        elif c == 22:
+            self.open[de] = [bytearray(), 0, os.path.join(FILEDIR, self.name(m, de))]
+        elif c == 21:
+            f = self.open.get(de)
+            if not f or len(f) < 3: a = 0xFF
+            else: f[0] += bytes(m.ram[self.dma:self.dma + 128])
         elif c == 20:
             f = self.open.get(de)
             if not f or f[1] >= len(f[0]): a = 1

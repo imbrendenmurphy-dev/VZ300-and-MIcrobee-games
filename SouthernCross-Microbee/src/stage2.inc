@@ -214,6 +214,12 @@ ldgr:   ; grade
         inc b
 ldg:    ld a,b
         ld (lastg),a
+        ld a,1                  ; for the mission and the logbook
+        ld (mland),a
+        ld hl,(logb+3)
+        inc hl
+        ld (logb+3),hl
+        ld a,(lastg)
         ld hl,bestg
         cp (hl)
         jr nc,ldg1
@@ -540,7 +546,7 @@ m_lift:   db "LIFT-OFF AT",0
 m_after:  db " KT AFTER",0
 m_climb:  db " M.  CLIMB AWAY AT 60-70 KT.",0
 m_crash:  db "CRASHED: ",0
-m_crash2: db ". BACK ON FINAL IN 3 SECONDS.",0
+m_crash2: db ". BACK IN THE AIR IN 3 SECONDS.",0
 m_bnc:    db "BOUNCED! HOLD THE NOSE UP A LITTLE AND LET IT SETTLE.",0
 m_rwy:    db ". T FOR FULL POWER, A TO LIFT THE NOSE AT 52 KT",0
 m_fin:    db ". KEEP THE PAPI AT WWRR, FLARE GENTLY.",0
