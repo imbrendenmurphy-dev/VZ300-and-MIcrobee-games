@@ -52,10 +52,10 @@ start:  di
 ; ---------------------------------------------------------------- variables (not in file)
         align 256
 bssstart:
+buf:    ds 1536                 ; must stay 32-byte aligned (row fills use the address)
 vkz:    ds 1
 px16:   ds 2
 bldsp:  ds 2
-buf:    ds 1536
 vtab:   ds 400
 wpa:    ds 10
 wpb:    ds 10
