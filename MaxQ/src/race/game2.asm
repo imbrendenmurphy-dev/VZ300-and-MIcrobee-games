@@ -688,9 +688,10 @@ rv_extra:
         or a
         jr z,.m
         dec (ix+R_AIR)
-.m:     ld a,(ix+R_F)           ; only when entering a section
-        cp (ix+R_SPD)
-        ret nc
+.m:     ld a,(ix+R_NEWS)        ; only when entering a section
+        or a
+        ret z
+        ld (ix+R_NEWS),0
         ld a,(ix+R_I)
         cp 228                  ; ramp
         jr nz,.mn

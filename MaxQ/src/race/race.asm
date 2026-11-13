@@ -394,9 +394,28 @@ physics:
         dec b
 .sp3:   ld a,b
         ld (SPEED),a
-        ; advance along the track
+        ; speed stripes flow at 1.5x the track's own speed, capped so that they move
+        ; less than half a band per frame (above that, at ~10 fps, they would seem to stall)
+        ld a,b
+        srl a
+        srl a
+        srl a
+        ld c,a
+        srl a
+        add a,c                 ; speed * 3/16
+        cp 23
+        jr c,.ph
+        ld a,22
+.ph:    ld c,a
+        ld a,(PHASE)
+        add a,c
+        ld (PHASE),a
+        ; ... while the track itself unrolls at half speed (gentler curves and hills)
+        ld a,b
+        srl a
+        ld c,a
         ld a,(CAM_F)
-        add a,b
+        add a,c
         ld (CAM_F),a
         jr nc,.nadv
         ld hl,(CAM_I)
@@ -903,7 +922,7 @@ text:   ; HL -> zero-terminated text, DE -> buffer address (one byte per glyph c
         inc hl
         jr .ch
 
-s_hud1: DB "SPEED 000  LAP 1/3  POS 1"
+s_hud1: DB "SPEED 000  LAP 1/2  POS 1"
 s_speed: DB "SPEED "
 
 text_t: ; transparent text: only the glyph pixels are drawn, in HUDFG colour
@@ -1103,6 +1122,8 @@ init_vars:
         ld a,16
         ld (FCNT),a
         ld (TOPCHG),a
+        ld a,$08                ; latch base: mode(1), colour set 0
+        ld (LATBASE),a
         ld a,255
         ld (CURMODE),a
         call make_skyline

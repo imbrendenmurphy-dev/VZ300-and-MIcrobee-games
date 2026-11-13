@@ -6,7 +6,7 @@ GS_ATTRACT EQU 0
 GS_COUNT   EQU 1
 GS_RACE    EQU 2
 GS_FINISH  EQU 3
-NLAPS      EQU 3
+NLAPS      EQU 2
 VNORM      EQU 110
 VBOOST     EQU 150
 VSTALL     EQU 40
@@ -37,6 +37,7 @@ R_FR   EQU 14
 R_TGT  EQU 15
 R_PT   EQU 16   ; camera-space point x, y, z (6)
 R_VIEW EQU 22   ; 0..4 hard left .. hard right
+R_NEWS EQU 25   ; set when the rival entered a new section this field
 
 ; ---------------------------------------------------------------------
 ; RACE_RESET: grid positions, clock, shield
@@ -142,6 +143,8 @@ start_race:
         jp sfx
 
 demo_reset:
+        ld a,$08                ; day colours (the latch also holds mode(1): never write 0 here)
+        ld (LATBASE),a
         call race_reset
         ld a,GS_ATTRACT
         ld (GSTATE),a
@@ -554,9 +557,11 @@ rv_one: call rv_dist            ; rubber band: ease off far ahead, push on far b
         jr .sp
 .up:    inc a
 .sp:    ld (ix+R_SPD),a
-        add a,(ix+R_F)          ; move along the track
+        srl a                   ; move along the track at half speed, like us
+        add a,(ix+R_F)
         ld (ix+R_F),a
         jr nc,.lat
+        ld (ix+R_NEWS),1
         inc (ix+R_I)
         ld a,(ix+R_I)           ; boost pads work for rivals too
         and 126
