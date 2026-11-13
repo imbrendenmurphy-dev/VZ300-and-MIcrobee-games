@@ -6,7 +6,7 @@ Original code, graphics and music. Nothing from the original game is included.
 
 ![showcase](showcase/showcase.gif)
 
-Release blurb and specs: [BLURB.md](BLURB.md). Screenshots: [gameplay](screenshots/gameplay/) · [screens](screenshots/info/)
+Release blurb and specs: [BLURB.md](BLURB.md). Screenshots: [gameplay](screenshots/gameplay/) · [attract sequence](screenshots/attract/) · [all screens](screenshots/info/)
 
 ![title](screenshots/HAMSAM2_title.gif)
 

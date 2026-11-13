@@ -105,7 +105,7 @@ and pick from the menu.
 | Sound: music + effects / effects only / off | S |
 | Unlock Classic 1984 | C on the title or menu |
 
-More pictures: [gameplay](screenshots/gameplay/) · [screens](screenshots/info/)
+More pictures: [gameplay](screenshots/gameplay/) · [attract sequence](screenshots/attract/) · [all screens](screenshots/info/)
 
 *Hamburger Sam II is a fan-made sequel to the 1984 VZ game Hamburger Sam. It contains none of the
 original's code or graphics.*

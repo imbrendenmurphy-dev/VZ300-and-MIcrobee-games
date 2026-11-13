@@ -10,8 +10,9 @@ VZ = os.path.join(ROOT, 'release', 'HAMSAM2.VZ')
 TMP = os.path.join(ROOT, 'build', 'release_tmp')
 GAME = os.path.join(ROOT, 'screenshots', 'gameplay')
 INFO = os.path.join(ROOT, 'screenshots', 'info')
+ATT = os.path.join(ROOT, 'screenshots', 'attract')
 SHOW = os.path.join(ROOT, 'showcase')
-for d in (TMP, GAME, INFO, SHOW):
+for d in (TMP, GAME, INFO, ATT, SHOW):
     os.makedirs(d, exist_ok=True)
 sym = {l.split()[1]: int(l.split()[0], 16) for l in open(os.path.join(ROOT, 'build', 'hamsam2.sym'))}
 
@@ -78,6 +79,11 @@ run('go', 1300, keys="100 104 SPACE\n160 164 SPACE\n1000 1003 Q\n1010 1013 Q\n10
     pokes=[(300, 'lives', 1), (400, sym['score'] + 1, 0x50)], shots=(850, 1075))
 save('go', 850, INFO, 'info_11_game_over')
 save('go', 1075, INFO, 'info_12_name_entry')
+
+# ---- the attract sequence, in the order it plays ----
+for i, (n, f) in enumerate((('title', 400), ('how_to_cook', 1000), ('controls', 1300), ('meet_the_menu', 1650),
+                            ('goodies', 1950), ('demo', 3000), ('top_ten', 4100))):
+    save('att', f, ATT, 'attract_%02d_%s' % (i + 1, n))
 
 # ---- showcase GIF: title -> info backplane -> four kitchens -> Order Up! -> ending ----
 SZ = (408, 306)
