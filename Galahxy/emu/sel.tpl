@@ -1,0 +1,9 @@
+vz build/sd/GALAHXY.VZ
+bp 8C6E
+bplog build/bp.txt
+watch 61C0
+watch 61C3
+frames 200
+tap SPACE
+frames 40
+dump build/mem.bin

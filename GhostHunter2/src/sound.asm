@@ -241,16 +241,16 @@ SFX_POP    equ 11
 SFX_SPAWN  equ 12
 sfxtab:
         ; start, delta, len, mode, prio, pad
-        dw 1300,-120 : db 4,0,1,0,0       ; waka1 (falling)
-        dw 900,120   : db 4,0,1,0,0       ; waka2 (rising)
-        dw 400,40    : db 30,1,4,0,0      ; energiser
-        dw 500,110   : db 22,1,6,0,0      ; ghost eaten - rising warble sweep
-        dw 1800,60   : db 10,1,3,0,0      ; treasure
-        dw 700,90    : db 24,1,5,0,0      ; power-up collect
-        dw 2600,-100 : db 16,0,5,0,0      ; teleport
-        dw 3000,-150 : db 14,2,6,0,0      ; shield pop
-        dw 100,0     : db 25,2,7,0,0      ; thunder (noise)
-        dw 2200,0    : db 2,0,1,0,0       ; tick
-        dw 3600,-200 : db 16,1,5,0,0      ; freeze
-        dw 1500,-90  : db 8,0,2,0,0       ; pop / menu blip
-        dw 1000,200  : db 10,0,3,0,0      ; item spawn
+        dw 1300,-120 : db 4,0,1,0       ; waka1 (falling)
+        dw 900,120   : db 4,0,1,0       ; waka2 (rising)
+        dw 400,40    : db 30,1,4,0      ; energiser
+        dw 500,110   : db 22,1,6,0      ; ghost eaten - rising warble sweep
+        dw 1800,60   : db 10,1,3,0      ; treasure
+        dw 700,90    : db 24,1,5,0      ; power-up collect
+        dw 2600,-100 : db 16,0,5,0      ; teleport
+        dw 3000,-150 : db 14,2,6,0      ; shield pop
+        dw 100,0     : db 25,2,7,0      ; thunder (noise)
+        dw 2200,0    : db 2,0,1,0       ; tick
+        dw 3600,-200 : db 16,1,5,0      ; freeze
+        dw 1500,-90  : db 8,0,2,0       ; pop / menu blip
+        dw 1000,200  : db 10,0,3,0      ; item spawn

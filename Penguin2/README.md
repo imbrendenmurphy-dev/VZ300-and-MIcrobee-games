@@ -11,11 +11,15 @@ Release blurb with tech specs: [BLURB.md](BLURB.md)
 
 ![gameplay](screenshots/PENGUIN2_gameplay.gif)
 
-![screens](screenshots/PENGUIN2_screens.png)
+![gameplay screens](screenshots/PENGUIN2_gameplay_sheet.png)
+
+![attract screens](screenshots/PENGUIN2_attract_sheet.png)
+
+Individual screens: `screenshots/gameplay/` and `screenshots/attract/`.
 
 ## Play it
 
-Copy `release/PENGUIN2.VZ` to the SD card and load it from the BennVenn SD loader. It's a type F1 binary that loads at $8000 (to $CF7F) and runs from $8000. It needs the **BennVenn 128K** RAM expansion (RAM up to $FFFF).
+Copy `release/PENGUIN2.VZ` to the SD card (or grab `release/PENGUIN2_v1.1.zip`: the game, a text readme, the showcase GIF and the gameplay and attract screenshots) and load it from the BennVenn SD loader. It's a type F1 binary that loads at $8000 (to $CF7F) and runs from $8000. It needs the **BennVenn 128K** RAM expansion (RAM up to $FFFF).
 
 | Action | Keyboard | Joystick |
 |---|---|---|
@@ -143,3 +147,7 @@ In a 27,000-frame soak of the whole game, drawing finished inside vblank on more
 - joystick feel
 
 The loading method and memory use match builds that already work on your VZ300 (Ghost Hunter 2, Xevious v1.2).
+
+## Sound-effect fix (8 November 2026)
+
+The sound-effect table had 9 bytes per entry, but the code that plays an effect looks entries up 8 bytes apart. So every effect after the first one played the wrong values, and some came out as long, chirpy, lingering sweeps. The table now has 8-byte entries, so every effect plays as designed. Every effect plays at its original length, including the warbly bonus and power-up sounds. Nothing else changed.

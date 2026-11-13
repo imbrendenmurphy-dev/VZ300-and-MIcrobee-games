@@ -60,3 +60,7 @@ Copy `release/GHOST3.VZ` to the SD card and load it from the BennVenn menu. It l
 |---|---|---|
 | ![](screenshots/map_CRYPT.png) | ![](screenshots/map_HALLS.png) | ![](screenshots/map_GRAVEYARD.png) |
 | ![](screenshots/map_CATACOMBS.png) | ![](screenshots/map_BELFRY.png) | ![](screenshots/map_MANOR.png) |
+
+## Sound-effect fix (8 November 2026)
+
+The sound-effect table had 9 bytes per entry, but the code that plays an effect looks entries up 8 bytes apart. So every effect after the first one played the wrong values, and some came out as long, chirpy, lingering sweeps. The table now has 8-byte entries, so every effect plays as designed. Every effect plays at its original length, including the warbly bonus and power-up sounds. Nothing else changed.

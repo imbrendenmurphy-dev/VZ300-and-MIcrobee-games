@@ -1,0 +1,22 @@
+mapper 1
+crash 1
+okpc 8000 AB84
+okpc B800 E3B6
+okpc E400 F7E8
+okpc 0038 003A
+okpc 7D7D 7D7F
+okpc 5F00 5F0A
+sd build/sd
+vz build/sd/GALAHXY.VZ
+tmark ABCA build/tmb.txt
+frames 1000
+poke AD8D 1
+poke AD66 60
+frames 4000
+poke AD66 60
+frames 4000
+poke AD66 60
+prof 1
+frames 2000
+profsave build/prof.txt
+screen build/shots/bp.ppm

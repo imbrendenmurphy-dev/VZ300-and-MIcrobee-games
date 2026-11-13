@@ -1,0 +1,5 @@
+src/build/*
+!src/build/.keep
+src/tools/lzbc
+src/tools/emu/*.so
+src/tools/__pycache__/

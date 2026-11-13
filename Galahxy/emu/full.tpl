@@ -1,0 +1,34 @@
+vz build/sd/GALAHXY.VZ
+watch $stg_phase
+watch $route
+watch $bonus_sec
+watch $gnome_n
+tmark $tmark build/tmf.txt
+frames 150
+tap SPACE
+frames 30
+tap SPACE
+frames 200
+poke $trainer 1
+down SPACE
+frames 3500
+down A
+frames 600
+up A
+frames 2000
+screen build/shots/f1.ppm
+frames 2000
+screen build/shots/f2.ppm
+frames 1500
+screen build/shots/f3.ppm
+frames 1000
+screen build/shots/f4.ppm
+frames 300
+screen build/shots/f5.ppm
+frames 300
+screen build/shots/f6.ppm
+frames 300
+screen build/shots/f7.ppm
+frames 300
+screen build/shots/f8.ppm
+dump build/mem.bin

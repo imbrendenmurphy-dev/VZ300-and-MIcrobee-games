@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+src/out/
+out/
+# your own test music stays off GitHub
+testfiles/

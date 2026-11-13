@@ -1,0 +1,18 @@
+mapper 1
+crash 1
+okpc 8000 A985
+okpc B800 E081
+okpc E400 F7A0
+okpc 0038 003A
+okpc 7D7D 7D7F
+okpc 5F00 5F0A
+sd build/sd
+vz build/sd/GALAHXY.VZ
+bp 8C6E
+bplog build/bp.txt
+watch 61C0
+watch 61C3
+frames 200
+tap SPACE
+frames 40
+dump build/mem.bin

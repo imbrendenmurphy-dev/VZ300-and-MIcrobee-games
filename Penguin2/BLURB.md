@@ -1,8 +1,8 @@
-# PENGUIN 2 – "Ice Age Rampage"
+# PENGUIN 2 – "Ice Age Rampage"  (v1.1)
 
 ![showcase](screenshots/PENGUIN2_showcase.gif)
 
-**The VZ200/VZ300 classic PENGUIN gets a sequel, decades later.**
+**Out now for the Dick Smith VZ300 / VZ200: the classic VZ game PENGUIN gets a sequel, decades later.**
 
 Your penguin is back on the ice, and the monsters have brought friends. As in the original, you push blocks of ice to send them sliding and crush anything in their path. A block that can't move crumbles. The sequel adds a lot more around that:
 
@@ -20,7 +20,21 @@ Your penguin is back on the ice, and the monsters have brought friends. As in th
   - a Hall of Fame with initials
   - all-new two-voice music and 16 sound effects
 
-ViBED by BPM 2026. Free, with full source on GitHub.
+**VIBED BY BPM 2026.** Free, with full source on GitHub.
+
+**v1.1 (8 Nov 2026):** fixed sound-effect table. Every effect now plays as designed: no more chirpy, lingering sweeps. The monster-hatch sound is now a short, clean "bloop".
+
+## Screenshots
+
+**Gameplay**
+
+![gameplay](screenshots/PENGUIN2_gameplay_sheet.png)
+
+**Attract sequence**
+
+![attract](screenshots/PENGUIN2_attract_sheet.png)
+
+The individual 512×384 screens are in `screenshots/gameplay/` (13 screens) and `screenshots/attract/` (11 screens).
 
 ## Tech specs
 
@@ -41,5 +55,7 @@ ViBED by BPM 2026. Free, with full source on GitHub.
 | Testing | Headless VZ300 emulator with a snow detector and vblank timing check, and an automated soak test through every stage |
 
 **Load:** copy `PENGUIN2.VZ` to the SD card and run it from the BennVenn loader. SPACE or fire starts the game, and keys 1–4 on the title screen pick a world. P pauses and S changes the sound mode.
+
+**Release zip:** `release/PENGUIN2_v1.1.zip` contains `PENGUIN2.VZ`, a plain-text `README.txt`, the showcase GIF, both contact sheets, and the gameplay and attract screenshots in their own folders.
 
 **Download & source:** https://github.com/imbrendenmurphy-dev/vz300-and-microbee-games/tree/main/Penguin2

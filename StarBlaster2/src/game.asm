@@ -465,6 +465,7 @@ game_step:
         call update_objects
         call fs_check
         call update_parts
+        call crack_tick         ; bezel flash / threat warning (game only)
         call update_bolts
         jp update_state
 
@@ -1667,6 +1668,9 @@ lose_energy:
         ld b,a
         ld a,(trainer)
         or b
+        ld b,a
+        ld a,(demo)             ; the attract demo plays to the end
+        or b
         ret nz
         ld hl,(energy)
         or a
@@ -2221,7 +2225,6 @@ burst0:
         ret
 
 update_parts:
-        call crack_tick
         ld hl,(dvaz)
         add hl,hl
         add hl,hl

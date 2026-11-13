@@ -1,0 +1,45 @@
+mapper 1
+crash 1
+sd build/sd
+vz build/sd/ZEPHYR.VZ
+frames 120
+screen build/c01.ppm
+down SPACE
+frames 6
+up SPACE
+frames 60
+screen build/c02.ppm
+down SPACE
+frames 200
+screen build/c03.ppm
+down Q
+frames 120
+screen build/c04.ppm
+up Q
+down P
+frames 150
+screen build/c05.ppm
+up P
+down O
+frames 250
+screen build/c06.ppm
+up O
+down A
+frames 200
+screen build/c07.ppm
+up A
+frames 300
+screen build/c08.ppm
+poke ABFE 70
+poke ABFF 0C
+frames 150
+screen build/c09.ppm
+frames 300
+screen build/c10.ppm
+frames 300
+screen build/c11.ppm
+frames 400
+screen build/c12.ppm
+wav build/game.wav
+frames 300
+wavend

@@ -1,0 +1,36 @@
+vz build/sd/GALAHXY.VZ
+watch $fe_sel
+watch $wallet
+frames 150
+tap SPACE
+frames 30
+tap SPACE
+frames 200
+poke $trainer 1
+poke $wallet 40
+down SPACE
+frames 3600
+screen build/shots/s1.ppm
+frames 200
+down Q
+frames 30
+up Q
+frames 70
+screen build/shots/s2.ppm
+frames 300
+screen build/shots/s3.ppm
+up SPACE
+tap Q
+tap Q
+tap SPACE
+frames 20
+screen build/shots/s4.ppm
+tap A
+tap A
+tap A
+tap SPACE
+frames 20
+screen build/shots/s5.ppm
+tap M
+frames 100
+screen build/shots/s6.ppm

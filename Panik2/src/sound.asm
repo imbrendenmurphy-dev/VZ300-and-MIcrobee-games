@@ -212,21 +212,21 @@ SFX_TICK   equ 16
 SFX_POP    equ 17
 sfxtab:
         ; start, delta, len, mode (0 sweep 1 warble 2 noise), prio, pad
-        dw 300,20    : db 4,2,2,0,0       ; dig: shovel scrape
-        dw 900,-60   : db 8,0,3,0,0       ; hole opens
-        dw 260,0     : db 4,2,2,0,0       ; clunk (can't dig here)
-        dw 1200,-150 : db 5,0,4,0,0       ; bash
-        dw 2600,-120 : db 18,0,5,0,0      ; drop: falling whistle
-        dw 200,40    : db 12,2,6,0,0      ; splat
-        dw 1600,-90  : db 18,1,6,0,0      ; squash
-        dw 1800,-200 : db 7,1,4,0,0       ; trapped!
-        dw 400,120   : db 12,1,4,0,0      ; climbs out
-        dw 420,-20   : db 5,0,3,0,0       ; thud (survived the drop)
-        dw 700,-40   : db 3,0,1,0,0       ; hole fills a bit
-        dw 2800,0    : db 3,0,2,0,0       ; low oxygen beep
-        dw 600,140   : db 16,1,3,0,0      ; alien beams in
-        dw 1400,120  : db 10,1,3,0,0      ; pickup appears
-        dw 800,140   : db 16,1,5,0,0      ; pickup collected
-        dw 3400,-180 : db 16,1,5,0,0      ; freeze
-        dw 2300,0    : db 2,0,1,0,0       ; tick
-        dw 1500,-90  : db 6,0,2,0,0       ; pop / menu blip
+        dw 300,20    : db 4,2,2,0       ; dig: shovel scrape
+        dw 900,-60   : db 8,0,3,0       ; hole opens
+        dw 260,0     : db 4,2,2,0       ; clunk (can't dig here)
+        dw 1200,-150 : db 5,0,4,0       ; bash
+        dw 2600,-120 : db 18,0,5,0      ; drop: falling whistle
+        dw 200,40    : db 12,2,6,0      ; splat
+        dw 1600,-90  : db 18,1,6,0      ; squash
+        dw 1800,-200 : db 7,1,4,0       ; trapped!
+        dw 400,120   : db 12,1,4,0      ; climbs out
+        dw 420,-20   : db 5,0,3,0       ; thud (survived the drop)
+        dw 700,-40   : db 3,0,1,0       ; hole fills a bit
+        dw 2800,0    : db 3,0,2,0       ; low oxygen beep
+        dw 600,140   : db 16,1,3,0      ; alien beams in
+        dw 1400,120  : db 10,1,3,0      ; pickup appears
+        dw 800,140   : db 16,1,5,0      ; pickup collected
+        dw 3400,-180 : db 16,1,5,0      ; freeze
+        dw 2300,0    : db 2,0,1,0       ; tick
+        dw 1500,-90  : db 6,0,2,0       ; pop / menu blip

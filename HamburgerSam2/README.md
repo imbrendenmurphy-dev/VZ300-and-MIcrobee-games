@@ -4,6 +4,10 @@ Sequel to the VZ200/VZ300 game *HAMBURGER SAM* (Dick Smith Electronics), for the
 VZ300 / VZ200 with the **BennVenn SD loader + 128K**. ViBED by BPM 2026. Version 1.0.1 (shorter, softer ingredient-drop sound).
 Original code, graphics and music. Nothing from the original game is included.
 
+![showcase](showcase/showcase.gif)
+
+Release blurb and specs: [BLURB.md](BLURB.md). Screenshots: [gameplay](screenshots/gameplay/) · [attract sequence](screenshots/attract/) · [all screens](screenshots/info/)
+
 ![title](screenshots/HAMSAM2_title.gif)
 
 ![gameplay](screenshots/HAMSAM2_gameplay.gif)
@@ -177,3 +181,7 @@ Tested **in the emulator only:**
 - the SRAM bank-3 records save
 - the real machine's top-border length (the emulator assumes 25 lines, matching your RASTEST photos)
 - speaker volume, and joystick feel on your interface
+
+## Sound-effect fix (8 November 2026)
+
+The sound-effect table had 9 bytes per entry, but the code that plays an effect looks entries up 8 bytes apart. So every effect after the first one played the wrong values, and some came out as long, chirpy, lingering sweeps. The table now has 8-byte entries, so every effect plays as designed. Every effect plays at its original length, including the warbly bonus and power-up sounds. Nothing else changed.

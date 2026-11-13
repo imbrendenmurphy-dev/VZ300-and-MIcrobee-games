@@ -1,0 +1,14 @@
+mapper 1
+crash 1
+sd build/sd
+vz build/sd/ZEPHYR.VZ
+frames 150
+rand 6000 1
+screen build/soak1.ppm
+rand 6000 2
+screen build/soak2.ppm
+rand 6000 3
+screen build/soak3.ppm
+rand 6000 4
+screen build/soak4.ppm
+regs

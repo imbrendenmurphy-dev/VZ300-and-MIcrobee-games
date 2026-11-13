@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-"""Capture README screenshots, GIFs and audio from the headless emulator."""
+"""Capture the title/gameplay GIFs and audio from the headless emulator, plus the
+frame captures used for the release stills (screenshots/gameplay, screenshots/attract)
+and the showcase GIF (tools/showcase.py)."""
 import os, re, subprocess, glob, shutil
 from PIL import Image
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -48,9 +50,6 @@ def gif(name, start, end, step, out):
 AUTO = [(150, 'autoplay', 1), (150, 'godmode', 1)]
 # title + attract pages
 run('att', 2050, shots=(300, 560, 1000, 1350, 1700), every=0)
-names = ['01_title', '02_how_to_play', '03_monsters', '04_goodies']
-for n, f in zip(names, (560, 1000, 1350, 1700)):
-    frame('att', f).save(os.path.join(SHOTS, 'PENGUIN2_%s.png' % n))
 run('tit', 700, every=4, wav=os.path.join(TMP, 'title.wav'))
 gif('tit', 40, 700, 4, os.path.join(SHOTS, 'PENGUIN2_title.gif'))
 # gameplay in each world (AI plays, invulnerable for capture), world chosen with keys 1-4
@@ -59,9 +58,6 @@ for w, key in enumerate(('1', '2', '3', '4')):
     run(nm, 1500, keys="100 103 %s\n" % key, pokes=AUTO, every=10,
         wav=os.path.join(TMP, 'game.wav') if w == 0 else None)
 # pick the busiest frames by a simple score: count of non-white playfield pixels changing? use fixed frames
-for w, f in ((1, 700), (2, 900), (3, 1100), (4, 1200)):
-    frame('w%d' % w, f).save(os.path.join(SHOTS, 'PENGUIN2_%02d_world%d.png' % (4 + w, w)))
-frame('w1', 230).save(os.path.join(SHOTS, 'PENGUIN2_09_stage_intro.png'))
 gif('w1', 300, 1300, 3, os.path.join(SHOTS, 'PENGUIN2_gameplay.gif'))
 # gold rush, intermission, ending: start at world 1 and force clears
 pk = list(AUTO) + [(f, 'forceclear', 1) for f in range(1150, 26000, 1000)]

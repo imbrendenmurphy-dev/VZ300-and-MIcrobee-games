@@ -1,0 +1,23 @@
+vz build/sd/GALAHXY.VZ
+watch $route
+watch $stg_phase
+frames 150
+tap SPACE
+frames 30
+tap SPACE
+frames 200
+poke $trainer 1
+down SPACE
+frames 3500
+down A
+frames 600
+up A
+screen build/shots/g1.ppm
+frames 300
+screen build/shots/g2.ppm
+frames 800
+screen build/shots/g3.ppm
+frames 800
+screen build/shots/g4.ppm
+frames 800
+screen build/shots/g5.ppm

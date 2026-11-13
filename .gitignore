@@ -12,3 +12,5 @@ Thumbs.db
 *.sna
 *.mzf
 *.rom
+RedDustRumble/build/
+RedDustRumble/emu/vzemu

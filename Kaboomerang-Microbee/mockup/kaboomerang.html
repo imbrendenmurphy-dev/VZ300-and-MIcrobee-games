@@ -1,0 +1,886 @@
+<title>Kaboomerang</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a single centred column; the emulated Microbee screen is the hero, then the animation bench, then the design and hardware plan as reading sections. Single deliberate dark look (outback night). */
+:root{
+  --earth:#1b100c;      /* page ground: burnt umber night */
+  --earth-2:#26170f;    /* raised panels */
+  --sand:#efdcb8;       /* body text */
+  --sand-dim:#b9a284;   /* secondary text */
+  --ochre:#e8902e;      /* accent */
+  --gum:#93b89c;        /* secondary accent: eucalypt */
+  --line:#4a3022;       /* rules and borders */
+  --crt:#050403;        /* screen surround */
+  --f-display:"Bungee", "Arial Black", Impact, sans-serif;
+  --f-body:"IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, Consolas, monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--earth);color:var(--sand);font-family:var(--f-body);font-size:16px;line-height:1.6;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:28px 64px}
+.wrap{max-width:1040px;margin:0 auto;display:flex;flex-direction:column;gap:52px}
+header{display:flex;flex-direction:column;gap:10px}
+.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--gum)}
+h1{font-family:var(--f-display);font-weight:400;font-size:clamp(40px,8vw,84px);line-height:.95;margin:0;color:var(--ochre);letter-spacing:.01em;text-wrap:balance}
+h1 span{color:var(--sand)}
+.lede{max-width:66ch;color:var(--sand-dim);margin:0}
+h2{font-family:var(--f-display);font-weight:400;font-size:clamp(22px,3.4vw,30px);margin:0 0 6px;color:var(--sand);text-wrap:balance}
+h3{font-size:15px;font-weight:600;margin:0;color:var(--ochre);letter-spacing:.02em}
+h3.sub{margin-top:14px;font-size:13px;font-family:var(--f-mono);font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--gum)}
+p{margin:0}
+section{display:flex;flex-direction:column;gap:16px}
+.prose{max-width:68ch;display:flex;flex-direction:column;gap:12px}
+
+/* Screen */
+.stage{display:flex;flex-direction:column;gap:12px}
+.screen{background:var(--crt);border:1px solid var(--line);border-radius:6px;padding:clamp(8px,2vw,22px);outline:none;position:relative}
+.screen:focus-visible{box-shadow:0 0 0 2px var(--ochre)}
+canvas{display:block;image-rendering:pixelated;max-width:100%}
+#cv{width:100%;height:auto}
+.clicktip{position:absolute;inset:auto 0 10px 0;text-align:center;font-family:var(--f-mono);font-size:12px;color:var(--sand-dim);pointer-events:none}
+.bar{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;justify-content:space-between}
+.toggles{display:flex;flex-wrap:wrap;gap:8px}
+button.tg{font-family:var(--f-mono);font-size:12.5px;background:transparent;color:var(--sand);border:1px solid var(--line);border-radius:4px;padding:6px 10px;cursor:pointer}
+button.tg[aria-pressed="true"]{background:var(--ochre);color:var(--earth);border-color:var(--ochre)}
+button.tg:focus-visible,.pad button:focus-visible{outline:2px solid var(--gum);outline-offset:2px}
+.keys{font-family:var(--f-mono);font-size:12.5px;color:var(--sand-dim)}
+kbd{font-family:var(--f-mono);font-size:11.5px;border:1px solid var(--line);border-bottom-width:2px;border-radius:3px;padding:0 5px;color:var(--sand)}
+.readout{font-family:var(--f-mono);font-size:12.5px;color:var(--gum);font-variant-numeric:tabular-nums;min-height:1.6em}
+.pad{display:none;justify-content:space-between;align-items:center;gap:16px;user-select:none;-webkit-user-select:none}
+.dpad{display:grid;grid-template-columns:repeat(3,52px);grid-template-rows:repeat(3,52px);gap:4px}
+.pad button{background:var(--earth-2);color:var(--sand);border:1px solid var(--line);border-radius:8px;font-family:var(--f-mono);font-size:14px;touch-action:none}
+.acts{display:flex;gap:10px}
+.acts button{width:76px;height:76px;border-radius:50%;font-family:var(--f-display);font-size:12px}
+.acts .b1{background:#5a2414;border-color:var(--ochre)}
+@media (pointer:coarse){.pad{display:flex}.keys{display:none}}
+
+/* Animation bench */
+.bench{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:12px}
+.bench figure{margin:0;display:flex;flex-direction:column;align-items:center;gap:6px;background:var(--crt);border:1px solid var(--line);border-radius:6px;padding:10px 6px 8px}
+.bench canvas{width:96px;height:96px}
+.bench figcaption{font-family:var(--f-mono);font-size:11.5px;color:var(--sand-dim);text-align:center;line-height:1.3}
+
+/* Content blocks */
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:20px 32px}
+.item{display:flex;flex-direction:column;gap:4px;min-width:0}
+.item p{color:var(--sand-dim);font-size:15px}
+.cast{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:14px}
+.who{border-top:2px solid var(--line);padding-top:10px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.who p{font-size:14.5px;color:var(--sand-dim)}
+.who .w{font-family:var(--f-mono);font-size:11.5px;color:var(--gum);letter-spacing:.06em;text-transform:uppercase}
+ol.worlds{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+ol.worlds li{display:grid;grid-template-columns:2.4em minmax(0,1.1fr) minmax(0,1fr);gap:4px 18px;padding:14px 0;border-top:1px solid var(--line)}
+ol.worlds .n{font-family:var(--f-display);color:var(--ochre);font-size:20px;line-height:1.2}
+ol.worlds b{font-weight:600}
+ol.worlds .d{font-size:15px}
+ol.worlds .boss{color:var(--sand-dim);font-size:14.5px}
+@media (max-width:640px){ol.worlds li{grid-template-columns:2.4em minmax(0,1fr)} ol.worlds .boss{grid-column:2}}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:6px}
+table{border-collapse:collapse;width:100%;font-size:14.5px;min-width:600px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--f-mono);font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--gum);font-weight:500;background:var(--earth-2)}
+tr:last-child td{border-bottom:0}
+td.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.tag{font-family:var(--f-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:1px 6px;border-radius:3px;border:1px solid var(--line);white-space:nowrap}
+.tag.keep{color:var(--gum);border-color:var(--gum)}
+.tag.stage{color:var(--ochre);border-color:var(--ochre)}
+.tag.temp{color:var(--sand-dim)}
+.tag.ok{color:var(--gum);border-color:var(--gum)}
+.tag.verify{color:var(--ochre);border-color:var(--ochre)}
+.callout{background:var(--earth-2);border-left:3px solid var(--ochre);padding:14px 16px;border-radius:0 6px 6px 0;max-width:72ch;display:flex;flex-direction:column;gap:8px}
+.callout p{font-size:15px}
+ol.steps{margin:0;padding-left:1.4em;display:flex;flex-direction:column;gap:10px;max-width:74ch}
+ol.steps li::marker{font-family:var(--f-mono);color:var(--ochre)}
+ol.steps .st{font-family:var(--f-mono);font-size:11.5px;color:var(--gum);letter-spacing:.06em;text-transform:uppercase;margin-left:6px}
+footer{font-family:var(--f-mono);font-size:12px;color:var(--sand-dim);letter-spacing:.1em}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">Microbee Premium Plus · original arcade game · design and playable display mockup</div>
+  <h1>KABOOM<span>ERANG</span></h1>
+  <p class="lede">Wally the demolition wombat takes his gumnut bombs and his lucky boomerang across the outback to stop Baron Von Croak, the cane toad tycoon paving the bush into car parks. Below is World 1, running on a browser model of the Premium Plus screen: 40×25 cells of 8×8 programmable characters, two colours per cell, with every moving thing composited into its own characters pixel by pixel, the way the Z80 will do it.</p>
+</header>
+
+<section class="stage" aria-label="Playable mockup">
+  <div class="screen" id="screen" tabindex="0" aria-label="Game screen. Click or tap, then use arrow keys, Space for a bomb, X to throw the boomerang.">
+    <canvas id="cv" width="960" height="660"></canvas>
+    <div class="clicktip" id="tip">Click the screen to play</div>
+  </div>
+  <div class="bar">
+    <div class="keys"><kbd>←↑→↓</kbd>/<kbd>WASD</kbd> move · <kbd>Space</kbd> gumnut bomb · <kbd>X</kbd> boomerang · <kbd>R</kbd> restart</div>
+    <div class="toggles">
+      <button class="tg" id="tPrev" aria-pressed="true">Blast preview</button>
+      <button class="tg" id="tMono" aria-pressed="false">Amber mono</button>
+      <button class="tg" id="tGrid" aria-pressed="false">Cell grid</button>
+      <button class="tg" id="tDyn" aria-pressed="false">Sprite cells</button>
+      <button class="tg" id="tSnd" aria-pressed="false">Beeper sound</button>
+    </div>
+  </div>
+  <div class="pad" aria-label="Touch controls">
+    <div class="dpad">
+      <span></span><button data-k="up" aria-label="Up">▲</button><span></span>
+      <button data-k="left" aria-label="Left">◀</button><span></span><button data-k="right" aria-label="Right">▶</button>
+      <span></span><button data-k="down" aria-label="Down">▼</button><span></span>
+    </div>
+    <div class="acts"><button data-k="boom" aria-label="Boomerang">BOOM</button><button class="b1" data-k="bomb" aria-label="Bomb">BOMB</button></div>
+  </div>
+  <div class="readout" id="readout"></div>
+</section>
+
+<section aria-label="Animation bench">
+  <h2>Animation bench</h2>
+  <p class="prose" style="color:var(--sand-dim)">Each figure is a 3×3 cell patch of the same screen model, cycling one animation. All of these also play in the stage above: stand still to see Wally blink and look around, drop a bomb to see him crouch, stand near a blast to make his hat jump.</p>
+  <div class="bench" id="bench"></div>
+</section>
+
+<section>
+  <h2>What the mockup proves</h2>
+  <div class="grid2">
+    <div class="item"><h3>Square-ish chunky pixels</h3><p>The 40-column mode halves the dot clock, so each PCG pixel is two dots wide. With 8-line characters that gives 320×200 with much squarer pixels, far nicer for round bombs and chunky characters than tall 8×16 or 8×11 cells.</p></div>
+    <div class="item"><h3>Many colours per tile</h3><p>Each 16×16 gameplay tile is four PCG cells with their own colour pairs. The sandstone, termite mounds and gumnuts use two to four pairs per tile, with dithering for shades like the orange of the mounds.</p></div>
+    <div class="item"><h3>Smooth pixel movement</h3><p>Characters move a pixel at a time. Each frame the sprite is ORed into private PCG cells, floor detail is dropped under it, and each cell's colour follows the sprite's colour band. Turn on Sprite cells to watch it happen.</p></div>
+    <div class="item"><h3>Why this genre fits the Bee</h3><p>Grid movement is axis-locked. A sprite walking sideways is always cell-aligned vertically, so it covers at most 3×2 cells and its colour bands line up with cell rows. A free-moving sprite would need 3×3 cells and clash constantly.</p></div>
+    <div class="item"><h3>Controls that forgive</h3><p>Corners slide you into the gap, the newest direction you press wins, a direction tapped just before a junction is remembered for a moment, and you can always walk off a bomb you just dropped.</p></div>
+    <div class="item"><h3>Danger is always readable</h3><p>Bombs flash red in their last second, and the Blast preview (an Easy-mode option) tints every floor tile a bomb is about to hit. Flames fill whole tiles so the danger area is never ambiguous, even mid-chain.</p></div>
+  </div>
+</section>
+
+<section>
+  <h2>The game</h2>
+  <div class="prose">
+    <p>Classic arena bombing at the core: open the maze, chain your blasts, collect power-ups, outwit the wildlife and reach the hollow-log exit. Around that sit four ideas that make it its own game.</p>
+  </div>
+  <div class="grid2">
+    <div class="item"><h3>The Kaboomerang</h3><p>Wally's boomerang flies four tiles and comes back. It stuns enemies, fetches power-ups from across the arena, and if it passes a lit gumnut it snatches the bomb and drops it at the far end of its flight. Upgrades add range and a curved throw that turns one corner. Try it in the mockup: drop a bomb, step back, throw.</p></div>
+    <div class="item"><h3>Burrows</h3><p>Wombats dig. Standing in a burrow hole lets blasts pass over you, with only Wally's hat poking out. Burrows collapse after a few uses, so they reward planning without letting you hide forever. Later Wally can dig new ones in soft ground.</p></div>
+    <div class="item"><h3>More than "clear and exit"</h3><p>Stages mix objectives: herd lost joeys back to their mum's pouch, bomb pressure plates to open sluice gates, demolish the Baron's machinery against the clock, collect five golden gumnuts, or survive a stampede. Each world adds one stage mechanic and builds puzzles from it.</p></div>
+    <div class="item"><h3>Hearts, continues, saves</h3><p>Three hearts (up to five), flashing safety after a hit, power-ups kept when you lose a heart, a checkpoint at every stage, unlimited continues, and progress saved to disk after every stage. Easy, Normal and Hard change enemy speed, fuse length and the blast preview.</p></div>
+  </div>
+
+  <h3 class="sub">Power-ups</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Item</th><th>Effect</th><th>Lasts</th></tr></thead>
+    <tbody>
+      <tr><td>Gumnut</td><td>One more bomb at a time (max 8)</td><td><span class="tag stage">Until world ends</span></td></tr>
+      <tr><td>Fire</td><td>Blast reach +1 tile (max 8)</td><td><span class="tag stage">Until world ends</span></td></tr>
+      <tr><td>Thongs</td><td>Faster walking (two levels)</td><td><span class="tag stage">Until world ends</span></td></tr>
+      <tr><td>Steel-cap boots</td><td>Walk into a bomb to kick it sliding</td><td><span class="tag stage">Until world ends</span></td></tr>
+      <tr><td>Plunger</td><td>Remote detonation: bombs wait until you press fire twice</td><td><span class="tag stage">Until world ends</span></td></tr>
+      <tr><td>Heart</td><td>Restores a heart; a sixth heart in reach becomes a bonus</td><td><span class="tag temp">Instant</span></td></tr>
+      <tr><td>Lucky hat</td><td>Ten seconds of invulnerability with a flashing star hat</td><td><span class="tag temp">Timed</span></td></tr>
+      <tr><td>Frosty nut</td><td>Next three bombs freeze enemies into ice blocks you can kick</td><td><span class="tag temp">3 bombs</span></td></tr>
+      <tr><td>Bouncy nut</td><td>Kicked or boomeranged bombs bounce off walls instead of stopping</td><td><span class="tag temp">3 bombs</span></td></tr>
+      <tr><td>Long throw, Curve throw</td><td>Boomerang upgrades won from the World 2 and World 4 bosses</td><td><span class="tag keep">Whole campaign</span></td></tr>
+      <tr><td>Digging claws</td><td>Dig a burrow anywhere on soft ground (World 3 boss reward)</td><td><span class="tag keep">Whole campaign</span></td></tr>
+      <tr><td>Opals</td><td>Bonus currency: 100 opals unlock a bush-tucker bonus stage</td><td><span class="tag keep">Whole campaign</span></td></tr>
+    </tbody>
+  </table></div>
+
+  <h3 class="sub">The cast</h3>
+  <div class="cast">
+    <div class="who"><span class="w">Hero</span><h3>Wally Wombat</h3><p>Retired demolition expert in a hard hat with headlamp. Blinks, looks around, taps his foot, crouches to set bombs, flinches at blasts, does a dust-cloud dance after every stage.</p></div>
+    <div class="who"><span class="w">Player 2</span><h3>Pip Possum</h3><p>Wally's young apprentice in a bike helmet, for co-op and battle. Hangs by her tail when idle.</p></div>
+    <div class="who"><span class="w">Villain</span><h3>Baron Von Croak</h3><p>Cane toad industrialist with a monocle and top hat. Taunts you between worlds from his airship and pilots the Toad-Mech in the finale.</p></div>
+    <div class="who"><span class="w">In mockup</span><h3>Cane Toad</h3><p>Hops tile to tile with a pause between hops. Slow and predictable, dangerous in crowds.</p></div>
+    <div class="who"><span class="w">In mockup</span><h3>Frill-neck</h3><p>Ambles about, then flares its frill (it turns magenta) and sprints when it sees you down an open lane.</p></div>
+    <div class="who"><span class="w">In mockup</span><h3>Bin Chicken</h3><p>Pathfinds to any revealed power-up, steals it and runs from you. Blast it and the item drops back out.</p></div>
+    <div class="who"><span class="w">World 2</span><h3>Drop Bear</h3><p>Hides in gum trees, then drops onto your tile. A shadow grows on the ground first.</p></div>
+    <div class="who"><span class="w">World 2</span><h3>Swooping Magpie</h3><p>Dives across the whole arena in straight lines, always announced by a squawk and a flicker at the edge.</p></div>
+    <div class="who"><span class="w">World 3</span><h3>Croc</h3><p>Lurks under water tiles and surfaces near splashes and floating bombs.</p></div>
+    <div class="who"><span class="w">World 4</span><h3>Emu</h3><p>Charges straight until it hits something, kicking any bomb in its path.</p></div>
+    <div class="who"><span class="w">World 5</span><h3>Bush Rat Gang</h3><p>Carries bombs of its own and plants them to trap you. Flees from lit fuses.</p></div>
+    <div class="who"><span class="w">World 6</span><h3>Toad Trooper</h3><p>Uniformed toads that read the danger map and step out of blast lines. The hardest regular enemy.</p></div>
+  </div>
+
+  <h3 class="sub">Campaign: six worlds, 48 stages, six bosses</h3>
+  <ol class="worlds">
+    <li><span class="n">1</span><div class="d"><b>Red Centre</b><br>Sandstone, termite mounds and burrows. Teaches bombing, chains, the boomerang and burrows one idea per stage.</div><div class="boss">Boss: <b>Big Daddy Bufo</b>, a giant toad whose tongue lashes along whole rows, telegraphed by his throat swelling.</div></li>
+    <li><span class="n">2</span><div class="d"><b>Gumtree Gully</b><br>Drop bears in gum trees, rolling logs that crush and carry bombs, trees that shed gumnut ammo when blasted.</div><div class="boss">Boss: <b>the Drop Bear King</b>, who leaps between treetops and shakes the canopy.</div></li>
+    <li><span class="n">3</span><div class="d"><b>Billabong</b><br>Water channels with floating logs that carry bombs downstream, crocs, sluice gates opened by pressure plates.</div><div class="boss">Boss: <b>Old Snappy</b>, a huge croc that swallows bombs and spits them back. Feed him a frosty nut.</div></li>
+    <li><span class="n">4</span><div class="d"><b>Snowy Mountains</b><br>Ice tiles where bombs and Wally slide until they hit something, emus, snow drifts that refill.</div><div class="boss">Boss: <b>the Yowie</b>, hurling snowballs that freeze bombs solid until a blast thaws them.</div></li>
+    <li><span class="n">5</span><div class="d"><b>Opal Mines</b><br>Dark tunnels lit by Wally's headlamp (colour RAM lighting around him), mine carts on rails that ferry bombs, opal seams, bush rats.</div><div class="boss">Boss: <b>the Mega Mole</b>, a drilling machine that tunnels under the arena and surfaces where the ground cracks.</div></li>
+    <li><span class="n">6</span><div class="d"><b>Croak Industries</b><br>Conveyor floors, crushers, switch-operated doors, teleport chutes and vats that spawn toads until you blow them up.</div><div class="boss">Boss: <b>Baron Von Croak in the Toad-Mech</b>, three phases, ending with the Baron fleeing in a bathtub.</div></li>
+  </ol>
+  <p style="color:var(--sand-dim);font-size:15px;max-width:72ch">Each world has seven stages and a boss stage. Six secret bush-tucker bonus stages hide behind blasted walls or opal totals, so the full count is 54.</p>
+
+  <h3 class="sub">More modes, after the campaign is solid</h3>
+  <div class="grid2">
+    <div class="item"><h3>Battle</h3><p>Two players plus up to two computer wombats in eight battle arenas, with hazards on or off, starting power-ups, win counts and a sudden-death squeeze where the walls close in.</p></div>
+    <div class="item"><h3>Co-op</h3><p>Wally and Pip play the campaign together. A downed partner becomes a floating hard hat that the other player touches to revive. Shared opals, separate hearts.</p></div>
+    <div class="item"><h3>Survival</h3><p>Endless waves on a shrinking arena, a power-up drop every wave, hi-score table saved to disk.</p></div>
+    <div class="item"><h3>Demolition puzzles</h3><p>Thirty single-screen puzzles with a fixed number of bombs: knock down every target in one chain.</p></div>
+  </div>
+</section>
+
+<section>
+  <h2>Sound and presentation</h2>
+  <div class="grid2">
+    <div class="item"><h3>Sound engine</h3><p>Speaker on PIO port B bit 6. Two tone voices are time-sliced into one bit stream, with noise-burst drums and arpeggiated chords. On the title, interludes and fanfares the CPU is free, so music uses the full engine. In play the tune drops to slow, short blipped notes between frames so it never slows the game. Music and effects switch off separately.</p></div>
+    <div class="item"><h3>Sound list</h3><p>Title theme, six world themes, boss theme, bonus-stage tune, victory and world-clear fanfares, ending theme. Effects: bomb place, fuse fizz in the last second, explosions that get deeper as a chain grows, crumble, power-up sparkles, boomerang whoosh, each enemy's call, hurt, warning klaxon.</p></div>
+    <div class="item"><h3>Title and attract</h3><p>Large KABOOMERANG lettering built from about 300 unique PCG characters, Wally lighting the fuse on the letters, then an attract loop that replays recorded play of real stages, a hi-score table and a demo of the boomerang.</p></div>
+    <div class="item"><h3>Interludes and ending</h3><p>Illustrated scenes between worlds: the Baron's airship, Wally's ute driving the map, the next boss looming. Static artwork with selected parts animated. Credits close with "ViBED by BPM".</p></div>
+  </div>
+</section>
+
+<section>
+  <h2>Hardware plan</h2>
+  <div class="prose">
+    <p>Native Z80 at 3.375 MHz throughout. The engine starts from the one already proven in MICROBEE AUSTRALIAN OPEN TENNIS and HULLBREACH: page flipping, a separate sprite-glyph bank per page, restore lists and pre-shifted frames. "Proven" means shown on your own Premium Plus by one of those games.</p>
+  </div>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Area</th><th>Decision</th><th>Detail</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td>Display</td><td>40 × 25 cells, 8-line characters</td><td>Half dot clock for 40 columns, R9=7 (8 scan lines). 1,000 cells, so two pages fit in the 2K of screen, attribute and colour RAM for flicker-free page flipping. None of your earlier Premium Plus games use a 40-column mode yet, and how it is switched on isn't in the documents I could reach, so the first test disk tries it. Fallback: the 64 × 16 mode with 8 × 16 cells that BILBIES!, AUSOPEN and HULLBREACH use.</td><td><span class="tag verify">First test</span></td></tr>
+      <tr><td>Arena</td><td class="num">19 × 11 tiles</td><td>17 × 9 playable interior plus border; each tile is 2 × 2 cells. Two HUD rows on top, a message row below. Bigger stages scroll by whole tiles between halves, or use a second screen.</td><td><span class="tag ok">Chosen</span></td></tr>
+      <tr><td>Colour</td><td>16 ink × 16 paper per cell</td><td>Colour RAM at F800h via port 08h bit 6; paper in the high nibble, ink in the low. Colour numbers follow your earlier games: 1 red, 2 green, 4 blue, 8 dark grey, 9–15 bright.</td><td><span class="tag ok">Proven</span></td></tr>
+      <tr><td>PCG</td><td class="num">16 banks × 128 characters</td><td>Port 1Ch bit 7 enables extended graphics; attribute RAM (bit 4) picks each cell's bank.</td><td><span class="tag ok">Proven</span></td></tr>
+      <tr><td>Expanded RAM</td><td class="num">32 blocks × 32 KB</td><td>Port 50h maps any block into the lower 32K window, with the same macro your earlier games use.</td><td><span class="tag ok">Proven</span></td></tr>
+      <tr><td>Page flipping</td><td>Two screen pages, two sprite pools</td><td>R12/R13 start address changed only in vertical blanking (your 6545 re-reads it on every line of the first row). Each page has its own sprite-glyph bank so the visible page is never touched.</td><td><span class="tag ok">Proven (80-col)</span></td></tr>
+      <tr><td>Input</td><td>Keyboard via 6545 light-pen scan, joystick on PIO port A</td><td>Two players can share the keyboard, or one uses the joystick.</td><td><span class="tag ok">Keyboard proven</span></td></tr>
+      <tr><td>Sound</td><td>Speaker on PIO port B bit 6</td><td>The two-voice engine from TENNIS II, playing in each frame's idle time.</td><td><span class="tag ok">Proven</span></td></tr>
+      <tr><td>Monochrome</td><td>Its own dot-pattern art set</td><td>As in AUSOPEN and HULLBREACH; chosen with C or M at start-up. The Amber mono button previews a simpler version.</td><td><span class="tag ok">Chosen</span></td></tr>
+      <tr><td>Disk</td><td>DS80 image that boots to A&gt;</td><td>Boot tracks from The Lantern Deep. Type KABOOM. SAVE.DAT with A/B copies of each slot, as in HULLBREACH.</td><td><span class="tag ok">Boot proven</span></td></tr>
+    </tbody>
+  </table></div>
+
+  <h3 class="sub">PCG budget (2,048 characters)</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Banks</th><th>Characters</th><th>Use</th></tr></thead>
+    <tbody>
+      <tr><td class="num">0</td><td class="num">128</td><td>Font, HUD icons, message boxes</td></tr>
+      <tr><td class="num">1–7</td><td class="num">896</td><td>Current world's scenery, flame shapes, crumble frames, power-ups. Reloaded from expanded RAM at each world change.</td></tr>
+      <tr><td class="num">8–9</td><td class="num">256</td><td>Boss artwork. Bosses are built from background-layer characters that are rewritten each frame, so a boss can be 6×6 cells with moving limbs without costing sprite cells.</td></tr>
+      <tr><td class="num">10–13</td><td class="num">512</td><td>Sprite compositing cells, double-buffered so the screen never shows a half-drawn sprite. Two players, eight enemies, the boomerang and particles fit with room left.</td></tr>
+      <tr><td class="num">14–15</td><td class="num">256</td><td>Shared animated characters. Every bomb's pulse, water ripple, conveyor stripe and flickering lamp is one small set of characters rewritten once a frame, so a dozen bombs animate for the price of one.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3 class="sub">Expanded RAM use (about 1 MB)</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Contents</th><th>Approx. size</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>Game code and current stage</td><td class="num">40 KB</td><td>Main 64 KB view, with a banked window for streaming assets.</td></tr>
+      <tr><td>World art packs</td><td class="num">6 × 28 KB</td><td>Scenery, flame and crumble frames, power-ups.</td></tr>
+      <tr><td>Pre-shifted sprite frames</td><td class="num">120 KB</td><td>Every animation frame with mask, stored in four 2-pixel shifts so no shifting happens during play.</td></tr>
+      <tr><td>Boss art and animation</td><td class="num">6 × 20 KB</td><td>Boss parts, damage flashes, destruction sequences.</td></tr>
+      <tr><td>Title, interludes, ending</td><td class="num">96 KB</td><td>Compressed character sets and screens.</td></tr>
+      <tr><td>Music, effects, attract recordings</td><td class="num">48 KB</td><td>Pattern-based music data, effect tables, recorded inputs.</td></tr>
+      <tr><td>Stage maps and scripts</td><td class="num">24 KB</td><td>54 campaign stages plus battle and puzzle maps.</td></tr>
+    </tbody>
+  </table></div>
+  <p style="color:var(--sand-dim);font-size:15px;max-width:72ch">Everything fits in RAM together with room to spare. The game loads the first world and the shared data at boot, then pulls in each further world in the background of its interlude, so disk access never happens during play except for saving.</p>
+
+  <div class="callout">
+    <p><b>Frame budget and worst case.</b> The Z80 has about 67,500 T-states per 50 Hz frame. HULLBREACH, on the same engine, holds 25 fps exploring and about 22 fps in its busiest fight. Compositing one sprite cell (fetch background, mask, OR the pre-shifted frame, write 8 bytes plus colour and attribute) costs roughly 650–750 T-states, so a 6-cell sprite is about 4,200. Flames are cheap: their shapes stay resident and their flicker is mostly colour RAM changes, a few bytes per tile. The worst case of two players, eight enemies, the boomerang, six particles and a big chain comes to roughly 60,000 to 75,000 T-states. The plan is a steady 25 Hz update with 2-pixel steps, kept smooth by double-buffered sprite cells, with 50 Hz used whenever the frame allows. The readout under the stage applies this model to what is on screen; the real numbers come from the benchmark build.</p>
+  </div>
+</section>
+
+<section>
+  <h2>Build plan</h2>
+  <ol class="steps">
+    <li><b>Hardware test disk.</b> 40-column mode attempts, PCG banks and attributes, palette chart, port 50h banking across all 32 banks, keyboard and joystick, vertical blank timing, disk read and write from the DOS prompt. You run it in colour and on the amber monitor and we lock the decisions.<span class="st">Next</span></li>
+    <li><b>Graphics proof.</b> This mockup settles the look and techniques; the Z80 version renders the same arena with composited sprites.<span class="st">Design done</span></li>
+    <li><b>Core gameplay.</b> Movement with buffering, bombs, chains, crumbling, power-ups, the boomerang, burrows and three enemies, playable on the machine.</li>
+    <li><b>Benchmark.</b> Worst-case stage with everything running plus music, measured with a cycle counter. The update rate gets fixed here.</li>
+    <li><b>World 1 complete.</b> Seven stages, Big Daddy Bufo, music, title screen. You play it and tune difficulty.</li>
+    <li><b>Worlds 2–6.</b> One world at a time, each with its mechanic, enemies, boss and interlude.</li>
+    <li><b>Modes and presentation.</b> Battle, co-op, survival and puzzles, attract mode, ending, saves, polish.</li>
+  </ol>
+</section>
+
+<footer>KABOOMERANG · ViBED by BPM · 2026</footer>
+</div>
+
+<script>
+(()=>{
+"use strict";
+// ---------- palette: the art below uses these RGB slots; RGB values follow the hardware colours of the earlier Premium Plus games ----------
+const PAL=[[0,0,0],[0,0,192],[0,192,0],[0,192,192],[192,0,0],[192,0,192],[192,192,0],[192,192,192],
+           [96,96,96],[0,0,255],[0,255,0],[0,255,255],[255,0,0],[255,0,255],[255,255,0],[255,255,255]];
+const LUM=PAL.map(c=>c[0]*.3+c[1]*.59+c[2]*.11);
+const AMBER=[255,170,20], AMBER_OFF=[14,8,2];
+const COLS=40, ROWS=25, W=320, H=200, NC=COLS*ROWS;
+const MW=19, MH=11, OXC=1, OYC=2, OX=OXC*8, OY=OYC*8;
+
+// ---------- helpers ----------
+function hsh(x,y,s){let n=Math.imul(x,374761393)+Math.imul(y,668265263)+Math.imul(s,1442695041)|0;n=Math.imul(n^(n>>>13),1274126177);return ((n^(n>>>16))>>>0)/4294967296;}
+function mk(fn){const r=new Array(16);for(let y=0;y<16;y++){let v=0;for(let x=0;x<16;x++)if(fn(x,y))v|=1<<(15-x);r[y]=v;}return r;}
+function fromStr(a){return a.map(s=>{let v=0;for(let x=0;x<16;x++)if(s[x]==='#')v|=1<<(15-x);return v;});}
+function mirror(rows){return rows.map(v=>{let o=0;for(let x=0;x<16;x++)if(v&(1<<x))o|=1<<(15-x);return o;});}
+function rng(seed){let s=seed>>>0||1;return()=>{s^=s<<13;s>>>=0;s^=s>>>17;s^=s<<5;s>>>=0;return s/4294967296;};}
+
+// ---------- 5x7 font ----------
+const FD={A:"01110 10001 10001 11111 10001 10001 10001",B:"11110 10001 10001 11110 10001 10001 11110",C:"01110 10001 10000 10000 10000 10001 01110",D:"11110 10001 10001 10001 10001 10001 11110",E:"11111 10000 10000 11110 10000 10000 11111",F:"11111 10000 10000 11110 10000 10000 10000",G:"01110 10001 10000 10111 10001 10001 01111",H:"10001 10001 10001 11111 10001 10001 10001",I:"01110 00100 00100 00100 00100 00100 01110",J:"00111 00010 00010 00010 00010 10010 01100",K:"10001 10010 10100 11000 10100 10010 10001",L:"10000 10000 10000 10000 10000 10000 11111",M:"10001 11011 10101 10101 10001 10001 10001",N:"10001 10001 11001 10101 10011 10001 10001",O:"01110 10001 10001 10001 10001 10001 01110",P:"11110 10001 10001 11110 10000 10000 10000",Q:"01110 10001 10001 10001 10101 10010 01101",R:"11110 10001 10001 11110 10100 10010 10001",S:"01111 10000 10000 01110 00001 00001 11110",T:"11111 00100 00100 00100 00100 00100 00100",U:"10001 10001 10001 10001 10001 10001 01110",V:"10001 10001 10001 10001 10001 01010 00100",W:"10001 10001 10001 10101 10101 10101 01010",X:"10001 10001 01010 00100 01010 10001 10001",Y:"10001 10001 10001 01010 00100 00100 00100",Z:"11111 00001 00010 00100 01000 10000 11111",
+"0":"01110 10001 10011 10101 11001 10001 01110","1":"00100 01100 00100 00100 00100 00100 01110","2":"01110 10001 00001 00010 00100 01000 11111","3":"11111 00010 00100 00010 00001 10001 01110","4":"00010 00110 01010 10010 11111 00010 00010","5":"11111 10000 11110 00001 00001 10001 01110","6":"00110 01000 10000 11110 10001 10001 01110","7":"11111 00001 00010 00100 01000 01000 01000","8":"01110 10001 10001 01110 10001 10001 01110","9":"01110 10001 10001 01111 00001 00010 01100",
+"-":"00000 00000 00000 11111 00000 00000 00000",":":"00000 01100 01100 00000 01100 01100 00000",".":"00000 00000 00000 00000 00000 01100 01100","!":"00100 00100 00100 00100 00100 00000 00100","'":"00100 00100 01000 00000 00000 00000 00000","x":"00000 10001 01010 00100 01010 10001 00000"," ":"00000 00000 00000 00000 00000 00000 00000"};
+const FONT={};for(const k in FD){const rows=FD[k].split(" ").map(r=>parseInt(r,2)<<2);rows.push(0);FONT[k]=rows;}
+function g8(a){return a.map(s=>parseInt(s,2));}
+const IC={heart:g8(["01101100","11111110","11111110","11111110","01111100","00111000","00010000","00000000"]),
+  nut:g8(["00000110","00001000","00111100","01111110","11111111","01111110","00111100","00000000"]),
+  flame:g8(["00010000","00011000","00111000","00111100","01111110","01111110","00111100","00000000"]),
+  boom:g8(["01100000","01110000","00111000","00011100","00001111","00000111","00000000","00000000"]),
+  thong:g8(["00111100","01111110","01100110","01100110","01111110","00111100","00011000","00000000"]),
+  blank:[0,0,0,0,0,0,0,0]};
+
+// ---------- tile art (16x16, four colour pairs [fg,bg] TL TR BL BR) ----------
+function q4(a,b){return [a,a,b,b];}
+function floorTile(tx,ty,shadow){
+  const bm=mk((x,y)=>{
+    if(shadow&&y<3&&((x+y)&1)===0)return true;
+    const r=hsh(x+tx*16,y+ty*16,7);
+    if(r<0.045)return true;
+    if(r<0.07&&x<15&&hsh(x+1+tx*16,y+ty*16,7)<0.4)return true;
+    return false;});
+  return {bm,c:shadow?[[8,0],[8,0],[4,0],[4,0]]:q4([4,0],[4,0]),floor:true};
+}
+const PILLAR={bm:mk((x,y)=>{
+    if(y<8){ if(y===0||x===0)return true; if(y===1&&x===1)return true; return (y%4===3)&&hsh(x,y,11)<0.55&&x<15;}
+    if(y>=14||x===15)return true; return (y%4===1)&&hsh(x,y,12)<0.5;}),
+  c:[[14,4],[14,4],[0,4],[0,4]]};
+const BORDER={bm:mk((x,y)=>{ if(y===0)return true; if((y===3||y===12)&&(x===3||x===12))return false; return (x%4)<2;}),c:q4([7,8],[7,8])};
+const MOUND=[];for(let k=0;k<=8;k++)MOUND.push({bm:mk((x,y)=>{
+    if(k&&hsh(x,y,99)<k/8)return false;
+    if(y<8){const hw=1.5+y*0.85;if(Math.abs(x-7.5)>hw)return false;return ((x+y)&1)===0||hsh(x,y,5)<0.25;}
+    if(y===15)return false; return ((x+y)&1)===0||hsh(x,y,6)<0.22;}),
+    c:k>5?q4([8,0],[8,4]):[[14,0],[14,0],[14,4],[14,4]]});
+function bombBm(pulse,flick){
+  const r=pulse?6.8:6.1;
+  return mk((x,y)=>{
+    if(y<8){
+      if((x===8&&y>=2&&y<=3)||(x===9&&y===1)||(x===10&&y===0))return true;
+      if(flick&&((x===11&&y===0)||(x===11&&y===1)||(x===12&&y===0)))return true;
+      if(y>=4){const hw=y===4?3:y===5?4.5:5.5; if(Math.abs(x-7.5)<=hw) return !(y===5&&(x%3===0));}
+      return false;}
+    const dx=(x-7.5),dy=(y-8.5);
+    if(dx*dx+dy*dy*1.1>r*r)return false;
+    if((x===5&&(y===9||y===10))||(x===4&&y===10))return false;
+    return true;});
+}
+const BOMBBM=[[bombBm(0,0),bombBm(0,1)],[bombBm(1,0),bombBm(1,1)]];
+function bombTile(pulse,flick,warn){
+  const body=warn?(pulse?12:4):(pulse?10:2);
+  return {bm:BOMBBM[pulse][flick],c:[[flick?15:14,0],[flick?15:14,0],[body,0],[body,0]]};
+}
+const FLAMECOL=[[15,14],[14,12],[12,4],[4,0]];
+const FLAMECACHE={};
+function flameTile(kind,ph){
+  const key=kind+ph;if(FLAMECACHE[key])return FLAMECACHE[key];
+  let t;
+  if(ph>=3) t={bm:mk((x,y)=>hsh(x,y,40+kind.charCodeAt(0))<0.28),c:q4([8,0],[8,0])};
+  else{
+    const j=(a,b)=>hsh(a,b,ph+3)*1.6;
+    let fn,full=true;
+    const cx=x=>Math.abs(x-7.5), cy=y=>Math.abs(y-7.5);
+    if(kind==='c') fn=(x,y)=>cx(x)<2.6+j(y,1)||cy(y)<2.6+j(x,2)||(cx(x)*cx(x)+cy(y)*cy(y)<22);
+    else if(kind==='h') fn=(x,y)=>cy(y)<2.4+j(x,3);
+    else if(kind==='v') fn=(x,y)=>cx(x)<2.4+j(y,4);
+    else { full=false;
+      if(kind==='r') fn=(x,y)=>cy(y)<6.5-x*0.42+j(x,5)&&x<14;
+      if(kind==='l') fn=(x,y)=>cy(y)<6.5-(15-x)*0.42+j(x,5)&&x>1;
+      if(kind==='d') fn=(x,y)=>cx(x)<6.5-y*0.42+j(y,6)&&y<14;
+      if(kind==='u') fn=(x,y)=>cx(x)<6.5-(15-y)*0.42+j(y,6)&&y>1;
+    }
+    const col=full?FLAMECOL[ph]:[FLAMECOL[ph][1],0];
+    t={bm:mk(fn),c:q4(col,col)};}
+  FLAMECACHE[key]=t;return t;
+}
+const ITEM={
+  fire:{bm:mk((x,y)=>{if(y<2||y>14)return false;const hw=y<9?(y-2)*0.62+0.4:4.7-(y-9)*0.55; if(y<6&&(x===5||x===10)&&y>3)return true; return Math.abs(x-7.5)<=hw;}),c:[[14,0],[14,0],[12,0],[12,0]]},
+  nut:{bm:mk((x,y)=>{const dx=x-7.5,dy=y-8.5;if(y<5)return (x===10&&y>=2)||(x===11&&y===1);if(y<7)return Math.abs(dx)<(y===5?2.5:4);return dx*dx+dy*dy<20&&!(x===6&&y===9);}),c:[[6,0],[6,0],[10,0],[10,0]]},
+  heart:{bm:mk((x,y)=>{const X=(x-7.5)/6.2,Y=(7-y)/6.2;const a=X*X+Y*Y-1;return a*a*a-X*X*Y*Y*Y<0;}),c:q4([12,0],[12,0])},
+  thong:{bm:mk((x,y)=>{const dx=(x-7.5)/4.6,dy=(y-8)/7;const e=dx*dx+dy*dy;return (e<1&&e>0.45)||(y>=4&&y<=8&&Math.abs(x-7.5)<0.8)||(y===4&&(x===5||x===10))||(y===5&&(x===4||x===11));}),c:q4([11,0],[11,0])},
+  exit:{bm:mk((x,y)=>{const dx=(x-7.5)/7,dy=(y-8)/6.5;const e=dx*dx+dy*dy;return e<1&&(e>0.42||hsh(x,y,77)<0.08);}),c:[[14,0],[14,0],[6,0],[6,0]]}
+};
+const ITEMCOL={fire:14,nut:10,heart:12,thong:11};
+const BURROW={bm:mk((x,y)=>{const dx=(x-7.5)/7,dy=(y-8)/6;const e=dx*dx+dy*dy;return (e<1&&e>0.55&&((x+y)&1||e>0.75))||(e>=1&&hsh(x,y,31)<0.06);}),c:q4([4,0],[4,0]),floor:false};
+const HATCH=mk((x,y)=>((x+y)&3)===0);
+
+// ---------- Wally: hat part (rows 0-7, yellow) + body part (rows 8-15, grey) ----------
+const B8=["................","................","................","................","................","................","................","................"];
+const hatP=r=>fromStr(r.concat(B8)), bodyP=r=>fromStr(B8.concat(r));
+const HAT_F=["......####......","....########....","...##########...","..###.####.###..","..############..",".##############.","################",".##############."];
+const HAT_S=[".....#####......","...#########....","..###########...","..##.#####.###..","..############..","..#############.",".###############","..##############"];
+const FACE={
+  norm:["..############..",".###..####..###.",".###..####..###.",".######..######.","..#####..#####..","..############.."],
+  blink:["..############..",".##############.",".##....##....##.",".######..######.","..#####..#####..","..############.."],
+  lookL:["..############..",".##..####..####.",".##..####..####.",".######..######.","..#####..#####..","..############.."],
+  lookR:["..############..",".####..####..##.",".####..####..##.",".######..######.","..#####..#####..","..############.."],
+  wide: ["..############..",".##..#.##.#..##.",".##...####...##.",".######..######.","..####....####..","..############.."],
+  dizzy:["..############..",".#.#.####.#.#.#.",".##.######.#.##.",".#.#.####.#.#.#.","..###......###..","..############.."],
+  happy:["..############..",".##.##.##.##.##.",".#.####..####.#.",".######..######.","..##.######.##..","..###......###.."],
+  back: ["..############..",".##############.",".##############.",".##############.","..############..","..############.."]};
+const FEET={a:["...##......##...","..###......###.."],b:["...##.....###...","..........###..."],c:["...###.....##...","...###.........."],wide:["..###......###..",".###........###."],flat:["..############..","................"],up:["..##........##..","................"]};
+const SIDE_BODY=["..##########....",".#########..###.",".#########..####",".###############","..##########.##.","..###########..."];
+const SIDE_FEET=[["..##..##..##....",".##..##..##....."],["...##..##..##...","....##..##..##.."]];
+const SQUASH=bodyP(["................","................","..############..",".###..####..###.",".##############.","################","################","................"]);
+const HP={down:hatP(HAT_F),up:hatP(HAT_F),right:hatP(HAT_S),left:mirror(hatP(HAT_S))};
+const BP={};
+function bodyBm(face,feet){const k=face+"|"+feet;if(!BP[k])BP[k]=bodyP(FACE[face].concat(FEET[feet]));return BP[k];}
+const SIDEB=[0,1].map(i=>bodyP(SIDE_BODY.concat(SIDE_FEET[i])));
+const SIDEBL=SIDEB.map(mirror);
+const WALKFEET=["a","b","a","c"];
+// pose -> parts list [{bm,dx,dy,c1,c2,maxRow}]
+function wallyParts(st){
+  const t=st.t||0, dir=st.dir||"down";
+  const part=(bm,dx,dy,c,maxRow=16)=>({bm,dx,dy,c1:c,c2:c,maxRow});
+  const HATC=st.hatC||14, FUR=7;
+  switch(st.pose){
+    case "walk":{const f=(st.anim>>3)&3;
+      if(dir==="left"||dir==="right"){const b=dir==="right"?SIDEB[f&1]:SIDEBL[f&1];return [part(HP[dir],0,0,HATC),part(b,0,0,FUR)];}
+      return [part(HP[dir],0,0,HATC),part(bodyBm(dir==="up"?"back":"norm",WALKFEET[f]),0,0,FUR)];}
+    case "idle":{
+      if(dir==="left"||dir==="right"){const b=dir==="right"?SIDEB[0]:SIDEBL[0];const blink=(t%150)>142;
+        return [part(HP[dir],0,0,HATC),part(blink?bodyBm("blink","a"):b,0,0,FUR)];}
+      const c=t%240;let face="norm",feet="a",hdy=0;
+      if(c>140&&c<150)face="blink";else if(c>=170&&c<195)face="lookL";else if(c>=195&&c<220)face="lookR";
+      if(t>300&&((t>>4)&1))feet="b"; // foot tapping after a while
+      if(c>225&&c<232)hdy=-1;
+      return [part(HP.down,0,hdy,HATC),part(bodyBm(dir==="up"?"back":face,feet),0,0,FUR)];}
+    case "place":{const d=t<6?1:0;return [part(HP.down,0,1+d,HATC),part(bodyBm("blink","wide"),0,d,FUR)];}
+    case "startle":{const hdy=t<4?-t:t<12?-4+Math.floor((t-4)/2):0;return [part(HP.down,0,hdy,HATC),part(bodyBm("wide",t<8?"up":"a"),0,t<8?-1:0,FUR)];}
+    case "collect":{const hop=t<8?-Math.round(Math.sin(t/8*Math.PI)*4):0;return [part(HP.down,0,hop,HATC),part(bodyBm("happy","a"),0,hop,FUR)];}
+    case "hurt":{const sh=(t>>1)&1?1:-1;return [part(HP.down,sh,0,15),part(bodyBm("dizzy","wide"),sh,0,FUR)];}
+    case "win":{const ph=(t>>4)&3;const j=(t%16)<8?-Math.round(Math.sin((t%16)/8*Math.PI)*5):0;
+      const hat=ph===1?HP.right:ph===3?HP.left:HP.down;const body=ph===1?SIDEB[0]:ph===3?SIDEBL[0]:bodyBm("happy",ph===0?"wide":"a");
+      return [part(hat,0,j-((t%16)<4?2:0),HATC),part(body,0,j,FUR)];}
+    case "dead":{
+      if(t<40){const d=["down","right","up","left"][(t>>2)&3];const b=d==="right"?SIDEB[0]:d==="left"?SIDEBL[0]:bodyBm(d==="up"?"back":"dizzy","a");return [part(HP[d],0,0,14),part(b,0,0,FUR)];}
+      const k=t-40;return [part(HP.down,0,-Math.min(k*2,40)+Math.max(0,k-20)*Math.max(0,k-20)/10|0,14),part(SQUASH,0,0,FUR)];}
+    case "burrow": return [part(HP.down,0,3,HATC,11)];
+  }
+  return [part(HP.down,0,0,HATC),part(bodyBm("norm","a"),0,0,FUR)];
+}
+
+// ---------- enemies ----------
+const TOAD=fromStr(["................","................","...###....###...","..##.##..##.##..","..#####..#####..",".##############.","################","#.############.#","################","###.###..###.###","################",".######..######.",".##.##....##.##.","##..##....##..##","#....#....#....#","................"]);
+const TOAD_SQ=fromStr(["................","................","................","................","...###....###...","..##.##..##.##..",".##############.","################","################","################","###.###..###.###","################",".##############.","###.##....##.###","................","................"]);
+const FR_TOP=["................","..#.#.#..#.#.#..",".##############.","####........####","###..##..##..###","###.#..##..#.###",".###.######.###.","...##########..."];
+const FR_TOP_DOWN=["................","................","................","......####......",".....##..##.....","....#.#..#.#....","....########....","...##########..."];
+const FR_LEGS_A=[".....######.....","...##########...","..#.########.#..",".#..########..#.","....########....","...##.####.##...","..##...##...##..","........##......"];
+const FR_LEGS_B=[".....######.....","...##########...","..#.########.#..",".#..########..#.","....########....","....#.####.#....","...##..##..##...",".......##......."];
+const FRILL={open:[fromStr(FR_TOP.concat(FR_LEGS_A)),fromStr(FR_TOP.concat(FR_LEGS_B))],shut:[fromStr(FR_TOP_DOWN.concat(FR_LEGS_A)),fromStr(FR_TOP_DOWN.concat(FR_LEGS_B))]};
+const IBIS_L=[fromStr(["................",".....###........","....#####.......","....##.##.......","....#####.......","...##.###.......","..##...###......",".#.....####.....","......########..",".....##########.","....###########.",".....#########..","......#######...","........#..#....","........#..#....",".......##.##...."]),
+  fromStr(["................",".....###........","....#####.......","....##.##.......","....#####.......","...##.###.......","..##...###......",".#.....####.....","......########..",".....##########.","....###########.",".....#########..","......#######...","........#..#....",".......#....#...","......##...##..."])];
+const IBIS_R=IBIS_L.map(mirror);
+function boomFrames(){
+  const base=new Set();
+  const line=(x0,y0,x1,y1)=>{const n=Math.max(Math.abs(x1-x0),Math.abs(y1-y0));for(let i=0;i<=n;i++){const x=Math.round(x0+(x1-x0)*i/n),y=Math.round(y0+(y1-y0)*i/n);for(const[a,b]of[[0,0],[1,0],[0,1],[1,1]])base.add((x+a)+","+(y+b));}};
+  line(2,3,7,11);line(7,11,13,4);
+  const out=[];let pts=[...base].map(s=>s.split(",").map(Number));
+  for(let r=0;r<4;r++){const set=new Set(pts.map(p=>p[0]+","+p[1]));out.push(mk((x,y)=>set.has(x+","+y)));pts=pts.map(([x,y])=>[15-y,x]);}
+  return out;}
+const BOOMF=boomFrames();
+const PUFF=[mk((x,y)=>{const d=Math.hypot(x-7.5,y-7.5);return d<4&&hsh(x,y,1)<0.7;}),mk((x,y)=>{const d=Math.hypot(x-7.5,y-7.5);return d>3&&d<7&&hsh(x,y,2)<0.5;})];
+const DOT=mk((x,y)=>x<2&&y<2), SPARK=mk((x,y)=>(x===1&&y<3)||(y===1&&x<3)), STAR=mk((x,y)=>{const a=Math.abs(x-3),b=Math.abs(y-3);return x<7&&y<7&&(a===0||b===0||(a===b&&a<2));});
+
+// ---------- screen buffers ----------
+const bgPat=new Uint8Array(NC*8), bgFg=new Uint8Array(NC), bgBg=new Uint8Array(NC), bgFloor=new Uint8Array(NC), bgChanged=new Uint8Array(NC);
+const sPat=new Uint8Array(NC*8), sMask=new Uint8Array(NC), sFg=new Uint8Array(NC), sVote=new Uint16Array(NC*16);
+function clearBg(){bgPat.fill(0);bgFg.fill(7);bgBg.fill(0);bgFloor.fill(0);bgChanged.fill(0);}
+function putTile(tx,ty,t,changed){
+  const c0=OXC+tx*2, r0=OYC+ty*2;
+  for(let qy=0;qy<2;qy++)for(let qx=0;qx<2;qx++){
+    const ci=(r0+qy)*COLS+c0+qx, q=qy*2+qx;
+    for(let r=0;r<8;r++){const v=t.bm[qy*8+r];bgPat[ci*8+r]=qx?v&255:(v>>8)&255;}
+    bgFg[ci]=t.c[q][0];bgBg[ci]=t.c[q][1];bgFloor[ci]=t.floor?1:0;if(changed)bgChanged[ci]=1;}
+}
+function tileCells(tx,ty){const c0=OXC+tx*2,r0=OYC+ty*2;return [r0*COLS+c0,r0*COLS+c0+1,(r0+1)*COLS+c0,(r0+1)*COLS+c0+1];}
+function putGlyph(col,row,g,fg,bg){const ci=row*COLS+col;for(let r=0;r<8;r++)bgPat[ci*8+r]=g[r];bgFg[ci]=fg;bgBg[ci]=bg;}
+function putText(col,row,s,fg,bg=0){for(let i=0;i<s.length;i++){const g=FONT[s[i]]||FONT[" "];putGlyph(col+i,row,g,fg,bg);}}
+
+function drawSprite(bm,px,py,ctop,cbot,maxRow=16,cols=COLS,rows=ROWS,pat=sPat,mask=sMask,vote=sVote){
+  const w=cols*8,h=rows*8;
+  for(let r=0;r<maxRow;r++){const v=bm[r];if(!v)continue;const y=py+r;if(y<0||y>=h)continue;const band=r<8?ctop:cbot;
+    for(let c=0;c<16;c++){if(!(v&(1<<(15-c))))continue;const x=px+c;if(x<0||x>=w)continue;
+      const ci=(y>>3)*cols+(x>>3);
+      if(!mask[ci]){mask[ci]=1;vote.fill(0,ci*16,ci*16+16);for(let k=0;k<8;k++)pat[ci*8+k]=0;}
+      pat[ci*8+(y&7)]|=0x80>>(x&7);vote[ci*16+band]++;}}
+}
+function drawParts(parts,px,py){for(const p of parts)drawSprite(p.bm,px+p.dx,py+p.dy,p.c1,p.c2,p.maxRow);}
+
+// ---------- game state ----------
+let G;
+const K={up:0,down:0,left:0,right:0,bomb:0,boom:0};
+let held=[], buffered=null, bombEdge=0, boomEdge=0, preview=true;
+function press(k){if(k in DIRS){held=held.filter(d=>d!==k);held.push(k);}K[k]=1;}
+function release(k){if(k in DIRS){held=held.filter(d=>d!==k);if(G&&G.p&&G.p.lastMoved!==k)buffered={dir:k,t:12};}K[k]=0;}
+function newStage(seed,keep){
+  const R=rng(seed*9973+17);
+  const map=[],item=[],burrow=[];
+  for(let y=0;y<MH;y++){map.push([]);item.push([]);burrow.push([]);for(let x=0;x<MW;x++){
+    let t=0; if(x===0||y===0||x===MW-1||y===MH-1)t=1; else if(x%2===0&&y%2===0)t=2;
+    map[y].push(t);item[y].push(null);burrow[y].push(0);}}
+  const safe=(x,y)=>(x<=3&&y<=2)||(x<=2&&y<=3);
+  const softs=[];
+  for(let y=1;y<MH-1;y++)for(let x=1;x<MW-1;x++){if(map[y][x])continue;if(safe(x,y))continue;if(R()<0.46){map[y][x]=3;softs.push([x,y]);}}
+  for(let i=softs.length-1;i>0;i--){const j=Math.floor(R()*(i+1));[softs[i],softs[j]]=[softs[j],softs[i]];}
+  ["exit","fire","fire","nut","nut","heart","thong","fire"].forEach((it,i)=>{if(softs[i])item[softs[i][1]][softs[i][0]]={t:it,hidden:true};});
+  let nb=0;for(let tries=0;tries<200&&nb<2;tries++){const x=1+Math.floor(R()*(MW-2)),y=1+Math.floor(R()*(MH-2));if(map[y][x]===0&&!safe(x,y)&&!burrow[y][x]){burrow[y][x]=3;nb++;}}
+  const p=keep&&G?G.p:{range:2,bombs:1,hearts:3,maxH:5,speed:0,score:0};
+  const st={seed,map,item,burrow,bombs:[],flames:new Map(),crumbles:[],enemies:[],puffs:[],parts:[],boomer:null,
+    p:Object.assign(p,{x:16,y:16,dir:"down",anim:0,inv:0,safe:false,idle:0,act:null,lastMoved:null}),frame:0,msg:"READY!",msgT:110,time:180*50,over:0,clear:0,flash:0,recent:[]};
+  const spots=[];for(let y=1;y<MH-1;y++)for(let x=1;x<MW-1;x++)if(map[y][x]===0&&x+y>=8&&!burrow[y][x])spots.push([x,y]);
+  ["toad","toad","frill","toad","ibis","frill"].forEach(t=>{if(!spots.length)return;const k=Math.floor(R()*spots.length);const[x,y]=spots.splice(k,1)[0];
+    st.enemies.push({t,x:x*16,y:y*16,dir:["up","down","left","right"][Math.floor(R()*4)],step:0,pause:Math.floor(R()*30),stun:0,anim:0,charge:false,carry:null});});
+  st.R=R;held=[];buffered=null;
+  return st;
+}
+const DIRS={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]};
+function bombAt(tx,ty){return G.bombs.find(b=>!b.carried&&b.tx===tx&&b.ty===ty);}
+function free(tx,ty){if(tx<0||ty<0||tx>=MW||ty>=MH)return false;return G.map[ty][tx]===0;}
+function overlapsTile(e,tx,ty){return Math.abs(e.x-tx*16)<16&&Math.abs(e.y-ty*16)<16;}
+function canEnter(e,tx,ty){if(!free(tx,ty))return false;const b=bombAt(tx,ty);if(b&&!overlapsTile(e,tx,ty))return false;return true;}
+function tileOf(e){return [Math.round(e.x/16),Math.round(e.y/16)];}
+function blastTiles(b){const out=[[b.tx,b.ty]];for(const d of Object.values(DIRS)){for(let n=1;n<=b.range;n++){const x=b.tx+d[0]*n,y=b.ty+d[1]*n,t=G.map[y][x];if(t===1||t===2)break;out.push([x,y]);if(t===3)break;}}return out;}
+
+// ---------- sound (beeper-style blips) ----------
+let AC=null,sound=false;
+function blip(f,d,vol=0.05){if(!sound||!AC)return;const o=AC.createOscillator(),g=AC.createGain();o.type="square";o.frequency.value=f;const t=AC.currentTime;g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(0.0005,t+d);o.connect(g);g.connect(AC.destination);o.start(t);o.stop(t+d+0.02);}
+function sweep(f0,f1,d){if(!sound||!AC)return;const o=AC.createOscillator(),g=AC.createGain();o.type="square";const t=AC.currentTime;o.frequency.setValueAtTime(f0,t);o.frequency.exponentialRampToValueAtTime(f1,t+d);g.gain.setValueAtTime(0.045,t);g.gain.exponentialRampToValueAtTime(0.0005,t+d);o.connect(g);g.connect(AC.destination);o.start(t);o.stop(t+d+0.02);}
+function noise(d,deep){if(!sound||!AC)return;const n=Math.floor(AC.sampleRate*d),buf=AC.createBuffer(1,n,AC.sampleRate),a=buf.getChannelData(0);let v=1,hold=0;for(let i=0;i<n;i++){if(hold--<=0){v=Math.random()<0.5?-1:1;hold=Math.floor(2+deep*6+i/n*40);}a[i]=v*0.08*(1-i/n);}const s=AC.createBufferSource();s.buffer=buf;s.connect(AC.destination);s.start();}
+function jingle(fs,gap,d){fs.forEach((f,i)=>setTimeout(()=>blip(f,d),i*gap));}
+
+// ---------- update ----------
+function setAct(type,len){G.p.act={type,t:0,len};}
+function hurt(){const p=G.p;if(p.inv>0||G.over||G.clear)return;p.hearts--;p.inv=120;sweep(600,90,0.35);
+  if(p.hearts<=0){G.over=1;G.msg="WALLY'S DONE IN!";G.msgT=170;setAct("dead",170);}else setAct("hurt",30);}
+function explode(b){
+  const i=G.bombs.indexOf(b);if(i<0)return;G.bombs.splice(i,1);
+  if(b.carried&&G.boomer&&G.boomer.carry===b)G.boomer.carry=null;
+  G.recent.push(G.frame);G.recent=G.recent.filter(f=>G.frame-f<12);
+  noise(0.35,Math.min(G.recent.length-1,3));
+  if(G.recent.length>=2)G.flash=3;
+  const cx=OX+b.tx*16+6,cy=OY+b.ty*16+6;
+  for(let k=0;k<4;k++)G.parts.push({x:cx,y:cy,vx:(G.R()-0.5)*2.4,vy:-1-G.R()*1.6,t:18+Math.floor(G.R()*8),bm:SPARK,c:15});
+  const setF=(x,y,k)=>{const key=x+","+y,old=G.flames.get(key);let kind=k;if(old&&old.k!==k)kind="c";G.flames.set(key,{k:kind,t:28});};
+  setF(b.tx,b.ty,"c");
+  for(const d of ["up","down","left","right"]){const[dx,dy]=DIRS[d];
+    for(let n=1;n<=b.range;n++){const x=b.tx+dx*n,y=b.ty+dy*n,t=G.map[y][x];
+      if(t===1||t===2)break;
+      if(t===3){if(!G.crumbles.some(c=>c.x===x&&c.y===y)){G.crumbles.push({x,y,t:0});
+          for(let k=0;k<4;k++)G.parts.push({x:OX+x*16+6,y:OY+y*16+6,vx:(G.R()-0.5)*2,vy:-0.8-G.R()*1.4,t:20+Math.floor(G.R()*10),bm:DOT,c:k&1?14:12,g:0.14});}break;}
+      const end=n===b.range||G.map[y+dy]?.[x+dx]!==0;
+      setF(x,y,end?({up:"u",down:"d",left:"l",right:"r"})[d]:(dx?"h":"v"));
+      const ob=bombAt(x,y);if(ob){ob.fuse=Math.min(ob.fuse,4);break;}
+    }}
+  // Wally flinches if a blast lands near and doesn't hit him
+  const p=G.p,[ptx,pty]=tileOf(p);
+  if(!p.act&&Math.abs(ptx-b.tx)+Math.abs(pty-b.ty)<=4)setAct("startle",20);
+}
+function tryStep(p,dir){
+  const[dx,dy]=DIRS[dir];
+  if(dx){ if(p.y%16){const ty0=Math.floor(p.y/16),near=(p.y%16)<8?ty0:ty0+1,far=near===ty0?ty0+1:ty0;const tx=Math.round(p.x/16)+dx;
+           const tgt=canEnter(p,tx,near)?near:(canEnter(p,tx,far)?far:null);if(tgt===null)return false;p.y+=tgt*16>p.y?1:-1;return true;}
+         if(p.x%16===0){const tx=p.x/16+dx;if(!canEnter(p,tx,p.y/16))return false;}
+         p.x+=dx;return true;}
+  if(p.x%16){const tx0=Math.floor(p.x/16),near=(p.x%16)<8?tx0:tx0+1,far=near===tx0?tx0+1:tx0;const ty=Math.round(p.y/16)+dy;
+           const tgt=canEnter(p,near,ty)?near:(canEnter(p,far,ty)?far:null);if(tgt===null)return false;p.x+=tgt*16>p.x?1:-1;return true;}
+  if(p.y%16===0){const ty=p.y/16+dy;if(!canEnter(p,p.x/16,ty))return false;}
+  p.y+=dy;return true;
+}
+function stepPlayer(){
+  const p=G.p;
+  if(p.act){p.act.t++;if(p.act.t>=p.act.len)p.act=null;}
+  const busy=p.act&&(p.act.type==="hurt"||p.act.type==="place"&&p.act.t<4);
+  // candidate directions: newest held first, then older held, then a recently tapped direction
+  const cands=[...held].reverse();if(buffered&&!cands.includes(buffered.dir))cands.unshift(buffered.dir);
+  if(buffered&&--buffered.t<=0)buffered=null;
+  let moved=false;
+  if(!busy&&cands.length){
+    const steps=p.speed?(G.frame%2?2:1):1;
+    for(let s=0;s<steps;s++){
+      let ok=false;
+      for(const d of cands){if(tryStep(p,d)){ok=true;p.dir=d;p.lastMoved=d;if(buffered&&buffered.dir===d&&!held.includes(d))buffered=null;break;}}
+      if(!ok){if(held.length)p.dir=held[held.length-1];break;}
+      moved=true;}
+  }
+  if(moved){p.anim++;p.idle=0;}else p.idle++;
+  p.moving=moved;
+  const[tx,ty]=tileOf(p);
+  p.safe=!!G.burrow[ty][tx]&&p.x%16===0&&p.y%16===0;
+  if(K.bomb&&!bombEdge&&!busy){
+    if(G.bombs.length<p.bombs&&G.map[ty][tx]===0&&!bombAt(tx,ty)&&!G.burrow[ty][tx]){G.bombs.push({tx,ty,fuse:150,range:p.range,carried:false});blip(220,0.06);blip(330,0.05);setAct("place",10);}}
+  bombEdge=K.bomb;
+  if(K.boom&&!boomEdge&&!G.boomer&&!busy){const[dx,dy]=DIRS[p.dir];
+    G.boomer={x:dx?p.x:tx*16,y:dy?p.y:ty*16,dx,dy,dist:0,out:true,carry:null,f:0};sweep(900,1500,0.12);}
+  boomEdge=K.boom;
+  const it=G.item[ty][tx];
+  if(it&&!it.hidden&&G.map[ty][tx]===0){
+    if(it.t==="exit"){ if(!G.enemies.length&&!G.clear&&p.x%16===0&&p.y%16===0){G.clear=1;G.msg="STAGE CLEAR!";G.msgT=200;p.score+=1000;setAct("win",200);jingle([523,659,784,1046,784,1046],110,0.12);} }
+    else { pickup(it.t);G.item[ty][tx]=null; }
+  }
+  if(p.inv>0)p.inv--;
+}
+function pickup(t){const p=G.p;
+  if(t==="fire")p.range=Math.min(p.range+1,8);if(t==="nut")p.bombs=Math.min(p.bombs+1,8);
+  if(t==="heart")p.hearts=Math.min(p.hearts+1,p.maxH);if(t==="thong")p.speed=1;
+  p.score+=50;jingle([880,1175,1568,2093],45,0.07);
+  if(!p.act||p.act.type==="startle")setAct("collect",22);
+  for(let k=0;k<3;k++)G.parts.push({x:OX+p.x+4+k*4,y:OY+p.y-4,vx:(k-1)*0.4,vy:-0.6,t:22,bm:STAR,c:ITEMCOL[t]||15});}
+function stepBoomer(){const b=G.boomer;if(!b)return;b.f++;
+  const sp=3;
+  if(b.out){
+    b.x+=b.dx*sp;b.y+=b.dy*sp;b.dist+=sp;
+    const lx=Math.floor((b.x+(b.dx>0?15:b.dx<0?0:8))/16),ly=Math.floor((b.y+(b.dy>0?15:b.dy<0?0:8))/16);
+    let stop=b.dist>=64;
+    if(!free(lx,ly)){stop=true;b.x=Math.round((b.x-b.dx*8)/16)*16;b.y=Math.round((b.y-b.dy*8)/16)*16;}
+    const cx=Math.round(b.x/16),cy=Math.round(b.y/16);
+    if(!b.carry){const bm=bombAt(cx,cy);if(bm){bm.carried=true;b.carry=bm;blip(1200,0.05);}}
+    const it=G.item[cy]&&G.item[cy][cx];if(it&&!it.hidden&&it.t!=="exit"){pickup(it.t);G.item[cy][cx]=null;}
+    for(const e of G.enemies)if(Math.abs(e.x-b.x)<12&&Math.abs(e.y-b.y)<12&&!e.stun){e.stun=150;stop=true;blip(300,0.1);}
+    if(stop){b.out=false;
+      if(b.carry){let x=Math.round(b.x/16),y=Math.round(b.y/16);
+        let guard=0;while((!free(x,y)||bombAt(x,y)||G.burrow[y][x])&&guard++<8){x-=b.dx;y-=b.dy;}
+        b.carry.tx=x;b.carry.ty=y;b.carry.carried=false;b.carry=null;blip(160,0.08);}
+    }
+  } else {
+    const p=G.p,ddx=p.x-b.x,ddy=p.y-b.y,d=Math.hypot(ddx,ddy);
+    if(d<5){G.boomer=null;blip(1400,0.04);return;}
+    b.x+=ddx/d*sp;b.y+=ddy/d*sp;
+    const cx=Math.round(b.x/16),cy=Math.round(b.y/16);const it=G.item[cy]&&G.item[cy][cx];
+    if(it&&!it.hidden&&it.t!=="exit"){pickup(it.t);G.item[cy][cx]=null;}
+  }
+  if(b.carry){b.carry.tx=Math.round(b.x/16);b.carry.ty=Math.round(b.y/16);}
+}
+function enemyOptions(e){return Object.keys(DIRS).filter(d=>{const[dx,dy]=DIRS[d];return canEnter(e,e.x/16+dx,e.y/16+dy);});}
+function lineOfSight(e){const p=G.p;const[ptx,pty]=tileOf(p);const ex=e.x/16,ey=e.y/16;
+  if(ptx===ex){const s=Math.sign(pty-ey);for(let y=ey+s;y!==pty;y+=s)if(!free(ex,y)||bombAt(ex,y))return null;return s>0?"down":s<0?"up":null;}
+  if(pty===ey){const s=Math.sign(ptx-ex);for(let x=ex+s;x!==ptx;x+=s)if(!free(x,ey)||bombAt(x,ey))return null;return s>0?"right":s<0?"left":null;}
+  return null;}
+// breadth-first search to the nearest revealed power-up: cheap on a 19x13 grid, run only at tile centres
+function pathToItem(e){
+  const sx=e.x/16,sy=e.y/16,seen=new Int8Array(MW*MH).fill(-1);const q=[[sx,sy]];seen[sy*MW+sx]=4;
+  const names=Object.keys(DIRS);
+  while(q.length){const[x,y]=q.shift();const it=G.item[y][x];
+    if(it&&!it.hidden&&it.t!=="exit"&&!(x===sx&&y===sy)){let cx=x,cy=y,d=seen[cy*MW+cx];
+      while(true){const[dx,dy]=DIRS[names[d]];const px=cx-dx,py=cy-dy;if(px===sx&&py===sy)return names[d];cx=px;cy=py;d=seen[cy*MW+cx];}}
+    for(let i=0;i<4;i++){const[dx,dy]=DIRS[names[i]];const nx=x+dx,ny=y+dy;if(seen[ny*MW+nx]===-1&&canEnter(e,nx,ny)){seen[ny*MW+nx]=i;q.push([nx,ny]);}}}
+  return null;}
+function stepEnemies(){
+  const p=G.p,[ptx,pty]=tileOf(p);
+  for(const e of G.enemies){e.anim++;
+    if(e.stun>0){e.stun--;continue;}
+    const aligned=e.x%16===0&&e.y%16===0;
+    if(e.t==="toad"){
+      if(e.pause>0){e.pause--;continue;}
+      if(aligned&&e.step===0){const opts=enemyOptions(e);if(!opts.length){e.pause=20;continue;}
+        if(!opts.includes(e.dir)||G.R()<0.3)e.dir=opts[Math.floor(G.R()*opts.length)];e.step=16;}
+      if(e.step>0){const[dx,dy]=DIRS[e.dir];e.x+=dx;e.y+=dy;e.step--;if(e.step===0)e.pause=14+Math.floor(G.R()*16);}
+      continue;}
+    if(aligned){
+      const opts=enemyOptions(e);
+      if(e.t==="frill"){const los=lineOfSight(e);
+        if(los&&opts.includes(los)){if(!e.charge)blip(1800,0.05);e.dir=los;e.charge=true;}
+        else{e.charge=false;if(!opts.length)continue;if(!opts.includes(e.dir)||(opts.length>2&&G.R()<0.35))e.dir=opts[Math.floor(G.R()*opts.length)];}}
+      else { // bin chicken
+        const ex=e.x/16,ey=e.y/16,it=G.item[ey][ex];
+        if(!e.carry&&it&&!it.hidden&&it.t!=="exit"){e.carry=it.t;G.item[ey][ex]=null;sweep(700,1300,0.15);}
+        if(!opts.length)continue;
+        if(e.carry){let best=-1,bd=null;for(const d of opts){const[dx,dy]=DIRS[d];const dist=Math.abs(ex+dx-ptx)+Math.abs(ey+dy-pty)+G.R()*0.9;if(dist>best){best=dist;bd=d;}}e.dir=bd;}
+        else{const d=pathToItem(e);if(d)e.dir=d;else if(!opts.includes(e.dir)||(opts.length>2&&G.R()<0.35))e.dir=opts[Math.floor(G.R()*opts.length)];}
+      }
+      const[dx,dy]=DIRS[e.dir];if(!canEnter(e,e.x/16+dx,e.y/16+dy))continue;}
+    const sp=e.charge?2:1;
+    for(let s=0;s<sp;s++){const[dx,dy]=DIRS[e.dir];e.x+=dx;e.y+=dy;if(e.x%16===0&&e.y%16===0)break;}
+  }
+}
+function update(){
+  G.frame++;
+  if(G.msgT>0)G.msgT--;
+  if(G.flash>0)G.flash--;
+  const p=G.p;
+  stepParts();
+  if(G.over){if(p.act)p.act.t++;if(G.msgT===0)G=newStage(G.seed,false);return;}
+  if(G.clear){if(p.act)p.act.t++;if(G.msgT===0){const keep=G.p;G=newStage(G.seed+1,true);G.p.hearts=Math.max(G.p.hearts,keep.hearts);}return;}
+  if(G.time>0)G.time--;
+  stepPlayer();stepBoomer();stepEnemies();
+  for(const b of [...G.bombs]){b.fuse--;if(b.fuse===40)blip(1600,0.03);
+    if(b.fuse<=0){if(b.carried&&G.boomer){b.tx=Math.round(G.boomer.x/16);b.ty=Math.round(G.boomer.y/16);if(!free(b.tx,b.ty)){b.tx-=G.boomer.dx;b.ty-=G.boomer.dy;}}explode(b);}}
+  for(const[k,f]of G.flames){f.t--;if(f.t<=0)G.flames.delete(k);}
+  for(const c of [...G.crumbles]){c.t++;if(c.t>=24){G.map[c.y][c.x]=0;const it=G.item[c.y][c.x];if(it)it.hidden=false;G.crumbles.splice(G.crumbles.indexOf(c),1);p.score+=10;}}
+  const[ptx,pty]=tileOf(p);
+  const fl=G.flames.get(ptx+","+pty);
+  if(fl&&fl.t>8&&!p.safe)hurt();
+  for(const e of [...G.enemies]){const[etx,ety]=tileOf(e);const f=G.flames.get(etx+","+ety);
+    if(f&&f.t>6){G.enemies.splice(G.enemies.indexOf(e),1);G.puffs.push({x:e.x,y:e.y,t:20});p.score+=e.t==="toad"?100:e.t==="frill"?200:300;sweep(1200,200,0.2);
+      if(e.carry){const tx=Math.round(e.x/16),ty=Math.round(e.y/16);G.item[ty][tx]={t:e.carry,hidden:false,delay:30};}
+      continue;}
+    if(!e.stun&&Math.abs(e.x-p.x)<11&&Math.abs(e.y-p.y)<11&&!p.safe)hurt();}
+  for(let y=0;y<MH;y++)for(let x=0;x<MW;x++){const it=G.item[y][x];if(it&&it.delay)it.delay--;}
+  for(const pf of [...G.puffs]){pf.t--;if(pf.t<=0)G.puffs.splice(G.puffs.indexOf(pf),1);}
+  if(!G.enemies.length&&!G.allClearMsg&&!G.clear){G.allClearMsg=1;G.msg="FIND THE LOG!";G.msgT=110;}
+}
+function stepParts(){for(const q of [...G.parts]){q.x+=q.vx;q.y+=q.vy;q.vy+=q.g||0.05;q.t--;if(q.t<=0)G.parts.splice(G.parts.indexOf(q),1);}}
+
+// ---------- compose screen ----------
+let showMono=false,showGrid=false,showDyn=false,lastStats={dyn:0,chg:0};
+function wallyState(){
+  const p=G.p;
+  if(p.act)return {pose:p.act.type,t:p.act.t,dir:p.dir};
+  if(p.safe&&!p.moving)return {pose:"burrow"};
+  if(p.moving)return {pose:"walk",anim:p.anim,dir:p.dir};
+  return {pose:"idle",t:p.idle,dir:p.dir};
+}
+function compose(){
+  clearBg();
+  const p=G.p;
+  putText(1,0,"1-"+(((G.seed-1)%7)+1)+" RED CENTRE",14);
+  putText(26,0,"SCORE "+String(p.score).padStart(6,"0"),15);
+  for(let i=0;i<p.maxH;i++)putGlyph(1+i,1,IC.heart,i<p.hearts?12:8,0);
+  putGlyph(8,1,IC.nut,10,0);putText(9,1,"x"+p.bombs,7);
+  putGlyph(13,1,IC.flame,14,0);putText(14,1,"x"+p.range,7);
+  putGlyph(18,1,IC.boom,G.boomer?8:14,0);
+  if(p.speed)putGlyph(20,1,IC.thong,11,0);
+  putText(1,24,"KABOOMERANG",3);putText(27,24,"VIBED BY BPM",7);
+  const s=Math.ceil(G.time/50);putText(29,1,"TIME "+Math.floor(s/60)+":"+String(s%60).padStart(2,"0"),s<30&&G.frame%50<25?12:7);
+  for(let y=0;y<MH;y++)for(let x=0;x<MW;x++){
+    const t=G.map[y][x];
+    if(t===1)putTile(x,y,BORDER);
+    else if(t===2)putTile(x,y,PILLAR);
+    else if(t===3){const c=G.crumbles.find(c=>c.x===x&&c.y===y);putTile(x,y,MOUND[c?Math.min(8,Math.floor(c.t/3)+1):0],!!c);}
+    else{
+      const shadow=y>0&&(G.map[y-1][x]===2||G.map[y-1][x]===3);
+      const f=G.flames.get(x+","+y);
+      if(f){putTile(x,y,flameTile(f.k,f.t>21?0:f.t>14?1:f.t>7?2:3),true);continue;}
+      const b=bombAt(x,y);
+      if(b){const warn=b.fuse<45;putTile(x,y,bombTile(warn?(b.fuse>>1)&1:(b.fuse>>3)&1,(G.frame>>1)&1,warn),true);continue;}
+      if(G.burrow[y][x]){putTile(x,y,BURROW);continue;}
+      const it=G.item[y][x];
+      if(it&&!it.hidden){putTile(x,y,ITEM[it.t],true);
+        if(it.t!=="exit"&&(G.frame>>3)&1)for(const ci of tileCells(x,y))bgFg[ci]=15;
+        continue;}
+      putTile(x,y,floorTile(x,y,shadow));
+    }}
+  // chain-reaction flash: colour RAM only, floor backgrounds go dark grey for a few frames
+  if(G.flash)for(let ci=0;ci<NC;ci++)if(bgFloor[ci]){bgBg[ci]=8;bgFg[ci]=7;bgChanged[ci]=1;}
+  // blast preview (easy mode): hatch the floor in each bomb's path during its last second
+  if(preview){for(const b of G.bombs){if(b.carried||b.fuse>=55)continue;
+    for(const[x,y]of blastTiles(b)){if(G.map[y][x]!==0||bombAt(x,y)||G.flames.has(x+","+y))continue;
+      for(const ci of tileCells(x,y)){if(!bgFloor[ci])continue;const qy=Math.floor(ci/COLS)-(OYC+y*2),qx=ci%COLS-(OXC+x*2);
+        for(let r=0;r<8;r++){const v=HATCH[qy*8+r];bgPat[ci*8+r]|=qx?v&255:(v>>8)&255;}bgFg[ci]=(G.frame>>2)&1?12:4;bgChanged[ci]=1;}}}}
+  if(G.msgT>0&&G.msg){const m=G.msg,c=Math.floor((COLS-m.length-2)/2),r=12;
+    for(let i=0;i<m.length+2;i++){putGlyph(c+i,r-1,IC.blank,0,1);putGlyph(c+i,r+1,IC.blank,0,1);}
+    putText(c,r," "+m+" ",(G.frame>>2)&1?15:14,1);}
+
+  // sprites
+  sMask.fill(0);
+  for(const pf of G.puffs)drawSprite(PUFF[pf.t>10?0:1],OX+pf.x,OY+pf.y,15,7);
+  for(const b of G.bombs)if(b.carried&&G.boomer)drawSprite(BOMBBM[(b.fuse>>3)&1][0],OX+Math.round(G.boomer.x)+2,OY+Math.round(G.boomer.y)+3,14,10);
+  for(const e of G.enemies){
+    const sf=e.stun>0&&(e.stun>>2)&1;
+    if(e.t==="toad"){const prog=e.step>0?(16-e.step)/16:0;const bob=e.step>0?-Math.round(Math.sin(prog*Math.PI)*5):0;
+      const squat=e.step===0&&e.pause>0&&e.pause<6;
+      drawSprite(squat?TOAD_SQ:TOAD,OX+e.x,OY+e.y+bob,sf?15:6,sf?15:2);}
+    else if(e.t==="frill"){const set=e.charge?FRILL.open:FRILL.shut;drawSprite(set[(e.anim>>(e.charge?2:3))&1],OX+e.x,OY+e.y,sf?15:(e.charge?13:12),sf?15:10);}
+    else{const fr=(e.anim>>3)&1;const bm=(e.dir==="right"?IBIS_R:IBIS_L)[fr];drawSprite(bm,OX+e.x,OY+e.y,sf?15:8,sf?15:(e.carry?ITEMCOL[e.carry]:15));}
+  }
+  const ws=wallyState();
+  const flashOff=p.inv>0&&(p.inv>>2)&1&&!(p.act&&p.act.type==="hurt");
+  if(!flashOff&&!(G.over&&p.act&&p.act.t>150))drawParts(wallyParts(ws),OX+p.x,OY+p.y);
+  if(G.boomer)drawSprite(BOOMF[(G.boomer.f>>1)&3],OX+Math.round(G.boomer.x),OY+Math.round(G.boomer.y),14,14);
+  for(const q of G.parts)drawSprite(q.bm,Math.round(q.x),Math.round(q.y),q.c,q.c);
+
+  let dyn=0,chg=0;
+  for(let ci=0;ci<NC;ci++){
+    if(sMask[ci]){dyn++;
+      let best=0,bc=7;for(let k=0;k<16;k++){const v=sVote[ci*16+k];if(v>best){best=v;bc=k;}}
+      const keepBase=!bgFloor[ci];
+      for(let r=0;r<8;r++)sPat[ci*8+r]|=keepBase?bgPat[ci*8+r]:0;
+      sFg[ci]=bc;}
+    else if(bgChanged[ci])chg++;
+  }
+  lastStats={dyn,chg};
+}
+// ---------- render ----------
+function paintCells(d,cols,rows,patB,fgB,bgB,maskS,patS,fgS,floorB){
+  const w=cols*8;
+  for(let row=0;row<rows;row++)for(let col=0;col<cols;col++){
+    const ci=row*cols+col,spr=maskS&&maskS[ci];
+    let fg=spr?fgS[ci]:fgB[ci], bg=(spr&&floorB[ci])?0:bgB[ci];
+    const pat=spr?patS:patB;
+    let inv=false,F,B;
+    if(showMono){inv=LUM[bg]>LUM[fg];F=AMBER;B=AMBER_OFF;}else{F=PAL[fg];B=PAL[bg];}
+    for(let r=0;r<8;r++){let bits=pat[ci*8+r];if(inv)bits^=255;
+      let o=((row*8+r)*w+col*8)*4;
+      for(let b=0;b<8;b++){const c=(bits&(0x80>>b))?F:B;d[o]=c[0];d[o+1]=c[1];d[o+2]=c[2];d[o+3]=255;o+=4;}}
+  }
+}
+const cv=document.getElementById("cv"),ctx=cv.getContext("2d");
+const off=document.createElement("canvas");off.width=W;off.height=H;const octx=off.getContext("2d");const img=octx.createImageData(W,H);
+function render(){
+  paintCells(img.data,COLS,ROWS,bgPat,bgFg,bgBg,sMask,sPat,sFg,bgFloor);
+  octx.putImageData(img,0,0);
+  ctx.imageSmoothingEnabled=false;
+  ctx.fillStyle="#000";ctx.fillRect(0,0,cv.width,cv.height);
+  ctx.drawImage(off,0,0,cv.width,cv.height);
+  const sx=cv.width/W,sy=cv.height/H;
+  if(showGrid){ctx.strokeStyle="rgba(255,255,255,.13)";ctx.lineWidth=1;ctx.beginPath();
+    for(let c=0;c<=COLS;c++){ctx.moveTo(c*8*sx+.5,0);ctx.lineTo(c*8*sx+.5,cv.height);}
+    for(let r=0;r<=ROWS;r++){ctx.moveTo(0,r*8*sy+.5);ctx.lineTo(cv.width,r*8*sy+.5);}ctx.stroke();}
+  if(showDyn){ctx.strokeStyle="#3ff";ctx.lineWidth=2;
+    for(let ci=0;ci<NC;ci++)if(sMask[ci]){const c=ci%COLS,r=(ci/COLS)|0;ctx.strokeRect(c*8*sx+1,r*8*sy+1,8*sx-2,8*sy-2);}}
+}
+const ro=document.getElementById("readout");
+function readout(){const{dyn,chg}=lastStats;const t=dyn*700+chg*160+7000;const pct=Math.round(t/67500*100);
+  ro.textContent=`Sprite cells composited: ${dyn} · tile cells changed: ${chg} · rough Z80 cost ≈ ${t.toLocaleString("en-AU")} T-states (${pct}% of a 50 Hz frame)`;}
+
+// ---------- animation bench: 3x3-cell mini screens ----------
+const BENCH=[
+  ["Idle: blink, look, tap",t=>({parts:wallyParts({pose:"idle",t:(t%400)+100,dir:"down"})})],
+  ["Walk down",t=>({parts:wallyParts({pose:"walk",anim:t,dir:"down"})})],
+  ["Walk right",t=>({parts:wallyParts({pose:"walk",anim:t,dir:"right"}),dx:(t>>1)%8})],
+  ["Walk up",t=>({parts:wallyParts({pose:"walk",anim:t,dir:"up"})})],
+  ["Place bomb",t=>({parts:wallyParts({pose:"place",t:t%40})})],
+  ["Startled",t=>({parts:wallyParts({pose:"startle",t:t%40})})],
+  ["Power-up",t=>({parts:wallyParts({pose:"collect",t:t%36})})],
+  ["Hurt",t=>({parts:wallyParts({pose:"hurt",t:t%40})})],
+  ["Victory dance",t=>({parts:wallyParts({pose:"win",t:t%64})})],
+  ["Burrowed",t=>({parts:wallyParts({pose:"burrow"})})],
+  ["Toad hop",t=>{const c=t%40;const hop=c<16;const bob=hop?-Math.round(Math.sin(c/16*Math.PI)*5):0;return {parts:[{bm:(!hop&&c>34)?TOAD_SQ:TOAD,dx:0,dy:bob,c1:6,c2:2,maxRow:16}]};}],
+  ["Frill-neck charge",t=>{const ch=(t%80)>40;return {parts:[{bm:(ch?FRILL.open:FRILL.shut)[(t>>(ch?2:3))&1],dx:0,dy:0,c1:ch?13:12,c2:10,maxRow:16}]};}],
+  ["Bin chicken thief",t=>({parts:[{bm:IBIS_L[(t>>3)&1],dx:0,dy:0,c1:8,c2:(t%120)>60?14:15,maxRow:16}]})],
+];
+const benchEl=document.getElementById("bench"),benchC=[];
+for(const[name]of BENCH){const f=document.createElement("figure");const c=document.createElement("canvas");c.width=24;c.height=24;const cap=document.createElement("figcaption");cap.textContent=name;f.append(c,cap);benchEl.append(f);benchC.push(c.getContext("2d"));}
+const bPat=new Uint8Array(9*8),bFg=new Uint8Array(9).fill(7),bBg=new Uint8Array(9),bFl=new Uint8Array(9).fill(1),bsPat=new Uint8Array(9*8),bsMask=new Uint8Array(9),bsFg=new Uint8Array(9),bsVote=new Uint16Array(9*16);
+const bImg=new ImageData(24,24);
+function renderBench(t){
+  BENCH.forEach(([,fn],i)=>{const r=fn(t);bsMask.fill(0);
+    for(const p of r.parts)drawSprite(p.bm,(r.dx!==undefined?r.dx:4)+p.dx,6+p.dy,p.c1,p.c2,p.maxRow,3,3,bsPat,bsMask,bsVote);
+    for(let ci=0;ci<9;ci++)if(bsMask[ci]){let best=0,bc=7;for(let k=0;k<16;k++)if(bsVote[ci*16+k]>best){best=bsVote[ci*16+k];bc=k;}bsFg[ci]=bc;}
+    paintCells(bImg.data,3,3,bPat,bFg,bBg,bsMask,bsPat,bsFg,bFl);
+    benchC[i].putImageData(bImg,0,0);});
+}
+
+// ---------- loop ----------
+G=newStage(1,false);
+let acc=0,last=performance.now(),rcount=0,bt=0;
+function frame(now){acc+=Math.min(now-last,100);last=now;
+  while(acc>=20){update();acc-=20;bt++;}
+  compose();render();renderBench(bt);if(++rcount%10===0)readout();
+  requestAnimationFrame(frame);}
+requestAnimationFrame(frame);
+
+// ---------- input ----------
+const scr=document.getElementById("screen"),tip=document.getElementById("tip");
+let focused=false;
+scr.addEventListener("focus",()=>{focused=true;tip.hidden=true;});
+scr.addEventListener("blur",()=>{focused=false;tip.hidden=false;for(const k in K)K[k]=0;held=[];buffered=null;});
+scr.addEventListener("pointerdown",()=>scr.focus());
+const KM={ArrowUp:"up",KeyW:"up",ArrowDown:"down",KeyS:"down",ArrowLeft:"left",KeyA:"left",ArrowRight:"right",KeyD:"right",Space:"bomb",KeyX:"boom",KeyB:"boom"};
+window.addEventListener("keydown",e=>{if(!focused)return;if(e.code==="KeyR"){G=newStage(G.seed,false);return;}const k=KM[e.code];if(k){if(!e.repeat)press(k);e.preventDefault();}});
+window.addEventListener("keyup",e=>{const k=KM[e.code];if(k){release(k);if(focused)e.preventDefault();}});
+document.querySelectorAll(".pad button").forEach(b=>{const k=b.dataset.k;
+  const on=e=>{e.preventDefault();press(k);tip.hidden=true;try{b.setPointerCapture(e.pointerId);}catch(_){}};
+  const offf=e=>{e.preventDefault();if(K[k])release(k);};
+  b.addEventListener("pointerdown",on);b.addEventListener("pointerup",offf);b.addEventListener("pointercancel",offf);b.addEventListener("lostpointercapture",offf);
+  b.addEventListener("contextmenu",e=>e.preventDefault());});
+function tog(id,fn){const b=document.getElementById(id);b.addEventListener("click",()=>{const v=b.getAttribute("aria-pressed")!=="true";b.setAttribute("aria-pressed",String(v));fn(v);});}
+tog("tPrev",v=>preview=v);tog("tMono",v=>showMono=v);tog("tGrid",v=>showGrid=v);tog("tDyn",v=>showDyn=v);
+tog("tSnd",v=>{sound=v;if(v&&!AC){try{AC=new (window.AudioContext||window.webkitAudioContext)();}catch(_){sound=false;}}if(AC&&AC.state==="suspended")AC.resume();if(v)blip(660,0.08);});
+})();
+</script>

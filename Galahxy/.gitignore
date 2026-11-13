@@ -1,0 +1,6 @@
+build/
+emu/vzemu
+crash*.txt
+crashmem.bin
+watch.txt
+tools/__pycache__/

@@ -1,0 +1,800 @@
+mapper 1
+crash 1
+sd build/sd
+vz build/sd/ZEPHYR.VZ
+frames 120
+down SPACE
+frames 6
+up SPACE
+frames 30
+poke ABFE 00
+poke ABFF 0D
+frames 250
+bp 9A05
+bplog build/bp6.txt
+poke AC09 04
+down SPACE
+rand 10 1
+poke AC09 04
+down SPACE
+rand 10 2
+poke AC09 04
+down SPACE
+rand 10 3
+poke AC09 04
+down SPACE
+rand 10 4
+poke AC09 04
+down SPACE
+rand 10 5
+poke AC09 04
+down SPACE
+rand 10 6
+poke AC09 04
+down SPACE
+rand 10 7
+poke AC09 04
+down SPACE
+rand 10 8
+poke AC09 04
+down SPACE
+rand 10 9
+poke AC09 04
+down SPACE
+rand 10 10
+poke AC09 04
+down SPACE
+rand 10 11
+poke AC09 04
+down SPACE
+rand 10 12
+poke AC09 04
+down SPACE
+rand 10 13
+poke AC09 04
+down SPACE
+rand 10 14
+poke AC09 04
+down SPACE
+rand 10 15
+poke AC09 04
+down SPACE
+rand 10 16
+poke AC09 04
+down SPACE
+rand 10 17
+poke AC09 04
+down SPACE
+rand 10 18
+poke AC09 04
+down SPACE
+rand 10 19
+poke AC09 04
+down SPACE
+rand 10 20
+poke AC09 04
+down SPACE
+rand 10 21
+poke AC09 04
+down SPACE
+rand 10 22
+poke AC09 04
+down SPACE
+rand 10 23
+poke AC09 04
+down SPACE
+rand 10 24
+poke AC09 04
+down SPACE
+rand 10 25
+poke AC09 04
+down SPACE
+rand 10 26
+poke AC09 04
+down SPACE
+rand 10 27
+poke AC09 04
+down SPACE
+rand 10 28
+poke AC09 04
+down SPACE
+rand 10 29
+poke AC09 04
+down SPACE
+rand 10 30
+poke AC09 04
+down SPACE
+rand 10 31
+poke AC09 04
+down SPACE
+rand 10 32
+poke AC09 04
+down SPACE
+rand 10 33
+poke AC09 04
+down SPACE
+rand 10 34
+poke AC09 04
+down SPACE
+rand 10 35
+poke AC09 04
+down SPACE
+rand 10 36
+poke AC09 04
+down SPACE
+rand 10 37
+poke AC09 04
+down SPACE
+rand 10 38
+poke AC09 04
+down SPACE
+rand 10 39
+poke AC09 04
+down SPACE
+rand 10 40
+poke AC09 04
+down SPACE
+rand 10 41
+poke AC09 04
+down SPACE
+rand 10 42
+poke AC09 04
+down SPACE
+rand 10 43
+poke AC09 04
+down SPACE
+rand 10 44
+poke AC09 04
+down SPACE
+rand 10 45
+poke AC09 04
+down SPACE
+rand 10 46
+poke AC09 04
+down SPACE
+rand 10 47
+poke AC09 04
+down SPACE
+rand 10 48
+poke AC09 04
+down SPACE
+rand 10 49
+poke AC09 04
+down SPACE
+rand 10 50
+poke AC09 04
+down SPACE
+rand 10 51
+poke AC09 04
+down SPACE
+rand 10 52
+poke AC09 04
+down SPACE
+rand 10 53
+poke AC09 04
+down SPACE
+rand 10 54
+poke AC09 04
+down SPACE
+rand 10 55
+poke AC09 04
+down SPACE
+rand 10 56
+poke AC09 04
+down SPACE
+rand 10 57
+poke AC09 04
+down SPACE
+rand 10 58
+poke AC09 04
+down SPACE
+rand 10 59
+poke AC09 04
+down SPACE
+rand 10 60
+poke AC09 04
+down SPACE
+rand 10 61
+poke AC09 04
+down SPACE
+rand 10 62
+poke AC09 04
+down SPACE
+rand 10 63
+poke AC09 04
+down SPACE
+rand 10 64
+poke AC09 04
+down SPACE
+rand 10 65
+poke AC09 04
+down SPACE
+rand 10 66
+poke AC09 04
+down SPACE
+rand 10 67
+poke AC09 04
+down SPACE
+rand 10 68
+poke AC09 04
+down SPACE
+rand 10 69
+poke AC09 04
+down SPACE
+rand 10 70
+poke AC09 04
+down SPACE
+rand 10 71
+poke AC09 04
+down SPACE
+rand 10 72
+poke AC09 04
+down SPACE
+rand 10 73
+poke AC09 04
+down SPACE
+rand 10 74
+poke AC09 04
+down SPACE
+rand 10 75
+poke AC09 04
+down SPACE
+rand 10 76
+poke AC09 04
+down SPACE
+rand 10 77
+poke AC09 04
+down SPACE
+rand 10 78
+poke AC09 04
+down SPACE
+rand 10 79
+poke AC09 04
+down SPACE
+rand 10 80
+poke AC09 04
+down SPACE
+rand 10 81
+poke AC09 04
+down SPACE
+rand 10 82
+poke AC09 04
+down SPACE
+rand 10 83
+poke AC09 04
+down SPACE
+rand 10 84
+poke AC09 04
+down SPACE
+rand 10 85
+poke AC09 04
+down SPACE
+rand 10 86
+poke AC09 04
+down SPACE
+rand 10 87
+poke AC09 04
+down SPACE
+rand 10 88
+poke AC09 04
+down SPACE
+rand 10 89
+poke AC09 04
+down SPACE
+rand 10 90
+poke AC09 04
+down SPACE
+rand 10 91
+poke AC09 04
+down SPACE
+rand 10 92
+poke AC09 04
+down SPACE
+rand 10 93
+poke AC09 04
+down SPACE
+rand 10 94
+poke AC09 04
+down SPACE
+rand 10 95
+poke AC09 04
+down SPACE
+rand 10 96
+poke AC09 04
+down SPACE
+rand 10 97
+poke AC09 04
+down SPACE
+rand 10 98
+poke AC09 04
+down SPACE
+rand 10 99
+poke AC09 04
+down SPACE
+rand 10 100
+poke AC09 04
+down SPACE
+rand 10 101
+poke AC09 04
+down SPACE
+rand 10 102
+poke AC09 04
+down SPACE
+rand 10 103
+poke AC09 04
+down SPACE
+rand 10 104
+poke AC09 04
+down SPACE
+rand 10 105
+poke AC09 04
+down SPACE
+rand 10 106
+poke AC09 04
+down SPACE
+rand 10 107
+poke AC09 04
+down SPACE
+rand 10 108
+poke AC09 04
+down SPACE
+rand 10 109
+poke AC09 04
+down SPACE
+rand 10 110
+poke AC09 04
+down SPACE
+rand 10 111
+poke AC09 04
+down SPACE
+rand 10 112
+poke AC09 04
+down SPACE
+rand 10 113
+poke AC09 04
+down SPACE
+rand 10 114
+poke AC09 04
+down SPACE
+rand 10 115
+poke AC09 04
+down SPACE
+rand 10 116
+poke AC09 04
+down SPACE
+rand 10 117
+poke AC09 04
+down SPACE
+rand 10 118
+poke AC09 04
+down SPACE
+rand 10 119
+poke AC09 04
+down SPACE
+rand 10 120
+poke AC09 04
+down SPACE
+rand 10 121
+poke AC09 04
+down SPACE
+rand 10 122
+poke AC09 04
+down SPACE
+rand 10 123
+poke AC09 04
+down SPACE
+rand 10 124
+poke AC09 04
+down SPACE
+rand 10 125
+poke AC09 04
+down SPACE
+rand 10 126
+poke AC09 04
+down SPACE
+rand 10 127
+poke AC09 04
+down SPACE
+rand 10 128
+poke AC09 04
+down SPACE
+rand 10 129
+poke AC09 04
+down SPACE
+rand 10 130
+poke AC09 04
+down SPACE
+rand 10 131
+poke AC09 04
+down SPACE
+rand 10 132
+poke AC09 04
+down SPACE
+rand 10 133
+poke AC09 04
+down SPACE
+rand 10 134
+poke AC09 04
+down SPACE
+rand 10 135
+poke AC09 04
+down SPACE
+rand 10 136
+poke AC09 04
+down SPACE
+rand 10 137
+poke AC09 04
+down SPACE
+rand 10 138
+poke AC09 04
+down SPACE
+rand 10 139
+poke AC09 04
+down SPACE
+rand 10 140
+poke AC09 04
+down SPACE
+rand 10 141
+poke AC09 04
+down SPACE
+rand 10 142
+poke AC09 04
+down SPACE
+rand 10 143
+poke AC09 04
+down SPACE
+rand 10 144
+poke AC09 04
+down SPACE
+rand 10 145
+poke AC09 04
+down SPACE
+rand 10 146
+poke AC09 04
+down SPACE
+rand 10 147
+poke AC09 04
+down SPACE
+rand 10 148
+poke AC09 04
+down SPACE
+rand 10 149
+poke AC09 04
+down SPACE
+rand 10 150
+poke AC09 04
+down SPACE
+rand 10 151
+poke AC09 04
+down SPACE
+rand 10 152
+poke AC09 04
+down SPACE
+rand 10 153
+poke AC09 04
+down SPACE
+rand 10 154
+poke AC09 04
+down SPACE
+rand 10 155
+poke AC09 04
+down SPACE
+rand 10 156
+poke AC09 04
+down SPACE
+rand 10 157
+poke AC09 04
+down SPACE
+rand 10 158
+poke AC09 04
+down SPACE
+rand 10 159
+poke AC09 04
+down SPACE
+rand 10 160
+poke AC09 04
+down SPACE
+rand 10 161
+poke AC09 04
+down SPACE
+rand 10 162
+poke AC09 04
+down SPACE
+rand 10 163
+poke AC09 04
+down SPACE
+rand 10 164
+poke AC09 04
+down SPACE
+rand 10 165
+poke AC09 04
+down SPACE
+rand 10 166
+poke AC09 04
+down SPACE
+rand 10 167
+poke AC09 04
+down SPACE
+rand 10 168
+poke AC09 04
+down SPACE
+rand 10 169
+poke AC09 04
+down SPACE
+rand 10 170
+poke AC09 04
+down SPACE
+rand 10 171
+poke AC09 04
+down SPACE
+rand 10 172
+poke AC09 04
+down SPACE
+rand 10 173
+poke AC09 04
+down SPACE
+rand 10 174
+poke AC09 04
+down SPACE
+rand 10 175
+poke AC09 04
+down SPACE
+rand 10 176
+poke AC09 04
+down SPACE
+rand 10 177
+poke AC09 04
+down SPACE
+rand 10 178
+poke AC09 04
+down SPACE
+rand 10 179
+poke AC09 04
+down SPACE
+rand 10 180
+poke AC09 04
+down SPACE
+rand 10 181
+poke AC09 04
+down SPACE
+rand 10 182
+poke AC09 04
+down SPACE
+rand 10 183
+poke AC09 04
+down SPACE
+rand 10 184
+poke AC09 04
+down SPACE
+rand 10 185
+poke AC09 04
+down SPACE
+rand 10 186
+poke AC09 04
+down SPACE
+rand 10 187
+poke AC09 04
+down SPACE
+rand 10 188
+poke AC09 04
+down SPACE
+rand 10 189
+poke AC09 04
+down SPACE
+rand 10 190
+poke AC09 04
+down SPACE
+rand 10 191
+poke AC09 04
+down SPACE
+rand 10 192
+poke AC09 04
+down SPACE
+rand 10 193
+poke AC09 04
+down SPACE
+rand 10 194
+poke AC09 04
+down SPACE
+rand 10 195
+poke AC09 04
+down SPACE
+rand 10 196
+poke AC09 04
+down SPACE
+rand 10 197
+poke AC09 04
+down SPACE
+rand 10 198
+poke AC09 04
+down SPACE
+rand 10 199
+poke AC09 04
+down SPACE
+rand 10 200
+poke AC09 04
+down SPACE
+rand 10 201
+poke AC09 04
+down SPACE
+rand 10 202
+poke AC09 04
+down SPACE
+rand 10 203
+poke AC09 04
+down SPACE
+rand 10 204
+poke AC09 04
+down SPACE
+rand 10 205
+poke AC09 04
+down SPACE
+rand 10 206
+poke AC09 04
+down SPACE
+rand 10 207
+poke AC09 04
+down SPACE
+rand 10 208
+poke AC09 04
+down SPACE
+rand 10 209
+poke AC09 04
+down SPACE
+rand 10 210
+poke AC09 04
+down SPACE
+rand 10 211
+poke AC09 04
+down SPACE
+rand 10 212
+poke AC09 04
+down SPACE
+rand 10 213
+poke AC09 04
+down SPACE
+rand 10 214
+poke AC09 04
+down SPACE
+rand 10 215
+poke AC09 04
+down SPACE
+rand 10 216
+poke AC09 04
+down SPACE
+rand 10 217
+poke AC09 04
+down SPACE
+rand 10 218
+poke AC09 04
+down SPACE
+rand 10 219
+poke AC09 04
+down SPACE
+rand 10 220
+poke AC09 04
+down SPACE
+rand 10 221
+poke AC09 04
+down SPACE
+rand 10 222
+poke AC09 04
+down SPACE
+rand 10 223
+poke AC09 04
+down SPACE
+rand 10 224
+poke AC09 04
+down SPACE
+rand 10 225
+poke AC09 04
+down SPACE
+rand 10 226
+poke AC09 04
+down SPACE
+rand 10 227
+poke AC09 04
+down SPACE
+rand 10 228
+poke AC09 04
+down SPACE
+rand 10 229
+poke AC09 04
+down SPACE
+rand 10 230
+poke AC09 04
+down SPACE
+rand 10 231
+poke AC09 04
+down SPACE
+rand 10 232
+poke AC09 04
+down SPACE
+rand 10 233
+poke AC09 04
+down SPACE
+rand 10 234
+poke AC09 04
+down SPACE
+rand 10 235
+poke AC09 04
+down SPACE
+rand 10 236
+poke AC09 04
+down SPACE
+rand 10 237
+poke AC09 04
+down SPACE
+rand 10 238
+poke AC09 04
+down SPACE
+rand 10 239
+poke AC09 04
+down SPACE
+rand 10 240
+poke AC09 04
+down SPACE
+rand 10 241
+poke AC09 04
+down SPACE
+rand 10 242
+poke AC09 04
+down SPACE
+rand 10 243
+poke AC09 04
+down SPACE
+rand 10 244
+poke AC09 04
+down SPACE
+rand 10 245
+poke AC09 04
+down SPACE
+rand 10 246
+poke AC09 04
+down SPACE
+rand 10 247
+poke AC09 04
+down SPACE
+rand 10 248
+poke AC09 04
+down SPACE
+rand 10 249
+poke AC09 04
+down SPACE
+rand 10 250
+poke AC09 04
+down SPACE
+rand 10 251
+poke AC09 04
+down SPACE
+rand 10 252
+poke AC09 04
+down SPACE
+rand 10 253
+poke AC09 04
+down SPACE
+rand 10 254
+poke AC09 04
+down SPACE
+rand 10 255
+poke AC09 04
+down SPACE
+rand 10 256
+poke AC09 04
+down SPACE
+rand 10 257
+poke AC09 04
+down SPACE
+rand 10 258
+poke AC09 04
+down SPACE
+rand 10 259
+poke AC09 04
+down SPACE
+rand 10 260
+screen build/bb1.ppm
+frames 50
+screen build/bb2.ppm
+frames 120
+screen build/bb3.ppm
+dump build/bm.bin

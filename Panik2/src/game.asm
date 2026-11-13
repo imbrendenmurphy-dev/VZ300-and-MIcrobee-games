@@ -2665,7 +2665,37 @@ popup_add:
         cp 27
         jr c,.cc
         ld b,26
-.cc:    ld hl,popups
+.cc:    ; don't overlap a pop-up already showing: move up a line instead
+        ld hl,popups
+        ld d,4
+.ov:    ld a,(hl)
+        cp $FF
+        jr z,.on
+        sub b                   ; |col - b| < 5 ?
+        jr nc,.o1
+        neg
+.o1:    cp 5
+        jr nc,.on
+        inc hl
+        ld a,(hl)
+        dec hl
+        sub c                   ; |row - c| < 6 ?
+        jr nc,.o2
+        neg
+.o2:    cp 6
+        jr nc,.on
+        ld a,c
+        sub 6
+        cp 6
+        jr c,.on
+        ld c,a
+.on:    inc hl
+        inc hl
+        inc hl
+        inc hl
+        dec d
+        jr nz,.ov
+        ld hl,popups
         ld d,4
 .f:     ld a,(hl)
         cp $FF
@@ -2855,7 +2885,7 @@ update_particles:
         ld a,l
         sub drawlist&255
         pop hl
-        cp 5*10
+        cp 5*8
         jr nc,.d
         ld a,c
         cp 6

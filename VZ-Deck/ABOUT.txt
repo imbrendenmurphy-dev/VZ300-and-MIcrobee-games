@@ -1,0 +1,128 @@
+VZ-DECK 0.9
+A boot-time file browser, launcher and music player
+for the Dick Smith VZ300 / VZ200 with the BennVenn SD loader + 128K
+
+VIBED BY BPM 2026
+
+
+WHAT IT IS
+----------
+Switch on your VZ and VZ-DECK comes up instead of BASIC. It's a full-screen file browser
+for your SD card in the spirit of XTree Gold: go through your folders, see every file's
+size and date, and press RETURN to run a game. Your games can live in folders of their
+own, with all their DAT files beside them.
+
+It's also a music player. MIDI and MOD files play straight from the card through the VZ's
+1-bit speaker, as three square-wave voices plus drums, with live visualisers. Plug-in
+players add ProTracker 3, AY register dumps, Scream Tracker 3, FastTracker 2 and SN76489
+VGM music.
+
+
+FEATURES
+--------
+Browser
+ - Folders first, then files in name order, with size and date (DD-MM-YY)
+ - Colour icons: yellow folder, red .VZ, cyan .DAT, magenta music
+ - The bottom line shows the highlighted .VZ file's own title, type and load address
+ - Up to 250 entries per folder; page up / page down; held keys repeat
+ - Works from the keyboard or joystick 1
+ - Going back out of a folder leaves the cursor on the folder you came from
+ - B drops to BASIC, C to the DOS command line
+ - Holding B or SPACE at power-on skips VZ-DECK (plain BASIC / DOS command line)
+
+Music
+ - MIDI (.MID): any size. Up to about 24K loads whole; bigger files stream from the card
+ - MOD (.MOD): 15- and 31-instrument ProTracker modules, any length (only the note data is read)
+ - PT3 (.PT3): ProTracker 3 / Vortex Tracker II, up to about 17K   [PLAYPT3.VZ]
+ - PSG (.PSG): AY register dumps, any size, streamed               [PLAYPSG.VZ]
+ - S3M (.S3M): Scream Tracker 3, up to 32 channels, streamed       [PLAYS3M.VZ]
+ - XM  (.XM):  FastTracker 2, 32 channels heard, streamed          [PLAYXM.VZ]
+ - VGM (.VGM): SN76489 music (Master System, Game Gear, BBC Micro,
+               ColecoVision...), streamed                          [PLAYVGM.VZ]
+ - Drums: kick, snare and hat noise bursts, picked from MIDI drum notes, MOD/S3M/XM
+   instrument names, or AY / SN76489 noise
+ - Pitch and tempo are corrected for each output's timing
+
+Visualisers (V)
+ - Bars: a level bar and the current note for each voice
+ - Scope: three scrolling waveform strips
+ - Piano roll: notes scroll up over a C2-C7 keyboard ruler
+ - Tracker view (MOD, PT3, S3M, XM): the notes of each row as it plays
+ - Live chip registers (PSG: AY registers; VGM: SN76489 tone and attenuation)
+ - Visuals off: draws nothing, so the sound loop gets all of the VZ's time
+ - Keys while playing: V view, T theme, SPACE pause, RETURN or fire stop
+
+Sound outputs (O in the browser, with a test beep)
+ - Speaker: the VZ's own speaker
+ - Cassette port: cassette out, both cassette bits together, into headphones or an amplifier
+ - Speaker + cassette: both at once
+ - Printer port: OUT (14),A, data bits 0 and 5   ** not yet tested on real hardware **
+
+Colour themes (T)
+ - Light green, dark green, light red (the VZ's orange screen) and dark red
+ - Works in the browser and every player, and lasts until power-off
+ - The screen goes back to the normal green when you leave for BASIC, the DOS or a game
+
+Plug-ins
+ - Any file called PLAYxxx.VZ in the root folder plays files ending in .xxx, so new
+   formats can be added without changing VZ-DECK
+ - The plug-ins share the browser's sound output, colour theme and last chosen view
+
+
+TECH SPECS
+----------
+Needs:        VZ300 or VZ200 with the BennVenn SD loader + 128K, running VZDOS 2.32
+CPU:          Z80 at 3.5469 MHz, all in Z80 assembly
+Sound engine: three square-wave voices with pulse width as volume, mixed in software
+              on the 1-bit output. 188 T-states per pass for MIDI and MOD; the plug-ins
+              lock to the 50 Hz video frame (70,630 T-states per frame)
+Screen:       32 x 16 text with semigraphics (MC6847), no graphics mode needed
+Card access:  through VZDOS's own routines: FAT folders, cluster chains, 512-byte sectors
+
+File sizes:   SHELL.VZ    8,611 bytes   browser + MIDI/MOD player + views
+              PLAYPT3.VZ  4,684 bytes
+              PLAYPSG.VZ  3,644 bytes
+              PLAYS3M.VZ  5,130 bytes
+              PLAYXM.VZ   5,369 bytes
+              PLAYVGM.VZ  4,605 bytes
+              VZDOS.VZ    8,092 bytes   VZDOS 2.32 with the boot patch
+
+Memory map:
+  $4000-$5FFF  VZDOS (in the card's RAM); boot patch stub at $5BBA
+  $6000-$67FF  VZ-DECK player code (MIDI/MOD engine and views), 2K
+  $7000-$71FF  screen
+  $7C00-$7FBF  VZ-DECK variables (kept while a plug-in runs)
+  $7FC0-$7FDF  hand-over block for plug-ins (file, output, view, theme)
+  $8000-$99A0  VZ-DECK browser and player, about 6.5K
+  $9A00-$F7FF  folder list, MIDI/MOD buffers, or a plug-in loaded at $A000
+  $F800-$FFFF  DOS buffers and stack
+
+Plug-in memory (code + variables + file buffer, all inside $A000-$F7FF):
+  PT3  $A000-$B316 code and variables, 17K buffer for the whole song
+  PSG  $A000-$AE97, 18K streaming buffer
+  S3M  $A000-$DF1B (includes an 8K pattern buffer), 6K streaming buffer
+  XM   $A000-$F3CC (includes a 12K pattern buffer)
+  VGM  $A000-$B7A2, 16K streaming buffer
+Streamed formats (S3M, XM, VGM) can read files up to 255 card clusters long
+(about 1 MB on a card with 4K clusters).
+
+
+INSTALLING
+----------
+Copy everything in this zip's SD folder to the ROOT of your SD card (keep a copy of your
+original VZDOS.VZ first). Switch on. To go back to the normal loader, delete VZDOS.VZ from
+the card, or put your original one back.
+
+A game of your own can return to VZ-DECK with:
+        XOR A
+        OUT (37h),A     ; card back to its built-in BIOS
+        JP 0            ; restart: VZDOS and VZ-DECK reload
+
+
+CREDITS
+-------
+VZDOS and the SD loader are by Ben Grimmett (BennVenn). The VZDOS.VZ included here is his
+VZDOS version 2.32 with only the one-jump boot patch, shared with his kind permission.
+
+VZ-DECK: VIBED BY BPM 2026
+Source code: https://github.com/imbrendenmurphy-dev/VZ300-and-MIcrobee-games (VZ-Deck folder)

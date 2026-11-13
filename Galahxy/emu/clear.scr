@@ -1,0 +1,35 @@
+mapper 1
+crash 1
+okpc 8000 A9AE
+okpc B800 E3FF
+okpc E400 F49F
+okpc 0038 003A
+okpc 7D7D 7D7F
+okpc 5F00 5F0A
+sd build/sd
+vz build/sd/GALAHXY.VZ
+watch AC70
+watch AD88
+frames 1000
+poke AD6D 1
+poke AD46 60
+frames 4000
+poke AD46 60
+frames 4400
+poke AD46 60
+frames 300
+poke AD36 3
+frames 600
+poke ABB5 0
+frames 200
+screen build/shots/c1.ppm
+frames 150
+screen build/shots/c2.ppm
+frames 250
+screen build/shots/c3.ppm
+frames 300
+screen build/shots/c4.ppm
+frames 300
+screen build/shots/c5.ppm
+frames 300
+screen build/shots/c6.ppm

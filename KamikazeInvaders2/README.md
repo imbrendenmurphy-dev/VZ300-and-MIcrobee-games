@@ -9,6 +9,8 @@ ViBED by BPM 2026. Original code, graphics and music. Nothing from the original 
 
 ![screens](screenshots/KAMI2_screens.png)
 
+**Release package:** [BLURB.md](BLURB.md) · [showcase GIF](showcase/showcase.gif) · [gameplay screenshots](screenshots/gameplay/) · [attract and info screens](screenshots/info/). Regenerate them with `python3 tools/release_media.py` after building.
+
 ## Play it
 
 Copy `release/KAMI2.VZ` to the SD card and load it from the BennVenn SD loader. It's a type F1 binary that loads at $8000 (to $C47F) and runs from $8000. It needs the **BennVenn 128K** RAM expansion (RAM up to $FFFF).
@@ -169,3 +171,12 @@ The loading method and memory use match builds that already work on your VZ300 (
 ## About the original
 
 *KAMIKAZE INVADERS* was published on tape for the VZ200 by Dick Smith Electronics. It has no licence that allows redistribution, so neither the original program nor any of its graphics or code is included here. The sequel was written from scratch after playing it in the emulator.
+
+## Sound-effect fix (8 November 2026)
+
+The sound-effect table had 9 bytes per entry, but the code that plays an effect looks entries up 8 bytes apart. So every effect after the first one played the wrong values, and some came out as long, chirpy, lingering sweeps. The table now has 8-byte entries, so every effect plays as designed. Every effect plays at its original length, including the warbly bonus and power-up sounds. Nothing else changed.
+
+## Versions
+
+- **v1.0.1** (includes the 8 November sound-effect fix): the ship (and any 8-pixel sprite) no longer vanishes when pushed hard against the right edge. Sprites partly past the last screen column are now drawn clipped rather than skipped.
+- **v1.0:** first release.
