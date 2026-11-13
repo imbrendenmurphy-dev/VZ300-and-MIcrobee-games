@@ -1,6 +1,8 @@
 ; Native title and animated bestiary; gameplay returns through native_leave.
 title_screen:
             ld sp,STACK_TOP
+            xor a
+            ld (attract_on),a
             ld a,MUS_TITLE
             call play_music
             call native_enter
@@ -182,3 +184,23 @@ native_sound_off: db "N:MUSIC OFF",0
 native_tone_soft: db "-/+ SOFT  C:COLOUR M:MONO",0
 native_tone_vz: db "-/+ VZ    C:COLOUR M:MONO",0
 native_no_save: db "NO CHECKPOINT - START A NEW GAME",0
+
+; Attract sequence: a short, quiet D-minor phrase as each slide opens (the
+; title tune is stopped for the sequence, since slide loads broke it up).
+attract_jingle:
+            ld a,(attract_on)
+            or a
+            ret z
+            push bc
+            push de
+            push hl
+            ld hl,song_jingle
+            call play_song
+            pop hl
+            pop de
+            pop bc
+            ret
+song_jingle: dw jingle_c0,jingle_c1,jingle_c2
+jingle_c0:  db $80,$65,34,39,42,$6B,41,$77,39,$FF
+jingle_c1:  db $82,$91,54,27,$FF
+jingle_c2:  db $FF

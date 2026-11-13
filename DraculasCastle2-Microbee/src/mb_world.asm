@@ -1626,6 +1626,9 @@ world_symbol:
             jp mb_bank
 
 world_stats:
+            ld a,(attract_on)
+            or a
+            ret nz
             ld a,9
             ld (world_barfull),a
             ld a,(maxhp)
@@ -1678,6 +1681,9 @@ world_cinema:
             xor a
             ld (native_frame),a
 .pose:      call native_group_show
+            ld a,(native_frame)
+            or a
+            call z,attract_jingle
             ld b,12
             call wait_frames
             call read_input
@@ -1723,6 +1729,6 @@ world_icons: ds 36
 page_tag_map: ds 1
 page_tag_story: ds 1
 maze_cached: ds 1
-            assert $ <= $E400
+            assert $ <= $E3C0
             emit
             org world_code_end

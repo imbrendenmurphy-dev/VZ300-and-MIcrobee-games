@@ -298,6 +298,17 @@ Measured in the emulator on a one-hit skeleton fight with the keys mashed:
   and his attack in battle) had two little "rattle" motion lines; the right
   one was hidden by his sword, so the left one floated alone in the sky like
   a stray character. Both are gone.
+- **Attract sequence.** The castle tour slides showed two rows of little
+  boxes under the area name: the empty HP and MP bars from the exploration
+  panel, drawn on top of the name's lower half. The tour no longer draws them.
+- **Attract music.** Loading each slide kept interrupting the title tune, so
+  the tune now stops when the attract sequence starts. Each story, tour and
+  Ghoul Gallery slide opens with a short, quiet phrase in D minor (about a
+  second), and the title tune comes back with the title screen. N still mutes
+  it.
+- **Memory fix.** The map's symbol table (added in the sixth pass) overlapped
+  the monster animation settings in RAM, so opening the map could upset the
+  Ghost's animation and the reverse. The animation settings have moved clear.
 
 ## Known limits
 

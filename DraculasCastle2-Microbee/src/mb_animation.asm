@@ -180,13 +180,14 @@ native_anim_fast:
 
 native_anim_end:
             noemit
-            org $E3A0
+            org $E3C0           ; clear of the world variables ($E380-$E3BF)
 native_anim_enabled: ds 1
 native_anim_phase: ds 1
 native_anim_cached: ds 1
 native_copy_to: ds 1
 native_anim_loading: ds 1
 native_anim_load_tick: ds 1
+attract_on: ds 1
             assert $ <= $E400
             emit
             org native_anim_end

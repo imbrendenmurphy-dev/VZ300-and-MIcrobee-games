@@ -82,6 +82,18 @@ def generate():
                         'text_page:\n            push hl\n            ld a,$AA\n            call cls_back\n            ld a,1\n            ld (world_flow),a\n',1)
             s=s.replace('            ld a,MUS_ENDING\n            call play_music\n            ld a,$AA\n            call cls_back\n',
                         '            ld a,MUS_ENDING\n            call play_music\n            ld a,$AA\n            call cls_back\n            ld a,1\n            ld (world_flow),a\n',1)
+            # The tour caption sits on the plain black native panel; the VZ's
+            # $AA (blue) back-buffer fill showed through as rows of boxes.
+            s=s.replace("            ld (area_door_kind),a\n            ld a,$AA\n            call cls_back\n            call render_view\n",
+                        "            ld (area_door_kind),a\n            xor a\n            call cls_back\n            call render_view\n",1)
+            # Attract sequence: the title tune stops (slide loads broke it up)
+            # and each slide opens with a short, quiet jingle instead.
+            s=s.replace('attract:\n            ld hl,story1\n',
+                        'attract:\n            ld a,1\n            ld (attract_on),a\n            call stop_song\n'
+                        '            call attract_run\n            push af\n            xor a\n            ld (attract_on),a\n'
+                        '            call stop_song\n            pop af\n            ret\n'
+                        'attract_run:\n            ld hl,story1\n',1)
+            s=s.replace('attract_wait:\n.w:','attract_wait:\n            call attract_jingle\n.w:',1)
         if p.name == 'text.asm':
             # Text lives in the native text layer. The VZ 3x5 glyph plot into the
             # unseen back buffer (and its font table) is dropped: less work per

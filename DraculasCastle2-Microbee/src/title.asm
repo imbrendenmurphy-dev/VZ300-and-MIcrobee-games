@@ -69,6 +69,17 @@ story2:     db 2,3,"         YOUR QUEST",1,1,2,1
 ; attract sequence: story + location tour + monster gallery
 ; ---------------------------------------------------------------------------
 attract:
+            ld a,1
+            ld (attract_on),a
+            call stop_song
+            call attract_run
+            push af
+            xor a
+            ld (attract_on),a
+            call stop_song
+            pop af
+            ret
+attract_run:
             ld hl,story1
             call attract_page
             ret nz
@@ -137,7 +148,7 @@ tour_view:
             inc hl
             ld a,(hl)
             ld (area_door_kind),a
-            ld a,$AA
+            xor a
             call cls_back
             call render_view
             ; caption on the right
@@ -188,6 +199,7 @@ attract_page:
             ld b,200
 ; wait B frames; NZ if any key
 attract_wait:
+            call attract_jingle
 .w:         push bc
             call wait_frame
             call read_input
