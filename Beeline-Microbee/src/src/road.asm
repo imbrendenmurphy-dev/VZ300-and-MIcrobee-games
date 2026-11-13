@@ -450,42 +450,10 @@ bounds_at:
 ; --------------------------------------------------------------------------
 P_regions:
 build_regions:
-        ; ---------- kerb merge state: bit0 left kerb < 1 cell, bit1 right
-        ld c,0
-        ld hl,(BX0+2)
-        ld de,(BX0+0)
-        or a
-        sbc hl,de
-        ld a,h
-        or a
-        jr nz,.m1
-        ld a,l
-        cp 4
-        jr nc,.m1
-        set 0,c
-.m1     ld hl,(BX0+6)
-        ld de,(BX0+4)
-        or a
-        sbc hl,de
-        ld a,h
-        or a
-        jr nz,.m2
-        ld a,l
-        cp 4
-        jr nc,.m2
-        set 1,c
-.m2     ld a,(LTOP)             ; the two rows nearest the horizon: no kerbs
-        rrca                    ;   (they are a pixel or two wide there)
-        rrca
-        rrca
-        and 1Fh
-        add a,2
-        ld b,a
-        ld a,(crow)
-        cp b
-        jr nc,.m3
-        ld c,3
-.m3     ld a,c
+        ; kerbs are off since v6 (they cost ~9% of the frame): every row is
+        ; verge | road | verge.  The kerb boundaries are still computed by
+        ; bounds_at and are absorbed into the verge here (merge state 3).
+        ld a,3
         ld (mstate),a
         xor a
         ld (cur),a

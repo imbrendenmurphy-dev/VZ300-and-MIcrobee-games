@@ -59,7 +59,7 @@ Also on the disk:
 
 | | |
 |---|---|
-| BEELINE in a race | about 11.5–12 fps. The lock is 4 fields per frame (12.5 fps); frames with several close rivals take 5. |
+| BEELINE in a race | 12.3 fps average. The lock is 4 fields per frame (12.5 fps), and 96% of frames make it; the rest (several close rivals, sharp crests) take 5. |
 | Engine alone (v4) | 12.3 fps |
 | BENCH (blocks/s) | emulator 603 507 414 413 472 973 599 · real Premium Plus 603 517 415 413 465 954 527 |
 | CUBE | 18 fps |
@@ -67,6 +67,8 @@ Also on the disk:
 Still to be confirmed on the real machine: the frame rate in a race, and how the beeper sounds.
 
 ## Earlier milestones
+
+- **v5.1 — kerbs off.** The roadside chevrons cost about 9% of every frame (about 23,000 T-states), and the frames that kept the lock rose from 91% to 96%. Every road row is now verge | road | verge.
 
 - **v4 — faster engine.** About 20% less work per frame, verified pixel for pixel against v3. Lower horizon (line 80). The two rows nearest the horizon skip kerbs. The frame lock dropped from 5 fields to 4.
 - **v3 — dithered ground and animated car.** One ground colour on black per theme, with verge, kerb chevrons and road told apart only by dither. Every light/dark band swaps the patterns. The car is a 3D model in 5 steering poses with dithered side panels and tyres.
