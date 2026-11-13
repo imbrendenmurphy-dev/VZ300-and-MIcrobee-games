@@ -3,262 +3,6 @@
 ;  sound, frame pacing, quit
 ; ============================================================================
 
-init:
-        di
-        ld sp,STACKTOP
-        ld a,$28                ; mode 1, CSS 0, speaker idle
-        ld (LATCH),a
-        ld hl,VARS              ; clear the variables
-        ld de,VARS+1
-        ld bc,VARSEND-VARS-1
-        ld (hl),0
-        ldir
-        ld a,SB>>8
-        ld (txt_page),a
-        ld hl,VRAM              ; blue screen while starting up
-        ld de,VRAM+1
-        ld bc,$7FF
-        ld (hl),$AA
-        ldir
-        ; the SRAM must be there: write and read back in both banks
-        ld a,BANK_FLICK
-        call sram_check
-        jp nz,no_sram
-        ld a,BANK_DUSTY
-        call sram_check
-        jp nz,no_sram
-        ; and the two banks must be separate
-        ld a,BANK_FLICK
-        out ($37),a
-        ld a,$A5
-        ld ($4000),a
-        ld a,BANK_DUSTY
-        out ($37),a
-        ld a,$5A
-        ld ($4000),a
-        ld a,BANK_FLICK
-        out ($37),a
-        ld a,($4000)
-        cp $A5
-        jp nz,no_sram
-        call build_tables
-        ; frames into the banks: Flick first (his masters are then free for
-        ; Dusty's overflow), Dusty second
-        ld hl,$4000
-        ld (bank_ptr),hl
-        ld hl,flick_data
-        ld (ovf_ptr),hl
-        ld hl,flick_hdr
-        ld ix,dir_flick
-        ld a,BANK_FLICK
-        call install
-        ld hl,$4000
-        ld (bank_ptr),hl
-        ld hl,dusty_hdr
-        ld ix,dir_dusty
-        ld a,BANK_DUSTY
-        call install
-        ld hl,(ovf_ptr)
-        ld de,flick_end
-        or a
-        sbc hl,de
-        jp nc,no_sram           ; (can't happen: the build checks the sizes)
-        ; the stage shifted 2 pixels, for odd camera steps
-        call build_stage2
-        ld a,32
-        ld (cam),a
-        ld (src_cam),a
-        call bg_build
-        ; IM2 vector table
-        ld hl,IM2TAB
-        ld de,IM2TAB+1
-        ld bc,256
-        ld (hl),ISRJP>>8
-        ldir
-        ld a,$C3
-        ld (ISRJP),a
-        ld hl,isr
-        ld (ISRJP+1),hl
-        ld a,IM2TAB>>8
-        ld i,a
-        im 2
-        ld a,$28
-        ld (latch),a
-        ld hl,$ACE1
-        ld (seed),hl
-        ld a,1
-        ld (opt_diff),a
-        ld a,2
-        ld (tick_len),a
-        ei
-        jp front_main
-
-; sram_check: A = mapper value; Z if $4000 holds what is written
-sram_check:
-        out ($37),a
-        ld hl,$4000
-        ld (hl),$A5
-        ld a,(hl)
-        cp $A5
-        ret nz
-        ld (hl),$5A
-        ld a,(hl)
-        cp $5A
-        ret
-
-no_sram:
-        ld a,BANK_FLICK
-        out ($37),a
-        ld hl,s_nosram
-        ld de,VRAM+24*32+3
-.l:     ld a,(hl)
-        or a
-        jr z,.h
-        ; crude: show the message as solid bars on the blue screen
-        ld a,$FF
-        ld (de),a
-        inc de
-        inc hl
-        jr .l
-.h:     jr .h
-s_nosram: db "NEEDS 128K SRAM",0
-
-; ---------------------------------------------------------------------------
-; install: copy one fighter's 22 frames into a bank, building the shifted
-; (2 pixels right) copy of each.  HL = master header, IX = runtime directory,
-; A = mapper value.  Frames that don't fit go to main RAM at ovf_ptr.
-;   directory entry (10 bytes): dw plain, dw shifted, db width, height,
-;   anchor_x, rows_below, hand_x, hand_y
-; ---------------------------------------------------------------------------
-install:
-        out ($37),a
-        ld (inst_hdr),hl
-        ld a,NFRAMES
-        ld (inst_n),a
-.frame: ld hl,(inst_hdr)
-        ld e,(hl)
-        inc hl
-        ld d,(hl)
-        inc hl
-        ld (inst_src),de
-        ld a,(hl)
-        ld (inst_wb),a
-        ld (ix+4),a
-        inc hl
-        ld a,(hl)
-        ld (inst_h),a
-        ld (ix+5),a
-        inc hl
-        ld a,(hl)
-        ld (ix+6),a
-        inc hl
-        ld a,(hl)
-        ld (ix+7),a
-        inc hl
-        ld a,(hl)
-        ld (ix+8),a
-        inc hl
-        ld a,(hl)
-        ld (ix+9),a
-        inc hl
-        ld (inst_hdr),hl
-        ; size0 = wb*h ; need = (2wb+1)*h
-        ld a,(inst_wb)
-        ld e,a
-        ld d,0
-        ld a,(inst_h)
-        call mul8           ; HL = wb*h
-        ld (inst_s0),hl
-        ld a,(inst_wb)
-        add a,a
-        inc a
-        ld e,a
-        ld d,0
-        ld a,(inst_h)
-        call mul8           ; HL = need
-        ld b,h
-        ld c,l
-        ; does it fit in the bank?
-        ld hl,(bank_ptr)
-        push hl
-        add hl,bc
-        ld de,$6801
-        or a
-        sbc hl,de
-        pop hl
-        jr nc,.ovf
-        ld (inst_dst),hl
-        add hl,bc
-        ld (bank_ptr),hl
-        jr .go
-.ovf:   ld hl,(ovf_ptr)
-        ld (inst_dst),hl
-        add hl,bc
-        ld (ovf_ptr),hl
-.go:    ld hl,(inst_dst)
-        ld (ix+0),l
-        ld (ix+1),h
-        ld de,(inst_s0)
-        add hl,de
-        ld (ix+2),l
-        ld (ix+3),h
-        ; plain copy
-        ld hl,(inst_src)
-        ld de,(inst_dst)
-        ld bc,(inst_s0)
-        ldir
-        ; shifted copy: DE continues right after the plain copy
-        ld hl,(inst_src)
-        ld a,(inst_h)
-        ld b,a
-.row:   push bc
-        ld a,(inst_wb)
-        ld b,a
-        ld c,0              ; previous byte, nibbles swapped
-.byte:  ld a,(hl)
-        inc hl
-        rrca
-        rrca
-        rrca
-        rrca                ; A = swapped
-        push af
-        and $0F
-        ld (inst_t),a
-        ld a,c
-        and $F0
-        push hl
-        ld hl,inst_t
-        or (hl)
-        pop hl
-        ld (de),a
-        inc de
-        pop af
-        ld c,a
-        djnz .byte
-        ld a,c
-        and $F0
-        ld (de),a
-        inc de
-        pop bc
-        djnz .row
-        ld bc,10
-        add ix,bc
-        ld a,(inst_n)
-        dec a
-        ld (inst_n),a
-        jp nz,.frame
-        ret
-
-; mul8: HL = DE * A (A <= 255, small values)
-mul8:
-        ld hl,0
-        or a
-        ret z
-        ld b,a
-.l:     add hl,de
-        djnz .l
-        ret
-
 ; ---------------------------------------------------------------------------
 ; draw tables: at each transform page T: T = byte transform, T+1 = mask
 ; ---------------------------------------------------------------------------
@@ -356,7 +100,17 @@ mask4:  ; 11 for every 00 pixel
 ; ---------------------------------------------------------------------------
 isr:
         push af
-        push bc
+        ld a,(in_dos)
+        or a
+        jr z,.game
+        ; the SD DOS is running: just wait for field sync to end
+.dw:    ld a,(LATCH)
+        rla
+        jr nc,.dw
+        pop af
+        ei
+        reti
+.game:  push bc
         push de
         push hl
         ld a,(frame_ready)
@@ -1098,9 +852,9 @@ quit_to_sd:
 ; THE SCROLLING STAGE: 192 pixels (48 bytes) wide, rows 10-63.  Rows below
 ; SKYROWS (the starry sky) never scroll; they always come from camera 32.
 ; ---------------------------------------------------------------------------
-; build_stage2: STAGE2 = stage0 shifted left by 2 pixels
-build_stage2:
-        ld hl,stage0
+; build_stage2: STAGE2 = STAGE0 shifted left by 2 pixels
+build_stage2_i:
+        ld hl,STAGE0
         ld bc,STAGE2
         ld a,54
 .r:     push af
@@ -1157,7 +911,7 @@ stage_src:
         ld e,a
         ld d,0
         add hl,de
-        ld de,stage0
+        ld de,STAGE0
         bit 1,b
         jr z,.s0
         ld de,STAGE2
@@ -1168,6 +922,10 @@ stage_src:
 ; buffer, already at that row).  Rows below SKYROWS use camera 32, the rest
 ; camera (src_cam).
 stage_rows:
+        call h0_on
+        call stage_rows_i
+        jp h0_off
+stage_rows_i:
         cp SKYROWS
         jr nc,.scroll
         ; the still rows first (camera 32)
@@ -1211,7 +969,10 @@ stage_rows:
 
 ; bg_build: BG = the HUD band and the stage seen from camera (src_cam)
 bg_build:
-        ld hl,BG
+        call h0_on
+        call .i
+        jp h0_off
+.i:     ld hl,BG
         ld de,BG+1
         ld bc,HUDROWS*32-1
         ld (hl),$AA
@@ -1219,7 +980,49 @@ bg_build:
         ld a,10
         ld b,54
         ld de,BG+10*32
-        call stage_rows
+        call stage_rows_i
         ld a,(src_cam)
         ld (bg_cam),a
         ret
+
+; anim_step: every ANIMRATE ticks swap the stage's animated bytes to their
+; other phase (not while a message has the view frozen) and ask for a redraw
+anim_step:
+        ld a,(cam_lock)
+        or a
+        ret nz
+        ld hl,anim_t
+        inc (hl)
+        ld a,(hl)
+        cp ANIMRATE
+        ret c
+        ld (hl),0
+        ld a,(anim_ph)
+        xor 1
+        ld (anim_ph),a
+        ld c,a
+        call h0_on
+        ld hl,PATCH
+        ld b,(hl)
+        inc hl
+        ld a,b
+        or a
+        jr z,.done
+.l:     ld e,(hl)
+        inc hl
+        ld d,(hl)
+        inc hl
+        ld a,c
+        or a
+        ld a,(hl)
+        jr z,.a
+        inc hl
+        ld a,(hl)
+        dec hl
+.a:     ld (de),a
+        inc hl
+        inc hl
+        djnz .l
+        ld a,1
+        ld (scrolled),a
+.done:  jp h0_off

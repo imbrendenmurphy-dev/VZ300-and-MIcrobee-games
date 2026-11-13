@@ -52,6 +52,7 @@ static int xmode;              /* 0 = HL, 1 = IX, 2 = IY for current instruction
 static uint8_t mem[65536];
 static uint8_t sram[2][0x2800];
 static uint8_t port37 = 1;
+static uint8_t hi1[0x4800];   /* the alternate 18K at $B800-$FFFF (port $37 bit 2) */
 static uint8_t latch = 0;
 static uint8_t kbrow[8];       /* active-low rows, bits 0-5 */
 static uint8_t joy1 = 0xFF, joy2 = 0xFF, joyarm = 0xFF, joyarm2 = 0xFF;
@@ -118,6 +119,7 @@ static inline uint8_t rd(uint16_t a)
         if (in_display) { snow_total++; snow_field++; }
         return mem[a];
     }
+    if (a >= 0xB800 && (port37 & 4)) return hi1[a - 0xB800];
     return mem[a];
 }
 
@@ -142,6 +144,7 @@ static inline void wr(uint16_t a, uint8_t v)
         mem[a] = v;
         return;
     }
+    if (a >= 0xB800 && (port37 & 4)) { hi1[a - 0xB800] = v; return; }
     mem[a] = v;
 }
 
@@ -151,6 +154,7 @@ static uint8_t peek(uint16_t a)
     if (a < 0x4000) return 0xFF;
     if (a < 0x6800) return (port37 & 1) ? sram[(port37 >> 1) & 1][a - 0x4000] : 0xFF;
     if (a < 0x7000) return 0xFF;
+    if (a >= 0xB800 && (port37 & 4)) return hi1[a - 0xB800];
     return mem[a];
 }
 
@@ -169,11 +173,11 @@ static uint8_t io_in(uint16_t port)
     return 0xFF;
 }
 
-static uint8_t last_out_port, last_out_val;
+extern uint16_t cur_pc_for_watch_fwd; static uint8_t last_out_port, last_out_val;
 static void io_out(uint16_t port, uint8_t v)
 {
     last_out_port = port & 0xFF; last_out_val = v;
-    if ((port & 0xFF) == 0x37 && !test_mode) port37 = v;
+    if ((port & 0xFF) == 0x37 && !test_mode) { port37 = v; if (getenv("VZ_P37")) fprintf(stderr, "P37=%02X pc=%04X\n", v, cur_pc_for_watch); }
 }
 
 /* ------------------------------------------------------------------ */

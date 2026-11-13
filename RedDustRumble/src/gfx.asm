@@ -30,8 +30,12 @@ cls_sb:
         ldir
         ret
 
-; bg_to_sb: whole backdrop into SB
+; bg_to_sb: the whole clean view into SB
 bg_to_sb:
+        call h0_on
+        call .i
+        jp h0_off
+.i:
         ld hl,BG
         ld de,SB
         ld bc,2048
@@ -62,8 +66,9 @@ restore_band:
 ; screen edges and to clip_top.
 ; ---------------------------------------------------------------------------
 draw_fighter:
-        ld a,(ix+F_BANK)
-        out ($37),a
+        ld a,(ix+F_HIDE)
+        or a
+        ret nz
         ld a,(ix+F_FRM)
         add a,a
         ld b,a
@@ -110,6 +115,11 @@ draw_fighter:
         ld a,(iy+4)
         ld c,(iy+0)
         ld b,(iy+1)
+        jr z,.v0
+        ld e,a
+        ld a,(iy+3)             ; frames only ever shown standing still have
+        or a                    ; no shifted copy: draw those on the 4-pixel grid
+        ld a,e
         jr z,.v0
         inc a
         ld c,(iy+2)
@@ -769,7 +779,11 @@ hud_all:
 
 ; names above the bars
 hud_names:
-        ld a,$AA
+        push ix
+        call .i
+        pop ix
+        ret
+.i:     ld a,$AA
         ld b,0
         ld c,0
         ld d,9
@@ -781,14 +795,14 @@ hud_names:
         ld d,9
         ld e,5
         call fill_rect
-        ld a,(p1+F_CHAR)
-        call char_name
+        ld ix,p1
+        call fighter_name
         ld b,1
         ld c,0
         ld a,1
         call text
-        ld a,(p2+F_CHAR)
-        call char_name
+        ld ix,p2
+        call fighter_name
         push hl
         call strlen
         ld b,a
@@ -964,10 +978,14 @@ hud_pips:
 floor_names:
         ret
 
-; char_name: A = character -> HL = name
-char_name:
-        ld hl,s_flick
-        or a
-        ret z
-        ld hl,s_dusty
+; fighter_name: IX = fighter -> HL = its name (in its block)
+fighter_name:
+        ld l,(ix+F_DEFL)
+        ld h,(ix+F_DEFH)
+        ld de,D_NAME
+        add hl,de
+        ld a,(hl)
+        inc hl
+        ld h,(hl)
+        ld l,a
         ret

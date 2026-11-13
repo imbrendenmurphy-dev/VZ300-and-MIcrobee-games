@@ -100,19 +100,47 @@ front_main:
 .redraw:
         call draw_menu
         jp .loop
-.one:   xor a
+.one:   ; ---- one player: the world tour
+        xor a
         ld (two_player),a
-        jr .go
-.two:   ld a,1
-        ld (two_player),a
-.go:    call stop_sfx
+        call stop_sfx
         call sfx_select
         call select_screen
-        jp c,front_main         ; backed out
+        jp c,front_main
+        ld a,1
+        ld (tour_on),a
+        ld a,TOURSTART
+        ld (tour_pos),a
+.stop:  call tour_next
+        jr c,.won
+.tf:    call play_match
+        jp c,front_main
+        ld a,(match_res)
+        or a
+        jr nz,.tf               ; lost or drew: have another go
+        ld hl,tour_pos
+        inc (hl)
+        jr .stop
+.won:   call ending
+        jp front_main
+.two:   ; ---- two players
+        ld a,1
+        ld (two_player),a
+        xor a
+        ld (tour_on),a
+        call stop_sfx
+        call sfx_select
+        call select_screen
+        jp c,front_main
+        call random             ; at one fighter's home or the other's
+        rrca
+        ld a,(sel_p1)
+        jr c,$+5
+        ld a,(sel_p2)
+        ld (sel_stage),a
 .again: call play_match
         jp nc,.again            ; rematch
         jp front_main
-
 menu_frame:
         ld a,2
         ld (tick_len),a
@@ -147,6 +175,7 @@ draw_title:
 
 ; title_base: arena, logo, the two fighters
 title_base:
+        call stage_css
         call hide_msg
         call clean_floor
         call bg_to_sb
@@ -164,7 +193,7 @@ title_base:
         call big_text
         ; the two fighters, posing
         ld ix,p1
-        xor a
+        ld a,(slot_a)
         ld b,0
         call setup_fighter
         ld hl,18*4
@@ -175,7 +204,7 @@ title_base:
         ld a,FR_IDLE
         ld (p1+F_FRM),a
         ld ix,p2
-        ld a,1
+        ld a,(slot_b)
         ld b,1
         call setup_fighter
         ld hl,110*4
@@ -187,6 +216,8 @@ title_base:
         ld a,FR_IDLE
         ld (p2+F_FRM),a
         xor a
+        ld (p1+F_HIDE),a
+        ld (p2+F_HIDE),a
         ld (clip_top),a
         ld ix,p1
         call draw_fighter
@@ -266,894 +297,440 @@ lvl_names:
         dw s_easy, s_normal, s_hard
 
 ; ---------------------------------------------------------------------------
-; setup_fighter: IX = record, A = character (0 Flick, 1 Dusty), B = side
-; (0 = player 1 blue, 1 = player 2 red)
+; setup_fighter: IX = record, A = fighter number, B = side (0 = player 1,
+; blue, in SRAM bank 1; 1 = player 2, red, in the second high bank)
 ; ---------------------------------------------------------------------------
 setup_fighter:
         ld (ix+F_CHAR),a
-        or a
-        ld hl,def_flick
-        ld de,dir_flick
-        ld c,BANK_FLICK
-        jr z,.f
-        ld hl,def_dusty
-        ld de,dir_dusty
-        ld c,BANK_DUSTY
-.f:     ld (ix+F_DEFL),l
-        ld (ix+F_DEFH),h
-        ld (ix+F_DIRL),e
-        ld (ix+F_DIRH),d
-        ld (ix+F_BANK),c
-        ld a,XF_ID
+        ld hl,SLOT_A
+        ld c,XF_ID
         dec b
-        jr nz,$+4
-        ld a,XF_RED
-        ld (ix+F_XF),a
-        ret
-
-; ---------------------------------------------------------------------------
-; CHARACTER SELECT.  Carry set if backed out.
-; ---------------------------------------------------------------------------
-select_screen:
-        xor a
-        ld (sel_p1),a
-        ld a,1
-        ld (sel_p2),a
-        xor a
-        ld (sel_stage),a        ; 0 = player 1 choosing, 1 = player 2 / CPU
-        call clear_keys
-.draw:  call draw_select
-.loop:  call menu_frame
-        call menu_keys
-        ld c,a
-        ld a,b
-        bit 2,a                 ; Q backs out
-        jr z,.nq
-        scf
-        ret
-.nq:    ; player 2 picks with its own controls in 2-player mode
-        ld hl,p1_new
-        call take_new
-        ld hl,p2_new
-        call take_new
-        ld e,a
-        ld a,(sel_stage)
-        or a
-        jr z,.k
-        ld a,(two_player)
-        or a
-        jr z,.k
-        ld c,e
-.k:     ld a,c
-        and $0C
-        jr z,.ns
-        ld hl,sel_p1
-        ld a,(sel_stage)
-        or a
-        jr z,$+5
-        ld hl,sel_p2
+        jr nz,.a
+        ld hl,SLOT_B
+        ld c,XF_RED
+.a:     ld (ix+F_DEFL),l
+        ld (ix+F_DEFH),h
+        ld (ix+F_XF),c
+        ld de,D_DIR
+        add hl,de
         ld a,(hl)
-        xor 1
-        ld (hl),a
-        call blip
-        jr .draw
-.ns:    ld a,c
-        and $30
-        jr nz,.ok
-        ld a,b
-        and 3
-        jr z,.loop
-.ok:    call sfx_select
-        ld a,(sel_stage)
-        or a
-        jr nz,.done
-        inc a
-        ld (sel_stage),a
-        ; the other fighter by default
-        ld a,(sel_p1)
-        xor 1
-        ld (sel_p2),a
-        jr .draw
-.done:  or a
+        ld (ix+F_DIRL),a
+        inc hl
+        ld a,(hl)
+        ld (ix+F_DIRH),a
         ret
 
-draw_select:
-        call clean_floor
-        call bg_to_sb
-        ld a,$AA
-        ld b,10
-        ld c,19
-        ld d,12
-        ld e,38
-        call fill_rect          ; dark panel for the words
-        ld hl,s_choose
-        ld c,2
-        ld a,1
-        call text_c
-        ; fighters
-        ld ix,p1
-        xor a
-        ld b,0
-        call setup_fighter
-        ld hl,30*4
-        ld (p1+F_XL),hl
-        xor a
-        ld (p1+F_FACE),a
-        ld (p1+F_Y),a
-        ld a,FR_IDLE
-        ld (p1+F_FRM),a
-        ld ix,p2
-        ld a,1
-        ld b,1
-        call setup_fighter
-        ld hl,98*4
-        ld (p2+F_XL),hl
-        ld a,1
-        ld (p2+F_FACE),a
-        xor a
-        ld (p2+F_Y),a
-        ld a,FR_IDLE
-        ld (p2+F_FRM),a
-        ld a,8
-        ld (clip_top),a
-        ld ix,p1
-        call draw_fighter
-        ld ix,p2
-        call draw_fighter
-        ; names and styles, between the two fighters
-        ld hl,sel_text
-.dt:    ld a,(hl)
-        or a
-        jr z,.dte
-        ld c,a
-        inc hl
+; palettes
+css0:   ld a,$28
+        jr css_set
+stage_css:
+        ld a,(stage_cur)
+        add a,a
+        add a,a
+        ld e,a
+        ld d,0
+        ld hl,stage_info
+        add hl,de
         ld a,(hl)
         inc hl
         ld e,(hl)
-        inc hl
-        ld d,(hl)
-        inc hl
-        push hl
-        ex de,hl
-        call text_c
-        pop hl
-        jr .dt
-.dte:
-        ; who has picked what: P1 marker, and P2 / CPU marker
-        ld a,(sel_p1)
-        ld hl,s_p1
-        ld c,2
-        call .mark
-        ld a,(sel_stage)
-        or a
-        jr z,.prompt
-        ld a,(sel_p2)
-        ld hl,s_cpu
-        ld b,a
-        ld a,(two_player)
-        or a
-        ld a,b
-        jr z,$+5
-        ld hl,s_p2
-        ld c,3
-        call .mark2
-.prompt:
-        ld hl,s_pick1
-        ld a,(sel_stage)
-        or a
-        jr z,.pp
-        ld hl,s_pick2
-        ld a,(two_player)
-        or a
-        jr nz,.pp
-        ld hl,s_pickcpu
-.pp:    ld c,58
-        ld a,2
-        call text_c
-        ld a,1
-        ld (copy_full),a
-        ret
-.mark:  ; A = side picked (0 left, 1 right), HL = label, C = colour; row 9
-        ld b,5
-        or a
-        jr z,$+4
-        ld b,22
-        push bc
-        ld a,c
-        ld c,11
-        call text
-        pop bc
-        ret
-.mark2: ld b,5
-        or a
-        jr z,$+4
-        ld b,22
-        ld a,c
-        ld c,17
-        jp text
-
-; ---------------------------------------------------------------------------
-; MATCH.  Carry clear = rematch, carry set = back to the menu.
-; ---------------------------------------------------------------------------
-play_match:
-        ld ix,p1
-        ld a,(sel_p1)
-        ld b,0
-        call setup_fighter
-        ld (ix+F_CPU),0
-        ld (ix+F_WINS),0
-        ld ix,p2
-        ld a,(sel_p2)
-        ld b,1
-        call setup_fighter
-        ld a,(two_player)
-        xor 1
-        ld (ix+F_CPU),a
-        ld (ix+F_WINS),0
-        ld a,(demo_on)
-        or a
-        jr z,$+7
-        ld a,1
-        ld (p1+F_CPU),a
-        ld a,1
-        ld (round_num),a
-        ld hl,0
-        ld (slow_ticks),hl
-        call stop_sfx
-        ; versus card
-        call round_setup
-        ld hl,s_vs
-        ld de,0
-        ld a,20
-        call show_msg
-        ld b,40
-        call show_ticks
-        call hide_msg
-.round: call round_setup
-        ; ---- "ROUND n", then "FIGHT!"
-        ld a,(round_num)
-        add a,'0'
-        ld (s_roundn+6),a
-        ld hl,s_roundn
-        ld de,0
-        ld a,18
-        call show_msg
-        ld b,30
-        call show_ticks
-        ld hl,s_fight
-        ld de,0
-        ld a,18
-        call show_msg
-        ld hl,sfx_bell
-        call play_sfx
-        ld b,14
-        call show_ticks
-        call hide_msg
-        ld hl,0
-        ld (slow_ticks),hl
-        ; ---- go
-        ld a,ST_STAND
-        ld (p1+F_ST),a
-        ld (p2+F_ST),a
-        call clear_keys
-.fight: call fight_tick
-        ld a,(quit_req)
-        or a
-        jp nz,.quit
-        ld a,(ko_flag)
-        or a
-        jr nz,.ko
-        ld a,(round_time)
-        or a
-        jr nz,.fight
-        ; ---- time up
-        ld a,1
-        ld (inputs_off),a
-        ld hl,s_time
-        ld de,0
-        ld a,18
-        call show_msg
-        ld hl,sfx_bell
-        call play_sfx
-        ld b,40
-        call run_ticks
-        jr .judge
-.ko:    ; ---- knock-out: slow motion while the loser falls
-        ld a,1
-        ld (inputs_off),a
-        ld hl,s_ko
-        ld de,0
-        ld a,16
-        call show_msg
-        ld hl,sfx_ko
-        call play_sfx
-        ld a,4
-        ld (tick_len),a
-        ld b,16
-        call run_ticks
-        ld a,2
-        ld (tick_len),a
-        ld b,24
-        call run_ticks
-.judge: ; ---- who won the round?
-        call hide_msg
-        ld a,(p1+F_HP)
-        ld b,a
-        ld a,(p2+F_HP)
-        cp b
-        jr z,.draw
-        ld ix,p1
-        jr c,$+6
-        ld ix,p2
-        inc (ix+F_WINS)
-        ld (ix+F_ST),ST_WIN
-        call hud_pips
-        ld hl,sfx_win
-        call play_sfx
-        ld b,40
-        call run_ticks
-        ld a,(ix+F_WINS)
-        cp 2
-        jr z,.match
-        jr .next
-.draw:  ld hl,s_draw
-        ld de,0
-        ld a,18
-        call show_msg
-        ld b,40
-        call run_ticks
-        call hide_msg
-.next:  ld hl,round_num
-        inc (hl)
-        ld a,(hl)
-        cp 10
-        jp c,.round
-        ; nine rounds without a winner: a drawn match
-        ld ix,0
-.match: ; ---- result
-        xor a
-        ld (inputs_off),a
-        ld (dbg_on),a
-        call result_screen
+        or $28
+        ld hl,sh_pat
+        ld (hl),e
+css_set:
+        di
+        ld (latch),a
+        ld (LATCH),a
+        ei
         ret
 
-.quit:  xor a
-        ld (quit_req),a
-        ld (inputs_off),a
-        ld (dbg_on),a
-        call stop_sfx
-        scf
-        ret
+; blue_screen: a plain dark screen in the shadow screen
+blue_screen:
+        ld a,$AA
+        jp cls_sb
 
-; show_ticks: B ticks of the arena with the fighters frozen, no logic
-show_ticks:
-        push bc
-        call render_fight
-        call frame_end
-        pop bc
-        djnz show_ticks
-        ret
-
-; run_ticks: B ticks with logic but no new input
-run_ticks:
-        push bc
-        push ix
-        call game_logic
-        call render_fight
-        call frame_end
-        pop ix
-        pop bc
-        djnz run_ticks
-        ret
-
-; fight_tick: one tick of the round
-fight_tick:
-        call menu_keys          ; system keys (B)
-        ld c,a
-        ld a,(demo_on)
-        or a
-        jr z,.nd
-        ld a,c
-        or b
-        jr z,.nd
-        ld a,1                  ; any key ends the demo
-        ld (quit_req),a
-        ret
-.nd:    ld a,b
-        bit 0,a
-        jp nz,pause
-        bit 3,a
-        call nz,dbg_toggle
-        call game_logic
-        ; round timer
-        ld hl,tcount
-        inc (hl)
-        ld a,(hl)
-        cp 25
-        jr c,.r
-        ld (hl),0
-        ld a,(round_time)
-        or a
-        jr z,.r
-        dec a
-        ld (round_time),a
-        call hud_timer
-.r:     call render_fight
-        jp frame_end
-
-dbg_toggle:
-        ld a,(dbg_on)
-        xor 1
-        ld (dbg_on),a
-        ld hl,$FFFF
-        ld (spare_min),hl
-        ld hl,0
-        ld (slow_ticks),hl
-        ld (spare_show),hl
-        xor a
-        ld (dbg_cnt),a
-        ld a,1
-        ld (dbg_dirty),a
-        ld a,(dbg_on)
-        or a
-        ret nz
-        jp hud_names
-
-pause:
-        call stop_sfx
-        ld hl,s_paused
-        ld de,s_pausehelp
-        ld a,18
-        call show_msg
-.p:     call render_fight
-        call frame_end
-        call menu_keys
-        ld a,b
-        bit 2,a
-        jr nz,.q
-        bit 0,a
-        jr z,.p
-        jr .out
-.q:     ld a,1
-        ld (quit_req),a
-.out:   call hide_msg
-        call clear_keys
-        ret
-
-; round_setup: fighters to their marks, fresh health, arena redrawn
-round_setup:
-        ld a,32
-        ld (cam),a
-        ld (src_cam),a
-        xor a
-        ld (scrolled),a
-        ld (bg_stale),a
-        ld (cam_lock),a
-        call bg_build
-        ld ix,p1
-        ld hl,(32+36)*4
-        xor a
-        call .one
-        ld ix,p2
-        ld hl,(32+92)*4
-        ld a,1
-        call .one
-        ld a,60
-        ld (round_time),a
-        xor a
-        ld (tcount),a
-        ld (ko_flag),a
-        ld (hitstop),a
-        ld (spark_t),a
-        ld (inputs_off),a
-        ld (quit_req),a
-        call hide_msg
-        ld a,2
-        ld (tick_len),a
-        call bg_to_sb
-        call hud_all
-        call band_full
-        ld a,ARENATOP
-        ld (clip_top),a
-        ld a,1
-        ld (copy_full),a
-        ret
-.one:   ld (ix+F_XL),l
-        ld (ix+F_XH),h
-        ld (ix+F_FACE),a
-        xor a
-        ld (ix+F_Y),a
-        ld (ix+F_T),a
-        ld (ix+F_PUSH),a
-        ld (ix+F_INV),a
-        ld (ix+F_AIR),a
-        ld (ix+F_AICNT),a
-        ld (ix+F_AIACT),a
-        ld (ix+F_HPOS),a
-        ld (ix+F_PRS),a
-        ld (ix+F_PAD),a
-        ld (ix+F_VX),a
-        ld (ix+F_HITF),a
-        ld (ix+F_ST),ST_FROZEN
-        ld (ix+F_FRM),FR_IDLE
-        ld (ix+F_HP),96
-        ld (ix+F_TA),$7F
-        ld (ix+F_TB),$7F
-        push ix
-        pop hl
-        ld de,F_HIST
+; name_of: A = fighter number -> HL = name
+name_of:
+        add a,a
+        ld e,a
+        ld d,0
+        ld hl,fighter_names
         add hl,de
-        ld b,16
-.h:     ld (hl),a
+        ld a,(hl)
         inc hl
-        djnz .h
+        ld h,(hl)
+        ld l,a
+        ret
+; stage_text: A = stage, E = 0 name / 2 country -> HL
+stage_text:
+        add a,a
+        add a,a
+        add a,e
+        ld e,a
+        ld d,0
+        ld hl,stage_names
+        add hl,de
+        ld a,(hl)
+        inc hl
+        ld h,(hl)
+        ld l,a
         ret
 
-; result_screen: IX = winner (0 = drawn).  Carry clear = rematch.
-result_screen:
-        push ix
-        pop hl
-        ld a,h
-        or l
-        ld hl,s_drawgame
-        jr z,.set
+; ---------------------------------------------------------------------------
+; FIGHTER SELECT: eight fighters in a 4 x 2 grid (the picture comes from the
+; SD card).  Carry set if backed out.
+; ---------------------------------------------------------------------------
+CELLH   equ 25
+GRIDTOP equ 7
+select_screen:
+        call css0
+.ld:    xor a
+        call load_screen
+        jr nc,.ok
+        ld a,1
+        ld (err_code),a
+        call sd_error
+        jr .ld
+.ok:    xor a
+        ld (sel_cur),a
+        ld a,$FF
+        ld (sel_p1),a
+        ld hl,s_player1
+        call .pick
+        ret c
+        ld (sel_p1),a
         ld a,(two_player)
         or a
-        jr nz,.two
-        ld a,(demo_on)
-        or a
-        jr nz,.two
-        ld hl,s_youwin
-        ld a,(ix+F_CPU)
-        or a
-        jr z,.set
-        ld hl,s_youlose
-        jr .set
-.two:   ld hl,s_p1wins
-        push ix
-        pop de
-        ld a,e
-        cp p1&255
-        jr z,.set
-        ld hl,s_p2wins
-.set:   ld de,s_again
-        ld a,16
-        call show_msg
-        ld a,(demo_on)
-        or a
-        jr nz,.demo
-        call clear_keys
-.w:     call render_fight
-        call frame_end
-        call menu_keys
-        ld c,a
-        bit 4,c
-        jr nz,.re
-        bit 5,c
-        jr nz,.menu
-        ld a,b
-        and 5                   ; RETURN or Q
-        jr z,.w
-.menu:  scf
-        ret
-.re:    call sfx_select
-        or a
-        ret
-.demo:  ld b,60
-        call show_ticks
-        scf
-        ret
-
-; ---------------------------------------------------------------------------
-; DEMO: CPU against CPU from the title; any key stops it
-; ---------------------------------------------------------------------------
-demo:
-        call stop_sfx
-        ld a,1
-        ld (demo_on),a
-        call random
-        and 1
-        ld (sel_p1),a
-        call random
-        and 1
+        ret z
+        ld hl,s_player2
+        call .pick
+        ret c
         ld (sel_p2),a
-        xor a
-        ld (two_player),a
-        ld a,2
-        ld (opt_diff),a
-        call play_match
-        xor a
-        ld (demo_on),a
-        ld a,1
-        ld (opt_diff),a
-        jp front_main
-
-; ---------------------------------------------------------------------------
-; CONTROL TEST: live controls, raw ports, drop-outs and the A+B gap
-; ---------------------------------------------------------------------------
-control_test:
-        call stop_sfx
-        ld hl,ct_drop
-        ld b,16
-.z:     ld (hl),0
-        inc hl
-        djnz .z
-        xor a
-        ld (ct_gap),a
-        ld a,$FF
-        ld (ct_fa),a
-        ld (ct_fb),a
-        ld a,1
-        ld (ct_on),a
-        ld a,4
-        ld (tick_len),a
+        or a
+        ret
+.pick:  ld (ld_name),hl          ; (a spare word: the prompt)
         call clear_keys
-.loop:  call ct_draw
-        call frame_end
-        call menu_keys
-        ld a,b
-        and 5                   ; RETURN or Q
-        jr z,.loop
-        xor a
-        ld (ct_on),a
-        ld a,2
-        ld (tick_len),a
-        jp front_main
-
-ct_draw:
-        xor a
-        call cls_sb
-        ld hl,s_ct_title
-        ld c,0
+.draw:  call bg_to_sb
+        ld hl,s_choose
+        ld c,1
         ld a,1
         call text_c
-        ; live pads
-        ld hl,s_ct_j1
-        ld a,(pad_j1)
-        ld c,7
-        call ct_pad
-        ld hl,s_ct_j2
-        ld a,(pad_j2)
-        ld c,13
-        call ct_pad
-        ld hl,s_ct_k1
-        ld a,(pad_k1)
-        ld c,19
-        call ct_pad
-        ld hl,s_ct_k2
-        ld a,(pad_k2)
-        ld c,25
-        call ct_pad
-        ; raw ports
-        ld hl,s_ct_ports
-        ld b,0
-        ld c,32
-        ld a,2
+        ; player 1's choice keeps a tag while player 2 picks
+        ld a,(sel_p1)
+        cp 8
+        jr nc,.nt
+        call .cell
+        ld hl,s_p1
+        ld a,3
         call text
-        ld hl,raw_2c
-        ld b,0
-        ld c,38
-        ld d,7
-.rp:    push bc
-        push de
-        push hl
-        ld a,(hl)
-        call hex2
-        pop hl
-        pop de
-        pop bc
-        push bc
-        push de
-        push hl
-        ld hl,num_buf
-        ld a,1
-        call text
-        pop hl
-        pop de
-        pop bc
-        inc hl
-        ld a,b
-        add a,3
-        ld b,a
-        dec d
-        jr nz,.rp
-        ; drop-outs: joystick 1 and 2, U D L R
-        ld hl,s_ct_drop
-        ld b,0
-        ld c,45
-        ld a,2
-        call text
-        ld hl,ct_drop
-        ld c,45
-        call ct_counts
-        ld c,51
-        ld hl,s_ct_drop2
-        ld b,0
-        ld a,2
-        push bc
-        call text
-        pop bc
-        ld hl,ct_drop+6
-        call ct_counts
-        ; A+B gap
-        ld hl,s_ct_gap
+.nt:    ld a,(sel_cur)
+        call .cell
+        call cell_frame
+        ld hl,(ld_name)
         ld b,0
         ld c,58
-        ld a,2
+        ld a,1
         call text
-        ld a,(ct_gap)
-        call num2
-        xor a
-        ld (num_buf+2),a
-        ld hl,num_buf
+        ld a,(sel_cur)
+        ld e,2
+        call stage_text
+        push hl
+        call strlen
+        ld b,a
+        ld a,32
+        sub b
+        ld b,a
+        pop hl
+        ld c,58
+        ld a,1
+        call text
+        ld a,1
+        ld (copy_full),a
+.w:     call menu_frame
+        call menu_keys
+        ld c,a
+        ld a,b
+        bit 2,a                 ; Q: back
+        jr nz,.back
+        ld a,c
+        bit 5,a                 ; B: back
+        jr nz,.back
+        bit 4,a
+        jr nz,.take
+        ld a,b
+        and 3
+        jr nz,.take
+        ld a,(sel_cur)
+        ld e,a
+        bit 2,c
+        jr z,$+3
+        dec a
+        bit 3,c
+        jr z,$+3
+        inc a
+        bit 0,c
+        jr z,$+4
+        sub 4
+        bit 1,c
+        jr z,$+4
+        add a,4
+        and 7
+        cp e
+        jr z,.w
+        ld (sel_cur),a
+        call blip
+        jr .draw
+.take:  call sfx_select
+        ld a,(sel_cur)
+        or a
+        ret
+.back:  scf
+        ret
+.cell:  ; A = cell -> B = byte column, C = row of its top
+        ld b,a
+        and 3
+        add a,a
+        add a,a
+        add a,a
+        ld d,a
+        ld a,b
+        and 4
+        ld c,GRIDTOP
+        jr z,$+4
+        ld c,GRIDTOP+CELLH
+        ld b,d
+        ret
+; cell_frame: a bright frame round the cell at byte column B, row C
+cell_frame:
+        push bc
+        ld d,8
+        ld e,1
+        ld a,$55
+        call fill_rect
+        pop bc
+        push bc
+        ld a,c
+        add a,CELLH-1
+        ld c,a
+        ld d,8
+        ld e,1
+        ld a,$55
+        call fill_rect
+        pop bc
+        call sb_addr            ; HL = top-left byte
+        ld b,CELLH
+        ld de,32-7
+.l:     ld a,(hl)
+        and $3F
+        or $40
+        ld (hl),a
+        push de
+        ld de,7
+        add hl,de
+        pop de
+        ld a,(hl)
+        and $FC
+        or $01
+        ld (hl),a
+        add hl,de
+        djnz .l
+        ret
+
+; ---------------------------------------------------------------------------
+; WORLD TOUR
+; tour_next: set up fight number (tour_pos): the seven other fighters in
+; order, each at home, then Sable.  Shows the map.  Carry = tour complete.
+; ---------------------------------------------------------------------------
+tour_next:
+        ld a,(tour_pos)
+        cp 8
+        ccf
+        ret c
+        cp 7
+        jr z,.boss
+        ld hl,sel_p1
+        cp (hl)
+        jr c,.set
+        inc a
+        jr .set
+.boss:  ld a,8
+.set:   ld (sel_p2),a
+        ld (sel_stage),a
+        call map_screen
+        or a
+        ret
+
+; map_screen: the world map with the next stop flashing
+map_screen:
+        call css0
+        ld a,1
+        call load_screen
+        ret c                   ; no map: carry on without it
+        call bg_to_sb
+        ; "FIGHT n: PLACE, COUNTRY" along the bottom
+        ld a,(tour_pos)
+        add a,'1'
+        ld (s_fightn+6),a
+        ld hl,s_fightn
+        ld b,0
+        ld c,58
+        ld a,1
+        call text
+        ld a,(sel_stage)
+        ld e,0
+        call stage_text
         ld b,9
         ld c,58
         ld a,1
         call text
-        ld hl,s_ct_exit
-        ld b,14
-        ld c,58
-        ld a,3
-        call text
         ld a,1
         ld (copy_full),a
-        ret
-
-; ct_pad: HL = label, A = pad bits, C = row
-ct_pad:
-        ld (ct_bits),a
-        push bc
-        ld b,0
-        ld a,2
-        call text
-        pop bc
-        ld hl,s_ct_syms
-        ld b,7
-        ld d,1
-.s:     push bc
-        push de
-        push hl
+        ; where it is on the map
+        ld a,(sel_stage)
+        add a,a
+        add a,a
+        ld e,a
+        ld d,0
+        ld hl,stage_info+2
+        add hl,de
         ld a,(hl)
-        ld (num_buf),a
+        ld (map_px),a
         xor a
-        ld (num_buf+1),a
-        ld a,(ct_bits)
-        and d
-        ld a,2
-        jr z,$+4
-        ld a,1
-        ld hl,num_buf
-        call text
-        pop hl
-        pop de
-        pop bc
+        ld (map_px+1),a
         inc hl
-        inc b
-        inc b
-        sla d
-        bit 6,d
-        jr z,.s
-        ret
-
-; ct_counts: HL = 4 counters, C = row -> printed at columns 14..
-ct_counts:
-        ld b,10
-        ld d,4
-.c:     push bc
-        push de
-        push hl
         ld a,(hl)
-        push bc
-        call num2
-        pop bc
-        xor a
-        ld (num_buf+2),a
-        ld hl,num_buf
-        ld a,1
-        call text
-        pop hl
-        pop de
-        pop bc
-        inc hl
+        ld (map_py),a
+        ld hl,sfx_bell
+        call play_sfx
+        call clear_keys
+        ld b,75
+.l:     push bc
         ld a,b
-        add a,4
-        ld b,a
-        dec d
-        jr nz,.c
+        and 4
+        ld a,1
+        jr z,$+4
+        ld a,3
+        call set_colour
+        ld hl,(map_px)
+        ld (pt_x),hl
+        ld a,(map_py)
+        ld (pt_row),a
+        xor a
+        ld (pt_flip),a
+        ld (clip_top),a
+        ld hl,fx_mark
+        call draw_points
+        ld a,1
+        ld (copy_full),a
+        call menu_frame
+        call menu_keys
+        pop bc
+        and $30
+        ret nz
+        djnz .l
+        or a
         ret
 
-; hex2: A -> two hex digits in num_buf
-hex2:
-        push af
-        rrca
-        rrca
-        rrca
-        rrca
-        call .d
-        ld (num_buf),a
-        pop af
-        call .d
-        ld (num_buf+1),a
-        xor a
-        ld (num_buf+2),a
-        ret
-.d:     and 15
-        add a,'0'
-        cp '9'+1
-        ret c
-        add a,7
-        ret
+; ---------------------------------------------------------------------------
+; vs_card: who fights whom, and where, on a dark screen that stays up while
+; the SD card is read
+; ---------------------------------------------------------------------------
+vs_card:
+        call css0
+        call blue_screen
+        ld a,(tour_on)
+        or a
+        jr z,.nt
+        ld a,(tour_pos)
+        cp 7
+        ld hl,s_final
+        jr z,.t
+        add a,'1'
+        ld (s_fightof+6),a
+        ld hl,s_fightof
+.t:     ld c,1
+        ld a,1
+        call text_c
+.nt:    ld a,(sel_p1)
+        call name_of
+        ld c,10
+        call big_text
+        ld hl,s_vs
+        ld c,24
+        ld a,3
+        call text_c
+        ld a,(sel_p2)
+        call name_of
+        ld c,32
+        call big_text
+        ld a,(sel_stage)
+        ld e,0
+        call stage_text
+        ld c,49
+        ld a,1
+        call text_c
+        ld a,(sel_stage)
+        ld e,2
+        call stage_text
+        ld c,56
+        ld a,1
+        call text_c
+        ld a,1
+        ld (copy_full),a
+        call menu_frame
+        jp menu_frame
 
-; ct_field: in the interrupt while the control test is open
-;  drop-outs: a direction held, released for one field, then held again
-ct_field:
-        ld a,(pad_j1)
-        ld hl,ct_j1h
-        ld de,ct_drop
-        call .drops
-        ld a,(pad_j2)
-        ld hl,ct_j2h
-        ld de,ct_drop+6
-        call .drops
-        ; A+B gap on any controller
-        ld a,(m_prev)
-        ld c,a
-        ld a,(ct_mprev)
-        cpl
-        and c
-        ld b,a                  ; new presses this field
-        ld a,c
-        ld (ct_mprev),a
-        ld hl,ct_fa
-        inc (hl)
-        jr nz,$+3
-        dec (hl)
-        ld hl,ct_fb
-        inc (hl)
-        jr nz,$+3
-        dec (hl)
-        bit 4,b
-        jr z,.nb
-        ld a,(ct_fb)
-        cp 25
-        jr nc,$+5
-        ld (ct_gap),a
-        xor a
-        ld (ct_fa),a
-.nb:    bit 5,b
+; ending: the tour is won
+ending:
+        call stop_sfx
+        call css0
+        call blue_screen
+        ld hl,s_world
+        ld c,6
+        call big_text
+        ld hl,s_champ
+        ld c,18
+        call big_text
+        ld a,(sel_p1)
+        call name_of
+        ld c,34
+        ld a,1
+        call text_c
+        ld hl,s_beat
+        ld c,41
+        ld a,1
+        call text_c
+        ld hl,s_vibed
+        ld c,56
+        ld a,3
+        call text_c
+        ld a,1
+        ld (copy_full),a
+        ld hl,tune_title
+        call play_loop
+        call clear_keys
+        ld b,50
+.d:     push bc
+        call menu_frame
+        pop bc
+        djnz .d
+        call clear_keys
+.w:     call menu_frame
+        call menu_keys
+        and $30
+        jr z,.w
+        jp stop_sfx
+
+; do_flash: the finisher's flash (the palette flips for a few ticks)
+do_flash:
+        ld a,(flash_t)
+        or a
         ret z
-        ld a,(ct_fa)
-        cp 25
-        jr nc,$+5
-        ld (ct_gap),a
-        xor a
-        ld (ct_fb),a
-        ret
-.drops: ; A = pad now, HL = history (last field, the one before), DE = 4 counters
-        ld c,a
-        ld a,(hl)
-        cpl
-        inc hl
-        and (hl)
-        and c                   ; held two fields ago, gone, held again
-        ld b,a
-        dec hl
-        ld a,(hl)
-        inc hl
-        ld (hl),a
-        dec hl
-        ld (hl),c
-        ex de,hl
-        ld c,4
-.bit:   rr b
-        jr nc,.n
-        inc (hl)
-        jr nz,.n
-        dec (hl)
-.n:     inc hl
-        dec c
-        jr nz,.bit
-        ret
+        dec a
+        ld (flash_t),a
+        ld a,(latch)
+        xor $10
+        jp css_set
 
 ; clean_floor: menus show the middle of the stage; fighters drawn at
 ; screen positions (camera 0)

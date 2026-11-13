@@ -53,8 +53,6 @@ for c in range(4):
 # ---------------------------------------------------------------- jump arcs
 def arc(n, peak):
     return [int(round(4 * peak * t * (n - t) / (n * n))) for t in range(1, n + 1)]
-L.append('jump_flick: db ' + ','.join(str(v) for v in arc(14, 17)))
-L.append('jump_dusty: db ' + ','.join(str(v) for v in arc(18, 18)))
 # Tin Roof: rises during active (5 ticks), falls in the first 6 recovery ticks
 tin = [3, 7, 10, 12, 13, 12, 10, 7, 4, 1, 0]
 L.append('tinroof_y: db ' + ','.join(str(v) for v in tin))
@@ -92,6 +90,21 @@ hit = [(0, 0), (1, 0), (-1, 0), (0, 1), (0, -1), (2, 2), (-2, 2), (2, -2), (-2, 
 pts('fx_hit', hit)
 blk = [(0, 0), (0, 1), (0, -1), (0, 2), (0, -2), (1, 3), (1, -3), (-1, 0)]
 pts('fx_block', blk)
+
+# the flashing marker on the world map
+pts('fx_mark', [(-3, 0), (3, 0), (0, 3), (0, -3), (-2, 2), (2, 2), (-2, -2), (2, -2), (-3, 1), (3, 1), (-3, -1), (3, -1)])
+# dizzy stars round the head (two phases)
+pts('fx_dizzy1', [(-6, 0), (-5, 0), (0, 2), (1, 2), (5, -1), (6, -1)])
+pts('fx_dizzy2', [(-3, 2), (-2, 2), (4, 1), (5, 1), (-1, -1), (0, -1)])
+# things in flight: rim (owner's colour) and core (yellow); dx forward, dy up
+pts('fx_p0r', [(-3, 0), (3, 0), (-2, 2), (2, 2), (-2, -2), (2, -2), (0, 3), (0, -3), (-1, 3), (1, 3), (-1, -3), (1, -3)])   # discus
+pts('fx_p0c', [(-2, 0), (-1, 0), (0, 0), (1, 0), (2, 0), (-1, 1), (0, 1), (1, 1), (-1, -1), (0, -1), (1, -1)])
+pts('fx_p1r', [(-3, 0), (3, 0), (0, 2), (0, -2), (-2, 1), (2, -1)])                                                         # chakram
+pts('fx_p1c', [(-2, 0), (-1, 1), (0, 1), (1, 1), (2, 0), (1, -1), (0, -1), (-1, -1)])
+pts('fx_p2r', [(-4, 0), (4, 0), (0, 4), (0, -4), (-3, 3), (3, 3), (-3, -3), (3, -3)])                                       # sun disc
+pts('fx_p2c', [(x, y) for x in (-2, -1, 0, 1, 2) for y in (-1, 0, 1)] + [(-1, 2), (0, 2), (1, 2), (-1, -2), (0, -2), (1, -2)])
+pts('fx_p3r', [(x, y) for x in (-2, -1, 0, 1, 2) for y in (0, 1, 2, 3)] + [(x, -1) for x in range(-4, 5)])                 # top hat
+pts('fx_p3c', [(-2, 0), (-1, 0), (0, 0), (1, 0), (2, 0)])
 
 # ---------------------------------------------------------------- noise
 L.append('        ALIGN 256')

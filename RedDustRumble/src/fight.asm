@@ -48,6 +48,10 @@ F_HPOS  equ 39
 F_HIST  equ 40      ; 16 ticks of the opponent's state, for the CPU's reaction delay
 F_JDIR  equ 56
 F_HPOLD equ 57
+F_SEQ   equ 58      ; progress through the finisher's two directions
+F_SEQT  equ 59
+F_HIDE  equ 60      ; not drawn (sent flying off the screen)
+F_VY    equ 61
 FSIZE   equ 64
 
 ; states
@@ -63,19 +67,32 @@ ST_KD     equ 8
 ST_KO     equ 9
 ST_WIN    equ 10
 ST_FROZEN equ 11
+ST_TAUNT  equ 12
+ST_DIZZY  equ 13
+ST_FIN    equ 14
+ST_FLY    equ 15
+ST_GONE   equ 16
 
 ; fighter definition
-D_WALKF equ 0
-D_WALKB equ 1
-D_JVXF  equ 2
-D_JVXB  equ 3
-D_JLEN  equ 4
-D_JTABL equ 5
-D_JTABH equ 6
-D_HURTH equ 7
-D_MOVEL equ 8
-D_MOVEH equ 9
-
+D_WALKF equ 8       ; (offsets into the fighter block header)
+D_WALKB equ 9
+D_JVXF  equ 10
+D_JVXB  equ 11
+D_JLEN  equ 12
+D_HURTH equ 13
+D_FIN1  equ 14      ; finisher: first and second direction (F_REL bits)
+D_FIN2  equ 15
+D_FINMV equ 16      ; the move whose poses it uses
+D_FINVX equ 17      ; how the loser is launched
+D_FINVY equ 18
+D_JTABL equ 20
+D_JTABH equ 21
+D_MOVEL equ 22
+D_DIR   equ 24
+D_HAB   equ 26
+D_NAME  equ 28
+D_FINNAME equ 30
+D_AIX   equ 32
 ; move record (16 bytes)
 M_SU  equ 0
 M_AC  equ 1
@@ -92,7 +109,8 @@ M_FR  equ 11
 M_FW  equ 12
 M_FS  equ 13
 M_VX  equ 14
-M_FX  equ 15        ; bits 0-1 effect, bit 7 = a crouching move
+M_FX  equ 15        ; bits 0-1: 1 whip high, 2 whip low, 3 thrown; bit 2 a straight
+                    ; line (staff); bits 2-3 thrown shape; bit 7 a crouching move
 MF_LOW   equ 1
 MF_HIGH  equ 2
 MF_KD    equ 4
@@ -339,6 +357,7 @@ fighter_input:
 update_fighter:
         ld (opp),iy
         call get_rel
+        call seq_track
         ; button timers and the signature-move check
         ld a,(ix+F_PRS)
         bit 4,a
@@ -394,6 +413,7 @@ jp_hl:  jp (hl)
 state_tab:
         dw st_free, st_free, st_prej, st_jump, st_land, st_atk
         dw st_hstun, st_bstun, st_kd, st_ko, st_win, st_frozen
+        dw st_taunt, st_dizzy, st_fin, st_fly, st_gone
 
 st_frozen:
         ld (ix+F_FRM),FR_IDLE
@@ -479,7 +499,12 @@ st_free:
         ld a,FR_WALK2
         ld (ix+F_FRM),a
         ret
-.idle:  ld (ix+F_FRM),FR_IDLE
+.idle:  inc (ix+F_ANIM)           ; breathing: two poses, 16 ticks each
+        ld a,FR_IDLE
+        bit 4,(ix+F_ANIM)
+        jr z,$+4
+        ld a,FR_IDLE2
+        ld (ix+F_FRM),a
         ret
 
 ; threat: NZ if the opponent is winding up or striking within 72 pixels
@@ -552,6 +577,21 @@ start_move:
 
 ; start_special: down held -> signature move 2, else 1
 start_special:
+        ; the finisher, if the stick has just been through its two directions
+        ld a,(fin_on)
+        dec a
+        jr nz,.nf
+        ld a,(ix+F_SEQ)
+        cp 3
+        jr nz,.nf
+        push ix
+        pop hl
+        ld de,(fin_who)
+        or a
+        sbc hl,de
+        jp z,start_fin
+.nf:    bit 0,(ix+F_REL)        ; up held: a taunt
+        jp nz,start_taunt
         ld a,MV_SP1
         bit 1,(ix+F_REL)
         jr z,$+4
@@ -563,6 +603,9 @@ start_special:
         jp play_sfx
 
 st_prej:
+        ld a,(ix+F_SPEC)        ; A+B just after pushing up: still a taunt
+        or a
+        jp nz,start_taunt
         ld (ix+F_FRM),FR_CROUCH
         ld a,(ix+F_T)
         cp 2
@@ -705,10 +748,18 @@ st_atk:
         jr nc,.rec
         ld a,(iy+M_FS)
         ld (ix+F_FRM),a
+        ld a,(iy+M_FX)
+        and 3
+        cp 3
+        jr z,.throw
         ld a,(iy+M_VX)
         or a
         call nz,move_fwd
         call .rise
+        ret
+.throw: ld a,c                  ; it leaves the hand as the strike starts
+        or a
+        call z,proj_spawn
         ret
 .rec:   ld a,c
         sub (iy+M_AC)
@@ -896,16 +947,14 @@ check_hit:
         ld (defender),iy
         call active
         ret z
+        ld a,(iy+M_FX)          ; thrown things hit on their own
+        and 3
+        cp 3
+        ret z
         ld (mvrec),iy
         ld iy,(defender)
-        ld a,(iy+F_INV)
-        or a
+        call hit_ok
         ret nz
-        ld a,(iy+F_ST)
-        cp ST_KD
-        ret z
-        cp ST_KO
-        ret z
         ; attacker's hitbox in pixels + 64
         call x64                ; A = attacker x + 64
         ld b,a
@@ -934,6 +983,8 @@ check_hit:
         ld a,(ix+F_Y)
         add a,(iy+M_Y1)
         ld (hb_y1),a
+; hit_resolve: IX = attacker, (defender), (mvrec) and the hit box set
+hit_resolve:
         ; defender's hurtbox
         push ix
         ld ix,(defender)
@@ -990,6 +1041,8 @@ check_hit:
         sub b
         ld (spark_row),a
         ; ---- blocked?
+        ld a,1
+        ld (hit_res),a
         ld iy,(defender)
         ld a,(iy+F_ST)
         cp ST_STAND
@@ -1078,15 +1131,8 @@ check_hit:
         ld a,(iy+F_HP)
         or a
         jr nz,.alive
-        ; knocked out
-        ld a,ST_KO
-        ld (iy+F_ST),a
-        ld (iy+F_T),0
-        ld a,(iy+F_Y)
-        add a,8
-        ld (iy+F_Y),a
-        ld a,1
-        ld (ko_flag),a
+        ; knocked out (or left dizzy for the finisher)
+        call ko_or_dizzy
         jr .sfx
 .alive: bit 2,c
         jr nz,.kd
@@ -1373,690 +1419,414 @@ game_logic:
         ld ix,p2
         ld iy,p1
         call check_hit
+        ld ix,p1
+        ld de,p2
+        ld iy,pr1
+        call proj_update
+        ld ix,p2
+        ld de,p1
+        ld iy,pr2
+        call proj_update
+        call fin_tick
         call separate
         jp cam_update
 
-; ---------------------------------------------------------------------------
-; render_fight: compose the arena for this tick
-; ---------------------------------------------------------------------------
-render_fight:
-        ; put back the backdrop where things were drawn last tick.  If the
-        ; camera moved, the scrolling rows all come straight from the stage
-        ; (and BG is rebuilt on the next still tick).
-        ld a,(band_top)
-        ld (rc_top),a
-        ld a,BANDBOT
-        ld (rc_bot),a
-        ld a,(scrolled)
-        or a
-        jr z,.still
-        ld a,SKYROWS
-        ld (rc_bot),a
-.still: ld a,(band_l)
-        ld (rc_l),a
-        ld a,(band_r)
-        ld (rc_r),a
-        call rect_restore
-        ld a,BANDBOT
-        ld (copy_bot),a
-        ld a,(scrolled)
-        or a
-        jr z,.ns0
-        xor a
-        ld (scrolled),a
-        inc a
-        ld (bg_stale),a
-        ld a,(cam)
-        ld (src_cam),a
-        ld a,SKYROWS
-        ld b,64-SKYROWS
-        ld de,SB+SKYROWS*32
-        call stage_rows
-        ld a,64
-        ld (copy_bot),a
-        ld a,SKYROWS
-        ld (band_top),a
-        xor a
-        ld (band_l),a
-        ld a,32
-        ld (band_r),a
-.ns0:   ld a,BANDBOT
-        ld (cur_top),a
-        ld a,32
-        ld (cur_l),a
-        xor a
-        ld (cur_r),a
-        ld a,ARENATOP
-        ld (clip_top),a
-        ; shadows first, under everything
-        ld ix,p1
-        call draw_shadow
-        ld ix,p2
-        call draw_shadow
-        ; the one attacking is drawn last, so the strike is on top
-        ld ix,p1
-        ld iy,p2
-        ld a,(p1+F_ST)
-        cp ST_ATK
-        jr nz,.o
-        ld ix,p2
-        ld iy,p1
-.o:     push iy
-        call draw_one
-        pop ix
-        call draw_one
-        ; spark
-        ld a,(spark_t)
-        or a
-        jr z,.ns
-        dec a
-        ld (spark_t),a
-        ld a,1
-        call set_colour
-        ld a,(spark_x)
-        ld l,a
-        ld h,0
-        ld (pt_x),hl
-        ld a,(spark_row)
-        ld (pt_row),a
-        xor a
-        ld (pt_flip),a
-        ld hl,fx_hit
-        ld a,(spark_blk)
-        or a
-        jr z,$+5
-        ld hl,fx_block
-        call draw_points
-.ns:
-        ; copy range = last tick's area + this tick's
-        ld a,(cur_top)
-        ld b,a
-        ld a,(band_top)
-        cp b
-        jr c,$+3
-        ld a,b
-        cp ARENATOP
-        jr nc,$+4
-        ld a,ARENATOP
-        ld (copy_top),a
-        ld a,(cur_l)
-        ld b,a
-        ld a,(band_l)
-        cp b
-        jr c,$+3
-        ld a,b
-        ld (copy_l),a
-        ld a,(cur_r)
-        ld b,a
-        ld a,(band_r)
-        cp b
-        jr nc,$+3
-        ld a,b
-        ld (copy_r),a
-        ; this tick's area is next tick's band
-        ld a,(cur_top)
-        cp ARENATOP
-        jr nc,$+4
-        ld a,ARENATOP
-        ld (band_top),a
-        ld a,(cur_l)
-        ld (band_l),a
-        ld a,(cur_r)
-        ld (band_r),a
-        ; HUD
-        ld a,(hud_dirty)
-        or a
-        jr z,.nh
-        xor a
-        ld (hud_dirty),a
-        call hud_bars
-.nh:    ld a,(dbg_on)
-        or a
-        ret z
-        ld a,(dbg_dirty)
-        or a
-        ret z
-        xor a
-        ld (dbg_dirty),a
-        jp dbg_show
 
-; draw_one: IX = fighter -> sprite and its effects
-draw_one:
-        call draw_fighter
-        ld a,(ix+F_ST)
-        cp ST_ATK
-        ret nz
-        call move_ptr
-        ld a,(iy+M_FX)
-        and 3
-        ret z
-        ld (fx_kind),a
-        ; hand position from the frame directory
-        ld a,(ix+F_FRM)
-        add a,a
+; ===========================================================================
+;  TAUNTS, FINISHERS AND THINGS IN FLIGHT
+; ===========================================================================
+FIN_TIME equ 80             ; ticks the loser stays dizzy
+
+; ---- taunt: UP + A+B.  Leaves you open for most of a second.
+start_taunt:
+        ld a,ST_TAUNT
+        call set_state
+        ld (ix+F_TA),$7F
+        ld (ix+F_TB),$7F
+        ld (ix+F_FRM),FR_TAUNT
+        ld hl,sfx_taunt
+        jp play_sfx
+st_taunt:
+        ld (ix+F_INV),0
+        ld a,(ix+F_T)
+        cp 20
+        jp nc,to_free
+        cp 8
+        jr c,.t
+        cp 12
+        jr nc,.t
+        ld (ix+F_FRM),FR_IDLE2
+        ret
+.t:     ld (ix+F_FRM),FR_TAUNT
+        ret
+
+; ---- dizzy: beaten in the deciding round, waiting for the finisher
+st_dizzy:
+        ld (ix+F_INV),0
+        ld a,(ix+F_T)
+        and 8
+        ld a,FR_HIT
+        jr z,$+4
+        ld a,FR_IDLE2
+        ld (ix+F_FRM),a
+        ret
+
+; seq_track: follow the stick through this fighter's two finisher directions
+; (F_SEQ: 0 nothing, 1 first held, 2 first let go, 3 second held = armed)
+seq_track:
+        ld a,(ix+F_SEQT)
+        or a
+        jr z,.t0
+        dec (ix+F_SEQT)
+        jr nz,.t0
+        ld (ix+F_SEQ),0
+.t0:    ld a,D_FIN1
+        call def_byte
         ld b,a
+        ld a,D_FIN2
+        call def_byte
+        ld c,a
+        ld d,(ix+F_REL)
+        ld a,(ix+F_SEQ)
+        or a
+        jr z,.s0
+        dec a
+        jr z,.s1
+        dec a
+        ret nz
+        ld a,d
+        and c
+        ret z
+        jr .adv
+.s0:    ld a,d
+        and b
+        ret z
+        jr .adv
+.s1:    ld a,d
+        and b
+        ret nz
+.adv:   inc (ix+F_SEQ)
+        ld (ix+F_SEQT),30
+        ret
+
+; start_fin: IX = the winner, opponent dizzy
+start_fin:
+        ld a,3
+        ld (fin_on),a
+        ld a,D_FINMV
+        call def_byte
+        ld (ix+F_MV),a
+        ld a,ST_FIN
+        call set_state
+        ld (ix+F_TA),$7F
+        ld (ix+F_TB),$7F
+        ld (ix+F_SEQ),0
+        ld hl,sfx_fin
+        jp play_sfx
+st_fin:
+        call move_ptr
+        ld a,(ix+F_T)
+        cp 9
+        jr nc,.s
+        ld a,(iy+M_FW)
+        ld (ix+F_FRM),a
+        ret
+.s:     jr nz,.s2
+        ; it lands: the screen flashes and the loser is sent flying
+        ld a,6
+        ld (flash_t),a
+        push iy
+        ld iy,(opp)
+        ld a,ST_FLY
+        ld (iy+F_ST),a
+        ld (iy+F_T),0
+        ld (iy+F_INV),1
+        ld a,D_FINVX
+        call def_byte
+        bit 0,(ix+F_FACE)
+        jr z,$+4
+        neg
+        ld (iy+F_VX),a
+        ld a,D_FINVY
+        call def_byte
+        ld (iy+F_VY),a
+        pop iy
+.s2:    ld a,(iy+M_FS)
+        ld (ix+F_FRM),a
+        ld a,(ix+F_T)
+        cp 36
+        ret c
+        ld a,1
+        ld (ko_flag),a
+        ret
+; the loser, in flight: spinning, up and away
+st_fly:
+        ld (ix+F_INV),1
+        ld a,(ix+F_VX)
+        call move_x
+        ld a,(ix+F_Y)
+        add a,(ix+F_VY)
+        cp 110
+        jr c,.ok
+        ld (ix+F_HIDE),1
+        ld a,ST_GONE
+        jp set_state
+.ok:    ld (ix+F_Y),a
+        ld (ix+F_FRM),FR_HIT
+        ld a,(ix+F_T)
+        rrca
+        and 1
+        ld (ix+F_FACE),a
+st_gone:
+        ret
+
+; fin_tick: count down the dizzy time; the CPU may finish; when time runs
+; out the loser just drops
+fin_tick:
+        ld a,(fin_on)
+        dec a
+        ret nz
+        ld hl,fin_t
+        ld a,(hl)
+        cp FIN_TIME-30
+        jr nz,.t
+        ld ix,(fin_who)
+        ld a,(ix+F_CPU)
+        or a
+        jr z,.t
+        ld a,(ix+F_ST)
+        cp ST_PREJ
+        jr nc,.t
+        call random
+        cp 190
+        jp c,start_fin
+.t:     ld hl,fin_t
+        dec (hl)
+        ret nz
+        ld a,2
+        ld (fin_on),a
+        ld ix,p1
+        ld a,(ix+F_ST)
+        cp ST_DIZZY
+        jr z,.d
+        ld ix,p2
+.d:     ld a,ST_KO
+        call set_state
+        ld a,1
+        ld (ko_flag),a
+        ret
+
+; ko_or_dizzy: IY = fighter just beaten, IX = the one who did it.  The blow
+; that wins the match leaves the loser dizzy for a finisher.
+ko_or_dizzy:
+        ld a,(fin_on)
+        or a
+        jr nz,.ko
+        ld a,(ix+F_WINS)
+        dec a
+        jr nz,.ko
+        ld a,(iy+F_Y)
+        or a
+        jr nz,.ko
+        ld a,ST_DIZZY
+        ld (iy+F_ST),a
+        ld (iy+F_T),0
+        ld (iy+F_PUSH),0
+        ld a,1
+        ld (fin_on),a
+        ld a,FIN_TIME
+        ld (fin_t),a
+        ld (fin_who),ix
+        ld (ix+F_SEQ),0
+        ret
+.ko:    ld a,ST_KO
+        ld (iy+F_ST),a
+        ld (iy+F_T),0
+        ld a,(iy+F_Y)
+        add a,8
+        ld (iy+F_Y),a
+        ld a,1
+        ld (ko_flag),a
+        ld a,(fin_on)
+        or a
+        ret z
+        ld a,2
+        ld (fin_on),a
+        ret
+
+; hit_ok: IY = defender -> Z if it can be hit now
+hit_ok:
+        ld a,(iy+F_INV)
+        or a
+        ret nz
+        ld a,(iy+F_ST)
+        cp ST_KD
+        jr z,.no
+        cp ST_KO
+        jr z,.no
+        cp ST_FLY
+        jr z,.no
+        cp ST_GONE
+        jr z,.no
+        xor a
+        ret
+.no:    or 1
+        ret
+
+; ---- things in flight (one per fighter)
+PR_ON   equ 0
+PR_XL   equ 1
+PR_XH   equ 2
+PR_Y    equ 3
+PR_VX   equ 4
+PR_MVL  equ 5
+PR_MVH  equ 6
+PR_T    equ 7
+PR_KIND equ 8
+
+; my_proj: IX = fighter -> HL = its projectile record
+my_proj:
+        push de
+        push ix
+        pop hl
+        ld de,p1
+        or a
+        sbc hl,de
+        ld hl,pr1
+        jr z,$+5
+        ld hl,pr2
+        pop de
+        ret
+
+; proj_spawn: IX = thrower, IY = the move.  Nothing happens if this
+; fighter's last one is still in flight.
+proj_spawn:
+        push bc
+        call my_proj
+        ld a,(hl)
+        or a
+        jr nz,.x
+        ld (hl),1
+        inc hl
+        push hl
+        ld a,(iy+M_X0)
         add a,a
         add a,a
-        add a,b
         ld e,a
         ld d,0
-        ld l,(ix+F_DIRL)
-        ld h,(ix+F_DIRH)
+        bit 0,(ix+F_FACE)
+        jr z,.r
+        neg
+        ld e,a
+        ld d,$FF
+.r:     ld l,(ix+F_XL)
+        ld h,(ix+F_XH)
         add hl,de
-        ld de,8
-        add hl,de
-        ld a,(hl)               ; hand x (signed)
-        ld (fx_hx),a
+        ex de,hl
+        pop hl
+        ld (hl),e
         inc hl
-        ld c,(hl)               ; hand y (rows up)
+        ld (hl),d
+        inc hl
+        ld a,(iy+M_Y0)
+        add a,(iy+M_Y1)
+        rra
+        ld (hl),a
+        inc hl
+        ld a,(iy+M_VX)
+        bit 0,(ix+F_FACE)
+        jr z,$+4
+        neg
+        ld (hl),a
+        inc hl
+        push iy
+        pop de
+        ld (hl),e
+        inc hl
+        ld (hl),d
+        inc hl
+        ld (hl),0
+        inc hl
+        ld a,(iy+M_FX)
+        rrca
+        rrca
+        and 3
+        ld (hl),a
+        ld hl,sfx_shot
+        call play_sfx
+.x:     pop bc
+        ret
+
+; proj_update: IX = owner, DE = the opponent, IY = the owner's projectile
+proj_update:
+        ld a,(iy+PR_ON)
+        or a
+        ret z
+        ld (defender),de
+        inc (iy+PR_T)
+        ld a,(iy+PR_VX)
         ld e,a
         ld d,0
         bit 7,a
         jr z,$+3
         dec d
-        ld a,(ix+F_FACE)
-        ld (pt_flip),a
-        or a
-        jr z,.r
-        ld a,e
-        cpl
-        ld e,a
-        ld a,d
-        cpl
-        ld d,a
-        inc de
-.r:     push de
-        call scr_x
-        pop de
+        ld l,(iy+PR_XL)
+        ld h,(iy+PR_XH)
         add hl,de
-        ld (pt_x),hl
-        ld a,GROUND
-        sub (ix+F_Y)
-        sub c
-        ld (pt_row),a
-        ld a,1
-        call set_colour
-        ; which part of the move?
-        ld a,(ix+F_T)
-        cp (iy+M_SU)
-        jr nc,.act
-        ld hl,fx_whipback
-        jp draw_points
-.act:   sub (iy+M_SU)
-        cp (iy+M_AC)
-        jr nc,.rec
-        ; the whip at full stretch: from the hand to the reach
-        ld a,(fx_kind)
-        cp 2
-        jr nz,.hi
-        ld a,GROUND-1
-        ld (pt_row),a
-.hi:    ld a,(fx_hx)
-        ld b,a
-        ld a,(iy+M_X1)
-        sub b
-        jr nc,$+3
-        xor a
-        inc a
-        push af
-        call hline
-        pop af
-        ; crack at the tip
-        ld e,a
-        ld d,0
-        ld a,(pt_flip)
-        or a
-        jr z,.t
-        ld a,e
-        cpl
-        ld e,a
-        ld d,$FF
-        inc de
-.t:     ld hl,(pt_x)
-        add hl,de
-        ld (pt_x),hl
-        ld hl,fx_crack
-        jp draw_points
-.rec:   ld hl,fx_slack_hi
-        ld a,(fx_kind)
-        cp 2
-        jr nz,$+5
-        ld hl,fx_slack_lo
-        jp draw_points
-
-; dbg_show: spare time and slow ticks in place of player 1's name (debug)
-dbg_show:
-        ld a,$AA
-        ld b,0
-        ld c,0
-        ld d,9
-        ld e,5
-        call fill_rect
-        ; percent = spare count / 40 (spare count * 35 T of 141,260 T)
-        ld hl,(spare_show)
-        ld de,40
-        call div16
-        ld a,l
-        cp 100
-        jr c,$+4
-        ld a,99
-        call num2
-        ld a,'%'
-        ld (num_buf+2),a
-        xor a
-        ld (num_buf+3),a
-        ld hl,num_buf
-        ld b,0
-        ld c,0
-        ld a,1
-        call text
-        ld hl,(slow_ticks)
-        ld a,h
-        or a
-        ld a,l
-        jr z,$+4
-        ld a,99
-        cp 100
-        jr c,$+4
-        ld a,99
-        call num2
-        ld a,'S'
-        ld (num_buf+2),a
-        xor a
-        ld (num_buf+3),a
-        ld hl,num_buf
-        ld b,4
-        ld c,0
-        ld a,3
-        call text
-        ld a,1
-        ld (copy_hud),a
-        ret
-
-; num2: A (0-99) -> two digits in num_buf
-num2:
-        ld b,'0'
-.t:     cp 10
-        jr c,.u
-        sub 10
-        inc b
-        jr .t
-.u:     add a,'0'
-        ld (num_buf+1),a
-        ld a,b
-        ld (num_buf),a
-        ret
-
-; div16: HL = HL / DE
-div16:
-        ld bc,0
-.l:     or a
-        sbc hl,de
-        jr c,.d
-        inc bc
-        jr .l
-.d:     ld h,b
-        ld l,c
-        ret
-
-; ---------------------------------------------------------------------------
-; messages are drawn once into the backdrop (BG), so they cost nothing per tick
-; show_msg: HL = big line (0 = none), DE = small line under it (0 = none),
-;           A = row
-show_msg:
-        push hl
-        push de
-        push af
-        ld a,1
-        ld (cam_lock),a
-        call bg_fresh
-        call hide_msg
-        ld a,1
-        ld (cam_lock),a
-        pop af
-        ld (msg_row),a
-        pop de
-        pop hl
-        ld (msg_big),hl
-        ld (msg_small),de
-        ; a dark banner across the arena behind the words
-        ld a,(msg_row)
-        sub 2
-        ld c,a
-        ld b,0
-        call sb_addr
-        ld de,BG-SB
-        add hl,de
-        ld d,h
-        ld e,l
-        inc de
-        ld (hl),$AA
-        ld bc,15*32-1
-        ld a,(msg_small+1)
-        or a
-        jr z,$+5
-        ld bc,21*32-1
-        ldir
-        ld a,BG>>8
-        ld (txt_page),a
-        ld hl,(msg_big)
-        ld a,h
-        or l
-        jr z,.ns
-        ld a,(msg_row)
-        ld c,a
-        call big_text
-.ns:    ld hl,(msg_small)
-        ld a,h
-        or l
-        jr z,.done
-        ld a,(msg_row)
-        add a,13
-        ld c,a
-        ld a,1
-        call text_c
-.done:  ld a,SB>>8
-        ld (txt_page),a
-        jp band_full
-
-; hide_msg: put the stage back where the message was; free the camera
-hide_msg:
-        xor a
-        ld (cam_lock),a
-        ld hl,(msg_big)
-        ld a,h
-        or l
-        ld hl,(msg_small)
-        or h
-        or l
-        ret z
-        ld a,(bg_cam)
-        ld (src_cam),a
-        ld a,(msg_row)
-        sub 2
-        ld c,a
-        ld b,0
-        call sb_addr
-        ld de,BG-SB
-        add hl,de
-        ex de,hl
-        ld a,(msg_row)
-        sub 2
-        ld b,21
-        call stage_rows
-        ld hl,0
-        ld (msg_big),hl
-        ld (msg_small),hl
-        jp band_full
-
-; bg_fresh: make BG match the camera (after it has been scrolling)
-bg_fresh:
-        ld a,(bg_stale)
-        or a
-        ret z
-        xor a
-        ld (bg_stale),a
+        ld (iy+PR_XL),l
+        ld (iy+PR_XH),h
+        ; where on the screen?
+        srl h
+        rr l
+        srl h
+        rr l
         ld a,(cam)
-        ld (src_cam),a
-        ld (bg_cam),a
-        ld a,SKYROWS
-        ld b,64-SKYROWS
-        ld de,BG+SKYROWS*32
-        jp stage_rows
-
-; band_full: next tick restores and copies the whole arena
-band_full:
-        ld a,ARENATOP
-        ld (band_top),a
-        xor a
-        ld (band_l),a
-        ld a,32
-        ld (band_r),a
-        ret
-
-; draw_shadow: IX = fighter.  A small green ellipse on the street, narrower
-; the higher the fighter is off the ground.  Drawn as spans: whole bytes in
-; the middle, masked bytes at the ends.
-draw_shadow:
-        ld a,(ix+F_Y)
-        srl a
-        srl a
-        cp 6
-        jr c,$+4
-        ld a,6
-        neg
-        add a,9
-        ld (sh_w),a             ; half width
-        call scr_x
-        ld (sh_x),hl
-        ld a,GROUND+1
-        ld c,2
-        call .row
-        ld a,GROUND+2
-        ld c,0
-        call .row
-        ld a,GROUND+3
-        ld c,3
-.row:   ld (pt_row),a
-        ld a,(sh_w)
-        sub c
-        ret c
-        ret z
-        ld c,a                  ; half width for this row
-        ld hl,(sh_x)
-        ld e,c
-        ld d,0
-        or a
-        sbc hl,de               ; left end
-        bit 7,h
-        jr z,$+5
-        ld hl,0
-        ld a,h
-        or a
-        ret nz
-        ld a,l
-        cp 128
-        ret nc
-        ld b,a                  ; x0
-        ld a,c
-        add a,a
-        add a,b                 ; x1 = x0 + 2w
-        jr c,.cl
-        cp 128
-        jr c,.ok
-.cl:    ld a,127
-.ok:    ld c,a                  ; x1 (inclusive)
-        ; widen this tick's area
-        ld a,(pt_row)
-        ld hl,cur_top
-        cp (hl)
-        jr nc,$+3
-        ld (hl),a
-        ld a,b
-        rrca
-        rrca
-        and $1F
-        ld hl,cur_l
-        cp (hl)
-        jr nc,$+3
-        ld (hl),a
-        ld a,c
-        rrca
-        rrca
-        and $1F
-        inc a
-        inc hl
-        cp (hl)
-        jr c,$+3
-        ld (hl),a
-        ; first and last bytes
-        push bc
-        ld a,b
-        rrca
-        rrca
-        and $1F
-        ld b,a
-        ld a,(pt_row)
-        ld c,a
-        call sb_addr            ; HL = first byte
-        pop bc
-        ld a,b
-        and 3
         ld e,a
         ld d,0
-        push hl
-        ld hl,sh_lmask
-        add hl,de
-        ld e,(hl)               ; keep-mask for the first byte
-        pop hl
-        ld a,b
-        rrca
-        rrca
-        and $1F
-        ld d,a                  ; first column
-        ld a,c
-        rrca
-        rrca
-        and $1F
-        sub d                   ; columns after the first
-        jr nz,.multi
-        ; one byte: both masks together
-        ld a,c
-        and 3
-        push hl
-        ld hl,sh_rmask
-        add a,l
-        ld l,a
-        jr nc,$+3
-        inc h
-        ld a,(hl)
-        or e
-        pop hl
-        and (hl)
-        ld (hl),a
-        ret
-.multi: ld d,a
-        ld a,(hl)
-        and e
-        ld (hl),a
-        inc hl
-        dec d
-        jr z,.last
-.mid:   ld (hl),0
-        inc hl
-        dec d
-        jr nz,.mid
-.last:  ld a,c
-        and 3
-        ld e,a
-        ld d,0
-        push hl
-        ld hl,sh_rmask
-        add hl,de
-        ld a,(hl)
-        pop hl
-        and (hl)
-        ld (hl),a
-        ret
-
-; keep-masks: first byte starting at pixel 0-3, last byte ending at pixel 0-3
-sh_lmask: db $00,$C0,$F0,$FC
-sh_rmask: db $3F,$0F,$03,$00
-
-; rect_restore: put the clean picture back in SB over rows rc_top..rc_bot-1,
-; byte columns rc_l..rc_r-1.  The still sky (and everything, while a message
-; is up and the camera is locked) comes from BG; the scrolling rows come
-; straight from the stage, so a moving camera never needs BG rebuilt.
-rect_restore:
-        ld a,(cam_lock)
-        or a
-        jr z,.split
-        ld hl,BG
-        ld de,SB
-        jp rect_copy
-.split: ld a,(rc_top)
-        cp SKYROWS
-        jr nc,.stage
-        ; still rows from BG
-        ld a,(rc_bot)
-        push af
-        cp SKYROWS
-        jr c,$+4
-        ld a,SKYROWS
-        ld (rc_bot),a
-        ld a,(rc_l)
-        push af
-        ld a,(rc_r)
-        push af
-        ld hl,BG
-        ld de,SB
-        call rect_copy
-        pop af
-        ld (rc_r),a
-        pop af
-        ld (rc_l),a
-        pop af
-        ld (rc_bot),a
-        ld a,SKYROWS
-        ld (rc_top),a
-.stage: ld a,(rc_bot)
-        ld b,a
-        ld a,(rc_top)
-        ld c,a
-        ld a,b
-        sub c
-        ret z
-        ret c
-        ld (rr_rows),a
-        ld a,(rc_r)
-        ld b,a
-        ld a,(rc_l)
-        ld c,a
-        ld a,b
-        sub c
-        ret z
-        ret c
-        add a,a
-        ld e,a
-        ld d,0
-        ld hl,ldirow_end
         or a
         sbc hl,de
-        ld (.call+1),hl
-        ; source: the stage at the camera, plus the left column
-        ld a,(rc_top)
-        ld c,a
-        ld a,(cam)
-        ld b,a
-        call stage_src
-        ld a,(rc_l)
-        ld e,a
-        ld d,0
+        ld a,h
+        or a
+        jr nz,.off
+        ld a,l
+        cp 128
+        jr nc,.off
+        add a,64
+        ld b,a                  ; centre + 64
+        ld l,(iy+PR_MVL)
+        ld h,(iy+PR_MVH)
+        ld (mvrec),hl
+        ld de,M_X1
         add hl,de
-        push hl
-        ld a,(rc_l)
-        ld b,a
-        ld a,(rc_top)
-        ld c,a
-        call sb_addr
-        ex de,hl                ; DE = SB destination
-        pop hl
-        ld a,(rr_rows)
-        ld b,a
-.row:   push hl
-        push de
-        push bc
-.call:  call ldirow_end
-        pop bc
-        pop de
-        pop hl
-        push bc
-        ld bc,STAGEW
-        add hl,bc
-        ex de,hl
-        ld bc,32
-        add hl,bc
-        ex de,hl
-        pop bc
-        djnz .row
+        ld c,(hl)               ; half width
+        inc hl
+        ld a,(hl)
+        ld (hb_y0),a
+        inc hl
+        ld a,(hl)
+        ld (hb_y1),a
+        ld a,b
+        sub c
+        ld (hb_lo),a
+        ld a,b
+        add a,c
+        ld (hb_hi),a
+        push iy
+        ld iy,(defender)
+        call hit_ok
+        jr nz,.miss
+        xor a
+        ld (hit_res),a
+        ld a,(ix+F_HITF)
+        push af
+        call hit_resolve
+        pop af
+        ld (ix+F_HITF),a
+        pop iy
+        ld a,(hit_res)
+        or a
+        ret z
+.off:   ld (iy+PR_ON),0
+        ret
+.miss:  pop iy
         ret
