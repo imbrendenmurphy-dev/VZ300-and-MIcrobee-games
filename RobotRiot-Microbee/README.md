@@ -15,7 +15,7 @@ An original single-screen robot-uprising arena shooter for the **Microbee Premiu
 - Tested in the Premium Plus emulator model:
   - It holds a steady 25 frames a second on every wave.
   - Long soak tests passed: random play across several games, and the attract sequence left to loop through every screen and the demo.
-- It hasn't been run on real hardware yet.
+- Build 0.2.1 fixes a fault found on BPM's Premium Plus: the screen showed as four small copies. The 40-column dot clock was never selected, so the 6545 scanned at twice the rate.
 
 ## Play it
 
@@ -85,7 +85,7 @@ The glowing borders are dithered cells whose ink and paper colour pairs chase ro
 
 ## Under the hood
 
-- **Display:** 40 × 25 cells of 8 × 8 pixels (320 × 200). Two pages are flipped with the 6545 start address. The arena is rows 1-24, the whole screen below the score line.
+- **Display:** 40 × 25 cells of 8 × 8 pixels (320 × 200). This needs the 40-column dot clock (`IN A,(09h)` with A = 1) as well as the 6545 table. Two pages are flipped with the 6545 start address. The arena is rows 1-24, the whole screen below the score line.
 - **Border:**
   - The arena border is one pixel thick. Its 8 glyphs sit at numbers 1-8 of every PCG bank, so a cell needs no bank change to show it.
   - When a sprite moves off a cell, that cell is restored from a 1K background map: blank, or border.

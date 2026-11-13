@@ -30,7 +30,9 @@ hw_init:
         out (P_LV),a
         ld a,BLK_GFX
         call map_blk
-        ld hl,crtc_tab
+        ld a,1                  ; the 40-column dot clock: the real Premium
+        in a,(P_CLK40)          ; Plus needs it as well as the 6545 table,
+        ld hl,crtc_tab          ; or it scans at twice the rate (4 pictures)
         ld c,0
 .ci:    ld a,c
         out (P_CRTCA),a
