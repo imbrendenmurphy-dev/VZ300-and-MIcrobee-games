@@ -19,8 +19,6 @@ CRTCD   equ 0Dh
 LATCH   equ 1Ch                 ; Premium video latch
 COLP    equ 08h                 ; bit 6: F800 window = colour RAM
 ROMLAT  equ 0Bh                 ; 1 during keyboard scans
-RTCA    equ 04h                 ; MC146818 address
-RTCD    equ 07h                 ; MC146818 data read
 SCREEN  equ 0F000h
 EXT     equ 80h                 ; extended PCG / attributes on
 ATTRSEL equ 10h                 ; attribute RAM at F000
@@ -54,20 +52,39 @@ start:
         ld (ticks),a
         ld a,3
         ld (detail),a
-        xor a
-        out (RTCA),a
-        in a,(RTCD)
-        ld (lastsec),a
 mloop:
         call keys
+        call vbpoll
         call physics
+        call vbpoll
         call mkmatrix
         call clrback
+        call vbpoll
         call render
+        call vbpoll
         call panel
+        call vbpoll
         call flip
         call timing
         jp mloop
+
+; 6545 status bit 5 = vertical blank. Counts 50 Hz fields; must be
+; called at least every ~10,000 T-states.
+vbpoll: push af
+        push hl
+        in a,(CRTCA)
+        and 20h
+        ld hl,vblast
+        cp (hl)
+        jr z,vbp1
+        ld (hl),a
+        or a
+        jr z,vbp1
+        ld hl,fields
+        inc (hl)
+vbp1:   pop hl
+        pop af
+        ret
 
 ; =====================================================================
 ;  VIDEO
@@ -209,11 +226,13 @@ sa2:    ld a,b
 clrbank:
         or EXT
         out (LATCH),a
-        ld (savsp),sp
-        ld sp,0
+        call vbpoll
         ld hl,0
-        ld b,64
-cbk1:   push hl
+        ld (savsp),sp
+        ld sp,0                 ; upper 1K
+        ld b,32
+cbk1:
+        push hl
         push hl
         push hl
         push hl
@@ -231,7 +250,30 @@ cbk1:   push hl
         push hl
         djnz cbk1
         ld sp,(savsp)
-        ret
+        call vbpoll
+        ld (savsp),sp
+        ld sp,0FC00h            ; lower 1K
+        ld b,32
+cbk2:
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        push hl
+        djnz cbk2
+        ld sp,(savsp)
+        jp vbpoll
 
 clrback:
         ld a,(backbank)
@@ -344,7 +386,8 @@ k3:     ld a,K_P
         jr z,k4
         ld a,1
         ld (rin),a
-k4:     ld a,K_T
+k4:     call vbpoll
+        ld a,K_T
         call keytst
         jr z,k5
         ld a,(thr)
@@ -447,6 +490,7 @@ physics:
         ld a,(ticks)
         ld b,a
 ph1:    push bc
+        call vbpoll
         call tick
         pop bc
         ld a,(crashed)
@@ -1585,7 +1629,8 @@ ds2:    ld (tz),hl
         ld de,lvec
         ld bc,6
         ldir
-dsl:    ld hl,cvr
+dsl:    call vbpoll
+        ld hl,cvr
         ld de,sega
         ld bc,6
         ldir
@@ -1627,7 +1672,8 @@ dsfail: pop hl
 ;  ox(m), oy(half m), oz(m) / nx,X.. / ny,Y.. / nz,Z.. (half m words)
 ;  nv, verts (ix,iy,iz bytes) / ne, edges (a,b bytes)
 ; ---------------------------------------------------------------------
-dobj:   ld e,(hl)
+dobj:   call vbpoll
+        ld e,(hl)
         inc hl
         ld d,(hl)
         inc hl
@@ -1697,13 +1743,15 @@ do2:    ld (tz),hl
         ld de,m02
         ld bc,axz
         call axtab
+        call vbpoll
         ; vertices
         ld a,(hl)
         inc hl
         ld (vcnt),a
         ld a,0
         ld (vidx),a
-dov1:   push hl
+dov1:   call vbpoll
+        push hl
         ld hl,(cvr)
         ld (vr),hl
         ld hl,(cvu)
@@ -1781,7 +1829,8 @@ dov2:   pop hl
         ld a,(hl)
         inc hl
         ld (vcnt),a
-doe1:   ld a,(hl)
+doe1:   call vbpoll
+        ld a,(hl)
         inc hl
         ld (ea),a
         ld a,(hl)
@@ -1942,11 +1991,13 @@ idx6:   push de
 
 ; Camera-space segment sega -> segb: frustum reject, near clip, project, draw
 segment:
+        call vbpoll
         ld hl,sega
         call fcode
         ld (fca),a
         ld hl,segb
         call fcode
+        ld (fcb),a
         ld b,a
         ld a,(fca)
         and b
@@ -1963,7 +2014,37 @@ sg1:    bit 4,b
         ld hl,segb
         ld de,sega
         call nearclip
-sg2:    ld hl,sega
+sg2:    ld a,(fcb)
+        ld b,a
+        ld a,(fca)
+        or b
+        and 1Fh
+        jr z,sgp
+        ld hl,sega              ; guard band: keep |r|,|u| <= 40f so
+        call gcode              ; projections never saturate
+        ld (gca),a
+        ld hl,segb
+        call gcode
+        ld b,a
+        ld a,(gca)
+        or b
+        jr z,sgp
+        ld a,(gca)
+        and b
+        ret nz
+        ld a,1
+        call gplane
+        ret c
+        ld a,2
+        call gplane
+        ret c
+        ld a,4
+        call gplane
+        ret c
+        ld a,8
+        call gplane
+        ret c
+sgp:    ld hl,sega
         call project
         ld (cx0),hl
         ld (cy0),de
@@ -1972,6 +2053,203 @@ sg2:    ld hl,sega
         ld (cx1),hl
         ld (cy1),de
         jp clipdraw
+
+
+; ---------------------------------------------------------------------
+;  Guard band.  HL -> camera point (f >= NEAR).  A = bits:
+;  1 r > 40f, 2 r < -40f, 4 u > 40f, 8 u < -40f
+; ---------------------------------------------------------------------
+gcode:  ld e,(hl)
+        inc hl
+        ld d,(hl)
+        inc hl
+        ld (gr),de
+        ld e,(hl)
+        inc hl
+        ld d,(hl)
+        inc hl
+        ld (gu),de
+        ld e,(hl)
+        inc hl
+        ld d,(hl)
+        ex de,hl
+        bit 7,h
+        jr z,gc0
+        ld hl,0
+gc0:    srl h                   ; lim = f*5/8
+        rr l
+        ld d,h
+        ld e,l
+        srl h
+        rr l
+        srl h
+        rr l
+        add hl,de
+        ld (glim),hl
+        ld hl,(gu)
+        call gtest
+        add a,a
+        add a,a
+        ld c,a
+        ld hl,(gr)
+        call gtest
+        or c
+        ret
+
+; HL = value -> A = 1 if value/64 > lim, 2 if -value/64 > lim, else 0
+gtest:  ld b,1
+        bit 7,h
+        jr z,gt1
+        call neghl
+        ld b,2
+gt1:    ld a,l                  ; HL >>= 6
+        rlca
+        rlca
+        and 3
+        ld e,a
+        ld a,h
+        add a,a
+        add a,a
+        or e
+        ld l,a
+        ld a,h
+        rlca
+        rlca
+        and 3
+        ld h,a
+        ld de,(glim)
+        or a
+        sbc hl,de
+        jr c,gt2
+        jr z,gt2
+        ld a,b
+        ret
+gt2:    xor a
+        ret
+
+; NZ if nmid is outside the plane in gmask (one component only)
+gone:   ld hl,(nmid+4)          ; lim = f*5/8
+        bit 7,h
+        jr z,go0
+        ld hl,0
+go0:    srl h
+        rr l
+        ld d,h
+        ld e,l
+        srl h
+        rr l
+        srl h
+        rr l
+        add hl,de
+        ld (glim),hl
+        ld a,(gmask)
+        ld hl,(nmid)
+        cp 4
+        jr c,go1
+        ld hl,(nmid+2)
+go1:    and 0Ah                 ; negative-side planes
+        call nz,neghl
+        bit 7,h
+        jr nz,go2               ; other side of the axis: inside
+        call gt1s
+        or a
+        ret
+go2:    xor a
+        ret
+; HL >= 0: A = 1 (NZ) if HL/64 > glim
+gt1s:   ld b,1
+        jp gt1
+
+; A = plane bit. Clips sega/segb to that plane. Carry = both outside.
+gplane: ld (gmask),a
+        ld hl,sega
+        call gcode
+        ld hl,gmask
+        and (hl)
+        ld (gca),a
+        ld hl,segb
+        call gcode
+        ld hl,gmask
+        and (hl)
+        ld b,a
+        ld a,(gca)
+        and b
+        jr z,gp1
+        scf
+        ret
+gp1:    ld a,(gca)
+        or a
+        jr z,gp2
+        ld hl,sega
+        ld de,segb
+        call bclip
+        or a
+        ret
+gp2:    ld a,b
+        or a
+        ret z
+        ld hl,segb
+        ld de,sega
+        call bclip
+        or a
+        ret
+
+; HL -> point outside plane (gmask), DE -> point inside: bisect,
+; the outside point is replaced by a point just inside the plane.
+bclip:  ld (ncdst),hl
+        push de
+        ld de,nlo
+        ld bc,6
+        ldir
+        pop hl
+        ld de,nhi
+        ld bc,6
+        ldir
+        ld a,12
+        ld (gcnt),a
+bc1:    call vbpoll
+        ld hl,(nlo)
+        sra h
+        rr l
+        ex de,hl
+        ld hl,(nhi)
+        sra h
+        rr l
+        add hl,de
+        ld (nmid),hl
+        ld hl,(nlo+2)
+        sra h
+        rr l
+        ex de,hl
+        ld hl,(nhi+2)
+        sra h
+        rr l
+        add hl,de
+        ld (nmid+2),hl
+        ld hl,(nlo+4)
+        sra h
+        rr l
+        ex de,hl
+        ld hl,(nhi+4)
+        sra h
+        rr l
+        add hl,de
+        ld (nmid+4),hl
+        call gone
+        ld de,nlo
+        jr nz,bc2
+        ld de,nhi
+bc2:    ld hl,nmid
+        ld bc,6
+        ldir
+        ld hl,gcnt
+        dec (hl)
+        jr nz,bc1
+        ld hl,nhi
+        ld de,(ncdst)
+        ld bc,6
+        ldir
+        ret
 
 ; HL -> camera point. A = frustum code: 1 left, 2 right, 4 above,
 ; 8 below, 16 behind near plane. (Plane tests at half scale.)
@@ -2056,7 +2334,8 @@ nearclip:
         ld bc,6
         ldir
         ld b,15
-nc1:    ld hl,(nlo+4)
+nc1:    call vbpoll
+        ld hl,(nlo+4)
         sra h
         rr l
         ex de,hl
@@ -2348,7 +2627,8 @@ small:
 clipdraw:
         ld hl,cstk
         ld (cstkp),hl
-cdtop:  ld hl,(cx0)
+cdtop:  call vbpoll
+        ld hl,(cx0)
         ld de,(cy0)
         call outcode
         ld (oc0),a
@@ -2471,7 +2751,8 @@ cdpop:  ld hl,(cstkp)
 
 ; inside point (six,siy), outside point (sox,soy) -> boundary in six,siy
 search:
-srch1:  ld hl,(six)
+srch1:  call vbpoll
+        ld hl,(six)
         ld de,(sox)
         call near1
         jr nc,srch2
@@ -2509,6 +2790,7 @@ srch3:  ld (sox),hl
 ;  LINE DRAWING into the back buffer (coords already inside the view)
 ; =====================================================================
 drawline:
+        call vbpoll
         ld hl,(cx0)
         ld de,(cx1)
         or a
@@ -2680,6 +2962,7 @@ xmbyte: ld a,l
         inc h
         jr nz,xm2
         ld h,0F8h
+        call vbpoll
         ld a,(curbank)
         inc a
         ld (curbank),a
@@ -2706,6 +2989,7 @@ ymbyte: ld a,l
         inc h
         jr nz,ym2
         ld h,0F8h
+        call vbpoll
         ld a,(curbank)
         inc a
         ld (curbank),a
@@ -2777,7 +3061,7 @@ nextbyte:
         inc a
         ld (curbank),a
         out (LATCH),a
-        ret
+        jp vbpoll
 
 rmask:  db 0FFh,7Fh,3Fh,1Fh,0Fh,07h,03h,01h
 emask:  db 80h,0C0h,0E0h,0F0h,0F8h,0FCh,0FEh,0FFh
@@ -2998,6 +3282,7 @@ panel:
         call fadr
         ld b,6
         call psdec
+        call vbpoll
         ; pitch and bank
         ld a,(pitch+1)
         call angdeg
@@ -3069,44 +3354,39 @@ s_nofps: db "--",0
 ;  TIMING  (frames per second from the MC146818 clock)
 ; =====================================================================
 timing:
+        call vbpoll
         ld hl,(frames)
         inc hl
         ld (frames),hl
         ld hl,secfr
         inc (hl)
-        xor a
-        out (RTCA),a
-        in a,(RTCD)
+        ld a,(fields)           ; game ticks = fields since last frame
         ld b,a
-        ld a,(lastsec)
-        cp b
-        ret z
+        ld a,(lastfr)
+        ld c,a
         ld a,b
-        ld (lastsec),a
+        sub c
+        jr nz,tm1
+        inc a
+tm1:    cp 13
+        jr c,tm2
+        ld a,12
+tm2:    ld (ticks),a
+        ld a,b
+        ld (lastfr),a
+        ld a,(fsec)             ; 50 fields = one second
+        ld c,a
+        ld a,b
+        sub c
+        cp 50
+        ret c
+        ld a,c
+        add a,50
+        ld (fsec),a
         ld a,(secfr)
         ld (fps),a
         xor a
         ld (secfr),a
-        ld a,(fps)
-        or a
-        ret z
-        ld c,a
-        srl a
-        add a,50
-        ld b,0
-tm1:    cp c
-        jr c,tm2
-        sub c
-        inc b
-        jr tm1
-tm2:    ld a,b
-        or a
-        jr nz,tm3
-        inc a
-tm3:    cp 13
-        jr c,tm4
-        ld a,12
-tm4:    ld (ticks),a
         ret
 
 ; =====================================================================

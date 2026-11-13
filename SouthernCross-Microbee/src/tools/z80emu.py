@@ -63,7 +63,9 @@ class Bee:
 
     def inp(self, p):
         p &= 0xff
-        if p == 0x0C: return self.status
+        if p == 0x0C:
+            vb = 0x20 if (self.cycles % 67500) >= 67500 - 12300 else 0
+            return (self.status & 0xDF) | vb
         if p == 0x0D:
             if self.creg in (16, 17): self.status &= ~0x40
             return self.crtc[self.creg]

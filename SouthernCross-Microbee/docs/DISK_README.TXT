@@ -28,10 +28,11 @@ FLYING TIPS
 BENCHMARK (emulated at 3.375 MHz, on the runway)
   Detail 1  about 15 fps
   Detail 2  about 8 fps
-  Detail 3  about 6 fps
-  The panel shows the real FPS (read from the clock chip).
-  If it shows "--" the clock isn't ticking; the frame
-  counter still works with a stopwatch.
+  Detail 3  about 5.5 fps
+  The panel shows the real FPS, timed by counting the 6545's
+  vertical blanks (50 per second). Game speed follows the
+  same count, so the plane flies at the right pace whatever
+  the frame rate.
 
 TECH
   64x16 screen, 8x16 cells. Top half: 512x128 bitmap made of

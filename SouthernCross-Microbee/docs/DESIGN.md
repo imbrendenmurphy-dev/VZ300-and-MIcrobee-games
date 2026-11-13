@@ -75,6 +75,7 @@ One forgiving single-engine trainer: stall, climb, glide, flaps. Panel: airspeed
 7. Final polish and the SD disk image
 
 ## Stage 1 notes
-- Emulator frame rates at 3.375 MHz: detail 1 ~15 fps, detail 2 ~8, detail 3 ~6.
+- Emulator frame rates at 3.375 MHz: detail 1 ~15 fps, detail 2 ~8, detail 3 ~5.5.
+- Real hardware (BPM, amber monitor): runs and flies; first build showed "--" FPS because the MC146818 isn't ticking on that machine, and ground lines passing close beside the plane could bend up through the sky (one end's x projection saturated while y didn't). Fixed: vertical-blank field counter for FPS and game time; 3D guard-band clip before projection. Checked with an emulator test that renders random flight states and counts ground pixels above the true horizon (0 of 160).
 - Next speed-ups: run-sliced line drawing for shallow lines, analytic edge clipping instead of binary search, faster 16×8 multiply.
-- Hardware assumptions (taken from the tested Microbee projects in this repo): port 1Ch b7 premium graphics, b4 attribute RAM, b0–3 PCG bank; port 08h b6 puts colour RAM in the F800 window (low nibble ink, high nibble paper); port 0Bh = 1 during keyboard scans; MC146818 clock at ports 04h/07h for the FPS counter.
+- Hardware assumptions (taken from the tested Microbee projects in this repo): port 1Ch b7 premium graphics, b4 attribute RAM, b0–3 PCG bank; port 08h b6 puts colour RAM in the F800 window (low nibble ink, high nibble paper); port 0Bh = 1 during keyboard scans; 6545 status bit 5 (vertical blank) counted as 50 Hz fields for FPS and game time.
