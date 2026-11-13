@@ -463,7 +463,8 @@ def big(n):
 for n, b in (('GAZZA', 'BIGGAZ'), ('CUPPA', 'BIGCUP'), ('TOASTIE', 'BIGTOAST')):
     S[b] = ([big(n)], 1)
 
-COMMON = ['BIGGAZ', 'BIGCUP', 'BIGTOAST', 'GAZZA', 'CUPPA', 'TOASTIE', 'CHICK', 'SHIELD', 'SEED', 'BEAM', 'TOAST', 'NUT', 'TEABAG',
+STAGE0 = ['BIGGAZ', 'BIGCUP', 'BIGTOAST']
+COMMON = ['GAZZA', 'CUPPA', 'TOASTIE', 'CHICK', 'SHIELD', 'SEED', 'BEAM', 'TOAST', 'NUT', 'TEABAG',
           'VEGEMITE', 'PELLET', 'PAV', 'COIN', 'PIE', 'BOOM', 'SPARK', 'CLOUD', 'SHOPBAL']
 STAGE1 = ['SNAG', 'BLOWIE', 'SWOOPER', 'THONG', 'TINNIE', 'SPRINKLER', 'ESKY', 'GNOME', 'HOTSNAG', 'POSSUM',
           'HOIST', 'PEG', 'UNDIES', 'GRILL', 'TONGS']
@@ -519,6 +520,13 @@ def asm(names, label, base=0):
 
 def size(names):
     return sum(len(pack(f, nph)) + 3 for n in names for f in S[n][0] for nph in [S[n][1]])
+
+def asm_from(SD, names, label, base=128):
+    """like asm() but for a stage's own sprite dict"""
+    global S
+    keep = S; S = SD
+    try: return asm(names, label, base)
+    finally: S = keep
 
 if __name__ == '__main__':
     print('common', size(COMMON), 'stage1', size(STAGE1))

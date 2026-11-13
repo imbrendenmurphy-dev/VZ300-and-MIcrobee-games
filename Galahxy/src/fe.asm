@@ -1,40 +1,23 @@
 ; =====================================================================
-;  fe.asm - front end (GLXCOM.DAT, upper bank 1): title, high scores,
-;  cast select, name entry and the attract cycle
+;  fe.asm - front end (pack 0, GLXS0.DAT): title, high scores, cast select
 ; =====================================================================
 HI_N        equ 8
 HI_SZ       equ 6              ; 3 bytes BCD score, 3 letters
 
 ; ---------------------------------------------------------------------
-; make sure stage 1 is in memory (for the title backdrop and the demo)
-; ---------------------------------------------------------------------
-fe_stage1:
-            ld a,1
-            ld (stage_no),a
-            ld a,(stage_ld)
-            cp 1
-            ret z
-            call loading_card
-            ld a,1
-            ld (stage_ld),a
-            ld a,'1'
-            ld (n_stage+5),a
-            ld hl,n_stage
-            call sd_load
-            ret nc
-            xor a
-            ld (stage_ld),a
-            ld hl,str_nostage
-            jp fatal
-str_nostage: db "CAN'T LOAD GLXS1.DAT",0
-
-; ---------------------------------------------------------------------
+; -> A = 0: play (fe_sel = flyer, diff, trainer, start_stage set), 1: run the demo
 title_screen:
-            ld sp,STACK_TOP
+            call hi_init
             xor a
             ld (demo_on),a
             ld (trainer),a
-            call fe_stage1
+            inc a
+            ld (start_stage),a
+            ld a,(fe_skip)          ; a key ended the demo: straight to the cast
+            or a
+            ld a,0
+            ld (fe_skip),a
+            jp nz,cast_select
             call STG_INIT
             call scroll_init
             call clear_objs
@@ -147,35 +130,10 @@ title_screen:
             ; time out: high scores, then the demo
             call hi_table
             jp c,cast_select
-            jp attract
+            ld a,1
+            ret
 str_credit: db "VIBED BY BPM 2026",0
 str_press:  db "PRESS FIRE",0
-
-; HL = string: the bottom bar (VRAM rows 56-63) in red with it centred
-bar_msg:
-            push hl
-            ld hl,VRAM+BAR_ROW*32
-            ld de,VRAM+BAR_ROW*32+1
-            ld bc,255
-            ld (hl),$FF
-            ldir
-            ld a,1
-            ld c,3
-            call text_col
-            pop hl
-            call strlen
-            ld b,a
-            ld a,32
-            sub b
-            srl a
-            ld e,a
-            ld d,0
-            push hl
-            ld hl,VRAM+(BAR_ROW+2)*32
-            add hl,de
-            ex de,hl
-            pop hl
-            jp print
 
 ; the GALAHXY logo (LOGO_H rows of 32 bytes) at row 9, with a bob
 draw_logo:
@@ -282,35 +240,6 @@ hi_table:
 str_best:   db "TOP GALAHS",0
 
 ; ---------------------------------------------------------------------
-; the attract demo: the autopilot plays stage 1 for a while
-; ---------------------------------------------------------------------
-attract:
-            ld a,1
-            ld (demo_on),a
-            ld hl,1500
-            ld (demo_t),hl
-            ld hl,attract_n
-            ld a,(hl)
-            inc (hl)
-            call random
-            and 3
-            cp 3
-            jr c,.c
-            xor a
-.c:         push af
-            ld a,1
-            ld (diff),a
-            pop af
-            call new_game
-            xor a
-            ld (demo_on),a
-            ld (demo_in),a
-            ld a,(in_demokey)
-            or a
-            jp nz,cast_select
-            jp title_screen
-
-; ---------------------------------------------------------------------
 ; cast select: left/right picks a flyer, up/down the difficulty
 ; ---------------------------------------------------------------------
 cast_select:
@@ -347,25 +276,35 @@ cast_select:
             inc (hl)
             ld a,SFX_MENU
             call sfx
-.nr:        ld a,(in_new)
+.nr:        ld hl,diff              ; up/down: the skill - or, in the trainer, the stage
+            ld bc,$0002             ; (min, max)
+            ld a,(trainer)
+            or a
+            jr z,.ud
+            ld hl,start_stage
+            ld bc,$0100+NSTAGES
+.ud:        ld a,(in_new)
             bit 0,a
             jr z,.nu
-            ld hl,diff
-            ld a,(hl)
+            ld a,(trainer)
             or a
-            jr z,.nu
+            jr nz,.inc
+.dec:       ld a,(hl)
+            cp b
+            jr z,.nd
             dec (hl)
-            ld a,SFX_MENU
-            call sfx
+            jr .bp
 .nu:        ld a,(in_new)
             bit 1,a
             jr z,.nd
-            ld hl,diff
-            ld a,(hl)
-            cp 2
+            ld a,(trainer)
+            or a
+            jr nz,.dec
+.inc:       ld a,(hl)
+            cp c
             jr nc,.nd
             inc (hl)
-            ld a,SFX_MENU
+.bp:        ld a,SFX_MENU
             call sfx
 .nd:        ld a,($68FE)            ; T: trainer (endless lives, no high score)
             cpl
@@ -529,6 +468,9 @@ cast_select:
             ld a,(trainer)
             or a
             jr z,.ntr
+            ld a,(start_stage)
+            add a,'0'
+            ld (str_trainer+15),a
             ld hl,str_trainer
 .ntr:       call bar_msg
             call present
@@ -539,15 +481,11 @@ cast_select:
             call silence
             ld a,SFX_START
             call sfx
-            ld a,(fe_sel)
-            call new_game
-            ld a,(trainer)
-            or a
-            call z,hi_enter
-            jp title_screen
+            xor a
+            ret
 
 str_pick:   db "PICK YOUR FLYER",0
-str_trainer: db "TRAINER: NO HIGH SCORE",0
+str_trainer: db "TRAINER: STAGE 1 (NO HI-SCORE)",0
 str_pick2:  db "< > CHOOSE   ^ v SKILL   FIRE GO",0
 cast_txt:   dw ct_gaz, ct_cup, ct_toast
 ct_gaz:     db "GAZZA THE GALAH",0,"SHOT: SPREADING SEEDS",0,"BOMB: MACADAMIA DROP",0
@@ -560,14 +498,3 @@ dt_h:       db "SKILL: FLAT OUT",0
 
 
 
-; shop strings (the shop code is in main RAM)
-si_speed:   db "SPEED UP",0
-si_bomb:    db "BOMBS",0
-si_shot:    db "BIGGER SHOT",0
-si_buddy:   db "A BUDDY CHICK",0
-si_shield:  db "BUBBLE SHIELD",0
-si_heart:   db "CUPCAKE (HEARTS)",0
-si_life:    db "EXTRA LIFE",0
-si_exit:    db "BACK TO THE PARTY",0
-str_shop:   db "WELCOME TO THE SHOP! COINS",0
-str_shopbar: db "FIRE BUY   ^ v CHOOSE",0

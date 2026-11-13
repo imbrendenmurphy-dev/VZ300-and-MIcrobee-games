@@ -1,51 +1,51 @@
 mapper 1
 crash 1
-okpc 8000 AB84
-okpc B800 E3B6
-okpc E400 F7E8
+okpc 8000 A9AE
+okpc B800 E3FF
+okpc E400 F49F
 okpc 0038 003A
 okpc 7D7D 7D7F
 okpc 5F00 5F0A
 sd build/sd
 vz build/sd/GALAHXY.VZ
-tmark ABCA build/tm.txt
-watch AC90
-watch AC95
-watch ABD5
+tmark ABAA build/tm.txt
+watch AC70
+watch AC75
+watch ABB5
 frames 1000
 screen build/shots/d01.ppm
-poke AD8D 1
-poke AD66 40
+poke AD6D 1
+poke AD46 40
 frames 500
 screen build/shots/d02.ppm
-poke AD66 40
+poke AD46 40
 frames 500
 screen build/shots/d03.ppm
-poke AD66 40
+poke AD46 40
 frames 500
 screen build/shots/d04.ppm
-poke AD66 40
+poke AD46 40
 frames 500
 screen build/shots/d05.ppm
-poke AD66 40
+poke AD46 40
 frames 500
 screen build/shots/d06.ppm
-poke AD66 40
+poke AD46 40
 frames 500
 screen build/shots/d07.ppm
-poke AD66 40
+poke AD46 40
 frames 500
 screen build/shots/d08.ppm
-poke AD66 40
+poke AD46 40
 frames 500
 screen build/shots/d09.ppm
-poke AD66 40
+poke AD46 40
 frames 500
 screen build/shots/d10.ppm
-poke AD66 40
+poke AD46 40
 frames 500
 screen build/shots/d11.ppm
-poke AD66 40
+poke AD46 40
 frames 500
 screen build/shots/d12.ppm
 regs

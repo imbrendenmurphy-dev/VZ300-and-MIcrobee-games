@@ -177,6 +177,23 @@ kill_flags: ds 1
 spawn_y:    ds 1
 trainer:    ds 1
 in_game:    ds 1
+game_won:   ds 1               ; the last stage was cleared
+start_stage: ds 1              ; (the trainer can start anywhere)
+fe_skip:    ds 1               ; a key ended the demo: go to the cast select
+seg_p:      ds 2               ; ground segment table pointer
+mid_done:   ds 1
+stg_cnt:    ds 1               ; a counter for the stage's own use
+boss_base:  ds 1
+bs_kind:    ds 1               ; 0 midboss, 1 boss
+bs_def:     ds 2
+bs_php:     ds 2
+bs_phase:   ds 1
+bs_tell:    ds 1
+bs_track:   ds 1
+bs_mdx:     ds 1
+bs_mdy:     ds 1
+bs_spr:     ds 1
+bs_armt:    ds 1
 stage_tune: ds 2
 wallet:     ds 1               ; coins to spend in the shop
 ; ---- game

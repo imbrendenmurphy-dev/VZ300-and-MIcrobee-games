@@ -19,7 +19,6 @@ entry:      di
             include "objects.asm"
             include "hud.asm"
             include "game.asm"
-            include "hiscore.asm"
             include "shop.asm"
 
 ; ---------------------------------------------------------------------
@@ -86,8 +85,56 @@ boot:
             ld (LATCH),a
             ld a,1
             ld (diff),a
-            call hi_init
-            jp title_screen
+            ld (start_stage),a
+            ld a,$FF
+            ld (stage_ld),a
+; ---- the shell: front end (pack 0) <-> the game (packs 1..)
+shell:      ld sp,STACK_TOP
+            xor a
+            ld (demo_on),a
+            ld (in_game),a
+            call load_pack
+            jr c,shell
+            call FE_TITLE           ; A = 0 play, 1 run the demo
+            or a
+            jr nz,.demo
+            ld a,(fe_sel)
+            call new_game
+            ld a,(trainer)
+            or a
+            jr nz,shell
+            xor a
+            call load_pack
+            jr c,shell
+            ld a,(game_won)
+            or a
+            call nz,FE_ENDING
+            call FE_SCORES
+            jr shell
+.demo:      ld a,1
+            ld (demo_on),a
+            ld hl,1500
+            ld (demo_t),hl
+            ld hl,attract_n         ; each demo shows the next stage
+            ld a,(hl)
+            inc a
+            cp NSTAGES+1
+            jr c,.d1
+            ld a,1
+.d1:        ld (hl),a
+            ld (start_stage),a
+            call random
+            and 3
+            cp 3
+            jr c,.d2
+            xor a
+.d2:        call new_game
+            xor a
+            ld (demo_on),a
+            ld (demo_in),a
+            ld a,(in_demokey)
+            ld (fe_skip),a
+            jr shell
 
 n_com:      db '"GLXCOM"',0
 
@@ -145,28 +192,19 @@ code_end:
 ; ---------------------------------------------------------------------
             org COM_HI
             include "gen/comspr.inc"
-            include "fe.asm"
+            include "boss.asm"
 com_hi_end:
             assert com_hi_end <= BB1
             org COM_LO
-            include "gen/logo.inc"
             include "gen/font.inc"
             include "gen/txtab.inc"
             include "gen/comspr_lo.inc"
-hi_default: db "GX"
-            db $00,$50,$00,"BPM"
-            db $00,$40,$00,"GAZ"
-            db $00,$30,$00,"CUP"
-            db $00,$25,$00,"TST"
-            db $00,$20,$00,"PAV"
-            db $00,$15,$00,"SNG"
-            db $00,$10,$00,"ESK"
-            db $00,$05,$00,"MAG"
             include "gen/sound.inc"
+            include "comtext.asm"
 com_lo_end:
             assert com_lo_end <= HISCORES
 
 ; ---------------------------------------------------------------------
-; GLXS1.DAT: stage 1 (upper bank 1, $B800-$E3FF)
+; the pack being built (GLXSn.DAT, $B800-$E3FF): tools/build.py picks it
 ; ---------------------------------------------------------------------
-            include "stage1.asm"
+            include "gen/stage.inc"

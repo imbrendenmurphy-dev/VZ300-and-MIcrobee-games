@@ -158,7 +158,6 @@ def ground():
     segs['patio'] = cv
     return segs
 
-SEGS = ('intro', 'lawn', 'gate', 'roof', 'garden', 'patio')
 def columns(cv):
     h = len(cv); out = []
     for cx in range(len(cv[0]) // 4):
@@ -170,51 +169,55 @@ def columns(cv):
         out.append(tuple(col))
     return out
 
-def build():
-    g = ground(); s = skyline()
+def build(g=None, s=None):
+    """g = ordered dict name -> canvas (ground segments), s = skyline canvas"""
+    if g is None: g = ground()
+    if s is None: s = skyline()
     tiles = []; idx = {}
     def tid(col):
         if col not in idx: idx[col] = len(tiles); tiles.append(col)
         return idx[col]
-    maps = {k: [tid(c) for c in columns(g[k])] for k in SEGS}
+    maps = {k: [tid(c) for c in columns(g[k])] for k in g}
     stiles = []; sidx = {}
     smap = []
     for c in columns(s):
         if c not in sidx: sidx[c] = len(stiles); stiles.append(c)
         smap.append(sidx[c])
+    assert len(smap) == SKY_C
     assert len(tiles) <= 256 and len(stiles) <= 256, (len(tiles), len(stiles))
     return tiles, maps, stiles, smap, g, s
 
-def asm():
-    tiles, maps, stiles, smap, g, s = build()
-    L = ['; stage 1 scenery (tools/scenery.py): %d ground tiles, %d skyline tiles' % (len(tiles), len(stiles))]
+def asm(g=None, s=None):
+    tiles, maps, stiles, smap, g, s = build(g, s)
+    L = ['; scenery (tools/scenery.py): %d ground tiles, %d skyline tiles' % (len(tiles), len(stiles))]
     L.append('GTILES:')        # tile-major: 18 bytes per tile, row 0 first
     for t in tiles: L.append('            db ' + ','.join('$%02X' % b for b in t))
     L.append('STILES:')
     for t in stiles: L.append('            db ' + ','.join('$%02X' % b for b in t))
-    for k in SEGS:
+    for k in maps:
         L.append('GMAP_%s:' % k.upper())
         m = maps[k]
         for i in range(0, len(m), 32): L.append('            db ' + ','.join(str(v) for v in m[i:i + 32]))
+        L.append('%s_C equ %d' % (k.upper(), len(m)))
     L.append('SMAP:')
     for i in range(0, len(smap), 32): L.append('            db ' + ','.join(str(v) for v in smap[i:i + 32]))
-    L.append('INTRO_C equ %d\nROUTE_C equ %d\nARENA_C equ %d\nLAWN_C equ %d\nGATE_C equ %d' % (INTRO_C, ROUTE_C, ARENA_C, LAWN_C, GATE_C))
     return '\n'.join(L) + '\n'
 
-if __name__ == '__main__':
-    import sys
-    sys.path.insert(0, '.')
-    from vzpal import CSS0
+def preview(path, g, s, pal=0):
+    from vzpal import CSS0, CSS1
     from PIL import Image
-    tiles, maps, stiles, smap, g, s = build()
-    print('ground tiles', len(tiles), 'sky tiles', len(stiles))
+    P = CSS1 if pal else CSS0
     W = sum(len(g[k][0]) for k in g)
     im = Image.new('RGB', (W, GH + SH + 2), (0, 0, 0))
     x = 0
-    for k in SEGS:
+    for k in g:
         for y in range(GH):
-            for xx in range(len(g[k][0])): im.putpixel((x + xx, SH + 2 + y), CSS0[g[k][y][xx]])
+            for xx in range(len(g[k][0])): im.putpixel((x + xx, SH + 2 + y), P[g[k][y][xx]])
         x += len(g[k][0])
     for y in range(SH):
-        for xx in range(min(W, len(s[0]))): im.putpixel((xx, y), CSS0[s[y][xx]])
-    im.crop((0, 0, 1000, GH + SH + 2)).resize((2000, (GH + SH + 2) * 3), Image.NEAREST).save(sys.argv[1])
+        for xx in range(min(W, len(s[0]))): im.putpixel((xx, y), P[s[y][xx]])
+    rows = []
+    for x0 in range(0, W, 640): rows.append(im.crop((x0, 0, x0 + 640, GH + SH + 2)))
+    out = Image.new('RGB', (640, (GH + SH + 4) * len(rows)))
+    for i, r in enumerate(rows): out.paste(r, (0, i * (GH + SH + 4)))
+    out.resize((1280, out.height * 3), Image.NEAREST).save(path)
