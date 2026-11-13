@@ -126,11 +126,17 @@ class Game:
                 self.shot('stage%d_t%d' % (self.var('stage') + 1, n))
         return 'timeout', n
 
-    def wait_fight_start(self, limit=600):
+    def wait_fight_start(self, limit=1500, shots=None):
+        """hold advance (to run along the road) until the duel begins"""
         for i in range(limit):
+            self.pp.keys = {'D'}
             self.pp.run_frames(2)
+            if shots and i in shots:
+                self.shot(shots[i])
             if self.f('hero', 'ST') == ST['IDLE'] and self.f('foe', 'ST') in (0, 1) and self.f('hero', 'HP') > 0:
+                self.pp.keys = set()
                 return True
+        self.pp.keys = set()
         return False
 
 

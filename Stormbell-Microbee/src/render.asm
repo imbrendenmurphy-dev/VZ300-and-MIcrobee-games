@@ -43,7 +43,7 @@ F_PL1       EQU 24
 F_PR1       EQU 25
 F_SIZE      EQU 26
 
-; set the empty band from the mapped picture, on both pages' records
+; (unused since the stages scroll: kept for pictures with a band)
 band_init:
         ld hl,(picbase)
         ld de,BAND_OFF
@@ -100,10 +100,7 @@ render:
         ; one strip or two? strip a = B..C, strip b = D..E
         xor a
         ld (rng_n),a
-        ld de,(rng_b)
-        ld a,e
-        ld e,d
-        ld d,a                  ; D = b0, E = b1
+        ld de,(rng_b)           ; D = b0 (left), E = b1 (right)
         ld a,c
         cp b
         jr z,.aempty            ; strip a is empty
@@ -130,7 +127,7 @@ render:
 .aempty:
         ld a,e
         cp d
-        ret z                   ; nothing at all to draw
+        jr z,.strips            ; no fighter to draw (the scenery may be)
         ld b,d
         ld c,e
         jr .one_a
@@ -138,10 +135,33 @@ render:
         ld bc,(rng_b)
         call .add
 .strips:
-        ; WANT = BASE and OWN = 0 over the strips
+        ; a page whose midground shows an older camera gets band rows
+        ; 0..5 (screen rows 10..15) redrawn across the whole width; the
+        ; floor rows below never move, so they stay strips
+        xor a
+        ld (r_mid),a
+        call mid_stale
+        jr z,.fresh
+        ld a,1
+        ld (r_mid),a
+.fresh: ld a,(rng_n)
+        ld hl,r_mid
+        or (hl)
+        jr z,.scen
+        ; WANT = BASE and OWN = 0 over the strips, and the midground rows
+        ld a,BAND_ROWS
+        ld (r_rows),a
+        ld a,(rng_n)
+        or a
+        jr z,.np
         ld hl,.prep
         call .each
-        call vschk
+.np:    ld a,(r_mid)
+        or a
+        jr z,.nm
+        call .midset
+        call .prep
+.nm:    call vschk
         xor a
         ld (poolused),a
         ld (r_top),a
@@ -159,8 +179,25 @@ render:
         pop ix
         pop iy
         call vschk
+        ; write what differs: the midground rows, then the strips below
+        ld hl,0
+        ld (r_skip),hl
+        ld a,BAND_ROWS
+        ld (r_rows),a
+        ld a,(r_mid)
+        or a
+        jr z,.ns
+        call mid_capture        ; rows 10..15 go whole, in the blanking
+        ld hl,6*COLS
+        ld (r_skip),hl
+        ld a,BAND_ROWS-6
+        ld (r_rows),a
+.ns:    ld a,(rng_n)
+        or a
+        jr z,.scen
         ld hl,.diffs
         call .each
+.scen:  call scenery_page
         ld a,1
         ld (flip_ask),a
         ret
@@ -206,6 +243,16 @@ render:
         djnz .e
         ret
 
+; the midground pass: band rows 0..5, all 40 columns
+.midset:
+        xor a
+        ld (r_c0),a
+        ld a,COLS
+        ld (r_n),a
+        ld a,6
+        ld (r_rows),a
+        ret
+
 .prep:  ld hl,BASE
         ld de,WANT
         call .span
@@ -225,18 +272,22 @@ render:
         jr z,.p0
         ld hl,HAVE1
         ld de,VIDEO+PAGE1+BAND_OFF
-.p0:    ld (r_have),hl
-        ld (r_vid),de
+.p0:    ld bc,(r_skip)
+        add hl,bc
+        ld (r_have),hl
+        ex de,hl
+        add hl,bc
+        ld (r_vid),hl
         call win_screen
         ld hl,WANT
-        call diff
+        call .dplane
         call win_attr
         ld hl,(r_have)
         inc h
         inc h
         ld (r_have),hl
         ld hl,WANT+$200
-        call diff
+        call .dplane
         call win_col
         ld hl,(r_have)
         inc h
@@ -246,8 +297,12 @@ render:
         set 3,h
         ld (r_vid),hl
         ld hl,WANT+$400
-        call diff
+        call .dplane
         jp win_screen
+.dplane:
+        ld bc,(r_skip)
+        add hl,bc
+        jp diff
 
 ; copy columns r_c0.. of every band row from HL to DE
 .span:  ld a,(r_c0)
@@ -257,15 +312,20 @@ render:
         ex de,hl
         add hl,bc
         ex de,hl
-        ld a,BAND_ROWS
+        ld a,(r_rows)
 .sr:    push af
         push hl
         push de
         ld a,(r_n)
-        ld c,a
+        cp COLS
+        jr nz,.sl
+        ld a,COLS/8
+        call copy8
+        jr .sd
+.sl:    ld c,a
         ld b,0
         ldir
-        pop de
+.sd:    pop de
         pop hl
         ld bc,COLS
         add hl,bc
@@ -282,7 +342,7 @@ render:
         ld c,a
         ld b,0
         add hl,bc
-        ld a,BAND_ROWS
+        ld a,(r_rows)
 .or:    push af
         push hl
         ld a,(r_n)
@@ -358,7 +418,8 @@ diff:
         ld (r_vofs),hl
         pop de
         pop hl
-        ld c,BAND_ROWS
+        ld a,(r_rows)
+        ld c,a
 .row:   ld a,(r_n)
         ld b,a
 .cell:  ld a,(de)

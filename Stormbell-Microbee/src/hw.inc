@@ -30,7 +30,29 @@ PAGE1       EQU $0400       ; the second page's offset in the video RAM
 ; ---- RAM blocks (lower window 0000-7FFF). Block 0 is the upper 32K.
 BLK_WORK    EQU 1
 BLK_FIGHT   EQU 4           ; the six fighters: blocks 4..9
-BLK_GFX     EQU 10          ; font + pictures 0..3; block 11: pictures 4..6
+BLK_GFX     EQU 10          ; font, the title (picture 0), the ending (picture 1)
+BLK_STG     EQU 11          ; the five stages: blocks 11..15
+
+; ---- a stage block (tools/build.py, pack_stage)
+SB_NGLYPH   EQU $00
+SB_MIDW     EQU $02
+SB_FARW     EQU $03
+SB_DUELC    EQU $04
+SB_ENDC     EQU $05
+SB_FAR      EQU $06         ; dw: code, bank, colour planes, 7 rows x FARW
+SB_MID      EQU $08         ; dw: the same, 8 rows x MIDW
+SB_FCELL    EQU $0A         ; dw: the same, 8 rows x 40 (the floor's cells)
+SB_FDESC    EQU $0C         ; dw: 8 x (k, dw first glyph, 0, dw table)
+SB_PHASE    EQU $0E         ; dw: 48 x 8 strip offsets
+SB_GLYPHS   EQU $10         ; dw: 8 bytes a glyph
+FAR_ROW     EQU 1           ; far layer: rows 1..7
+FAR_ROWS    EQU 7
+MID_ROW     EQU 8           ; midground: rows 8..15
+MID_ROWS    EQU 8
+FLOOR_ROW   EQU 16          ; floor: rows 16..23
+FLOOR_ROWS  EQU 8
+FLOOR_T     EQU 48          ; the floor repeats every 48 camera pixels
+RUN_PX      EQU 4           ; camera pixels a tick while running
 
 ; ---- a fighter block (tools/build.py)
 FB_PUNCH    EQU $0002       ; reach of the punch, pixels
@@ -50,9 +72,10 @@ PIC_GLYPHS  EQU 3008
 
 ; ---- PCG banks
 BK_FONT     EQU 0           ; font 0..63, HUD 64.., overlap pool 96..127
-BK_PIC      EQU 1           ; the picture on show: banks 1..4
-BK_HERO     EQU 5           ; banks 5..8
-BK_FOE      EQU 9           ; banks 9..15
+BK_PIC      EQU 1           ; the title or ending picture: banks 1..4
+BK_SCN      EQU 1           ; the stage's scenery: banks 1..6
+BK_HERO     EQU 7           ; banks 7..10
+BK_FOE      EQU 11          ; banks 11..15
 POOL0       EQU 96
 POOLN       EQU 16          ; pool glyphs a page
 
@@ -63,6 +86,10 @@ BAND_ROW    EQU 10          ; the fighters' band: cell rows 10..20
 BAND_ROWS   EQU 11
 BAND_N      EQU BAND_ROWS*COLS
 BAND_OFF    EQU BAND_ROW*COLS
+
+; ---- scenery waiting for the vertical blanking (upper RAM)
+MIDBUF      EQU $B000       ; rows 8..15: 3 planes of 320 bytes
+FARBUF      EQU $B400       ; rows 1..7: 3 planes of 280 bytes
 
 ; ---- band buffers (upper RAM), 200h apart: code, bank, colour
 WANT        EQU $C000       ; what the band should show

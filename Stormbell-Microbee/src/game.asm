@@ -24,10 +24,27 @@ vschk:  in a,(P_CRTCA)
         ld a,(flip_ask)
         or a
         jr z,.nf
+        ld a,(mid_pend)         ; the midground first, in its own blanking
+        or a
+        jr z,.flip
         xor a
+        ld (mid_pend),a
+        call blit_mid
+        jr .nf
+.flip:  xor a
         ld (flip_ask),a
-        ld a,(hidpage)
+        ld a,(far_pend)
+        or a
+        jr z,.nofar
+        xor a
+        ld (far_pend),a
+        call blit_far
+.nofar: ld a,(hidpage)
         call show_page
+        ld a,(fl_ask)           ; the floor slides with the page shown
+        ld hl,fl_shown
+        cp (hl)
+        call nz,floor_set
 .nf:    push bc
         push de
         call read_input
@@ -106,6 +123,8 @@ show_pic:
         ld (hidpage),a
         xor a
         ld (flip_ask),a
+        ld (mid_pend),a
+        ld (far_pend),a
         ret
 
 ; ---------------------------------------------------------------------
@@ -173,108 +192,64 @@ title:
         ; fall through
 
 ; ---------------------------------------------------------------------
-;  a duel
+;  a stage: the road, the run in, the opponent's entrance, the duel
 ; ---------------------------------------------------------------------
 duel:
         ld sp,STACK
         call stop_music
         ld a,(stage)
-        inc a
-        call show_pic
-        call band_init
-        ; the opponent
-        ld a,(stage)
-        add a,BLK_FIGHT+1
-        ld c,BK_FOE
-        call fighter_load
-        ; its brain, ranges and timings
-        ld a,(stage)
-        add a,a
-        ld l,a
-        ld h,0
-        ld de,brains
-        add hl,de
-        ld a,(hl)
-        inc hl
-        ld h,(hl)
-        ld l,a
-        ld (brainp),hl
-        ld e,(hl)
-        inc hl
-        ld d,(hl)
-        ld (scriptp),de
-        ld a,(stage)
-        add a,a
-        add a,a
-        ld e,a
-        ld d,0
-        ld hl,rangetab
-        add hl,de
-        ld (rangep),hl
-        ; the fighters
-        ld ix,hero
-        call f_clear
-        ld (ix+F_X),9
-        ld (ix+F_BLK),BLK_FIGHT
-        ld (ix+F_BANK),BK_HERO
-        ld (ix+F_DIR),1
-        ld (ix+F_HP),HERO_HP
-        ld (ix+F_MAX),HERO_HP
-        ld hl,tim_hero
-        ld (ix+F_TAB),l
-        ld (ix+F_TAB+1),h
-        ld ix,foe
-        call f_clear
-        ld (ix+F_X),30
-        ld a,(stage)
-        add a,BLK_FIGHT+1
-        ld (ix+F_BLK),a
-        ld (ix+F_BANK),BK_FOE
-        ld (ix+F_DIR),-1
-        ld hl,(brainp)
-        ld de,B_HP
-        add hl,de
-        ld a,(hl)
-        ld (ix+F_HP),a
-        ld (ix+F_MAX),a
-        inc hl
-        ld a,(hl)
-        ld (ix+F_TAB),a
-        inc hl
-        ld a,(hl)
-        ld (ix+F_TAB+1),a
-        inc hl
-        ld a,(hl)
-        ld (ix+F_ARMOUR),a
+        call stage_show         ; (display off)
+        call foe_load
+        call fighters_init
+        ld a,4
+        ld (hero+F_X),a
+        ld a,60
+        ld (foe+F_X),a          ; not on the road yet
         xor a
-        ld (scr_pc),a
-        ld (scr_t),a
-        ld (guard_t),a
-        ld (seen),a
-        ld (punished),a
-        ld (blocked_flag),a
-        ld (counter_flash),a
+        ld (foe_in),a
         call hud_names
         call hud_bars
-        call display_on         ; (the page flips need the blanking signal)
+        call display_on
         call draw_frame
         call flip_wait
-        ; -- the introduction: the stage, the opponent, a hint, the bows
         ld a,SFX_GONG
         call sfx
-        ld a,(stage)
-        add a,a
-        ld e,a
-        ld d,0
-        ld hl,stagetab
-        add hl,de
-        ld a,(hl)
-        inc hl
-        ld h,(hl)
-        ld l,a
-        ld d,2
-        ld c,YELLOW
+        call stage_title
+        ld hl,tt_run
+        ld d,6
+        ld c,BCYAN
         call print_mid2
+        ld a,1
+        ld (msg_on),a
+        ; run to the arena
+        ld a,(duel_c)
+        call run_road
+        ; the opponent comes to meet Wren
+        call foe_enter
+        jr duel_intro
+
+; after a defeat: straight back into the arena
+duel_retry:
+        ld sp,STACK
+        call stop_music
+        call fighters_init
+        ld a,10
+        ld (hero+F_X),a
+        ld a,30
+        ld (foe+F_X),a
+        ld a,1
+        ld (foe_in),a
+        call hud_names
+        call hud_bars
+        call rub_messages
+        call draw_frame
+        call flip_wait
+        ld a,SFX_GONG
+        call sfx
+        call stage_title
+
+duel_intro:
+        ; -- a hint about this opponent, the bows
         ld a,(stage)
         add a,a
         add a,a
@@ -406,6 +381,207 @@ intro_wait:
         djnz .l
         ret
 
+; the stage's name on row 2
+stage_title:
+        ld a,(stage)
+        add a,a
+        ld e,a
+        ld d,0
+        ld hl,stagetab
+        add hl,de
+        ld a,(hl)
+        inc hl
+        ld h,(hl)
+        ld l,a
+        ld d,2
+        ld c,YELLOW
+        jp print_mid2
+
+; the opponent's glyphs, brain, ranges (the display is off)
+foe_load:
+        ld a,(stage)
+        add a,BLK_FIGHT+1
+        ld c,BK_FOE
+        call fighter_load
+        ld a,(stage)
+        add a,a
+        ld l,a
+        ld h,0
+        ld de,brains
+        add hl,de
+        ld a,(hl)
+        inc hl
+        ld h,(hl)
+        ld l,a
+        ld (brainp),hl
+        ld e,(hl)
+        inc hl
+        ld d,(hl)
+        ld (scriptp),de
+        ld a,(stage)
+        add a,a
+        add a,a
+        ld e,a
+        ld d,0
+        ld hl,rangetab
+        add hl,de
+        ld (rangep),hl
+        ret
+
+; both fighters fresh, standing
+fighters_init:
+        ld ix,hero
+        call f_clear
+        ld (ix+F_BLK),BLK_FIGHT
+        ld (ix+F_BANK),BK_HERO
+        ld (ix+F_DIR),1
+        ld (ix+F_HP),HERO_HP
+        ld (ix+F_MAX),HERO_HP
+        ld hl,tim_hero
+        ld (ix+F_TAB),l
+        ld (ix+F_TAB+1),h
+        ld ix,foe
+        call f_clear
+        ld a,(stage)
+        add a,BLK_FIGHT+1
+        ld (ix+F_BLK),a
+        ld (ix+F_BANK),BK_FOE
+        ld (ix+F_DIR),-1
+        ld hl,(brainp)
+        ld de,B_HP
+        add hl,de
+        ld a,(hl)
+        ld (ix+F_HP),a
+        ld (ix+F_MAX),a
+        inc hl
+        ld a,(hl)
+        ld (ix+F_TAB),a
+        inc hl
+        ld a,(hl)
+        ld (ix+F_TAB+1),a
+        inc hl
+        ld a,(hl)
+        ld (ix+F_ARMOUR),a
+        xor a
+        ld (scr_pc),a
+        ld (scr_t),a
+        ld (guard_t),a
+        ld (seen),a
+        ld (punished),a
+        ld (blocked_flag),a
+        ld (counter_flash),a
+        ret
+
+; ---------------------------------------------------------------------
+;  the road. Hold advance to run: Wren runs to column 10, then the
+;  road scrolls past him. Returns when the camera reaches A.
+; ---------------------------------------------------------------------
+run_road:
+        ld (run_lim),a
+.l:     call tick_wait
+        ld a,(padnew)
+        bit PB_ESC,a
+        jp nz,title
+        call take_new
+        ld a,(pad)
+        bit PB_FWD,a
+        jr z,.stop
+        ld a,ST_RUN
+        ld (hero+F_ST),a
+        ld a,(msg_on)
+        or a
+        jr z,.nm
+        xor a
+        ld (msg_on),a
+        call far_dirty          ; the messages go as Wren sets off
+.nm:    ld a,(hero+F_X)
+        cp 10
+        jr nc,.cam
+        ld a,(ticks)
+        and 1
+        jr nz,.draw
+        ld hl,hero+F_X
+        inc (hl)
+        jr .draw
+.cam:   ld a,(run_lim)
+        call cam_step
+        jr .draw
+.stop:  ld a,ST_STAND
+        ld (hero+F_ST),a
+.draw:  ld bc,0
+        ld ix,hero
+        call fighter_tick
+        ld bc,0
+        ld ix,foe
+        call fighter_tick
+        call draw_frame
+        ld a,(hero+F_X)
+        cp 10
+        jr c,.l
+        ld a,(cam_c)
+        ld hl,run_lim
+        cp (hl)
+        jr c,.l
+        ret
+
+; the opponent runs in from the right and squares up
+foe_enter:
+        ld a,ST_STAND
+        ld (hero+F_ST),a
+        ld a,44
+        ld (foe+F_X),a
+        ld a,ST_RUN
+        ld (foe+F_ST),a
+        ld a,1
+        ld (foe_in),a
+.l:     call tick_wait
+        ld a,(ticks)
+        and 1
+        jr nz,.d
+        ld hl,foe+F_X
+        dec (hl)
+.d:     ld bc,0
+        ld ix,hero
+        call fighter_tick
+        ld bc,0
+        ld ix,foe
+        call fighter_tick
+        call draw_frame
+        ld a,(foe+F_X)
+        cp 31
+        jr nc,.l
+        ld a,ST_STAND
+        ld (foe+F_ST),a
+        ld a,8
+        jp intro_wait
+
+; after a win: run on to the end of the road, and off it
+run_on:
+        ld hl,tt_runon
+        ld d,6
+        ld c,BCYAN
+        call print_mid2
+        ld a,1
+        ld (msg_on),a
+        ld a,(end_c)
+        call run_road
+        ld a,ST_RUN
+        ld (hero+F_ST),a
+.l:     call tick_wait
+        ld hl,hero+F_X
+        inc (hl)
+        ld bc,0
+        ld ix,hero
+        call fighter_tick
+        ld bc,0
+        ld ix,foe
+        call fighter_tick
+        call draw_frame
+        ld a,(hero+F_X)
+        cp 46
+        jr c,.l
+        ret
+
 ; render: the hero under, the foe over, unless the hero is attacking
 draw_frame:
         ld a,(hero+F_ST)
@@ -431,17 +607,9 @@ f_clear:
         ld (ix+F_FR),FR_IDLE
         ret                     ; (F_PLn = F_PRn = 0: nothing drawn yet)
 
-; rows 2..6 back to the picture
+; rows 2..6 back to the scenery (both pages, as they are next drawn)
 rub_messages:
-        ld d,2
-.r:     push de
-        call pic_row
-        pop de
-        inc d
-        ld a,d
-        cp 7
-        jr c,.r
-        ret
+        jp far_dirty
 
 ; ---------------------------------------------------------------------
 ;  the HUD: names on row 0, health on row 24
@@ -640,6 +808,7 @@ won:
         call play_music
         ld a,60
         call idle_wait
+        call run_on
         ld a,(stage)
         inc a
         ld (stage),a
@@ -677,7 +846,7 @@ lost:
         jp nz,title
         and 1 << PB_START | 1 << PB_PUNCH | 1 << PB_KICK
         jr z,.w
-        jp duel                 ; the same opponent, straight away
+        jp duel_retry           ; the same opponent, straight away
 
 idle_wait:
         ld b,a
@@ -696,7 +865,7 @@ idle_wait:
 
 ending:
         call stop_music
-        ld a,6
+        ld a,1
         call show_pic
         ld hl,tt_end1
         ld d,16
@@ -757,4 +926,6 @@ tt_end2:    db "THE STORM LORD IS BEATEN, AND THE",0
 tt_end3:    db "VALLEY WAKES TO CLEAR SKIES.",0
 tt_end4:    db "WELL FOUGHT, WREN.",0
 tt_again:   db "PRESS SPACE",0
+tt_run:     db "HOLD D (OR RIGHT) TO RUN",0
+tt_runon:   db "HOLD D TO RUN ON",0
 blank40:    db "                                        ",0

@@ -23,16 +23,23 @@ for k in range(n):
     times.append(t)
     if k == n - 1:
         break
-    # back to the same duel
-    L.mb_set_bp(pp.h, g.S['duel'], 1)
+    # back to the same duel. A loss: SPACE is the game's quick retry,
+    # straight back into the arena. A win: hold D to run on to the next
+    # stage's start, then put the stage back.
+    g.hist = []
     if res == 'lost':
         pp.keys = {'SPACE'}
+        pp.run_frames(4)
+        pp.keys = set()
+        g.wait_fight_start()
+        continue
+    L.mb_set_bp(pp.h, g.S['duel'], 1)
+    pp.keys = {'D'}
     while not L.mb_run(pp.h, pp.tick + 67608):
         pass
     L.mb_set_bp(pp.h, g.S['duel'], 0)
     pp.keys = set()
     pp.poke(g.S['stage'], stage - 1)
-    g.hist = []
     g.wait_fight_start()
 print('SUMMARY stage %d %s react %d: won %d/%d, Wren health left avg %.1f, avg %.1f s' % (
     stage, style, react, wins, n, sum(hps) / n, sum(times) / n / 25.0))

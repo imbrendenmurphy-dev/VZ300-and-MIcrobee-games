@@ -87,6 +87,7 @@ display_on:
 
 ; A = block: map it into 0000-7FFF (ROMs off, video window at F000)
 map_blk:
+        ld (cur_blk),a
         push hl
         push de
         ld l,a
@@ -374,11 +375,7 @@ print_mid2:
 ; ---------------------------------------------------------------------
 pic_find:
         ld b,BLK_GFX
-        cp 4
-        jr c,.b0
-        sub 4
-        inc b
-.b0:    ld c,a
+        ld c,a
         ld a,b
         ld (picblk),a
         call map_blk

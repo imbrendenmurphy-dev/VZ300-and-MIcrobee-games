@@ -21,6 +21,7 @@ ST_FALL     EQU 6
 ST_DOWN     EQU 7
 ST_BOW      EQU 8
 ST_STAND    EQU 9
+ST_RUN      EQU 10          ; running along the road (the game moves it)
 
 ; commands (from the pad or a brain)
 C_FWD       EQU 1
@@ -51,7 +52,7 @@ XMAX        EQU 36
 
 ;               PW PS PR KW KS KR ST DP DK HT RC
 tim_hero:   db  4, 2, 6, 6, 2, 9, 4, 1, 2, 8,13
-tim_ox:     db  9, 2,13,12, 3,17, 7, 2, 3, 7,12
+tim_ox:     db  9, 2,13,12, 3,17, 7, 2, 3, 3,12
 tim_reed:   db  6, 2, 9, 7, 2,11, 6, 1, 2, 7,12
 tim_sparrow:db  3, 2, 6, 5, 2, 9, 3, 1, 2, 7,12
 tim_gorse:  db  4, 2, 7, 6, 2,10, 5, 1, 2, 7,12
@@ -97,6 +98,16 @@ fighter_tick:
         jp z,st_down
         dec a
         jr z,.bow
+        dec a
+        jr z,.upright
+        ; running: four frames, two ticks each
+        ld a,(ticks)
+        rra
+        and 3
+        add a,FR_RUN1
+        ld (ix+F_FR),a
+        ret
+.upright:
         ld (ix+F_FR),FR_IDLE
         ret
 .bow:   ld (ix+F_FR),FR_BOW
@@ -541,7 +552,7 @@ B_ARMOUR    EQU 9
 
 brains:     dw br_ox,br_reed,br_sparrow,br_gorse,br_crow
 br_ox:      dw sc_ox
-            db 0,9,0,170,10
+            db 0,9,0,240,12
             dw tim_ox
             db 1
 br_reed:    dw sc_reed

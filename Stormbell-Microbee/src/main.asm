@@ -14,6 +14,7 @@ entry:  di
 
         INCLUDE "video.asm"
         INCLUDE "render.asm"
+        INCLUDE "scroll.asm"
         INCLUDE "input.asm"
         INCLUDE "sound.asm"
         INCLUDE "fight.asm"
@@ -21,6 +22,6 @@ entry:  di
         INCLUDE "ftab.inc"
         INCLUDE "snd.inc"
 prog_end:
-        ASSERT prog_end <= WANT
+        ASSERT prog_end <= MIDBUF
         INCLUDE "vars.asm"
         SAVEBIN "../build/STORM.BIN",$8000,prog_end-$8000

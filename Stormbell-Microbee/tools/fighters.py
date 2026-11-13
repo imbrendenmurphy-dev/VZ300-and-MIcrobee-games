@@ -1,7 +1,7 @@
 """STORMBELL fighters: six puppets (torso, head, two-link arms and legs),
 posed and rasterised to 1-bit pixels for the 40-column screen.
 
-Every frame of every fighter is computed from the same sixteen poses, so
+Every frame of every fighter is computed from the same twenty poses, so
 each move reads the same way whoever throws it; what differs is the build,
 the headgear and the colours, which is what makes the silhouettes.
 
@@ -100,27 +100,38 @@ def ik(p, t, l1, l2, bend):
 #  rear, hands relative to the shoulder (x forward, y up) lead and rear,
 #  head tilt. Lead = the side nearer the opponent.
 # ---------------------------------------------------------------------
-def P(hip, lean, lf, rf, lh, rh, head=0, kbl=1, kbr=1):
-    return dict(hip=hip, lean=lean, lf=lf, rf=rf, lh=lh, rh=rh, head=head, kbl=kbl, kbr=kbr)
+def P(hipx, lean, fl, bl, fa, ba, hipy=None, head=0):
+    """a pose by joint angles, as Tiger Gate draws its fighters: each
+    angle is from straight down, positive towards the opponent (90 is
+    level and forward, 180 straight up). fl, bl = (thigh, shin) of the
+    lead and rear legs; fa, ba = (upper arm, forearm) of the lead and
+    rear arms. hipy (lines above the ground) is found from the feet if
+    not given. Knees bend the way knees do."""
+    return dict(hipx=hipx, lean=lean, fl=fl, bl=bl, fa=fa, ba=ba, hipy=hipy, head=head)
 
 
+ST, SB = (42, 0), (-30, -34)
 POSES = [
-    ('idle',    P((0, 33.5), 0, (2, 0), (-2, 0), (2, -20), (-1, -20))),
-    ('bow',     P((-3, 32), 46, (2, 0), (-2, 0), (-3, -19), (-6, -18), head=20)),
-    ('stand',   P((0, 30), 7, (9, 0), (-9, 0), (12, -1), (6, -7))),
-    ('stand2',  P((0, 29), 8, (9, 0), (-9, 0), (12, -2.5), (6, -8))),
-    ('step1',   P((1, 31.5), 5, (5, 0), (-4, 2), (12, -1), (6, -7))),
-    ('step2',   P((1, 30.5), 7, (11, 2), (-7, 0), (12, -1), (6, -7))),
-    ('guard',   P((-2, 29), -5, (9, 0), (-9, 0), (9, 7), (8, 0), head=-6)),
-    ('punch_w', P((-2, 30), -3, (9, 0), (-9, 0), (9, 0), (-7, -4))),
-    ('punch',   P((4, 28.5), 15, (12, 0), (-11, 0), (1, -9), (19, 2), head=-8)),
-    ('kick_w',  P((-2, 32.5), -8, (7, 17), (-4, 0), (8, -2), (4, -8))),
-    ('kick',    P((1, 33.5), -26, (39, 33), (-4, 0), (6, -6), (-9, -4), head=10)),
-    ('hit',     P((-4, 30), -20, (7, 0), (-11, 0), (8, 7), (-8, 3), head=-22)),
-    ('hit2',    P((-5, 27), 30, (7, 0), (-11, 0), (1, -11), (-2, -12), head=24)),
-    ('fall1',   P((-8, 23), -48, (8, 4), (-5, 0), (4, 11), (-9, 6), head=-24)),
-    ('fall2',   P((-11, 11), -78, (12, 9), (4, 0), (2, 12), (-7, 4), head=-16, kbl=1, kbr=1)),
-    ('down',    P((-9, 4.5), -90, (23, 3), (20, 2.5), (-9, -1.5), (-13, -1.5), head=0, kbl=1, kbr=1)),
+    ('idle',    P(-1, 2, (4, 0), (-4, 0), (8, 14), (-6, 4))),
+    ('bow',     P(-3, 62, (3, 0), (-3, 0), (30, 25), (20, 15), head=10)),
+    ('stand',   P(1, -4, (40, 0), (-28, -34), (42, 118), (8, 105))),
+    ('stand2',  P(1, -2, (44, 0), (-30, -38), (46, 116), (10, 108))),
+    ('step1',   P(1, -3, (18, 0), (-14, -16), (42, 118), (8, 105))),
+    ('step2',   P(2, -2, (50, 4), (-24, -30), (44, 116), (10, 106))),
+    ('guard',   P(0, -10, ST, SB, (55, 172), (35, 165), head=-6)),
+    ('punch_w', P(0, -8, ST, SB, (-35, 80), (40, 115))),
+    ('punch',   P(3, 10, (46, 0), SB, (90, 90), (-10, 80), head=-6)),
+    ('kick_w',  P(-1, -10, (85, 5), (-6, -6), (30, 115), (-5, 100))),
+    ('kick',    P(0, -20, (92, 92), (-8, -8), (10, 100), (-40, 40), head=6)),
+    ('hit',     P(-1, -24, (28, 6), (-30, -24), (95, 140), (-70, -30), head=-15)),
+    ('hit2',    P(-2, -34, (32, 10), (-34, -30), (110, 150), (-80, -40), head=-22)),
+    ('fall1',   P(11, -60, (75, 35), (65, 50), (-100, -120), (-80, -60), hipy=16.5)),
+    ('fall2',   P(13, -88, (115, 45), (92, 88), (100, 100), (85, 85), hipy=4.5)),
+    ('down',    P(13, -90, (90, 92), (92, 94), (-90, -95), (-100, -100), hipy=4.0)),
+    ('run1',    P(-1, 14, (42, 12), (-32, -58), (-42, 25), (48, 105))),
+    ('run2',    P(-1, 14, (8, 0), (22, -68), (0, 48), (8, 60))),
+    ('run3',    P(-1, 14, (-32, -58), (42, 12), (48, 105), (-42, 25))),
+    ('run4',    P(-1, 14, (22, -68), (8, 0), (8, 60), (0, 48))),
 ]
 NAMES = [n for n, p in POSES]
 
@@ -141,34 +152,38 @@ class Fighter:
         TH, SH = 17 * s * self.leg, 17 * s * self.leg
         UA, FA = 11 * s * self.arm, 11.5 * s * self.arm
         TOR = 21 * s
-        hip = (pose['hip'][0] * s, pose['hip'][1] * s * self.leg + (pose['hip'][1] * s * (1 - self.leg)) * 0.5)
+        dv = lambda an: (math.sin(math.radians(an)), -math.cos(math.radians(an)))
         ln = math.radians(pose['lean'])
+        lying = pose['lean'] <= -85
+
+        def leg(hip, an):
+            k = (hip[0] + dv(an[0])[0] * TH, hip[1] + dv(an[0])[1] * TH)
+            return k, (k[0] + dv(an[1])[0] * SH, k[1] + dv(an[1])[1] * SH)
+
+        if pose['hipy'] is None:
+            low = min(leg((0, 0), pose['fl'])[1][1], leg((0, 0), pose['bl'])[1][1])
+            hy = 2.4 * s - low
+        else:
+            hy = pose['hipy'] * s
+        hip = (pose['hipx'] * s, hy)
         sho = (hip[0] + TOR * math.sin(ln), hip[1] + TOR * math.cos(ln))
         hd = math.radians(pose['lean'] * 0.5 + pose['head'])
         neck = (sho[0] + 2 * s * math.sin(ln), sho[1] + 2 * s * math.cos(ln))
         head = (neck[0] + 6.2 * s * math.sin(hd) + 0.8 * s, neck[1] + 6.2 * s * math.cos(hd))
-        lf = (pose['lf'][0] * s, pose['lf'][1] * s)
-        rf = (pose['rf'][0] * s, pose['rf'][1] * s)
-        lying = pose['lean'] <= -85
-        # the knees bend forward (towards the opponent); lying, they stay flat
-        lk, la = ik(hip, (lf[0], lf[1] + 2.4 * s), TH, SH, -1 if not lying else 1)
-        rk, ra = ik(hip, (rf[0], rf[1] + 2.4 * s), TH, SH, -1 if not lying else 1)
-        lh = (sho[0] + pose['lh'][0] * s * self.arm, sho[1] + pose['lh'][1] * s * self.arm)
-        rh = (sho[0] + pose['rh'][0] * s * self.arm, sho[1] + pose['rh'][1] * s * self.arm)
-        le, lhe = ik(sho, lh, UA, FA, -1)
-        re, rhe = ik(sho, rh, UA, FA, -1)
+        lk, la = leg(hip, pose['fl'])
+        rk, ra = leg(hip, pose['bl'])
+
+        def arm(an):
+            e = (sho[0] + dv(an[0])[0] * UA, sho[1] + dv(an[0])[1] * UA)
+            return e, (e[0] + dv(an[1])[0] * FA, e[1] + dv(an[1])[1] * FA)
+
+        le, lhe = arm(pose['fa'])
+        re, rhe = arm(pose['ba'])
         self.joints = dict(hip=hip, sho=sho, head=head, lfoot=la, rfoot=ra, lhand=lhe, rhand=rhe)
 
-        def foot(a, k):
-            # the foot points the way the shin does, turned forward
-            dx, dy = a[0] - k[0], a[1] - k[1]
-            n = math.hypot(dx, dy) or 1
-            dx, dy = dx / n, dy / n
-            fx, fy = dy, -dx                      # forward of the shin
-            if fx < 0 and not lying:
-                fx, fy = -fx, -fy
-            if lying:
-                fx, fy = 0.3, 1.0
+        def foot(a, k, an):
+            # toes along the shin when it is raised, otherwise flat and forward
+            fx, fy = dv(an[1]) if an[1] > 45 else (1.0, 0.0)
             return (a[0], a[1]), (a[0] + 5.5 * s * fx, a[1] + 5.5 * s * fy)
 
         # -- rear arm, rear leg (behind the body)
@@ -179,7 +194,7 @@ class Fighter:
         cv.stamp(cv.ellipse(rhe, 2.9 * s, 2.9 * s), self.skin)
         cv.stamp(cv.capsule(hip, rk, 4.8 * s * b, 3.9 * s * b), self.gi)
         cv.stamp(cv.capsule(rk, ra, 3.9 * s * b, 2.9 * s * b), self.gi)
-        f0, f1 = foot(ra, rk)
+        f0, f1 = foot(ra, rk, pose['bl'])
         cv.stamp(cv.capsule(f0, f1, 2.4 * s, 2.0 * s), self.skin, outline=False)
         # -- torso
         cv.stamp(cv.capsule(hip, sho, 6.2 * s * b, 6.9 * s * b), self.gi)
@@ -196,7 +211,7 @@ class Fighter:
         # -- lead leg, lead arm (in front)
         cv.stamp(cv.capsule(hip, lk, 4.8 * s * b, 3.9 * s * b), self.gi)
         cv.stamp(cv.capsule(lk, la, 3.9 * s * b, 2.9 * s * b), self.gi)
-        f0, f1 = foot(la, lk)
+        f0, f1 = foot(la, lk, pose['fl'])
         cv.stamp(cv.capsule(f0, f1, 2.4 * s, 2.0 * s), self.skin, outline=False)
         cv.stamp(cv.capsule(sho, le, 3.4 * s * b, 3.0 * s * b), self.gi)
         cv.stamp(cv.capsule(le, lhe, 3.0 * s * b, 2.6 * s * b), self.gi)

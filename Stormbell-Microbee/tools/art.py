@@ -89,9 +89,10 @@ PIC_GLYPHS = 512
 
 
 class Pic:
-    def __init__(self, bg=BLACK):
-        self.c = np.full((200, 320), bg, np.uint8)
-        self.y, self.x = np.mgrid[0:200, 0:320]
+    def __init__(self, bg=BLACK, W=320):
+        self.W = W
+        self.c = np.full((200, W), bg, np.uint8)
+        self.y, self.x = np.mgrid[0:200, 0:W]
         self.bay = BAYER[self.y & 3, self.x & 3]
         self.fix = {}                          # (row, col) -> (ink, paper) forced
 
@@ -124,9 +125,9 @@ class Pic:
     def profile(self, base, amp, seed, waves=((31, .5), (13, .3), (7, .2))):
         """y of a ridge line at each x"""
         r = np.random.RandomState(seed)
-        h = np.full(320, float(base))
+        h = np.full(self.W, float(base))
         for per, a in waves:
-            h += amp * a * np.sin(np.arange(320) / per + r.rand() * 6.28)
+            h += amp * a * np.sin(np.arange(self.W) / per + r.rand() * 6.28)
         return h
 
     def below(self, h):
@@ -156,7 +157,7 @@ class Pic:
         self.c[m & ~on] = c0
 
     def text(self, s, x, y, col, sx=1, sy=1, shadow=None, dx=1, dy=1):
-        m = np.zeros((200, 320), bool)
+        m = np.zeros(self.c.shape, bool)
         for i, ch in enumerate(s):
             src = F57.get(ch)
             if not src:
@@ -172,12 +173,13 @@ class Pic:
 
     # -- to cells
     def cells(self):
-        ink = np.zeros((200, 320), bool)
-        ci = np.zeros((25, 40), np.uint8)
-        cp = np.zeros((25, 40), np.uint8)
+        nc = self.W // 8
+        ink = np.zeros(self.c.shape, bool)
+        ci = np.zeros((25, nc), np.uint8)
+        cp = np.zeros((25, nc), np.uint8)
         pal = np.array(PAL, float)
         for cy in range(25):
-            for cx in range(40):
+            for cx in range(nc):
                 blk = self.c[cy * 8:cy * 8 + 8, cx * 8:cx * 8 + 8]
                 cnt = np.bincount(blk.ravel(), minlength=16)
                 order = np.argsort(-cnt, kind='stable')
@@ -241,11 +243,11 @@ FEET = 168                   # the fighters stand on this line
 
 
 def sky(p, c0, c1, y1, stars_seed=None, nstars=0):
-    p.grad(p.rect(0, TOP, 320, y1), c0, c1, TOP + 8, y1, 0, 12)
+    p.grad(p.rect(0, TOP, p.W, y1), c0, c1, TOP + 8, y1, 0, 12)
     if stars_seed is not None:
         r = np.random.RandomState(stars_seed)
         for i in range(nstars):
-            x, y = r.randint(2, 318), r.randint(TOP + 2, TOP + 30)
+            x, y = r.randint(2, p.W - 2), r.randint(TOP + 2, TOP + 30)
             p.fill(p.rect(x, y, x + 1, y + 1), WHITE)
 
 
@@ -261,7 +263,7 @@ def mountains(p, base, amp, seed, c_far, c_near, snow=False, peaks=None, bottom=
     h = p.profile(base, amp, seed)
     if peaks:
         for px, py, w in peaks:
-            xs = np.arange(320)
+            xs = np.arange(p.W)
             h = np.minimum(h, py + np.abs(xs - px) * (base + amp * 0.3 - py) / w)
     m = p.below(h) & (p.y < (bottom or 200))
     # lit left faces, shaded right faces
