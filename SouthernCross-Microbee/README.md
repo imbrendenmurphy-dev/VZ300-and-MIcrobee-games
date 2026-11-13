@@ -44,9 +44,9 @@ Ten fixed views: on the runway, on final, climbing out, turning, low and fast, a
 
 | Detail | What's drawn | Average | Range |
 |---|---|---|---|
-| 1 | Horizon, runways, coastline, islands, lighthouse | 8.6 fps | 6.3–16.7 |
-| 2 (default) | + runway markings, buildings, jetty, ship | 6.5 fps | 4.7–15.5 |
-| 3 | + ground grid, reef | 4.5 fps | 3.4–8.5 |
+| 1 | Horizon, runways, coastline, islands, lighthouse | 8.8 fps | 6.3–16.8 |
+| 2 (default) | + runway markings, buildings, jetty, ship | 6.7 fps | 4.7–15.5 |
+| 3 | + ground grid, reef | 4.6 fps | 3.4–8.5 |
 
 The areas themselves are written in `src/areas.py` (runways, buildings, coastlines and islands as Python), and `build.py` assembles each one into a `.LOC` file.
 
@@ -68,6 +68,6 @@ The panel shows the real frame rate, timed from the 6545 vertical blank (50 Hz);
 
 ## Building
 
-Python 3 only. From `src/`: `python3 build.py` writes `build/SCROSS.COM` and `build/SCROSS.DS8`. `python3 run.py` runs it in the included test emulator and saves screenshots; `prof.py` shows where the frame time goes. From `src/`, `python3 tests/bench.py` times five fixed views, `python3 tests/hzcheck.py SEED N` checks N random flights for ground drawn above the horizon, and `python3 tests/fly.py takeoff|land|next|hard|crash OUTDIR FRAMES` flies a scripted test pilot, `python3 tests/views.py OUTDIR` times ten views at detail 2 and 3, `python3 tests/objprof.py px,pz,alt,hdg,pitch,roll` shows what each object costs, and `python3 tests/rwtest.py` checks the runway maths. The test emulator answers CP/M file calls from `src/build/`, so the area files load as they do on the real disk.
+Python 3 only. From `src/`: `python3 build.py` writes `build/SCROSS.COM` and `build/SCROSS.DS8`. `python3 run.py` runs it in the included test emulator and saves screenshots; `prof.py` shows where the frame time goes. From `src/`, `python3 tests/bench.py` times five fixed views, `python3 tests/hzcheck.py SEED N` checks N random flights for ground drawn above the horizon, and `python3 tests/fly.py takeoff|land|next|hard|crash OUTDIR FRAMES` flies a scripted test pilot, `python3 tests/views.py OUTDIR` times ten views at detail 2 and 3, `python3 tests/objprof.py px,pz,alt,hdg,pitch,roll` shows what each object costs, and `python3 tests/rwtest.py` checks the runway maths, and `python3 tests/multest.py` checks the multiply routines against exact arithmetic. The test emulator answers CP/M file calls from `src/build/`, so the area files load as they do on the real disk.
 
 The assembler (`src/tools/z80asm.py`) and emulator (`src/tools/z80emu.py`) were written for this project. The system tracks and `CCP.SYS` in `src/resources/` are the same ones used by the other Microbee disks in this repo.

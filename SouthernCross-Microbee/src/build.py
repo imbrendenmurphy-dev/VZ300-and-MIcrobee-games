@@ -83,7 +83,7 @@ vars_ = [
  ('gH',2),('gd',2),('gcolh',2),('gfcnt',1),('gnh',2),('gnd',2),('ga',1),('gb',1),('gpp',2),('gqp',2),('gnp',2),('gci',1),
  ('gN',6),('gvok',1),('gvx',2),('gvy',2),('gvf',1),('gvu',1),('gcl0',1),('gcl1',1),('gq',2),('hzfl',1),('locok',1),('objp',2),('rwyp',2),('nrwy',1),('otype',1),('ocull',1),('orad',1),('odx',2),('odz',2),('optr',2),('orm',2),('ofw',2),
  ('rwp',2),('rdx',2),('rdz',2),('rax',1),('rlen',2),('rhw',1),('raim',2),('ral',2),('rac',2),('rrh',1),('rrev',1),('selok',1),('srng',2),('rtmp',2),('sac',2),('selp',2),('srev',1),('sax',1),
- ('rpm',1),('curfld',1),('nkey',1),('tdon',1),('tdrh',1),('tdd',2),('tq2',2),('tq3',2),('tq4',2),('rollx',2),('rdy',1),('axskip',1),('lodfar',1),('lskip',2),('rdy2',1),('rqs',2),('rrs',1),('rr',1),('rq',2),('rsgn',1),('ry',1),('rk',1),('tdsink',2),('bounces',1),('rollz',2),('crtimer',1),('score',1),('worst',1),('wreason',2),('bestg',1),('lastg',1),('crreason',2),('tdoff',2),('tddist',2),('ltmp',1),('rng',2),('whites',1),('msgbuf',64),('gT',2),('gg0',2),('gg1',2),('gmp',2),('gfr',1),('hzy0',2),('hzy1',2),
+ ('rpm',1),('curfld',1),('nkey',1),('tdon',1),('tdrh',1),('tdd',2),('tq2',2),('tq3',2),('tq4',2),('rollx',2),('rdy',1),('mlhi',1),('axskip',1),('lodfar',1),('lskip',2),('rdy2',1),('rqs',2),('rrs',1),('rr',1),('rq',2),('rsgn',1),('ry',1),('rk',1),('tdsink',2),('bounces',1),('rollz',2),('crtimer',1),('score',1),('worst',1),('wreason',2),('bestg',1),('lastg',1),('crreason',2),('tdoff',2),('tddist',2),('ltmp',1),('rng',2),('whites',1),('msgbuf',64),('gT',2),('gg0',2),('gg1',2),('gmp',2),('gfr',1),('hzy0',2),('hzy1',2),
  ('ldx',2),('lady',1),('curbank',1),('lmask',1),('xout',1),('numbuf',6),
 ]
 gen.append('homeloc:')
@@ -92,11 +92,11 @@ for i in range(0, len(hb), 16):
     gen.append('        db ' + ','.join(str(x) for x in hb[i:i+16]))
 gen.append('HOMELEN equ %d' % len(hb))
 gen.append('        align 256')
-gen.append('sqtab:')                       # floor(i*i/4): low bytes page, high bytes page
-sq = [i * i // 4 for i in range(256)]
+gen.append('sqtab:')                       # floor(i*i/4), i = 0..511: 2 pages of low bytes, 2 of high
+sq = [i * i // 4 for i in range(512)]
 for part in (0, 1):
     v = [(x >> (8 * part)) & 255 for x in sq]
-    for i in range(0, 256, 16):
+    for i in range(0, 512, 16):
         gen.append('        db ' + ','.join(str(x) for x in v[i:i+16]))
 gen.append('vars:')
 for n, s in vars_:

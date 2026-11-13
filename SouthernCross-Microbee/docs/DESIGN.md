@@ -141,3 +141,15 @@ Proven on the VZ, so they carry straight over:
   - The horizon check: 0 of 40 flights drew ground above the horizon.
   - A missing area file gives the home field and the message.
 
+## Multiply speed-up (after stage 3)
+- **What was measured.** `mul168` (16-bit × 7-bit signed, >> 7) was ~400 T a call and 17–19% of a busy frame. About 75% of calls come from object axis tables, the rest from the cull test and the matrix set-up.
+- **Tried first: a full quarter-square version.** x·a = ⌊(x+a)²/4⌋ − ⌊(x−a)²/4⌋, 512-entry table, low and high bytes of x done separately. It was exact but slower, about 465 T. The 9-bit table index, the sign handling and the lack of spare registers (no IX/IY in the test emulator either) ate the gain.
+- **Kept: shortcuts in front of the shift-and-add routine:**
+  - a = 0 returns at once. In level flight, about half of all calls have a zero matrix entry.
+  - |x| < 128 takes one page-aligned table lookup (~130 T), which covers buildings, the lighthouse and the ship.
+  - `mulw` (8×8 for the matrix) uses the table too.
+  - Results are bit-identical to before: `tests/multest.py` checks 6,000 cases of each against exact arithmetic, and all 20 test views are pixel-identical.
+- **Also tried: a coarse table-based cull test** (dx, dz in 128 m steps). It was cheaper per object but needed safety margins, which let off-screen objects through. Two views got 10% slower, so it was reverted.
+- **Result.** In level flight, multiply time is down 43% (110k → 63k T on final) and views are 7–9% faster (runway 6.17 → 6.61, final 5.78 → 6.27, Turtle approach 8.68 → 9.48). Banked or pitched views are unchanged, because big coordinates still take the 7-step path. Averages: detail 2 6.54 → 6.73 fps, detail 3 4.51 → 4.62.
+- **What's left.** Large-coordinate multiplies are ~17% of a banked frame over the bay. Two further ideas: keep coastline and island vertices as small offsets from nearby local origins (more objects, but every multiply takes the fast path), or table multiply using a 1MB bank window.
+

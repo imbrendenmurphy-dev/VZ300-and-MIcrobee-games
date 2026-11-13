@@ -195,16 +195,18 @@ smu2:   ld b,a
         ld h,sqtab/256
         ld e,(hl)
         inc h
+        inc h
         ld d,(hl)
         ld a,c
         sub b
         jr nc,smu3
         neg
 smu3:   ld l,a
-        dec h
+        ld h,sqtab/256
         ld a,e
         sub (hl)
         ld e,a
+        inc h
         inc h
         ld a,d
         sbc a,(hl)

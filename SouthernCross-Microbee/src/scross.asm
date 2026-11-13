@@ -1213,9 +1213,16 @@ neghl:
         ld h,a
         ret
 
-; HL = signed 16, A = signed 8 (|A|<=127) -> HL = (HL*A)>>7
+; HL = signed 16, A = signed 8 (|A|<=127) -> HL = (HL*A)>>7, toward zero.
+; Shortcuts: A = 0, and |HL| < 128 (one quarter-square table lookup);
+; otherwise seven shift-and-add steps.
 mul168:
-        ld c,a
+        or a
+        jr nz,mlnz
+        ld h,a
+        ld l,a
+        ret
+mlnz:   ld c,a
         xor h
         ld (msgn),a
         bit 7,h
@@ -1231,7 +1238,38 @@ mul168:
         jr z,ml1
         neg
 ml1:    ld c,a
-        ex de,hl
+        ld a,h                  ; |x| < 128: x*a straight from the table
+        or a
+        jr nz,mlbig
+        bit 7,l
+        jr nz,mlbig
+        ld a,l
+        add a,c                 ; x+a (<= 254)
+        ld l,a
+        ld h,sqtab/256
+        ld e,(hl)
+        inc h
+        inc h
+        ld d,(hl)
+        sub c
+        sub c                   ; x-a
+        jr nc,mls1
+        neg
+mls1:   ld l,a
+        ld h,sqtab/256
+        ld a,e
+        sub (hl)
+        ld e,a
+        inc h
+        inc h
+        ld a,d
+        sbc a,(hl)              ; A:E = x*a (<= 16129)
+        rl e
+        rla                     ; >> 7
+        ld l,a
+        ld h,0
+        jr mlsg
+mlbig:  ex de,hl
         ld hl,0
         srl c
         jr nc,$+3
@@ -1268,7 +1306,7 @@ ml1:    ld c,a
         add hl,de
         rr h
         rr l
-        ld a,(msgn)
+mlsg:   ld a,(msgn)
         bit 7,a
         ret z
         xor a
@@ -1280,13 +1318,28 @@ ml1:    ld c,a
         ret
 
 ; A, B signed 8 -> HL = (A*B)>>7
-mulw:
-        ld l,a
-        add a,a
-        sbc a,a
-        ld h,a
+mulw:                           ; exact product from the table, then >> 7
+        ld c,a                  ; toward zero, as mul168 would give
+        xor b
+        push af
+        ld a,c
+        or a
+        jp p,mw1
+        neg
+mw1:    ld c,a
         ld a,b
-        jp mul168
+        or a
+        jp p,mw2
+        neg
+mw2:    ld b,a
+        ld a,c
+        call smul8              ; both now positive
+        add hl,hl
+        ld l,h
+        ld h,0
+        pop af
+        ret p
+        jp neghl
 
 ; HL -> A clamped to -127..127
 clampb:
