@@ -28,9 +28,11 @@ PCGWIN      EQU $F800
 BLK_TAB     EQU 4           ; font, ship, shots, explosions, position table
 BLK_ENM     EQU 5           ; enemy sprites
 BLK_PIC     EQU 6           ; title picture
+BLK_MUS     EQU 7           ; the title music (SWIRL stream)
 MP_TAB      EQU ((BLK_TAB & $1C) << 3) | ((BLK_TAB & 3) ^ 2) | 4
 MP_ENM      EQU ((BLK_ENM & $1C) << 3) | ((BLK_ENM & 3) ^ 2) | 4
 MP_PIC      EQU ((BLK_PIC & $1C) << 3) | ((BLK_PIC & 3) ^ 2) | 4
+MP_MUS      EQU ((BLK_MUS & $1C) << 3) | ((BLK_MUS & 3) ^ 2) | 4
 
 ; ---- upper memory (block 0): code 8000-C7FF, then
 CELLHI      EQU $C800       ; per cell: high byte of its glyph buffer (0 = none)

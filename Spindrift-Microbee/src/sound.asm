@@ -1,9 +1,16 @@
 ; =====================================================================
-;  SOUND: one speaker bit, no interrupts. Two square-wave voices are
-;  mixed (exclusive-or) in the time the frame waits for the vertical
-;  blanking; the work of the frame is silent. Voice 1 is the tune's
-;  melody, voice 2 its bass, and effects take voice 2 over.
-;  A pitch is a half-period in loop counts (62 T a count); 0 = silent.
+;  SOUND in the game: one speaker bit, no interrupts. Three voices take
+;  turns at the speaker in the time the frame waits for the vertical
+;  blanking (the work of the frame itself is silent):
+;    MELODY  the note and a hair over its octave, exclusive-or'd: the
+;            phaser's shimmer instead of a bare square
+;    BASS    a pulse whose duty plucks: a "dunk", not a beep
+;    FX      the effects' own voice, so they no longer cut the music: a
+;            pulse with a duty and a pitch that glides inside the frame,
+;            or pitched noise
+;  A sample is 264 T (with the glide), 12 780 a second. Tunes, effects
+;  and the pitch table are in RAM block 7 (tools/mkmusic.py); snd_tick
+;  reads them once a frame.
 ; =====================================================================
 
 ; wait for the start of the next vertical blanking, sounding the voices
@@ -26,87 +33,100 @@ snd_field:
 
 ; play until (6545 status AND 20h) = E
 snd_until:
-        ld a,(nz_on)
+        ld a,e
+        ld (gtg+1),a
+        ld hl,(sa_m)
+        exx
+        ld hl,(sa_m2)
+        exx
+        ld ix,(sa_b)
+        ld iy,(sa_f)
+        ld a,(lfsr)
         or a
-        jr nz,noise_until
-        ld a,(v1per)
-        ld h,a
-        ld l,a
-        or a
-        jr z,.s1
-        ld a,$40
-.s1:    ld (.m1+1),a
-        ld a,(v2per)
-        ld d,a
-        or a
-        jr z,.s2
-        ld a,$40
-.s2:    ld (.m2+1),a
-        ld b,e
-        ld e,d
-        ld c,P_CRTCA
-        ld a,(spk)
-        ex af,af'
-.lp:    in a,(c)
-        and $20
-        cp b
-        jr z,.out
-        dec h
-        jr nz,.v2
-        ld h,l
-        ex af,af'
-.m1:    xor $40
-        out (P_PIOB),a
-        ex af,af'
-.v2:    dec d
-        jr nz,.lp
-        ld d,e
-        ex af,af'
-.m2:    xor $40
-        out (P_PIOB),a
-        ex af,af'
-        jr .lp
-.out:   ex af,af'
-        ld (spk),a
+        jr nz,.sd
+        ld a,$5A                ; the noise must never be all zeros
+.sd:    ld e,a
+        ld d,GLIDE_N
+        call gl
+        ld (sa_m),hl
+        exx
+        ld (sa_m2),hl
+        exx
+        ld (sa_b),ix
+        ld (sa_f),iy
+        ld a,e
+        ld (lfsr),a
         ret
+GLIDE_N EQU 16
 
-noise_until:
-        ld b,e
-        ld c,P_CRTCA
-        ld hl,(rseed)
-        ld a,(nz_on)
-        ld d,a                  ; density: higher = lower rumble
-.n:     in a,(c)
-        and $20
-        cp b
-        jr z,.out
-        add hl,hl
-        jr nc,.n1
-        ld a,l
-        xor $2D
-        ld l,a
-.n1:    ld a,h
+gl:     in a,(P_CRTCA)          ; 11
+        and $20                 ; 7
+gtg:    cp 0                    ; 7
+        ret z                   ; 5
+gma:    ld bc,0                 ; 10  MELODY
+        add hl,bc               ; 11
+        ld a,h                  ; 4
+        exx                     ; 4
+gmb:    ld bc,0                 ; 10
+        add hl,bc               ; 11
+        xor h                   ; 4
+        exx                     ; 4
+        and $80                 ; 7
+        rrca                    ; 4
+        out (P_PIOB),a          ; 11
+gbs:    ld bc,0                 ; 10  BASS
+        add ix,bc               ; 15
+        ld a,ixh                ; 8
+gbd:    cp 0                    ; 7
+        sbc a,a                 ; 4
+        and $40                 ; 7
+        out (P_PIOB),a          ; 11
+gfs:    ld bc,0                 ; 10  FX
+        add iy,bc               ; 15
+gfj:    jp gft                  ; 10  (gft: a tone, gfn: noise)
+gft:    ld a,iyh                ; 8
+gfd:    cp 0                    ; 7
+        sbc a,a                 ; 4
+        and $40                 ; 7
+        out (P_PIOB),a          ; 11
+gtl:    dec d                   ; 4
+        jp nz,gl                ; 10  = 258 T
+        ld d,GLIDE_N            ; the glide, every 16 samples (~6 T each)
+        push hl
+        ld hl,(gfs+1)
+gsl:    ld bc,0
+        add hl,bc
+        ld (gfs+1),hl
+        pop hl
+        jp gl
+gfn:    jr nc,.h                ; noise: a new bit when the rate counter
+        ld a,e                  ; wraps (the rate is its pitch)
+        add a,a
+        jr nc,.x
+        xor $1D
+.x:     ld e,a
+.h:     ld a,e
         and $40
         out (P_PIOB),a
-        ld e,d
-.nd:    dec e
-        jr nz,.nd
-        jr .n
-.out:   ld a,h
-        or l
-        jr nz,.ns
-        inc l
-.ns:    ld (rseed),hl
-        ret
+        jp gtl
 
 ; silence everything
 snd_off:
         xor a
         ld (sfx_on),a
         ld (mus_on),a
-        ld (v1per),a
-        ld (v2per),a
-        ld (nz_on),a
+snd_quiet:
+        ld hl,0
+        ld (gma+1),hl
+        ld (gmb+1),hl
+        ld (gbs+1),hl
+        ld (gfs+1),hl
+        ld (gsl+1),hl
+        xor a
+        ld (gbd+1),a
+        ld (gfd+1),a
+        ld hl,gft
+        ld (gfj+1),hl
         ret
 
 ; HL = effect, A = priority: a higher or equal priority replaces
@@ -126,19 +146,89 @@ play_sfx:
 .go:    ld a,b
         ld (sfx_pri),a
         ld (sfx_ptr),hl
-        xor a
-        ld (sfx_left),a
-        inc a
+        ld a,1
         ld (sfx_on),a
 .no:    pop bc
         ret
 
-; HL = tune: melody, bass, gate (frames a note sounds; 0 = all but one)
+; HL = tune (melody, bass, gate): it starts at the next snd_tick, which
+; reads it from block 7
 play_tune:
         ld a,(sndmode)
         cp 2
         ret c
 force_tune:
+        ld (mus_hdr),hl
+        ld a,2
+        ld (mus_on),a
+        ret
+
+; is a tune playing? NZ = yes
+tune_busy:
+        ld a,(mus_on)
+        or a
+        ret
+
+; once a frame: what the voices play while the frame waits
+snd_tick:
+        call snd_quiet
+        ld a,(sndmode)
+        or a
+        ret z
+        ld a,MP_MUS
+        out (P_MEM),a
+        call .music
+        call .fx
+        ld a,MP_TAB
+        out (P_MEM),a
+        ret
+.music: ld a,(sndmode)          ; effects only: no music
+        cp 2
+        jr c,.mq
+        ld a,(mus_on)
+        or a
+        jr z,.mq
+        cp 2
+        call z,.start
+        ld ix,mus_p1
+        call .chan
+        or a
+        jr z,.mq
+        call note_step
+        ld (gma+1),hl
+        add hl,hl               ; a hair over the octave
+        ld de,3
+        add hl,de
+        ld (gmb+1),hl
+        jr .nm
+.mq:    ld hl,0                 ; the melody silent: its counters to zero,
+        ld (sa_m),hl            ; or their exclusive-or could hold the
+        ld (sa_m2),hl           ; speaker high and buzz at the frame rate
+.nm:    ld a,(sndmode)
+        cp 2
+        ret c
+        ld a,(mus_on)
+        or a
+        ret z
+        ld ix,mus_p2
+        call .chan
+        or a
+        ret z
+        call note_step
+        ld (gbs+1),hl
+        ld a,(ix+7)             ; the pluck: the duty by the note's age
+        dec a
+        cp 7
+        jr c,.pa
+        ld a,7
+.pa:    ld e,a
+        ld d,0
+        ld hl,pluck
+        add hl,de
+        ld a,(hl)
+        ld (gbd+1),a
+        ret
+.start: ld hl,(mus_hdr)
         ld e,(hl)
         inc hl
         ld d,(hl)
@@ -161,65 +251,40 @@ force_tune:
         inc a
         ld (mus_on),a
         ret
-
-; is a tune playing? NZ = yes
-tune_busy:
-        ld a,(mus_on)
-        or a
-        ret
-
-; once a frame: what the voices play while the frame waits
-snd_tick:
-        xor a
-        ld (v1per),a
-        ld (v2per),a
-        ld (nz_on),a
-        ld a,(sndmode)
+.fx:    ld a,(sfx_on)
         or a
         ret z
-        ld a,(mus_on)
-        or a
-        jr z,.sfx
-        ld ix,mus_p1
-        call .chan
-        ld (v1per),a
-        ld ix,mus_p2
-        call .chan
-        ld (v2per),a
-.sfx:   ld a,(sfx_on)
-        or a
-        ret z
-        ld a,(sfx_left)
-        or a
-        jr nz,.cont
         ld hl,(sfx_ptr)
+        ld a,(hl)               ; an entry: frames, mode, step, glide
+        or a
+        jr z,.end
+        inc hl
         ld a,(hl)
         inc hl
-        ld b,(hl)
+        ld e,(hl)
         inc hl
+        ld d,(hl)
+        inc hl
+        ld (gfs+1),de
+        ld e,(hl)
+        inc hl
+        ld d,(hl)
+        inc hl
+        ld (gsl+1),de
         ld (sfx_ptr),hl
-        inc b
-        dec b
-        jr z,.end
-        ld (sfx_cur),a
-        ld a,b
-.cont:  dec a
-        ld (sfx_left),a
-        ld a,(sfx_cur)
-        cp $F0
-        jr nc,.nz
-        ld (v2per),a
+        bit 7,a
+        jr nz,.noise
+        ld (gfd+1),a
         ret
-.nz:    and $0F                 ; F0h-FFh: noise, low nibble = density
-        add a,a
-        add a,a
-        add a,2
-        ld (nz_on),a
+.noise: ld hl,gfn
+        ld (gfj+1),hl
         ret
 .end:   xor a
         ld (sfx_on),a
         ret
-; a channel (IX: ptr, base, left, note, gate count) -> A = its pitch now
+
+; a channel (IX: ptr, base, left, note, gate count, -, age) -> A = the
+; note sounding now (0 = none)
 .chan:  ld a,(ix+4)             ; frames left of this note
         or a
         jr nz,.held
@@ -243,25 +308,35 @@ snd_tick:
         ld (ix+1),h
         ld (ix+4),b
         ld (ix+5),a             ; note
+        ld (ix+7),0             ; age
         ld a,(mus_gate)
         or a
         jr nz,.g
         ld a,b
         dec a
 .g:     ld (ix+6),a             ; frames it sounds
-        ld a,(ix+4)
 .held:  dec (ix+4)
+        inc (ix+7)
         ld a,(ix+6)
         or a
         ret z
         dec (ix+6)
         ld a,(ix+5)
-        or a
-        ret z
-        ld hl,notetab-1
-        add a,l
-        ld l,a
-        jr nc,.nc
-        inc h
-.nc:    ld a,(hl)
         ret
+
+; the bass's duty over a note's first frames
+pluck:  db 120,88,64,48,38,30,25,21
+
+; A = note (1-based) -> HL = its step (block 7 mapped)
+note_step:
+        add a,a
+        ld l,a
+        ld h,0
+        ld de,NOTETAB-2
+        add hl,de
+        ld a,(hl)
+        inc hl
+        ld h,(hl)
+        ld l,a
+        ret
+

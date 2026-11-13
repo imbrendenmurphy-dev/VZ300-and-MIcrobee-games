@@ -32,7 +32,7 @@ def boot():
     pp.blocks[0][:0x7000] = 0
     d = np.frombuffer((BUILD / 'SPIN.BIN').read_bytes(), np.uint8)
     pp.blocks[0][:len(d)] = d
-    for b, n in ((4, 'TAB'), (5, 'ENM'), (6, 'PIC')):
+    for b, n in ((4, 'TAB'), (5, 'ENM'), (6, 'PIC'), (7, 'MUS')):
         d = np.frombuffer((BUILD / (n + '.BNK')).read_bytes(), np.uint8)
         pp.blocks[b][:len(d)] = d
     pp.out(0x50, blk_port(1))
