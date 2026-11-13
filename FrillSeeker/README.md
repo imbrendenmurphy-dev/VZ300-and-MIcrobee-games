@@ -41,9 +41,15 @@ Two regions, twelve rooms, 34 bugs:
   it), a cave of ochre hand stencils, a chimney climbed ledge by ledge, the
   moonlit stone tops, and the Great Rock.
 
-Each region ends at a jar of King Bufo's pinched bugs. A title screen with its
-own two-voice theme; lose your hearts and you try again from the start of the
-region, keeping every bug you found (ESC goes back to the title). Still to
+Each region ends at a jar of King Bufo's pinched bugs. Lose your hearts and
+you try again from the start of the region, keeping every bug you found (ESC
+goes back to the title).
+
+Leave the title alone and the game shows itself off: the logo and **The
+Frillseeker Strut** (a twelve-bar shuffle for three voices and drums), a page
+of the story, then a card for the first region and Bluff playing it by
+himself; back to the title, who's who, the second region played; the title,
+the moves, and round again. SPACE starts a game from anywhere in it. Still to
 come: the other three regions, King Bufo himself, saving to disk and an
 ending (see [docs/DESIGN.md](docs/DESIGN.md)).
 
@@ -83,7 +89,13 @@ Needs a Premium Plus: 1 MB RAM, 32K PCG RAM.
 * **Every room is a painting,** generated as one picture with its own
   textures, in colour and again for amber. The title picture is painted the
   same way, with Bluff drawn three times the size by the same puppet.
-* **Two-voice music** for the title and jingles, from a single speaker bit.
+* **Three voices and drums from one speaker bit:** phase-accumulator pulse
+  voices at 16.5 kHz whose pulse widths narrow as each note decays (a growl,
+  not a bleep), fast-arpeggio chord stabs, a kick that falls in pitch and a
+  noise snare. The player and the songs live in their own 32K RAM block.
+* **The demonstrations are recordings** of a pilot program playing the game
+  in the emulator. The game's logic runs in fixed ticks from a fixed start,
+  so 80 bytes of "hold this for that many ticks" replays 21 seconds exactly.
 * **A steady 25 frames a second**, with more than half of every frame left
   to make sound in (unlocked, the engine manages 50 with Bluff and a toad).
 

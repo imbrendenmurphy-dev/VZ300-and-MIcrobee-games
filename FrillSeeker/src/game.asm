@@ -93,57 +93,125 @@ monitor_select:
 ; ---------------------------------------------------------------------
 title_screen:
         ld sp,STACK
+        ld a,$80                ; from the top
+attract:
+        push af
         xor a
         ld (mus_on),a
         ld (sfx_on),a
-        ld (t_count),a
+        ld (demo),a
         out (P_PIOB),a
-        call title_show
-        ld hl,t_press
-        ld de,$160A
-        ld c,WHITE
-        call print
-        call display_on
-        ld hl,title_hook
-        ld (tw_hook),hl
-.again: ld hl,song_title
-        call tw_song
-        jr z,.again
-        and $10
-        jr z,.again
-        ld hl,hook_none
-        ld (tw_hook),hl
-        jp game_start
+        pop af
+        call front_attract      ; -> 0: play; else region + 1 to demonstrate, HL = its script
+        or a
+        jp z,game_start
+        dec a
+        ld (region),a
+        ld (dm_ptr),hl
+        ld a,1
+demo_go:
+        ld (demo),a
+        ld a,(region)
+        push af
+        ld hl,gtick             ; the same game every time: everything from the same start
+        ld b,dm_ptr-gtick
+.z:     ld (hl),0
+        inc hl
+        djnz .z
+        pop af
+        ld (region),a
+        ld hl,$2A17
+        ld (rseed),hl
+        call new_game
+        jp region_restart
+; tools/demo.py starts a recording here, with (region) set
+demo_rec:
+        ld sp,STACK
+        ld a,2
+        jr demo_go
 
-; every 64 notes, swap the line under the picture
-title_hook:
-        ld hl,t_count
-        inc (hl)
+; the front end, in its own block (src/front.asm)
+front_attract:
+        ld hl,$0100
+        jr front
+front_jingle:
+        ld hl,$0103
+front:  push af
+        ld a,BLK_FRONT
+        call map_blk
+        pop af
+        jp (hl)
+; (from the front end) the title picture, and back
+far_title:
+        call title_show
+        ld a,BLK_FRONT
+        jp map_blk
+
+; a tick of a demonstration: the pad comes from the script, pairs of
+; (pad, ticks), 0 ticks at the end
+demo_pad:
+        ld hl,(dm_n)
+        inc hl
+        ld (dm_n),hl
+        dec a
+        jr nz,.hold             ; (recording: the pad is put in dm_pad from outside)
+        ld a,(dm_left)
+        or a
+        jr nz,.run
+        ld a,(cur_blk)
+        push af
+        ld a,BLK_FRONT
+        call map_blk
+        ld hl,(dm_ptr)
         ld a,(hl)
-        and $3F
-        ret nz
+        ld (dm_pad),a
+        inc hl
         ld a,(hl)
-        and $40
-        ld hl,t_press
-        jr z,.p
-        ld hl,t_credit
-.p:     ld de,$160A
-        ld c,WHITE
-        jp print
+        inc hl
+        ld (dm_ptr),hl
+        ld (dm_left),a
+        pop af
+        call map_blk
+        ld a,(dm_left)
+        or a
+        jr nz,.run
+        ld a,3                  ; the script is over
+        ld (game_end),a
+        ret
+.run:   dec a
+        ld (dm_left),a
+.hold:  ld hl,dm_prev
+        ld a,(dm_pad)
+        ld b,a
+        ld a,(hl)
+        cpl
+        and b
+        ld (padnew),a
+        ld a,b
+        ld (hl),a
+        ld (pad),a
+        ret
 
 t_name:   db "FRILLSEEKER",0
 t_l1:     db "FOR THE MICROBEE",0
 t_l2:     db "PREMIUM PLUS",0
 t_l3:     db "C - COLOUR MONITOR",0
 t_l4:     db "M - MONO MONITOR",0
-t_press:  db "PRESS SPACE TO PLAY",0
 t_credit: db " VIBED BY BPM 2026 ",0
+t_demo:   db "DEMO",0
 
 ; ---------------------------------------------------------------------
 ;  the end of a game: the region cleared, or out of hearts
 ; ---------------------------------------------------------------------
 end_game:
         ld sp,STACK
+        ld b,a
+        ld a,(demo)
+        or a
+        jr z,.real
+        xor a                   ; a demonstration: on with the attract sequence
+        jp attract
+.real:  ld a,b
         push af
         xor a
         ld (sfx_on),a
@@ -194,8 +262,8 @@ end_game:
         ld c,BCYAN
         call print_centred
         call .press
-        ld hl,song_clear
-        call tw_song
+        xor a
+        call front_jingle
         call z,wait_key         ; a key during the jingle counts
         ld hl,region
         inc (hl)
@@ -209,8 +277,8 @@ end_game:
         ld c,BCYAN
         call print_centred
         call .press
-        ld hl,song_clear
-        call tw_song
+        xor a
+        call front_jingle
         call z,wait_key         ; a key during the jingle counts
         jp title_screen
 .over:  ld hl,t_over1
@@ -230,8 +298,8 @@ end_game:
         ld c,GREY
         call print_centred
         call display_on
-        ld hl,song_over
-        call tw_song
+        ld a,1
+        call front_jingle
         call z,wait_choice
         and $80
         jp nz,title_screen
@@ -316,13 +384,19 @@ wait_key:
 ; ---------------------------------------------------------------------
 game_start:
         xor a
-        ld (bugs),a
+        ld (demo),a
         ld (region),a
+        call new_game
+        jr region_restart
+new_game:
+        xor a
+        ld (bugs),a
         ld hl,collected
         ld b,16
 .c:     ld (hl),0
         inc hl
         djnz .c
+        ret
         ; fall into region_restart
 
 ; (re)start the current region at its first room, three hearts. Bugs
@@ -372,10 +446,19 @@ reg_name_a:
         ret
 
 main_loop:
-        call read_input
+        ld a,(demo)
+        or a
+        jr z,.live
+        call read_menu          ; a demonstration: any key ends it
+        ld a,(pad)
+        and $90
+        jp nz,title_screen
+        jr .go
+.live:  call read_input
         ld a,(pad)
         rla                     ; ESC: back to the title
         jp c,title_screen
+.go:
         ld a,(fields)
         or a
         jr nz,.f1
@@ -412,6 +495,9 @@ main_loop:
         jr main_loop
 
 game_tick:
+        ld a,(demo)
+        or a
+        call nz,demo_pad
         ld hl,gtick
         inc (hl)
         call hero_tick
@@ -576,6 +662,13 @@ hud_all:
         ld hl,t_bugs
         ld de,$0006
         ld c,WHITE
+        call print
+        ld a,(demo)
+        or a
+        jr z,hud_stats
+        ld hl,t_demo
+        ld de,$0024
+        ld c,BRED
         call print
 hud_stats:
         xor a
