@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Capture README screenshots, GIFs and audio from the headless emulator.
+"""Capture the audio clips from the headless emulator.
 Run after building (src/build.sh). Needs Pillow; ffmpeg for the mp3s."""
 import os, re, subprocess, glob, shutil
 from PIL import Image
@@ -52,31 +52,10 @@ def mp3(wav, out):
 
 
 AUTO = [(150, 'autoplay', 1), (150, 'godmode', 1)]
-# title + attract pages
-run('att', 2700, every=0, shots=(900, 1500, 2100, 2500))
-for n, f in zip(('01_title', '02_briefing', '03_fleet', '04_controls'), (900, 1500, 2100, 2500)):
-    frame('att', f).save(os.path.join(SHOTS, 'SB2_%s.png' % n))
-run('tit', 800, every=4, wav=os.path.join(TMP, 'title.wav'))
-gif('tit', 40, 800, 4, os.path.join(SHOTS, 'SB2_title.gif'))
+# speaker output: the title music, and a stretch of sector 1 played by the AI
+# (screenshots and the showcase GIF: showcase_capture.py, export_shots.py, showcase.py)
+run('tit', 800, wav=os.path.join(TMP, 'title.wav'))
 mp3(os.path.join(TMP, 'title.wav'), os.path.join(MEDIA, 'title_music.mp3'))
-# gameplay: sectors 1, 2, 4, 5, 6, 8 (AI plays, invulnerable for capture)
-for i, sec in enumerate((0, 1, 3, 4, 5, 7)):
-    nm = 's%d' % (sec + 1)
-    run(nm, 1900, keys="100 103 SPACE\n", pokes=[(50, 'startsec', sec)] + AUTO, every=4,
-        wav=os.path.join(TMP, 'game.wav') if sec == 0 else None)
-picks = {1: 1200, 2: 1400, 4: 1300, 5: 1500, 6: 1400, 8: 1700}
-for k, f in picks.items():
-    best = f
-    frame('s%d' % k, best).save(os.path.join(SHOTS, 'SB2_sector%d.png' % k))
-frame('s1', 220).save(os.path.join(SHOTS, 'SB2_warp_in.png'))
-gif('s1', 400, 1300, 4, os.path.join(SHOTS, 'SB2_gameplay.gif'))
-gif('s8', 900, 1800, 4, os.path.join(SHOTS, 'SB2_mothership.gif'))
+run('s1', 1900, keys="100 103 SPACE\n", pokes=[(50, 'startsec', 0)] + AUTO, wav=os.path.join(TMP, 'game.wav'))
 mp3(os.path.join(TMP, 'game.wav'), os.path.join(MEDIA, 'gameplay_sound.mp3'))
-# contact sheet of the main screens
-names = ['SB2_01_title', 'SB2_03_fleet', 'SB2_sector1', 'SB2_sector4', 'SB2_sector5', 'SB2_sector8']
-ims = [Image.open(os.path.join(SHOTS, n + '.png')).resize((256, 192), Image.NEAREST) for n in names]
-sheet = Image.new('RGB', (256 * 3 + 8, 192 * 2 + 4), (30, 30, 30))
-for i, im in enumerate(ims):
-    sheet.paste(im, ((i % 3) * 260, (i // 3) * 196))
-sheet.save(os.path.join(SHOTS, 'SB2_screens.png'))
 print("media done")
