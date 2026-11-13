@@ -84,55 +84,69 @@ landed: xor a
         call ptab
         ld hl,r_hard
         call pen
-        ; on the runway?
-        ld hl,(px)
-        bit 7,h
-        call nz,neghl
-        ld (tdoff),hl
-        ld de,16
-        or a
-        sbc hl,de
-        jr nc,ldoff
-        ld hl,(pz)
-        bit 7,h
-        jr nz,ldoff
-        ld de,RWYLEN
-        or a
-        sbc hl,de
-        jr nc,ldoff
-        ; centreline
-        ld hl,(tdoff)
+        ; on a runway?
+        call tdwhere
+        jp nc,ldoff
+        ld a,1
+        ld (tdon),a
+        ld hl,(tdoff)           ; centreline
         ld de,t_ctr
         call ptab
         ld hl,r_ctr
         call pen
-        ; touchdown point measured from the threshold you landed over
-        ld hl,(pz)
-        call southb
-        or a
-        jr z,ldz1
-        ex de,hl
-        ld hl,RWYLEN
+        ld hl,(tddist)          ; touchdown point against the aim point
+        ld de,(raim)
         or a
         sbc hl,de
-ldz1:   ld (tddist),hl
-        ld de,120
-        or a
-        sbc hl,de
-        jr nc,ldz2
-        ld hl,(tddist)
+        ld (tdd),hl
+        bit 7,h
+        jr z,ldlong
+        call neghl              ; short by HL metres
         ld de,t_short
         call ptab
         ld hl,r_short
         call pen
         jr ldz3
-ldz2:   ld hl,(tddist)
-        ld de,t_long
-        call ptab
+ldlong: ld hl,(rlen)            ; long: past 1/4, 1/3, 1/2 of the runway
+        srl h
+        rr l
+        ld (tq2),hl
+        srl h
+        rr l
+        ld (tq4),hl
+        ld d,h
+        ld e,l
+        srl d
+        rr e
+        srl d
+        rr e
+        add hl,de
+        srl d
+        rr e
+        srl d
+        rr e
+        add hl,de
+        ld (tq3),hl
+        ld b,0
+        ld hl,(tq4)
+        call dgt
+        jr nc,ldl1
+        ld b,8
+        ld hl,(tq3)
+        call dgt
+        jr nc,ldl1
+        ld b,15
+        ld hl,(tq2)
+        call dgt
+        jr nc,ldl1
+        ld b,25
+ldl1:   ld a,b
         ld hl,r_long
         call pen
         jr ldz3
-ldoff:  ld hl,(pz)
+ldoff:  xor a
+        ld (tdon),a
+        ld hl,0
         ld (tddist),hl
         ld a,40
         ld hl,r_off
@@ -147,11 +161,10 @@ ldz3:   ; wings level
         ld hl,r_wings
         call pen
         ; lined up with the runway
-        call southb
-        rrca
-        ld b,a                  ; 0 or 128
-        ld a,(hdg+1)
-        sub b
+        ld a,(tdon)
+        or a
+        jr z,ldsp
+        ld a,(tdrh)
         call absa
         ld l,a
         ld h,0
@@ -159,7 +172,7 @@ ldz3:   ; wings level
         call ptab
         ld hl,r_line
         call pen
-        ; speed
+ldsp:   ; speed
         ld a,(vel+1)
         ld l,a
         ld h,0
@@ -267,6 +280,12 @@ pt1:    ld c,(hl)
         ret nc
         jr pt1
 
+; carry if (tdd) > HL
+dgt:    ld de,(tdd)
+        or a
+        sbc hl,de
+        ret
+
 ; HL = vertical speed (8.8 m/s, positive) -> ft/min
 fpm:    ld d,h
         ld e,l
@@ -325,13 +344,26 @@ liftoff:
         ld hl,m_after
         call ps2
         push de
-        ld hl,(pz)
+        ld hl,(pz)              ; runway used: the larger of the x and z moves
         ld de,(rollz)
         or a
         sbc hl,de
         bit 7,h
         call nz,neghl
+        push hl
+        ld hl,(px)
+        ld de,(rollx)
+        or a
+        sbc hl,de
+        bit 7,h
+        call nz,neghl
         pop de
+        or a
+        sbc hl,de
+        add hl,de
+        jr nc,lfo1
+        ex de,hl
+lfo1:   pop de
         ld b,4
         call mnum
         ld hl,m_climb
@@ -346,64 +378,7 @@ crashmsg:
         ld hl,m_crash2
         jp ps2
 
-; ---- approach line of the panel (row 5)
-pnappr: ; centreline offset, shown always
-        ld hl,(px)
-        call southb
-        or a
-        call nz,neghl           ; southbound: left and right swap
-        ld a,h
-        ld (ltmp),a
-        bit 7,h
-        call nz,neghl
-        ld a,h
-        or a
-        jr nz,pna0
-        ld a,l
-        cp 3
-        jr nc,pna1
-        ld hl,s_cntr
-        jr pna3
-pna0:   ld hl,999
-pna1:   ld de,F_LIN
-        call fadr
-        ld b,3
-        call mnum
-        ld hl,s_left
-        ld a,(ltmp)
-        bit 7,a
-        jr nz,pna2
-        ld hl,s_right
-pna2:   call ps2
-        jr pna4
-pna3:   ld de,F_LIN
-        call pstr
-pna4:   ; range to the aim point and PAPI, only in the air
-        ld a,(ongnd)
-        or a
-        jp nz,pnaoff
-        call southb
-        or a
-        jr nz,pnas
-        ld hl,AIMN
-        ld de,(pz)
-        or a
-        sbc hl,de
-        jr pnar
-pnas:   ld hl,(pz)
-        ld de,AIMS
-        or a
-        sbc hl,de
-pnar:   bit 7,h
-        jp nz,pnaoff
-        ld a,h
-        or l
-        jp z,pnaoff
-        ld de,10000
-        or a
-        sbc hl,de
-        add hl,de
-        jp nc,pnaoff
+pnapapi:
         ld (rng),hl
         ld de,F_RNG
         call fadr
@@ -509,10 +484,12 @@ t_ctr:  dw 2
         db 12
         dw 0FFFFh
         db 20
-t_short: dw 59
-        db 15
-        dw 0FFFFh
+t_short: dw 60
+        db 0
+        dw 120
         db 8
+        dw 0FFFFh
+        db 15
 t_long: dw 450
         db 0
         dw 600
@@ -565,6 +542,6 @@ m_climb:  db " M.  CLIMB AWAY AT 60-70 KT.",0
 m_crash:  db "CRASHED: ",0
 m_crash2: db ". BACK ON FINAL IN 3 SECONDS.",0
 m_bnc:    db "BOUNCED! HOLD THE NOSE UP A LITTLE AND LET IT SETTLE.",0
-m_rwy:    db "RUNWAY 36. T FOR FULL POWER, A TO LIFT THE NOSE AT 52 KT.",0
-m_fin:    db "ON FINAL. KEEP THE PAPI AT WWRR, WINGS LEVEL, FLARE GENTLY.",0
+m_rwy:    db ". T FOR FULL POWER, A TO LIFT THE NOSE AT 52 KT",0
+m_fin:    db ". KEEP THE PAPI AT WWRR, FLARE GENTLY.",0
 m_again:  db "BACK ON FINAL - HAVE ANOTHER GO. KEEP THE PAPI AT WWRR.",0

@@ -1,5 +1,5 @@
 ; =====================================================================
-;  SOUTHERN CROSS  -  Stage 2: take-off, landing and the landing grade
+;  SOUTHERN CROSS  -  Stage 3: area files from disk, Coral Coast
 ;  Microbee Premium Plus (32K PCG), runs from the CP/M DOS prompt
 ;  VIBED BY BPM 2026
 ; ---------------------------------------------------------------------
@@ -38,21 +38,29 @@ K_O     equ 15
 K_P     equ 16
 K_Q     equ 17
 K_R     equ 18
+K_N     equ 14
+LOCBUF  equ 5000h
+LOCEND  equ 7A00h
 K_T     equ 20
 K_SPC   equ 55
 
 ; =====================================================================
 start:
-        di
         ld sp,STKTOP
+        call loadloc            ; through CP/M, before taking over
+        di
         call vinit
         call drawstatic
         ld a,'Z'
         ld (bestg),a
         call resetrwy
+        ld a,(locok)
+        or a
+        ld hl,m_noloc
+        call z,setmsg
         ld a,6
         ld (ticks),a
-        ld a,3
+        ld a,2                  ; scenery on, ground grid off (D for more)
         ld (detail),a
 mloop:
         call keys
@@ -681,7 +689,17 @@ k7:     ld a,K_D
 k7a:    ld (detail),a
         jr k9
 k8:     ld (hl),0
-k9:     ld a,K_R
+k9:     ld a,K_N
+        call keytst
+        ld hl,nkey
+        jr z,k9b
+        ld a,(hl)
+        ld (hl),1
+        or a
+        call z,nextfld
+        jr k9c
+k9b:    ld (hl),0
+k9c:    ld a,K_R
         call keytst
         call nz,resetrwy
         ld a,K_F
@@ -702,8 +720,6 @@ resetrwy:
         ld (hdg),hl
         ld (vs),hl
         ld (gs),hl
-        ld hl,20
-        ld (pz),hl
         xor a
         ld (pxf),a
         ld (pzf),a
@@ -715,19 +731,18 @@ resetrwy:
         ld (crtimer),a
         inc a
         ld (ongnd),a
-        ld hl,20
+        xor a
+        call rwplace
+        ld hl,(px)
+        ld (rollx),hl
+        ld hl,(pz)
         ld (rollz),hl
-        ld hl,m_rwy
-        jp setmsg
+        ret
 
 resetfin:
         ld hl,0
-        ld (px),hl
         ld (roll),hl
-        ld (hdg),hl
-        ld hl,-1500
-        ld (pz),hl
-        ld hl,100
+        ld hl,80
         ld (alt),hl
         ld hl,35*256
         ld (vel),hl
@@ -744,8 +759,8 @@ resetfin:
         ld (crtimer),a
         ld a,22
         ld (thr),a
-        ld hl,m_fin
-        jp setmsg
+        ld a,1
+        jp rwplace
 
 physics:
         ld a,(crashed)
@@ -1117,6 +1132,8 @@ tkst:   ld a,(vel+1)            ; standing still: take-off roll starts here
         ret nc
         ld hl,(pz)
         ld (rollz),hl
+        ld hl,(px)
+        ld (rollx),hl
         ret
 tkcr:   call crashmsg
         ld a,150                ; back on final after 3 seconds
@@ -1865,47 +1882,12 @@ render:
         cp 3
         jr c,rn0
         call ggrid
-rn0:    ld hl,o_rwy
-        call dobj
-        ld a,(detail)
-        cp 2
-        jr c,rn2
-        ld hl,o_hang
-        call dobj
-        ld b,NSCEN
-        ld hl,scenery
-rn1:    push bc
-        push hl
-        call dser
-        pop hl
-        ld de,19
-        add hl,de
-        pop bc
-        djnz rn1
-rn2:    jp reticle
+rn0:    call drawloc
+        jp reticle
 
         include_ggrid
         include_stage2
-mkgrid:
-        ld hl,(px)
-        ld a,h
-        and 0F8h
-        ld h,a
-        ld l,0
-        ld de,-4096
-        add hl,de
-        ld (gridns),hl
-        ld (gridew),hl
-        ld hl,(pz)
-        ld a,h
-        and 0F8h
-        ld h,a
-        ld l,0
-        add hl,de
-        ld (gridns+4),hl
-        ld (gridew+4),hl
-        ret
-
+        include_stage3
 ; Series: sx,sy,sz, tx,ty,tz (step), lx,ly,lz (segment), n
 ; Draws n segments: P(k) -> P(k)+L,  P(k) = S + k*T
 dser:
@@ -2100,9 +2082,13 @@ do2:    ld (tz),hl
         ld bc,axz
         call axtab
         call vbpoll
-        ; vertices
+        ; vertices: nv, nv when far (the far ones come first)
         ld a,(hl)
         inc hl
+        ld b,a
+        ld a,(hl)
+        inc hl
+        call lodpick            ; A = count to use, (lskip) = bytes to skip
         ld (vcnt),a
         ld a,0
         ld (vidx),a
@@ -2195,9 +2181,15 @@ dov2:   pop hl
         ld a,(vcnt)
         cp b
         jp nz,dov1
-        ; edges
+        ld de,(lskip)
+        add hl,de
+        ; edges: ne, ne when far
         ld a,(hl)
         inc hl
+        ld b,a
+        ld a,(hl)
+        inc hl
+        call lodpick
         ld (vcnt),a
 doe1:   call vbpoll
         ld a,(hl)
@@ -2273,10 +2265,32 @@ vpp:    ld l,a
         ret
 
 ; HL -> count + words; DE -> matrix column; BC -> 6-byte entries
-axtab:  ld a,(hl)
+; HL -> count, count when far, values.  Far: only the first values.
+axtab:  push bc
+        ld b,(hl)
         inc hl
+        ld a,(lodfar)
         or a
-        ret z
+        ld a,b
+        jr z,axs1
+        ld a,(hl)
+axs1:   inc hl
+        ld c,a
+        ld a,b
+        sub c
+        add a,a
+        ld (axskip),a
+        ld a,c
+        pop bc
+        or a
+        call nz,axt1
+        push de
+        ld a,(axskip)
+        ld e,a
+        ld d,0
+        add hl,de
+        pop de
+        ret
 axt1:   push af
         push bc
         push de
@@ -3802,7 +3816,40 @@ dl1:    call dmark
         pop hl
         ld (cx1),hl
         jp drawline
-dl1b:   ld a,(cy0)
+dl1b:   ld a,(cy1)              ; very shallow (dx >= 40 dy): draw as runs
+        ld hl,cy0
+        sub (hl)
+        jr nc,dlr0
+        neg
+dlr0:   cp 24                   ; short line: plain stepping, no set-up
+        jr nc,dlr00
+        ld b,a
+        ld a,(ldx+1)
+        or a
+        jr nz,dlr00
+        ld a,(ldx)
+        cp 24
+        jp c,dlshort
+dlr00:  ld a,b
+        or a
+        jr z,dl1c
+        cp 7
+        jr nc,dl1c
+        add a,a
+        add a,a
+        add a,a
+        ld b,a
+        add a,a
+        add a,a
+        add a,b                 ; 40 dy
+        ld b,a
+        ld a,(ldx+1)
+        or a
+        jp nz,dlrun
+        ld a,(ldx)
+        cp b
+        jp nc,dlrun
+dl1c:   ld a,(cy0)
         ld c,a
         ld a,(cy1)
         sub c
@@ -4178,6 +4225,191 @@ dlh4:   call nextbyte
         ld (hl),a
         ret
 
+; ---------------------------------------------------------------------
+;  Shallow line (dx >= 40 dy) as dy+1 horizontal runs, filled a byte at a time.
+;  Run k ends at x0 + (2k+1)*dx / (2dy).
+; ---------------------------------------------------------------------
+dlrun:  ld a,(cy1)
+        ld hl,cy0
+        sub (hl)
+        ld b,1
+        jr nc,drn1
+        neg
+        ld b,0FFh
+drn1:   ld (rdy),a
+        add a,a
+        ld (rdy2),a             ; 2dy
+        ld a,b
+        ld (rsgn),a
+        ld a,(cy0)
+        ld (ry),a
+        ld hl,(cx0)
+        ld (spx0),hl
+        ld hl,(ldx)             ; step: dx / dy  (quotient, remainder of 2dx / 2dy)
+        add hl,hl
+        ld a,(rdy2)
+        call div16u8
+        ld (rqs),hl
+        ld (rrs),a
+        ld hl,(ldx)             ; first end: dx / 2dy
+        ld a,(rdy2)
+        call div16u8
+        ld (rr),a
+        ld de,(cx0)
+        add hl,de
+        ld (rq),hl              ; x of the end of the current run
+        xor a
+        ld (rk),a
+drnl:   ld a,(rk)
+        ld hl,rdy
+        cp (hl)
+        ld hl,(rq)
+        jr nz,drn2
+        ld hl,(cx1)             ; last run ends at the line's end
+drn2:   ld (spx1),hl
+        ld hl,(spx0)
+        ld a,(ry)
+        call pxaddr
+        call span
+        ld a,(rk)
+        ld hl,rdy
+        cp (hl)
+        ret z
+        inc a
+        ld (rk),a
+        ld hl,(rq)              ; next start, next end
+        inc hl
+        ld (spx0),hl
+        dec hl
+        ld de,(rqs)
+        add hl,de
+        ld a,(rdy2)
+        ld b,a
+        ld a,(rrs)
+        ld c,a
+        ld a,(rr)
+        add a,c
+        cp b
+        jr c,drn3
+        sub b
+        inc hl
+drn3:   ld (rr),a
+        ld (rq),hl
+        ld a,(rsgn)
+        ld b,a
+        ld a,(ry)
+        add a,b
+        ld (ry),a
+        jr drnl
+
+; ---------------------------------------------------------------------
+;  Short line (both spans under 24): Bresenham, one pixel at a time.
+;  x runs left to right (drawline has already ordered the ends).
+; ---------------------------------------------------------------------
+dlshort:
+        ld a,(cy1)
+        ld hl,cy0
+        sub (hl)
+        ld d,2Ch                ; INC L
+        jr nc,dsh1
+        neg
+        ld d,2Dh                ; DEC L
+dsh1:   ld (rdy),a
+        ld a,d
+        ld (dshy1),a
+        ld (dshy2),a
+        ld hl,(cx0)
+        ld a,(cy0)
+        call pxaddr
+        ld a,(cx0)
+        and 7
+        ld e,a
+        ld d,0
+        push hl
+        ld hl,masktab
+        add hl,de
+        ld c,(hl)               ; C = pixel mask
+        pop hl
+        ld a,(ldx)
+        ld b,a                  ; B = dx
+        ld a,(rdy)
+        ld e,a                  ; E = dy
+        cp b
+        jr nc,dshy
+        ; x-major: dx+1 pixels
+        ld a,b
+        srl a
+        ld d,a                  ; D = error
+        inc b
+dsx1:   ld a,(hl)
+        or c
+        ld (hl),a
+        dec b
+        ret z
+        rrc c                   ; x + 1
+        call c,nextbyte
+        ld a,d
+        sub e
+        ld d,a
+        jr nc,dsx1
+        ld a,(ldx)              ; error went negative: add dx, step y
+        add a,d
+        ld d,a
+dshy1:  inc l
+        jr dsx1
+dshy:   ; y-major: dy+1 pixels
+        ld a,e
+        srl a
+        ld d,a
+        ld a,e
+        inc a
+        ld e,a                  ; E = count
+dsy1:   ld a,(hl)
+        or c
+        ld (hl),a
+        dec e
+        ret z
+dshy2:  inc l                   ; y +/- 1
+        ld a,d
+        sub b
+        ld d,a
+        jr nc,dsy1
+        ld a,(rdy)
+        add a,d
+        ld d,a
+        rrc c
+        call c,nextbyte
+        jr dsy1
+
+; HL = x, A = y -> HL = byte address in the back page, bank selected
+pxaddr: ld c,a
+        ld a,l
+        rla
+        ld a,h
+        rla
+        and 3
+        ld b,a
+        ld a,(backbank)
+        add a,b
+        or EXT
+        ld (curbank),a
+        out (LATCH),a
+        ld a,l
+        rrca
+        rrca
+        rrca
+        and 15
+        ld b,a
+        srl a
+        add a,0F8h
+        ld h,a
+        ld a,b
+        rrca
+        and 80h
+        or c
+        ld l,a
+        ret
+
 ; HL = 0..511 -> A = HL>>3
 div8:   ld a,l
         srl h
@@ -4539,6 +4771,23 @@ tm2:    ld (ticks),a
         ld (secfr),a
         ret
 
+; B = full count, A = far count -> A = count to use, (lskip) = 3*(unused)
+lodpick:
+        ld c,a
+        ld a,(lodfar)
+        or a
+        ld a,b
+        ld de,0
+        jr z,lp1
+        sub c
+        ld e,a
+        add a,a
+        add a,e
+        ld e,a                  ; 3 bytes a vertex
+        ld a,c
+lp1:    ld (lskip),de
+        ret
+
 ; HL -> view-space point (r,u,f words).  Carry if it is in front of the
 ; near plane and inside the view (|r| <= f, |u| <= f/4): no clip needed.
 fastin: ld e,(hl)
@@ -4602,48 +4851,5 @@ fifail: or a
 crtctab:                        ; 64x16, 8x16 cells
         db 6Bh,40h,51h,37h,12h,09h,10h,12h,48h,0Fh,20h,0Fh,00h,00h,00h,00h
 
-; series: sx,sy,sz, tx,ty,tz, lx,ly,lz, n
-gridns: dw 0,0,0,4096,0,0,0,0,16384
-        db 5
-gridew: dw 0,0,0,0,0,4096,16384,0,0
-        db 5
-
-scenery:
-        ; centreline dashes (series: sx,sy,sz m; step, length half-m)
-        dw 0,0,100,0,0,200,0,0,80
-        db 10
-        ; threshold bars, both ends
-        dw -15,0,30,0,0,2280,60,0,0
-        db 2
-        ; aim-point markers 150-210 m in from the runway 36 threshold
-        dw -8,0,150,32,0,0,0,0,120
-        db 2
-NSCEN   equ 3
-
-; runway 30 x 1200 m (lattice object)
-o_rwy:  dw 0,0,0
-        db 2
-        dw -30,30
-        db 1
-        dw 0
-        db 2
-        dw 0,2400
-        db 4
-        db 0,0,0, 1,0,0, 1,0,1, 0,0,1
-        db 4
-        db 0,1, 1,2, 2,3, 3,0
-
-; hangar 30 x 8 x 20 m
-o_hang: dw 60,0,300
-        db 2
-        dw 0,60
-        db 2
-        dw 0,16
-        db 2
-        dw 0,40
-        db 8
-        db 0,0,0, 1,0,0, 1,0,1, 0,0,1, 0,1,0, 1,1,0, 1,1,1, 0,1,1
-        db 12
-        db 0,1, 1,2, 2,3, 3,0, 4,5, 5,6, 6,7, 7,4, 0,4, 1,5, 2,6, 3,7
 
 ; ---------------------------------------------------------------------

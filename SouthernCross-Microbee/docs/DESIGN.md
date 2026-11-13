@@ -85,8 +85,8 @@ Proven on the VZ, so they carry straight over:
 
 ## Build stages
 1. Horizon, panel and flight model as a frame-rate benchmark — **done**
-2. Runway, take-off, landing and the landing grade — **done (this build)**
-3. Locale loader plus the first full locale, Coral Coast
+2. Runway, take-off, landing and the landing grade — **done**
+3. Locale loader plus the first full locale, Coral Coast — **done (this build)**
 4. Missions, briefing and debrief screens, logbook and save/load
 5. Title, attract sequence, music and information screens
 6. Riverbend, Red Centre and Ace mode
@@ -110,4 +110,34 @@ Proven on the VZ, so they carry straight over:
 - Grid lines moved to 1024 + n×2048 m so none lies on the runway, and lines within 2 pixels of the horizon are skipped.
 - Cost: aim markers (one series of 2 lines) and the extra panel rows take the average from 7.51 to 7.20 fps; the runway 18 aim markers were left out because each line series has ~6k T of set-up, even when it's out of view (worth a cheap cull later).
 - Tested in the emulator with a scripted pilot: take-off (lift-off at 54 kt after 293 m), a flown approach (grade A, touchdown 171 m in), a firm landing (bounce, then grade D "TOO HARD") and a dive into the ground (crash, back on final 3 s later, repeatedly).
+
+## Stage 3 notes
+- **Locale files.** `src/areas.py` describes each area. It defines runways, boxes, outlines and free-form meshes, and builds each object's far set and axis tables automatically. `build.py` assembles every area at LOCBUF (5000h, up to 7A00h). CORAL.LOC is 2K. The HOME field is also built into the program as the fallback.
+- **Loading.** `SCROSS` opens the area named on the command line through CP/M (default CORAL.LOC) before disabling interrupts and taking over the video. It checks the 'SC',3 header and falls back to the home field with a message.
+- **Coral Coast:**
+  - Coral Bay 36/18: 1200 m, with hangar, beach resort and jetty.
+  - The coastline from 7 km south to 10 km north, with a headland lighthouse.
+  - A cargo ship at anchor and a broken reef line, which only shows at detail 3.
+  - Three islands with strips: Turtle Island 09/27 (500 m), Hope Island 36/18 (450 m) and Lizard Island 09/27 (450 m).
+- **Runways are data.** Each has a threshold, an axis (N–S or E–W), a length, a half-width and an aim point (180 m on the big runway, length/6 on the strips).
+  - **Landing grade:** works out which runway you're on and measures touchdown from that end. The touchdown zone runs from 60 m short of the aim point to a quarter of the runway. Being lined up is checked against the runway's axis.
+  - **Approach line:** names the runway you're lined up with ("TURTLE IS 09"). It picks the nearest one ahead within ~27° of its centreline and 45° of its heading.
+  - **R, F and N** start on, or on final to, the current airfield. N moves to the next airfield.
+- **Scenery table culling.** Each entry has a centre, a cull box, a radius and a minimum detail. It's skipped:
+  - if outside the cull box;
+  - if behind (ahead distance + radius < 0);
+  - if well to the side (|right| > 2 × ahead + 3 × radius), unless the nose is steeply up or down;
+  - if it lies flat on the ground and its nearest point is beyond 64 × eye height, which means within ~3 pixels of the horizon;
+  - if it's smaller than ~10 pixels (ahead > 24 × radius).
+
+  Under ~21 pixels (ahead > 12 × radius) it uses its far set of lines: a box draws its roof and two corners, the ship its deck and mast, the lighthouse a single stroke. Only the far set's vertices and axis values are worked out.
+- **Lines.** Very flat lines (≥ 40:1) are drawn as horizontal runs filled a byte at a time: ~27–37 T a pixel against 45–60. Lines under 24 pixels each way use a plain Bresenham with no slope set-up. Both were checked pixel-for-pixel against the existing drawer (0 bad of 512 test lines).
+- **Cost.** The scenery costs speed. Detail 2 averages 6.5 fps over ten views (4.7 at 500 m over the bay, 6.2 on the runway, 5.8 on final) and detail 3 averages 4.5. Each object costs about 3–4k T a vertex and 4k T an edge plus pixels. 16×8 multiplies (axis tables and the cull test) are about 20% of a busy frame. A table-driven multiply is the next speed idea.
+- **Default detail is now 2** (scenery on, grid off). The scenery gives the sense of speed that the grid used to.
+- **Tests.**
+  - The scripted pilot took off at Coral Bay and landed at Coral Bay (grade A, touchdown at 179 m).
+  - It pressed N and landed on Turtle Island 09 (grade A, touchdown at 69 m from an aim point of 83 m).
+  - `rwtest.py`: 12 position and heading cases for runway choice, range and left/right, all correct.
+  - The horizon check: 0 of 40 flights drew ground above the horizon.
+  - A missing area file gives the home field and the message.
 

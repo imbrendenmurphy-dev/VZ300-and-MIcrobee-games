@@ -1,4 +1,36 @@
-"""Compact Z80 emulator (no IX/IY) with a Microbee Premium video/keyboard/RTC model."""
+"""Compact Z80 emulator (no IX/IY) with a Microbee Premium video/keyboard/RTC model.
+A call to 0005h is handled as a small CP/M BDOS (console out, open/read/close files
+from FILEDIR, set DMA) so programs that load data files before taking over can be tested."""
+import os
+FILEDIR = os.environ.get('CPM_DIR', os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'build'))
+
+class CPM:
+    def __init__(self):
+        self.dma = 0x80
+        self.open = {}          # FCB address -> (data, offset)
+        self.console = ''
+    def name(self, m, fcb):
+        n = bytes(m.ram[fcb + 1:fcb + 9]).decode('latin1').strip()
+        t = bytes(m.ram[fcb + 9:fcb + 12]).decode('latin1').strip()
+        return n + ('.' + t if t else '')
+    def call(self, cpu):
+        m = cpu.m; c = cpu.c; de = cpu.d << 8 | cpu.e; a = 0
+        if c == 2: self.console += chr(cpu.e)
+        elif c == 9:
+            while m.ram[de] != 0x24: self.console += chr(m.ram[de]); de += 1
+        elif c == 26: self.dma = de
+        elif c == 15:
+            fn = os.path.join(FILEDIR, self.name(m, de))
+            if os.path.exists(fn): self.open[de] = [open(fn, 'rb').read(), 0]; a = 0
+            else: a = 0xFF
+        elif c == 16: self.open.pop(de, None)
+        elif c == 20:
+            f = self.open.get(de)
+            if not f or f[1] >= len(f[0]): a = 1
+            else:
+                blk = f[0][f[1]:f[1] + 128]; blk = blk + b'\x1a' * (128 - len(blk))
+                m.ram[self.dma:self.dma + 128] = blk; f[1] += 128
+        cpu.a = a; cpu.l = a; cpu.h = 0; cpu.b = 0
 
 SF, ZF, HF, PF, NF, CF = 0x80, 0x40, 0x10, 0x04, 0x02, 0x01
 PARITY = [0] * 256
@@ -20,6 +52,7 @@ class Bee:
         self.keys = set()
         self.cycles = 0
         self.outlog = []
+        self.bdos = CPM()
 
     # memory
     def rd(self, a):
@@ -43,7 +76,7 @@ class Bee:
             else:
                 self.pcg[(self.latch & 15) * 2048 + a - 0xF800] = v
             return
-        if a < 0x100:
+        if a < 0x5C:            # the FCB (5Ch) and DMA buffer (80h) are fair game
             raise Exception('write to page zero %04X' % a)
         self.ram[a] = v
 
@@ -160,6 +193,8 @@ class Z80:
             self.f = (r & 0x80) | (0 if r else ZF) | h | PARITY[r]
 
     def step(self):
+        if self.pc == 5 and self.m.bdos:
+            self.m.bdos.call(self); self.pc = self.pop(); self.t += 200; return
         op = self.fetch()
         t = 4
         x, y, z = op >> 6, (op >> 3) & 7, op & 7
