@@ -10,7 +10,7 @@ def profile(keys=('RIGHT',), frames=200, warm=60, mono=False):
     S = pp.S
     pp.keys = list(keys)
     pp.run_frames(warm)
-    marks = [('input', 'game_loop'), ('player', 'player_update'), ('camera', 'camera_update'), ('ents', 'ents_update'), ('hud', 'hud_update'), ('scroll', 'e_frame'), ('queue', 'e_frame.steady'), ('ladders', 'lad_apply'), ('compose', 'ef_sprites'),
+    marks = [('input', 'game_loop'), ('player', 'player_update'), ('camera', 'camera_update'), ('ents', 'ents_update'), ('hud', 'hud_update'), ('scroll', 'e_frame'), ('vscroll', 'e_frame.steady'), ('queue', 'ef_queue'), ('ladders', 'lad_apply'), ('compose', 'ef_sprites'),
              ('sprites', 'ef_sprites.nospr'), ('restores', 'restores'), ('present', 'present'), ('show', 'present.show'),
              ('flips', 'do_flips')]
     name = {}

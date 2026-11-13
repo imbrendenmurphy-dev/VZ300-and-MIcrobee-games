@@ -34,9 +34,9 @@ tattr:  INCBIN "../build/tattr.bin"
 ENTLIST0: INCBIN "../build/ents.bin"
 MAP0:   INCBIN "../build/tmap.bin"
 game_end:
-MAP     EQU $6000               ; the tile map in play: 12 tiles a column
+MAP     EQU $6000               ; the tile map in play: 16 tiles a column
         ASSERT game_end <= MAP
-        ASSERT MAP + MAPLEN <= $7000
-POOL    EQU $7000               ; entities, NENT x 16
-ENTST   EQU $7100               ; a state for each spawn record
+        ASSERT MAP + MAPLEN <= $7400
+POOL    EQU $7400               ; entities, NENT x 16
+ENTST   EQU $7500               ; a state for each spawn record
         SAVEBIN "../build/GAME.BNK",$0100,game_end-$0100

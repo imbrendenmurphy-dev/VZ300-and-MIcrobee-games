@@ -47,21 +47,22 @@ def level():
     (BUILD / 'pcol.bin').write_bytes(colc + colm)
     cg = data.cgmap(D)
     (BUILD / 'cgmap.bin').write_bytes(cg)
+    (BUILD / 'hudg.bin').write_bytes(font.hud_glyphs())
     gf = bytearray(pat) + font.build()
     gf = gf.ljust(0x3400, b'\0') + cg
     (BUILD / 'GFX.BNK').write_bytes(bytes(gf))
-    # the tile map the game's logic uses (as the VZ game: 12 tiles a column, a column of sky past the end)
+    # the tile map the game's logic uses (16 tiles a column, a column of sky past the end)
     g = D['g']
     tm = bytearray()
     for x in range(data.W):
         for y in range(data.H):
             tm.append(vz.TID[g[x][y]])
-    tm += bytes([vz.TID['sky']]) * 12
+    tm += bytes([vz.TID['sky']]) * data.H
     (BUILD / 'tmap.bin').write_bytes(bytes(tm))
     (BUILD / 'tattr.bin').write_bytes(bytes(a for _, _, a in vz.TILES).ljust(64, b'\0'))
     e = bytearray()
     start = None
-    for (x, y, t, p) in sorted(level1.ents):
+    for (x, y, t, p) in sorted(data.ENTS):
         e += bytes([x & 255, x >> 8, y, t, p])
         if t == E_START:
             start = (x, y)
@@ -77,7 +78,7 @@ def level():
     for i, n in enumerate(ENEMIES):
         L.append('EF_%s equ %d' % (n.upper(), len(vz.BIX_ORDER) + i))
     L += ['LEVW equ %d' % data.W, 'MAPLEN equ %d' % len(tm), 'START_X equ %d' % start[0], 'START_Y equ %d' % start[1],
-          'CGLEN equ %d' % len(cg), 'GF_CGMAP equ $3400', 'ENTLIST equ ENTLIST0']
+          'CGLEN equ %d' % len(cg), 'LEVH equ %d' % data.H, 'CAMYMAX equ %d' % (data.H * 8 - 92), 'GF_CGMAP equ $3400', 'ENTLIST equ ENTLIST0']
     (SRC / 'gen.inc').write_text('\n'.join(L) + '\n')
     print('level: %d cell glyphs, %d pairs of %d (%d of two inks), %d extra probes' % (ncg, npair, data.MAXPAIR, sum(mixed), probes))
     return D

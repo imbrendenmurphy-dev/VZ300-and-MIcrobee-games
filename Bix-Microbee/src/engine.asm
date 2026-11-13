@@ -72,6 +72,8 @@ hw_init:
         ld (pcol_h),a
         ld a,YELLOW
         ld (hud_col),a
+        ld a,1
+        ld (smooth),a
         call lad_init
         ; the font
         ld a,BLK_GFX
@@ -227,6 +229,12 @@ e_gfx:  call display_off
         xor a
         ld bc,12*128
         call pcg_load
+        ld a,BLK_MAP
+        call map_blk
+        ld hl,M_HUDG
+        ld a,BK_HUD
+        ld bc,128
+        call pcg_load
         jp map_game
 
 ; the cell-glyph map as it is at the start of the level: GFX -> MAP,
@@ -282,6 +290,8 @@ e_text: push af
         call win_screen
         ld hl,0
         ld (sstart),hl
+        xor a
+        ld (slide),a
         call set_start
         jp display_on
 
@@ -293,6 +303,11 @@ set_start:
         ld a,13
         out (P_CRTCA),a
         ld a,(sstart)
+        out (P_CRTCD),a
+        ld a,5                  ; the vertical total adjust: the fine slide
+        out (P_CRTCA),a
+        ld a,(slide)
+        inc a
         out (P_CRTCD),a
         ret
 
@@ -393,31 +408,25 @@ e_snap: call display_off
         ld (sdirty),a
         ld hl,0
         ld (org),hl
+        ld hl,$7000             ; requests still waiting change the map only
+        ld (camcell),hl
+        ld a,BLK_MAP
+        call map_blk
+        call list_reset
+        call M_QUEUE
         call cam_cell
         ld (camcell),hl
         ld a,c
         ld (phase),a
+        call v_target
+        ld a,c
+        ld (camrow),a
+        add a,a
+        add a,a
+        add a,a
+        sub b
+        ld (slide),a
         call new_start
-        ld a,BLK_MAP
-        call map_blk
-        call list_reset
-        call M_QUEUE            ; requests still waiting change the map only
-        ; the status line's cells
-        call list_reset
-        ld b,COLS
-        ld hl,(sstart)
-.h:     push bc
-        push hl
-        ld a,h
-        and 7
-        ld h,a
-        call hud_cell
-        pop hl
-        inc hl
-        pop bc
-        djnz .h
-        call lad_apply
-        call do_flips
         ld b,COLS
         ld hl,(camcell)
 .c:     push bc
@@ -434,6 +443,12 @@ e_snap: call display_off
         pop bc
         djnz .c
         call list_reset
+        ld hl,(sstart)
+        ld b,COLS*2
+        call hud_mark
+        call hud_build
+        ld a,4
+        ld (hud_dirty),a
         call hud_put
         call set_start
         call display_on
@@ -471,10 +486,24 @@ cam_cell:
         rr l
         ret
 
-; the start address and the row table from org + camcell
+; the start address and the row table from org, camcell and camrow
 new_start:
-        ld hl,(org)
+        ld a,(camrow)
+        ld l,a
+        ld h,0
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        ld d,h
+        ld e,l
+        add hl,hl
+        add hl,hl
+        add hl,de               ; x 40
+        ld de,(org)
+        add hl,de
         ld de,(camcell)
+        add hl,de
+        ld de,-COLS*2           ; the status band is above the playfield
         add hl,de
         ld a,h
         and 7
@@ -496,9 +525,71 @@ new_start:
 .r1:    djnz .r
         ret
 
-; HL = ring offset: a flip entry for a cell of the status line
-hud_cell:
-        ex de,hl
+; camy -> B = the camera's line, C = the cell row at the top of the playfield
+v_target:
+        ld a,(camy)
+        add a,a
+        ld b,a
+        ld a,(smooth)
+        or a
+        jr nz,.sm
+        ld a,b
+        add a,4
+        and $F8
+        ld b,a
+.sm:    ld a,b
+        add a,7
+        rrca
+        rrca
+        rrca
+        and $1F
+        ld c,a
+        ret
+
+; ---------------------------------------------------------------------
+;  THE STATUS BAND. The 6545's vertical total adjust (R5) holds the whole
+;  picture down 0, 2, 4 or 6 lines: that is the smooth vertical scroll,
+;  and a row step of the start address carries it on. The status line
+;  would slide with it, so it is two cell rows of glyphs drawn the same
+;  amount UP: it stays where it is on the monitor.
+;  A glyph's code: slide / 2 x 32 + (bottom row ? 16 : 0) + glyph (0-15).
+; ---------------------------------------------------------------------
+; HL = ring offset, B = cells: they are status cells now, not background
+hud_mark:
+        ld a,h
+        and 7
+        or ATTSH >> 8
+        ld h,a
+.l:     ld (hl),BK_HUD
+        inc l
+        jr nz,.n
+        inc h
+        ld a,h
+        and 7
+        or ATTSH >> 8
+        ld h,a
+.n:     djnz .l
+        ret
+
+; a column came on: the status band's new cell in each of its rows.
+; A = that column (0 or 39)
+hud_newcol:
+        ld e,a
+        ld d,0
+        ld hl,(sstart)
+        add hl,de
+        push hl
+        call .one
+        pop hl
+        ld de,COLS
+        add hl,de
+.one:   ld a,h
+        and 7
+        ld h,a
+        push hl
+        ld b,1
+        call hud_mark
+        pop de
         ld hl,(entptr)
         ld (hl),e
         inc hl
@@ -508,24 +599,14 @@ hud_cell:
         inc hl
         ld (hl),$80
         inc hl
-        ld (hl),BK_FONT
+        ld (hl),BK_HUD
         inc hl
         ld a,(hud_col)
         ld (hl),a
         inc hl
-        ld (hl),BK_FONT
+        ld (hl),BK_HUD
         inc hl
         ld (entptr),hl
-        ld a,d                  ; the ring shadows: not a background cell
-        or SCRSH >> 8
-        ld d,a
-        ld a,$80
-        ld (de),a
-        ld a,d
-        add a,(ATTSH - SCRSH) >> 8
-        ld d,a
-        ld a,BK_FONT
-        ld (de),a
         ld hl,(nflip)
         inc hl
         ld (nflip),hl
@@ -533,29 +614,197 @@ hud_cell:
         inc (hl)
         ret
 
-; the status line's 40 codes -> the screen (in the blanking)
+; the band's 80 screen codes for the present slide
+hud_build:
+        xor a
+        ld (hud_rb),a
+        ld a,(slide)
+        rrca
+        rrca
+        rrca
+        rrca
+        and $60
+        or $80
+        ld c,a
+        ld hl,HUDBUF
+        ld de,HUDCODE
+        ld b,COLS
+.l:     ld a,(hl)
+        or c
+        ld (de),a
+        or $10
+        push de
+        push af
+        ld a,e
+        add a,COLS
+        ld e,a
+        pop af
+        ld (de),a
+        pop de
+        inc hl
+        inc e
+        djnz .l
+        ret
+
+; the band -> the screen, in the blanking. (hud_dirty): 1 the codes,
+; 2 / 3 and the bank and colour of row 0 / row 1 (new after a row step),
+; 4 and of both
 hud_put:
+        ld a,(hud_dirty)
+        ld c,a
         xor a
         ld (hud_dirty),a
+        push bc
         call win_screen
         ld hl,(sstart)
         ld a,h
         or VIDEO >> 8
         ld d,a
         ld e,l
-        ld hl,HUDBUF
+        ld hl,RING
+        ld bc,(sstart)
+        or a
+        sbc hl,bc               ; cells to the end of the ring
+        ld a,h
+        or a
+        jr nz,.one
+        ld a,l
+        cp COLS*2
+        jr nc,.one
+        ld c,a
+        ld b,0
+        ld a,COLS*2
+        sub c
+        push af
+        ld hl,HUDCODE
+        ldir
+        ld de,VIDEO
+        pop af
+        ld c,a
+        ld b,0
+        ldir
+        jr .attr
+.one:   ld hl,HUDCODE
+        ld bc,COLS*2
+        ldir
+.attr:  pop bc
+        ld a,c
+        cp 2
+        ret c
+        ld hl,(sstart)
         ld b,COLS
-.l:     ld a,(hl)
-        ld (de),a
-        inc hl
-        inc e
+        jr z,.go
+        cp 3
+        jr nz,.all
+        ld de,COLS
+        add hl,de
+        jr .go
+.all:   ld b,COLS*2
+.go:    push hl
+        push bc
+        call win_attr
+        ld a,BK_HUD
+        ld c,VIDEO >> 8
+        call .fill
+        pop bc
+        pop hl
+        call win_col
+        ld a,(hud_col)
+        ld c,PCGWIN >> 8
+        call .fill
+        jp win_screen
+; HL = ring offset, B = cells, C = the window's high byte, A = the value
+.fill:  ld e,a
+        ld a,h
+        and 7
+        or c
+        ld h,a
+.f:     ld (hl),e
+        inc l
         jr nz,.n
-        inc d
-        ld a,d
-        cp (VIDEO >> 8) + 8
-        jr nz,.n
-        ld d,VIDEO >> 8
-.n:     djnz .l
+        inc h
+        ld a,h
+        and 7
+        or c
+        ld h,a
+.n:     djnz .f
+        ret
+
+; ---------------------------------------------------------------------
+;  the vertical scroll: follow the camera's line. A row step brings a
+;  row of 40 cells on, and moves the status band a row along the ring.
+;  It waits a frame if a column came on in this one.
+; ---------------------------------------------------------------------
+vscroll:
+        call v_target           ; B = line, C = row
+        ld a,(camrow)
+        cp c
+        jr z,.fine
+        ld a,(colstep)
+        or a
+        ret nz
+        ld a,(camrow)
+        cp c
+        jr c,.down
+        dec a
+        ld (camrow),a
+        cp c
+        jr z,.u1
+        add a,a                 ; more than a row to go: as far as this row lets it
+        add a,a
+        add a,a
+        sub 6
+        ld b,a
+.u1:    push bc
+        call new_start
+        ld hl,(sstart)          ; the band's top row is new cells
+        ld b,COLS
+        call hud_mark
+        ld a,(camrow)
+        ld (m_r),a
+        call M_ROW
+        pop bc
+        ld a,2
+        jr .stepped
+.down:  inc a
+        ld (camrow),a
+        cp c
+        jr z,.d1
+        add a,a
+        add a,a
+        add a,a
+        ld b,a
+.d1:    push bc
+        call new_start
+        ld hl,(sstart)          ; the band's bottom row was the playfield's top
+        ld de,COLS
+        add hl,de
+        ld b,COLS
+        call hud_mark
+        ld a,(camrow)
+        add a,PFROWS-1
+        ld (m_r),a
+        call M_ROW
+        pop bc
+        ld a,3
+.stepped:
+        ld (hud_dirty),a
+.fine:  ld a,(camrow)
+        add a,a
+        add a,a
+        add a,a
+        sub b
+        ld hl,slide
+        cp (hl)
+        ret z
+        ld (hl),a
+        ld a,1
+        ld (hud_rb),a
+        ld a,(hud_dirty)
+        or a
+        ret nz
+        inc a
+        ld (hud_dirty),a
         ret
 
 ; ---------------------------------------------------------------------
@@ -568,6 +817,8 @@ e_frame:
         call vpoll
         ld a,BLK_MAP
         call map_blk
+        xor a
+        ld (colstep),a
         ; ---- the scroll
         call cam_cell           ; HL = cell, C = shift
         ld a,(phase)
@@ -590,17 +841,13 @@ e_frame:
         ld a,1
         ld (sdirty),a
         ld (hud_dirty),a
+        ld (colstep),a
         jp m,.left
         inc de
         ld (camcell),de
         call new_start
-        ld hl,(sstart)          ; the status line's new cell: its right end
-        ld de,COLS-1
-        add hl,de
-        ld a,h
-        and 7
-        ld h,a
-        call hud_cell
+        ld a,COLS-1
+        call hud_newcol
         ld hl,(camcell)
         ld de,COLS-1
         add hl,de
@@ -608,13 +855,18 @@ e_frame:
 .left:  dec de
         ld (camcell),de
         call new_start
-        ld hl,(sstart)
-        call hud_cell
+        xor a
+        call hud_newcol
         ld hl,(camcell)
 .col:   ld (m_x),hl
         call M_COLUMN
         jr .step
 .steady:
+        call vscroll
+        ld a,(hud_rb)
+        or a
+        call nz,hud_build
+ef_queue:
         call M_QUEUE
         ld a,(scratch+7)
         or a
@@ -714,14 +966,7 @@ lad_apply:
         inc a
         ld (hl),a
         jr .n
-.flat:  and $0F
-        ld (hl),a
-        add hl,de
-        ld (hl),a
-        add hl,de
-        ld (hl),a
-        add hl,de
-        ld (hl),a
+.flat:                          ; a status cell: the ladders never reach it
 .n:     ld de,6
         add ix,de
         djnz .e
@@ -737,9 +982,15 @@ blast_attr:
         out (P_COLCTL),a
         ld a,LV_ATTR
         out (P_LV),a
-        ld hl,(sstart)
-        ld de,COLS*DROWS
-        add hl,de               ; the end of the picture in the ring
+        ld hl,(sstart)          ; the playfield: below the status band
+        ld de,COLS*2
+        add hl,de
+        ld a,h
+        and 7
+        ld h,a
+        ld (bl_start),hl
+        ld de,COLS*PFROWS
+        add hl,de               ; its end in the ring
         ld a,h
         cp RING >> 8
         jr c,.one
@@ -755,10 +1006,18 @@ blast_attr:
         ld hl,RING-1
 .one:   inc hl
         res 0,l
-        ld de,(sstart)
+        ld de,(bl_start)
         res 0,e
         call blast_run
-        ld a,LV_SCREEN
+        ld hl,(bl_start)        ; the ladder works in pairs of cells: if it began
+        bit 0,l                 ; a cell early, that was the status band's last
+        jr z,.ev
+        dec hl
+        ld a,h
+        or VIDEO >> 8
+        ld h,a
+        ld (hl),BK_HUD
+.ev:    ld a,LV_SCREEN
         out (P_LV),a
         ret
 
@@ -901,7 +1160,15 @@ sprite:
         ld a,l
         cp 56
         jr nc,.off
+        ld a,(camrow)           ; the game gives y in the level: the picture
+        add a,a                 ; starts camrow rows down it
+        add a,a
+        add a,a
+        ld e,a
+        ld d,0
         ld hl,(sd_y)
+        or a
+        sbc hl,de
         ld de,64                ; a bias, so a sprite can hang off the top
         add hl,de
         ld a,h
@@ -1231,7 +1498,7 @@ restores:
         and 7
         jr nz,.pf
         ld a,l
-        cp COLS
+        cp COLS*2
         jr nc,.pf
         pop hl
         jr .skip
@@ -1327,8 +1594,10 @@ present:
         call snd_wait
 .show:  ld a,(sdirty)
         or a
-        jr z,.nb
+        push af
         call set_start
+        pop af
+        jr z,.nb
         call blast_attr
         xor a
         ld (sdirty),a
@@ -1473,7 +1742,7 @@ keytest:
         pop bc
         ret
 
-keymap: db K_RIGHT,K_R, K_LEFT,K_L, K_UP,K_U, K_DOWN,K_D, K_SPACE,K_J
+keymap: db K_V,K_MONO, K_RIGHT,K_R, K_LEFT,K_L, K_UP,K_U, K_DOWN,K_D, K_SPACE,K_J
         db K_P,K_R, K_O,K_L, K_Q,K_U, K_A,K_D, K_M,K_J, K_X,K_R, K_Z,K_L
         db K_S,K_MUS, K_ESC,K_QUIT
         db $FF

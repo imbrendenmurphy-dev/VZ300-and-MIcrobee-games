@@ -32,7 +32,7 @@ class Bot:
     def state(self):
         return 'ppx %d ppy %d state %d health %d lives %d stars %d camx %d' % (
             self.v('ppx', 2), self.v('ppy'), self.v('pstate'), self.v('health'), self.v('lives'), self.v('nstars'), self.pp.peekw(self.S['camx']))
-    def warp(self, tx, ty=7):
+    def warp(self, tx, ty=9):
         """put Bix at a tile (testing only)"""
         self.poke('ppx', tx * 8, 2); self.poke('px16', tx * 8 * 16, 2)
         self.poke('ppy', ty * 8 - 2); self.poke('py16', (ty * 8 - 2) * 16, 2)

@@ -708,7 +708,7 @@ p_checks:
         ld a,(ppy)
         bit 7,a
         jr nz,.top
-        cp 100
+        cp 116
         jp nc,rescue            ; fell out of the world
 .top:   ld hl,(ppx)
         ld de,4
@@ -1310,7 +1310,7 @@ reveal_bonus:
         ld de,MAP
         or a
         sbc hl,de
-        ld c,12
+        ld c,16
         call div16_8
         push af
         push hl

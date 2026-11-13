@@ -56,3 +56,26 @@ def build():
     for c in range(64):
         out += bytes(np.packbits(glyph(chr(32 + c)), axis=1)[:, 0].tolist())
     return bytes(out)
+
+
+HUD = " 0123456789*[]^-"                # the status line's 16 glyphs
+
+
+def hud_glyphs():
+    """The status line at each slide of the picture. The picture is held
+    down s = 0, 2, 4, 6 lines, so the line is drawn s lines up, across two
+    cell rows: [slide][top row, bottom row][glyph], 128 glyphs."""
+    out = bytearray()
+    for k in range(4):
+        s = 2 * k
+        for half in (0, 1):
+            for ch in HUD:
+                g = glyph(ch)
+                a = np.zeros((8, 8), bool)
+                if half == 0:
+                    if s:
+                        a[8 - s:] = g[:s]
+                else:
+                    a[:8 - s] = g[s:]
+                out += bytes(np.packbits(a, axis=1)[:, 0].tolist())
+    return bytes(out)

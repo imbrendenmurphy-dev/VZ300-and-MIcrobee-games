@@ -24,13 +24,15 @@ A native Microbee version of the VZ300 game [Bix the Bilby](../Bix). It is not t
 | Tunnel underground | O P Q A or arrows | any direction |
 | Burst out | hold SPACE underground | fire |
 | Music on / off | S | |
+| Vertical scroll: smooth / a row at a time | V | |
 | Give up | ESC | |
 
 Needs a Premium Plus: 1 MB RAM, 32K PCG RAM.
 
 ## What is in the prototype
 
-- All of Gumleaf Gully, 288 tiles long: the dig spots and buried stars, the wall to dig under, the billabong and its floating logs, the drop-bear forest, the thorn field over the secret tunnel, the climb, the gully run and the exit burrow.
+- All of Gumleaf Gully, 288 tiles long and now 16 tiles high (the VZ level is 12): two more rows of sky, with a high log and stars over each spring, and two more of earth, with star pockets to tunnel down to. This is a first pass at the taller layout and has not been balanced by play.
+- The level's parts: the dig spots and buried stars, the wall to dig under, the billabong and its floating logs, the drop-bear forest, the thorn field over the secret tunnel, the climb, the gully run and the exit burrow.
 - Bix's full move set from the VZ game: run, skid, variable jump, slopes, springs, one-way logs, burrowing in eight directions and the burst.
 - Bull ants, magpies, drop-bears, cane toads and witchetty grubs, the Wattle Glow shield, the 1-UP, checkpoints, hearts, lives.
 - In-game blip music (Bix's motif) and sound effects, played in the time the frame has left.
@@ -41,8 +43,8 @@ Needs a Premium Plus: 1 MB RAM, 32K PCG RAM.
 | | VZ300 | Microbee |
 |---|---|---|
 | Picture | 128 × 64, four colours | 320 × 200, one ink a cell on black, 16 colours |
-| View | 16 tiles wide, scrolls up and down | 20 tiles wide, the whole height of the level on show |
-| Scroll step | 1 VZ pixel | 2 Microbee pixels (the same distance) |
+| View | 16 × 7 tiles, scrolls both ways | 20 × 11½ tiles, scrolls both ways |
+| Scroll step | 1 VZ pixel | 2 Microbee pixels across, 2 lines down (the same distance) |
 | Bix's movement | whole VZ pixels | half that: the game's sixteenths show |
 | Frame rate | 25 | 25 |
 
@@ -51,19 +53,23 @@ Needs a Premium Plus: 1 MB RAM, 32K PCG RAM.
 - **Coarse scroll is free.** The 6545's start address moves the picture a whole cell. The screen RAM is used as a ring of 2048 cells, so only the column coming on is written.
 - **Fine scroll is one byte a cell.** Every join of two neighbouring 8 × 8 glyphs that can appear (362 of them in this level) is stored at four shifts, at the same screen code in four PCG banks. Shifting the picture two pixels means writing each cell's bank number.
 - **The bank numbers are written by a ladder.** It is 500 `LD DE,nn` / `PUSH DE` with the stack pointer in the attribute RAM: 10.5 T a cell, about 10 700 T for the screen, inside one vertical blanking. There are four ladders (one a shift) and their operands are updated as cells come on, so nothing is worked out when one runs.
+- **Vertical scroll is done by the 6545.** Its vertical total adjust (R5) holds the whole picture down 0, 2, 4 or 6 lines, and a row step of the start address carries it on, bringing one row of 40 cells on. The camera follows the height Bix last stood at, so an ordinary jump does not move it; a spring, a burst or a long fall does.
+- **The status line stays still** because it is two cell rows of glyphs drawn the same number of lines up as the picture is held down.
+- **V switches the slide off**, so the picture moves a whole row (8 lines) at a time. That is the fallback if the slide does not behave on a real monitor.
 - **Sprites** are composed as in FrillSeeker: a private glyph for each cell a sprite touches, in two PCG pools that take turns.
 - **The floating logs are not sprites.** They are glyphs written into the map, so they scroll and shift like scenery and cost almost nothing.
 - **Colour clash is kept down by rule.** Paper is black everywhere. A cell that joins two inks takes the ink of the side showing more of itself, and is recoloured when the shift changes that. Solid ground keeps its own ink under a sprite.
 
-Measured in the emulator: running right through the first part of the level (`tools/prof.py`), 24.8 frames a second with about 76 000 T of work in a 135 000 T frame. Of that, composing the sprites is 19 000 T, building the column coming on 10 000 T and the ladder 8 600 T. On a tour of the whole level (`tools/tour.py`) 10 frames in 765 took three fields instead of two, where a new column, a shift and several enemies fell in the same frame.
+Measured in the emulator on a tour of the whole level (`tools/tour.py`): 24.4 frames a second, with 15 frames in 752 taking three fields instead of two. Before the level could scroll vertically it was 10 in 765. The slow frames are mostly ones where a row comes on (about 20 000 T to build when it is solid earth) in a frame that is already busy, so a fast vertical pan, such as a long fall, can drop a frame or two.
 
 ## Not yet tested on a real machine
 
-Everything above was measured in the Premium Plus model in `tools/emu`. Three things are new here and need a real Premium Plus to confirm:
+Everything above was measured in the Premium Plus model in `tools/emu`. Four things are new here and need a real Premium Plus to confirm:
 
 1. The start address walking all the way round the 2048-cell ring (the picture wrapping from the end of the screen RAM to its start).
 2. The stack pointer in the attribute RAM (the ladder).
 3. The sound: it has not been heard.
+4. The vertical slide (R5 changing from frame to frame, so the frame is 313 to 319 lines long). The Starhive scroll test uses the same method; if a monitor does not like it, V turns it off.
 
 The disk's boot and load could not be run in the model (no boot ROM in the repository). The loader is FrillSeeker's, which loads on the real machine.
 

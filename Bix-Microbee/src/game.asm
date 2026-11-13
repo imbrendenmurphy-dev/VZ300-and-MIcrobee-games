@@ -38,7 +38,7 @@ E_BOOM  equ 11
 E_SPIT  equ 12
 E_BOSS  equ 13
 NENT    equ 10
-RROWS   equ 96
+RROWS   equ 128                 ; the level is 16 tiles high
 VIEWW   equ 160                 ; the screen is 160 VZ pixels wide (the VZ's was 128)
 SFX_JUMP    equ 0
 SFX_SPRING  equ 1
@@ -105,6 +105,10 @@ title:  xor a
         ld de,$1103
         ld c,BCYAN
         call e_print
+        ld hl,t_5d
+        ld de,$1203
+        ld c,GREY
+        call e_print
         ld hl,t_7
         ld de,$170B
         ld c,BRED
@@ -154,6 +158,7 @@ t_4:    db "PROTOTYPE: WORLD 1-1 GUMLEAF GULLY",0
 t_5:    db "O P OR ARROWS: RUN   SPACE: JUMP",0
 t_5b:   db "A OR DOWN: DIG IN, THEN TUNNEL",0
 t_5c:   db "HOLD SPACE UNDERGROUND: BURST OUT",0
+t_5d:   db "V: SMOOTH / STEPPED VERTICAL SCROLL",0
 t_6c:   db "MONITOR: COLOUR  (M = MONO)   SPACE",0
 t_6m:   db "MONITOR: MONO  (C = COLOUR)   SPACE",0
 t_7:    db "VIBED BY BPM 2026",0
@@ -317,7 +322,13 @@ read_input:
         ld a,(mus_on)
         xor 1
         ld (mus_on),a
-.nm:    ld a,(keys)
+.nm:    ld a,(padnew)
+        and K_MONO              ; V: the smooth vertical scroll on / off
+        jr z,.nv
+        ld a,(smooth)
+        xor 1
+        ld (smooth),a
+.nv:    ld a,(keys)
         ld (keysold),a
         cpl
         and c
@@ -350,10 +361,8 @@ spawn_part:
 conveyor:
         ret
 
-mul12:  ld d,h
-        ld e,l
+mul12:  add hl,hl               ; x 16: the map's column height here
         add hl,hl
-        add hl,de
         add hl,hl
         add hl,hl
         ret
@@ -366,7 +375,7 @@ set_tile:
         ld de,MAP
         or a
         sbc hl,de
-        ld c,12
+        ld c,16
         call div16_8            ; HL = tile column, A = row
         ld b,a
         ex de,hl
@@ -589,7 +598,55 @@ die_update:
 camera_snap:
         call cam_target
         ld (camx),hl
+        ld a,(ppy)
+        ld (refy),a
+        call cam_ytarget
+        ld (camy),a
         ret
+
+; -> A = where the camera wants to be down the level. It follows the
+; height Bix last stood at (so an ordinary jump does not move it), and
+; goes with him whenever he nears the top or bottom of the picture: a
+; spring, a burst, a long fall.
+cam_ytarget:
+        ld a,(pstate)
+        cp ST_BURROW
+        jr z,.set
+        ld a,(onground)
+        or a
+        jr z,.keep
+.set:   ld a,(ppy)
+        bit 7,a
+        jr nz,.keep
+        ld (refy),a
+.keep:  ld a,(refy)
+        sub 56
+        jr nc,.t1
+        xor a
+.t1:    ld b,a
+        ld a,(ppy)
+        bit 7,a
+        jr nz,.top0             ; above the top of the level
+        sub 14
+        jr nc,.t2
+        xor a
+.t2:    cp b
+        jr nc,.t3
+        ld b,a
+.t3:    ld a,(ppy)
+        sub 68
+        jr c,.t4
+        cp b
+        jr c,.t4
+        ld b,a
+.t4:    ld a,b
+        cp CAMYMAX+1
+        ret c
+        ld a,CAMYMAX
+        ret
+.top0:  xor a
+        ret
+refy:   db 0
 
 ; -> HL = where the camera wants to be
 cam_target:
@@ -642,7 +699,7 @@ camera_update:
         sbc hl,de
         ld a,h
         or l
-        ret z
+        jr z,cam_y
         bit 7,h
         jr nz,.xneg
         ld a,h
@@ -660,7 +717,7 @@ camera_update:
         ld h,0
         add hl,de
         ld (camx),hl
-        ret
+        jr cam_y
 .xneg:  ld a,h
         cp $FF
         jr nz,.xn4
@@ -679,6 +736,33 @@ camera_update:
         or a
         sbc hl,de
         ld (camx),hl
+cam_y:  call cam_ytarget
+        ld hl,camy
+        sub (hl)
+        ret z
+        jr c,.up
+        srl a                   ; a quarter of the way, 1 to 4 a frame
+        srl a
+        jr nz,.d1
+        inc a
+.d1:    cp 5
+        jr c,.d2
+        ld a,4
+.d2:    add a,(hl)
+        ld (hl),a
+        ret
+.up:    neg
+        srl a
+        srl a
+        jr nz,.u1
+        inc a
+.u1:    cp 5
+        jr c,.u2
+        ld a,4
+.u2:    ld b,a
+        ld a,(hl)
+        sub b
+        ld (hl),a
         ret
 
 ; ---------------------------------------------------------------- sprites
@@ -691,7 +775,7 @@ q_ent:  push af
 .yp:    ex de,hl                ; HL = y, DE = x
         add hl,hl
         push bc
-        ld bc,8
+        ld bc,16
         add hl,bc
         pop bc
         push hl
@@ -746,7 +830,7 @@ player_draw:
         rr l
         sra h
         rr l
-        ld de,8
+        ld de,16
         add hl,de
         push hl
         ld hl,(px16)
@@ -969,15 +1053,20 @@ hud_update:
         ret z
         xor a
         ld (hudflag),a
+        ld a,(hud_dirty)
+        or a
+        jr nz,.hd
         inc a
         ld (hud_dirty),a
+.hd:    ld a,1
+        ld (hud_rb),a
         ld hl,HUDBUF
         ld b,COLS
-.c:     ld (hl),$80
+.c:     ld (hl),0
         inc l
         djnz .c
         ld hl,HUDBUF+1
-        ld (hl),$80+'^'-32      ; Bix's head
+        ld (hl),14              ; Bix's head
         inc l
         inc l
         ld a,(lives)
@@ -988,15 +1077,15 @@ hud_update:
         ld b,3
 .h:     ld a,c
         or a
-        ld a,$80+']'-32
+        ld a,13
         jr z,.h1
         dec c
-        ld a,$80+'['-32
+        ld a,12
 .h1:    ld (hl),a
         inc l
         djnz .h
         ld hl,HUDBUF+14
-        ld (hl),$80+'*'-32
+        ld (hl),11
         inc l
         inc l
         ld a,(nstars)
@@ -1027,14 +1116,14 @@ hud_update:
         xor a
         call .dig
         ld hl,HUDBUF+36
-        ld (hl),$80+'1'-32
+        ld (hl),2
         inc l
-        ld (hl),$80+'-'-32
+        ld (hl),15
         inc l
-        ld (hl),$80+'1'-32
+        ld (hl),2
         ret
 .dig:   and 15
-        add a,$80+'0'-32
+        inc a
         ld (hl),a
         inc l
         ret

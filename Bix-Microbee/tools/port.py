@@ -46,6 +46,8 @@ def rep(a, b, n=1):
     global s
     assert s.count(a) == n, (a, s.count(a))
     s = s.replace(a, b)
+rep('        jr nz,.top\n        cp 100\n', '        jr nz,.top\n        cp 116\n')      # the level is 16 tiles high
+rep('        sbc hl,de\n        ld c,12\n        call div16_8', '        sbc hl,de\n        ld c,16\n        call div16_8')
 rep('\nplath_upd:', '\nplath_move:')
 rep('\nplatv_upd:', '\nplatv_move:')
 rep('\nent_release:', '\nent_release0:')

@@ -18,9 +18,12 @@
         INCLUDE "vars.inc"
 
         ORG $0000
-        jp m_column             ; M_COLUMN: (m_x) = world column: all 24 rows
+        jp m_column             ; M_COLUMN: (m_x) = world column: the rows on show
         jp m_queue              ; M_QUEUE:  the game's requests (MAPQ)
         jp m_mixed              ; M_MIXED:  the shift changed: cells of two inks
+        jp m_row                ; M_ROW:    (m_r) = world row: the columns on show
+
+CGROWS  EQU 32                  ; cell glyphs in a column of the map
 
 ; ---------------------------------------------------------------------
 m_column:
@@ -37,38 +40,82 @@ m_column:
         ld (hl),a
         inc l
         ld (hl),a
+        inc l
+        ld (hl),a
+        ld a,(camrow)
         ld (m_r),a
-        ld a,24
+        ld a,PFROWS
         ld (m_n),a
         ; fall through
 
-; (m_x) = world column, (m_r) = first row (0..23), (m_n) = rows.
+; (m_x) = world column, (m_r) = first world row, (m_n) = rows: down a column.
 ; A cell that already shows what it should (most of the sky) is left alone.
-m_rows:
-        ld hl,(nflip)           ; room in the flip list?
+m_rows: call m_setup
+        ret c
+        ld a,(m_n)
+        ld b,a
+.l:     push bc
+        call m_cell
+        pop bc
+        inc hl
+        inc ix
+        ld a,e
+        add a,COLS
+        ld e,a
+        jr nc,.n
+        inc d
+        res 3,d
+.n:     ld a,(m_r)
+        inc a
+        ld (m_r),a
+        djnz .l
+        ld (entptr),iy
+        ret
+
+; (m_r) = world row: its 40 cells on show, along the row
+m_row:  ld hl,(camcell)
+        ld (m_x),hl
+        call m_setup
+        ret c
+        ld b,COLS
+.l:     push bc
+        call m_cell
+        pop bc
+        ld a,l
+        add a,CGROWS
+        ld l,a
+        jr nc,.n1
+        inc h
+.n1:    push de
+        ld de,CGROWS
+        add ix,de
+        pop de
+        inc e
+        jr nz,.n2
+        inc d
+        res 3,d
+.n2:    push hl
+        ld hl,(m_x)
+        inc hl
+        ld (m_x),hl
+        pop hl
+        djnz .l
+        ld (entptr),iy
+        ret
+
+; -> HL = the cell glyph at (m_x, m_r), IX = the one to its right, DE = the
+; cell's place in SCRSH, IY = the flip list; carry if the list is full
+m_setup:
+        ld hl,(nflip)
         ld a,h
         or a
+        scf
         ret nz
         ld a,l
-        cp 190
-        ret nc
-        ld hl,(m_x)
-        ld d,h
-        ld e,l
-        add hl,hl
-        add hl,de
-        add hl,hl
-        add hl,hl
-        add hl,hl               ; x 24
+        cp 180
+        ccf
+        ret c
         ld a,(m_r)
-        ld e,a
-        ld d,0
-        add hl,de
-        ld de,M_CGMAP
-        add hl,de
-        push hl
-        ld a,(m_r)
-        inc a                   ; screen row
         ld l,a
         ld h,0
         add hl,hl
@@ -78,7 +125,7 @@ m_rows:
         ld e,l
         add hl,hl
         add hl,hl
-        add hl,de               ; x 40
+        add hl,de               ; row x 40
         ld de,(m_x)
         add hl,de
         ld de,(org)
@@ -86,17 +133,31 @@ m_rows:
         ld a,h
         and 7
         or SCRSH >> 8
-        ld d,a
-        ld e,l                  ; DE = the cell's place in SCRSH
-        pop hl                  ; HL = the left cell glyph
+        ld h,a
+        push hl
+        ld hl,(m_x)
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        add hl,hl               ; x 32
+        ld a,(m_r)
+        ld e,a
+        ld d,0
+        add hl,de
+        ld de,M_CGMAP
+        add hl,de
         push hl
         pop ix
-        ld bc,24
-        add ix,bc               ; IX = the right one
-        ld a,(m_n)
-        ld b,a
+        ld de,CGROWS
+        add ix,de
+        pop de
         ld iy,(entptr)
-.cell:  ld a,(hl)
+        or a
+        ret
+
+; one cell: HL, IX = its two cell glyphs, DE = its place in SCRSH
+m_cell: ld a,(hl)
         or (ix+0)
         jr nz,.full
         ld a,(de)               ; the empty pair
@@ -106,12 +167,10 @@ m_rows:
         ld a,(de)
         res 3,d
         cp $80
-        jp z,.next
-.emp:   push bc
-        ld bc,$8080
+        ret z
+.emp:   ld bc,$8080
         jr .emit
-.full:  push bc
-        push hl
+.full:  push hl
         push de
         ld b,(hl)
         ld c,(ix+0)
@@ -129,9 +188,7 @@ m_rows:
         cp c
         jr nz,.emit
         bit 6,c
-        jr nz,.emit
-        pop bc
-        jr .next
+        ret z
 .emit:  ld a,b                  ; B = code, C = flags
         ld (de),a
         set 3,d
@@ -177,40 +234,17 @@ m_rows:
         add iy,de
         pop de
         bit 6,c
-        jr z,.em2
-        pop bc
-        push bc
-        ld a,(m_n)
-        sub b
-        ld c,a
-        ld a,(m_r)
-        add a,c
-        call m_setmix
-.em2:   pop bc
-.next:  inc hl
-        inc ix
-        ld a,e
-        add a,COLS
-        ld e,a
-        jr nc,.n2
-        inc d
-        res 3,d
-.n2:    dec b
-        jp nz, .cell
-        ld (entptr),iy
-        ret
-
-; note that the cell at row A of column (m_x) takes its ink from the shift
-m_setmix:
+        ret z
+        ; note that this cell takes its ink from the shift
         push hl
         push de
-        ld e,a
         ld a,(m_x)
         and 63
         add a,a
         add a,a
         ld l,a
-        ld a,e
+        ld a,(m_r)
+        ld e,a
         rrca
         rrca
         rrca
@@ -296,6 +330,12 @@ miss_count: db 0
 ;  its colour again (the ink of whichever side now shows more)
 ; ---------------------------------------------------------------------
 m_mixed:
+        ld a,(oldphase)         ; between shifts 0 and 1 the left side shows
+        ld b,a                  ; more both times: no ink changes
+        ld a,(phase)
+        or b
+        dec a
+        ret z
         ld ix,(entptr)
         ld a,(camcell)
         and 63
@@ -309,9 +349,10 @@ m_mixed:
         or (hl)
         inc l
         or (hl)
+        inc l
+        or (hl)
         jr nz,.work
 .nxt:   inc l
-        inc l
         inc c
         djnz .col
         ld (entptr),ix
@@ -320,19 +361,22 @@ m_mixed:
         push bc
         dec l
         dec l
+        dec l
         push hl
-        ld hl,(sstart)
+        ld hl,(camcell)
         ld b,0
         add hl,bc
+        ld de,(org)
+        add hl,de
         ld (m_ring),hl
         pop hl
-        ld c,0                  ; row
+        ld c,0                  ; world row
 .byte:  ld a,(hl)
         inc l
         push hl
         or a
         jr z,.nby
-        ld b,a                  ; this byte's rows
+        ld b,a
 .bit:   srl b
         jr nc,.nb
         push bc
@@ -347,24 +391,31 @@ m_mixed:
         inc a
         ld c,a
         pop hl
-        cp 24
+        cp CGROWS
         jr c,.byte
         pop bc
         pop hl
         jr .nxt
-; C = row: this column's cell of that row gets its colour again
+; C = world row: this column's cell of that row gets its colour again
 .cellc: ld a,(nflip)
-        cp 190
+        cp 180
         ret nc
+        ld a,(camrow)
+        ld b,a
+        ld a,c
+        sub b
+        cp PFROWS
+        ret nc                  ; not on the screen
         ld l,c
         ld h,0
         add hl,hl
-        ld de,rows40
+        add hl,hl
+        add hl,hl
+        ld d,h
+        ld e,l
+        add hl,hl
+        add hl,hl
         add hl,de
-        ld a,(hl)
-        inc hl
-        ld h,(hl)
-        ld l,a
         ld de,(m_ring)
         add hl,de
         ld a,h
@@ -380,20 +431,16 @@ m_mixed:
         add a,(ATTSH - SCRSH) >> 8
         ld h,a
         ld e,(hl)
+        bit 7,e
+        ret z
         bit 6,e
         ret z
         ld (ix+2),d
         ld (ix+5),e
-        ld a,(oldphase)         ; its ink at the last shift
-        call .inkof
-        push af
         ld a,(phase)
         call .inkof
         ld (ix+3),c
         ld (ix+4),a
-        pop bc
-        cp b
-        ret z                   ; the same ink: leave the cell alone
         ld de,6
         add ix,de
         ld hl,(nflip)
@@ -419,9 +466,6 @@ m_mixed:
         ld h,a
         ld a,(hl)
         ret
-rows40:
-        dw 40,80,120,160,200,240,280,320,360,400,440,480
-        dw 520,560,600,640,680,720,760,800,840,880,920,960
 
 ; ---------------------------------------------------------------------
 ;  the game's requests: X (2), row, n, kind, argument
@@ -452,7 +496,7 @@ m_queue:
         jp .tile
 .clear: call q_addr
         ld b,(ix+3)
-        ld de,24
+        ld de,CGROWS
 .c1:    ld (hl),0
         add hl,de
         djnz .c1
@@ -492,7 +536,7 @@ m_queue:
         ld (hl),a
         inc de
         push de
-        ld de,24
+        ld de,CGROWS
         add hl,de
         pop de
         djnz .cp
@@ -540,7 +584,7 @@ m_queue:
         ld (hl),a               ; TL
         inc de
         push hl
-        ld bc,24
+        ld bc,CGROWS
         add hl,bc
         ld a,(de)
         ld (hl),a               ; TR
@@ -578,10 +622,8 @@ q_addr: ld l,(ix+0)
         ld (m_r),a
 q_addr2:
         ld hl,(m_x)
-        ld d,h
-        ld e,l
         add hl,hl
-        add hl,de
+        add hl,hl
         add hl,hl
         add hl,hl
         add hl,hl
@@ -593,7 +635,8 @@ q_addr2:
         add hl,de
         ret
 
-; HL = column, C = first row, B = rows: build its cells if it is on the screen
+; HL = column, C = first world row, B = rows: build the part of it that is
+; on the screen
 q_show: push hl
         ld de,(camcell)
         or a
@@ -606,10 +649,28 @@ q_show: push hl
         cp COLS
         ret nc
         ld (m_x),de
+        ld a,(camrow)           ; clip the rows to the picture
+        ld e,a
+        ld a,c
+        add a,b
+        ld d,a                  ; D = the row after the last
+        ld a,c
+        cp e
+        jr nc,.t1
+        ld a,e
+.t1:    ld c,a                  ; C = first row
+        ld a,e
+        add a,PFROWS
+        cp d
+        jr nc,.t2
+        ld d,a
+.t2:    ld a,d
+        sub c
+        ret c
+        ret z
+        ld (m_n),a
         ld a,c
         ld (m_r),a
-        ld a,b
-        ld (m_n),a
         push ix
         call m_rows
         pop ix
@@ -628,4 +689,8 @@ mapcode_end:
         ORG M_CGMAP
         INCBIN "../build/cgmap.bin"
 map_end:
-        SAVEBIN "../build/MAP.BNK",0,map_end
+        ASSERT map_end <= M_HUDG
+        ORG M_HUDG
+        INCBIN "../build/hudg.bin"
+map_end2:
+        SAVEBIN "../build/MAP.BNK",0,map_end2

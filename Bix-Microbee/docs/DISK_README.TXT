@@ -12,6 +12,7 @@ A or DOWN           dig in (standing on earth)
 O P Q A / arrows    tunnel underground
 hold SPACE          underground: burst out
 S                   music on / off
+V                   vertical scroll: smooth / stepped
 ESC                 give up
 A joystick works too (fire = jump, down = dig).
 

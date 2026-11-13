@@ -230,7 +230,7 @@ def build_tiles():
     b = pic(STAR)
     b[0, :] = b[15, :] = True
     b[0, 5] = b[15, 11] = False
-    T['bstar'] = [b, np.full((2, 2), RED), PRIO['bstar']]
+    T['bstar'] = [b, np.full((2, 2), YELLOW), PRIO['bstar']]
     T['watert'] = [pic(WATER_T), np.full((2, 2), BCYAN), 3]
     T['water'] = [pic(WATER), np.full((2, 2), BBLUE), 3]
     # the 45 degree ramps: earth below the diagonal, a grassy edge on it

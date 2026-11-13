@@ -17,26 +17,58 @@ import gfx
 import art as vz
 import level1
 
-W, H = level1.W, level1.H
+W = level1.W
+TOP, DEEP = 2, 2                # the VZ level is 12 tiles high: two more of sky, two more of earth
+H = level1.H + TOP + DEEP
 ALT = {'soil': 'soilD', 'soil2': 'soilD', 'bstar': 'soilD', 'grass': 'grassD', 'star': 'sky',
        'bonus': 'used', 'termite': 'sky', 'check': 'checkon'}
 E_PLATH, E_PLATV = 5, 6
 MAXPAIR = 384
+ENTS = [(x, y + TOP, t, p) for (x, y, t, p) in level1.ents]
 
 
 def level_grid():
-    g = [['sky' if t.startswith('hill') else t for t in col] for col in level1.g]
-    solidish = lambda t: vz.TILES[vz.TID[t]][2] != 0
+    """Gumleaf Gully made taller: deeper earth with star pockets to tunnel
+    to, and high logs over the springs that only a full bounce reaches."""
+    solid = lambda t: vz.TILES[vz.TID[t]][2] & vz.SOLID
+    g = []
+    for x, col in enumerate(level1.g):
+        col = ['sky' if t.startswith('hill') else t for t in col]
+        b = col[-1]
+        if b in ('soil', 'soil2', 'bstar', 'grass'):
+            deep = ['soil2' if (x * 7 + k * 3) % 5 == 0 else 'soil' for k in range(DEEP)]
+        else:
+            deep = [b] * DEEP
+        g.append(['sky'] * TOP + col + deep)
+    earth = lambda x, y: 0 <= x < W and g[x][y] in ('soil', 'soil2')
+    # star pockets in the deep earth
+    for x in range(6, W - 8):
+        if x % 11 == 5 and all(earth(x + d, H - 1) and earth(x + d, H - 2) for d in (-1, 0, 1, 2)):
+            g[x][H - 1] = 'bstar'
+            g[x + 1][H - 1] = 'bstar'
+            g[x + 1][H - 2] = 'bstar'
+    # a high log and a line of stars over each spring
+    for x in range(W - 8):
+        for y in range(9, H):
+            if g[x][y] == 'shroom':
+                ly = y - 8
+                if all(g[x + d][yy] == 'sky' for d in range(1, 7) for yy in range(ly - 2, ly + 1)):
+                    for d in (2, 3, 4):
+                        g[x + d][ly] = 'log'
+                        g[x + d][ly - 1] = 'star'
+                    g[x + 5][ly - 2] = 'star'
+                    g[x + 6][ly - 2] = 'star'
+    nonsolid = lambda t: vz.TILES[vz.TID[t]][2] == 0
     # nothing behind the moving logs: they are drawn as background cells
-    for (x, y, t, p) in level1.ents:
+    for (x, y, t, p) in ENTS:
         if t == E_PLATH:
             for tx in range(x, x + p + 4):
-                if tx < W and not solidish(g[tx][y]):
+                if tx < W and nonsolid(g[tx][y]):
                     g[tx][y] = 'sky'
         if t == E_PLATV:
             for tx in range(x, x + 3):
                 for ty in range(max(0, y - p), y + 1):
-                    if not solidish(g[tx][ty]):
+                    if nonsolid(g[tx][ty]):
                         g[tx][ty] = 'sky'
     return g
 
@@ -172,13 +204,14 @@ def hash_table(D, mixed):
 
 
 def cgmap(D):
+    """32 cell glyphs a column (two a tile)"""
     out = bytearray()
     for tx in range(W):
         for half in (0, 1):
             for ty in range(H):
                 c = D['tcell'][D['g'][tx][ty]]
                 out += bytes([c[half], c[2 + half]])
-    out += bytes(24 * 2)                    # blank columns past the end
+    out += bytes(2 * H * 2)                 # blank columns past the end
     return bytes(out)
 
 

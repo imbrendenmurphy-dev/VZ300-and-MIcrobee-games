@@ -37,12 +37,14 @@ GF_FONT     EQU $3000       ; 64 glyphs x 8
 M_COLUMN    EQU $0000
 M_QUEUE     EQU $0003
 M_MIXED     EQU $0006
+M_ROW       EQU $0009
 M_HASH      EQU $1000       ; 1024 x (left, right, code, attribute)
 M_TCELL     EQU $2000       ; tile -> TL, TR, BL, BR cell glyphs
 M_PLATH     EQU $2100       ; 4 x 7
 M_PLATV     EQU $2120       ; 4 x 12
 M_PCOL      EQU $2200       ; ink by attribute * 128 + code: colour, then mono (+$600)
-M_CGMAP     EQU $2E00       ; 24 cell glyphs a column
+M_CGMAP     EQU $2E00       ; 32 cell glyphs a column
+M_HUDG      EQU $7800       ; the status line's glyphs: 4 slides x 2 halves x 16
 
 ; ---- upper memory (block 0)
 VARS        EQU $9800
@@ -50,7 +52,8 @@ STACK       EQU $9A00
 ROWTAB      EQU $9900       ; 25 x ring offset of each screen row
 DRAWQ       EQU $9A00       ; sprites to draw: frame, face, x (2), y (2), ink, 0
 NDRAW       EQU 14
-HUDBUF      EQU $9A80       ; 40 screen codes
+HUDBUF      EQU $9A80       ; the status line: 40 glyph numbers (0-15)
+HUDCODE     EQU $9940       ; its two rows of screen codes at the present slide
 MAPQ        EQU $9AB0       ; requests for the map block, 6 bytes each
 NMAPQ       EQU 12
 COLMIX      EQU $9B00       ; 64 columns x 4: which of a column's cells change colour with the shift
@@ -67,11 +70,13 @@ TILEPAT     EQU $C000       ; 12 x 1024 glyph patterns
 MAXSLOT     EQU 80
 RING        EQU 2048
 COLS        EQU 40
-PF_ROW0     EQU 1           ; playfield = cell rows 1..24
+PF_ROW0     EQU 2           ; playfield = cell rows 2..24 (rows 0-1: the status band)
+PFROWS      EQU 23
 PF_ROW1     EQU 25
 
 ; ---- PCG banks: 0-11 the scroll glyphs
-BK_FONT     EQU 12
+BK_HUD      EQU 12          ; the status line's glyphs at each slide
+BK_FONT     EQU 13
 BK_POOLA    EQU 14
 BK_POOLB    EQU 15
 
@@ -103,6 +108,7 @@ K_O         EQU 15
 K_P         EQU 16
 K_Q         EQU 17
 K_S         EQU 19
+K_V         EQU 22
 K_X         EQU 24
 K_Z         EQU 26
 K_ESC       EQU $30
