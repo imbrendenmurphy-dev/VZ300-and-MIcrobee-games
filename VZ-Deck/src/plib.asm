@@ -30,8 +30,11 @@ entry:  DI
         LD A,(HO+9)
         LD (fsize+2),A
         LD A,(HO+30)       ; the view chosen last time
-        AND 3
-        LD (vmode),A
+        AND 7
+        CP 5
+        JR C,en_v
+        XOR A
+en_v:   LD (vmode),A
         CALL fmt_init      ; NZ = can't play it, HL = message
         JR NZ,fail
         CALL screen
@@ -402,7 +405,34 @@ outset: AND 3
         INC HL
         LD A,(HL)
         LD (xorm),A
-        LD HL,KSTEP&0xFFFF
+        ; colour theme: bit 0 dark (inverse text), bit 1 red (latch bit 4)
+        LD A,(HO+31)
+        AND 3
+        LD (HO+31),A
+        RRCA
+        SBC A,A
+        AND 0x40
+        LD (pc_inv+1),A
+        LD A,(HO+31)
+        AND 2
+        ADD A,A
+        ADD A,A
+        ADD A,A
+        LD (lbase),A
+        LD (SPK),A
+        LD B,A
+        LD A,(omode)
+        CP 3
+        JR Z,ot_2
+        LD A,(xorv)
+        OR B
+        LD (xorv),A
+        LD (o_nx+1),A
+        LD (o_kx+1),A
+        LD A,(xorm)
+        OR B
+        LD (xorm),A
+ot_2:   LD HL,KSTEP&0xFFFF
         LD A,KSTEP/65536
         LD B,0x32
         LD C,0x00
@@ -439,6 +469,15 @@ s_otag: DB "SPK",0,"CAS",0,"S+C",0,"PRN",0
 
 ; ---- screen
 screen: CALL CLS
+        LD A,(pc_inv+1)    ; dark themes: an inverse-space background
+        OR A
+        JR Z,sc_0
+        LD HL,VRAM
+        LD DE,VRAM+1
+        LD BC,511
+        LD (HL),0x60
+        LDIR
+sc_0:
         LD DE,VRAM
         LD HL,s_top
         LD C,0x40
@@ -481,6 +520,7 @@ pt_1:   CALL putc
         RET
 putc:   AND 0x3F
         OR C
+pc_inv: XOR 0
         LD (DE),A
         INC DE
         RET
@@ -520,7 +560,9 @@ vs2:    LD A,(0x6800)
 vinit:  LD HL,VRAM+5*32       ; clear the view area and draw its fixed parts
         LD DE,VRAM+5*32+1
         LD BC,7*32-1
-        LD (HL),0x20
+        LD A,(pc_inv+1)
+        OR 0x20
+        LD (HL),A
         LDIR
         LD HL,blen
         LD B,9
@@ -535,6 +577,11 @@ vi_c:   LD (HL),0xFF          ; forget what is on screen (blen, dlast, slast)
         JR Z,vi_r
         CP 3
         JP Z,fmt_v3i
+        CP 4
+        JR NZ,vi_b
+        LD DE,VRAM+8*32+1     ; 4: no visuals, all the time goes to the music
+        LD HL,s_voff
+        JP puts
 vi_b:   LD DE,VRAM+6*32       ; bars and scope: channel labels
         LD HL,s_ca
         CALL puts
@@ -553,7 +600,10 @@ vi_r:   LD HL,VRAM+5*32
         LD HL,s_ruler
         JP puts
 
-draw:   LD HL,dcnt2
+draw:   LD A,(vmode)
+        CP 4
+        RET Z
+        LD HL,dcnt2
         INC (HL)
         LD A,(HL)
         AND 3
@@ -907,7 +957,12 @@ trkinit: LD DE,VRAM+5*32
         JP puts
 
 ; mark a drum hit on screen
-showdrum: LD DE,VRAM+13*32
+showdrum: LD C,A
+        LD A,(vmode)
+        CP 4
+        RET Z
+        LD A,C
+        LD DE,VRAM+13*32
         LD HL,s_hat
         CP 1
         JR Z,sd_1
@@ -940,15 +995,19 @@ ky_1:   LD B,A
         INC A
         LD (stopf),A
         RET
-ky_p:   CP 2
+ky_p:   CP 3
+        JR Z,tnext
+        CP 2
         JR NZ,ky_pp
         LD A,(vmode)
         INC A
-        AND 3
-        LD (vmode),A
+        CP 5
+        JR C,ky_v
+        XOR A
+ky_v:   LD (vmode),A
         LD (HO+30),A
         JP vinit
-ky_pp:  XOR A
+ky_pp:  LD A,(lbase)
         LD (SPK),A
         LD DE,VRAM+14*32+24
         LD HL,s_paused
@@ -970,6 +1029,24 @@ ky_w3:  LD DE,VRAM+14*32+24
         LD HL,s_blank8
         LD C,0
         JP puts
+; T: next colour theme, inverting the screen in place
+tnext:  LD A,(HO+31)
+        INC A
+        LD (HO+31),A
+        LD HL,VRAM
+        LD BC,512
+tn_l:   LD A,(HL)
+        CP 0x80
+        JR NC,tn_n
+        XOR 0x40
+        LD (HL),A
+tn_n:   INC HL
+        DEC BC
+        LD A,B
+        OR C
+        JR NZ,tn_l
+        LD A,(omode)
+        JP outset
 kscan:  LD A,(0x68BF)         ; 1 stop, 2 pause, 3 view
         CPL
         LD B,A
@@ -989,6 +1066,11 @@ kscan:  LD A,(0x68BF)         ; 1 stop, 2 pause, 3 view
         AND 0x20
         LD A,3
         RET NZ
+        LD A,(0x68FE)
+        CPL
+        AND 1
+        LD A,4
+        RET NZ
         LD A,(HO+2)
         OR A
         RET Z
@@ -1002,7 +1084,7 @@ kscan:  LD A,(0x68BF)         ; 1 stop, 2 pause, 3 view
 barcol: DB 0x9F,0xDF,0xBF
 nnames: DB "C-C#D-D#E-F-F#G-G#A-A#B-"
 s_top:  DB "VZ-DECK 0.9  ",0
-s_help: DB "V:VIEW  SPACE:PAUSE  RETURN:STOP",0
+s_help: DB "V:VIEW T:THEME SPC:PAUSE RET:END",0
 s_ruler: DB "C2    C3    C4    C5    C6    C7",0
 s_ca:   DB "A",0
 s_cb:   DB "B",0
@@ -1010,6 +1092,7 @@ s_cc:   DB "C",0
 s_hat:  DB "HAT  ",0
 s_snare: DB "SNARE",0
 s_kick: DB "KICK ",0
+s_voff: DB "VISUALS OFF: ALL TIME TO MUSIC",0
 s_blank: DB "     ",0
 s_blank8: DB "        ",0
 s_paused: DB "PAUSED",0

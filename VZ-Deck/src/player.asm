@@ -51,7 +51,7 @@ play_mid: ; HL = record of a .MID file
         LD A,H
         SRL A
         LD (secs),A
-        CALL CLS
+        CALL tcls
         LD HL,s_load
         CALL PRINT
         LD HL,MBUF
@@ -73,7 +73,7 @@ pm_ld:  LD A,(secs)
         JR pm_ld2
 pm_strm: LD A,1
         LD (strm),A
-        CALL CLS
+        CALL tcls
         LD HL,s_load
         CALL PRINT
         CALL mkclt
@@ -204,7 +204,7 @@ pm_loop: LD DE,(mind)
         LD A,(anyon)
         OR A
         JR NZ,pm_loop
-pm_end: XOR A
+pm_end: LD A,(lbase)
         LD (SPK),A
 pm_out: LD A,1
         LD (restore),A
@@ -213,7 +213,7 @@ pm_bad: LD HL,0xF800
         LD (0xFB80),HL
         LD HL,s_bad
 pm_msg: PUSH HL
-        CALL CLS
+        CALL tcls
         POP HL
         CALL PRINT
         LD B,100
@@ -1677,7 +1677,7 @@ baraddr: DW VRAM+5*32+6, VRAM+7*32+6, VRAM+9*32+6
 barcol: DB 0x9F,0xDF,0xBF
 nnames: DB "C-C#D-D#E-F-F#G-G#A-A#B-"
 s_ptitle: DB "VZ-DECK 0.9        MUSIC PLAYER ",0
-s_phelp: DB "V:VIEW  SPACE:PAUSE  RETURN:STOP",0
+s_phelp: DB "V:VIEW T:THEME SPC:PAUSE RET:END",0
 s_lead: DB "LEAD",0
 s_bass: DB "BASS",0
 s_mid:  DB "MID",0

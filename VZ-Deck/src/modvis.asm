@@ -4,20 +4,8 @@ blk_src:
 CLT     EQU MBUF+0x600
 PBUF    EQU MBUF+0x800
 
-savepos: LD A,(depth)     ; remember the browser cursor for the trip back
-        LD L,A
-        LD H,0
-        ADD HL,HL
-        LD BC,dstack
-        ADD HL,BC
-        LD A,(cur)
-        LD (HL),A
-        INC HL
-        LD A,(top)
-        LD (HL),A
-        RET
 
-pscreen: CALL CLS
+pscreen: CALL tcls
         LD DE,VRAM
         LD HL,s_ptitle
         LD C,0x40
@@ -39,13 +27,17 @@ pscreen: CALL CLS
 vinit:  LD HL,VRAM+5*32
         LD DE,VRAM+5*32+1
         LD BC,9*32-1
-        LD (HL),0x20
+        LD A,(pc_inv+1)
+        OR 0x20
+        LD (HL),A
         LDIR
         LD HL,0xFFFF
         LD (blen),HL
         LD (blen+1),HL
         LD C,0
         LD A,(vmode)
+        CP 4
+        JP Z,vi_off
         CP 2
         JR Z,vi_roll
         CP 3
@@ -116,6 +108,11 @@ pkscan: LD A,(0x68BF)
         AND 0x20
         LD A,3
         RET NZ
+        LD A,(0x68FE)
+        CPL
+        AND 1
+        LD A,4
+        RET NZ
         LD A,(joyon)
         OR A
         RET Z
@@ -148,7 +145,9 @@ pk_2:   DEC A
         LD A,1
         LD (pausef),A
         RET
-pk_3:   LD A,1
+pk_3:   DEC A
+        JP NZ,ptheme
+        INC A
         LD (viewf),A
         RET
 pflags: LD A,(pausef)
@@ -156,6 +155,7 @@ pflags: LD A,(pausef)
         JR Z,pf_v
         XOR A
         LD (pausef),A
+        LD A,(lbase)
         LD (SPK),A
         LD DE,VRAM+14*32+19
         LD HL,s_paused
@@ -187,13 +187,16 @@ pf_v:   LD A,(viewf)
         LD A,(vmode)
         INC A
         CP 3
-        JR C,pf_4
-        JR NZ,pf_0
+        JR NZ,pf_a
+        LD B,A
         LD A,(ismod)
         OR A
-        LD A,3
+        LD A,B
         JR NZ,pf_4
-pf_0:   XOR A
+        INC A             ; MIDI has no tracker view
+pf_a:   CP 5              ; 4: no visuals
+        JR C,pf_4
+        XOR A
 pf_4:   LD (vmode),A
         JP vinit
 
@@ -235,7 +238,7 @@ md_ok:  LD BC,13
         LD DE,0xFA12
         LD BC,4
         LDIR
-        CALL CLS
+        CALL tcls
         LD HL,s_load
         CALL PRINT
         LD HL,MBUF

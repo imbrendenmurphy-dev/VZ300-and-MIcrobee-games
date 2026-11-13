@@ -27,7 +27,7 @@ Copy these from `release/` to the **root** of the card:
 
 | File | What it is |
 |---|---|
-| `VZDOS.VZ` | Ben Grimmett's VZDOS 2.32 with one jump redirected, so it loads `SHELL.VZ` at power-on. **Not in the GitHub copy**: make it from your own card's VZDOS 2.31/2.32 with `src/patchdos.py` |
+| `VZDOS.VZ` | Ben Grimmett's (BennVenn) VZDOS **2.32**, included with his permission, with one jump redirected so it loads `SHELL.VZ` at power-on |
 | `SHELL.VZ` | VZ-DECK itself: the browser and the MIDI/MOD player |
 | `PLAYPT3.VZ` | Plug-in player for PT3 (ProTracker 3 / Vortex Tracker) music |
 | `PLAYPSG.VZ` | Plug-in player for PSG (AY register dump) music |
@@ -58,6 +58,7 @@ from the card and the loader's built-in BIOS takes over again.
 | **B** | BASIC |
 | **C** | DOS command line |
 | **O** | choose the sound output (plays a test beep) |
+| **T** | next colour theme |
 
 - Folders come first, then files in name order, with size and date. Long-name entries,
   deleted files and hidden system folders are left out.
@@ -107,11 +108,19 @@ Everything is played as three square-wave voices plus drum bursts:
 S3M, XM and VGM files are read from the card as they play. Files are fine up to 255 card
 clusters (about 1 MB on a card with 4K clusters); past that the rest of the file reads as silence.
 
-Keys while playing: **SPACE** (or P) pause, **RETURN** or fire stop, **V** change view.
+Keys while playing: **SPACE** (or P) pause, **RETURN** or fire stop, **V** change view,
+**T** next colour theme.
 Every player has bars, scope and piano roll views. The fourth view is a tracker view for
 MOD, PT3, S3M and XM (the notes of each row as it plays), the live AY registers for PSG
-and the live SN76489 registers for VGM.
-The plug-ins remember the view you last chose.
+and the live SN76489 registers for VGM. The last view, **visuals off**, draws nothing at
+all, so the sound loop gets all of the VZ's time. The plug-ins remember the view you last chose.
+
+### Colour themes (T)
+
+**T** steps through light green, dark green, light red and dark red, in the browser and
+in every player. The dark themes show light text on a dark background; the red ones use
+the VZ's orange screen colour. The theme lasts until power-off, and the screen goes back
+to the VZ's normal green when you leave for BASIC, the command line or a game.
 
 ### Sound output (O in the browser)
 
@@ -153,8 +162,10 @@ other tools: `asm.py` is a small Z80 assembler written for this project.
 ```
 cd src
 sh build.sh
-python3 patchdos.py <your VZDOS.VZ> out/VZDOS.VZ
 ```
+
+`release/VZDOS.VZ` is ready to use. To patch another copy of VZDOS 2.31 or 2.32 yourself:
+`python3 patchdos.py <your VZDOS.VZ> out/VZDOS.VZ`.
 
 `src/` also has a Z80 emulator with a simulated SD card (`z80.py`, `vz.py`) and the tests
 used during development (`test*.py`, `mt*.py`, `pt3test.py`, `psgtest.py`, `outtest.py`...).
@@ -163,6 +174,8 @@ to `src/` (or set `VZDECK_FILES`). Some also use a MIDI and a MOD file from ther
 
 ## Credits
 
-- VZDOS and the SD loader are by **Ben Grimmett (BennVenn)**. VZ-DECK is a separate program
-  that runs on top of his DOS; the GitHub copy contains no part of it, only the patch tool.
+- VZDOS and the SD loader are by **Ben Grimmett (BennVenn)**. The `VZDOS.VZ` in `release/`
+  is his VZDOS **version 2.32**, modified only by the one-jump boot patch (`src/patchdos.py`),
+  and is shared with his kind permission. VZ-DECK itself is a separate program that runs on
+  top of his DOS.
 - Everything else: VIBED BY BPM 2026.

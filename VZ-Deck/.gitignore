@@ -2,6 +2,5 @@ __pycache__/
 *.pyc
 src/out/
 out/
-# your own copies of the DOS and test music stay off GitHub
+# your own test music stays off GitHub
 testfiles/
-release/VZDOS.VZ

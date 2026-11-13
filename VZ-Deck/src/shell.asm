@@ -41,6 +41,7 @@ start:  DI
 st_new: XOR A
         LD (vmode),A
         LD (outmode),A
+        LD (HO+31),A
         XOR A
         LD (0x6800),A
         LD (0x783B),A
@@ -70,7 +71,9 @@ reenter: DI
         LD SP,0xFFFF
         CALL scan
         LD (lastkey),A
-        CALL CLS
+        LD A,(outmode)
+        CALL outset
+        CALL tcls
         ; static rows
         LD DE,VRAM
         LD HL,s_title
@@ -121,6 +124,8 @@ keys:   CALL getkey
         JP Z,k_cli
         CP 8
         JP Z,k_out
+        CP 9
+        JP Z,k_theme
         JR keys
 k_up:   CALL goup
         JR redraw
@@ -163,9 +168,9 @@ godown: LD A,(count)
         INC (HL)
         RET
 
-k_basic: CALL CLS
+k_basic: CALL tplain
         JP D_BASIC
-k_cli:  CALL CLS
+k_cli:  CALL tplain
         JP D_CLI
 k_enter: LD A,(count)
         OR A
@@ -205,7 +210,7 @@ k_no:   POP HL
         JP keys
 k_run:  ; launch: name -> FB28, DOS stub does the rest
         PUSH HL
-        CALL CLS
+        CALL tplain
         LD HL,s_load
         CALL PRINT
         POP HL
@@ -455,7 +460,7 @@ plugrun: PUSH DE          ; HL = record, DE = plug entry
         LDIR
         LD HL,0
         LD (HO),HL
-        CALL CLS
+        CALL tcls
         LD HL,s_load
         CALL PRINT
         POP HL
@@ -560,7 +565,33 @@ outset: AND 3             ; A = output mode: set the values and patch the code
         INC HL
         LD A,(HL)
         LD (xorm),A
-        LD HL,TMUL
+        ; colour theme: bit 0 dark (inverse text), bit 1 red (latch bit 4)
+        LD A,(HO+31)
+        AND 3
+        LD (HO+31),A
+        RRCA
+        SBC A,A
+        AND 0x40
+        LD (pc_inv+1),A
+        LD A,(HO+31)
+        AND 2
+        ADD A,A
+        ADD A,A
+        ADD A,A
+        LD (lbase),A
+        LD (0x6800),A
+        LD (0x783B),A
+        LD B,A
+        LD A,(omode)
+        CP 3
+        JR Z,ot_2
+        LD A,(xorv)
+        OR B
+        LD (xorv),A
+        LD A,(xorm)
+        OR B
+        LD (xorm),A
+ot_2:   LD HL,TMUL
         LD A,(omode)
         CP 3
         JR NZ,os_1
@@ -677,6 +708,11 @@ sc_kb:  LD A,(0x68EF)
         CPL
         BIT 1,A
         LD A,8
+        RET NZ
+        LD A,(0x68FE)
+        CPL
+        BIT 0,A
+        LD A,9
         RET NZ
         XOR A
         RET
@@ -958,9 +994,66 @@ iv_x:   POP BC
         POP HL
         RET
 
+; ---------------------------------------------------------------- colour themes
+; light green, dark green, light red, dark red: HO+31 survives trips to the plug-ins
+k_theme: CALL tnext
+        JP keys
+ptheme: CALL tnext        ; from the MIDI / MOD player's keys
+        LD A,1
+        LD (nchg),A
+        RET
+tnext:  LD A,(HO+31)
+        INC A
+        LD (HO+31),A
+        LD HL,VRAM        ; every step flips dark / light: invert the screen in place
+        LD BC,512
+tn_l:   LD A,(HL)
+        CP 0x80
+        JR NC,tn_n
+        XOR 0x40
+        LD (HL),A
+tn_n:   INC HL
+        DEC BC
+        LD A,B
+        OR C
+        JR NZ,tn_l
+        LD A,(outmode)
+        JP outset
+tcls:   CALL CLS          ; clear the screen in the theme's colour
+        LD A,(pc_inv+1)
+        OR A
+        RET Z
+        LD HL,VRAM
+        LD DE,VRAM+1
+        LD BC,511
+        LD (HL),0x60
+        LDIR
+        RET
+tplain: XOR A             ; leaving VZ-DECK: back to the VZ's own green
+        LD (0x6800),A
+        LD (0x783B),A
+        JP CLS
+vi_off: LD DE,VRAM+8*32+1 ; the MIDI / MOD player's "no visuals" view
+        LD HL,s_voff
+        JP puts
+s_voff: DB "VISUALS OFF: ALL TIME TO MUSIC",0
+savepos: LD A,(depth)     ; remember the browser cursor for the trip back
+        LD L,A
+        LD H,0
+        ADD HL,HL
+        LD BC,dstack
+        ADD HL,BC
+        LD A,(cur)
+        LD (HL),A
+        INC HL
+        LD A,(top)
+        LD (HL),A
+        RET
+
 ; ---------------------------------------------------------------- drawing
 putc:   AND 0x3F
         OR C
+pc_inv: XOR 0
         LD (DE),A
         INC DE
         RET
@@ -977,7 +1070,8 @@ putn:   LD A,(HL)
         RET
 clrrow: PUSH DE
         LD B,32
-        LD A,0x20
+        LD A,(pc_inv+1)
+        OR 0x20
 cr_l:   LD (DE),A
         INC DE
         DJNZ cr_l
@@ -1413,7 +1507,7 @@ di_t:   CALL puts
         JP prhex
 
 s_title: DB "VZ-DECK 0.9    VIBED BY BPM 2026",0
-s_help:  DB "RET:OPEN B:BASIC C:CLI O:OUTPUT ",0
+s_help:  DB "RET B:BASIC C:CLI O:OUT T:THEME ",0
 s_dir:   DB " <DIR>",0
 s_huge:  DB "  HUGE",0
 s_empty: DB "EMPTY FOLDER",0
