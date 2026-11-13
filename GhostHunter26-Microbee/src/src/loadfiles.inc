@@ -1,0 +1,5 @@
+	DB STG_PROG, $00, "GH      BIN"
+	DB 7, $00, "GFX     BNK"
+	DB 4, $30, "SPR0    BNK"
+	DB 5, $30, "SPR1    BNK"
+	DB 8, $00, "MAZE    BNK"
