@@ -1678,27 +1678,47 @@ world_cinema:
             ld (native_monster),a
             call native_enter
             call native_group_load
+            ; the card opens on its first pose and the chime rings out on its
+            ; own; the animation only starts once the chime has finished
+            xor a
+            ld (native_frame),a
+            call native_group_show
+            call attract_jingle
+            ld b,32
+            call .hold
+            jr nz,.finish
+            ld b,4                  ; then four runs through the poses
+.cycle:     push bc
             xor a
             ld (native_frame),a
 .pose:      call native_group_show
-            ld a,(native_frame)
-            or a
-            call z,attract_jingle
             ld b,12
-            call wait_frames
-            call read_input
-            ld a,(any_key)
-            or a
-            jr nz,.finish
+            call .hold
+            jr nz,.key
             ld a,(native_frame)
             inc a
             ld (native_frame),a
             cp 3
             jr c,.pose
+            pop bc
+            djnz .cycle
             xor a
 .finish:    push af
             call native_leave
             pop af
+            ret
+.key:       pop bc
+            jr .finish
+; B frames, watching the keys: A != 0 (NZ) if one was pressed
+.hold:      push bc
+            call wait_frame
+            call read_input
+            pop bc
+            ld a,(any_key)
+            or a
+            ret nz
+            djnz .hold
+            xor a
             ret
 
 world_code_end:

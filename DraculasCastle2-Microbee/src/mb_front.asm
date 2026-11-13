@@ -185,8 +185,9 @@ native_tone_soft: db "-/+ SOFT  C:COLOUR M:MONO",0
 native_tone_vz: db "-/+ VZ    C:COLOUR M:MONO",0
 native_no_save: db "NO CHECKPOINT - START A NEW GAME",0
 
-; Attract sequence: a short, quiet D-minor phrase as each slide opens (the
-; title tune is stopped for the sequence, since slide loads broke it up).
+; Attract sequence: one soft bell-like chime as each slide opens (the title
+; tune is stopped for the sequence, since slide loads broke it up). Two
+; voices an octave apart, both fading; about half a second.
 attract_jingle:
             ld a,(attract_on)
             or a
@@ -201,6 +202,6 @@ attract_jingle:
             pop bc
             ret
 song_jingle: dw jingle_c0,jingle_c1,jingle_c2
-jingle_c0:  db $80,$65,34,39,42,$6B,41,$77,39,$FF
-jingle_c1:  db $82,$91,54,27,$FF
+jingle_c0:  db $86,$77,51,$FF
+jingle_c1:  db $82,$77,39,$FF
 jingle_c2:  db $FF

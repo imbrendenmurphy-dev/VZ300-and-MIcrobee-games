@@ -303,9 +303,13 @@ Measured in the emulator on a one-hit skeleton fight with the keys mashed:
   panel, drawn on top of the name's lower half. The tour no longer draws them.
 - **Attract music.** Loading each slide kept interrupting the title tune, so
   the tune now stops when the attract sequence starts. Each story, tour and
-  Ghoul Gallery slide opens with a short, quiet phrase in D minor (about a
-  second), and the title tune comes back with the title screen. N still mutes
-  it.
+  Ghoul Gallery slide opens with one soft, bell-like chime (two voices an
+  octave apart, about half a second), and the title tune comes back with the
+  title screen. N still mutes it.
+- **Ghoul Gallery in the attract sequence.** Each monster's card now shows its
+  first pose while the chime rings, then runs through its poses four times
+  before moving on (about five seconds a card), so drawing never cuts into
+  the chime.
 - **Memory fix.** The map's symbol table (added in the sixth pass) overlapped
   the monster animation settings in RAM, so opening the map could upset the
   Ghost's animation and the reverse. The animation settings have moved clear.
