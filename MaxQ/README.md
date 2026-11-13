@@ -6,9 +6,9 @@ Real-time solid-polygon 3D racing on the Dick Smith VZ300: an anti-gravity hover
 Target: VZ300 + BennVenn SD loader + 128K RAM. Mode 1 (128x64, 4 colours).
 VIBED BY BPM 2026
 
-**Status: v0.7 — playable.** Three-lap races against three rival hover craft, boost pads, a forgiving energy shield, beeper sound effects, best times, and an attract sequence (title card, best times, demo race).
+**Status: v0.8 — playable.** Hand-drawn hovercraft for you and two rival teams, which bank, dip and turn with the track (sprites kept in the BennVenn SRAM bank B). Three-lap races against three rival hover craft, boost pads, a forgiving energy shield, beeper sound effects, best times, and an attract sequence (title card, best times, demo race).
 
-![v0.7 race](screenshots/maxq_v07_race.gif)
+![v0.8 race](screenshots/maxq_v08_race.gif)
 
 ## Loading
 

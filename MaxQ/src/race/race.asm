@@ -494,55 +494,117 @@ physics:
 ;  craft sprite (pre-shifted, masked) and HUD
 ; =====================================================================
 draw_craft:
-        ; viewing angle: steering plus sideways slide, clamped to -2..2
+        ; view 0..6 from steering and sideways slide (3 = straight)
         ld a,(LATV)
         sra a
         sra a
         ld b,a
         ld a,(STEER)
+        add a,a
         add a,b
         bit 7,a
         jr nz,.fn
-        cp 3
+        cp 4
         jr c,.fok
-        ld a,2
+        ld a,3
         jr .fok
-.fn:    cp -2
+.fn:    cp -3
         jr nc,.fok
-        ld a,-2
-.fok:   add a,2                 ; frame 0..4
-        add a,a
-        add a,a
-        ld (CRF),a              ; frame*4
-        ld a,(STEER)            ; x = 50 + steer*2
+        ld a,-3
+.fok:   add a,3
+        ld c,a
+        cp 2                    ; near-straight: nose up / down on climbs and dips
+        jr c,.np
+        cp 5
+        jr nc,.np
+        ld hl,(CAM_I)
+        inc hl
+        ld a,h
+        and 1
+        ld h,a
+        ld de,TRK_DY
+        add hl,de
+        ld a,(hl)
+        bit 7,a
+        jr nz,.dn
+        cp 9
+        jr c,.np
+        ld c,7
+        jr .np
+.dn:    cp -8
+        jr nc,.np
+        ld c,8
+.np:    ld a,(STEER)            ; x = 50 + steer*2
         add a,a
         add a,50
-        ld c,a
+        ld (CRF),a
+        ld hl,SPR_P0            ; frame c: 448 bytes per frame, 112 per pixel shift
+        ld de,448
+        inc c
+        jr .f2
+.f1:    add hl,de
+.f2:    dec c
+        jr nz,.f1
         and 3
+        jr z,.s1
+        ld de,112
         ld b,a
-        ld a,(CRF)
-        add a,b                 ; set index = frame*4 + shift
-        add a,a
+.s0:    add hl,de
+        djnz .s0
+.s1:    ex de,hl                ; DE = source
+        ld a,(FIELDS)           ; gentle hover bob
+        rrca
+        rrca
+        rrca
+        and 1
+        ld b,a
+        ld a,CRAFTY+1
+        sub b
+        call .dest
+        ld bc,8*256+7
+        call blit
+        ld a,(CRF)              ; shadow under it
+        and 3
         ld l,a
         ld h,0
-        ld de,SPRTAB
+        add hl,hl
+        add hl,hl
+        ld d,h
+        ld e,l
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        sbc hl,de               ; *28
+        ld de,SPR_SH
         add hl,de
-        ld e,(hl)
-        inc hl
-        ld d,(hl)               ; DE -> mask/data pairs (10 rows x 7 bytes)
-        ld a,c
+        ex de,hl
+        ld a,CRAFTY+9
+        call .dest
+        ld bc,2*256+7
+        jp blit
+.dest:  ld l,a                  ; HL = BUFFER + A*32 + (CRF)/4
+        ld h,0
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        ld a,(CRF)
         rrca
         rrca
         and $1F
         ld c,a
         ld b,0
-        ld hl,BUFFER+CRAFTY*32
         add hl,bc
-        ld b,10
-.row:   push bc
+        ld bc,BUFFER
+        add hl,bc
+        ret
+
+; masked sprite: HL = BUFFER address, DE -> (mask, data) pairs, B = rows, C = bytes per row
+blit:   push bc
         push hl
-        ld b,7
-.byte:  ld a,(de)
+        ld b,c
+.by:    ld a,(de)
         and (hl)
         inc de
         ex de,hl
@@ -551,12 +613,12 @@ draw_craft:
         inc de
         ld (hl),a
         inc hl
-        djnz .byte
+        djnz .by
         pop hl
         ld bc,32
         add hl,bc
         pop bc
-        djnz .row
+        djnz blit
         ret
 
 draw_hud:

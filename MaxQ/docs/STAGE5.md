@@ -30,3 +30,16 @@ An automated race (the autopilot driving, started by a scripted SPACE press) ran
 - The sound bursts have a fixed budget.
 
 The game logic, rivals, HUD and sound together cost about 0.35 fields per frame, so the race runs at about 10.5 fps against 11.3 for the bare track.
+
+---
+
+# v0.8 — hovercraft
+
+- **New craft:** hand-tidied pixel art, drawn from behind and above.
+  - **Player** (yellow body, dark canopy, red thruster): 7 views from hard left to hard right, yawing and banking into the turn, plus nose-up (climbs) and nose-down (dips). It hovers 1 px above a separate dithered shadow and bobs gently.
+  - **Rivals:** red team (red body, yellow thruster glow) and blue team (dark blue silhouette with a yellow top edge and a red thruster). Each has 5 views, chosen from how far the track bends at the rival's position, so on a curve ahead you see it side-on.
+  - **Sizes:** full size up close, a 16×6 version at mid-distance, and a small wedge in team colours far away.
+- **Memory:** the sprites live in the BennVenn's **SRAM bank B** (port $37 = 3, mapped at $4000–$67FF), the same way Tiger Gate uses it.
+  - Only the left-hand views are stored in the program (1.7 KB). At start-up the game makes the mirror images and all the pre-shifted copies: 7.6 KB in bank B.
+  - Every copy was checked byte for byte against the Python art in the emulator (80 of 80).
+- **Speed:** 10.5 fps measured in the emulator, the same as v0.7.

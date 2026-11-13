@@ -36,6 +36,7 @@ R_D    EQU 13   ; sections ahead of the camera (255 = not in view)
 R_FR   EQU 14
 R_TGT  EQU 15
 R_PT   EQU 16   ; camera-space point x, y, z (6)
+R_VIEW EQU 22   ; 0..4 hard left .. hard right
 
 ; ---------------------------------------------------------------------
 ; RACE_RESET: grid positions, clock, shield
@@ -811,6 +812,21 @@ rv_point:
         add hl,de
         ld (ix+R_PT+2),l
         ld (ix+R_PT+3),h
+        ld a,(DANG)             ; view: how far its section is turned from ours
+        sra a
+        sra a
+        sra a
+        bit 7,a
+        jr nz,.vn
+        cp 3
+        jr c,.vk
+        ld a,2
+        jr .vk
+.vn:    cp -2
+        jr nc,.vk
+        ld a,-2
+.vk:    add a,2
+        ld (ix+R_VIEW),a
         ld (ix+R_VIS),1
         ret
 
@@ -901,11 +917,20 @@ draw_rival:
         cp 72
         ret c
         ld a,(ix+R_W)
+        ld iy,rv_pnear
         cp 20
-        jp nc,rv_sprite
+        jp nc,rv_spr
+        ld iy,rv_pmid
+        cp 10
+        jp nc,rv_spr
+        call rv_team            ; far: a little wedge in team colours
+        ld de,$FF55             ; red team: red body, yellow glow
+        jr nz,.tm
+        ld de,$AAFF             ; blue team: blue body, red glow
+.tm:    ld a,(ix+R_W)
         cp 4
         jr nc,.sil
-        ld a,$FF                ; far away: just the tail lights
+        ld a,e                  ; very far: just the glow
         call set_rcol
         ld a,(ix+R_SX)
         dec a
@@ -917,14 +942,14 @@ draw_rival:
         ld (RY0),a
         ld (RY1),a
         jp rv_rect
-.sil:   ld a,$AA                ; dark silhouette
+.sil:   push de
+        ld a,d
         call set_rcol
-        ld a,(ix+R_W)           ; body: w wide, h = w/4 + 1 tall
+        ld a,(ix+R_W)           ; body: w wide, w/4 tall, above the glow row
         srl a
-        ld d,a                  ; D = w/2
+        ld d,a
         srl a
-        inc a
-        ld e,a                  ; E = height
+        ld e,a
         ld a,(ix+R_SX)
         sub d
         ld (RX0),a
@@ -933,15 +958,14 @@ draw_rival:
         dec a
         ld (RX1),a
         ld a,(ix+R_SY)
-        sub e
-        ld (RY0),a
-        ld a,(ix+R_SY)
         dec a
         ld (RY1),a
+        sub e
+        ld (RY0),a
         push de
         call rv_rect
         pop de
-        ld a,(ix+R_SY)          ; canopy: w/2 wide, one row above
+        ld a,(ix+R_SY)          ; deck: half width, one row above
         sub e
         dec a
         ld (RY0),a
@@ -958,8 +982,11 @@ draw_rival:
         push de
         call rv_rect
         pop de
-        ld a,$FF                ; tail-light bar across the top of the body
+        pop bc                  ; glow row across the back
+        push de
+        ld a,c
         call set_rcol
+        pop de
         ld a,(ix+R_SX)
         sub d
         inc a
@@ -969,7 +996,7 @@ draw_rival:
         sub 2
         ld (RX1),a
         ld a,(ix+R_SY)
-        sub e
+        dec a
         ld (RY0),a
         ld (RY1),a
         ; fall through
@@ -989,33 +1016,62 @@ rv_rect:                        ; clip to the rows not hidden by nearer track
         ret c
         jp rect
 
-; near: the full craft sprite (straight-on frame), rows clipped by nearer track
-rv_sprite:
-        ld a,(ix+R_SX)
-        sub 64+12
+; Z set for the blue team (rival 1), clear for red
+rv_team:
+        ld a,ixl
+        sub (RV+32) & 255
+        ret
+
+; sprite rival.  IY -> half width, rows, bytes, view size (2), shift size, red base (2), blue base (2), x limit
+rv_pnear: DB 12, 8, 7
+          DW 224
+          DB 112
+          DW SPR_N_RED0, SPR_N_BLUE0
+          DB 100
+rv_pmid:  DB 8, 6, 5
+          DW 120
+          DB 60
+          DW SPR_M_RED0, SPR_M_BLUE0
+          DB 108
+
+rv_spr: ld a,(ix+R_SX)          ; left edge, on an even pixel
+        sub 64
+        sub (iy+0)
         ret c
-        cp 128-24
+        and $FE
+        cp (iy+10)
         ret nc
-        ld c,a                  ; screen x of the left edge
-        and 3
-        add a,2*4               ; frame 2 (straight), shift
-        add a,a
-        ld l,a
-        ld h,0
-        ld de,SPRTAB
+        ld c,a
+        call rv_team
+        ld l,(iy+6)
+        ld h,(iy+7)
+        jr nz,.rd
+        ld l,(iy+8)
+        ld h,(iy+9)
+.rd:    ld b,(ix+R_VIEW)        ; + view * view size
+        ld e,(iy+3)
+        ld d,(iy+4)
+        inc b
+        jr .v2
+.v1:    add hl,de
+.v2:    djnz .v1
+        ld a,c                  ; + shift block for a 2-pixel offset
+        and 2
+        jr z,.s0
+        ld e,(iy+5)
+        ld d,0
         add hl,de
-        ld e,(hl)
-        inc hl
-        ld d,(hl)               ; DE -> mask/data
-        ld a,(ix+R_SY)
-        sub 64+10
+.s0:    ex de,hl                ; DE = source
+        ld a,(ix+R_SY)          ; rows: top .. min(63, ycl-65)
+        sub 64
+        sub (iy+1)
         ret c
-        ld b,a                  ; top row
+        ld b,a
         ld hl,DMIN
         cp (hl)
-        jr nc,.dmk
+        jr nc,.dm
         ld (hl),a
-.dmk:   ld a,(ix+R_YCL)         ; visible rows: top .. min(63, ycl-65)
+.dm:    ld a,(ix+R_YCL)
         sub 65
         jr nc,.y1
         xor a
@@ -1025,11 +1081,11 @@ rv_sprite:
 .y2:    sub b
         ret c
         inc a
-        cp 11
+        cp (iy+1)
         jr c,.y3
-        ld a,10
-.y3:    push af                 ; row count
-        ld l,b
+        ld a,(iy+1)
+.y3:    push af
+        ld l,b                  ; HL = BUFFER + top*32 + left/4
         ld h,0
         add hl,hl
         add hl,hl
@@ -1039,7 +1095,7 @@ rv_sprite:
         ld a,c
         rrca
         rrca
-        and $1F
+        and $3F
         ld c,a
         ld b,0
         add hl,bc
@@ -1047,24 +1103,157 @@ rv_sprite:
         add hl,bc
         pop af
         ld b,a
-.row:   push bc
-        push hl
-        ld b,7
-.byte:  ld a,(de)
-        and (hl)
-        inc de
-        ex de,hl
-        or (hl)
-        ex de,hl
-        inc de
-        ld (hl),a
-        inc hl
-        djnz .byte
+        ld c,(iy+2)
+        jp blit
+
+; ---------------------------------------------------------------------
+; EXPAND_SPRITES: map SRAM bank B at $4000 and build every pre-shifted copy
+; (groups: source, destination, frames, rows, bytes per row, copies, step)
+; ---------------------------------------------------------------------
+expand_sprites:
+        ld a,3
+        out ($37),a
+        ld ix,SPRDESC           ; per frame: source, destination, rows, bytes, copies | step<<4 | mirror<<7
+.f:     ld a,(ix+4)
+        or a
+        ret z
+        ld e,(ix+5)             ; bytes per copy = rows * bytes * 2
+        ld d,0
+        ld hl,0
+.m:     add hl,de
+        dec a
+        jr nz,.m
+        add hl,hl
+        ld (EXS),hl
+        ld l,(ix+0)
+        ld h,(ix+1)
+        ld e,(ix+2)
+        ld d,(ix+3)
+        ld (EXDST),de
+        bit 7,(ix+6)
+        jr nz,.mir
+        ld bc,(EXS)
+        ldir
+        jr .cp
+.mir:   call mirror_copy
+.cp:    ld a,(ix+6)
+        and 15
+.s:     dec a
+        jr z,.fd
+        push af
+        ld hl,(EXDST)           ; copy the last one, then shift it along
+        ld bc,(EXS)
+        push de
+        ldir
+        ld (EXFREE),de
         pop hl
-        ld bc,32
-        add hl,bc
+        ld (EXDST),hl
+        call shift_block
+        ld de,(EXFREE)
+        pop af
+        jr .s
+.fd:    ld de,7
+        add ix,de
+        jr .f
+
+shift_block:                    ; HL = copy; shift each row right by the step
+        ld a,(ix+4)
+.r:     push af
+        ld a,(ix+6)
+        rrca
+        rrca
+        rrca
+        rrca
+        and 7
+        ld b,a
+.p:     push bc
+        ld c,2
+.bt:    push hl
+        ld b,(ix+5)
+        scf                     ; mask: transparent comes in
+.mk:    rr (hl)
+        inc hl
+        inc hl
+        djnz .mk
+        pop hl
+        push hl
+        inc hl
+        ld b,(ix+5)
+        or a                    ; data: nothing comes in
+.dt:    rr (hl)
+        inc hl
+        inc hl
+        djnz .dt
+        pop hl
+        dec c
+        jr nz,.bt
         pop bc
-        djnz .row
+        djnz .p
+        ld e,(ix+5)
+        ld d,0
+        add hl,de
+        add hl,de
+        pop af
+        dec a
+        jr nz,.r
+        ret
+
+mirror_copy:                    ; HL = source frame, DE = destination (left-right mirror image)
+        ld b,(ix+4)
+.r:     push bc
+        ld a,(ix+5)
+        dec a
+        ld c,a                  ; pixel bytes in a row (the last byte is the spare)
+        add a,a
+        add a,l
+        ld l,a
+        jr nc,.n1
+        inc h
+.n1:    ld b,c
+.p:     dec hl
+        dec hl
+        ld a,(hl)
+        call rev2
+        ld (de),a
+        inc de
+        inc hl
+        ld a,(hl)
+        call rev2
+        ld (de),a
+        inc de
+        dec hl
+        djnz .p
+        ld a,$FF                ; spare byte stays transparent
+        ld (de),a
+        inc de
+        xor a
+        ld (de),a
+        inc de
+        ld a,(ix+5)
+        add a,a
+        add a,l
+        ld l,a
+        jr nc,.n2
+        inc h
+.n2:    pop bc
+        djnz .r
+        ret
+
+rev2:   push bc                 ; reverse the four 2-bit pixels in A
+        ld c,a
+        ld b,8
+.l:     srl c
+        rla
+        djnz .l
+        ld c,a
+        and $AA
+        rrca
+        ld b,a
+        ld a,c
+        and $55
+        rlca
+        or b
+        pop bc
         ret
 
 ; ---------------------------------------------------------------------

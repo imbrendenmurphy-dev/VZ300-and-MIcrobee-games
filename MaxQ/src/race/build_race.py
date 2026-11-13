@@ -11,7 +11,7 @@ import os, sys, subprocess, json
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE); sys.path.insert(0, os.path.join(HERE, '..', 'tools'))
 import ref3 as R
-import craft, logo
+import craft2, logo
 from z80asm import Asm, vz_file
 
 EMU = os.path.join(HERE, '..', 'tools', 'vzemu')
@@ -29,14 +29,14 @@ RUNBUF 16 FRAMES 2 CRF 1 FLG 1 PKX 2 PKY 2 HALFON 1 HPREV 1 SKYD 1 HUDFG 1
 SKYDIRTY 1 HUDFORCE 1 TOPCHG 1 FACC 1 FCNT 1 FAVG 1
 SKYPTR 28 MKSH 1 SKYLN 1 SKY_Y 1 MSPLIT 1 CURMODE 1 ATIMER 2 RVANY 1"""
 GVARS = """GSTATE 1 STIMER 2 LAPN 1 RTIME 2 LAPT0 2 BESTLAP 2 SHIELD 1 BOOSTT 1 STALLT 1 BUMPT 1 POS 1
-FINPOS 1 NEWBEST 1 SFXT 1 SFXK 1 BANT 1 BANP 2 SPREV 1 TMPT 1 TPOS 2 LOWERFN 2 TBUF 20 RVDH 2 RVDC 1 SPLAIN 1 CLEAN 1 DMIN 1 CPYROW 1"""
+FINPOS 1 NEWBEST 1 SFXT 1 SFXK 1 BANT 1 BANP 2 SPREV 1 TMPT 1 TPOS 2 LOWERFN 2 TBUF 20 RVDH 2 RVDC 1 SPLAIN 1 CLEAN 1 DMIN 1 CPYROW 1 EXSRC 2 EXDST 2 EXS 2 EXFREE 2"""
 
 LAYOUT = dict(
     LATCH=0x6800, KEYROW=0x68EF, KEYH=0x687F, VRAM=0x7000,
     SQPAGE=0xB0, SIN64=0xB400, COS64=0xB500, PATTAB=0xB600, LMASK=0xB620, SKYA=0xB628, SKYH=0xB650, RIDGE=0xAF00, HUDBUF=0x7E20, HUDPREV=0x7E60, GVARS=0x7D80, RV=0x7DC0, TOPT=0x7EA0, LOGO=0xDE40, SKY0=0xB630, SKY1=0xB638,
     GLYPHT=0xB640, GLYPHM=0xB648, FONT=0xB660, SKYIMG=0xFA00, EXPTP=0xB800, EXP88L=0xBA00, LOGL=0xC200,
     TRK_H=0xD200, TRK_DY=0xD400, TRK_HBX=0xD600, TRK_HBY=0xD800, TRK_FL=0xDA00,
-    IM2TAB=0xDC00, SPRITES=0xA400, SPRTAB=0xB7A0,
+    IM2TAB=0xDC00, SPRITES=0xA700, 
     XMIN=0xE000, XMAX=0xE100, TMIN=0xE200, TMAX=0xE300, ROWCL=0xE400, ROWLP=0xE500,
     GATES=0xE600, BGROW=0xDE00, VARS=0xE700, SECS=0xE800, LISTS=0xEA00, BUFFER=0xF200, STACKTOP=0xE6FE,
 )
@@ -105,6 +105,9 @@ def equates():
         lines.append(f'{name:10s} EQU GVARS+{off}'); off += int(size)
     assert off <= 0x40, off
     lines.append(f'LOG_RIVW EQU {R.LOGT[36]}')
+    lines.append(f'SPRDESC EQU ${SPR_DESC_AT:04X}')
+    for k in ('P0', 'SH', 'N_red0', 'M_red0', 'N_blue0', 'M_blue0'):
+        lines.append(f'SPR_{k.upper()} EQU ${SPR_SYMS[k]:04X}')
     lines += [f'NEARZ EQU {R.NEARZ}', f'CH EQU {R.CH}', f'HORIZ EQU {R.HORIZ}', f'DEPTH EQU {R.DEPTH}',
               f'BIAS EQU {R.BIAS}', f'LOGFX EQU {R.LOGFX}', f'LOGFY EQU {R.LOGFY}',
               f'C_RAIL EQU {R.LOGT[R.RAIL_E] + R.LOGFX + R.BIAS}',
@@ -139,6 +142,9 @@ def copy_routine():
     return '\n'.join(L)
 
 LOGO_RLE = logo.rle(logo.logo())
+SPR_SRC, SPR_DESC, SPR_SYMS, _ = craft2.build(0xA700)
+SPR_DESC_AT = 0xA700 + len(SPR_SRC)
+assert SPR_DESC_AT + len(SPR_DESC) <= 0xAF00
 assert len(LOGO_RLE) <= 0xE000 - 0xDE40, len(LOGO_RLE)
 
 def data_section(T):
@@ -161,8 +167,7 @@ def data_section(T):
         ('GLYPHM', [sum(3 << (6 - 2 * q) for q in range(3) if (bits >> (2 - q)) & 1) for bits in range(8)]),
         ('EXPTP', R.EXPT), ('EXP88L', expl + exph), ('LOGL', logl + logh),
         ('TRK_H', T['H']), ('TRK_DY', T['DY']), ('TRK_HBX', T['HBX']), ('TRK_HBY', T['HBY']), ('TRK_FL', T['FL']),
-        ('IM2TAB', [0xDD] * 257), ('LOGO', LOGO_RLE), ('SPRITES', craft.sprite_bytes()),
-        ('SPRTAB', [b for i in range(20) for b in ((LAYOUT['SPRITES'] + 140 * i) & 255, (LAYOUT['SPRITES'] + 140 * i) >> 8)]),
+        ('IM2TAB', [0xDD] * 257), ('LOGO', LOGO_RLE), ('SPRITES', SPR_SRC + SPR_DESC),
     ]
     out = []
     for org, data in parts:
@@ -199,6 +204,7 @@ def source(test_state=None):
 .bt:    ld (hl),$FF
         inc hl
         djnz .bt
+        call expand_sprites
         call demo_reset
         ld hl,lower_keys
         call title_card
@@ -226,7 +232,7 @@ def assemble(src, name):
     org, data = asm.assemble(src, HERE)
     code_end = max(asm.sym['FILL2'] + 66, asm.sym['LOGO_END'])
     assert asm.sym['CODE_END_REAL'] <= asm.sym['FILL2']
-    assert code_end <= 0xA400, f'code overruns sprites: ${code_end:04X}'
+    assert code_end <= 0xA700, f'code overruns sprites: ${code_end:04X}'
     assert org + len(data) <= 0xE000
     assert asm.sym['INIT_END'] <= 0xDDDD, f"init code overruns: ${asm.sym['INIT_END']:04X}"
     vz = os.path.join(HERE, name)
