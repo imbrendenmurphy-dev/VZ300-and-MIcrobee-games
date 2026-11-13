@@ -8,6 +8,8 @@ VIBED BY BPM 2026
 
 ![BEELINE in motion](screenshots/beeline_race.gif)
 
+![Tunnel: approach, portal, inside, out into the next leg](screenshots/beeline_tunnel.png)
+
 ## Loading
 
 Boot `release/BEELINE.DS8`, then type `BEELINE` at the `A>` prompt. `BEELINE.COM` loads `BEELINE.DAT` from the same disk. The game takes over the machine; press RESET to leave.
@@ -34,6 +36,7 @@ Also on the disk:
 - **The race.** The five legs are GREEN VALLEY, RED CENTRE, SNOWY RANGE, COAST AT DUSK and NIGHT RUN, and each has its own colours and road character. You start with 80 seconds. Every checkpoint adds time ("EXTENDED PLAY!"); finish leg 5 for a bonus of 10,000 points per second left, plus 500,000 for a win.
 - **Rivals.** You start last of 20. Pass rivals to move up (POS on the top line); if you dawdle, they pass you back. Rivals get quicker on each leg, and ordinary traffic is on the road too.
 - **Slipstream.** Sit right behind a car at speed for about a second and you get a free burst of speed ("SLIPSTREAM!"). A turbo does the same for 3 seconds: top speed rises from 300 to 360 km/h.
+- **Tunnels.** Legs 1–4 end in a tunnel through the mountains. The checkpoint is inside, and you drive out into the next leg's scenery.
 - **Forgiving.** A bump or a trip onto the verge only costs speed. You lose no lives and there are no explosions.
 - **Scores.** Score comes from distance at speed, plus 1,000 points per overtake. The top five are kept with initials until the machine is reset.
 - **Title screen.** Shows the race on autopilot, cycling through all five legs, and alternates the logo with the best drivers.
@@ -47,6 +50,10 @@ Also on the disk:
   - **Drawing.** Each car is projected between two road points and clipped by the crest in front of it. It is then composited into the road row while that row is being built: each cell takes a new PCG slot. Fully solid cells copy only the ink, and cells over plain road use a fast compositor.
   - **Tail lights.** Cells that are wholly car get the light colour, and the colours are put back on the next redraw of that page.
 - **The field.** RIVALS counts the cars ahead of you in the whole race. The next unseen rival is a distance up the road that closes at (your speed − the rivals' pace), so overtaking moves you up genuinely.
+- **Tunnels** (`tunnel.asm`, `tools/mktunnel.py`):
+  - **Track.** Tunnel segments are flagged in the track ring. On the approach, the projection stops at the tunnel mouth, so no road is drawn beyond it.
+  - **Portal.** The rows above the mouth's road line show the portal. It is built from static PCG characters made at start-up: a solid face, the dithered opening, and the opening's edges and corners at every sub-cell offset. So it grows smoothly without compositing anything, and its attributes and colours are only rewritten when it outgrows what that page already shows.
+  - **Inside.** The sky rows show a pre-drawn ceiling and walls in perspective. Ceiling lights rush towards you, animated by swapping the codes of the centre columns as you move. The road takes on the grey tunnel colours.
 - **Text** (`ui.asm`):
   - **Overlay.** Rows 1–8 hold text over the sky, with ink chosen against the sky colour behind it. A row is only repainted when it changes or when the sky under it was redrawn.
   - **Big letters.** The HUD font, quadrupled in PCG bank 12, with speed-cuts in the lower half.
@@ -70,6 +77,7 @@ Still to be confirmed on the real machine: the frame rate in a race, and how the
 
 ## Earlier milestones
 
+- **v7 — tunnels.**
 - **v6 — 3-field lock, turbo and slipstream.** The player's car is now drawn inside the road-row pass, reusing that row's phases and slot records. The road is projected at 11 points out to 18 segments instead of 16 out to 24 (no visible change). Curve physics runs once per frame, and the HUD and keys are polled more cheaply. The race average rose from 12.3 to 16.0 fps.
 
 - **v5.1 — kerbs off.** The roadside chevrons cost about 9% of every frame (about 23,000 T-states), and the frames that kept the lock rose from 91% to 96%. Every road row is now verge | road | verge.

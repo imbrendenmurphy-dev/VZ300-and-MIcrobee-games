@@ -14,6 +14,8 @@ THE RACE
   road only costs speed.  Finish the fifth leg for a time bonus.
   SLIPSTREAM: tuck in right behind a car at speed for a moment
   and you get a free burst of speed to slingshot past.
+  Legs 1-4 end in a tunnel through the mountains: the checkpoint
+  is inside, and you come out into the next leg's country.
 
 KEYS
   M (or cursor up)    accelerate (and start)

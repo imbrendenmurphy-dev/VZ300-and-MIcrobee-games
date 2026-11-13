@@ -14,7 +14,12 @@ road flows smoothly from one section to the next.
 """
 import os, sys
 
-S = lambda n, c=0, s=0: (n, c, s)
+S = lambda n, c=0, s=0: (n, c, s, 0)
+T = lambda n: (n, 0, 0, 1)              # tunnel: straight and level
+
+# legs 1-4 end in a tunnel; its exit is the start of the next leg
+TUN_IN = [S(24), T(64)]                 # level run-up, then into the mountain
+TUN_OUT = [T(18)]
 
 LEGS = [
     ("GREEN VALLEY", [          # gentle sweepers and rolling hills
@@ -56,11 +61,14 @@ def main(out):
     L.append('NLEGS        equ %d' % len(LEGS))
     L.append('LEGSEC:')
     for li, (name, secs) in enumerate(LEGS):
+        secs = list(secs)
+        if li > 0: secs = TUN_OUT + secs
+        if li < len(LEGS) - 1: secs = secs + TUN_IN
         L.append('LEGSEC_%d:' % (li + 1))
         if li == len(LEGS) - 1: L.append('LEGSEC_LAST:')
-        for n, c, s in secs:
+        for n, c, s, f in secs:
             assert 0 < n < 256 and -40 <= c <= 40 and -16 <= s <= 16
-            L.append('        db %d,%d,%d' % (n, c & 255, s & 255))
+            L.append('        db %d,%d,%d,%d' % (n, c & 255, s & 255, f))
             tot += n
         cps.append(tot)
     L.append('        db 0                    ; end: the streamer repeats the last leg')

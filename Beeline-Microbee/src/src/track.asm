@@ -16,6 +16,7 @@ track_reset:
         ld (cslope),a
         ld (tcurve),a
         ld (tslope),a
+        ld (tflag),a
         ld (wseg),a
         ld hl,0
         ld (cheight),hl
@@ -53,6 +54,9 @@ gen_seg:
         ld a,(hl)
         ld (tslope),a
         inc hl
+        ld a,(hl)
+        ld (tflag),a
+        inc hl
         ld (secptr),hl
 .have   ld hl,secleft
         dec (hl)
@@ -78,6 +82,9 @@ gen_seg:
         ld (hl),e
         inc h
         ld (hl),d
+        inc h
+        ld a,(tflag)
+        ld (hl),a
         ld a,(cslope)           ; height += slope
         ld l,a
         rlca
@@ -141,6 +148,7 @@ secleft: db 0
 secptr:  dw 0
 tcurve:  db 0
 tslope:  db 0
+tflag:   db 0
 ccurve:  db 0
 cslope:  db 0
 cheight: dw 0

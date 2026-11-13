@@ -25,6 +25,7 @@
         include "game.asm"
         include "ui.asm"
         include "snd.asm"
+        include "tunnel.asm"
 
 MAXSPD  equ 400
 BOOSTV  equ 80                  ; extra top speed in a turbo or slipstream boost
@@ -45,6 +46,7 @@ start:
         call map_video
         call gen_carroad
         call init_video
+        call tunnel_init
         call init_uniform
         ld hl,0
         ld (panX),hl
@@ -100,12 +102,14 @@ run_frame:
         call traffic_update
         call vbpoll
         call track_stream
+        call tunnel_state
         call project
         call traffic_prep
         call car_pose
         call lit_restore
 P_rows:
         call draw_page
+        call draw_mouth
         call lit_close
         call vbpoll
         call hud_update
@@ -440,6 +444,9 @@ draw_page:
 ; draw_sky: rows 1..toprow-1 (skipped when unchanged for this page)
 ; --------------------------------------------------------------------------
 draw_sky:
+        ld a,(intun)
+        or a
+        jp nz,tun_sky
         ld a,(LTOP)
         rrca
         rrca
@@ -482,6 +489,9 @@ draw_sky:
 .none   ret
 .ch     ld a,1                  ; horizon row moved: whole sky
         ld (.gdirty),a
+        push hl
+        call mouth_reset        ; any portal on this page is painted over
+        pop hl
         push hl
         ld a,(page)             ; the overlay text must be painted again
         ld e,a
@@ -892,13 +902,14 @@ div16:  ld de,0
 ;  per theme: ground far, ground near, tail light, peaks, mountains,
 ;             sky0..sky4 (top -> horizon), HUD colour
 ; --------------------------------------------------------------------------
-NTHEMES equ 5
+NTHEMES equ 6
 THEMES:
         db 4,12, 9,  5,0,  4,4,4,5,13,   0Dh    ; 0 DUSK: blue ground, violet/magenta sky
         db 8,7,  9,  7,0,  1,1,9,9,15,   09h    ; 1 SNOWLINE: grey ground, red sky
         db 2,10, 9,  15,0, 4,4,12,12,14, 0Bh    ; 2 DAYTIME: green ground, blue sky
         db 1,9,  11, 3,0,  4,12,12,6,11, 0Bh    ; 3 RED CENTRE: red earth, blue to gold sky
         db 4,6,  9,  4,0,  0,0,0,0,4,    0Eh    ; 4 NIGHT: dark ground, black sky
+        db 8,7,  9,  8,0,  0,0,0,0,8,    0Fh    ; 5 TUNNEL: grey
 THEMESZ equ 11
 FARROWS equ 10                  ; rows 1..9 use the far shade
 
@@ -1214,6 +1225,8 @@ ECODE:  ds 256
 SLOTMASK: ds 256                ; per screen code: mask index of its character
 SLOTPAGE: ds 256                ; per screen code: RES page of its character
 OVRBUF: ds OVR_N*128            ; overlay rows: 64 codes + 64 attributes each
+        align 256
+ROWBUF: ds 64                   ; tunnel portal: one row of codes
 ENDPROG:
         assert ENDPROG <= 8E00h
 STACKTOP equ 9000h                      ; stack: 8E00h-8FFFh
@@ -1229,6 +1242,9 @@ PCGDATA:
         include "../build/track.inc"
         include "../build/traffic.inc"
         include "../build/sound.inc"
+TUNPCG:
+        incbin "../build/tunnel.bin"
+        include "../build/tunnel.inc"
 DATEND:
         assert DATEND <= 0D800h        ; BDOS of the BEELINE boot disk is at D806h
 

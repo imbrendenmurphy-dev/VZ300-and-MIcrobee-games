@@ -246,7 +246,14 @@ project:
 .ldone  ld a,c
         or a
         jp z,.done
-.next   ld de,8
+.next   ld a,(mouthk)           ; a tunnel mouth: nothing beyond it is seen
+        or a
+        jr z,.nm
+        ld b,a
+        ld a,(kseg)
+        cp b
+        jp nc,.done
+.nm     ld de,8
         add iy,de
         ld hl,kk
         inc (hl)

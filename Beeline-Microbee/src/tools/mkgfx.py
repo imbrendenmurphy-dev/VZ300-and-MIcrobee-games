@@ -389,6 +389,7 @@ L.append('        align 256')
 L.append('TRK_CURVE:'); db(curve)
 L.append('TRK_YL:'); db([v & 255 for v in ty])
 L.append('TRK_YH:'); db([(v >> 8) & 255 for v in ty])
+L.append('TRK_FL:'); db([0] * 256)          # 1 = tunnel segment
 # interleaved: line l of mask i at MASKLIB + 256*l + i  (BC = page:index, inc b)
 assert len(masks) <= 256
 L.append('        align 256')

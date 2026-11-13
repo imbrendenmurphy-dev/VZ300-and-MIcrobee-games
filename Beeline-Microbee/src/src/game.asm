@@ -16,7 +16,7 @@ GS_TIMEUP equ 3
 GS_FINISH equ 4
 GS_ENTRY  equ 5
 
-START_TIME equ 80               ; seconds for leg 1
+START_TIME equ 86               ; seconds for leg 1
 K_S     equ 19
 
 ; key bits in (keys): 0 left 1 right 2 accel 3 brake
@@ -237,6 +237,10 @@ T_BEST:  db "BEST DRIVERS",0
 ; ==========================================================================
 ; race_world: fresh road, grid and scenery (title and race)
 race_world:
+        xor a
+        ld (intun),a
+        ld (mouthk),a
+        call mouth_reset
         call track_reset
         xor a
         ld (leg),a
@@ -488,7 +492,7 @@ checkpoint:
         jp snd_check
 T_EXT:  db "EXTENDED PLAY!",0
 T_CHECK: db "CHECKPOINT",0
-LEGBONUS: db 60,50,56,54
+LEGBONUS: db 66,56,62,60
 
 ; checkpoint_quiet: attract mode changes scenery at each leg end too
 checkpoint_quiet:
@@ -520,6 +524,9 @@ past_leg:
         ret
 
 leg_theme:
+        ld a,(intun)            ; in a tunnel: the new colours come at its exit
+        or a
+        ret nz
         ld a,(leg)
         ld e,a
         ld d,0
