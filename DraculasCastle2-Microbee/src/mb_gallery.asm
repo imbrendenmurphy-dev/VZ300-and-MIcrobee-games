@@ -3,6 +3,8 @@
 ; Maps and precomputed idle transfers are cached in RAM block 3.
 native_group_load:
             push ix
+            xor a                       ; the gallery reuses RAM 3's maze bases
+            ld (maze_cached),a
             ld a,1
             ld (native32_scene),a
             ld a,(mb_mode)

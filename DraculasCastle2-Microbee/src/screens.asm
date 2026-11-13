@@ -71,12 +71,7 @@ map_screen:
             ld a,(hl)
             and 15
             jr nz,.nb
-            call draw_player_arrow
-            ld c,0
-            ld b,16
-            ld d,0
-            ld e,64
-            call present_rect
+            call world_map_blink
 .nb:        ld a,(keys_new)
             and K_MAP|K_FIRE|K_MENU|K_ITEM
             jr z,.wait

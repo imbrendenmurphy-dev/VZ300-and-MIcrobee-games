@@ -31,6 +31,14 @@ def generate():
             s=s[:a]+s[b:]
             a=s.index('\ndraw_cell:')+1;b=s.index('\nblit_masked:',a)+1
             s=s[:a]+s[b:]
+            pass
+        if p.name == 'screens.asm':
+            # The map's blinking marker rewrites one cell instead of the whole screen.
+            blink = ('            call draw_player_arrow\n            ld c,0\n            ld b,16\n            ld d,0\n'
+                     '            ld e,64\n            call present_rect\n.nb:')
+            assert blink in s
+            s = s.replace(blink, '            call world_map_blink\n.nb:')
+        if p.name == 'view.asm':
             # The VZ masked and mirrored sprite blitters drew into the unseen bitmap.
             s=cut(s,'; draw one cell (rv_d, rv_l)\nblit_masked:','; build pixel-pair flip table')
         if p.name == 'explore.asm':

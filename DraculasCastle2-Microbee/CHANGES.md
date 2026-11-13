@@ -274,12 +274,33 @@ Measured in the emulator on a one-hit skeleton fight with the keys mashed:
   from 27% to 23%. Pitch is unchanged. `music-soft.wav` and `music-vz.wav`
   are recordings of the Grounds tune in each voicing.
 
+## Sixth pass (13 November 2026): the map
+
+- **Redrawn map page.** The map was still Codex's picture: blue stippled
+  masonry, gargoyles and yellow parchment panels. It now matches the story
+  pages: a dark leaf inside a gold rule, the title, the area's name centred
+  in gold, the 16 x 16 map in a double gold frame, a compass rose, a framed
+  legend and an M: BACK tab, with candles and a skull at the foot. The map
+  symbols are new too: walls are grey masonry that joins into solid runs,
+  explored floor a faint green stipple, doors gold, finds a magenta gem, and
+  you a white arrow.
+- **The music no longer stutters on the map.** Each blink of the "you are
+  here" arrow (every 16 frames) rebuilt and compared the whole screen, which
+  stopped the tune for about five frames each time. The blink now rewrites
+  just that one cell.
+- **Faster in and out.** The map and story pages stay unpacked in RAM blocks
+  24 and 25 after their first use, the map grid is worked out in one pass
+  and then drawn in another (instead of switching memory twice per cell),
+  and the maze's own background stays in place while you look at the map.
+  Opening the map now takes 0.44 s (0.54 s the first time) instead of about
+  0.7 s, and closing it 0.44 s instead of 0.66 s.
+
 ## Known limits
 
 - **Emulator only.** Pacing, music and readability on the real machine and on
   the amber monitor still need your eyes.
 - Entering a new area still blanks the screen for about 2.3 s while its art
-  unpacks, and opening the map for about 0.9 s.
+  unpacks.
 - A fight with a monster from outside the area's usual three, or a boss,
   still takes 0.6 to 1.0 s of black screen to load.
 - When a message and a monster movement change in the same step, the lower

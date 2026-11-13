@@ -211,7 +211,7 @@ world_present:
             jp z,world_present_maze
             ld a,3
             call mb_bank
-            ld hl,$5F00
+            ld hl,$4000
             ld de,0
             call native32_copy_local
             ld a,1
@@ -561,7 +561,7 @@ world_load:
             ld (world_bank),a
             ld a,(world_screen)
             cp 1
-            jr nz,.unpack
+            jr nz,.surface
             ; The area's art stays resident in blocks 28 and 31, so coming
             ; back from the map or a fight only has to refill the PCG.
             ld a,28
@@ -572,8 +572,23 @@ world_load:
             sub 6
 .which:     ld hl,area_loaded
             cp (hl)
-            jr z,.glyphs
+            jp z,.glyphs
             ld (hl),a
+            jr .unpack
+.surface:   cp 3                    ; story and map pages stay unpacked in RAM 25 / 24
+            ld a,24
+            ld hl,page_tag_map
+            jr z,.ptag
+            ld a,25
+            ld hl,page_tag_story
+.ptag:      ld (world_bank),a
+            ld a,(world_loaded)
+            cp (hl)
+            ld (hl),a
+            jr nz,.unpack
+            ld a,(world_bank)
+            call mb_bank
+            jr .page
 .unpack:    ld a,(world_bank)
             ld (unpack_bank),a
             call mb_bank
@@ -660,11 +675,19 @@ world_load:
             ldir
 .done:      ld a,$80
             out ($1C),a
-            ld hl,0
+            ld a,(world_screen)
+            cp 1
+            jr nz,.decode
+            ld a,(world_loaded)     ; back from the map or a page: the maze's
+            ld hl,maze_cached       ; decoded bases are still in RAM 3
+            cp (hl)
+            jr z,.kept
+            ld (hl),a
+.decode:    ld hl,0
             call world_piece
             ld a,(world_screen)
             cp 1
-            jr nz,.cache
+            jr nz,.page_base
             ld a,(mb_mode)
             or a
             jr z,.cache
@@ -687,6 +710,13 @@ world_load:
             call mb_bank
             ld hl,0
             ld de,$5F00
+            call native32_copy_local
+.kept:      ld a,1
+            jp mb_bank
+.page_base: ld a,3                  ; pages keep their own base at RAM3 $4000
+            call mb_bank
+            ld hl,0
+            ld de,$4000
             call native32_copy_local
             ld a,1
             jp mb_bank
@@ -1338,94 +1368,56 @@ world_flow_layout:
             djnz .shift
             ret
 
+world_kinds equ VPBUF            ; the maze buffer is rebuilt on the way back
 world_map:
+            call map_icons_load
+            ld hl,$3C00             ; pass 1 (game RAM): what each cell shows
             ld b,0
 .row:       ld c,0
 .cell:      push bc
-            call map_cell_byte
-            ld e,0
-            cp $AA
-            jr z,.kind
-            inc e
-            cp $FF
-            jr z,.kind
-            inc e
-            cp $55
-            jr z,.kind
-            inc e
-            cp $3C
-            jr z,.kind
-            inc e
-.kind:      ld a,(px)
-            cp c
-            jr nz,.icon
-            ld a,(py)
-            cp b
-            jr nz,.icon
-            ld a,(map_blink)
-            and 16
-            jr nz,.icon
-            ld a,(pdir)
-            add a,5
-            ld e,a
-.icon:      ld a,e
-            ld l,a
-            ld h,0
-            ld d,h
-            add hl,hl
-            add hl,de
-            ld de,8
-            add hl,de
-            ld a,(world_bank)
-            call mb_bank
-            ld a,(hl)
+            push hl
+            call map_kind
+            pop hl
+            ld (hl),e
             inc hl
-            ld (world_icon),a
-            ld a,(hl)
-            inc hl
-            ld (world_icon+1),a
-            ld a,(hl)
-            ld (world_icon+2),a
-            ld a,1
-            call mb_bank
-            pop bc
-            push bc
-            ld a,b
-            add a,10
-            ld l,a
-            ld h,0
-            add hl,hl
-            add hl,hl
-            add hl,hl
-            ld e,l
-            ld d,h
-            add hl,hl
-            add hl,hl
-            add hl,de
-            ld b,0
-            add hl,bc
-            ld de,$F006
-            add hl,de
-            ex de,hl
-            ld a,3
-            call mb_bank
-            ld a,(world_icon+1)
-            ld b,a
-            ld a,(world_icon+2)
-            ld c,a
-            ld a,(world_icon)
-            call native_battle_cell
-            ld a,1
-            call mb_bank
             pop bc
             inc c
             ld a,c
             cp 16
-            jp nz,.cell
+            jr nz,.cell
             inc b
             ld a,b
             cp 16
-            jp nz,.row
+            jr nz,.row
+            ld hl,$3C00             ; copy the 256 kinds where RAM3 can see them
+            ld de,world_kinds
+            ld bc,256
+            ldir
+            ld a,3                  ; pass 2: one cell each into the target
+            call mb_bank
+            ld hl,world_kinds
+            ld de,$F000+10*40+6
+            ld b,16
+.grow:      push bc
+            ld b,16
+.gcell:     push bc
+            ld a,(hl)
+            inc hl
+            push hl
+            call map_icon
+            call native_battle_cell
+            pop hl
+            inc de
+            pop bc
+            djnz .gcell
+            ex de,hl
+            ld bc,40-16
+            add hl,bc
+            ex de,hl
+            pop bc
+            djnz .grow
+            ld a,1
+            call mb_bank
             ld a,5
             ld de,$F000+14*40+25
             call world_symbol
@@ -1438,9 +1430,6 @@ world_map:
             ld a,3
             ld de,$F000+23*40+25
             call world_symbol
-            ld hl,world_map_title
-            ld de,$F000+9*40+29
-            call native_text
             ld hl,world_you
             ld de,$F000+14*40+27
             call world_paper_text
@@ -1456,8 +1445,24 @@ world_map:
             ld hl,world_back
             ld de,$F000+27*40+26
             call native_text
-            ld hl,(area_name)
-            ld de,$F000+7*40+6
+            ld hl,(area_name)       ; centred over the map
+            push hl
+            ld b,0
+.len:       ld a,(hl)
+            or a
+            jr z,.lend
+            inc hl
+            inc b
+            jr .len
+.lend:      ld a,40
+            sub b
+            srl a
+            ld e,a
+            ld d,0
+            ld hl,$F000+6*40
+            add hl,de
+            ex de,hl
+            pop hl
             call world_paper_text
             ld a,1
             jp mb_bank
@@ -1468,12 +1473,126 @@ world_wall: db "WALL",0
 world_object: db "OBJECT",0
 world_back: db "M: BACK",0
 world_paper_text:
-            ld c,$B0
-            ld a,(mb_mode)
-            or a
-            jr z,.draw
-            ld c,$F0
-.draw:      jp native_text_colour
+            ld c,$0B                ; gold lettering on the dark page
+            jp native_text_colour
+
+; Copy the 12 symbol cells (code, bank, colour) out of the page packet.
+map_icons_load:
+            ld a,(world_bank)
+            call mb_bank
+            ld hl,8
+            ld de,world_icons
+            ld bc,36
+            ldir
+            ld a,1
+            jp mb_bank
+
+; A = symbol: B, C, A = bank, colour, code for native_battle_cell.
+map_icon:   push de
+            ld l,a
+            ld h,0
+            ld e,l
+            ld d,h
+            add hl,hl
+            add hl,de
+            ld de,world_icons
+            add hl,de
+            ld a,(hl)
+            inc hl
+            ld b,(hl)
+            inc hl
+            ld c,(hl)
+            pop de
+            ret
+
+; C = x, B = y: E = symbol (0 unseen, 1 wall, 2 door, 3 object, 4 floor, 5+ you)
+map_kind:   push bc
+            call map_cell_byte
+            pop bc
+            ld e,0
+            cp $AA
+            jr z,.you
+            inc e
+            cp $FF
+            jr z,.you
+            inc e
+            cp $55
+            jr z,.you
+            inc e
+            cp $3C
+            jr z,.you
+            inc e
+.you:       ld a,(px)
+            cp c
+            ret nz
+            ld a,(py)
+            cp b
+            ret nz
+            ld a,(map_blink)
+            and 16
+            ret nz
+            ld a,(pdir)
+            add a,5
+            ld e,a
+            ret
+
+; The map's blinking marker: rewrite just the hero's cell on the screen.
+world_map_blink:
+            ld a,(px)
+            ld c,a
+            ld a,(py)
+            ld b,a
+            call map_kind
+            ld a,e
+            ld (world_icon),a       ; the symbol, kept while the address is worked out
+            ld a,(py)
+            add a,10
+            ld l,a
+            ld h,0
+            add hl,hl
+            add hl,hl
+            add hl,hl
+            ld d,h
+            ld e,l
+            add hl,hl
+            add hl,hl
+            add hl,de
+            ld a,(px)
+            add a,6
+            ld e,a
+            ld d,0
+            add hl,de
+            ld a,(world_icon)
+            push hl
+            call map_icon
+            pop hl
+            push af
+            push bc
+            push hl
+            call wait_frame
+            pop hl
+            pop bc
+            xor a
+            out ($0B),a
+            ld a,$80
+            out ($1C),a
+            ld de,$F000
+            add hl,de
+            pop af
+            ld (hl),a               ; character
+            ld a,$90
+            out ($1C),a
+            ld (hl),b               ; its PCG bank
+            ld a,$80
+            out ($1C),a
+            ld a,$40
+            out ($08),a
+            ld de,$0800
+            add hl,de
+            ld (hl),c               ; colour
+            xor a
+            out ($08),a
+            ret
 
 ; A = atlas symbol, DE = screen cell. Preserve no scratch registers.
 world_symbol:
@@ -1600,6 +1719,10 @@ vp_left:    ds 1
 unpack_bank: ds 1
 world_bank:  ds 1
 area_loaded: ds 1
+world_icons: ds 36
+page_tag_map: ds 1
+page_tag_story: ds 1
+maze_cached: ds 1
             assert $ <= $E400
             emit
             org world_code_end

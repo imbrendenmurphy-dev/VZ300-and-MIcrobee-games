@@ -5,6 +5,7 @@ native_battle_enter:
             ld a,1
             ld (native_battle_active),a
             xor a
+            ld (maze_cached),a          ; combat reuses RAM 3's maze bases
             ld (native_death),a
             ld (bt_flash),a
             ld (bt_dx),a

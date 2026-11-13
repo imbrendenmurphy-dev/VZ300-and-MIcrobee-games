@@ -197,8 +197,8 @@ native_idle_assets:
             dw 30143 ; combat11-mono
             db 0
             dw 0
-native_font_asset: db 21
-            dw 27675
+native_font_asset: db 20
+            dw 27097
 world_assets:
             db 19
             dw 0
@@ -229,9 +229,9 @@ world_assets:
             db 19
             dw 25144
             db 15
-            dw 31882
-            db 20
-            dw 27097
+            dw 31892
+            db 19
+            dw 27280
 world_assets2:
             db 19
             dw 12275
