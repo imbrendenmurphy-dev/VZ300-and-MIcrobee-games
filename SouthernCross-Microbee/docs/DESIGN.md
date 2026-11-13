@@ -84,8 +84,8 @@ Proven on the VZ, so they carry straight over:
 - **Harbour City** expansion disk: harbour, arch bridge, opera-house shells, a tower and an airport to the west, as on the VZ.
 
 ## Build stages
-1. Horizon, panel and flight model as a frame-rate benchmark — **done (this build)**
-2. Runway, take-off, landing and the landing grade
+1. Horizon, panel and flight model as a frame-rate benchmark — **done**
+2. Runway, take-off, landing and the landing grade — **done (this build)**
 3. Locale loader plus the first full locale, Coral Coast
 4. Missions, briefing and debrief screens, logbook and save/load
 5. Title, attract sequence, music and information screens
@@ -100,3 +100,14 @@ Proven on the VZ, so they carry straight over:
 - Footprint clip experiment (stage 1, after pass 1): trim each ground line on the map against the patch of ground the camera can see (a trapezoid worked out once per frame), then project only what's left. It drew correctly but ran slower: average 5.47 fps against 6.30, runway view 4.80 against 5.5. The per-frame footprint cost ~40k T, and each ground line still needed ~19k T to clip against it (four edge tests with 16-bit divides) against ~11k T for the improved 3D clip. Kept out of the build; the source is in `docs/experiments/footprint-trim.asm`. Better next bets: draw the grid in screen space from its vanishing points (one projection per grid line end, no clipping), or grid lines built short around the aircraft.
 - Speed-up pass 2 (average 6.30 → 7.51 fps, runway 5.50 → 7.34): ground grid drawn in screen space. A ground line seen from height H lies in the plane through the eye with world normal (H, k−px, 0); rotated into view space that normal is the screen line, and the part kept is the ground nearer than ~6.5 km (a line parallel to the horizon). 8×8 multiplies use a quarter-square table. Lines within a pixel of the horizon are skipped (6 of the 10 grid lines when on the runway). Separately, segments whose ends are both plainly in view skip the plane-distance work (~2.3k T each). Checked: pixel-identical scenery, 0 of 120 random flights with ground pixels above the horizon.
 - Hardware assumptions (taken from the tested Microbee projects in this repo): port 1Ch b7 premium graphics, b4 attribute RAM, b0–3 PCG bank; port 08h b6 puts colour RAM in the F800 window (low nibble ink, high nibble paper); port 0Bh = 1 during keyboard scans; 6545 status bit 5 (vertical blank) counted as 50 Hz fields for FPS and game time.
+
+## Stage 2 notes
+- Landing grade: start at 100 and take off points for sink rate (0 up to 150 ft/min ... 35 over 600), centreline (0 within 2 m ... 20 over 10 m; 40 off the runway), touchdown point (0 between 120 and 450 m from the threshold; short or long costs 8–25), bank, alignment, speed (over 60 kt) and 10 per bounce. A ≥ 90, B ≥ 78, C ≥ 65, D ≥ 50, else E. The message names the biggest fault ("GREASED IT!" when there is none, "NICE LANDING" when every fault is small). Best grade kept for the session (logbook on disk comes in stage 4).
+- Forgiving touchdown, from VZ Flight: up to 3.5 m/s sink lands; 3.5–5.5 m/s bounces (nose up 4°, 1/8 speed lost); only beyond that, or a wing tip (bank over 30°) or nose first (over 8° down), crashes. A crash shows the reason and puts you back on final after 3 seconds; R and F still work at any time.
+- Approach line: range to the aim point (runway 36: 180 m in; runway 18 is graded too), PAPI as four W/R lights at 2.5°, 2.83°, 3.17° and 3.5°, a glide word, and the centreline offset (left and right as seen by the pilot).
+- Take-off report: lift-off speed and the runway used since the roll started.
+- Panel: rows 5–6 are now the approach line and a 62-character message line; the frame counter has gone.
+- Grid lines moved to 1024 + n×2048 m so none lies on the runway, and lines within 2 pixels of the horizon are skipped.
+- Cost: aim markers (one series of 2 lines) and the extra panel rows take the average from 7.51 to 7.20 fps; the runway 18 aim markers were left out because each line series has ~6k T of set-up, even when it's out of view (worth a cheap cull later).
+- Tested in the emulator with a scripted pilot: take-off (lift-off at 54 kt after 293 m), a flown approach (grade A, touchdown 171 m in), a firm landing (bounce, then grade D "TOO HARD") and a dive into the ground (crash, back on final 3 s later, repeatedly).
+

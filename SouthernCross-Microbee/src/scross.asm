@@ -1,5 +1,5 @@
 ; =====================================================================
-;  SOUTHERN CROSS  -  Stage 1: flight engine test
+;  SOUTHERN CROSS  -  Stage 2: take-off, landing and the landing grade
 ;  Microbee Premium Plus (32K PCG), runs from the CP/M DOS prompt
 ;  VIBED BY BPM 2026
 ; ---------------------------------------------------------------------
@@ -47,6 +47,8 @@ start:
         ld sp,STKTOP
         call vinit
         call drawstatic
+        ld a,'Z'
+        ld (bestg),a
         call resetrwy
         ld a,6
         ld (ticks),a
@@ -709,9 +711,14 @@ resetrwy:
         ld (thr),a
         ld (crashed),a
         ld (stall),a
+        ld (bounces),a
+        ld (crtimer),a
         inc a
         ld (ongnd),a
-        ret
+        ld hl,20
+        ld (rollz),hl
+        ld hl,m_rwy
+        jp setmsg
 
 resetfin:
         ld hl,0
@@ -733,14 +740,32 @@ resetfin:
         ld (crashed),a
         ld (stall),a
         ld (ongnd),a
+        ld (bounces),a
+        ld (crtimer),a
         ld a,22
         ld (thr),a
-        ret
+        ld hl,m_fin
+        jp setmsg
 
 physics:
         ld a,(crashed)
         or a
-        ret nz
+        jr z,phgo
+        ld a,(crtimer)          ; 0 = frozen
+        or a
+        ret z
+        ld hl,ticks
+        sub (hl)
+        jr c,phrs
+        jr z,phrs
+        ld (crtimer),a
+        ret
+phrs:   xor a
+        ld (crtimer),a
+        call resetfin
+        ld hl,m_again
+        jp setmsg
+phgo:
         ld a,(ticks)
         ld b,a
 ph1:    push bc
@@ -1058,19 +1083,13 @@ tkgc:   ld a,(alt+1)
         ld a,(ongnd)
         or a
         jr nz,tkld
-        ld hl,(vs)              ; sink faster than 3.5 m/s?
-        ld de,896
-        add hl,de
-        bit 7,h
-        jr nz,tkcr
-        ld a,(roll+1)           ; wings level within 14 deg?
-        add a,10
-        cp 21
-        jr nc,tkcr
-        ld a,(pitch+1)          ; not nose-down
-        add a,6
-        bit 7,a
-        jr nz,tkcr
+        call touch              ; 0 landed, 1 bounce, 2 crash
+        or a
+        jr z,tkld0
+        dec a
+        jp z,bounce
+        jr tkcr
+tkld0:  call landed
 tkld:   xor a
         ld (altf),a
         ld hl,0
@@ -1085,11 +1104,24 @@ tkab:   ld a,(alt)
         or (hl)
         ld hl,altf
         or (hl)
+        jr z,tkst
+        ld a,(ongnd)
+        or a
         ret z
         xor a
         ld (ongnd),a
+        ld (bounces),a
+        jp liftoff
+tkst:   ld a,(vel+1)            ; standing still: take-off roll starts here
+        cp 3
+        ret nc
+        ld hl,(pz)
+        ld (rollz),hl
         ret
-tkcr:   ld a,1
+tkcr:   call crashmsg
+        ld a,150                ; back on final after 3 seconds
+        ld (crtimer),a
+        ld a,1
         ld (crashed),a
         xor a
         ld (altf),a
@@ -1853,6 +1885,7 @@ rn1:    push bc
 rn2:    jp reticle
 
         include_ggrid
+        include_stage2
 mkgrid:
         ld hl,(px)
         ld a,h
@@ -4453,16 +4486,18 @@ pn3:    ld a,(detail)
         ld de,F_DET
         call fadr
         ld (de),a
-        ld hl,(frames)
-        ld de,F_FRM
+        call pnappr
+        ld hl,msgbuf
+        ld de,F_MSG
         call fadr
-        ld bc,5*256+' '
-        jp pdec
+        ld bc,62
+        ldir
+        ret
 
 s_gnd:   db "ON GROUND   ",0
 s_air:   db "AIRBORNE    ",0
 s_stall: db "** STALL ** ",0
-s_crash: db "CRASHED - R ",0
+s_crash: db "CRASHED     ",0
 s_nofps: db "--",0
 
 ; =====================================================================
@@ -4580,7 +4615,10 @@ scenery:
         ; threshold bars, both ends
         dw -15,0,30,0,0,2280,60,0,0
         db 2
-NSCEN   equ 2
+        ; aim-point markers 150-210 m in from the runway 36 threshold
+        dw -8,0,150,32,0,0,0,0,120
+        db 2
+NSCEN   equ 3
 
 ; runway 30 x 1200 m (lattice object)
 o_rwy:  dw 0,0,0

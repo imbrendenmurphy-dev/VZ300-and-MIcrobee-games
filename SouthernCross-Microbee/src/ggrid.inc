@@ -60,8 +60,11 @@ ggt1:   ld (gT),hl
         jp gfam
 
 ; HL = position (m), A = fraction -> (gd) = first line offset, half m
-; first line = (pos & F800h) - 4096 m
-gfirst: rlca
+; lines sit at 1024 + n*2048 m (clear of the runway); first one is
+; ((pos-1024) & F800h) + 1024 - 4096 m
+gfirst: ld de,-1024
+        add hl,de
+        rlca
         and 1
         ld e,a
         ld d,0
@@ -415,11 +418,11 @@ gline:  ld hl,(gN)
         jr z,gfl1
         ld hl,(cy0)
         ld de,(hzy0)
-        call near1
+        call near2
         jr nc,gfl1
         ld hl,(cy1)
         ld de,(hzy1)
-        call near1
+        call near2
         ret c
 gfl1:   ld hl,0
         ld (cx0),hl
@@ -763,4 +766,16 @@ gya2:   ld de,(gN+2)
         cp 1
         ret z
         ld de,511
+        ret
+
+; HL, DE -> carry if |HL-DE| <= 2
+near2:  or a
+        sbc hl,de
+        bit 7,h
+        call nz,neghl
+        ld a,h
+        or a
+        ret nz
+        ld a,l
+        cp 3
         ret

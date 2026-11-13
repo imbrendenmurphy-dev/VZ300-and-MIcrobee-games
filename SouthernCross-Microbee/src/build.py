@@ -5,14 +5,14 @@ here = os.path.dirname(os.path.abspath(__file__))
 
 # ---- panel layout (rows 8-15, 64 columns) ----
 rows = [
-    " SOUTHERN CROSS  STAGE 1 FLIGHT ENGINE TEST    VIBED BY BPM 2026",
+    " SOUTHERN CROSS  STAGE 2 TAKE-OFF AND LANDING  VIBED BY BPM 2026",
     "-" * 64,
     " AIRSPEED {IAS:3} KT    ALTITUDE {ALT:5} FT    HEADING {HDG:3}",
     " THROTTLE {THR:3} %     CLIMB  {VS:6} FT/M   PITCH  {PIT:4}",
     " STATUS   {STAT:12}  GROUND  {GS:3} KT      BANK   {BNK:4}",
-    "-" * 64,
-    " Q/A NOSE DOWN/UP  O/P BANK  T/G THROTTLE  SPACE LEVEL  D DETAIL",
-    " R RUNWAY  F FINAL APPROACH   DETAIL {DET:1}   FPS {FPS:2}   FRAMES {FRM:5}",
+    " APPROACH {RNG:5} M TO AIM   PAPI {PAPI:4} {GLD:9} {LIN:13}",
+    " {MSG:62}",
+    " Q/A NOSE O/P BANK T/G POWER SPC LEVEL R RWY F FINAL D{DET:1} FPS {FPS:2}",
 ]
 import re
 text = []
@@ -26,7 +26,8 @@ for r, row in enumerate(rows):
         out += ' ' * int(m.group(2))
         i = m.end()
     out += row[i:]
-    out = out[:64].ljust(64)
+    assert len(out) <= 64, (len(out), out)
+    out = out.ljust(64)
     text.append(out)
 paneltext = ''.join(text)
 assert len(paneltext) == 512
@@ -64,7 +65,7 @@ vars_ = [
  ('cx0',2),('cy0',2),('cx1',2),('cy1',2),('mx',2),('my',2),('smx',2),('smy',2),
  ('six',2),('siy',2),('sox',2),('soy',2),('oc0',1),('oc1v',1),('cstkp',2),
  ('gH',2),('gd',2),('gcolh',2),('gfcnt',1),('gnh',2),('gnd',2),('ga',1),('gb',1),('gpp',2),('gqp',2),('gnp',2),('gci',1),
- ('gN',6),('gvok',1),('gvx',2),('gvy',2),('gvf',1),('gvu',1),('gcl0',1),('gcl1',1),('gq',2),('hzfl',1),('gT',2),('gg0',2),('gg1',2),('gmp',2),('gfr',1),('hzy0',2),('hzy1',2),
+ ('gN',6),('gvok',1),('gvx',2),('gvy',2),('gvf',1),('gvu',1),('gcl0',1),('gcl1',1),('gq',2),('hzfl',1),('tdsink',2),('bounces',1),('rollz',2),('crtimer',1),('score',1),('worst',1),('wreason',2),('bestg',1),('lastg',1),('crreason',2),('tdoff',2),('tddist',2),('ltmp',1),('rng',2),('whites',1),('msgbuf',64),('gT',2),('gg0',2),('gg1',2),('gmp',2),('gfr',1),('hzy0',2),('hzy1',2),
  ('ldx',2),('lady',1),('curbank',1),('lmask',1),('xout',1),('numbuf',6),
 ]
 gen.append('        align 256')
@@ -81,7 +82,7 @@ gen.append('cstk       ds 64*8')
 gen.append('cstkend    equ $')
 gen.append('progend    equ $')
 
-src = open(os.path.join(here, 'scross.asm')).read().replace('        include_ggrid\n', open(os.path.join(here, 'ggrid.inc')).read()) + '\n' + '\n'.join(gen) + '\n'
+src = open(os.path.join(here, 'scross.asm')).read().replace('        include_ggrid\n', open(os.path.join(here, 'ggrid.inc')).read()).replace('        include_stage2\n', open(os.path.join(here, 'stage2.inc')).read()) + '\n' + '\n'.join(gen) + '\n'
 full = os.path.join(here, 'build', 'scross_full.asm')
 os.makedirs(os.path.join(here, 'build'), exist_ok=True)
 open(full, 'w').write(src)
