@@ -5,7 +5,10 @@
 
 *Transylvania, 1897.* The villagers of Borgo Pass whisper of strange lights in the old castle on the hill. Folk have vanished. Graves lie open. The dead walk.
 
-DRACULA'S CASTLE II was a first-person gothic RPG for the VZ300, a sequel to the 1984 BASIC game. Now the castle wakes up on the **Microbee Premium Plus**. The game is the VZ's own: the same maps, monsters, stats, story and music. Every picture is redrawn for the Microbee's 16-colour character graphics, and the display and combat are rebuilt for speed.
+## From the VZ300
+Back in the 1980s, *Dracula's Castle* was a BASIC maze game for the VZ, and you needed the 16K expansion just to play it. I bought it, and the castle I imagined was far grander than the simple maze on screen. DRACULA'S CASTLE II is that imagined game, finally built: a first-person gothic RPG for the VZ300 (BennVenn SD card + 128K) in the spirit of *Bard's Tale* and *Dungeon Master*. It has six castle areas, a separate animated battle screen and a hidden tribute to the 1984 original.
+
+Now the castle wakes up on the **Microbee Premium Plus**. The game is the VZ's own: the same maps, monsters, stats, story and music. Every picture is redrawn for the Microbee's 16-colour character graphics, and the display and combat are rebuilt for speed.
 
 Walk the castle in first person through six areas: **the Grounds**, **the Great Hall**, **the Library**, **the Dungeons**, **the Clock Tower** and **Dracula's Tower**. Talk to the ghosts who still haunt it, buy potions from a prisoner through the bars, find the keys that open each new wing, and ring the great bell that wakes the Count.
 
@@ -31,7 +34,7 @@ Fight twelve "groovy ghoulie" monsters in quick turn-based battles. The bat, ske
   - claw rakes when you are hit, and sparkles when you level up
   - an ordered dissolve when a monster dies
 - **Fast, aggressive combat:** each animation step redraws only the cells that change. A one-hit skeleton fight takes about three seconds from the encounter to back in the maze, and the area's likely monsters are already unpacked when you meet them.
-- **Illustrated automap**, an inventory and status page, and centred story pages on a dark leaf with a gold rule.
+- **Illustrated automap** with a compass and legend, an inventory and status page, and centred story pages on a dark leaf with a gold rule.
 - **Monochrome mode** for amber and green monitors, with its own title and dithered artwork made for one-colour screens. Choose colour or mono at any time.
 - **The VZ's three-voice beeper music**, a tune for every area, with two voicings: SOFT, made for the Microbee's speaker, and the original VZ sound.
 - An **attract sequence**:
@@ -39,6 +42,7 @@ Fight twelve "groovy ghoulie" monsters in quick turn-based battles. The bat, ske
   - the story so far
   - a tour of the six areas
   - the Ghoul Gallery, a bestiary of all twelve monsters
+  - each slide opening with a soft chime
 - The four hidden **1984 tribute screens** from the VZ game.
 
 ## Tech specs
@@ -56,7 +60,7 @@ Fight twelve "groovy ghoulie" monsters in quick turn-based battles. The bat, ske
 | **Source** | About 11,800 lines of Z80 assembly, plus about 6,000 lines of Python tools that draw all the art, pack the areas and monsters, check every screen against reference pictures and build the disk |
 
 ## RAM used
-The game runs from the upper 32K and uses 29 of the Premium Plus's 32 blocks of 32K for everything else.
+The game runs from the upper 32K and uses 31 of the Premium Plus's 32 blocks of 32K for everything else.
 
 | Block(s) | Contents |
 |---|---|
@@ -65,6 +69,8 @@ The game runs from the upper 32K and uses 29 of the Premium Plus's 32 blocks of 
 | 3 | the combat screen: composed frames, room backdrop, masks |
 | 4-13, 15-23 | packed art, maps, text and music: 19 banks, about 600K |
 | 14 | character shapes for the text screens |
+| 24 | the map page, unpacked |
+| 25 | the story page, unpacked |
 | 26, 27, 29 | the current area's battle room and its likely monsters, unpacked |
 | 28 | the program image, then the current area's maze art |
 | 30, 31 | the ghost's poses and the area's maze pieces |
