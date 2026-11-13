@@ -143,3 +143,12 @@ Byte-for-byte identical to the reference renderer, skyline included (16 of 16 te
 ## Why the split is so expensive
 
 The VZ only reports the start of each field; it has no timer and no line counter. To change colour set partway down the screen, the interrupt must count cycles from field sync until the beam reaches that line. Picture line 0 is already 120 lines after the start of field sync. So even a split just under the HUD (screen row 16) keeps the CPU busy for about 38,000 of the 70,630 cycles in every field, which halves the frame rate. The split costs nothing on the title card, because nothing else is running there. In the race, M is left in only so you can see how it looks.
+
+---
+
+# v0.6 — MAX Q
+
+- The game is now called **MAX Q**, and the file is `MAXQ.VZ`.
+- **Title logo:** chunky italic pixel letters with a cream top and a striped orange base, a magenta outline and drop shadow, speed lines and an underline swoosh. It sits on the sunset gradient in colour set 1 above the split, with VIBED BY BPM 2026 beneath it. The logo is stored run-length coded (442 bytes) and unpacked each time the title card appears, including in attract mode.
+- The skyline images and HUD text buffers moved into the free system RAM at $7800 (the ROM is never used once the game starts).
+- Measured: 11.3 fps with half-rate rows, 10.2 fps without (cycle-exact emulator, 40 s). The renderer is still byte-for-byte identical to the reference (16 of 16 test frames).

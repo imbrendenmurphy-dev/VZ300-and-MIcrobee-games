@@ -816,16 +816,14 @@ title_card:
         jr .tt
 .gn:    inc hl
         jr .gb
-.bands: DB 8,1, 14,9, 22,2, 28,10, 34,3
+.bands: DB 23,1, 26,9, 31,2, 33,10, 34,3
 .tt:    ld a,(HUDFG)
         push af
         xor a                   ; buff text
         ld (HUDFG),a
-        ld hl,s_title
-        ld de,BUFFER+32*18+9
-        call text_t
+        call draw_logo
         ld hl,s_credit
-        ld de,BUFFER+32*26+7
+        ld de,BUFFER+32*27+7
         call text_t
         pop af
         ld (HUDFG),a
@@ -896,10 +894,75 @@ cls_buf:
 {ENGINE}
 
 {COPY}
+@code_end_real:
 
         ALIGN 256
 FILL2:
 {FILL}
         jp (iy)
+
+; DRAW_LOGO: unpack the MAX Q logo (run-length coded) into BUFFER rows LOGO_TOP..
+; byte = code<<6 | (run-1); code 0 cream, 1 orange, 2 magenta, 3 leave as is
+draw_logo:
+        ld hl,LOGO
+        ld de,BUFFER+LOGO_TOP*32
+        ld c,0                  ; pixel within the byte
+.lb:    ld a,(hl)
+        inc hl
+        push hl
+        ld b,a
+        and $3F
+        inc a
+        ld ixl,a                ; run length
+        ld a,b
+        rlca
+        rlca
+        and 3
+        cp 3
+        jr z,.skp
+        cp 1
+        jr nz,.cm
+        ld a,3
+.cm:    ld h,a                  ; colour
+.pl:    ld a,h
+        rrca
+        rrca
+        ld l,$3F
+        ld b,c
+        inc b
+.sh:    dec b
+        jr z,.pw
+        rrca
+        rrca
+        rrc l
+        rrc l
+        jr .sh
+.pw:    ld b,a
+        ld a,(de)
+        and l
+        or b
+        ld (de),a
+        call .adv
+        dec ixl
+        jr nz,.pl
+        jr .nb
+.skp:   call .adv
+        dec ixl
+        jr nz,.skp
+.nb:    pop hl
+        ld a,l
+        cp (LOGO+LOGO_N)&255
+        jr nz,.lb
+        ld a,h
+        cp (LOGO+LOGO_N)/256
+        jr nz,.lb
+        ret
+.adv:   inc c
+        bit 2,c
+        ret z
+        ld c,0
+        inc de
+        ret
+@logo_end:
 
 {DATA}

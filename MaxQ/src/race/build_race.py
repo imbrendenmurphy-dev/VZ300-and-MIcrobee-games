@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-build_race.py - builds RACE3D.VZ (VZ300 3D racer, Stage 3) and test images.
+build_race.py - builds MAXQ.VZ (MAX Q, VZ300 3D hover racer) and test images.
 VIBED BY BPM 2026
 
-  python3 build_race.py          build the game  -> RACE3D.VZ
+  python3 build_race.py          build the game  -> MAXQ.VZ
   python3 build_race.py test     render test camera states in the emulator and
                                  compare each frame byte-for-byte with ref3.py
 """
@@ -11,7 +11,7 @@ import os, sys, subprocess, json
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE); sys.path.insert(0, os.path.join(HERE, '..', 'tools'))
 import ref3 as R
-import craft
+import craft, logo
 from z80asm import Asm, vz_file
 
 EMU = os.path.join(HERE, '..', 'tools', 'vzemu')
@@ -31,7 +31,7 @@ SKYPTR 28 MKSH 1 SKYLN 1 SKY_Y 1 MSPLIT 1 CURMODE 1 ATIMER 2"""
 
 LAYOUT = dict(
     LATCH=0x6800, KEYROW=0x68EF, KEYH=0x687F, VRAM=0x7000,
-    SQPAGE=0xB0, SIN64=0xB400, COS64=0xB500, PATTAB=0xB600, LMASK=0xB620, SKYA=0xB628, SKYH=0xB650, RIDGE=0xAF00, HUDBUF=0xDFC0, HUDPREV=0xDFE0, SKY0=0xB630, SKY1=0xB638,
+    SQPAGE=0xB0, SIN64=0xB400, COS64=0xB500, PATTAB=0xB600, LMASK=0xB620, SKYA=0xB628, SKYH=0xB650, RIDGE=0xAF00, HUDBUF=0x7D40, HUDPREV=0x7D60, LOGO=0xDE40, SKY0=0xB630, SKY1=0xB638,
     GLYPHT=0xB640, GLYPHM=0xB648, FONT=0xB660, SKYIMG=0xFA00, EXPTP=0xB800, EXP88L=0xBA00, LOGL=0xC200,
     TRK_H=0xD200, TRK_DY=0xD400, TRK_HBX=0xD600, TRK_HBY=0xD800, TRK_FL=0xDA00,
     IM2TAB=0xDC00, SPRITES=0xA400, SPRTAB=0xB7A0,
@@ -108,7 +108,7 @@ def equates():
               f'SU_A EQU {R.SU_A}', f'SU_B EQU {R.SU_B}', f'RL_A EQU {R.RL_A}', f'RL_B EQU {R.RL_B}',
               f'SK EQU {R.SK}', f'VOID EQU {R.VOID}', f'HAZE EQU {R.HAZE}',
               f'CRAFTY EQU {CRAFTY}', f'VMAX EQU {VMAX}',
-              f'DLY_COPY EQU {DLY_COPY}', f'DLY_NOCOPY EQU {DLY_NOCOPY}', f'DLY_COPYP EQU {DLY_COPYP}', f'TDLY EQU {(64 + 34 * 3) * 226 // 26}', f'EXP88H EQU EXP88L+$400']
+              f'DLY_COPY EQU {DLY_COPY}', f'DLY_NOCOPY EQU {DLY_NOCOPY}', f'DLY_COPYP EQU {DLY_COPYP}', f'LOGO_TOP EQU {logo.TOP}', f'LOGO_N EQU {len(LOGO_RLE)}', f'TDLY EQU {(64 + 34 * 3) * 226 // 26}', f'EXP88H EQU EXP88L+$400']
     return '\n'.join(lines)
 
 def copy_routine():
@@ -123,6 +123,9 @@ def copy_routine():
               '        push bc', '        exx', '        push hl', '        push de', '        push bc', '        push af']
     L += ['        ld sp,(SPSV)', '        ret']
     return '\n'.join(L)
+
+LOGO_RLE = logo.rle(logo.logo())
+assert len(LOGO_RLE) <= 0xE000 - 0xDE40, len(LOGO_RLE)
 
 def data_section(T):
     lo, hi = R.sq_tables()
@@ -144,7 +147,7 @@ def data_section(T):
         ('GLYPHM', [sum(3 << (6 - 2 * q) for q in range(3) if (bits >> (2 - q)) & 1) for bits in range(8)]),
         ('EXPTP', R.EXPT), ('EXP88L', expl + exph), ('LOGL', logl + logh),
         ('TRK_H', T['H']), ('TRK_DY', T['DY']), ('TRK_HBX', T['HBX']), ('TRK_HBY', T['HBY']), ('TRK_FL', T['FL']),
-        ('IM2TAB', [0xDD] * 257), ('SPRITES', craft.sprite_bytes()),
+        ('IM2TAB', [0xDD] * 257), ('LOGO', LOGO_RLE), ('SPRITES', craft.sprite_bytes()),
         ('SPRTAB', [b for i in range(20) for b in ((LAYOUT['SPRITES'] + 140 * i) & 255, (LAYOUT['SPRITES'] + 140 * i) >> 8)]),
     ]
     out = []
@@ -199,7 +202,8 @@ def source(test_state=None):
 def assemble(src, name):
     asm = Asm()
     org, data = asm.assemble(src, HERE)
-    code_end = asm.sym['FILL2'] + 66
+    code_end = max(asm.sym['FILL2'] + 66, asm.sym['LOGO_END'])
+    assert asm.sym['CODE_END_REAL'] <= asm.sym['FILL2']
     assert code_end <= 0xA400, f'code overruns sprites: ${code_end:04X}'
     assert org + len(data) <= 0xE000
     assert asm.sym['INIT_END'] <= 0xDDDD, f"init code overruns: ${asm.sym['INIT_END']:04X}"
@@ -210,11 +214,11 @@ def assemble(src, name):
 def build_game():
     src, T = source()
     open(os.path.join(HERE, 'race_full.asm'), 'w').write(src)
-    asm, org, data, vz = assemble(src, 'RACE3D.VZ')
+    asm, org, data, vz = assemble(src, 'MAXQ.VZ')
     with open(os.path.join(HERE, 'race.lst'), 'w') as fh:
         fh.write('\n'.join(asm.listing) + '\n\nSYMBOLS\n')
         for k in sorted(asm.sym): fh.write(f'{k:24s} {asm.sym[k] & 0xFFFF:04X}\n')
-    print(f'RACE3D.VZ ${org:04X}-${org + len(data) - 1:04X} ({len(data)} bytes); code ends ${asm.sym["FILL2"] + 66:04X}')
+    print(f'MAXQ.VZ ${org:04X}-${org + len(data) - 1:04X} ({len(data)} bytes); code ends ${asm.sym["LOGO_END"]:04X}')
     return asm
 
 def run_test(states):

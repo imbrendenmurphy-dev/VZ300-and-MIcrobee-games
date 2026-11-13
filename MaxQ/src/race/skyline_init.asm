@@ -1,21 +1,14 @@
 ; ---------------------------------------------------------------------
 ; MAKE_SKYLINE: build the skyline rows (heights 1..7, two pixel shifts,
-; 96 bytes each) from RIDGE into $FC00.. and $DE40.., pointers in SKYPTR
+; 96 bytes each) from RIDGE into $7800.., pointers in SKYPTR
 ; ---------------------------------------------------------------------
 make_skyline:
-        ld de,$FC00
+        ld de,$7800             ; free system RAM below the program (the ROM is never used)
         ld iy,SKYPTR
         xor a
         ld (MKSH),a
 .s:     ld b,1
-.h:     ld a,d                  ; not enough room left at the top of memory?
-        cp $FF
-        jr nz,.ok
-        ld a,e
-        cp $A1
-        jr c,.ok
-        ld de,$DE40
-.ok:    ld (iy+0),e
+.h:     ld (iy+0),e
         ld (iy+1),d
         inc iy
         inc iy

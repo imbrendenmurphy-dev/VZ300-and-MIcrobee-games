@@ -1,4 +1,3 @@
-s_title:  DB "VZ RACER 3D",0
 s_credit: DB "VIBED BY BPM 2026",0
 s_keys1:  DB ", . STEER  SPACE GO  N BRAKE",0
 s_keys2:  DB "M SPLIT  H HALF ROWS  JOYSTICK",0

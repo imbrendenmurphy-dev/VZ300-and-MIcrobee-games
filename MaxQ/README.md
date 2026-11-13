@@ -1,16 +1,18 @@
-# VZ RACER 3D
+# MAX Q
+
+![MAX Q title](screenshots/maxq_title.png)
 
 Real-time solid-polygon 3D racing on the Dick Smith VZ300: an anti-gravity hover racer in the spirit of Wipeout and F-Zero.
 Target: VZ300 + BennVenn SD loader + 128K RAM. Mode 1 (128x64, 4 colours).
 VIBED BY BPM 2026
 
-**Status: v0.5 engine demo** (Stage 4 of the brief). One track, gates, an animated craft and an autopilot. Gameplay (boost pads, energy shield, rivals) comes next.
+**Status: v0.6 engine demo** (Stage 4 of the brief). One track, gates, an animated craft and an autopilot. Gameplay (boost pads, energy shield, rivals) comes next.
 
 ![v0.5 preview](screenshots/v05_preview.gif)
 
 ## Loading
 
-Copy `release/RACE3D.VZ` to the SD card and run it from the loader. The title screen shows for a few seconds, then the craft races on autopilot until you touch a key.
+Copy `release/MAXQ.VZ` to the SD card and run it from the loader. The title screen shows for a few seconds, then the craft races on autopilot until you touch a key.
 
 `release/BENCH.VZ` is the Stage 2 renderer benchmark.
 
@@ -35,12 +37,12 @@ The HUD floats in an open blue sky above a panning mountain skyline. It shows sp
 - The static top sky and the HUD are only redrawn when they change.
 - Every frame the Z80 renderer draws is checked byte for byte against a Python reference (`src/race/ref3.py`).
 
-## Measured speed (v0.5, cycle-exact emulator, 40 s autopilot)
+## Measured speed (v0.6, cycle-exact emulator, 40 s autopilot)
 
 | Mode | Fields per frame | fps |
 |---|---|---|
-| Half-rate rows on (default) | 4.40 | 11.4 |
-| Half-rate rows off | 4.95 | 10.1 |
+| Half-rate rows on (default) | 4.43 | 11.3 |
+| Half-rate rows off | 4.91 | 10.2 |
 | With M (HUD split) | 9.02 | 5.5 |
 
 The full development history and the measurements are in `docs/STAGE1.md` to `docs/STAGE4.md`.
@@ -51,7 +53,7 @@ Needs Python 3 and a C compiler.
 
 ```
 cd src/tools && cc -O2 -o vzemu vzemu.c
-cd ../race && python3 build_race.py           # writes RACE3D.VZ
+cd ../race && python3 build_race.py           # writes MAXQ.VZ
 python3 build_race.py test 14                 # byte-exact check against the reference
 python3 gamerun.py                            # frame-rate measurement
 ```
