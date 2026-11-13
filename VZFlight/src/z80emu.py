@@ -119,6 +119,8 @@ class VZ:
                 m[a] = v
             elif a >= 0x6800:
                 cpu.set_latch(v)
+            elif a >= 0x4000:
+                m[a] = v                # BennVenn SRAM (mapping 1, as the DOS leaves it)
 
         self.rd = rd
         self.wr = wr

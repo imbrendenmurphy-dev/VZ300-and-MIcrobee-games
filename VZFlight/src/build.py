@@ -252,12 +252,27 @@ def gen_data():
     # shapes
     for name, sh in locales.SHAPES.items():
         assert len(sh.verts) <= 40, name
+        verts = [tuple(max(-64, min(63, k)) for k in v) for v in sh.verts]
+        far = lod_shape(verts, sh.edges)
+        ext = max(abs(k) for v in verts for k in v)
+        # header before the label: db extent ; dw far shape (0 = none)
+        A('        db %d' % (ext if far else 0))
+        A('        dw %s' % (('sh_%s_far' % name) if far else '0'))
         A('sh_%s:' % name)
-        A('        db %d,%d' % (len(sh.verts), len(sh.edges)))
-        for v in sh.verts:
+        A('        db %d,%d' % (len(verts), len(sh.edges)))
+        for v in verts:
             A(dbs(list(v)))
         for e in sh.edges:
             A(dbs(list(e)))
+        if far:
+            fv, fe = far
+            A('        db 0\n        dw 0')
+            A('sh_%s_far:' % name)
+            A('        db %d,%d' % (len(fv), len(fe)))
+            for v in fv:
+                A(dbs(list(v)))
+            for e in fe:
+                A(dbs(list(e)))
     # strings
     strs = {}
 
@@ -361,6 +376,40 @@ def gen_data():
 
 
 # ------------------------------------------------------------------ code templates
+def lod_shape(verts, edges):
+    """simplified far version: repeatedly merge the two ends of the shortest edge"""
+    if len(edges) < 6:
+        return None
+    target = max(3, (len(edges) + 2) // 3)
+    V = [list(v) for v in verts]
+    E = [list(e) for e in edges]
+    alive = set(range(len(V)))
+
+    def ln(e):
+        a, b = V[e[0]], V[e[1]]
+        return sum((a[k] - b[k]) ** 2 for k in range(3))
+    while len(E) > target:
+        e = min(E, key=ln)
+        a, b = e[0], e[1]
+        V[a] = [(V[a][k] + V[b][k]) / 2.0 for k in range(3)]
+        alive.discard(b)
+        ne = []
+        seen = set()
+        for x, y, c in E:
+            x = a if x == b else x
+            y = a if y == b else y
+            key = (min(x, y), max(x, y))
+            if x != y and key not in seen:
+                seen.add(key)
+                ne.append([x, y, c])
+        E = ne
+    used = sorted(set(i for e in E for i in e[:2]))
+    remap = {o: n for n, o in enumerate(used)}
+    fv = [tuple(int(round(k)) for k in V[i]) for i in used]
+    fe = [(remap[x], remap[y], c) for x, y, c in E]
+    return fv, fe
+
+
 def gen_code():
     o = []
     A = o.append
@@ -386,6 +435,36 @@ def gen_code():
             A('.a%d:    add hl,de' % i)
             A('.s%d:    ld (acc%d),hl' % (i, i))
         A('        ret')
+    # --- per-frame product tables: page TP+3i+j holds m_ij * k for k = -64..63 (word at 2*(k+64))
+    A('bldtab:')
+    for t in range(9):
+        i, j = divmod(t, 3)
+        A('        ld a,(m%d%d)\n        ld b,63\n        call umul8' % (i, j))
+        A('        ld a,(m%d%d)\n        ld e,a\n        ld d,0' % (i, j))
+        A('        ld a,(m%d%d+1)\n        or a\n        jr z,.p%d\n        call neghl\n        call negde' % (i, j, t))
+        A('.p%d:    ld ix,TPAGE*256+%d*256+256\n        call bld1\n        call poll' % (t, t))
+    A('        ret')
+    A('bld1:   di\n        ld (bldsp),sp\n        ld sp,ix\n        ld b,8')
+    A('.l:')
+    for k in range(16):
+        A('        push hl\n        or a\n        sbc hl,de')
+    A('        djnz .l\n        ld sp,(bldsp)\n        ret')
+    # --- vertex: HL -> kx,ky,kz ; leaves view coords in wpm, HL advanced
+    A('vtrans:')
+    for r, dst in ((0, 'c'), (1, 'b')):
+        A('        ld a,(hl)\n        add a,64\n        add a,a\n        ld %s,a\n        inc hl' % dst)
+    A('        ld a,(hl)\n        add a,64\n        add a,a\n        ld (vkz),a\n        inc hl\n        push hl')
+    for i in range(3):
+        A('        ld h,TPAGE+%d\n        ld l,c\n        ld e,(hl)\n        inc l\n        ld d,(hl)' % (3 * i))
+        A('        ld h,TPAGE+%d\n        ld l,b\n        ld a,(hl)\n        add a,e\n        ld e,a\n        inc l\n        ld a,(hl)\n        adc a,d\n        ld d,a' % (3 * i + 1))
+        A('        ld h,TPAGE+%d\n        ld a,(vkz)\n        ld l,a\n        ld a,(hl)\n        add a,e\n        ld e,a\n        inc l\n        ld a,(hl)\n        adc a,d\n        ld h,a\n        ld l,e' % (3 * i + 2))
+        A('vsc%d equ $+1\n        call shc0' % i)
+        A('        ld de,(o%d)\n        add hl,de\n        sra h\n        rr l\n        ld (wpm+%d),hl' % (i, 2 * i))
+    A('        pop hl\n        ret')
+    A('shc12:')
+    for k in range(12):
+        A('        sra h\n        rr l')
+    A('shc0:   ret')
     # --- vertex final coords
     A('vcoords:')
     for i in range(3):
@@ -404,15 +483,15 @@ def gen_code():
         for col, nm in ((0, 'ga'), (2, 'gb')):
             A('        ld a,(m%d%d)\n        ld l,a\n        ld h,0\n        add hl,hl\n        add hl,hl' % (i, col))
             A('        ld a,(m%d%d+1)\n        or a\n        call nz,neghl' % (i, col))
-            A('        ld (%s%d),hl\n        add hl,hl\n        add hl,hl\n        ld (%s4%d),hl' % (nm, i, nm, i))
+            A('        ld (%s%d),hl\n        ld d,h\n        ld e,l\n        add hl,hl\n        add hl,de\n        ld (%s4%d),hl' % (nm, i, nm, i))
     A('        ret')
     for nm, a, b in (('gridx', 'ga', 'gb'), ('gridz', 'gb', 'ga')):
         A('%s:' % nm)
         # gs = o - 3a
         for i in range(3):
-            A('        ld hl,(%s%d)\n        ld d,h\n        ld e,l\n        add hl,hl\n        add hl,de\n        ex de,hl' % (a, i))
+            A('        ld hl,(%s%d)\n        add hl,hl\n        ex de,hl' % (a, i))
             A('        ld hl,(o%d)\n        or a\n        sbc hl,de\n        ld (gs%d),hl' % (i, i))
-        A('        ld b,8')
+        A('        ld b,6')
         A('.l:     push bc')
         for i in range(3):
             A('        ld hl,(gs%d)\n        ld de,(%s4%d)\n        or a\n        sbc hl,de\n        sra h\n        rr l\n        ld (wpm+%d),hl' % (i, b, i, 2 * i))

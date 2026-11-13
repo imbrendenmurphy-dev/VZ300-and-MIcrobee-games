@@ -5,6 +5,8 @@
 ; =====================================================================
 vram      equ $7000
 latch     equ $6800
+TPAGE     equ $40          ; product tables in BennVenn SRAM $4000-$48FF
+RTPAGE    equ $49          ; reciprocal tables $4900-$4AFF
 pitchrate equ 16384
 rollrate  equ 32000
 pmax      equ 9100
@@ -38,6 +40,7 @@ start:  di
         ld (latch),a
         ld hl,pchar
         ld (chout+1),hl
+        call mkrtab
         jp attract
 
         include "flight.asm"
@@ -49,6 +52,9 @@ start:  di
 ; ---------------------------------------------------------------- variables (not in file)
         align 256
 bssstart:
+vkz:    ds 1
+px16:   ds 2
+bldsp:  ds 2
 buf:    ds 1536
 vtab:   ds 400
 wpa:    ds 10
@@ -124,7 +130,7 @@ adx:    ds 1
 adz:    ds 1
 zn:     ds 1
 zsh:    ds 1
-psgn:   ds 1
+psgn:   ds 2
 msgn:   ds 1
 lx0:    ds 1
 ly0:    ds 1

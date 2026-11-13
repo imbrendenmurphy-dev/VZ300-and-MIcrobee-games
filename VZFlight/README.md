@@ -8,7 +8,22 @@ Electronics, and several missions recreate moments from his record flights. It i
 
 ![attract](screenshots/v02_attract.png)
 
-## Status: v0.2
+## Status: v0.3 (speed-up)
+
+v0.3 is about 1.3 to 1.8 times faster than v0.2: **8 to 12 fields per frame (4 to 6 frames a second)**, down from 10 to 22.
+
+| Scene | v0.2 | v0.3 |
+|---|---|---|
+| Bankstown runway | 22 fields | 12 fields |
+| Sydney Harbour, looking east | 20 | 12 |
+| Over the Sydney CBD | 14 | 11 |
+| Mid-Pacific | 17 | 10 |
+| North Pole | 15 | 11 |
+| Red Centre | 10 | 8 |
+
+How: distant objects switch to simplified shapes; vertex rotation uses product tables rebuilt once a frame; the perspective divide uses reciprocal tables; the ground grid is 6 + 6 lines (was 8 + 8).
+
+### v0.2 features
 
 | | |
 |---|---|
@@ -17,12 +32,12 @@ Electronics, and several missions recreate moments from his record flights. It i
 | **Tested on the real VZ300** | Not yet. The v0.1 engine hasn't been on hardware either. |
 | **Not started** | Saving best scores to the SD card, more locales |
 
-Everything fits in one `.VZ` file (about 26 KB), so nothing is loaded from the SD card while you fly.
+Everything fits in one `.VZ` file (about 28 KB), so nothing is loaded from the SD card while you fly.
 
 ## Loading
 
 Copy `release/VZFLIGHT.VZ` to the SD card and run it.
-It loads at $8000 (to $E82A), makes no mapper writes and doesn't call the DOS.
+It loads at $8000 (to $EF6E) and makes no mapper writes. It doesn't call the DOS, and it uses the BennVenn SRAM at $4000-$4AFF for its maths tables, like the Cybernoid port, so it needs the BennVenn SD loader.
 
 ## The attract sequence
 

@@ -458,7 +458,7 @@ buildmat:
         inc de
         pop hl
         djnz .cv
-        ret
+        jp bldtab
 
 ; ---------------------------------------------------------------- horizon / background
 drawbg: ld hl,(q01)
@@ -891,62 +891,117 @@ pdiv:   ld a,h
 .max:   ld a,128
         ret
 
-; project wpm (inside guard) -> B = X (sx+32, 0..192), C = Y (sy+8, 0..64)
-projpm: ld hl,(wpm+4)
-        ld b,0
-.nl:    ld a,h
+; project wpm (inside guard: |x| <= z, |y| <= z/2) -> B = X (sx+32, 0..192), C = Y (sy+8, 0..64)
+; z is normalised to 128..255 (x, y shifted with it), then sx = |x|*R96[z] >> 8, sy = |y|*R64[z] >> 8
+projpm: ld hl,(wpm+0)
+        ld a,h
+        ld (psgn),a
         or a
-        jr z,.zd
+        call m,neghl
+        ld (px16),hl
+        ld hl,(wpm+2)
+        ld a,h
+        ld (psgn+1),a
+        or a
+        call m,neghl
+        ex de,hl                    ; DE = |y|
+        ld bc,(px16)                ; BC = |x|
+        ld hl,(wpm+4)               ; HL = z
+.nr:    ld a,h
+        or a
+        jr z,.nl
         srl h
         rr l
-        inc b
-        jr .nl
-.zd:    ld a,l
-        ld (zn),a
-        ld a,b
-        ld (zsh),a
-        ld hl,(wpm+0)
-        call pdiv
-        ld l,a
-        ld h,0
-        ld d,h
-        ld e,l
+        srl b
+        rr c
+        srl d
+        rr e
+        jr .nr
+.nl:    bit 7,l
+        jr nz,.zd
         add hl,hl
-        add hl,de
-        inc hl
-        inc hl
-        srl h
-        rr l
-        srl h
-        rr l
+        sla c
+        rl b
+        sla e
+        rl d
+        jr .nl
+.zd:    ; L = zn (128..255), C = |x'|, E = |y'|
+        ld h,RTPAGE
+        ld b,(hl)                   ; R96
+        inc h
+        ld a,(hl)                   ; R64
+        push af
+        ld a,e
+        ld (px16+1),a
+        ld a,c
+        call umul8
         ld a,(psgn)
         or a
         ld a,96
         jp m,.xn
-        add a,l
+        add a,h
         jr .xs
-.xn:    sub l
-.xs:    push af
-        ld hl,(wpm+2)
-        call pdiv
-        inc a
-        srl a
-        ld l,a
-        ld a,(psgn)
+.xn:    sub h
+.xs:    ld (px16),a
+        pop af
+        ld b,a
+        ld a,(px16+1)
+        call umul8
+        ld a,(psgn+1)
         or a
         ld a,32
         jp m,.yn
-        sub l
+        sub h
         jr nc,.ys
         xor a
         jr .ys
-.yn:    add a,l
+.yn:    add a,h
         cp 65
         jr c,.ys
         ld a,64
 .ys:    ld c,a
-        pop af
+        ld a,(px16)
         ld b,a
+        ret
+
+; reciprocal tables for projpm (in SRAM): R96[z] = 24576/z, R64[z] = 16384/z for z = 128..255
+mkrtab: ld l,128
+.l:     push hl
+        ld h,0
+        ld b,h
+        ld c,l
+        push bc
+        srl b
+        rr c
+        ld hl,24576
+        add hl,bc
+        ld de,0
+        pop bc
+        push bc
+        call udiv32
+        ld a,l
+        pop bc
+        pop hl
+        push hl
+        ld h,RTPAGE
+        ld (hl),a
+        ld h,0
+        push bc
+        srl b
+        rr c
+        ld hl,16384
+        add hl,bc
+        ld de,0
+        pop bc
+        call udiv32
+        ld a,l
+        pop hl
+        push hl
+        ld h,RTPAGE+1
+        ld (hl),a
+        pop hl
+        inc l
+        jr nz,.l
         ret
 
 projwpi:
@@ -1562,7 +1617,22 @@ drawobj:
         ld (vshift),a
         ld hl,1
         ld (nearh),hl
-.xf:    call xform
+.xf:    ; patch the vertex shift chain: entry = shc0 - 4*vshift (0..12)
+        ld a,(vshift)
+        cp 13
+        jr c,.vs
+        xor a
+.vs:    add a,a
+        add a,a
+        ld e,a
+        ld d,0
+        ld hl,shc0
+        or a
+        sbc hl,de
+        ld (vsc0),hl
+        ld (vsc1),hl
+        ld (vsc2),hl
+        call xform
         ; bounding radius (view units) = 1 << (14 - vshift)
         ld a,(vshift)
         ld b,a
@@ -1610,6 +1680,7 @@ drawobj:
         ret nz
 .oky:   ld l,(ix+4)
         ld h,(ix+5)
+        call lodsel
         ld a,(hl)
         ld (nv),a
         inc hl
@@ -1617,30 +1688,8 @@ drawobj:
         ld (ne),a
         inc hl
         ld iy,vtab
-.vl:    ld a,(hl)
-        ld (kx),a
-        inc hl
-        ld a,(hl)
-        ld (ky),a
-        inc hl
-        ld a,(hl)
-        ld (kz),a
-        inc hl
+.vl:    call vtrans
         push hl
-        ld hl,0
-        ld (acc0),hl
-        ld (acc1),hl
-        ld (acc2),hl
-        ld a,(kx)
-        or a
-        call nz,addcol0
-        ld a,(ky)
-        or a
-        call nz,addcol1
-        ld a,(kz)
-        or a
-        call nz,addcol2
-        call vcoords
         call vfin
         pop hl
         ld de,10
@@ -1672,6 +1721,56 @@ drawobj:
         ld (ne),a
         jr nz,.el
         pop ix
+        ret
+
+; HL = shape -> far version when the object is far enough away
+lodsel: push hl
+        dec hl
+        ld d,(hl)
+        dec hl
+        ld e,(hl)
+        dec hl
+        ld a,(hl)
+        pop hl
+        or a
+        ret z
+        ld c,a
+        ld a,(ix+6)
+        or a
+        ret m
+        push hl
+        ; threshold (x256 m) = extent * 10 << s >> 8
+        ld l,c
+        ld h,0
+        add hl,hl
+        ld b,h
+        ld c,l
+        add hl,hl
+        add hl,hl
+        add hl,bc
+        or a
+        jr z,.n
+        ld b,a
+.s:     add hl,hl
+        jr c,.big
+        djnz .s
+.n:     ld a,h
+        or a
+        jr nz,.t
+        inc a
+        jr .t
+.big:   ld a,255
+.t:     ld b,a
+        ld a,(adx)
+        ld c,a
+        ld a,(adz)
+        cp c
+        jr nc,.m
+        ld a,c
+.m:     cp b
+        pop hl
+        ret c
+        ex de,hl
         ret
 
 mul10:  ld e,a
