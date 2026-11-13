@@ -9,6 +9,8 @@ ViBED by BPM 2026. Original code, graphics and music. Nothing from the original 
 
 ![screens](screenshots/KAMI2_screens.png)
 
+**Release package:** [BLURB.md](BLURB.md) · [showcase GIF](showcase/showcase.gif) · [gameplay screenshots](screenshots/gameplay/) · [attract and info screens](screenshots/info/). Regenerate them with `python3 tools/release_media.py` after building.
+
 ## Play it
 
 Copy `release/KAMI2.VZ` to the SD card and load it from the BennVenn SD loader. It's a type F1 binary that loads at $8000 (to $C47F) and runs from $8000. It needs the **BennVenn 128K** RAM expansion (RAM up to $FFFF).
