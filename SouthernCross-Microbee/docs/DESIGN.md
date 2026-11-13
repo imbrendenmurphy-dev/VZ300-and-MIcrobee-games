@@ -65,6 +65,24 @@ One forgiving single-engine trainer: stall, climb, glide, flaps. Panel: airspeed
 
 **Expansion disks** later: e.g. Tasmania (mountains, fog, weather), Great Barrier Reef seaplane pack.
 
+## Ideas taken from VZ Flight (our VZ300 sim)
+Proven on the VZ, so they carry straight over:
+- **Gates with height bands**: hoops you fly through, each with a floor and ceiling; the HUD's top line shows the next gate, a bearing arrow and the distance. Also "under" gates: pass beneath a bridge deck, below a set height.
+- **Forgiving crashes**: a crash puts you back at the last gate passed with +15 seconds on the clock, not back to the start. Easy realism adds a "bounce" on hard landings instead of a crash.
+- **Par times, ratings and best scores**: each mission has a par time; finishing gives STUDENT PILOT / FIRST OFFICER / CAPTAIN / ACE AVIATOR, and best times are saved to disk for the Hall of Fame in the attract loop.
+- **Free Flight** in every locale, plus short briefings (7 lines of 30 characters) with a bit of real history.
+- **Moving ship deck**: a landing target that steams along; also a low pass over its deck.
+- **Obstacles and platforms**: collision boxes for bridges, towers and buildings; platforms (decks, pads) you can land on at height.
+- **Scenery engine**: each object has a cull distance and a "fine" distance inside which it is drawn at full precision; per-locale colour schemes (sky, ground, grid, water) for the colour option; shorelines as polylines.
+- **Look views and map**: look left/right/back and a map view with zoom from the pause menu.
+- **Helicopter** as a second aircraft later (hover, pads, "under the bridge" by helicopter).
+
+### Where they go in Southern Cross
+- **Riverbend**: First Solo becomes a circuit of gates round the airfield, then a landing; Under the Bridge uses an under-gate (stay below the deck height) followed by a gate slalom down the river; Air Show judges a low pass between two pylon gates.
+- **Coral Coast**: Lighthouse Run is a gate course along the cliffs past the lighthouse; a new **Supply Ship** mission lands on (or low-passes) a moving ship's deck; Island Hopper scores each short-strip landing.
+- **Red Centre**: a big red rock and a cluster of domes; **Rock Circuit** flies gates around the rock (a no-fly zone over the top costs time, it doesn't crash you); **Domes Hop** threads the gaps between the domes; Flying Doctor ends on a 1 km dirt strip with a cattle-station shed.
+- **Harbour City** expansion disk: harbour, arch bridge, opera-house shells, a tower and an airport to the west, as on the VZ.
+
 ## Build stages
 1. Horizon, panel and flight model as a frame-rate benchmark — **done (this build)**
 2. Runway, take-off, landing and the landing grade
@@ -79,4 +97,5 @@ One forgiving single-engine trainer: stall, climb, glide, flaps. Panel: airspeed
 - Real hardware (BPM, amber monitor): runs and flies; first build showed "--" FPS because the MC146818 isn't ticking on that machine, and ground lines passing close beside the plane could bend up through the sky (one end's x projection saturated while y didn't). Fixed: vertical-blank field counter for FPS and game time; 3D guard-band clip before projection. Checked with an emulator test that renders random flight states and counts ground pixels above the true horizon (0 of 160).
 - Speed-up pass 1 (average of five test views 5.54 → 6.30 fps, +14%; detail 1 15 → 19 fps): one-pass 3D clip with margin + 2D edge fix instead of near-plane/guard-band bisection and 2D midpoint search; unrolled set-bit pixel loop (90–100 → ~60 T a pixel incl. setup) with exact long lines; partial buffer clear; inlined negates; unrolled divide and multiply. Near plane now 5 m.
 - Measured: on the runway at detail 3 most of the frame is clip/projection maths (≈300k of 380k T for lines), mainly the 8 km grid lines that start behind the aircraft (≈20–25k T each, five clip divisions). Next ideas: clip ground lines against the visible ground footprint on the map (one trapezoid per frame), shorter grid lines built around the aircraft, reuse object vertex clip data, 16-bit table multiply from the 1MB RAM.
+- Footprint clip experiment (stage 1, after pass 1): trim each ground line on the map against the patch of ground the camera can see (a trapezoid worked out once per frame), then project only what's left. It drew correctly but ran slower: average 5.47 fps against 6.30, runway view 4.80 against 5.5. The per-frame footprint cost ~40k T, and each ground line still needed ~19k T to clip against it (four edge tests with 16-bit divides) against ~11k T for the improved 3D clip. Kept out of the build; the source is in `docs/experiments/footprint-trim.asm`. Better next bets: draw the grid in screen space from its vanishing points (one projection per grid line end, no clipping), or grid lines built short around the aircraft.
 - Hardware assumptions (taken from the tested Microbee projects in this repo): port 1Ch b7 premium graphics, b4 attribute RAM, b0–3 PCG bank; port 08h b6 puts colour RAM in the F800 window (low nibble ink, high nibble paper); port 0Bh = 1 during keyboard scans; 6545 status bit 5 (vertical blank) counted as 50 Hz fields for FPS and game time.
