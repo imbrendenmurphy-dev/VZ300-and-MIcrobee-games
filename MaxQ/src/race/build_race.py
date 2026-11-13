@@ -27,11 +27,13 @@ RY 1 MLEFT 1 MRIGHT 1 FIELDS 2 LASTF 2 ELAPSED 1 READY 1 FSPLIT 1 DSPLIT 1 COPIE
 SPLITMODE 1 STEER 1 THROT 1 BRAKE 1 IDLE 2 AUTO 1 MPREV 1 SPEED 1 LATV 1 SPSV 2 LATCHV 1
 RUNBUF 16 FRAMES 2 CRF 1 FLG 1 PKX 2 PKY 2 HALFON 1 HPREV 1 SKYD 1 HUDFG 1
 SKYDIRTY 1 HUDFORCE 1 TOPCHG 1 FACC 1 FCNT 1 FAVG 1
-SKYPTR 28 MKSH 1 SKYLN 1 SKY_Y 1 MSPLIT 1 CURMODE 1 ATIMER 2"""
+SKYPTR 28 MKSH 1 SKYLN 1 SKY_Y 1 MSPLIT 1 CURMODE 1 ATIMER 2 RVANY 1"""
+GVARS = """GSTATE 1 STIMER 2 LAPN 1 RTIME 2 LAPT0 2 BESTLAP 2 SHIELD 1 BOOSTT 1 STALLT 1 BUMPT 1 POS 1
+FINPOS 1 NEWBEST 1 SFXT 1 SFXK 1 BANT 1 BANP 2 SPREV 1 TMPT 1 TPOS 2 LOWERFN 2 TBUF 20 RVDH 2 RVDC 1 SPLAIN 1 CLEAN 1 DMIN 1 CPYROW 1"""
 
 LAYOUT = dict(
     LATCH=0x6800, KEYROW=0x68EF, KEYH=0x687F, VRAM=0x7000,
-    SQPAGE=0xB0, SIN64=0xB400, COS64=0xB500, PATTAB=0xB600, LMASK=0xB620, SKYA=0xB628, SKYH=0xB650, RIDGE=0xAF00, HUDBUF=0x7D40, HUDPREV=0x7D60, LOGO=0xDE40, SKY0=0xB630, SKY1=0xB638,
+    SQPAGE=0xB0, SIN64=0xB400, COS64=0xB500, PATTAB=0xB600, LMASK=0xB620, SKYA=0xB628, SKYH=0xB650, RIDGE=0xAF00, HUDBUF=0x7E20, HUDPREV=0x7E60, GVARS=0x7D80, RV=0x7DC0, TOPT=0x7EA0, LOGO=0xDE40, SKY0=0xB630, SKY1=0xB638,
     GLYPHT=0xB640, GLYPHM=0xB648, FONT=0xB660, SKYIMG=0xFA00, EXPTP=0xB800, EXP88L=0xBA00, LOGL=0xC200,
     TRK_H=0xD200, TRK_DY=0xD400, TRK_HBX=0xD600, TRK_HBY=0xD800, TRK_FL=0xDA00,
     IM2TAB=0xDC00, SPRITES=0xA400, SPRTAB=0xB7A0,
@@ -41,10 +43,11 @@ LAYOUT = dict(
 CRAFTY = 52
 HALF_INIT = None
 ATTRACT_MODE = 0
+RACE_AUTOPILOT = 0
 VMAX = 110
-COPYT = 128 * 204 + 60
+COPYT = 128 * 244 + 32 * 25 + 80
 DLY_COPY = max(1, ((56 + 64) * 226 - COPYT - 450) // 26)
-DLY_COPYP = DLY_COPY + (32 * 204 - 24) // 26
+DLY_COPYP = DLY_COPY + (32 * 244 + 8 * 25) // 26
 DLY_NOCOPY = (64 * 226 - 60) // 26
 
 CRAFT = [
@@ -75,7 +78,7 @@ def sprites():
     return out
 
 FONT = {
- ' ': [0,0,0,0,0], '0': [7,5,5,5,7], '1': [2,6,2,2,7], '2': [7,1,7,4,7], '3': [7,1,3,1,7],
+ ' ': [0,0,0,0,0], '#': [7,7,7,7,7], '0': [7,5,5,5,7], '1': [2,6,2,2,7], '2': [7,1,7,4,7], '3': [7,1,3,1,7],
  '4': [5,5,7,1,1], '5': [7,4,7,1,7], '6': [7,4,7,5,7], '7': [7,1,1,2,2], '8': [7,5,7,5,7],
  '9': [7,5,7,1,7], 'A': [2,5,7,5,5], 'B': [6,5,6,5,6], 'C': [3,4,4,4,3], 'D': [6,5,5,5,6],
  'E': [7,4,6,4,7], 'F': [7,4,6,4,4], 'G': [3,4,5,5,3], 'H': [5,5,7,5,5], 'I': [7,2,2,2,7],
@@ -96,32 +99,43 @@ def equates():
     for name, size in zip(toks[0::2], toks[1::2]):
         lines.append(f'{name:10s} EQU VARS+{off}'); off += int(size)
     assert off <= 256, off
+    off = 0
+    toks = GVARS.split()
+    for name, size in zip(toks[0::2], toks[1::2]):
+        lines.append(f'{name:10s} EQU GVARS+{off}'); off += int(size)
+    assert off <= 0x40, off
+    lines.append(f'LOG_RIVW EQU {R.LOGT[36]}')
     lines += [f'NEARZ EQU {R.NEARZ}', f'CH EQU {R.CH}', f'HORIZ EQU {R.HORIZ}', f'DEPTH EQU {R.DEPTH}',
               f'BIAS EQU {R.BIAS}', f'LOGFX EQU {R.LOGFX}', f'LOGFY EQU {R.LOGFY}',
               f'C_RAIL EQU {R.LOGT[R.RAIL_E] + R.LOGFX + R.BIAS}',
               f'C_SKIRT EQU {(R.LOGT[R.SKIRT_E] + R.LOGFY + R.BIAS) if R.SKIRT_ON else -4000}',
               f'LOD1 EQU {R.LOD1}', f'LOD2 EQU {R.LOD2}',
-              f'HALFROW EQU {R.HALFROW}', f'TOPROW EQU {R.TOPROW}', f'SKYL_H EQU {R.SKYL_H}', f'ATTRACT_MODE EQU {ATTRACT_MODE}', f'HALF_INIT EQU {HALF_INIT if HALF_INIT is not None else (1 if R.HALF_ON else 0)}',
+              f'HALFROW EQU {R.HALFROW}', f'TOPROW EQU {R.TOPROW}', f'SKYL_H EQU {R.SKYL_H}', f'ATTRACT_MODE EQU {ATTRACT_MODE}', f'RACE_AUTOPILOT EQU {RACE_AUTOPILOT}', f'HALF_INIT EQU {HALF_INIT if HALF_INIT is not None else (1 if R.HALF_ON else 0)}',
               f'C_GH EQU {R.LOGT[R.GATEH_E] + R.LOGFY + R.BIAS}',
               f'C_GW EQU {R.LOGT[R.GATEW_E] + R.LOGFX + R.BIAS}',
               f'C_GT EQU {R.LOGT[R.GATET_E] + R.LOGFY + R.BIAS}',
-              f'SU_A EQU {R.SU_A}', f'SU_B EQU {R.SU_B}', f'RL_A EQU {R.RL_A}', f'RL_B EQU {R.RL_B}',
+              f'SU_A EQU {R.SU_A}', f'BOOST_A EQU {R.BOOST_A}', f'BOOST_B EQU {R.BOOST_B}', f'SU_B EQU {R.SU_B}', f'RL_A EQU {R.RL_A}', f'RL_B EQU {R.RL_B}',
               f'SK EQU {R.SK}', f'VOID EQU {R.VOID}', f'HAZE EQU {R.HAZE}',
               f'CRAFTY EQU {CRAFTY}', f'VMAX EQU {VMAX}',
               f'DLY_COPY EQU {DLY_COPY}', f'DLY_NOCOPY EQU {DLY_NOCOPY}', f'DLY_COPYP EQU {DLY_COPYP}', f'LOGO_TOP EQU {logo.TOP}', f'LOGO_N EQU {len(LOGO_RLE)}', f'TDLY EQU {(64 + 34 * 3) * 226 // 26}', f'EXP88H EQU EXP88L+$400']
     return '\n'.join(lines)
 
 def copy_routine():
-    L = ['copy_buffer:', '        ld (SPSV),sp']
-    for c in range(128):
-        if c == 32:
-            L += ['        jr cb_c32', 'copy_buffer16:', '        ld (SPSV),sp', '@cb_c32:']
-        src = LAYOUT['BUFFER'] + 16 * c; dst = LAYOUT['VRAM'] + 16 * c + 16
-        L += [f'        ld sp,${src:04X}', '        pop af', '        pop bc', '        pop de', '        pop hl',
-              '        exx', '        pop bc', '        pop de', '        pop hl', "        ex af,af'", '        pop af',
-              f'        ld sp,${dst:04X}', '        push af', "        ex af,af'", '        push hl', '        push de',
-              '        push bc', '        exx', '        push hl', '        push de', '        push bc', '        push af']
-    L += ['        ld sp,(SPSV)', '        ret']
+    """BUFFER -> VRAM through the stack, 16 bytes per chunk, 4 chunks per loop pass."""
+    chunk = ['        ld sp,ix', '        pop af', '        pop bc', '        pop de', '        pop hl',
+             '        exx', '        pop bc', '        pop de', '        pop hl', "        ex af,af'", '        pop af',
+             '        ld sp,iy', '        push af', "        ex af,af'", '        push hl', '        push de',
+             '        push bc', '        exx', '        push hl', '        push de', '        push bc', '        push af',
+             '        ld de,16', '        add ix,de', '        add iy,de']
+    L = ['copy_buffer16:                   ; from row CPYROW (even) to the bottom',
+         '        ld a,(CPYROW)', '        ld l,a', '        ld h,0', '        add hl,hl', '        add hl,hl',
+         '        add hl,hl', '        add hl,hl', '        add hl,hl', '        push hl', '        ld de,BUFFER',
+         '        add hl,de', '        push hl', '        pop ix', '        pop hl', '        ld de,VRAM+16',
+         '        add hl,de', '        push hl', '        pop iy', '        jr cb_go',
+         'copy_buffer:', '        ld ix,BUFFER', '        ld iy,VRAM+16',
+         '@cb_go:', '        ld (SPSV),sp', '@cb_lp:']
+    L += chunk * 4
+    L += ['        ld a,ixh', '        cp (BUFFER+2048)/256', '        jp nz,cb_lp', '        ld sp,(SPSV)', '        ret']
     return '\n'.join(L)
 
 LOGO_RLE = logo.rle(logo.logo())
@@ -180,7 +194,14 @@ def source(test_state=None):
         call draw_gates
         halt'''
     else:
-        startup = '''        call title_card
+        startup = '''        ld hl,TOPT              ; best times start empty
+        ld b,8
+.bt:    ld (hl),$FF
+        inc hl
+        djnz .bt
+        call demo_reset
+        ld hl,lower_keys
+        call title_card
         ld a,IM2TAB/256
         ld i,a
         im 2
@@ -189,6 +210,7 @@ def source(test_state=None):
 '''
     src = open(os.path.join(HERE, 'race.asm')).read()
     src = src.replace('{EQUATES}', equates()).replace('{STARTUP}', startup)
+    src = src.replace('{GAME}', open(os.path.join(HERE, 'game.asm')).read())
     src = src.replace('{ENGINE}', eng).replace('{COPY}', copy_routine())
     src = src.replace('{FILL}', '\n'.join('        ld (de),a\n        inc e' for _ in range(32)))
     src = src.replace('{DATA}', data_section(T))
@@ -249,7 +271,7 @@ if __name__ == '__main__':
     if len(sys.argv) > 1 and sys.argv[1] == 'test':
         import random
         random.seed(3)
-        states = [dict(i=4, f=0, lat=0, theta=0), dict(i=40, f=128, lat=20, theta=2)]
+        states = [dict(i=4, f=0, lat=0, theta=0), dict(i=40, f=128, lat=20, theta=2), dict(i=30, f=60, lat=-10, theta=0)]
         for _ in range(int(sys.argv[2]) if len(sys.argv) > 2 else 10):
             states.append(dict(i=random.randrange(512), f=random.randrange(256),
                                lat=random.randrange(-56, 57), theta=random.randrange(-6, 7)))

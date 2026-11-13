@@ -36,9 +36,17 @@ static struct { uint64_t t; u8 v; } latchlog[200000]; static int nlatch;
 
 static int fs_low(void) { return (int)(((T % FIELD_T) * LINES) / FIELD_T) < FS_LINES; }
 
+/* scripted key presses: --key F0 F1 ROWADDR BIT (fields F0..F1, row address low byte, bit) */
+static struct { long f0, f1; int row, bit; } keys[32]; static int nkeys;
 static u8 rd(u16 a) {
     if (a < 0x4000) return 0xFF;
-    if (a >= 0x6800 && a < 0x7000) return (fs_low() ? 0x00 : 0x80) | 0x7F;
+    if (a >= 0x6800 && a < 0x7000) {
+        u8 v = (fs_low() ? 0x00 : 0x80) | 0x7F;
+        long f = (long)(T / FIELD_T);
+        for (int k = 0; k < nkeys; k++)
+            if (f >= keys[k].f0 && f <= keys[k].f1 && !(a & ~keys[k].row & 0xFF) ) v &= ~(1 << keys[k].bit);
+        return v;
+    }
     return mem[a];
 }
 static void wr(u16 a, u8 v) {
@@ -407,6 +415,9 @@ int main(int argc, char **argv) {
     for (int i = 2; i < argc; i++) {
         if (!strcmp(argv[i], "--dump") && i + 1 < argc) dump = argv[i + 1];
         if (!strcmp(argv[i], "--memdump") && i + 1 < argc) memdump = argv[i + 1];
+        if (!strcmp(argv[i], "--key") && i + 4 < argc && nkeys < 32) {
+            keys[nkeys].f0 = atol(argv[i + 1]); keys[nkeys].f1 = atol(argv[i + 2]);
+            keys[nkeys].row = (int)strtol(argv[i + 3], 0, 16); keys[nkeys].bit = atoi(argv[i + 4]); nkeys++; }
         if (!strcmp(argv[i], "--prof") && i + 2 < argc && nprof < 16) {
             profaddr[nprof] = (int)strtol(argv[i + 1], 0, 16); profname[nprof] = argv[i + 2]; pmin[nprof] = ~0ULL; nprof++; }
         if (!strcmp(argv[i], "--snap") && i + 2 < argc && nsnap < 8) {

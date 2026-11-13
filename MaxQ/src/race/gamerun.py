@@ -3,7 +3,7 @@ sys.path.insert(0,'.'); sys.path.insert(0,'../tools')
 import build_race as B
 def run(half, secs=40, vlog=None):
     B.HALF_INIT = half
-    src,_ = B.source(); asm, org, data, vz = B.assemble(src, 'RACE3D.VZ')
+    src,_ = B.source(); asm, org, data, vz = B.assemble(src, 'MAXQ.VZ')
     args=[B.EMU, vz, str(int(70630*50*secs)), '--memdump','mem_game.bin']
     if vlog: args += ['--vramlog', vlog, '2']
     subprocess.run(args, capture_output=True, stdin=subprocess.DEVNULL)

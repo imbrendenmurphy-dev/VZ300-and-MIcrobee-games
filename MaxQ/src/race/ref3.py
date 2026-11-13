@@ -80,6 +80,7 @@ def skyline(img, fr):
         for j in js:
             img[y * 32 + j] = sum(sky_pix(s + 4 * j + p, h) << (6 - 2 * p) for p in range(4))
 SU_A, SU_B, RL_A, RL_B, SK = 0, 4, 1, 7, 5
+BOOST_A, BOOST_B = 7, 1
 VOID, HAZE = 2, 8
 
 # ------------------------------------------------------------- track
@@ -253,6 +254,7 @@ def strip(fr, P, rw, s, k):
             if y >= ya0: upd(fr, y, x88 >> 8, e)
             x88 = (x88 + slope) & 0xFFFF
     su = SU_A if ((k >> 2) & 1) == 0 else SU_B
+    if (k & 126) == 40: su = BOOST_A if (k & 1) == 0 else BOOST_B    # boost pad: two glowing sections every 128
     rl = RL_B if ((k >> 1) & 1) else RL_A
     top = None
     for y in range(yr0, yr1 + 1):

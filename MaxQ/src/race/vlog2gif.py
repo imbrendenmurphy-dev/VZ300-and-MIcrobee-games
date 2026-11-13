@@ -16,7 +16,7 @@ def frame(buf, latch):
     return im.resize((512,256), Image.NEAREST)
 if __name__ == '__main__':
     B.HALF_INIT = 1
-    src,_ = B.source(); asm, org, data, vz = B.assemble(src, 'RACE3D.VZ')
+    src,_ = B.source(); asm, org, data, vz = B.assemble(src, 'MAXQ.VZ')
     secs = 14
     subprocess.run([B.EMU, vz, str(70630*50*secs), '--vramlog', 'v.log', '2'], capture_output=True, stdin=subprocess.DEVNULL)
     d = open('v.log','rb').read(); n = len(d)//2049

@@ -37,27 +37,17 @@ main:   CHKEI
         jr c,.e2
 .cap:   ld a,6
 .e2:    ld (ELAPSED),a
-        ld a,(AUTO)             ; attract mode: title card every ~200 frames
-        or a
-        ld hl,0
-        jr z,.at0
-        ld hl,(ATIMER)
-        inc hl
-        ld a,l
-        cp 200
-        jr c,.at0
-        call title_card
-        ei
-        ld hl,0
-.at0:   ld (ATIMER),hl
+        call state_frame
         call input
         ld a,(ELAPSED)
         ld b,a
 .ph:    push bc
-        call physics
+        call field_tick
         pop bc
         djnz .ph
+        call rv_prep
         call render
+        call rv_project
         ; wait until the interrupt has shown the previous frame
 .wr:    CHKEI
         ld a,(READY)
@@ -66,7 +56,35 @@ main:   CHKEI
         call compose
         call draw_hud
         call draw_gates
+        call draw_rivals
         call draw_craft
+        call draw_banner
+        ld a,(SPLAIN)           ; rows TOPROW..CLEAN-1 are plain sky in this frame
+        ld b,a
+        ld a,(DMIN)
+        cp b
+        jr nc,.c1
+        ld b,a
+.c1:    ld a,(CLEAN)            ; copy from the first row that may differ from the screen
+        ld c,a
+        ld a,b
+        ld (CLEAN),a
+        cp c
+        jr c,.c2
+        ld a,c
+.c2:    cp TOPROW
+        jr nc,.c3
+        ld a,TOPROW
+.c3:    and $FE
+        ld c,a
+        ld a,(SPLITMODE)        ; the HUD split needs a fixed copy length
+        or a
+        jr z,.c4
+        ld c,TOPROW
+.c4:    ld a,c
+        ld (CPYROW),a
+        ld a,255
+        ld (DMIN),a
         ld a,(SPLITMODE)        ; HUD-strip split: switch back at the top of the 3D view
         cp 2
         ld a,TOPROW
@@ -93,6 +111,8 @@ isr:    push af
         push bc
         push de
         push hl
+        push ix
+        push iy
         ld hl,(FIELDS)
         inc hl
         ld (FIELDS),hl
@@ -155,6 +175,9 @@ isr:    push af
         jr nz,.dl
 .css0:  ld a,$08                ; track in colour set 0
         ld (LATCH),a
+        call sfx_isr
+        pop iy
+        pop ix
         pop hl
         pop de
         pop bc
@@ -198,12 +221,7 @@ input:  xor a
         ld b,a
         ld a,c
         or b
-        jr z,.idle
-        xor a
-        ld (IDLE),a
-        ld (IDLE+1),a
-        ld (AUTO),a
-.idle:  ; split toggle on M (edge)
+        ; split toggle on M (edge)
         ld a,c
         and $20
         ld hl,MPREV
@@ -263,16 +281,7 @@ input:  xor a
         jr z,.nb
         ld a,1
         ld (BRAKE),a
-.nb:    ld hl,(IDLE)            ; back to the autopilot after ~5 s idle
-        inc hl
-        ld (IDLE),hl
-        ld de,90
-        or a
-        sbc hl,de
-        ret c
-        ld a,1
-        ld (AUTO),a
-        ret
+.nb:    ret
 
 autopilot:
         ld a,1
@@ -323,14 +332,20 @@ autopilot:
 ;  physics, one field: forgiving hover handling, no falling off
 ; =====================================================================
 physics:
+        call vcap
+        ld c,a                  ; C = speed limit (normal, boost, stalled)
         ld a,(SPEED)
         ld b,a
         ld a,(THROT)
         or a
         jr z,.coast
         ld a,b
-        cp VMAX
+        cp c
         jr nc,.sp
+        inc b
+        ld a,(BOOSTT)
+        or a
+        jr z,.sp
         inc b
         jr .sp
 .coast: ld a,(FIELDS)
@@ -348,7 +363,11 @@ physics:
         jr nc,.sp1
         xor a
 .sp1:   ld b,a
-.sp2:   ld a,b
+.sp2:   ld a,c                  ; above the limit: ease down
+        cp b
+        jr nc,.sp3
+        dec b
+.sp3:   ld a,b
         ld (SPEED),a
         ; advance along the track
         ld a,(CAM_F)
@@ -361,6 +380,7 @@ physics:
         and 1
         ld h,a
         ld (CAM_I),hl
+        call new_section
 .nadv:  ; lateral velocity: steering
         ld a,(STEER)
         ld b,a
@@ -442,6 +462,16 @@ physics:
 .hitn:  ld hl,-60
 .bounce:
         ld (CAM_LAT),hl
+        ld a,(BUMPT)            ; scraping the barrier costs a little shield
+        or a
+        jr nz,.nbh
+        ld a,12
+        ld (BUMPT),a
+        ld a,SFX_BUMP
+        call sfx
+        ld a,2
+        call hurt
+.nbh:
         ld a,(LATV)
         sra a
         neg
@@ -550,19 +580,20 @@ draw_hud:
         ld a,(hl)
         and 3
         ret nz
-.go:    ld hl,HUDBUF            ; line 1: "SPEED nnn" ... "n.nF H"
-        ld b,28
+.go:    ld hl,HUDBUF            ; two 31-character lines
+        ld b,64
 .sp:    ld (hl),' '
         inc hl
         djnz .sp
-        ld (hl),0
-        inc hl
-        ld a,(AUTO)
-        ld (hl),a               ; byte 29: autopilot flag (line 2)
-        ld hl,s_speed
+        xor a
+        ld (HUDBUF+31),a
+        ld (HUDBUF+63),a
+        ; line 1: "SPEED nnn  LAP n/3  POS n/4"
+        ld hl,s_hud1
         ld de,HUDBUF
-        ld bc,6
+        ld bc,27
         ldir
+        ld de,HUDBUF+6
         ld a,(SPEED)
         ld l,a
         ld h,0
@@ -573,7 +604,54 @@ draw_hud:
         ld a,l
         add a,'0'
         ld (de),a
-        ld a,(FAVG)             ; tenths = sum*10/16 = sum*5/8
+        ld a,(LAPN)
+        cp NLAPS-1
+        jr c,.lp
+        ld a,NLAPS-1
+.lp:    add a,'1'
+        ld (HUDBUF+15),a
+        ld a,(POS)
+        add a,'0'
+        ld (HUDBUF+24),a
+        ; line 2: "TIME m:ss.t  ######## " or the demo prompt
+        ld a,(GSTATE)
+        or a
+        jr nz,.race
+        ld hl,s_demo
+        ld de,HUDBUF+32
+        ld bc,18
+        ldir
+        jr .fps
+.race:  ld hl,s_time
+        ld de,HUDBUF+32
+        ld bc,5
+        ldir
+        ld hl,(RTIME)
+        call fmt_time
+        dec de                  ; whole seconds only here (fewer redraws)
+        ld a,' '
+        ld (de),a
+        dec de
+        ld (de),a
+        ld a,(SHIELD)           ; shield bar: one block per 8
+        rrca
+        rrca
+        rrca
+        and 15
+        ld b,a
+        ld hl,HUDBUF+32+13
+        ld c,8
+.bar:   ld a,b
+        or a
+        ld a,'-'
+        jr z,.be
+        dec b
+        ld a,'#'
+.be:    ld (hl),a
+        inc hl
+        dec c
+        jr nz,.bar
+.fps:   ld a,(FAVG)             ; average fields per frame: tenths = sum*10/16
         ld l,a
         ld h,0
         ld d,h
@@ -587,7 +665,7 @@ draw_hud:
         rr l
         srl h
         rr l
-        ld de,HUDBUF+22
+        ld de,HUDBUF+32+24
         ld bc,10
         call .dig
         ld a,'.'
@@ -603,42 +681,67 @@ draw_hud:
         ld a,(HALFON)
         or a
         jr z,.nhh
-        inc de
         ld a,'H'
         ld (de),a
-.nhh:   ld a,(HUDFORCE)         ; sky freshly restored: just draw
-        or a
-        jr nz,.dr
-        ld hl,HUDBUF            ; unchanged text: nothing to do
+.nhh:   ld a,(HUDFORCE)         ; redraw each line only when its text changed
+        ld (.frc+1),a
+        xor a
+        ld (HUDFORCE),a
+        ld hl,HUDBUF
         ld de,HUDPREV
-        ld b,30
+        ld a,1
+        call .line
+        ld hl,HUDBUF+32
+        ld de,HUDPREV+32
+        ld a,8
+.line:  push af                 ; A = first row, HL = text, DE = previous text
+        push hl
+        push de
+.frc:   ld a,0
+        or a
+        jr nz,.ch
+        ld b,32
 .cmp:   ld a,(de)
         cp (hl)
-        jr nz,.chg
+        jr nz,.ch
         inc hl
         inc de
         djnz .cmp
+        pop de
+        pop hl
+        pop af
         ret
-.chg:   ld hl,SKYIMG+1*32       ; clear the HUD rows back to sky
-        ld de,BUFFER+1*32
-        ld bc,12*32
+.ch:    pop de
+        pop hl
+        push hl
+        ld bc,32                ; remember it
         ldir
-.dr:    xor a
-        ld (HUDFORCE),a
-        inc a
+        pop hl
+        pop af
+        push hl
+        ld l,a                  ; clear the line's 5 rows back to sky
+        ld h,0
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        push hl
+        ld de,SKYIMG
+        add hl,de
+        ex (sp),hl
+        ld de,BUFFER
+        add hl,de
+        ex de,hl
+        pop hl
+        push de
+        ld bc,5*32
+        ldir
+        pop de
+        inc de                  ; text starts one column in
+        pop hl
+        ld a,1
         ld (TOPCHG),a
-        ld hl,HUDBUF
-        ld de,HUDPREV
-        ld bc,30
-        ldir
-        ld hl,HUDBUF
-        ld de,BUFFER+1*32+1
-        call text_t
-        ld a,(AUTO)
-        or a
-        ret z
-        ld hl,s_auto
-        ld de,BUFFER+8*32+1
         jp text_t
 .dig:   ld a,'0'
 .d1:    or a
@@ -691,7 +794,7 @@ text:   ; HL -> zero-terminated text, DE -> buffer address (one byte per glyph c
         inc hl
         jr .ch
 
-s_auto: DB "AUTOPILOT",0
+s_hud1: DB "SPEED 000  LAP 1/3  POS 1/4"
 s_speed: DB "SPEED "
 
 text_t: ; transparent text: only the glyph pixels are drawn, in HUDFG colour
@@ -787,8 +890,9 @@ mode_upd:
         jp make_sky_top
 
 ; title card with the colour-set split (title block in set 1); ~3 s, interrupts off
-title_card:
+title_card:                     ; HL = routine that draws the lower half
         di
+        ld (LOWERFN),hl
         call cls_buf
         ld de,BUFFER            ; sunset gradient behind the title (shown in colour set 1)
         ld c,0
@@ -827,12 +931,8 @@ title_card:
         call text_t
         pop af
         ld (HUDFG),a
-        ld hl,s_keys1
-        ld de,BUFFER+32*40+2
-        call text
-        ld hl,s_keys2
-        ld de,BUFFER+32*48+2
-        call text
+        ld hl,(LOWERFN)
+        call jp_hl
         ld hl,BUFFER
         ld de,VRAM
         ld bc,2048
@@ -854,12 +954,18 @@ title_card:
         ld a,$08
         ld (LATCH),a
         djnz .w
-        ld a,1                  ; the game screen must be rebuilt in full
+        xor a                   ; the game screen must be rebuilt in full
+        ld (CLEAN),a
+        ld a,1
         ld (SKYDIRTY),a
         ld (TOPCHG),a
         ld hl,(FIELDS)
         ld (LASTF),hl
         ret
+
+{GAME}
+
+jp_hl:  jp (hl)
 
 init_vars:
         ld hl,VARS              ; clear variables
@@ -869,6 +975,11 @@ init_vars:
         djnz .c
         ld a,1
         ld (AUTO),a
+        ld hl,GVARS             ; clear game variables and rivals
+        ld b,160
+.g:     ld (hl),0
+        inc hl
+        djnz .g
         ld a,HALF_INIT
         ld (HALFON),a
         ld a,16

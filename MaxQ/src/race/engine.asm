@@ -181,6 +181,9 @@ tr_loop:
         ld a,(hl)
         sub b
         ld (DANG),a
+        ld a,(RVANY)            ; a rival in this section?
+        or a
+        call nz,rv_hook
         ; level of detail
         ld a,(DEPTHV)
         cp LOD1
@@ -491,6 +494,8 @@ render: ld a,(HALFON)
 st_loop:
         push bc
         CHKEI
+        ld a,(YTOP)             ; coverage by nearer track (rival occlusion)
+        ld (ix+20),a
         call do_strip
         ld de,32
         add ix,de
@@ -871,6 +876,17 @@ stripfill:
         jr z,.c1
         ld a,SU_B
 .c1:    ld (SUC),a
+        ld a,(KK)               ; boost pad sections: (k & 126) == 40
+        and 126
+        cp 40
+        jr nz,.c1b
+        ld a,(KK)
+        and 1
+        ld a,BOOST_A
+        jr z,.c1a
+        ld a,BOOST_B
+.c1a:   ld (SUC),a
+.c1b:
         ld a,(KK)
         rrca
         and 1
@@ -1937,10 +1953,50 @@ compose:
         inc a
         ld (HUDFORCE),a
         ld (TOPCHG),a
-.nsky:
+.nsky:  ; plain-sky rows at the top of the 3D view: no track, no skyline, no banner
+        ld a,(SPLIT)
+        sub SKYL_H+1
+        jr c,.s0
+        cp TOPROW
+        jr nc,.s1
+.s0:    ld a,TOPROW
+.s1:    ld c,a                  ; C = limit
+        ld hl,ROWCL+TOPROW
+        ld b,TOPROW
+.s2:    ld a,b
+        cp c
+        jr nc,.s3
+        ld a,(hl)
+        inc a
+        jr nz,.s3
+        inc l
+        inc b
+        jr .s2
+.s3:    ld a,(BANT)
+        or a
+        jr z,.s4
+        ld a,b
+        cp 20
+        jr c,.s4
+        ld b,20
+.s4:    ld a,b
+        ld (SPLAIN),a
+        ld a,(CLEAN)            ; still plain in BUFFER from last frame? then skip them
+        cp b
+        ld a,b
+        jr nc,.s5
         ld a,TOPROW
-        ld (crow),a
-        ld de,BUFFER+TOPROW*32
+.s5:    ld (crow),a
+        ld l,a
+        ld h,0
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        ld de,BUFFER
+        add hl,de
+        ex de,hl
         ld b,PATTAB/256
         ld iy,c2back
 c2row:  CHKEI
@@ -2052,7 +2108,17 @@ c2end:  ld a,e
 ; ---------------------------------------------------------------------
 ; gates: solid colour-3 rectangles OR-ed into BUFFER (far to near)
 ; ---------------------------------------------------------------------
+; rect colour: A = pattern byte ($FF red, $AA blue, $55 yellow, $00 green)
+set_rcol:
+        ld (rc1+1),a
+        ld (rc2+1),a
+        ld (rc3+1),a
+        ld (rc4+1),a
+        ret
+
 draw_gates:
+        ld a,$FF
+        call set_rcol
         ld a,(NGATE)
         or a
         ret z
@@ -2150,7 +2216,15 @@ rect:   ld a,(RX1)
         ld a,1
         ld (SKYDIRTY),a
         ld (TOPCHG),a
-.ns:    ld a,(RX0)
+.ns:    ld a,(RY0)              ; lowest row touched (plain-sky tracking)
+        sub 64
+        jr nc,.dm
+        xor a
+.dm:    ld hl,DMIN
+        cp (hl)
+        jr nc,.dm2
+        ld (hl),a
+.dm2:   ld a,(RX0)
         cp 64
         jr nc,.a
         ld a,64
@@ -2226,21 +2300,34 @@ rect:   ld a,(RX1)
         ld b,a
         ld a,(MRIGHT)
         and b
-        or (hl)
+        ld b,a                  ; new = old ^ ((old ^ colour) & mask)
+        ld a,(hl)
+@rc1:   xor $FF
+        and b
+        xor (hl)
         ld (hl),a
         jr .nx
 .wide:  ld b,a
         ld a,(MLEFT)
-        or (hl)
+        ld c,a
+        ld a,(hl)
+@rc2:   xor $FF
+        and c
+        xor (hl)
         ld (hl),a
         inc hl
         dec b
         jr z,.last
-.mid:   ld (hl),$FF
+@rc3:   ld a,$FF
+.mid:   ld (hl),a
         inc hl
         djnz .mid
 .last:  ld a,(MRIGHT)
-        or (hl)
+        ld c,a
+        ld a,(hl)
+@rc4:   xor $FF
+        and c
+        xor (hl)
         ld (hl),a
 .nx:    ld a,(RY1)
         ld b,a
