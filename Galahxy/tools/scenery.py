@@ -1,11 +1,11 @@
 """Stage 1 (PARTY PLANET) scenery: skyline band (12 rows, half speed, looping) and ground band
 (18 rows, full speed): INTRO -> CLOUD TOPS route | LOLLY GARDEN route -> PARTY TABLE (loops under the boss).
-Colours CSS1: 0 buff 1 cyan (sky) 2 magenta 3 orange. Columns are 4 px (one byte) wide and de-duplicated."""
+Colours CSS0: W_ yellow, C_ blue (sky), M_ green, O_ red. Columns are 4 px (one byte) wide and de-duplicated."""
 import random, math
 GH, SH = 18, 12
 INTRO_C, ROUTE_C, ARENA_C, LAWN_C, GATE_C = 352, 240, 64, 32, 48       # lengths in 4-px columns
 SKY_C = 128
-W_, C_, M_, O_ = 0, 1, 2, 3
+W_, C_, M_, O_ = 1, 2, 0, 3      # CSS0: yellow, blue sky, green, red
 
 def canvas(w, h, c): return [[c] * w for _ in range(h)]
 def rect(cv, x, y, w, h, c):
@@ -27,7 +27,7 @@ def skyline():
         k = rnd.random()
         if k < 0.3:                       # giant mushroom
             r = rnd.choice([6, 7, 8]); cx = x + r
-            disc(cv, cx, 3, r, 3, M_); rect(cv, cx - r, 4, 2 * r + 1, 3, C_)
+            disc(cv, cx, 3, r, 3, O_); rect(cv, cx - r, 4, 2 * r + 1, 3, C_)
             for d in range(-r + 2, r - 1, 4): cv[2][cx + d] = W_; cv[1 + (d // 4) % 2][cx + d + 1] = W_
             rect(cv, cx - 1, 4, 3, SH - 4, W_)
             x += 2 * r + 4
@@ -97,7 +97,7 @@ def ground():
             for y in range(9, GH): cv[y][px] = W_ if (px // 4 + y // 3) % 2 else O_
     rect(cv, 300, 3, 8, 5, O_); rect(cv, 303, 3, 2, 5, W_); rect(cv, 300, 5, 8, 1, W_)     # a present
     rect(cv, 302, 1, 1, 2, W_); rect(cv, 305, 1, 1, 2, W_)
-    disc(cv, 507, 4, 8, 4, M_); rect(cv, 499, 5, 17, 2, C_)                              # mushroom house
+    disc(cv, 507, 4, 8, 4, O_); rect(cv, 499, 5, 17, 2, C_)                              # mushroom house
     for d in (-5, 0, 5): cv[2][507 + d] = W_
     rect(cv, 502, 6, 11, 5, W_); rect(cv, 506, 8, 3, 3, O_)
     for x in range(700, 760):                  # a liquorice strap snaking over the icing
@@ -204,7 +204,7 @@ def asm():
 if __name__ == '__main__':
     import sys
     sys.path.insert(0, '.')
-    from vzpal import CSS1
+    from vzpal import CSS0
     from PIL import Image
     tiles, maps, stiles, smap, g, s = build()
     print('ground tiles', len(tiles), 'sky tiles', len(stiles))
@@ -213,8 +213,8 @@ if __name__ == '__main__':
     x = 0
     for k in SEGS:
         for y in range(GH):
-            for xx in range(len(g[k][0])): im.putpixel((x + xx, SH + 2 + y), CSS1[g[k][y][xx]])
+            for xx in range(len(g[k][0])): im.putpixel((x + xx, SH + 2 + y), CSS0[g[k][y][xx]])
         x += len(g[k][0])
     for y in range(SH):
-        for xx in range(min(W, len(s[0]))): im.putpixel((xx, y), CSS1[s[y][xx]])
+        for xx in range(min(W, len(s[0]))): im.putpixel((xx, y), CSS0[s[y][xx]])
     im.crop((0, 0, 1000, GH + SH + 2)).resize((2000, (GH + SH + 2) * 3), Image.NEAREST).save(sys.argv[1])

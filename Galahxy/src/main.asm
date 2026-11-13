@@ -47,7 +47,7 @@ boot:
             ld (cur_map),a
             ld hl,$6A5B
             ld (rng),hl
-            ld a,L_MODE|L_CSS|L_SPK0   ; pastel palette (CSS1)
+            ld a,L_MODE|L_SPK0      ; main palette (CSS0); pastel stages set CSS1
             ld (latchv),a
             ld a,HIGH(BB)
             ld (bbh),a

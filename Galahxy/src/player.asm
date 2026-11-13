@@ -754,7 +754,7 @@ build_bar:
             pop bc
             push bc
             jr nz,.nf
-            ld a,2
+            ld a,0
             ld c,3
             call .slot
 .nf:        pop bc
@@ -762,8 +762,8 @@ build_bar:
             ld a,(p_cursor)
             cp b
             jr nz,.nc
-            ld a,2
-            ld c,0
+            ld a,3
+            ld c,1
             call .slot
 .nc:        pop bc
             inc b

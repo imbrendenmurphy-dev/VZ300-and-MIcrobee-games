@@ -1467,8 +1467,8 @@ msg_render:
             ld bc,159
             ld (hl),SKYBYTE
             ldir
-            ld a,2
-            ld c,1
+            ld a,1
+            ld c,2
             call text_col
             ld hl,(msg_p)
             ld a,(hl)

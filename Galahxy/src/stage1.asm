@@ -88,7 +88,7 @@ s1_init:
             ld (mid_done),a
             ld (gnome_n),a
             ld (route),a
-            ld a,L_MODE|L_CSS|L_SPK0
+            ld a,L_MODE|L_SPK0      ; stage 1: the main palette (CSS0)
             ld (latchv),a
             ld hl,tune_stage1
             ld (stage_tune),hl

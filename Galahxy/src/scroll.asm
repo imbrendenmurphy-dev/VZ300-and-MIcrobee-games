@@ -6,7 +6,7 @@
 ;  A new 4-px tile column costs ~1K T to fold into all four rings; a
 ;  frame then copies 32 bytes per row out of ring (scroll & 3).
 ; =====================================================================
-SKYBYTE     equ $55            ; cyan (CSS1)
+SKYBYTE     equ $AA            ; blue
 
 ; ---- reset the scroller for a stage (ground map already selected)
 scroll_init:

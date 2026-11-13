@@ -1,9 +1,10 @@
-"""GALAHXY sprite art (all original). Mode 1, CSS1 pastel palette:
-w = buff(0)  c = cyan(1)  m = magenta(2)  o = orange(3)   '.' = transparent.
+"""GALAHXY sprite art (all original). Drawn with four colour letters which map onto
+the main palette (CSS0) as  w -> yellow, c -> blue, m -> red, o -> green  ('.' = transparent).
+In a pastel (CSS1) stage the same data shows as cyan / magenta / orange / buff.
 Pixels are about 1.5x taller than wide on a 4:3 screen.
 Each sprite: name -> (list of frames, nph) ; nph 4 = pre-shifted (any x), 1 = byte-aligned x."""
 
-C = {'w': 0, 'c': 1, 'm': 2, 'o': 3}
+C = {'w': 1, 'c': 2, 'm': 3, 'o': 0}
 
 def G(s):
     rows = [r for r in s.strip('\n').split('\n')]
@@ -441,7 +442,7 @@ S['CLOUD'] = ([G("""
 wwwwwwwwwwwwwwww
 .wwwwwwwwwwwwww.
 """)], 4)
-def outline(fr, c=0):
+def outline(fr, c=1):
     h = len(fr) + 2; w = len(fr[0]) + 2
     g = [[-1] * w for _ in range(h)]
     for y, row in enumerate(fr):

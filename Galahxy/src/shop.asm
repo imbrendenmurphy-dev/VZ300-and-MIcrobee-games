@@ -80,20 +80,37 @@ shop:
             ld de,shop_items
             add hl,de
             push hl
-            ; colour: chosen orange (blinks), can't afford cyan, else buff
+            ; colour: chosen = red on a yellow strip; affordable yellow; too dear green
             ld a,(fe_sel)
             cp b
+            jr nz,.nch
+            push hl
+            push bc
+            ld a,b
+            ld c,a
+            add a,a
+            add a,a
+            add a,c
+            add a,16
+            ld b,5
+            ld c,$55
+            call band_bb
+            pop bc
+            pop hl
             ld a,3
-            jr z,.ci
-            inc hl
+            ld c,1
+            jr .ci
+.nch:       inc hl
             inc hl
             ld a,(wallet)
             cp (hl)
-            ld a,0
-            jr nc,.ci
-            ld a,1
-.ci:        ld c,2
-            call text_col
+            ld c,2
+            ld a,3                  ; too dear: red
+            jr c,.ci
+            ld a,b                  ; affordable: yellow and green lines
+            cpl
+            and 1
+.ci:        call text_col
             pop hl
             pop bc
             push bc

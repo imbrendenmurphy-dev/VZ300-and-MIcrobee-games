@@ -27,7 +27,7 @@ hud_force:
             ld (bbar_dirty),a
             ld a,HUD_BYTE
             call cls_hud
-            ld a,0
+            ld a,1
             ld c,HUD_PAPER
             call text_col
             ld hl,score
@@ -73,7 +73,7 @@ hud_force:
             jr z,.nh2
             jr c,.nh2
             push af
-            ld a,1
+            ld a,0
             ld c,HUD_PAPER
             call text_col
             pop bc
@@ -84,7 +84,7 @@ hud_force:
             pop bc
             djnz .h2
 .nh2:       ; lives
-            ld a,0
+            ld a,1
             ld c,HUD_PAPER
             call text_col
             ld de,VRAM+32+15
@@ -101,13 +101,13 @@ hud_force:
 .right:     ld a,(boss_bar)
             or a
             jr nz,.boss
-            ld a,1
+            ld a,0
             ld c,HUD_PAPER
             call text_col
             ld hl,str_hi
             ld de,VRAM+32+19
             call print
-            ld a,0
+            ld a,1
             ld c,HUD_PAPER
             call text_col
             ld hl,hiscore
@@ -125,7 +125,7 @@ hud_bossbar:
             ld b,3
 .br:        push bc
             push hl
-            ld (hl),$00             ; frame: buff
+            ld (hl),$55             ; frame: yellow
             ld d,h
             ld e,l
             inc de
