@@ -1,0 +1,6 @@
+	DB STG_PROG, $00, "BIX     BIN"
+	DB 4, $01, "GAME    BNK"
+	DB 5, $00, "MAP     BNK"
+	DB 6, $00, "GFX     BNK"
+	DB 8, $00, "SPR0    BNK"
+	DB 9, $00, "SPR1    BNK"
