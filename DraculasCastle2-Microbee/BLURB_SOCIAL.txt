@@ -1,0 +1,47 @@
+🦇 DRACULA'S CASTLE II: THE CASTLE AWAKENS 🦇
+for the Microbee Premium Plus
+"Something ancient has woken."
+VIBED BY BPM 2026
+
+Transylvania, 1897. The villagers of Borgo Pass whisper of strange lights in the old castle on the hill. Folk have vanished. Graves lie open. The dead walk.
+
+DRACULA'S CASTLE II was a first-person gothic RPG for the VZ300, a sequel to the 1984 BASIC game. Now the castle wakes up on the Microbee Premium Plus. The game is the VZ's own: the same maps, monsters, stats, story and music. Every picture is redrawn in the Microbee's 16-colour character graphics, and the display and combat are rebuilt for speed.
+
+Walk the castle in first person through six areas: the Grounds, the Great Hall, the Library, the Dungeons, the Clock Tower and Dracula's Tower. Talk to the ghosts who still haunt it, buy potions from a prisoner through the bars, find the keys that open each new wing, and ring the great bell that wakes the Count.
+
+Fight twelve "groovy ghoulie" monsters in quick turn-based battles. The bat, skeleton, ghost, zombie, slime, knight and bride fight in whichever room you meet them, while the Gargoyle, Grell, Ghoul King, Bat Lord and Dracula wait in their own lairs. Swing your sword, cast fire, throw holy water, and watch them dissolve.
+
+🕯️ FEATURES
+▪ Six areas in first person, each with its own walls, floors, decorations and furniture. Turning takes about a tenth of a second.
+▪ All twelve monsters redrawn as cartoon "groovy ghoulies", with idle, attack and hit poses. The ghost floats through eight poses.
+▪ Battles in the room you're in: a skeleton in the library fights among the bookshelves.
+▪ Drawn battle effects: a sword arc, a fireball that bursts into embers, holy water and a gold cross, claw rakes, level-up sparkles, and an ordered dissolve when a monster dies.
+▪ Fast, aggressive combat. A one-hit skeleton fight takes about three seconds from encounter to back in the maze.
+▪ Illustrated automap, inventory and status page, and story pages.
+▪ Monochrome mode for amber and green monitors, with its own title and artwork.
+▪ The VZ's three-voice beeper music, with a SOFT voicing made for the Microbee's speaker, or the original VZ sound.
+▪ An attract sequence: the title, the story so far, a tour of the six areas and the Ghoul Gallery of all twelve monsters.
+▪ The four hidden 1984 tribute screens from the VZ game.
+
+💾 TECH SPECS
+▪ Machine: Microbee Premium Plus. Z80 at 3.375 MHz, 1MB RAM, 32K PCG RAM, 6545 CRTC.
+▪ Display: 40 × 32 character cells of 8 × 8 pixels (320 × 256), 16 colours, a colour pair per cell.
+▪ First-person view: a 26 × 24-cell window composed from wall, decoration and object pieces. Each area's art (up to about 1,700 glyphs) stays unpacked in RAM. A turn redraws in 4 to 5 frames.
+▪ Monsters: drawn cell-exact so they lay cleanly over any room. Rooms use PCG banks 0 to 4, monsters banks 5 to 13.
+▪ Combat: each animation step redraws only the cells that change, just after the frame sync. Effects are pixel-merged into a spare PCG bank.
+▪ Loading: entering an area unpacks its room and its likely monsters, so most fights load in about a third of a second.
+▪ Sound: the VZ game's three-voice pulse beeper engine, retimed for the Premium (about 16 kHz).
+▪ Disk: DS80. Boots to CP/M; DRACULA.COM loads 21 files (about 660K) into 29 of the 32 RAM blocks.
+▪ Source: about 11,800 lines of Z80 assembly, plus about 6,000 lines of Python tools that draw the art and build the disk.
+
+🎮 TO PLAY
+Boot DRACULA.DS8, type DRACULA, then press C for colour or M for monochrome.
+▪ W / I / up: step forward
+▪ A / J / left and D / L / right: turn
+▪ S / K / down: turn around
+▪ SPACE / RETURN: act, talk, open, select
+▪ M map · E inventory · P pause (Q quits)
+▪ N music on/off · - SOFT music · + VZ music
+▪ Joystick on PIO port A
+
+#Microbee #MicrobeePremium #RetroGaming #Z80 #RPG #Dracula #Homebrew #8bit #VZ300 #Australian
