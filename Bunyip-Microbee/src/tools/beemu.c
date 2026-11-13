@@ -84,7 +84,10 @@ static inline u8 mem_rd(u16 a)
     if (a >= 0xF800) {
         u16 o = a - 0xF800;
         if (port08 & 0x40) return cram[o];
-        return pram[(((port1c & 15) + 1) << 11) | o];
+        /* PCG RAM did not read back on the real Premium Plus (sprites drawn
+           over a read-back glyph came out on black), so neither does it here */
+        (void)o;
+        return 0;
     }
     if (a >= 0xF000) {
         u16 o = a - 0xF000;

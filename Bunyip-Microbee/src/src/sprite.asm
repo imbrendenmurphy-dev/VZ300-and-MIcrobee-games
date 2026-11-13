@@ -1353,28 +1353,33 @@ claim:
         ld a,(pc_full)
         or a
         jr z,.nc                ; covered: nothing to copy
-        ; copy the old glyph from PCG RAM: bank B, (code - 80h) * 16
-        ld a,b
-        and 15
-        or X1C
-        out (PORT_1C),a
+        ; copy the old glyph from the tileset in RAM block 4 (the same
+        ; glyphs as PCG RAM, which is not read back): bank * 1280 + code * 10
+        ld a,BLK_PCG
+        call setblk
         ld a,c
         and 7Fh
         ld l,a
-        ld h,0
-        add hl,hl
-        add hl,hl
-        add hl,hl
-        add hl,hl
-        ld de,PCGWIN
-        add hl,de
+        ld h,high(C10)
+        ld e,(hl)
+        inc h
+        ld d,(hl)               ; DE = code * 10
+        ld a,b
+        and 15
+        ld l,a
+        add a,a
+        add a,a
+        add a,l                 ; bank * 5
+        add a,d
+        ld h,a
+        ld l,e
         ld a,(cslot)
         call slot_ptr           ; DE = private glyph
         rept CELLH
         ldi
         endm
-        ld a,X1C
-        out (PORT_1C),a
+        ld a,(dblk)             ; back to the sprite's block
+        call setblk
 .nc     pop hl
         ; point the cell at it
         ld a,(cslot)
