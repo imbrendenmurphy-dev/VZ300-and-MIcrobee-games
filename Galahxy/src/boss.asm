@@ -78,6 +78,8 @@ stg_setup:
             ld (mid_done),a
             ld (route),a
             ld (stg_cnt),a
+            ld a,SPR_CLOUD
+            ld (cloud_spr),a
             ex de,hl
             jp music
 

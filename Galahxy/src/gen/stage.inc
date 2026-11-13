@@ -1,1 +1,1 @@
-            include "../stage1.asm"
+            include "../stage3.asm"

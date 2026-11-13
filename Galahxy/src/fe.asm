@@ -252,6 +252,8 @@ cast_select:
             xor a
             ld (fe_sel),a
 .s:         call clear_objs
+            ld a,$FF
+            ld (ent_pos),a
             ld hl,0
             ld (fe_t),hl
 .loop:      call read_input
@@ -454,7 +456,23 @@ cast_select:
             ld a,48
             call small_centre
             call draw_pshots
-            ; difficulty strip
+            ; difficulty strip (redrawn only when it changes)
+            ld a,(start_stage)
+            add a,a
+            add a,a
+            add a,a
+            ld b,a
+            ld a,(trainer)
+            add a,a
+            add a,a
+            or b
+            ld b,a
+            ld a,(diff)
+            or b
+            ld hl,ent_pos
+            cp (hl)
+            jr z,.nbar
+            ld (hl),a
             ld a,(diff)
             add a,a
             ld e,a
@@ -473,7 +491,7 @@ cast_select:
             ld (str_trainer+15),a
             ld hl,str_trainer
 .ntr:       call bar_msg
-            call present
+.nbar:      call present
             ld a,(in_new)
             and K_FIRE|K_ARM
             jp z,.loop

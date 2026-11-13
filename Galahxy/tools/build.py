@@ -50,6 +50,7 @@ base = None
 n = 0
 while os.path.exists(os.path.join(ROOT, 'tools', 'stages', 'st%d.py' % n)):
     mod = importlib.import_module('st%d' % n)
+    assert not (set(mod.ORDER) & set(sprites.COMMON)), ('stage sprite names clash with common ones', set(mod.ORDER) & set(sprites.COMMON))
     tab, rec = sprites.asm_from(mod.SPR, mod.ORDER, 'stgspr', 128)
     w('stg_spr_tab.inc', tab); w('stg_spr_rec.inc', rec)
     w('stg_scen.inc', scenery.asm(mod.ground(), mod.sky()))

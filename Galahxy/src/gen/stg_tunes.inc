@@ -1,129 +1,137 @@
-tune_stage1:
+tune_stage:
             db 2
-            db 7,60
-            db 7,0
-            db 7,67
-            db 7,0
-            db 7,64
-            db 7,67
-            db 7,0
-            db 7,0
-            db 7,69
-            db 7,0
-            db 7,67
-            db 7,0
-            db 7,64
-            db 7,0
-            db 7,60
-            db 7,0
-            db 7,62
-            db 7,0
-            db 7,69
-            db 7,0
-            db 7,65
-            db 7,69
-            db 7,0
-            db 7,0
-            db 7,71
-            db 7,0
-            db 7,69
-            db 7,0
-            db 7,65
-            db 7,0
-            db 7,62
-            db 7,0
-            db 7,60
-            db 7,0
-            db 7,67
-            db 7,0
-            db 7,64
-            db 7,67
-            db 7,0
-            db 7,0
-            db 7,72
-            db 7,0
-            db 7,71
-            db 7,0
-            db 7,67
-            db 7,0
-            db 7,64
-            db 7,0
-            db 7,65
-            db 7,0
-            db 7,64
-            db 7,0
-            db 7,62
-            db 7,0
-            db 7,55
-            db 7,0
-            db 7,60
-            db 7,0
-            db 7,0
-            db 7,0
-            db 7,0
-            db 7,0
-            db 7,0
-            db 7,0
-            db 0
-tune_hoist:
-            db 2
-            db 6,52
+            db 6,55
             db 6,0
+            db 6,62
+            db 6,0
+            db 6,67
+            db 6,0
+            db 6,62
             db 6,0
             db 6,55
-            db 6,59
             db 6,0
-            db 6,52
+            db 6,71
             db 6,0
+            db 6,62
             db 6,0
-            db 6,55
+            db 6,71
+            db 6,0
             db 6,60
             db 6,0
-            db 6,52
+            db 6,64
+            db 6,0
+            db 6,67
+            db 6,0
+            db 6,64
+            db 6,0
+            db 6,62
+            db 6,0
+            db 6,66
+            db 6,0
+            db 6,69
+            db 6,0
             db 6,0
             db 6,0
             db 6,55
-            db 6,59
             db 6,0
-            db 6,57
+            db 6,62
             db 6,0
-            db 6,55
-            db 6,54
+            db 6,67
+            db 6,0
+            db 6,71
+            db 6,0
+            db 6,60
+            db 6,0
+            db 6,64
+            db 6,0
+            db 6,72
             db 6,0
             db 6,0
+            db 6,0
+            db 6,62
+            db 6,0
+            db 6,69
+            db 6,0
+            db 6,66
+            db 6,0
+            db 6,62
+            db 6,0
+            db 6,67
+            db 6,0
+            db 6,0
+            db 6,0
+            db 6,0
+            db 6,0
+            db 6,0
+            db 6,0
+            db 0
+tune_mid:
+            db 2
+            db 5,60
+            db 5,0
+            db 5,0
+            db 5,64
+            db 5,0
+            db 5,67
+            db 5,0
+            db 5,0
+            db 5,72
+            db 5,0
+            db 5,0
+            db 5,67
+            db 5,0
+            db 5,64
+            db 5,0
+            db 5,0
+            db 5,62
+            db 5,0
+            db 5,0
+            db 5,65
+            db 5,0
+            db 5,69
+            db 5,0
+            db 5,0
+            db 5,74
+            db 5,0
+            db 5,0
+            db 5,69
+            db 5,0
+            db 5,65
+            db 5,0
+            db 5,0
             db 0
 tune_boss:
             db 2
-            db 6,50
-            db 6,0
-            db 6,50
+            db 6,57
             db 6,0
             db 6,57
             db 6,0
-            db 6,50
-            db 6,0
-            db 6,53
-            db 6,0
-            db 6,52
-            db 6,0
-            db 6,50
-            db 6,0
-            db 6,49
-            db 6,0
-            db 6,50
-            db 6,0
-            db 6,50
+            db 6,64
             db 6,0
             db 6,57
             db 6,0
-            db 6,50
+            db 6,60
             db 6,0
-            db 6,58
+            db 6,59
+            db 6,0
+            db 6,57
+            db 6,0
+            db 6,56
             db 6,0
             db 6,57
             db 6,0
-            db 6,55
+            db 6,57
+            db 6,0
+            db 6,64
             db 6,0
             db 6,57
+            db 6,0
+            db 6,65
+            db 6,0
+            db 6,64
+            db 6,0
+            db 6,62
+            db 6,0
+            db 6,64
             db 6,0
             db 0

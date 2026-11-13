@@ -182,6 +182,7 @@ start_stage: ds 1              ; (the trainer can start anywhere)
 fe_skip:    ds 1               ; a key ended the demo: go to the cast select
 seg_p:      ds 2               ; ground segment table pointer
 mid_done:   ds 1
+cloud_spr:  ds 1               ; sprite drifting across the sky (0 none)
 stg_cnt:    ds 1               ; a counter for the stage's own use
 boss_base:  ds 1
 bs_kind:    ds 1               ; 0 midboss, 1 boss

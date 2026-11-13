@@ -353,18 +353,21 @@ draw_clouds:
 .mv:        dec (hl)
             inc hl
             djnz .mv
-.dr:        ld a,(cloud_x)
+.dr:        ld a,(cloud_spr)        ; (a stage can swap the clouds or drop them)
+            or a
+            ret z
+            ld a,(cloud_x)
             ld b,a
             ld c,10+YOFF
-            ld a,SPR_CLOUD
+            ld a,(cloud_spr)
             call blit
             ld a,(cloud_x+1)
             ld b,a
             ld c,16+YOFF
-            ld a,SPR_CLOUD
+            ld a,(cloud_spr)
             call blit
             ld a,(cloud_x+2)
             ld b,a
             ld c,7+YOFF
-            ld a,SPR_CLOUD
+            ld a,(cloud_spr)
             jp blit

@@ -1,1 +1,1 @@
-NSTAGES equ 1
+NSTAGES equ 3

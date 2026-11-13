@@ -1,19 +1,15 @@
-SPR_SNAG equ 128
-SPR_BLOWIE equ 130
-SPR_SWOOPER equ 132
-SPR_THONG equ 134
-SPR_TINNIE equ 136
-SPR_SPRINKLER equ 138
-SPR_ESKY equ 140
-SPR_GNOME equ 141
-SPR_HOTSNAG equ 143
-SPR_POSSUM equ 145
-SPR_HOIST equ 146
-SPR_PEG equ 148
-SPR_UNDIES equ 149
-SPR_GRILL equ 151
-SPR_TONGS equ 154
-stgspr_n equ 28
+SPR_PLANE equ 128
+SPR_SOLDIER equ 130
+SPR_BLOCK equ 132
+SPR_MARBLE equ 134
+SPR_ROBOT equ 136
+SPR_YOYO equ 138
+SPR_KITE equ 140
+SPR_WALNUT equ 142
+SPR_SABRE equ 143
+SPR_JACK equ 145
+SPR_NUTCRACKER equ 147
+stgspr_n equ 22
 stgspr_tab:
             dw stgspr_r0
             dw stgspr_r1
@@ -37,9 +33,3 @@ stgspr_tab:
             dw stgspr_r19
             dw stgspr_r20
             dw stgspr_r21
-            dw stgspr_r22
-            dw stgspr_r23
-            dw stgspr_r24
-            dw stgspr_r25
-            dw stgspr_r26
-            dw stgspr_r27
