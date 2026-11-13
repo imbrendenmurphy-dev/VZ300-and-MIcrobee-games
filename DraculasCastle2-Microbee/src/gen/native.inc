@@ -9,7 +9,7 @@ native_groups:
             db 5
             dw 0 ; group02-colour
             db 5
-            dw 8369 ; group03-colour
+            dw 8304 ; group03-colour
             db 6
             dw 0 ; group04-colour
             db 6
@@ -35,9 +35,9 @@ native_groups:
             db 8
             dw 26214 ; group03-mono
             db 9
-            dw 14500 ; group04-mono
+            dw 14456 ; group04-mono
             db 9
-            dw 21408 ; group05-mono
+            dw 21364 ; group05-mono
             db 10
             dw 0 ; group06-mono
             db 10
@@ -106,17 +106,17 @@ native_idle_assets:
             db 4
             dw 29679 ; group02-colour
             db 4
-            dw 30670 ; group03-colour
+            dw 30666 ; group03-colour
             db 4
-            dw 31675 ; group04-colour
+            dw 31671 ; group04-colour
             db 5
-            dw 29279 ; group05-colour
+            dw 29214 ; group05-colour
             db 4
-            dw 31787 ; group06-colour
+            dw 31783 ; group06-colour
             db 5
-            dw 30402 ; group07-colour
+            dw 30337 ; group07-colour
             db 5
-            dw 31693 ; group08-colour
+            dw 31628 ; group08-colour
             db 6
             dw 26171 ; group09-colour
             db 6
@@ -130,25 +130,25 @@ native_idle_assets:
             db 6
             dw 30358 ; group02-mono
             db 6
-            dw 31156 ; group03-mono
+            dw 31141 ; group03-mono
             db 4
-            dw 32472 ; group04-mono
+            dw 32468 ; group04-mono
             db 6
-            dw 31871 ; group05-mono
+            dw 31856 ; group05-mono
             db 7
             dw 31522 ; group06-mono
             db 9
-            dw 28697 ; group07-mono
+            dw 28653 ; group07-mono
             db 7
             dw 32032 ; group08-mono
             db 8
             dw 32141 ; group09-mono
             db 9
-            dw 29631 ; group10-mono
+            dw 29587 ; group10-mono
             db 9
-            dw 30412 ; group11-mono
+            dw 30368 ; group11-mono
             db 9
-            dw 30887 ; group12-mono
+            dw 30843 ; group12-mono
             db 0
             dw 0
             db 0
@@ -156,7 +156,7 @@ native_idle_assets:
             db 0
             dw 0
             db 4
-            dw 32578 ; combat04-colour
+            dw 32574 ; combat04-colour
             db 10
             dw 30184 ; combat05-colour
             db 0
@@ -164,7 +164,7 @@ native_idle_assets:
             db 0
             dw 0
             db 9
-            dw 31786 ; combat08-colour
+            dw 31742 ; combat08-colour
             db 0
             dw 0
             db 10
@@ -180,7 +180,7 @@ native_idle_assets:
             db 0
             dw 0
             db 5
-            dw 32429 ; combat04-mono
+            dw 32364 ; combat04-mono
             db 12
             dw 27820 ; combat05-mono
             db 0
@@ -247,17 +247,17 @@ world_assets2:
             dw 15193
 native_anim_assets:
             db 5
-            dw 11176
+            dw 11111
             db 5
-            dw 19963
+            dw 19898
             db 5
-            dw 25489
+            dw 25424
             db 9
-            dw 7011
+            dw 6967
             db 8
             dw 28164
             db 9
-            dw 11873
+            dw 11829
 bt_rooms:
             db 13
             dw 28431
@@ -289,15 +289,15 @@ bt_sprites:
             db 16
             dw 6711
             db 16
-            dw 11604
+            dw 11534
             db 0
             dw 0
             db 0
             dw 0
             db 16
-            dw 21911
+            dw 21841
             db 16
-            dw 25835
+            dw 25765
             db 0
             dw 0
             db 17
@@ -313,15 +313,15 @@ bt_sprites:
             db 17
             dw 12810
             db 17
-            dw 17555
+            dw 17495
             db 0
             dw 0
             db 0
             dw 0
             db 17
-            dw 24335
+            dw 24275
             db 17
-            dw 27926
+            dw 27866
             db 0
             dw 0
             db 18
@@ -334,7 +334,7 @@ bt_sprites:
             dw 2954
 fx_assets:
             db 16
-            dw 30892,1792
+            dw 30822,1792
             db 18
             dw 7447,3712
             db 18

@@ -294,6 +294,10 @@ Measured in the emulator on a one-hit skeleton fight with the keys mashed:
   and the maze's own background stays in place while you look at the map.
   Opening the map now takes 0.44 s (0.54 s the first time) instead of about
   0.7 s, and closing it 0.44 s instead of 0.66 s.
+- **Skeleton tidy-up.** The skeleton's yelling pose (the Ghoul Gallery card,
+  and his attack in battle) had two little "rattle" motion lines; the right
+  one was hidden by his sword, so the left one floated alone in the sky like
+  a stray character. Both are gone.
 
 ## Known limits
 

@@ -469,9 +469,6 @@ def skeleton(frame, knight=False, king=False):
     t.part('ellipse', (sx - 7, sy - 7, sx + 7, sy + 7), 7, shade=8, gloss=15)
     t.decal('line', [(sx + 10, sy + 8), (sx + 15, sy + 14), (sx + 12, sy + 17)], 0, 1)   # dent
     skull(t, x + 2, 34, 1.0, jaw=jaw, glow=9 if frame != 1 else 11, frown=frame == 2)
-    if frame == 1:
-        for k, (dx, dy) in enumerate(((-34, 18), (34, 12))):      # rattle marks
-            t.decal('arc', ((x + dx - 6, dy - 6, x + dx + 6, dy + 6), 200 if dx < 0 else -20, 340 if dx < 0 else 120), 15, 2)
     return t
 
 

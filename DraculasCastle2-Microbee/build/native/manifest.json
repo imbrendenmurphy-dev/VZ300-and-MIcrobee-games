@@ -1,0 +1,372 @@
+[
+  {
+    "name": "title-colour",
+    "size": 4148,
+    "raw_size": 21760
+  },
+  {
+    "name": "monster01-0-colour",
+    "size": 5046,
+    "raw_size": 21760
+  },
+  {
+    "name": "monster01-1-colour",
+    "size": 5083,
+    "raw_size": 21760
+  },
+  {
+    "name": "monster01-2-colour",
+    "size": 4948,
+    "raw_size": 21760
+  },
+  {
+    "name": "monster02-0-colour",
+    "size": 4607,
+    "raw_size": 21760
+  },
+  {
+    "name": "monster02-1-colour",
+    "size": 4511,
+    "raw_size": 21760
+  },
+  {
+    "name": "monster02-2-colour",
+    "size": 4543,
+    "raw_size": 21760
+  },
+  {
+    "name": "monster03-0-colour",
+    "size": 5093,
+    "raw_size": 21760
+  },
+  {
+    "name": "monster03-1-colour",
+    "size": 5017,
+    "raw_size": 21760
+  },
+  {
+    "name": "monster03-2-colour",
+    "size": 5281,
+    "raw_size": 21760
+  },
+  {
+    "name": "monster04-0-colour",
+    "size": 6674,
+    "raw_size": 21760
+  },
+  {
+    "name": "monster04-1-colour",
+    "size": 6681,
+    "raw_size": 21760
+  },
+  {
+    "name": "monster04-2-colour",
+    "size": 6641,
+    "raw_size": 21760
+  },
+  {
+    "name": "monster05-0-colour",
+    "size": 5251,
+    "raw_size": 21760
+  },
+  {
+    "name": "monster05-1-colour",
+    "size": 5087,
+    "raw_size": 21760
+  },
+  {
+    "name": "monster05-2-colour",
+    "size": 5250,
+    "raw_size": 21760
+  },
+  {
+    "name": "monster06-0-colour",
+    "size": 4900,
+    "raw_size": 21760
+  },
+  {
+    "name": "monster06-1-colour",
+    "size": 4905,
+    "raw_size": 21760
+  },
+  {
+    "name": "monster06-2-colour",
+    "size": 4992,
+    "raw_size": 21760
+  },
+  {
+    "name": "monster07-0-colour",
+    "size": 4719,
+    "raw_size": 21760
+  },
+  {
+    "name": "monster07-1-colour",
+    "size": 4636,
+    "raw_size": 21760
+  },
+  {
+    "name": "monster07-2-colour",
+    "size": 4656,
+    "raw_size": 21760
+  },
+  {
+    "name": "monster08-0-colour",
+    "size": 5157,
+    "raw_size": 21760
+  },
+  {
+    "name": "monster08-1-colour",
+    "size": 5159,
+    "raw_size": 21760
+  },
+  {
+    "name": "monster08-2-colour",
+    "size": 5188,
+    "raw_size": 21760
+  },
+  {
+    "name": "monster09-0-colour",
+    "size": 5481,
+    "raw_size": 21760
+  },
+  {
+    "name": "monster09-1-colour",
+    "size": 5513,
+    "raw_size": 21760
+  },
+  {
+    "name": "monster09-2-colour",
+    "size": 5497,
+    "raw_size": 21760
+  },
+  {
+    "name": "monster10-0-colour",
+    "size": 5817,
+    "raw_size": 21760
+  },
+  {
+    "name": "monster10-1-colour",
+    "size": 5825,
+    "raw_size": 21760
+  },
+  {
+    "name": "monster10-2-colour",
+    "size": 5840,
+    "raw_size": 21760
+  },
+  {
+    "name": "monster11-0-colour",
+    "size": 4989,
+    "raw_size": 21760
+  },
+  {
+    "name": "monster11-1-colour",
+    "size": 5025,
+    "raw_size": 21760
+  },
+  {
+    "name": "monster11-2-colour",
+    "size": 5309,
+    "raw_size": 21760
+  },
+  {
+    "name": "monster12-0-colour",
+    "size": 5154,
+    "raw_size": 21760
+  },
+  {
+    "name": "monster12-1-colour",
+    "size": 5145,
+    "raw_size": 21760
+  },
+  {
+    "name": "monster12-2-colour",
+    "size": 5138,
+    "raw_size": 21760
+  },
+  {
+    "name": "title-mono",
+    "size": 3600,
+    "raw_size": 21760
+  },
+  {
+    "name": "monster01-0-mono",
+    "size": 3770,
+    "raw_size": 21760
+  },
+  {
+    "name": "monster01-1-mono",
+    "size": 3774,
+    "raw_size": 21760
+  },
+  {
+    "name": "monster01-2-mono",
+    "size": 3647,
+    "raw_size": 21760
+  },
+  {
+    "name": "monster02-0-mono",
+    "size": 3543,
+    "raw_size": 21760
+  },
+  {
+    "name": "monster02-1-mono",
+    "size": 3472,
+    "raw_size": 21760
+  },
+  {
+    "name": "monster02-2-mono",
+    "size": 3488,
+    "raw_size": 21760
+  },
+  {
+    "name": "monster03-0-mono",
+    "size": 2758,
+    "raw_size": 21760
+  },
+  {
+    "name": "monster03-1-mono",
+    "size": 2675,
+    "raw_size": 21760
+  },
+  {
+    "name": "monster03-2-mono",
+    "size": 3002,
+    "raw_size": 21760
+  },
+  {
+    "name": "monster04-0-mono",
+    "size": 4593,
+    "raw_size": 21760
+  },
+  {
+    "name": "monster04-1-mono",
+    "size": 4582,
+    "raw_size": 21760
+  },
+  {
+    "name": "monster04-2-mono",
+    "size": 4579,
+    "raw_size": 21760
+  },
+  {
+    "name": "monster05-0-mono",
+    "size": 3868,
+    "raw_size": 21760
+  },
+  {
+    "name": "monster05-1-mono",
+    "size": 3753,
+    "raw_size": 21760
+  },
+  {
+    "name": "monster05-2-mono",
+    "size": 3994,
+    "raw_size": 21760
+  },
+  {
+    "name": "monster06-0-mono",
+    "size": 3092,
+    "raw_size": 21760
+  },
+  {
+    "name": "monster06-1-mono",
+    "size": 3106,
+    "raw_size": 21760
+  },
+  {
+    "name": "monster06-2-mono",
+    "size": 3165,
+    "raw_size": 21760
+  },
+  {
+    "name": "monster07-0-mono",
+    "size": 2721,
+    "raw_size": 21760
+  },
+  {
+    "name": "monster07-1-mono",
+    "size": 2656,
+    "raw_size": 21760
+  },
+  {
+    "name": "monster07-2-mono",
+    "size": 2753,
+    "raw_size": 21760
+  },
+  {
+    "name": "monster08-0-mono",
+    "size": 3447,
+    "raw_size": 21760
+  },
+  {
+    "name": "monster08-1-mono",
+    "size": 3448,
+    "raw_size": 21760
+  },
+  {
+    "name": "monster08-2-mono",
+    "size": 3533,
+    "raw_size": 21760
+  },
+  {
+    "name": "monster09-0-mono",
+    "size": 4143,
+    "raw_size": 21760
+  },
+  {
+    "name": "monster09-1-mono",
+    "size": 4185,
+    "raw_size": 21760
+  },
+  {
+    "name": "monster09-2-mono",
+    "size": 4217,
+    "raw_size": 21760
+  },
+  {
+    "name": "monster10-0-mono",
+    "size": 4298,
+    "raw_size": 21760
+  },
+  {
+    "name": "monster10-1-mono",
+    "size": 4232,
+    "raw_size": 21760
+  },
+  {
+    "name": "monster10-2-mono",
+    "size": 4346,
+    "raw_size": 21760
+  },
+  {
+    "name": "monster11-0-mono",
+    "size": 3311,
+    "raw_size": 21760
+  },
+  {
+    "name": "monster11-1-mono",
+    "size": 3303,
+    "raw_size": 21760
+  },
+  {
+    "name": "monster11-2-mono",
+    "size": 3649,
+    "raw_size": 21760
+  },
+  {
+    "name": "monster12-0-mono",
+    "size": 3437,
+    "raw_size": 21760
+  },
+  {
+    "name": "monster12-1-mono",
+    "size": 3459,
+    "raw_size": 21760
+  },
+  {
+    "name": "monster12-2-mono",
+    "size": 3406,
+    "raw_size": 21760
+  }
+]

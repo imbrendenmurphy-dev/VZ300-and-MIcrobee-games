@@ -1,0 +1,2676 @@
+{
+  "assets": 202,
+  "total_cells": 258560,
+  "invalid_cells": 0,
+  "failures": [],
+  "results": [
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "anim-battle03-0-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "anim-battle03-0-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "anim-battle03-1-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "anim-battle03-1-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "anim-battle03-2-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "anim-battle03-2-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "anim-battle03-3-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "anim-battle03-3-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "anim-battle03-4-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "anim-battle03-4-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "anim-battle03-5-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "anim-battle03-5-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "anim-battle03-6-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "anim-battle03-6-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "anim-battle03-7-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "anim-battle03-7-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "anim-monster03-0-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "anim-monster03-0-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "anim-monster03-1-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "anim-monster03-1-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "anim-monster03-2-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "anim-monster03-2-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "anim-monster03-3-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "anim-monster03-3-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "anim-monster03-4-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "anim-monster03-4-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "anim-monster03-5-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "anim-monster03-5-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "anim-monster03-6-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "anim-monster03-6-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "anim-monster03-7-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "anim-monster03-7-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle01-0-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle01-0-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle01-1-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle01-1-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle01-2-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle01-2-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle01-3-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle01-3-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle02-0-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle02-0-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle02-1-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle02-1-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle02-2-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle02-2-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle02-3-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle02-3-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle03-0-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle03-0-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle03-1-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle03-1-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle03-2-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle03-2-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle03-3-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle03-3-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle04-0-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle04-0-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle04-1-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle04-1-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle04-2-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle04-2-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle04-3-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle04-3-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle05-0-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle05-0-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle05-1-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle05-1-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle05-2-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle05-2-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle05-3-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle05-3-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle06-0-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle06-0-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle06-1-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle06-1-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle06-2-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle06-2-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle06-3-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle06-3-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle07-0-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle07-0-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle07-1-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle07-1-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle07-2-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle07-2-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle07-3-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle07-3-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle08-0-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle08-0-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle08-1-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle08-1-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle08-2-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle08-2-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle08-3-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle08-3-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle09-0-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle09-0-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle09-1-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle09-1-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle09-2-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle09-2-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle09-3-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle09-3-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle10-0-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle10-0-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle10-1-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle10-1-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle10-2-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle10-2-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle10-3-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle10-3-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle11-0-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle11-0-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle11-1-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle11-1-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle11-2-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle11-2-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle11-3-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle11-3-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle12-0-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle12-0-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle12-1-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle12-1-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle12-2-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle12-2-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle12-3-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "battle12-3-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "monster01-0-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "monster01-0-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "monster01-1-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "monster01-1-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "monster01-2-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "monster01-2-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "monster02-0-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "monster02-0-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "monster02-1-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "monster02-1-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "monster02-2-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "monster02-2-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "monster03-0-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "monster03-0-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "monster03-1-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "monster03-1-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "monster03-2-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "monster03-2-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "monster04-0-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "monster04-0-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "monster04-1-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "monster04-1-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "monster04-2-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "monster04-2-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "monster05-0-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "monster05-0-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "monster05-1-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "monster05-1-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "monster05-2-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "monster05-2-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "monster06-0-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "monster06-0-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "monster06-1-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "monster06-1-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "monster06-2-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "monster06-2-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "monster07-0-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "monster07-0-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "monster07-1-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "monster07-1-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "monster07-2-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "monster07-2-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "monster08-0-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "monster08-0-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "monster08-1-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "monster08-1-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "monster08-2-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "monster08-2-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "monster09-0-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "monster09-0-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "monster09-1-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "monster09-1-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "monster09-2-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "monster09-2-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "monster10-0-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "monster10-0-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "monster10-1-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "monster10-1-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "monster10-2-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "monster10-2-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "monster11-0-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "monster11-0-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "monster11-1-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "monster11-1-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "monster11-2-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "monster11-2-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "monster12-0-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "monster12-0-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "monster12-1-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "monster12-1-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "monster12-2-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "monster12-2-mono",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "title-colour",
+      "encoded_preview_match": true
+    },
+    {
+      "width": 320,
+      "height": 256,
+      "cell_width": 8,
+      "cell_height": 8,
+      "total_cells": 1280,
+      "valid_cells": 1280,
+      "invalid_cells": 0,
+      "asset": "title-mono",
+      "encoded_preview_match": true
+    }
+  ],
+  "palette": "Microbee RGBI 16 colours; exact model palette",
+  "encoded_output_checked": true,
+  "battle_rooms": [
+    {
+      "room": 0,
+      "mode": "colour",
+      "glyphs": 285
+    },
+    {
+      "room": 1,
+      "mode": "colour",
+      "glyphs": 452
+    },
+    {
+      "room": 2,
+      "mode": "colour",
+      "glyphs": 359
+    },
+    {
+      "room": 3,
+      "mode": "colour",
+      "glyphs": 362
+    },
+    {
+      "room": 4,
+      "mode": "colour",
+      "glyphs": 501
+    },
+    {
+      "room": 5,
+      "mode": "colour",
+      "glyphs": 332
+    },
+    {
+      "room": 0,
+      "mode": "mono",
+      "glyphs": 216
+    },
+    {
+      "room": 1,
+      "mode": "mono",
+      "glyphs": 221
+    },
+    {
+      "room": 2,
+      "mode": "mono",
+      "glyphs": 209
+    },
+    {
+      "room": 3,
+      "mode": "mono",
+      "glyphs": 154
+    },
+    {
+      "room": 4,
+      "mode": "mono",
+      "glyphs": 392
+    },
+    {
+      "room": 5,
+      "mode": "mono",
+      "glyphs": 212
+    },
+    {
+      "sprite": 1,
+      "mode": "colour",
+      "glyphs": 472,
+      "bytes": 11694
+    },
+    {
+      "sprite": 2,
+      "mode": "colour",
+      "glyphs": 448,
+      "bytes": 11310
+    },
+    {
+      "sprite": 3,
+      "mode": "colour",
+      "glyphs": 886,
+      "bytes": 29358
+    },
+    {
+      "sprite": 6,
+      "mode": "colour",
+      "glyphs": 390,
+      "bytes": 10382
+    },
+    {
+      "sprite": 7,
+      "mode": "colour",
+      "glyphs": 500,
+      "bytes": 12142
+    },
+    {
+      "sprite": 9,
+      "mode": "colour",
+      "glyphs": 297,
+      "bytes": 8894
+    },
+    {
+      "sprite": 12,
+      "mode": "colour",
+      "glyphs": 473,
+      "bytes": 11710
+    },
+    {
+      "sprite": 1,
+      "mode": "mono",
+      "glyphs": 423,
+      "bytes": 10910
+    },
+    {
+      "sprite": 2,
+      "mode": "mono",
+      "glyphs": 450,
+      "bytes": 11342
+    },
+    {
+      "sprite": 3,
+      "mode": "mono",
+      "glyphs": 569,
+      "bytes": 24286
+    },
+    {
+      "sprite": 6,
+      "mode": "mono",
+      "glyphs": 363,
+      "bytes": 9950
+    },
+    {
+      "sprite": 7,
+      "mode": "mono",
+      "glyphs": 361,
+      "bytes": 9918
+    },
+    {
+      "sprite": 9,
+      "mode": "mono",
+      "glyphs": 282,
+      "bytes": 8654
+    },
+    {
+      "sprite": 12,
+      "mode": "mono",
+      "glyphs": 405,
+      "bytes": 10622
+    }
+  ],
+  "group_allocations": [
+    {
+      "name": "group01-colour",
+      "glyphs": 787,
+      "pcg_bytes": 12592,
+      "bundle_pcg_bytes": 12592,
+      "external_dictionary": false,
+      "packet_bytes": 24122
+    },
+    {
+      "name": "group02-colour",
+      "glyphs": 765,
+      "pcg_bytes": 12240,
+      "bundle_pcg_bytes": 12240,
+      "external_dictionary": false,
+      "packet_bytes": 23770
+    },
+    {
+      "name": "group03-colour",
+      "glyphs": 1381,
+      "pcg_bytes": 22096,
+      "bundle_pcg_bytes": 0,
+      "external_dictionary": true,
+      "packet_bytes": 11530
+    },
+    {
+      "name": "group04-colour",
+      "glyphs": 945,
+      "pcg_bytes": 15120,
+      "bundle_pcg_bytes": 15120,
+      "external_dictionary": false,
+      "packet_bytes": 26650
+    },
+    {
+      "name": "group05-colour",
+      "glyphs": 904,
+      "pcg_bytes": 14464,
+      "bundle_pcg_bytes": 14464,
+      "external_dictionary": false,
+      "packet_bytes": 25994
+    },
+    {
+      "name": "group06-colour",
+      "glyphs": 768,
+      "pcg_bytes": 12288,
+      "bundle_pcg_bytes": 12288,
+      "external_dictionary": false,
+      "packet_bytes": 23818
+    },
+    {
+      "name": "group07-colour",
+      "glyphs": 876,
+      "pcg_bytes": 14016,
+      "bundle_pcg_bytes": 14016,
+      "external_dictionary": false,
+      "packet_bytes": 25546
+    },
+    {
+      "name": "group08-colour",
+      "glyphs": 837,
+      "pcg_bytes": 13392,
+      "bundle_pcg_bytes": 13392,
+      "external_dictionary": false,
+      "packet_bytes": 24922
+    },
+    {
+      "name": "group09-colour",
+      "glyphs": 744,
+      "pcg_bytes": 11904,
+      "bundle_pcg_bytes": 11904,
+      "external_dictionary": false,
+      "packet_bytes": 23434
+    },
+    {
+      "name": "group10-colour",
+      "glyphs": 877,
+      "pcg_bytes": 14032,
+      "bundle_pcg_bytes": 14032,
+      "external_dictionary": false,
+      "packet_bytes": 25562
+    },
+    {
+      "name": "group11-colour",
+      "glyphs": 745,
+      "pcg_bytes": 11920,
+      "bundle_pcg_bytes": 11920,
+      "external_dictionary": false,
+      "packet_bytes": 23450
+    },
+    {
+      "name": "group12-colour",
+      "glyphs": 813,
+      "pcg_bytes": 13008,
+      "bundle_pcg_bytes": 13008,
+      "external_dictionary": false,
+      "packet_bytes": 24538
+    },
+    {
+      "name": "group01-mono",
+      "glyphs": 663,
+      "pcg_bytes": 10608,
+      "bundle_pcg_bytes": 10608,
+      "external_dictionary": false,
+      "packet_bytes": 22138
+    },
+    {
+      "name": "group02-mono",
+      "glyphs": 694,
+      "pcg_bytes": 11104,
+      "bundle_pcg_bytes": 11104,
+      "external_dictionary": false,
+      "packet_bytes": 22634
+    },
+    {
+      "name": "group03-mono",
+      "glyphs": 846,
+      "pcg_bytes": 13536,
+      "bundle_pcg_bytes": 0,
+      "external_dictionary": true,
+      "packet_bytes": 11530
+    },
+    {
+      "name": "group04-mono",
+      "glyphs": 704,
+      "pcg_bytes": 11264,
+      "bundle_pcg_bytes": 11264,
+      "external_dictionary": false,
+      "packet_bytes": 22794
+    },
+    {
+      "name": "group05-mono",
+      "glyphs": 748,
+      "pcg_bytes": 11968,
+      "bundle_pcg_bytes": 11968,
+      "external_dictionary": false,
+      "packet_bytes": 23498
+    },
+    {
+      "name": "group06-mono",
+      "glyphs": 556,
+      "pcg_bytes": 8896,
+      "bundle_pcg_bytes": 8896,
+      "external_dictionary": false,
+      "packet_bytes": 20426
+    },
+    {
+      "name": "group07-mono",
+      "glyphs": 552,
+      "pcg_bytes": 8832,
+      "bundle_pcg_bytes": 8832,
+      "external_dictionary": false,
+      "packet_bytes": 20362
+    },
+    {
+      "name": "group08-mono",
+      "glyphs": 631,
+      "pcg_bytes": 10096,
+      "bundle_pcg_bytes": 10096,
+      "external_dictionary": false,
+      "packet_bytes": 21626
+    },
+    {
+      "name": "group09-mono",
+      "glyphs": 640,
+      "pcg_bytes": 10240,
+      "bundle_pcg_bytes": 10240,
+      "external_dictionary": false,
+      "packet_bytes": 21770
+    },
+    {
+      "name": "group10-mono",
+      "glyphs": 732,
+      "pcg_bytes": 11712,
+      "bundle_pcg_bytes": 11712,
+      "external_dictionary": false,
+      "packet_bytes": 23242
+    },
+    {
+      "name": "group11-mono",
+      "glyphs": 541,
+      "pcg_bytes": 8656,
+      "bundle_pcg_bytes": 8656,
+      "external_dictionary": false,
+      "packet_bytes": 20186
+    },
+    {
+      "name": "group12-mono",
+      "glyphs": 629,
+      "pcg_bytes": 10064,
+      "bundle_pcg_bytes": 10064,
+      "external_dictionary": false,
+      "packet_bytes": 21594
+    },
+    {
+      "name": "combat04-colour",
+      "glyphs": 988,
+      "pcg_bytes": 15808,
+      "bundle_pcg_bytes": 15808,
+      "external_dictionary": false,
+      "packet_bytes": 31178
+    },
+    {
+      "name": "combat05-colour",
+      "glyphs": 893,
+      "pcg_bytes": 14288,
+      "bundle_pcg_bytes": 14288,
+      "external_dictionary": false,
+      "packet_bytes": 29658
+    },
+    {
+      "name": "combat08-colour",
+      "glyphs": 839,
+      "pcg_bytes": 13424,
+      "bundle_pcg_bytes": 13424,
+      "external_dictionary": false,
+      "packet_bytes": 28794
+    },
+    {
+      "name": "combat10-colour",
+      "glyphs": 974,
+      "pcg_bytes": 15584,
+      "bundle_pcg_bytes": 15584,
+      "external_dictionary": false,
+      "packet_bytes": 30954
+    },
+    {
+      "name": "combat11-colour",
+      "glyphs": 749,
+      "pcg_bytes": 11984,
+      "bundle_pcg_bytes": 11984,
+      "external_dictionary": false,
+      "packet_bytes": 27354
+    },
+    {
+      "name": "combat04-mono",
+      "glyphs": 684,
+      "pcg_bytes": 10944,
+      "bundle_pcg_bytes": 10944,
+      "external_dictionary": false,
+      "packet_bytes": 26314
+    },
+    {
+      "name": "combat05-mono",
+      "glyphs": 731,
+      "pcg_bytes": 11696,
+      "bundle_pcg_bytes": 11696,
+      "external_dictionary": false,
+      "packet_bytes": 27066
+    },
+    {
+      "name": "combat08-mono",
+      "glyphs": 596,
+      "pcg_bytes": 9536,
+      "bundle_pcg_bytes": 9536,
+      "external_dictionary": false,
+      "packet_bytes": 24906
+    },
+    {
+      "name": "combat10-mono",
+      "glyphs": 806,
+      "pcg_bytes": 12896,
+      "bundle_pcg_bytes": 12896,
+      "external_dictionary": false,
+      "packet_bytes": 28266
+    },
+    {
+      "name": "combat11-mono",
+      "glyphs": 536,
+      "pcg_bytes": 8576,
+      "bundle_pcg_bytes": 8576,
+      "external_dictionary": false,
+      "packet_bytes": 23946
+    }
+  ],
+  "expanded_ram_bytes": 600215,
+  "expanded_ram_banks": [
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23
+  ],
+  "max_group_pcg_bytes": 22096,
+  "max_group_packet_bytes": 31178
+}
