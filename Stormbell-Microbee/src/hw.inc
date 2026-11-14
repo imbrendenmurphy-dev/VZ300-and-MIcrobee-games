@@ -32,6 +32,8 @@ BLK_WORK    EQU 1
 BLK_FIGHT   EQU 4           ; the six fighters: blocks 4..9
 BLK_GFX     EQU 10          ; font, the title (picture 0), the ending (picture 1)
 BLK_STG     EQU 11          ; the five stages: blocks 11..15
+BLK_STGM    EQU 16          ; the same for a monochrome monitor: blocks 16..20
+BLK_GFXM    EQU 21          ; the title and the ending for a monochrome monitor
 
 ; ---- a stage block (tools/build.py, pack_stage)
 SB_NGLYPH   EQU $00
@@ -123,6 +125,7 @@ K_A         EQU 1
 K_D         EQU 4
 K_K         EQU 11
 K_L         EQU 12
+K_M         EQU 13
 K_P         EQU 16
 K_S         EQU 19
 K_ESC       EQU $30

@@ -70,6 +70,9 @@ ch1:        ds CH_SIZE
 ch2:        ds CH_SIZE
 sseed:      dw 0
 hitstop:    db 0
+mono:       db 0             ; 1: scenery drawn for a monochrome monitor
+m_was:      db 0
+on_title:   db 0
 watch:      db 0
 mx_n:       db 0
 sig_now:    ds 5

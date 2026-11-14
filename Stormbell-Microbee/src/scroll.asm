@@ -26,7 +26,13 @@ sb_word:
 ;  camera at 0, the band's BASE built. The display is off meanwhile.
 ; ---------------------------------------------------------------------
 stage_show:
-        add a,BLK_STG
+        ld b,a
+        ld a,(mono)
+        or a
+        ld a,BLK_STG
+        jr z,.c
+        ld a,BLK_STGM
+.c:     add a,b
         ld (stg_blk),a
         call display_off
         ld a,(stg_blk)

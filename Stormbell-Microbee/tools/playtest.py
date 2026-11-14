@@ -35,6 +35,7 @@ class Game:
         self.shots = 0
         self.hist = []
         self.react = 0
+        self.mono = False
 
     def f(self, who, field):
         return self.pp.peek(self.S[who] + F[field])
@@ -51,7 +52,7 @@ class Game:
     def shot(self, tag):
         self.shots += 1
         p = self.out / ('%02d_%s.png' % (self.shots, tag))
-        self.pp.png(str(p), scale=2, aspect=0.92)
+        self.pp.png(str(p), scale=2, aspect=0.92, mono=self.mono)
         return p
 
     def in_fight(self):
@@ -148,6 +149,13 @@ def main():
     g.react = int(args[args.index('--react') + 1]) if '--react' in args else 5
     pp = g.pp
     T.launch(pp, 700)
+    if '--mono' in args:
+        # M on the title: the scenery for a monochrome monitor
+        g.press({'M'}, frames=6)
+        pp.run_frames(150)
+        g.mono = True
+        assert pp.peek(g.S['mono']) == 1, 'M did not switch to mono'
+        print('mono: on')
     g.shot('title')
     g.press({'SPACE'})
     results = []

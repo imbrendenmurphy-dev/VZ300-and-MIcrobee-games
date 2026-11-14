@@ -32,11 +32,19 @@ Boot it, and at the `A>` prompt type:
 STORM
 ```
 
-and press RETURN. The game takes about 15 seconds to load.
+and press RETURN. The game takes about 20 seconds to load.
 
-Needs a **Microbee Premium Plus** (or a Premium with 1 MB RAM and 32K PCG RAM)
-and a colour monitor. It also reads on an amber monochrome monitor: the
-lighter colour of every cell is always the drawn one.
+Needs a **Microbee Premium Plus** (or a Premium with 1 MB RAM and 32K PCG RAM).
+
+**Colour or monochrome monitor:** press **M** on the title screen to switch.
+With a monochrome monitor (amber, green or white) the scenery is drawn
+for one that shows only lit pixels: a black sky, outlined walls, gates and
+railings, the floor's seams without speckle, and the moon, snow and clouds
+bright. Press M again to go back to colour.
+
+| Colour | Monochrome (M on the title) |
+|---|---|
+| ![](screenshots/03-river-bridge.png) | ![](screenshots/09-amber-monitor.png) |
 
 ## Controls
 
@@ -52,6 +60,7 @@ The keys are shown on the title screen and on the pause screen.
 | Pause | **P** | |
 | Quit to the title | **ESC** (then ESC again) | |
 | Start, try again | **SPACE** | fire |
+| Colour / monochrome monitor (title screen) | **M** | |
 
 Between duels, hold **D** (or →, or the joystick right) to run along the
 road.
@@ -83,6 +92,22 @@ road.
 | 3. The Cliff Path | **Sparrow** | Waits far off, darts in for two quick punches, darts out. | Guard both punches, then answer. |
 | 4. The Dojo Hall | **Captain Gorse** | Closes behind his guard and punches straight back at any blow he blocks. | Make him attack first. Never swing into his guard. |
 | 5. The Bell Tower | **Lord Currawong** | The Storm Lord: all of the above, faster, with feints. | Watch, wait, and punish only what you're sure of. |
+
+## What's new in 1.3
+
+* **A monochrome mode** for amber, green and white monitors: **M** on the
+  title. On a monochrome monitor only lit pixels show, so the colour
+  scenery's dithers turn every sky and wall into texture. The mono scenery
+  is drawn from the same paintings by brightness instead: dark colours
+  black, bright ones lit, mid-tones a sparse dither, and an outline on the
+  bright side of every brightness step, so a red gate still has an edge
+  against a black doorway. The floors keep their seams and lose their
+  speckle. These are separate stage and picture files in RAM blocks 16–21,
+  so switching is instant. Loading takes about 20 seconds now.
+* **Fixed: the opponent stayed on screen after a retry.** Starting a duel
+  again forgot where the fighters had last been drawn, so the old fallen
+  Wren and the old opponent were never painted over. A retry now redraws
+  both screen pages' whole fighting band once.
 
 ## What's new in 1.2
 
@@ -134,36 +159,36 @@ road.
 * Bramble shrugs off a blow sooner (a heavy man staggers less), so a
   button-masher can't hold him in a stagger.
 
-## Test results (v1.2, 14 Nov 2026)
+## Test results (v1.3, 14 Nov 2026)
 
 **Emulator** (`tools/emu`, Premium Plus model): `release/STORM.DS8` booted
 from its own boot sector to CP/M's `A>`, `DIR` listed the files, and
-`STORM` set up the 320 × 250 display about 15 seconds after it was typed.
+`STORM` set up the 320 × 250 display about 20 seconds after it was typed.
 The scripted player (0.2 s reactions) then ran each road and played from
-the title to the ending:
+the title to the ending twice, once in each mode:
 
-| Stage | Opponent | Result | Time | Wren's health left |
-|---|---|---|---|---|
-| 1 | Bramble the Ox | won | 13 s | 9 / 12 |
-| 2 | Old Reed | won | 15 s | 12 / 12 |
-| 3 | Sparrow | lost twice, then won | 21 s | 5 / 12 |
-| 4 | Captain Gorse | won | 19 s | 12 / 12 |
-| 5 | Lord Currawong | won | 41 s | 2 / 12 |
+| Stage | Opponent | Colour | Monochrome |
+|---|---|---|---|
+| 1 | Bramble the Ox | won, 9 / 12 health left | won, 9 / 12 |
+| 2 | Old Reed | won, 1 / 12 | won, 12 / 12 |
+| 3 | Sparrow | lost once, then won, 2 / 12 | won, 2 / 12 |
+| 4 | Captain Gorse | won, 11 / 12 | won, 11 / 12 |
+| 5 | Lord Currawong | won, 2 / 12 | won, 3 / 12 |
 
 Also checked:
 
-* Sparrow, 3 more duels: won 2 of 3. She is the stiffest test of guarding.
-* A button-masher (holds advance, hammers punch and kick) beats Bramble
-  only 1 time in 4.
-* Standing still loses. "YOU HAVE FALLEN", then **SPACE** restarts the
-  same duel at full health.
+* After a defeat, **SPACE** restarts the same duel at full health, and the
+  screen shows only the two fighters: nothing is left from before.
+* **M** on the title switches to the monochrome scenery and back; every
+  stage, the title and the ending load in both modes.
+* A button-masher beats Bramble only 1 time in 4.
 * Frame rates: duels about 24 frames a second, the road about 17.
 * Every sound effect recorded from the speaker: no silence longer than
   15 ms inside any of them.
 
 ![The road](screenshots/10-the-road.png) ![Running the road, in real time](screenshots/10-running.gif)
 
-![Try again](screenshots/08-try-again.png) ![Amber monitor](screenshots/09-amber-monitor.png)
+![Try again](screenshots/08-try-again.png) ![The title for a monochrome monitor](screenshots/11-amber-title.png)
 
 **Real hardware:** not tested yet. It uses the same 40-column set-up,
 loader and disk format as FRILLSEEKER and Dracula's Castle II, which run

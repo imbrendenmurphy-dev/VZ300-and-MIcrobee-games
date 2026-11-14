@@ -377,7 +377,7 @@ def stage4():
 STAGES = [stage0, stage1, stage2, stage3, stage4]
 
 
-def preview(path):
+def preview(path, mono=False):
     """the five stages at the duel camera, floor at phase 0 (for the eye)"""
     from PIL import Image
     pal = np.array(art.PAL, np.uint8)
@@ -385,8 +385,8 @@ def preview(path):
     ims = []
     for i, fn in enumerate(STAGES):
         f, m = fn()
-        fi, fc, fp = f.cells()
-        mi, mc, mp = m.cells()
+        fi, fc, fp = f.cells_mono() if mono else f.cells()
+        mi, mc, mp = m.cells_mono() if mono else m.cells()
         img = np.zeros((art.LINES, 320, 3), np.uint8)
         fo, mo = DUEL_C // 4, DUEL_C
         def put(ink, ci, cp, r0, r1, off):
@@ -401,7 +401,8 @@ def preview(path):
             s = fl.strip(r)
             P = s.shape[1]
             for x in range(320):
-                img[(16 + r) * C:(17 + r) * C, x] = np.where(s[:, x % P][:, None], pal[fl.rows_ink[r]], pal[fl.rows_paper[r]])
+                img[(16 + r) * C:(17 + r) * C, x] = np.where(s[:, x % P][:, None], pal[art.WHITE if mono else fl.rows_ink[r]],
+                                                             pal[art.BLACK if mono else fl.rows_paper[r]])
         ims.append(img)
     sheet = np.concatenate([np.concatenate(ims[:2], 1), np.concatenate(ims[2:4], 1), np.concatenate([ims[4], np.zeros_like(ims[4])], 1)], 0)
     Image.fromarray(sheet).resize((int(640 * 1.09 * 1.5), sheet.shape[0] * 3 // 2), Image.NEAREST).save(path)

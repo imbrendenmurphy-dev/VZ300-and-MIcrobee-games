@@ -93,6 +93,14 @@ def font_bytes():
 BAYER = np.array([[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]])
 LUM = np.array([0.299 * r + 0.587 * g + 0.114 * b for r, g, b in PAL])
 LIGHT = {YELLOW, WHITE, BCYAN, GREY, BGREEN}     # a solid cell of these is ink
+# monochrome: how many of 16 pixels each colour lights
+MONO = np.zeros(16, np.uint8)
+for _c, _v in ((BLACK, 0), (BLUE, 0), (RED, 0), (MAGENTA, 0), (DGREY, 1), (GREEN, 1), (BROWN, 1),
+               (CYAN, 2), (BBLUE, 1), (GREY, 3), (BRED, 2), (BMAGENTA, 3), (BGREEN, 3), (BCYAN, 5),
+               (YELLOW, 8), (WHITE, 16)):
+    MONO[_c] = _v
+MONO_EDGE = 22.0                # a brightness step (of 255) this big gets an outline
+MONO_INK = WHITE
 PIC_GLYPHS = 512
 
 
@@ -217,6 +225,32 @@ class Pic:
                 ci[cy, cx], cp[cy, cx] = a, b
         return ink, ci, cp
 
+    def cells_mono(self):
+        """the picture for a monochrome (amber, green, white) monitor, where
+        only lit pixels show. Each colour gets a sparse fill by its
+        brightness (dark sky black, snow and moon bright), and every shape
+        an outline on its brighter side, found from steps in the smoothed
+        brightness, so a red gate still has an edge against a black
+        doorway. -> ink, ci, cp"""
+        H, W = self.c.shape
+
+        def box(a):
+            pad = np.pad(a, 1, mode='edge')
+            return sum(pad[1 + dy:1 + dy + H, 1 + dx:1 + dx + W]
+                       for dy in (-1, 0, 1) for dx in (-1, 0, 1)) / 9.0
+        fill = box(MONO[self.c].astype(float))
+        ink = self.bay < np.round(fill)
+        lum = box(LUM[self.c])
+        pad = np.pad(lum, 1, mode='edge')
+        edge = np.zeros((H, W), bool)
+        for dy, dx in ((-1, 0), (1, 0), (0, -1), (0, 1)):
+            edge |= (lum - pad[1 + dy:1 + dy + H, 1 + dx:1 + dx + W]) >= MONO_EDGE
+        ink |= edge
+        nc = self.W // 8
+        ci = np.full((25, nc), MONO_INK, np.uint8)
+        cp = np.full((25, nc), BLACK, np.uint8)
+        return ink, ci, cp
+
     def rgb(self, quant=True):
         if not quant:
             return np.array(PAL, np.uint8)[self.c]
@@ -226,10 +260,10 @@ class Pic:
         bg = pal[np.repeat(np.repeat(cp, CELL, 0), 8, 1)]
         return np.where(ink[:, :, None], fg, bg)
 
-    def pack(self, name='', limit=PIC_GLYPHS):
+    def pack(self, name='', limit=PIC_GLYPHS, mono=False):
         """-> 1000 codes, 1000 banks (1..4), 1000 colours, 5120 bytes of
         glyphs, the number used; glyph 0 is blank"""
-        ink, ci, cp = self.cells()
+        ink, ci, cp = self.cells_mono() if mono else self.cells()
         glyphs = {bytes(CELL): 0}
         codes, banks, cols = bytearray(), bytearray(), bytearray()
         for cy in range(25):

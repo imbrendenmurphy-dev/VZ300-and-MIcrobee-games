@@ -119,6 +119,7 @@ wait_start:
         ld (wt),a
         call take_new
 .l:     call tick_wait
+        call mono_key
         call take_new
         ld (lastnew),a
         and 1 << PB_START | 1 << PB_ESC | 1 << PB_PUNCH | 1 << PB_KICK
@@ -164,6 +165,45 @@ show_pic:
 title:
         ld sp,STACK
         call stop_music
+        call title_pic
+        call display_on
+        ld a,SFX_THUNDER
+        call sfx
+        jr title_tune
+; M on the title: colour or monochrome monitor
+retitle:
+        ld sp,STACK
+        call stop_music
+        call title_pic
+        call display_on
+title_tune:
+        ld hl,tune_title
+        call play_music
+        jp title_blink
+
+mono_key:
+        ld a,(on_title)
+        or a
+        ret z
+        ld a,1
+        out (P_ROMLAT),a
+        ld a,K_M
+        call keytest
+        ld b,a
+        xor a
+        out (P_ROMLAT),a
+        ld a,(m_was)
+        cpl
+        and b
+        ld a,b
+        ld (m_was),a
+        ret z
+        ld a,(mono)
+        xor 1
+        ld (mono),a
+        jp retitle
+
+title_pic:
         xor a
         call show_pic
         ld hl,tt_story1
@@ -190,11 +230,18 @@ title:
         ld d,24
         ld c,BMAGENTA
         call print_mid2
-        call display_on
-        ld a,SFX_THUNDER
-        call sfx
-        ld hl,tune_title
-        call play_music
+        ld hl,tt_mono
+        ld a,(mono)
+        or a
+        jr z,.m
+        ld hl,tt_colour
+.m:     ld d,23
+        ld c,GREY
+        jp print_mid2
+
+title_blink:
+        ld a,1
+        ld (on_title),a
 .blink: ld hl,tt_press
         ld d,22
         ld c,YELLOW
@@ -212,6 +259,8 @@ title:
 .go:    ld a,(lastnew)
         bit PB_ESC,a
         jr nz,.blink
+        xor a
+        ld (on_title),a
         call stop_music
         ; Wren's glyphs stay in the PCG for the whole game
         call display_off
@@ -264,6 +313,12 @@ duel_retry:
         ld sp,STACK
         call stop_music
         call fighters_init
+        ; both fighters were somewhere else on both pages: redraw each
+        ; page's whole band once, so the old figures are painted over
+        ld hl,hero+F_PL0
+        call .whole
+        ld hl,foe+F_PL0
+        call .whole
         ld a,10
         ld (hero+F_X),a
         ld a,30
@@ -278,6 +333,16 @@ duel_retry:
         ld a,SFX_GONG
         call sfx
         call stage_title
+
+        jr duel_intro
+.whole: ld (hl),0               ; F_PL0
+        inc hl
+        ld (hl),COLS            ; F_PR0
+        inc hl
+        ld (hl),0               ; F_PL1
+        inc hl
+        ld (hl),COLS            ; F_PR1
+        ret
 
 duel_intro:
         ; -- a hint about this opponent, the bows
@@ -1004,6 +1069,8 @@ tt_keys3:   db "OR ARROWS, UP KICKS. JOYSTICK TOO",0
 tt_press:   db "PRESS SPACE OR FIRE",0
 tt_blank:   db "                   ",0
 tt_credit:  db "VIBED BY BPM 2026",0
+tt_mono:    db "M  FOR A MONOCHROME MONITOR",0
+tt_colour:  db "M  FOR A COLOUR MONITOR",0
 tt_fight:   db "BEGIN!",0
 tt_counter: db "COUNTER!",0
 tt_paused:  db "PAUSED - P TO GO ON",0

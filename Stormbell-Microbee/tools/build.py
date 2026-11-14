@@ -30,6 +30,8 @@ import music
 BLK_FIGHT = 4            # fighters: blocks 4..9
 BLK_GFX = 10             # font, the title and the ending
 BLK_STG = 11             # the five stages: blocks 11..15
+BLK_STGM = 16            # the same for a monochrome monitor: blocks 16..20
+BLK_GFXM = 21            # the title and the ending for a monochrome monitor
 SCN_BANK = 1             # PCG banks 1..4: the stage on show (512 glyphs)
 SCN_GLYPHS = 4 * 128
 HERO_BANK = 5            # PCG banks 5..9 (640 glyphs)
@@ -185,24 +187,24 @@ def build_fighters():
     return stats
 
 
-def build_gfx():
+def build_gfx(mono=False):
     """GFX0.BNK: the font (400h), then the title and the ending. A
     picture slot: codes, banks, colours (1000 each), the glyph count,
     then 512 x 10 bytes of glyphs."""
     blks = [bytearray(art.font_bytes())]
     for i, (name, fn) in enumerate([p for p in art.PICS if p[0] in ('title', 'ending')]):
-        codes, banks, cols, gl, n = fn().pack(name)
+        codes, banks, cols, gl, n = fn().pack(name, mono=mono)
         rec = codes + banks + cols + bytes([n & 255, n >> 8]) + bytes(6) + gl
         assert len(rec) <= PIC_SLOT
         rec += bytes(PIC_SLOT - len(rec))
         blks[0] += rec
-        print('  picture %-7s %3d glyphs' % (name, n))
+        print('  picture %-7s %3d glyphs%s' % (name, n, ' (mono)' if mono else ''))
     for k, b in enumerate(blks):
         assert len(b) <= 0x8000
-        (BUILD / ('GFX%d.BNK' % k)).write_bytes(bytes(b))
+        (BUILD / ('GFXM.BNK' if mono else 'GFX%d.BNK' % k)).write_bytes(bytes(b))
 
 
-def pack_stage(i):
+def pack_stage(i, mono=False):
     """STGn.BNK, a stage:
       00 dw glyphs            02 db MIDW, FARW, DUEL_C, END_C
       06 dw far planes        08 dw midground planes   0A dw floor cells
@@ -215,8 +217,8 @@ def pack_stage(i):
     floor phases: 48 x 8 bytes, the pixel offset of each row's strip for
       each camera position mod 48 pixels (the floor tile at the feet)"""
     f, m = SG.STAGES[i]()
-    fi, fc, fp = f.cells()
-    mi, mc, mp = m.cells()
+    fi, fc, fp = f.cells_mono() if mono else f.cells()
+    mi, mc, mp = m.cells_mono() if mono else m.cells()
 
     def pat(ink, r, c):
         cell = ink[r * CELL:r * CELL + CELL, c * 8:c * 8 + 8]
@@ -259,6 +261,11 @@ def pack_stage(i):
         pl[2][o] = (int(cp[r, c]) << 4) | int(ci[r, c])
     # the floor
     fl = SG.stage_floor(i)
+    if mono:
+        # only lit pixels show: the floor's seams and joints, no speckle
+        fl.speck = 0
+        fl.rows_ink = [art.WHITE] * SG.FLOOR_ROWS
+        fl.rows_paper = [art.BLACK] * SG.FLOOR_ROWS
     fcell = [bytearray(8 * 40) for _ in range(3)]
     strips = bytearray()
     tables_ = []
@@ -322,8 +329,9 @@ def pack_stage(i):
     for j, o in enumerate((o_far, o_mid, o_fc, o_desc, o_ph, o_gl)):
         blk[6 + j * 2:8 + j * 2] = o.to_bytes(2, 'little')
     assert len(blk) <= 0x8000, len(blk)
-    (BUILD / ('STG%d.BNK' % (i + 1))).write_bytes(bytes(blk))
-    print('  stage %d %-18s %3d glyphs (%d merged), %5d bytes' % (i + 1, SG.NAMES[i], total, nraw - n, len(blk)))
+    (BUILD / ('STG%d%s.BNK' % (i + 1, 'M' if mono else ''))).write_bytes(bytes(blk))
+    print('  stage %d %-18s %3d glyphs (%d merged), %5d bytes%s' % (i + 1, SG.NAMES[i], total, nraw - n, len(blk),
+                                                                  ' (mono)' if mono else ''))
 
 
 T_FLOOR = SG.T
@@ -332,6 +340,8 @@ T_FLOOR = SG.T
 def build_stages():
     for i in range(len(SG.STAGES)):
         pack_stage(i)
+    for i in range(len(SG.STAGES)):
+        pack_stage(i, mono=True)
 
 
 def tables(stats):
@@ -381,6 +391,9 @@ def loadfiles():
     names.append((BLK_GFX, 0, 'GFX0', 'BNK'))
     for i in range(len(SG.STAGES)):
         names.append((BLK_STG + i, 0, 'STG%d' % (i + 1), 'BNK'))
+    for i in range(len(SG.STAGES)):
+        names.append((BLK_STGM + i, 0, 'STG%dM' % (i + 1), 'BNK'))
+    names.append((BLK_GFXM, 0, 'GFXM', 'BNK'))
     for b, o, n, e in names:
         assert b == 'STG_PROG' or 4 <= b <= 22, b      # the blocks proven safe while CP/M is alive
     lines = ['\tDB %s, $%02X, "%-8s%s"' % (b, o, n, e) for b, o, n, e in names]
@@ -418,6 +431,7 @@ def disk(names):
 if __name__ == '__main__':
     print('pictures')
     build_gfx()
+    build_gfx(mono=True)
     print('stages')
     build_stages()
     print('fighters')

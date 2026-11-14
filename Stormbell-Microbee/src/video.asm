@@ -103,9 +103,10 @@ map_blk:
         pop de
         pop hl
         ret
-; port 50h for blocks 0..15: ((b & 1Ch) << 3) | ((b & 3) ^ 2) | 4
+; port 50h for blocks 0..31: ((b & 1Ch) << 3) | ((b & 3) ^ 2) | 4
 blkport:
         db $06,$07,$04,$05,$26,$27,$24,$25,$46,$47,$44,$45,$66,$67,$64,$65
+        db $86,$87,$84,$85,$A6,$A7,$A4,$A5,$C6,$C7,$C4,$C5,$E6,$E7,$E4,$E5
 
 win_screen:
         xor a
@@ -382,10 +383,13 @@ print_mid2:
 ;  (picbase) = its record.
 ; ---------------------------------------------------------------------
 pic_find:
-        ld b,BLK_GFX
         ld c,a
-        ld a,b
-        ld (picblk),a
+        ld a,(mono)
+        or a
+        ld a,BLK_GFX
+        jr z,.c
+        ld a,BLK_GFXM
+.c:     ld (picblk),a
         call map_blk
         ld hl,PIC_BASE
         ld de,PIC_SLOT
