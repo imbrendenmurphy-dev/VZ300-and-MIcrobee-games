@@ -21,7 +21,9 @@ ZK = 54 * 256               # slot d is ZK / d (1/256 section) from the eye, whi
 ZOFF = 256                  # ... and one section behind the game camera (the craft lands on d = 27)
 YMIN = TOPROW + 4
 ZT = [0] + [ZK // d - ZOFF for d in range(1, ND + 1)]
-WT = [0] + [max(2, round(d * 1.875)) for d in range(1, ND + 1)]        # road half-width (px)
+WT = [0] + [max(2, round(d * 2.1)) for d in range(1, ND + 1)]          # road half-width (px): 57 at the craft
+LAT_SOFT = 62                # craft offset where it starts to run onto the rumble strip (drag)
+LAT_HARD = 80                # the barrier, out on the grass
 RWT = [0] + [max(1, round(WT[d] / 6)) for d in range(1, ND + 1)]       # rumble strip width
 WSPR = [0] + [max(1, round(d * 15 / 16)) for d in range(1, ND + 1)]    # craft width at slot d
 DIDX = [max(1, min(ND, round(ZK / (i * 16 + 8 + ZOFF)))) for i in range(256)]     # slot of an object zo/16 ahead of the camera
@@ -60,6 +62,15 @@ def build_track():
         CURV.append(s8(c * 420))
         SLP.append(s8(p * 95))
     T['CURV'] = [v & 255 for v in CURV]; T['SLP'] = [v & 255 for v in SLP]
+    # heading (skyline pan, bend drift, racing lines) and climb now follow the raster road itself
+    HK = 50.0
+    tot = sum(v / 420 * HK for v in CURV)
+    corr = (round(tot / 256) * 256 - tot) / N          # close the lap so the skyline doesn't jump
+    h = 0.0; H = []
+    for v in CURV:
+        H.append(round(h) & 255); h += v / 420 * HK + corr
+    T['H'] = H
+    T['DY'] = [v & 255 for v in SLP]
     return T
 
 def sx(v): return v - 256 if v & 128 else v

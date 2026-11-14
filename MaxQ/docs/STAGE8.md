@@ -38,3 +38,21 @@ a straight road whose rows are shifted sideways and squeezed vertically to fake 
 ## Possible next step
 A faster row pass (fill each row directly instead of via run lists) is sketched; it should add a few
 more fps once the narrow far-rumble edge case is handled.
+
+## v0.11b — handling retuned for the raster road
+- **Root cause of the wall-to-wall bouncing:** the bend drift, the attract autopilot, the rivals' racing line,
+  the skyline pan and the nose-up/down views still read the *old* 3D track's heading and climb tables, so
+  the craft was pushed by bends that weren't on screen. Heading and climb are now built from the raster
+  road's own curve and slope tables.
+- **Steering:** sideways speed is now in quarter pixels: +-2 per field (+-3 when steering against a slide),
+  top sideways speed 3 px/field (was 12), and the slide dies away over about 6 fields when you let go.
+- **Bend drift** is applied straight to your position (up to 1.5 px/field on the tightest bends at full speed),
+  so a bend you don't steer into carries you wide, but steering always wins.
+- **Road** is 12% wider (half-width 57 px where the craft sits).
+- **Edges:** running onto the rumble strip (offset 62) drags speed down towards 64; the barrier is further out
+  on the grass (offset 80) and no longer bounces you back across the road: it just stops the slide and takes
+  1/16 of your speed. Only a hard slam (top sideways speed) costs shield, and only 1 point.
+- Handling model (`latsim`-style, constant speed 120): a driver steering back from 15 px out, seeing the screen
+  160 ms late, never leaves the road; with 320 ms lag, 2.5% of the time on the rumble strip, no barrier hits.
+  With no steering at all the bends carry you to the barrier, so the bends still matter.
+- Emulator: 20/20 frames byte-identical; 2-lap race completes; 16.6 fps.
