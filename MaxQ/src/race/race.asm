@@ -59,7 +59,6 @@ main:   CHKEI
         jr nz,.wr
         call compose
         call draw_hud
-        call draw_gates
         call draw_rivals
         call draw_craft
         call draw_banner
@@ -394,23 +393,7 @@ physics:
         dec b
 .sp3:   ld a,b
         ld (SPEED),a
-        ; speed stripes flow at 1.5x the track's own speed, capped so that they move
-        ; less than half a band per frame (above that, at ~10 fps, they would seem to stall)
-        ld a,b
-        srl a
-        srl a
-        srl a
-        ld c,a
-        srl a
-        add a,c                 ; speed * 3/16
-        cp 23
-        jr c,.ph
-        ld a,22
-.ph:    ld c,a
-        ld a,(PHASE)
-        add a,c
-        ld (PHASE),a
-        ; ... while the track itself unrolls at half speed (gentler curves and hills)
+        ; the track unrolls at half the speed figure
         ld a,b
         srl a
         ld c,a
@@ -425,16 +408,51 @@ physics:
         ld h,a
         ld (CAM_I),hl
         call new_section
-.nadv:  ; lateral velocity: steering
-        ld a,(STEER)
+.nadv:  ; ---- lateral handling (LATV in quarter pixels per field)
+        ld a,(STEER)            ; steering: +-2 per field, +-3 when steering against the slide
+        or a
+        jr z,.fr
         ld b,a
         add a,a
-        add a,b                 ; *3
-        ld b,a
+        ld c,a
         ld a,(LATV)
+        xor b
+        jp p,.st
+        ld a,c
         add a,b
+        ld c,a
+.st:    ld a,(LATV)
+        add a,c
         ld (LATV),a
-        ; centrifugal push: -(curv * speed) >> 7
+        jr .cl
+.fr:    ld a,(LATV)             ; let go: the slide dies away (12 9 6 4 3 2 1 0)
+        or a
+        jr z,.cl
+        ld b,a
+        jp p,.f1
+        neg
+.f1:    ld c,a
+        add a,3
+        srl a
+        srl a
+        neg
+        add a,c
+        bit 7,b
+        jr z,.f2
+        neg
+.f2:    ld (LATV),a
+.cl:    ld a,(LATV)             ; clamp to +-12
+        bit 7,a
+        jr nz,.cn
+        cp 13
+        jr c,.cok
+        ld a,12
+        jr .cok
+.cn:    cp -12
+        jr nc,.cok
+        ld a,-12
+.cok:   ld (LATV),a
+        ; bends drift us to the outside: -(turn over 2 sections * speed) / 32, max +-6
         ld hl,(CAM_I)
         inc hl
         inc hl
@@ -455,74 +473,89 @@ physics:
         ld c,a
         call mul8
         add hl,hl
-        ld a,h                  ; (curv*speed/2) >> 7
+        add hl,hl
+        ld a,h
         neg
-        ld b,a
-        ld a,(LATV)
-        add a,b
-        ld (LATV),a
-        ; friction when not steering
-        ld a,(STEER)
-        or a
-        jr nz,.nf
-        ld a,(LATV)
-        sra a
-        sra a
-        ld b,a
-        ld a,(LATV)
-        sub b
-        ld (LATV),a
-.nf:    ld a,(LATV)             ; clamp to +-12
         bit 7,a
-        jr nz,.cn
-        cp 13
-        jr c,.cok
-        ld a,12
-        jr .cok
-.cn:    cp -12
-        jr nc,.cok
-        ld a,-12
-.cok:   ld (LATV),a
+        jr nz,.dn
+        cp 7
+        jr c,.dok
+        ld a,6
+        jr .dok
+.dn:    cp -6
+        jr nc,.dok
+        ld a,-6
+.dok:   ld b,a
+        ld a,(AIRT)             ; no drift in the air
+        or a
+        jr z,.dg
+        ld b,0
+.dg:    ld a,(LATV)             ; position += (slide + drift) / 4, keeping the remainder
+        add a,b
+        ld b,a
+        ld a,(LATS)
+        add a,b
+        ld b,a
+        and 3
+        ld (LATS),a
+        ld a,b
+        sra a
+        sra a
         call sext
         ld de,(CAM_LAT)
         add hl,de
         ld (CAM_LAT),hl
-        ; track edges: bounce back, scrub speed (never fall off)
-        ld a,h
+        ; off the road (rumble strip and grass): drag
+        ld a,l
         bit 7,a
-        jr nz,.neg
-        or a
-        jr nz,.hit
-        ld a,l
-        cp 61
+        jr z,.ab
+        neg
+.ab:    cp LAT_SOFT
         jr c,.ok
-.hit:   ld hl,60
-        jr .bounce
-.neg:   inc a
-        jr nz,.hitn
+        ld a,(SPEED)
+        cp 64
+        jr c,.wall
+        dec a
+        ld (SPEED),a
+.wall:  ; the barrier: stop the slide (no bounce), scrub a little speed
         ld a,l
-        cp -60
+        bit 7,a
+        jr nz,.wn
+        cp LAT_HARD+1
+        jr c,.ok
+        ld hl,LAT_HARD
+        ld a,(LATV)
+        bit 7,a
+        jr nz,.bump
+        jr .hitw
+.wn:    cp -LAT_HARD
         jr nc,.ok
-.hitn:  ld hl,-60
-.bounce:
-        ld (CAM_LAT),hl
-        ld a,(AIRT)             ; scraping the barrier costs a little shield
+        ld hl,-LAT_HARD
+        ld a,(LATV)
+        bit 7,a
+        jr z,.bump
+.hitw:  ld a,(LATV)             ; hard hit: sound, and a little shield if we slammed in
+        bit 7,a
+        jr z,.hp
+        neg
+.hp:    cp 8
+        jr c,.soft
+        ld a,(AIRT)
         ld b,a
         ld a,(BUMPT)
         or b
-        jr nz,.nbh
+        jr nz,.soft
         ld a,12
         ld (BUMPT),a
         ld a,SFX_BUMP
         call sfx
-        ld a,2
+        ld a,1
         call hurt
-.nbh:
-        ld a,(LATV)
-        sra a
-        neg
+.soft:  xor a
         ld (LATV),a
+        ld (LATS),a
         ld a,(SPEED)
+        srl a
         srl a
         srl a
         srl a
@@ -530,6 +563,7 @@ physics:
         ld a,(SPEED)
         sub b
         ld (SPEED),a
+.bump:  ld (CAM_LAT),hl
 .ok:    ; camera yaw follows the slide a little
         ld a,(LATV)
         sra a
@@ -1126,6 +1160,15 @@ init_vars:
         ld (LATBASE),a
         ld a,255
         ld (CURMODE),a
+        ld hl,ROWCL             ; no polygons: every row is clear for the skyline
+        ld b,0
+.rc:    ld (hl),a
+        inc l
+        djnz .rc
+        ld hl,ROWLP             ; row lists start at the head of their 32-byte slots
+.rl:    ld (hl),0
+        inc l
+        djnz .rl
         call make_skyline
         call mode_upd
         ld hl,4

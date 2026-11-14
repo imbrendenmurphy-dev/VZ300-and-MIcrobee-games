@@ -55,18 +55,29 @@ d_row:      dw 0
 c_want:     dw 0
 c_ink:      db 0
 c_code:     db 0
-c_top:      ds 16
-c_bot:      ds 8
+c_top:      ds 20
+c_bot:      ds 10
 ; sound
 sound_on:   db 0
 sfx_p:      dw 0
-mus_p:      dw 0
+sfx_n:      db 0
+sfx_pri:    db 0
 mus_base:   dw 0
-mus_t:      db 0
 mus_on:     db 0
-mus_note:   db 0
-mus_tail:   db 0
+mus_hold:   db 0
 saved_tune: dw 0
+ch1:        ds CH_SIZE
+ch2:        ds CH_SIZE
+sseed:      dw 0
+hitstop:    db 0
+mono:       db 0             ; 1: scenery drawn for a monochrome monitor
+m_was:      db 0
+on_title:   db 0
+watch:      db 0
+mx_n:       db 0
+sig_now:    ds 5
+sig0:       ds 5
+sig1:       ds 5
 spk:        db 0
 hudbuf:     ds 41
 ; scrolling

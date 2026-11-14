@@ -94,7 +94,7 @@ title:
         ld hl,0
         ld a,BK_PIC
         ld bc,LOGO_NG
-        call pcg_load
+        call pcg_load10
         ld ix,LOGO_MAP
         ld hl,2*40+(40-LOGO_W)/2
         ld de,logo_cols
@@ -149,85 +149,32 @@ title:
         ld de,t_keys
         ld c,DGREY
         call print_s
+        ld hl,16*40+6
+        ld de,t_press
+        ld c,WHITE
+        call print_s
+        call tstars_init
         call display_on
-        ld hl,tune_title
-        call play_tune
-        ld hl,25*14
+        ; the title runs on SWIRL's ticks (src/titlemus.asm)
+        call snd_off
+        ld hl,TITLE_TICKS
         ld (scr_tim),hl
         xor a
-        ld (p_af),a
-        ld (p_state),a
-        ld (p_inv),a
-        ld (p_hitfl),a
-        ld (bossmode),a
-        call enemies_clear
-.loop:  call read_input
-        call front_keys
-        call fire_new
-        jr nz,.go
-        ld a,(keys+1)
-        bit 4,a                 ; M / C switch the monitor
-        jr nz,.mono
-        bit 3,a
-        jr nz,.col
-.k:     call input_used
-        ; the ship sweeps round the title
-        ld hl,(p_af)
-        ld de,$0140
-        add hl,de
-        ld (p_af),hl
-        ld a,MP_TAB
-        out (P_MEM),a
-        ld a,(p_a)
-        ld b,PR_ORBIT
-        call polar
-        ld (p_x),hl
-        ld a,c
-        ld (p_y),a
-        ; "press fire" blinks
-        ld a,(frameno)
-        and 31
-        jr nz,.nb
-        ld a,(frameno)
-        and 32
-        ld de,t_press
-        jr z,.pr
-        ld de,t_press0
-.pr:    ld hl,16*40+6
-        ld c,WHITE
-        call print_q
-.nb:    ld a,(frameno)
-        and 3
-        jr nz,.ns
-        call random             ; now and then a shot into the vortex
-        cp 50
-        jr nc,.ns
-        ld a,(p_a)
-        call shot_new
-.ns:    call shots_title
-        call stars_update
-        call snd_tick
-        call draw_all
-        call frame_end
-        ld hl,(scr_tim)
-        dec hl
-        ld (scr_tim),hl
-        ld a,h
-        or l
-        jr nz,.loop
-        call snd_off
-        or 1
-        ret
-.go:    call snd_off
+        ld hl,16*40+PROMPT_C0
+        call tm_setup
+        ld de,title_hook
+        call mus_run            ; A: 1 start, 2 time up, 3 colour, 4 mono
+        cp 2
+        jr z,.next
+        jr nc,.mon
         call input_used
         xor a
         ret
-.mono:  ld a,1
-        jr .mc
-.col:   xor a
-.mc:    ld (mono),a
+.next:  or 1
+        ret
+.mon:   sub 3
+        ld (mono),a
         call set_colour_mode
-        call snd_off
         call shape_ask          ; a new monitor may want a new shape
         jp title
 
@@ -362,26 +309,19 @@ scores_screen:
         ld de,t_press
         ld c,BCYAN
         call print_s
+        call tstars_init
         call display_on
-        ld hl,25*7
+        ; the hall of fame carries the title's music on (SWIRL)
+        call snd_off
+        ld hl,7*59
         ld (scr_tim),hl
         ld a,1
-        ld (p_state),a          ; no ship here
-.loop:  call read_input
-        call front_keys
-        call fire_new
-        jr nz,.go
-        call input_used
-        call stars_update
-        call snd_tick
-        call draw_all
-        call frame_end
-        ld hl,(scr_tim)
-        dec hl
-        ld (scr_tim),hl
-        ld a,h
-        or l
-        jr nz,.loop
+        ld hl,23*40+6
+        call tm_setup
+        ld de,title_hook
+        call mus_run            ; A: 1 start, 2 time up
+        cp 1
+        jr z,.go
         or 1
         ret
 .go:    call input_used

@@ -13,6 +13,7 @@ OB_DOWN  equ 8
 OB_LOW   equ 16     ; the attack is low
 OB_HIGH  equ 32     ; the attack is overhead / from the air
 OB_APPR  equ 64     ; coming in through the air
+OB_PROJ  equ 128    ; something thrown is on its way
 
 ; actions
 A_WAIT   equ 0
@@ -28,10 +29,16 @@ A_CA     equ 9
 A_CB     equ 10
 A_SP1    equ 11
 A_SP2    equ 12
+A_TAUNT  equ 13
 
 ; ai_think: IX = CPU fighter.  Sets F_PAD and adds to F_PRS.
 ai_think:
-        ld iy,p1
+        ld a,(fin_on)           ; a dizzy opponent: stand back (fin_tick decides
+        dec a                   ; whether the CPU performs its finisher)
+        jr nz,.nfin
+        ld (ix+F_PAD),0
+        ret
+.nfin:  ld iy,p1
         push ix
         pop hl
         ld de,p1
@@ -128,25 +135,53 @@ ai_think:
         ld hl,ai_paa
         call ai_roll
         jr nc,.r4
-        ld a,A_SB               ; Dusty's high kick
-        ld b,(ix+F_CHAR)
-        dec b
-        jr z,$+4
-        ld a,A_SP2              ; Flick's Tin Roof
+        ld a,4                  ; this fighter's answer to a jump-in
+        call ai_x
         ld b,2
         jp ai_set
-.r4:    ; ---- carry on with the current action
+.r4:    ; something thrown is coming: block it (or, sometimes, jump it)
+        ld a,(ai_new)
+        bit 7,a
+        jr z,.r5
+        ld hl,ai_pblock
+        call ai_roll
+        jr nc,.r5
+        call random
+        cp 60
+        ld a,A_JFWD
+        ld b,3
+        jp c,ai_set
+        ld a,A_BLOCK
+        ld b,8
+        jp ai_set
+.r5:    ; the opponent has just gone down, far away: show off
+        ld a,(ai_new)
+        bit 3,a
+        jr z,.r6
+        ld a,(ai_dist)
+        cp 44
+        jr c,.r6
+        call random
+        cp 70
+        jr nc,.r6
+        ld a,A_TAUNT
+        ld b,18
+        jp ai_set
+.r6:    ; ---- carry on with the current action
         ld a,(ix+F_AICNT)
         or a
         jr z,.pick
         dec (ix+F_AICNT)
         jp ai_output
 .pick:  ; ---- habits for this distance
-        ld a,(ix+F_CHAR)
-        ld hl,habits_flick
-        or a
-        jr z,$+5
-        ld hl,habits_dusty
+        ld l,(ix+F_DEFL)
+        ld h,(ix+F_DEFH)
+        ld de,D_HAB
+        add hl,de
+        ld a,(hl)
+        inc hl
+        ld h,(hl)
+        ld l,a
         ; three bands: each starts with the band's upper distance limit
 .band:  ld a,(ai_dist)
         cp (hl)
@@ -240,7 +275,7 @@ ai_set:
         or (ix+F_PRS)
         ld (ix+F_PRS),a
         ld a,c
-        and 2                   ; crouching attack: hold down this tick
+        and 3                   ; crouching attack / taunt: hold down / up this tick
         ld (ix+F_PAD),a
         ld (ix+F_AIACT),A_WAIT
         ld (ix+F_AICNT),b
@@ -286,28 +321,50 @@ ai_roll:
         cp b
         ret
 
+; ai_x: A = index into this fighter's CPU extras -> A = the byte
+; (near punish range, near punish, far punish range, far punish, anti-air)
+ai_x:   push hl
+        push de
+        ld e,a
+        ld d,0
+        ld l,(ix+F_DEFL)
+        ld h,(ix+F_DEFH)
+        push de
+        ld de,D_AIX
+        add hl,de
+        ld a,(hl)
+        inc hl
+        ld h,(hl)
+        ld l,a
+        pop de
+        add hl,de
+        ld a,(hl)
+        pop de
+        pop hl
+        ret
+
 ; ai_punish: pick a punish for the distance -> carry + A = action
 ai_punish:
-        ld a,(ai_dist)
+        xor a
+        call ai_x
         ld b,a
-        ld a,(ix+F_CHAR)
-        or a
-        jr nz,.dusty
-        ld a,b
-        cp 24
-        ld a,A_SB
-        ret c
-        ld a,b
-        cp 48
-        ld a,A_SP1              ; Blade Run
+        ld a,(ai_dist)
+        cp b
+        jr nc,.far
+        ld a,1
+        call ai_x
+        scf
         ret
-.dusty: ld a,b
-        cp 34
-        ld a,A_SB
-        ret c
+.far:   ld b,a
+        ld a,2
+        call ai_x
+        ld c,a
         ld a,b
-        cp 56
-        ld a,A_SP1              ; Whip Crack
+        cp c
+        ret nc
+        ld a,3
+        call ai_x
+        scf
         ret
 
 ; ai_observe: what the opponent (opp) is doing now -> A
@@ -382,7 +439,33 @@ ai_observe:
         or a
         jr z,.done
 .appr:  set 6,c
-.done:  ld a,c
+.done:  ; anything thrown at me, close and still coming?
+        push ix
+        ld ix,(opp)
+        call my_proj
+        pop ix
+        ld a,(hl)
+        or a
+        jr z,.np
+        inc hl
+        ld e,(hl)
+        inc hl
+        ld d,(hl)
+        ld l,(ix+F_XL)
+        ld h,(ix+F_XH)
+        or a
+        sbc hl,de
+        jr nc,$+9
+        ex de,hl
+        ld hl,0
+        or a
+        sbc hl,de
+        ld de,56*4
+        or a
+        sbc hl,de
+        jr nc,.np
+        set 7,c
+.np:    ld a,c
         ret
 
 ai_delay:   db 8,5,3
@@ -392,24 +475,10 @@ ai_paa:     db 50,130,200
 
 ; held directions per action (0 up, 1 down, 2 back, 3 forward)
 ai_dirs:
-        db 0, 8, 4, 4, 6, 9, 5, 0, 0, 2, 2, 0, 2
+        db 0, 8, 4, 4, 6, 9, 5, 0, 0, 2, 2, 0, 2, 1
 ; buttons per attack action (bits 4 A, 5 B; bit 1 = crouching)
 ai_btns:
-        db $10, $20, $12, $22, $30, $32
+        db $10, $20, $12, $22, $30, $32, $31
 
-; habits: per band, db upper distance limit, then (weight, action) pairs
-; ending with weight 0 (the last pair takes what is left of 256)
-habits_flick:
-        db 24
-        db 50,A_SA, 35,A_CA, 30,A_SB, 35,A_CB, 14,A_SP2, 30,A_BACK, 30,A_BLOCK, 10,A_JBACK, 0,A_WAIT
-        db 56
-        db 70,A_FWD, 50,A_SP1, 30,A_JFWD, 20,A_SB, 30,A_WAIT, 24,A_BLOCK, 16,A_BACK, 0,A_FWD
-        db 255
-        db 140,A_FWD, 40,A_JFWD, 46,A_WAIT, 0,A_BACK
-habits_dusty:
-        db 34
-        db 40,A_SA, 40,A_CA, 30,A_SB, 30,A_CB, 50,A_BACK, 20,A_JBACK, 25,A_BLOCK, 0,A_WAIT
-        db 58
-        db 40,A_SP1, 24,A_SP2, 36,A_SB, 50,A_WAIT, 30,A_BACK, 26,A_CBLOCK, 0,A_FWD
-        db 255
-        db 120,A_FWD, 80,A_WAIT, 20,A_JFWD, 0,A_BACK
+; habits (in each fighter's block): per distance band, db upper limit, then
+; (weight, action) pairs ending with weight 0 (the last takes what is left)

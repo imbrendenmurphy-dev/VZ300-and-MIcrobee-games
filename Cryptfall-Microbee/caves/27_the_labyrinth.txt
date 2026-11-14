@@ -1,0 +1,44 @@
+name: THE LABYRINTH
+hint: JEWELS WAIT IN THE DEAD ENDS
+quota: 91
+time: 300
+gem: 10 20
+magic: 25
+slow: 40
+slmax: 80
+bonus: 0
+theme: wall1=GREEN dirt1=BROWN dirt4=GREEN
+; solve: ! X
+map:
+################################################################
+#WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW#
+#WP .W   W      .  W.  ..   .. ..W   .   W*W   .    .  W   ; . #
+#WWW W.W W;WWWWWWW W.WWWWWWW WWWWW.W WWW W.W W WWWWW W.W WWWWW #
+#WeW.W*W    .W . . W W .   W.. ..  W. .W     W.   .  W  .W.  Wr#
+#W W.WWWWWWW W;WWW W W WWW WWWWWWW.WWW WWW W.WWW.WWW WWW.W W WW#
+#W W    .  W*W.Wr .  W WrW  .  . WrW . W*. W.W     W   W*W.W   #
+#W.WWWWWWW WWW.WWWWW W W.WWW.W W WWW W WWWWW W WWW WWW WWW WWW #
+#W    . *W   W W  .  W..; *W W.W ; . W*W  . .W .*W   W. .W W  .#
+#W;WWWWWWWWW W W WWWWWWWWWWW W WWWWWWWWW WWWWWWWWW.W WWW W W.W #
+#W.  ...     W.; W  .. W; .W W   .    . ;;   .. ..   W.  W W Wh#
+#W WWWWWWWWWWW WWW WWW W W W WW WWWW WWWWWWWWW WWWWW W WWW W W.#
+#W W     ;.  W.   .WeW  .WWWWWWDWWWWWW   W.. W   .;W W  ;    W #
+#W.W WWWWW W WWWWWWW WWWWWW**********W W.W W W W.W.W WWWWWWW W #
+#W  .W*   ;W.WrW     ..   W****C*****W W.W W W*W W.W*W   W . W #
+#WWWWWWW.W W W.W WWWWWWWWWW**eeeeee**W.W.W.W.WWW W WWW W W WWW #
+#W     W WeW      .. W*.  W**eeeeee**W W*W.W . W W    .W.W W ; #
+#W WWW W WWW WWWWW W WWW WW**********WWWWW.WWW W WWWWWWW W.W WW#
+#W W W.W   W.W. .  W ..W .W**********W  .  WyW   . W;  W W.W  ;#
+#W W.W WWW W;W WWW.WWW WWWWWWWWWWWWWWW WWWWW WWWWW W W W W;WWW #
+#W W W W.  W   W*W.W*    . W.W   W . W...W     W . . W   W.; W #
+#W W W W WWWWWWW W WWWWWWWWW W.WWW WWWWW W.WWW W.W W;WWWWW W;W #
+#W W W.W. .W . ; W   W  ;  W.W.  W  .. W W    .  W W   WeW W   #
+#W W W.W.W W WWW WWW W WWW W WWW WWW WWW WWW WWWWW WWW W.W W WW#
+#W W.      W. *W W   W W   W  . ...W W . W. .W.    W ..W. .W   #
+#W WWW;WWWWW WWW.W.WWW.W WWWWWWWWW W.W.WWW WWW WWWWW;WWWWWWWWW.#
+#W ..W W     W   W.    W;W     We    W.W*..W  .W.  ..W*      W #
+#W.W W W.WWWWW WWWWWWWWW W WWW WWWWW.W WWW W;WWW WWWWWWW WWW W.#
+#W.W.WrW   W*W.W  .W.. W W WrW   Wr .W W   WrW.  W.    W ;.W   #
+#W W;WWWWW;W W.W.W W W W.W.W WWW WWWWW.W.WWWWW.WWW.WWW.W W WWW #
+#W*W         W   W . W .   W .       . W  . . .    W*  ..  Wy .X
+################################################################

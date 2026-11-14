@@ -2,8 +2,8 @@
 ;  GAME: the maze, the hunter, dots, items, power-ups, the HUD and the
 ;  round's state machine. Logic runs once a frame (25 frames a second).
 ;
-;  The maze is a 13 x 7 grid of nodes, 12 units (24 pixels) apart; one
-;  unit is 2 pixels. Node i is at coordinate 12 * (i + 1), so 0 and 168
+;  The maze is a 13 x 7 grid of nodes, 12 units (3 cells) apart; one unit
+;  is 2 pixels across and 2.5 lines down (cells are 8 x 10). Node i is at coordinate 12 * (i + 1), so 0 and 168
 ;  are the two ends of a wrap-around tunnel, just off the screen.
 ;  Dots sit every 4 units, on the corners where four cells meet.
 ; =====================================================================
@@ -142,10 +142,15 @@ put_actor:
         ld b,a
         add hl,bc
         ld (spr_x),hl
-        ld l,e
+        ld l,e                  ; y: 12 units = 3 rows of 10 lines, so x 2.5
         ld h,0
         add hl,hl
-        ld bc,-8
+        ld a,e
+        srl a
+        ld c,a
+        ld b,0
+        add hl,bc
+        ld bc,-8                ; (16 lines high, in the middle of a 20-line lane)
         add hl,bc
         ld a,(a_oy)
         ld c,a

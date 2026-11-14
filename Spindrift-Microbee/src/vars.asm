@@ -15,11 +15,18 @@ dcol:       DS 1
 vlast:      DS 1
 vb_age:     DS 1
 fields:     DS 1
+cpend:      DS 1            ; 1: a commit's last part waits for a blanking
+pend_list:  DS 1
+pend_page:  DS 1
+cest:       DS 2
+pl_n:       DS 1
+c_late:     DS 1            ; FFh: this commit began late in its blanking
 frameno:    DS 2
 commit_late:DS 1
 flashcnt:   DS 1
 flashcol:   DS 1
 flashpaper: DS 1
+tq_mark:    DS 1            ; 80h while the HUD queues its text
 tqcur:      DS 1
 tqprev:     DS 1
 tq_page:    DS 1
@@ -30,6 +37,22 @@ star_code:  DS 1
 rseed:      DS 2
 pl_bank:    DS 1
 shape:      DS 1
+tm_tick:    DS 1
+tm_where:   DS 1
+tm_prow:    DS 2
+tm_col:     DS 1
+tm_pcol:    DS 1
+tm_phase:   DS 1
+tm_held:    DS 1
+tm_fire:    DS 1
+tstars:     DS 2*28
+mus_pos:    DS 2            ; SWIRL: where the title music is
+mus_left:   DS 1
+mdrum:      DS 1
+acc_a:      DS 2
+acc_b:      DS 2
+acc_bass:   DS 2
+acc_arp:    DS 2
 mono:       DS 1
 colmap:     DS 16
 rowcell:    DS 50
@@ -58,6 +81,12 @@ sfx_pri:    DS 1
 sfx_ptr:    DS 2
 sfx_left:   DS 1
 sfx_cur:    DS 1
+mus_hdr:    DS 2
+sa_m:       DS 2            ; the in-game voices' phase counters
+sa_m2:      DS 2
+sa_b:       DS 2
+sa_f:       DS 2
+lfsr:       DS 1
 sndmode:    DS 1
 snd_save:   DS 1
 mus_on:     DS 1
@@ -67,11 +96,15 @@ mus_b1:     DS 2
 mus_l1:     DS 1
 mus_n1:     DS 1
 mus_g1:     DS 1
+            DS 1
+mus_a1:     DS 1            ; age (ix+7)
 mus_p2:     DS 2
 mus_b2:     DS 2
 mus_l2:     DS 1
 mus_n2:     DS 1
 mus_g2:     DS 1
+            DS 1
+mus_a2:     DS 1
 ; input
 rk_pad:     DS 1
 rk_keys:    DS 1

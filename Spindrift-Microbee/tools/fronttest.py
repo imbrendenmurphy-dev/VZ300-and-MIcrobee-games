@@ -48,12 +48,22 @@ def main(out):
     out.mkdir(parents=True, exist_ok=True)
     pp = run.boot()
     S = pp.S
-    pp.run_frames(20)
-    check('monitor question shown', 'COLOUR MONITOR' in screen_text(pp))
+    check('monitor question shown', wait_text(pp, 'COLOUR MONITOR', 200))
+    pp.run_frames(10)
     run.shot(pp, out / '01_monitor.png')
     run.press(pp, ['C'])
-    pp.run_frames(40)
-    check('title shown', 'RIDE THE SPIRAL HOME' in screen_text(pp))
+    check('screen shape screen shown', wait_text(pp, 'SCREEN SHAPE', 100))
+    w0 = run.var(pp, 'shape')
+    run.press(pp, ['Z'], 3, 20)
+    check('Z widens the ring', run.var(pp, 'shape') == w0 + 1, 'shape %d -> %d' % (w0, run.var(pp, 'shape')))
+    run.press(pp, ['X'], 3, 20)
+    run.shot(pp, out / '01b_shape.png')
+    run.press(pp, ['SPACE'])
+    check('title shown', wait_text(pp, 'RIDE THE SPIRAL HOME', 100))
+    pp.watch(S['mus_step'])
+    pp.events()
+    pp.run_frames(100)
+    check('title plays the SWIRL music', len(pp.events()) > 100)
     run.shot(pp, out / '02_title.png')
 
     # the attract cycle, untouched: title, how to play, title, demo,
@@ -162,6 +172,10 @@ def main(out):
         if run.var(pp, 'mono') == 1:
             break
     check('M switches to monochrome', run.var(pp, 'mono') == 1, 'title? %s' % ('SPIRAL' in screen_text(pp)))
+    check('then the screen shape again', wait_text(pp, 'SCREEN SHAPE', 100))
+    run.press(pp, ['SPACE'])
+    wait_text(pp, 'RIDE THE SPIRAL HOME', 100)
+    pp.run_frames(60)
     run.shot(pp, out / '11_title_mono.png', mono=True)
     run.press(pp, ['SPACE'])
     for f in range(400):

@@ -1,6 +1,6 @@
 # GHOST HUNTER '26
 
-A contemporary maze chase for the **Microbee Premium Plus** (1MB RAM, 32K PCG), in the 40-column mode. The Microbee never had a Ghost Hunter; this one is built for it from scratch, taking the ideas of *Ghost Hunter 2* (VZ300) but not its code or its mazes.
+A contemporary maze chase for the **Microbee Premium Plus** (1MB RAM, 32K PCG), in the full-screen 40 × 25 PAL mode (320 × 250). The Microbee never had a Ghost Hunter; this one is built for it from scratch, taking the ideas of *Ghost Hunter 2* (VZ300) but not its code or its mazes.
 
 **VIBED BY BPM 2026**
 
@@ -10,7 +10,7 @@ A contemporary maze chase for the **Microbee Premium Plus** (1MB RAM, 32K PCG), 
 
 ## Status: first build, tested in the emulator model only
 
-Everything below runs in the project's Premium Plus model at a steady 25 frames a second. It has not been on real hardware yet. The display set-up (40 × 25 cells of 8 × 8 pixels) is the same one KABOOMERANG uses, taken from the MODES.COM test that worked on BPM's machine.
+Everything below runs in the project's Premium Plus model at a steady 25 frames a second. It has not been on real hardware yet. The display set-up is MODES.COM's 40 × 25 table with 8 × 10 cells (320 × 250), the same one KABOOMERANG 0.2 uses: it fills a PAL screen and is the tallest picture that still fits two screen pages.
 
 ## Play it
 
@@ -32,7 +32,7 @@ A tapped direction is remembered until the next junction, so you can turn early.
 
 ## What's in it
 
-**The screen.** 320 × 200 in sixteen colours, every 8 × 8 cell with its own ink and paper. The maze is arcade scale: 13 lanes across and 7 down, lanes 16 pixels wide, 16-pixel characters. Characters only ever stand in lane cells, so they never discolour a wall.
+**The screen.** 320 × 250 in sixteen colours, every 8 × 10 cell with its own ink and paper, using all 25 rows of a PAL picture. The maze is arcade scale: 13 lanes across and 7 down, lanes 16 pixels wide and 20 lines tall, 16-pixel characters. Characters only ever stand in lane cells, so they never discolour a wall.
 
 ![crypt](screenshots/04_old_crypt.png)
 
@@ -96,7 +96,7 @@ All are mirror-symmetric, fully connected and free of dead ends (checked by the 
 | | |
 |---|---|
 | Machine | Microbee Premium Plus, Z80 at 3.375 MHz, 1MB RAM, 32K PCG |
-| Display | 6545 at half dot clock: 40 × 25 cells of 8 lines, 320 × 200 |
+| Display | 6545 at half dot clock: 40 × 25 cells of 10 lines, 320 × 250 (R4 1Eh, R5 03h, R6 19h, R7 1Ch, R9 09h: 313 lines a field) |
 | Frame rate | 25 frames a second, two pages flipped in vertical blanking |
 | Sprites | pre-shifted and masked, composited into private PCG glyphs (the HULLBREACH / KABOOMERANG engine) |
 | Program | about 14K of Z80 at 8000h; no ROM calls, interrupts off |

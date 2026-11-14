@@ -10,7 +10,11 @@ Your ship rides the rim of a vortex. The swarm spirals out of deep space from it
 | | |
 |---|---|
 | ![Title](screenshots/01_title.png) | ![Oort Drift](screenshots/03_oort_drift.png) |
-| ![Guardian](screenshots/07_guardian.png) | ![Amber monitor](screenshots/09_amber_ring_works.png) |
+| ![Guardian](screenshots/07_guardian.png) | ![Screen shape](screenshots/00_screen_shape.png) |
+
+The blurb: [BLURB.md](BLURB.md). More pictures: [gameplay](screenshots/gameplay/) (every sector, every Guardian, the Chance Stage, a warp, the amber monitor) · [screens](screenshots/info/). Regenerate them with `python3 tools/gallery.py`.
+
+Videos with sound, from the emulator model: [the title and its music](media/spindrift_title_music.mp4) · [play](media/spindrift_gameplay_sound.mp4)
 
 ## Play it
 
@@ -18,7 +22,7 @@ Your ship rides the rim of a vortex. The swarm spirals out of deep space from it
 
     SPIN
 
-Then press **C** for a colour monitor or **M** for a monochrome one. On a Premium Plus that loads images from SD, boot the image and type `SPIN` at the prompt.
+Then press **C** for a colour monitor or **M** for a monochrome one, and set the **screen shape**: a ring of ships appears, and **Z** / **X** (or the stick) stretch or squash it until it looks round on your screen; fire to go on. (A CRT shows the 40-column pixel a little wider than a line is tall; a screen that stretches the picture to fill 4:3 shows it narrower, so the right setting depends on the display.) On a Premium Plus that loads images from SD, boot the image and type `SPIN` at the prompt.
 
 Needs a **Premium Plus with 1 MB RAM and 32K PCG RAM**. The loader checks for the RAM and says so if it isn't there.
 
@@ -31,12 +35,14 @@ Needs a **Premium Plus with 1 MB RAM and 32K PCG RAM**. The loader checks for th
 | Sound: music + effects / effects / off | **S** | |
 | Restart the game at once | **R** | |
 | Quit to the title | **ESC** | |
-| Switch monitor (on the title) | **C** / **M** | |
+| Switch monitor, then set the screen shape (on the title) | **C** / **M** | |
 
 The joystick is read from PIO port A (active low, bit 7 fire), as in the earlier Premium games. It's tested in the emulator model; it hasn't been tried on BPM's hardware yet.
 
 ## The game
 
+- **A round vortex, full height.** The arena is all 25 rows: the HUD lives in the four corners (score and high score top left, sector top right, shield and ships bottom left, the warp count or the Guardian's core bottom right), where the ring never goes. The ring is drawn round on your screen, whatever it is: the screen-shape setting picks one of eight widths.
+- **"3 WARPS TO CINDER GATE".** Under each sector's name, and between its two waves, a countdown of the waves left to the next Guardian; the count stays in the HUD's corner.
 - **Eight sectors**, each with its own star colour, HUD colour, enemy types, entry paths and signature attack:
   Oort Drift, Comet Lanes, Ring Works, Cinder Gate, Gas Giant, Iron Belt, Corona, The Eye. After The Eye it goes round again, harder.
 - **Depth you can read.** Each of the nine enemy types is drawn at six sizes, so a far enemy is a proper small drawing, not a squashed big one. Far enemies are dim, near ones bright. Stars stream outward at perspective speed.
@@ -64,24 +70,32 @@ The high score table keeps eight sets of initials (type them, or pick them with 
 ### The home release
 
 - Monitor question at start-up (colour or amber monochrome; the monochrome mode draws everything as ink, readable on BPM's amber screen).
-- A title with the SPINDRIFT marquee logo and an original tune.
+- A title with the SPINDRIFT marquee logo, bands of colour rolling through it in time with **"Spiral Arms"**, an original psychedelic title tune (see Sound below).
 - An attract cycle: title, a scripted **How to play** demo that shows each control with a caption, the title again, a **demo game** played by the computer, the title, the **hall of fame**.
 - Pause, sound modes, quick restart, quit.
-- Sound from the one speaker bit: a two-voice tune on the title, slow, short in-game notes so the game runs between them, a Guardian theme, jingles, and effects including the attack warning, shield hits and a warp.
+- Sound from the one speaker bit (below).
+
+### Sound
+
+Two engines, both original, both on the one speaker bit:
+
+- **SWIRL** plays the title and the hall of fame with all of the CPU. Three voices take turns at the speaker inside every 218 T sample (15 482 a second), so they add up like real mixing instead of masking each other: a **squelch bass** (its duty swells and decays like a filter, each note diving in from a fifth above), a **phaser** (two oscillators a hair apart, exclusive-or'd, so the tone sweeps as they drift through each other) and an **arpeggio / lead** voice (tick-rate chord arpeggios, or the melody with a scoop and a delayed vibrato). Drums are designed 1-bit pulse trains: kick, snare, hats, toms. The title runs on the music's ticks; its picture changes only in the vertical blanking, where video writes cost nothing, so the music never stops for it.
+  **"Spiral Arms"**: A minor, about 125 BPM, on the Am – G – F – E descent; an intro where the phaser pad swells in, a groove with 16th-note acid bass and shimmering arpeggios, the lead, a breakdown where the phaser takes the hook and swirls, then round again. About a minute before it loops. It's written as a score in `tools/song.py` and baked into a 20K stream of per-tick settings in RAM block 7.
+- **In the game** the voices sound in the time each frame waits for the vertical blanking. Three voices again: a **phaser melody** (the note and a hair over its octave), a **plucked bass** ("dunk", not "beep"), and the effects' **own voice**, so effects no longer cut the music. An effect is a pulse whose pitch glides smoothly inside the frame, or pitched noise: shots spurt (a wet fizz, then a zip down), enemies burst with a squelch and a splat, the attack warning and the Guardian's siren go wucka-wucka, the warp is one long zip up.
 
 ## How it works
 
-The display is the 40-column mode BPM proved on the Premium Plus: 40 × 25 cells of 8 × 8 pixels, 320 × 200, with the 40-column dot clock selected.
+The display is the 40 × 25 table from BPM's MODES40 test on the Premium Plus: cells of **8 × 10**, so the picture is **320 × 250** and fills a PAL screen (31 rows of 10 lines + 2 = 312 lines, 50 Hz), with the 40-column dot clock selected. 40 × 25 = 1000 cells, so both screen pages still fit their 1K each.
 
-The PCG RAM holds 2048 glyphs, twice the number of cells, so nothing is built from tiles. Every cell a sprite touches gets a private glyph composed in RAM, and the cell is pointed at it. Two screen pages and two glyph banks take turns, so sprites move a pixel at a time, overlap freely and never flicker or tear. All video RAM writes happen in the vertical blanking, when the 6545 doesn't hold the CPU.
+The PCG RAM holds 2048 glyphs, twice the number of cells, so nothing is built from tiles. Every cell a sprite touches gets a private glyph composed in RAM, and the cell is pointed at it. Two screen pages and two glyph banks take turns, so sprites move a pixel at a time, overlap freely and never flicker or tear. All video RAM writes happen in the vertical blanking, when the 6545 doesn't hold the CPU. A 250-line picture leaves only 62 lines of blanking (13.4K T), so a commit too big for one blanking finishes its last part (the new cells and the page flip) in the next: at 25 frames a second there are two blankings a frame.
 
 The game is locked to **25 frames a second**. Measured in the raster-accurate Premium Plus model, flying the busiest wave of every sector and every Guardian:
 
 | Scene | Frames a second | Frames on time |
 |---|---|---|
-| Sector waves (8 scenes) | 24.1 – 25.0 | 92 – 100% |
-| Guardians (4 scenes) | 22.9 – 24.4 | 82 – 95% |
-| **All play** | **24.3** | **94.5%** |
+| Sector waves (8 scenes) | 22.7 – 25.0 | 79 – 100% |
+| Guardians (4 scenes) | 22.8 – 23.8 | 80 – 89% |
+| **All play** | **23.9** | **90.5%** |
 
 The details, what was changed to get there, and how it was tested are in [docs/DESIGN.md](docs/DESIGN.md) and [docs/TESTING.md](docs/TESTING.md).
 
@@ -91,15 +105,17 @@ Python 3 with numpy and Pillow, and gcc (for the emulator model used by the test
 
     python3 tools/build.py
 
-That draws the art, writes the music, assembles the program and the CP/M loader, and writes `build/SPINDRIFT.DS8` (and a copy in `release/`).
+That draws the art, writes the music (`tools/mkmusic.py` for the game, `tools/song.py` for the title), assembles the program and the CP/M loader, and writes `build/SPINDRIFT.DS8` (and a copy in `release/`).
 
 | Script | What it does |
 |---|---|
-| `tools/fronttest.py` | Plays the whole home-release flow: 16 checks |
+| `tools/fronttest.py` | Plays the whole home-release flow: 20 checks |
 | `tools/loadertest.py` | Runs the CP/M loader off the disk image and checks every file and block |
 | `tools/playtest.py OUT 900 --god` | A scripted pilot flies the whole campaign, saving pictures |
 | `tools/perf2.py` | Measures every sector and Guardian |
 | `tools/showcase.py` | Makes the screenshots and the GIF |
+| `tools/video.py title OUT.mp4` (or `play`) | A video with sound from the model |
+| `tools/audio.py` | Renders the speaker as a small speaker hears it |
 
 ## Files
 
@@ -111,3 +127,4 @@ That draws the art, writes the music, assembles the program and the CP/M loader,
 | `tools/emu/` | The Premium Plus model used for testing (its Z80 core looks like superzazu/z80, MIT; not part of the game) |
 | `docs/` | Design and test notes, and the README that goes on the disk |
 | `screenshots/` | Pictures from the model |
+| `media/` | Videos with sound from the model |

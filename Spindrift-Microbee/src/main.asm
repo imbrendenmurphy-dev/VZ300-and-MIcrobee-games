@@ -18,6 +18,7 @@ entry:  di
         ldir
         ld a,SHAPE_CRT
         call set_shape
+        call mus_reset
         call monitor_ask
         call shape_ask
 .main:  call attract
@@ -28,6 +29,7 @@ entry:  di
 
         INCLUDE "engine.asm"
         INCLUDE "sound.asm"
+        INCLUDE "mus.asm"
         INCLUDE "input.asm"
         INCLUDE "util.asm"
         INCLUDE "enemy.asm"
@@ -35,6 +37,7 @@ entry:  di
         INCLUDE "boss.asm"
         INCLUDE "front.asm"
         INCLUDE "shape.asm"
+        INCLUDE "titlemus.asm"
         INCLUDE "data.asm"
         INCLUDE "gen.inc"
         INCLUDE "snd.inc"

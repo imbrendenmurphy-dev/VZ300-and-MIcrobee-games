@@ -532,6 +532,13 @@ draw_actor:
         jr z,.two
         ld c,WHITE
         ld b,WHITE
+        ld l,a
+        ld a,(monomode)         ; mono: a hit crusher blinks instead
+        or a
+        ld a,l
+        jr z,.two
+        bit 0,(iy+A_FL)
+        ret nz
         jr .two
 .mag:   ld a,(iy+A_AN)          ; whirler: spinning, colours cycling
         and 3
@@ -746,7 +753,7 @@ draw_message:
         ld c,YELLOW
         call draw_msg
         ld a,(wave)
-        cp 11
+        cp NWAVES+1
         ld hl,s_wmore
         jr nc,.w2
         dec a

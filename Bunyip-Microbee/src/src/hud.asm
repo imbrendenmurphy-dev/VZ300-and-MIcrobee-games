@@ -435,25 +435,25 @@ MSG_SHARP equ 20
 MSG_FAST equ 21
 MSG_HINT equ 0FFh
 MSGS:   dw .m0,.m1,.m2,.m3,.m4,.m5,.m6,.m7,.m8,.m9,.m10,.m11,.m12,.m13,.m14,.m15,.m16,.m17,.m18,.m19,.m20,.m21
-.m0     db "THIS DOOR NEEDS THE GOLD KEY.",0
-.m1     db "THIS DOOR NEEDS THE BLUE KEY.",0
-.m2     db "THIS DOOR NEEDS THE RED KEY.",0
-.m3     db "A GATE BARS THE WAY. FIND A LEVER.",0
-.m4     db "THE GUARDIAN'S GATE IS SHUT FAST.",0
-.m5     db "A SECRET PASSAGE! +500",0
-.m6     db "SEALED. THE GUARDIAN MUST FALL FIRST.",0
+.m0     db "LOCKED. THE GOLD KEY WOULD HELP.",0
+.m1     db "LOCKED. IT WANTS THE BLUE KEY.",0
+.m2     db "LOCKED. RED KEY. YOU KNOW THE DRILL.",0
+.m3     db "A GATE. GLARING WON'T OPEN IT. LEVER.",0
+.m4     db "THE GUARDIAN'S GATE. IT ISN'T IN.",0
+.m5     db "A SECRET PASSAGE! +500. WELL DONE, YOU.",0
+.m6     db "SEALED. SORT THE GUARDIAN OUT FIRST.",0
 .m7     db "CLUNK! SOMEWHERE A GATE SWINGS.",0
-.m8     db "ZAPPER FLAT! FIND CHARGES.",0
-.m9     db "YOU FOUND THE GOLD KEY!",0
-.m10    db "YOU FOUND THE BLUE KEY!",0
-.m11    db "YOU FOUND THE RED KEY!",0
-.m12    db "A MEAT PIE! +25 HEALTH",0
+.m8     db "ZAPPER FLAT. TRY HARSH LANGUAGE.",0
+.m9     db "THE GOLD KEY! DON'T LOSE IT.",0
+.m10    db "THE BLUE KEY! GOING WELL, FOR YOU.",0
+.m11    db "THE RED KEY! THAT'S THE SET.",0
+.m12    db "A MEAT PIE! STILL WARM. +25 HEALTH",0
 .m13    db "ZAPPER CHARGES +15",0
-.m14    db "AN OPAL! +250",0
-.m15    db "THE GUARDIAN FALLS! ITS GATE OPENS.",0
-.m16    db "OVERCOME... YOU RISE AGAIN.",0
-.m17    db "PAUSED. PRESS P.",0
-.m18    db "OUCH! KEEP CLEAR OF THAT.",0
+.m14    db "AN OPAL! +250. FINDERS KEEPERS.",0
+.m15    db "THE GUARDIAN FALLS! NOBODY SAW HOW.",0
+.m16    db "YOU CARKED IT. UP YOU GET, CHAMP.",0
+.m17    db "PAUSED. PUT THE KETTLE ON. (P)",0
+.m18    db "OUCH! THAT WAS YOUR OWN FAULT.",0
 .m19    db "THE SOUTHERN CROSS! DOUBLE ZAPS.",0
 .m20    db "SHARP WALLS (R: FAST WALLS)",0
 .m21    db "FAST WALLS (R: SHARP WALLS)",0
@@ -586,9 +586,76 @@ T_MAPHDR: db "MAP OF WHAT YOU HAVE SEEN",0
 T_MAPFTR: db "M: BACK      ~ YOU ARE HERE",0
 
 ; --------------------------------------------------------------------------
-; Sound: one effect at a time, played on the beeper while the frame waits
-;        for vertical blank (so it costs no drawing time)
+; Sound effects: each is a few 'grains', one played per frame just before
+; the page flip (so the game gets on with it in between).  A grain is a
+; burst of speaker toggles: db period, sweep (added to the period after
+; every toggle), noise (mask of a random amount added to each period),
+; toggles.  A period unit is about 63 T; keep period sum * 63 under 40000.
+; An effect ends with 0.
 ; --------------------------------------------------------------------------
+; snd_play: A = effect (a new one replaces the old)
+snd_play:
+        add a,a
+        ld e,a
+        ld d,0
+        ld hl,SNDTAB
+        add hl,de
+        ld a,(hl)
+        inc hl
+        ld h,(hl)
+        ld l,a
+        ld (sndp),hl
+        ret
+
+; snd_wait: play the effect's next grain, if there is one, then wait for
+;           the next vertical blank
+snd_wait:
+        ld hl,(sndp)
+        ld a,h
+        or l
+        jp z,wait_vb
+        ld a,(hl)
+        or a
+        jr nz,.g
+        ld hl,0
+        ld (sndp),hl
+        jp wait_vb
+.g      ld c,a                  ; C = period
+        inc hl
+        ld e,(hl)               ; E = sweep
+        inc hl
+        ld d,(hl)               ; D = noise mask
+        inc hl
+        ld b,(hl)               ; B = toggles
+        inc hl
+        ld (sndp),hl
+.t      ld a,(spk)
+        xor 40h
+        ld (spk),a
+        out (PORT_PIOB),a
+        call vbpoll             ; (never miss a vertical blank)
+        ld a,d
+        or a
+        ld a,c
+        jr z,.nn
+        call rnd
+        and d
+        add a,c
+.nn     ld h,a
+.d      ld l,3
+.d2     dec l
+        jr nz,.d2
+        dec h
+        jr nz,.d
+        ld a,c
+        add a,e
+        cp 2
+        jr nc,.ok
+        ld a,2
+.ok     ld c,a
+        djnz .t
+        jp wait_vb
+
 SND_ZAP equ 0
 SND_HIT equ 1
 SND_DIE equ 2
@@ -599,96 +666,23 @@ SND_DOOR equ 6
 SND_LEVER equ 7
 SND_THROW equ 8
 SND_BOSS equ 9
-; period (loop passes), sweep (added every 4 toggles), noise, toggles
-SNDTAB: db 5, 1, 0, 70           ; zap: a falling chirp
-        db 9, 0, 1, 30           ; hit
-        db 12, 1, 1, 110         ; creature down
-        db 26, 1, 1, 50          ; you are hurt
-        db 10, -1, 0, 90         ; pick up: a rising chirp
-        db 14, -1, 0, 150        ; key, secret
-        db 34, 0, 1, 80          ; door
-        db 22, 0, 0, 14          ; lever
-        db 18, 1, 1, 40          ; thrown
-        db 16, 1, 1, 255         ; guardian falls
-
-; snd_play: A = effect (a new one replaces the old)
-snd_play:
-        ld (sndfx),a
-        add a,a
-        add a,a
-        ld e,a
-        ld d,0
-        ld hl,SNDTAB
-        add hl,de
-        ld a,(hl)
-        ld (sndper),a
-        ld (sndcnt),a
-        inc hl
-        ld a,(hl)
-        ld (snddp),a
-        inc hl
-        ld a,(hl)
-        ld (sndnz),a
-        inc hl
-        ld a,(hl)
-        ld (sndlen),a
-        xor a
-        ld (sndsw),a
-        ret
-
-; snd_wait: wait for the next vertical blank, playing the effect meanwhile
-snd_wait:
-        ld a,(sndlen)
-        or a
-        jp z,wait_vb
-        ld hl,(fields)
-        ld (sw_f0),hl
-.l      call vbpoll
-        ld hl,(fields)
-        ld de,(sw_f0)
-        or a
-        sbc hl,de
-        ret nz
-        ld a,(sndlen)
-        or a
-        jr z,.l
-        ld hl,sndcnt
-        dec (hl)
-        jr nz,.l
-        ; toggle the speaker
-        ld a,(spk)
-        xor 40h
-        ld (spk),a
-        out (PORT_PIOB),a
-        ld a,(sndper)
-        ld b,a
-        ld a,(sndnz)
-        or a
-        jr z,.nn
-        call rnd
-        and 7
-        add a,b
-        ld b,a
-.nn     ld a,b
-        ld (sndcnt),a
-        ld hl,sndsw             ; sweep every 4 toggles
-        inc (hl)
-        ld a,(hl)
-        and 3
-        jr nz,.ns
-        ld a,(snddp)
-        ld hl,sndper
-        add a,(hl)
-        cp 3
-        jr nc,.sp
-        ld a,3
-.sp     cp 80
-        jr c,.sq
-        ld a,80
-.sq     ld (hl),a
-.ns     ld hl,sndlen
-        dec (hl)
-        jr .l
+SND_BOOM equ 10
+SND_URN equ 11
+SND_POWER equ 12
+SNDTAB: dw .zap,.hit,.die,.hurt,.pick,.key,.door,.lever,.throw,.boss,.boom,.urn,.power
+.zap    db 5,1,0,28, 24,2,3,12, 44,0,7,6, 0             ; pew, with a gritty tail
+.hit    db 30,-2,15,10, 14,3,31,10, 0                   ; squelch
+.die    db 36,-2,7,12, 12,4,15,12, 50,3,31,6, 70,0,63,5, 0   ; wucka-splat
+.hurt   db 60,-6,31,7, 24,8,31,6, 0                     ; oof
+.pick   db 7,0,0,60, 5,0,0,70, 4,0,1,60, 0              ; chink, chinkle
+.key    db 10,0,0,40, 8,0,0,50, 6,0,0,60, 5,0,0,90, 0   ; four bright steps up
+.door   db 70,-1,15,6, 64,-1,15,6, 58,-1,15,6, 52,0,15,6, 0   ; a grinding slide
+.lever  db 80,0,7,4, 40,12,3,5, 0                       ; clunk
+.throw  db 20,1,31,14, 0                                ; whoosh
+.boss   db 90,-4,63,4, 70,5,63,4, 50,-3,31,6, 80,2,63,4, 100,0,63,3, 60,10,31,4, 110,0,63,3, 0
+.boom   db 20,10,63,6, 80,4,63,4, 100,0,63,3, 110,0,63,3, 0   ; crump
+.urn    db 6,1,7,22, 5,0,3,50, 4,0,1,60, 0              ; smash and tinkle
+.power  db 16,-1,0,14, 12,0,0,30, 8,0,0,40, 6,0,0,60, 4,0,0,90, 0   ; a sparkle
 
 ; rnd: A = pseudo-random byte (keeps BC, DE)
 rnd:    ld hl,(seed)

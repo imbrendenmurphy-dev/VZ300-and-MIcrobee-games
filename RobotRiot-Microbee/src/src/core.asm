@@ -30,7 +30,9 @@ hw_init:
         out (P_LV),a
         ld a,BLK_GFX
         call map_blk
-        ld hl,crtc_tab
+        ld a,1                  ; the 40-column dot clock: the real Premium
+        in a,(P_CLK40)          ; Plus needs it as well as the 6545 table,
+        ld hl,crtc_tab          ; or it scans at twice the rate (4 pictures)
         ld c,0
 .ci:    ld a,c
         out (P_CRTCA),a
@@ -42,9 +44,12 @@ hw_init:
         cp 16
         jr nz,.ci
         ret
-; 40 x 25 characters of 8 lines (320 x 200), as BPM's MODES.COM test
+; The 6545 table of BPM's MODES.COM test: 40 x 25 cells of 8 x 10, a
+; 320 x 250 picture that fills a PAL screen (31 rows of 10 lines + 2 =
+; 312 lines) - the tallest that still leaves room for two screen pages in
+; the 2K of screen RAM. (With the 40-column dot clock, selected above.)
 ;               R0  R1  R2  R3  R4  R5  R6  R7  R8  R9  R10 R11 R12 R13 R14 R15
-crtc_tab:       db $35,$28,$2C,$34,$26,$01,$19,$21,$48,$07,$20,$07,$00,$00,$00,$00
+crtc_tab:       db $35,$28,$2C,$34,$1E,$02,$19,$1C,$48,$09,$20,$09,$00,$00,$00,$00
 
 ; A = block -> A = port 50h value (ROMs off, video window at F000)
 bank_port:

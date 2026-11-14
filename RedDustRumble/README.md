@@ -1,32 +1,35 @@
-# RED DUST RUMBLE
+# RED DUST RUMBLE: WORLD TOUR
 
-A one-on-one fighting game for the Dick Smith VZ300, in the style of Street Fighter II. Two fighters square off in the main street of a dusty outback town at sunset.
+A one-on-one fighting game for the Dick Smith VZ300, in the style of Street Fighter II. Eight fighters from eight countries, each with a home arena, and a boss waiting at the end of the tour.
 
 VIBED BY BPM 2026
 
-![Title](screenshots/title.png) ![Fight](screenshots/fight1.png)
+![Title](screenshots/title.png) ![Select](screenshots/select.png)
+![World map](screenshots/worldmap.png) ![Fight](screenshots/fight_station.png)
+![Kyoto](screenshots/fight_kyoto.png) ![Finisher](screenshots/finisher.png)
 
-## Status: v0.6 (emulator-tested, not yet run on a real VZ300)
+## Status: v0.7 (emulator-tested, not yet run on a real VZ300)
 
-New in v0.6:
+New in v0.7:
 
-- **Main Street arena:** rebuilt from the mock-up (see `mockups/`).
-- **Scrolling stage:** 192 pixels wide, with the camera following the fight in 2-pixel steps. The screen edges act as walls, and the starry top of the sky stays still.
-- **Shadows:** a small shadow under each fighter.
-- **Messages:** big messages now sit on a dark banner.
-- **Dusty's whip:** slower and weaker, and the CPU uses it less.
+- **Eight selectable fighters and a boss.** Maxwell Sable can't be picked; he is the last fight of the tour, in his own circus tent.
+- **World tour** (1 player): pick a fighter, then beat the other seven at their homes, then Sable. A world map shows the next stop. Lose and you can try that fight again as often as you like.
+- **Idle animations, taunts and finishers** for everyone (see Controls).
+- **New kinds of signature move:** thrown things (discus, chakram, sun disc, top hat), flying kicks and presses, slides, armoured charges, a staff and a cane.
+- **Nine arenas** with lit, bas-relief buildings and small background animations (a windmill, snow, torches, bunting, a lighthouse, chase lights).
+- **Loading from the SD card:** each match loads its two fighters and its arena, in about a second.
 
-- Flick Finnegan (fast, close-range) and Dusty Marlowe (slow, long reach), each with six normal attacks and two signature moves
-- One arena: Main Street at sunset, a 1.5-screen scrolling stage
-- Best of three rounds, health bars, 60-second timer, K.O. and time-out
-- 1 player against the CPU (Easy / Normal / Hard), with either fighter on either side
-- 2 players: joystick 1 against joystick 2, with keyboard controls as well
-- A control test screen and an in-fight speed readout for checking the real machine
-- A CPU-against-CPU demo plays after 20 seconds on the title screen (press any key to stop it)
+## Hardware and files
 
-## Hardware
+VZ300 with a BennVenn SD loader and 128K SRAM, plus joysticks (two buttons each) or the keyboard.
 
-VZ300 with a BennVenn SD loader and 128K SRAM, plus joysticks (two buttons each) or the keyboard. Copy `release/RUMBLE.VZ` to the SD card and load it from the SD menu. It loads at $8000.
+Copy **all eleven files** in `release/` to the same folder on the SD card:
+
+- `RUMBLE.VZ` (the game; loads at $8000)
+- `RDRUMBL0.DAT` (the fighter-select picture and the world map)
+- `RDRUMBL1.DAT` to `RDRUMBL9.DAT` (one fighter and that fighter's home arena each)
+
+Load `RUMBLE.VZ` from the SD menu.
 
 ## Controls
 
@@ -36,63 +39,69 @@ VZ300 with a BennVenn SD loader and 128K SRAM, plus joysticks (two buttons each)
 | A (light) | Joystick 1 fire, or `F` | Joystick 2 fire, or `;` |
 | B (heavy) | Joystick 1 second button, or `G` | Joystick 2 second button, or `:` |
 
-In 1-player mode every joystick and key set controls player 1.
+In the world tour every joystick and key set controls player 1.
 
-- **Hold away from your opponent** to block. Hold down-away to block low.
-- Jump attacks must be blocked standing; sweeps and the Ankle Snare must be blocked crouching.
-- Signature moves: **press A and B together** (they can be up to 3 ticks apart). Hold down as well for the second move.
-
-| | A+B | Down + A+B |
-|---|---|---|
-| Flick | **Blade Run**: a dashing punch (punishable if blocked) | **Tin Roof**: a rising uppercut that beats jump-ins |
-| Dusty | **Whip Crack**: hits only at the tip of the whip | **Ankle Snare**: low whip, knocks down |
-
+- **Block:** hold away from your opponent. Hold down-away to block low. Jump attacks must be blocked standing; sweeps and slides crouching.
+- **Signature move 1:** press A and B together (up to 3 ticks apart).
+- **Signature move 2:** hold down and press A+B.
+- **Taunt:** hold up and press A+B. It leaves you open for most of a second.
+- **Finisher:** win the deciding round with a knock-out on a standing opponent and they go dizzy while FINISH! shows. You have about three seconds to push the stick through your fighter's two directions, then press A+B. Hit them with anything else, or wait, and they simply fall.
 - A light attack that connects can be cancelled straight into a signature move.
-- `RETURN` pauses. While paused, `RETURN` resumes and `Q` quits to the menu.
-- `T` during a fight toggles the speed readout (see below).
-- **QUIT TO SD** on the title screen restarts into the SD card menu.
+- `RETURN` pauses (`RETURN` resumes, `Q` quits to the menu). `T` toggles the speed readout.
+- On the select screen, the second button or `Q` goes back.
+
+| Fighter | From | A+B | Down + A+B | Finisher (then A+B) |
+|---|---|---|---|---|
+| Flick | Australia | Blade Run (dash punch) | Tin Roof (rising uppercut) | down, forward: Outback Express |
+| Dusty | USA | Whip Crack (hits at the tip) | Ankle Snare (low, knocks down) | back, forward: Last Roundup |
+| Nikos | Greece | Discus (thrown) | Bull Rush (charge) | forward, back: Olympic Throw |
+| Hana | Japan | Crane Kick (flying kick) | Swallow Slide (low) | down, back: Sakura Storm |
+| Amun | Egypt | Sun Disc (thrown, slow) | Cobra Staff (long thrust) | down, down: Pharaoh's Curse |
+| Sigrun | Iceland | Glacier Charge (can't be stopped while winding up) | Geyser (rising uppercut) | forward, forward: Ragnarok |
+| Lupe | Mexico | Plancha (flying press, block it standing) | Tope Roll (low) | back, back: Gran Final |
+| Ravi | India | Chakram (thrown, fast) | Monsoon Rise (rising kick) | forward, down: Monsoon's End |
+| Sable | the Big Top | Top Hat (thrown) | Cane Flash (long thrust) | back, down: Curtain Call |
+
+"Forward" and "back" are relative to the way your fighter faces. Each fighter can have one thrown thing in the air at a time.
 
 ## Checking it on the real VZ300
 
-1. **CONTROL TEST** (title menu) shows both joysticks and both key sets live, the raw values of ports $2C $2E $2D $29 $23 $2B $27, a drop-out counter for each joystick direction (held, lost for one field, held again), and the gap in fields between pressing A and B. Hold each joystick 2 direction for 10 seconds and check its counter stays at 00. `RETURN` leaves.
-2. **Speed readout**: press `T` in a fight. Player 1's name is replaced by the spare time per tick (the worst over each second, as a percentage) in yellow and the number of slow ticks this round in red. Spare time should stay above 0%, and slow ticks should rarely go up.
+This build uses the 128K expansion in a new way, so the first run on the real machine is a test in itself. What each outcome means:
 
-Photos of both screens will show whether anything needs changing.
-
-**Joystick 2:** its directions are read from port $29 and port $23 together. $29 is the port your joystick 2 left/right already worked on. $23 is the matching port for joystick 2's own arm-select line, which may make up/down reliable. The control test shows both raw values.
+1. **A red screen saying "CANNOT START"** with a number: (1) no SD loader memory found, (2) the second 10K bank is missing, (3) the second high-memory bank is missing. A photo of the number is all I need.
+2. **A blue screen saying "CANNOT READ FROM THE SD CARD"** names the file it wanted: check that file is on the card next to `RUMBLE.VZ`.
+3. **"A GAME FILE IS DAMAGED"** means a fighter loaded but failed its checksum. If that happens with good files, the SD software is disturbing the second high bank, and I need to know.
+4. **CONTROL TEST** (title menu) and the **`T` speed readout** work as before. In the emulator about 3 to 4 ticks in 100 run slow (three fields instead of two), up from under 2 in v0.6, mostly with two tall fighters using their long-reach moves.
 
 ## How it works
 
-- **Display:** mode 1 (128×64, 4 colours). Every tick is composed in a shadow screen and copied to video RAM by the frame interrupt, starting at the top of field sync, ahead of the beam, so the picture never tears. Only the area the fighters and effects touched is restored and copied.
-- **Scrolling:** the stage is 48 bytes wide, rows 10-63. There is a second copy shifted by 2 pixels, built at start-up, so the camera can move in 2-pixel steps. Sprites are erased straight from the stage. On a tick when the camera moves, every scrolling row is redrawn and copied. The camera only moves when the fight drifts more than 12 pixels from the centre of the screen.
-- **Speed:** in ten minutes of CPU-against-CPU demo, 1.7% of ticks ran slow (three fields instead of two), almost all of them during Dusty's whip specials while the camera was moving.
-- **Timing:** logic runs at 25 ticks a second (two fields). The controls are read every field and button presses are latched, so a quick tap is never lost.
-- **Banked RAM:** each fighter has 22 frames, stored once and given a 2-pixel-shifted copy at start-up. Flick's frames live in SRAM bank 1 (port $37 = 3). Dusty's live in bank 0 (port $37 = 1), the bank the SD DOS normally occupies, with a few frames in main RAM. Mirroring and player 2's red colouring are done with lookup tables while drawing.
-- Because bank 0 is overwritten, the game doesn't call the SD DOS. Quitting restarts the machine through the SD loader, which reloads the DOS from the card.
+- **Display:** mode 1 (128×64, 4 colours). Each tick is composed in a shadow screen and copied to video RAM by the frame interrupt at the top of field sync, so the picture never tears. Arenas use one of the VZ's two palettes each.
+- **Memory:** the SD software stays in its own bank, so the game can load at any time. Fighter A lives in the second 10K SRAM bank and fighter B in the second 18K high-memory bank, both visible at once while fighting. The arena (192 pixels wide, plus a copy shifted 2 pixels for smooth scrolling) sits in normal high memory and is switched in only while the backdrop is being restored.
+- **Safety net:** the part of the program that runs in the second high bank is re-copied there after every SD load, and each fighter file is checksummed.
+- **Fighter files:** frames, moves, CPU habits and names in one position-independent block per fighter, relocated after loading. Frames used while moving have a 2-pixel-shifted twin; standing poses are drawn on the 4-pixel grid.
+- **Background animation:** each arena file lists the bytes that differ between its two phases; they are swapped about twice a second.
 
-Memory map:
+Memory map (port $37: 1 = SD software, 3 = fighter A + arena, 7 = fighter A + fighter B):
 
-- `$4000-$67FF`: SRAM banks 0 and 1 (fighter frames)
-- `$8000-$E5BF`: program and data
-- `$D400`: the 2-pixel-shifted stage, built over spent start-up data
-- `$E000`: shadow screen
-- `$E800`: clean view (still sky and messages)
-- `$F000-$F7FF`: draw tables
-- `$F800`: interrupt table and stack
-- `$FA00`: variables. That area is the SD DOS's workspace, and the game never calls the DOS.
+- `$4000-$67FF`: bank 0 the SD DOS, bank 1 fighter A
+- `$7B00-$7FFF`: stack and interrupt table
+- `$8000-$AFFF`: always visible: interrupt, input, sound, SD loader, drawing, CPU opponent, variables
+- `$B000-$B7FF`: shadow screen
+- normal high memory: `$B800` banked code as loaded, `$D000` arena, `$DA20` shifted arena, `$E440` animation list, `$E600` clean copy of the view, `$EE00-$F9FF` DOS stack and sector buffer
+- second high bank: `$B800` fighter B, `$E000` draw tables, `$E800-$FFFF` fight logic and menus
 
 ## Building
 
-Needs only Python 3 with Pillow (used for the art):
+Needs only Python 3 with Pillow:
 
 ```
-./build.sh        # -> build/RUMBLE.VZ
+./build.sh        # -> build/RUMBLE.VZ and build/sd/RDRUMBL0-9.DAT
 ```
 
-- `tools/art.py` draws the fighters (posed skeletons rendered as thick shapes).
-- `tools/stage.py` draws the 192-pixel Main Street stage.
-- `tools/mockup.py` renders exact 128×64 mock-ups from it.
-- `tools/mktables.py` generates the sprite blitter and the lookup tables.
-- `emu/` is the test emulator (`gcc -O2 -o vzemu vzemu.c`). Its joystick 2 now has a second button.
+- `tools/fighters.py` draws the nine fighters (posed skeletons with costumes) and holds their moves, CPU habits and finishers.
+- `tools/pack.py` builds the SD files: fighter blocks, arenas with the relief lighting pass and animation lists, the select picture and the world map.
+- `tools/worldtour.py` and `tools/stage.py` draw the arenas.
+- `tools/mktables.py` generates the sprite blitter and lookup tables.
+- `emu/` is the test emulator (`gcc -O2 -o vzemu vzemu.c`, run with `-S build/sd`). It models both SRAM banks, the second high bank and the SD file calls.
 
-See [DESIGN.md](DESIGN.md) for the full game plan: the six-fighter roster, the boss, the single-player circuit and what comes next.
+See [DESIGN.md](DESIGN.md) for the design history.

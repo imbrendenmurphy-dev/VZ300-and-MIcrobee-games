@@ -11,7 +11,7 @@ import numpy as np
 import run
 from mbee import FRAME_T
 
-VBLANK_T = 113 * 216          # 113 blanked lines of 216 T
+VBLANK_T = 62 * 216           # 62 blanked lines of 216 T (312 - 250)
 
 
 def bot_keys(pp, t):

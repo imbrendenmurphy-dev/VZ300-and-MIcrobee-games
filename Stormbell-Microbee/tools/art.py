@@ -1,5 +1,5 @@
 """STORMBELL pictures: the 8 x 8 font, the HUD glyphs, the five stages,
-the title and the ending. Each picture is drawn here as 320 x 200 ink
+the title and the ending. Each picture is painted here on 320 x 250 ink
 pixels with an ink and a paper colour for every 8 x 8 cell, then cut
 into cells and de-duplicated into at most 128 glyphs (one PCG bank).
 
@@ -52,9 +52,16 @@ HUD = [
     ["........", "........", "........", "########", "........", "........", "........", "........"],   # f rule
     ["#.#.#.#.", ".#.#.#.#", "#.#.#.#.", ".#.#.#.#", "#.#.#.#.", ".#.#.#.#", "#.#.#.#.", ".#.#.#.#"],   # g shade
 ]
+CELL = 10                       # lines a cell: 40 x 25 cells of 8 x 10
+LINES = 25 * CELL               # 320 x 250, a full PAL picture
 N_FONT = 64
 N_HUD = len(HUD)
 POOL0 = 96                      # glyphs 96..127 of bank 0: the overlap pool
+
+
+def tall(rows8):
+    """8 drawn rows -> the 10 lines of a cell (rows 1 and 5 doubled)"""
+    return [rows8[i] for i in (0, 1, 1, 2, 3, 4, 5, 5, 6, 7)]
 
 
 def font_bytes():
@@ -68,11 +75,12 @@ def font_bytes():
                 for x, ch in enumerate(r):
                     if ch == '1':
                         v |= 0x40 >> x
-                rows[j] = v
-        out += bytes(rows)
+                rows[j + 1] = v
+        # letters: 7 drawn rows become 9 (the second and fifth doubled)
+        out += bytes([rows[i] for i in (0, 1, 2, 2, 3, 4, 5, 5, 6, 7)])
     for g in HUD:
-        out += bytes(sum(128 >> x for x, ch in enumerate(r) if ch == '#') for r in g)
-    out += bytes(128 * 8 - len(out))
+        out += bytes(tall([sum(128 >> x for x, ch in enumerate(r) if ch == '#') for r in g]))
+    out += bytes(128 * CELL - len(out))
     return bytes(out)
 
 
@@ -85,29 +93,43 @@ def font_bytes():
 BAYER = np.array([[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]])
 LUM = np.array([0.299 * r + 0.587 * g + 0.114 * b for r, g, b in PAL])
 LIGHT = {YELLOW, WHITE, BCYAN, GREY, BGREEN}     # a solid cell of these is ink
+# monochrome: how many of 16 pixels each colour lights
+MONO = np.zeros(16, np.uint8)
+for _c, _v in ((BLACK, 0), (BLUE, 0), (RED, 0), (MAGENTA, 0), (DGREY, 1), (GREEN, 1), (BROWN, 1),
+               (CYAN, 2), (BBLUE, 1), (GREY, 3), (BRED, 2), (BMAGENTA, 3), (BGREEN, 3), (BCYAN, 5),
+               (YELLOW, 8), (WHITE, 16)):
+    MONO[_c] = _v
+MONO_EDGE = 22.0                # a brightness step (of 255) this big gets an outline
+MONO_INK = WHITE
 PIC_GLYPHS = 512
 
 
 class Pic:
     def __init__(self, bg=BLACK, W=320):
         self.W = W
-        self.c = np.full((200, W), bg, np.uint8)
-        self.y, self.x = np.mgrid[0:200, 0:W]
-        self.bay = BAYER[self.y & 3, self.x & 3]
+        # the picture is drawn in 200-line coordinates (as it was first
+        # designed) and painted on 250 lines: y is the drawing line each
+        # screen line belongs to, yf the same without rounding (for
+        # smooth edges), py the screen line itself (for the dithers)
+        self.c = np.full((LINES, W), bg, np.uint8)
+        self.py, self.x = np.mgrid[0:LINES, 0:W]
+        self.y = self.py * 200 // LINES
+        self.yf = (self.py + 0.5) * 200.0 / LINES - 0.5
+        self.bay = BAYER[self.py & 3, self.x & 3]
         self.fix = {}                          # (row, col) -> (ink, paper) forced
 
     # -- masks
     def rect(self, x0, y0, x1, y1):
-        return (self.x >= x0) & (self.x < x1) & (self.y >= y0) & (self.y < y1)
+        return (self.x >= x0) & (self.x < x1) & (self.yf + 0.5 >= y0) & (self.yf + 0.5 < y1)
 
     def disc(self, cx, cy, rx, ry=None):
         ry = rx if ry is None else ry
-        return ((self.x + 0.5 - cx) / rx) ** 2 + ((self.y + 0.5 - cy) / ry) ** 2 <= 1.0
+        return ((self.x + 0.5 - cx) / rx) ** 2 + ((self.yf + 0.5 - cy) / ry) ** 2 <= 1.0
 
     def poly(self, pts):
         inside = np.zeros(self.x.shape, bool)
         n = len(pts)
-        px, py = self.x + 0.5, self.y + 0.5
+        px, py = self.x + 0.5, self.yf + 0.5
         for i in range(n):
             x0, y0 = pts[i]
             x1, y1 = pts[(i + 1) % n]
@@ -119,8 +141,8 @@ class Pic:
     def line(self, x0, y0, x1, y1, w=1.0):
         dx, dy = x1 - x0, y1 - y0
         L2 = dx * dx + dy * dy or 1e-6
-        t = np.clip(((self.x + 0.5 - x0) * dx + (self.y + 0.5 - y0) * dy) / L2, 0, 1)
-        return np.hypot(self.x + 0.5 - (x0 + t * dx), self.y + 0.5 - (y0 + t * dy)) <= w / 2
+        t = np.clip(((self.x + 0.5 - x0) * dx + (self.yf + 0.5 - y0) * dy) / L2, 0, 1)
+        return np.hypot(self.x + 0.5 - (x0 + t * dx), self.yf + 0.5 - (y0 + t * dy)) <= w / 2
 
     def profile(self, base, amp, seed, waves=((31, .5), (13, .3), (7, .2))):
         """y of a ridge line at each x"""
@@ -180,7 +202,7 @@ class Pic:
         pal = np.array(PAL, float)
         for cy in range(25):
             for cx in range(nc):
-                blk = self.c[cy * 8:cy * 8 + 8, cx * 8:cx * 8 + 8]
+                blk = self.c[cy * CELL:cy * CELL + CELL, cx * 8:cx * 8 + 8]
                 cnt = np.bincount(blk.ravel(), minlength=16)
                 order = np.argsort(-cnt, kind='stable')
                 a, b = int(order[0]), int(order[1])
@@ -189,7 +211,7 @@ class Pic:
                 elif cnt[b] == 0:
                     if a in LIGHT:
                         ci[cy, cx], cp[cy, cx] = a, BLACK
-                        ink[cy * 8:cy * 8 + 8, cx * 8:cx * 8 + 8] = True
+                        ink[cy * CELL:cy * CELL + CELL, cx * 8:cx * 8 + 8] = True
                     else:
                         ci[cy, cx], cp[cy, cx] = WHITE, a
                     continue
@@ -199,8 +221,34 @@ class Pic:
                 da = ((pal[blk] - pal[a]) ** 2).sum(-1)
                 db = ((pal[blk] - pal[b]) ** 2).sum(-1)
                 m = (blk == a) | ((blk != b) & (da <= db))
-                ink[cy * 8:cy * 8 + 8, cx * 8:cx * 8 + 8] = m
+                ink[cy * CELL:cy * CELL + CELL, cx * 8:cx * 8 + 8] = m
                 ci[cy, cx], cp[cy, cx] = a, b
+        return ink, ci, cp
+
+    def cells_mono(self):
+        """the picture for a monochrome (amber, green, white) monitor, where
+        only lit pixels show. Each colour gets a sparse fill by its
+        brightness (dark sky black, snow and moon bright), and every shape
+        an outline on its brighter side, found from steps in the smoothed
+        brightness, so a red gate still has an edge against a black
+        doorway. -> ink, ci, cp"""
+        H, W = self.c.shape
+
+        def box(a):
+            pad = np.pad(a, 1, mode='edge')
+            return sum(pad[1 + dy:1 + dy + H, 1 + dx:1 + dx + W]
+                       for dy in (-1, 0, 1) for dx in (-1, 0, 1)) / 9.0
+        fill = box(MONO[self.c].astype(float))
+        ink = self.bay < np.round(fill)
+        lum = box(LUM[self.c])
+        pad = np.pad(lum, 1, mode='edge')
+        edge = np.zeros((H, W), bool)
+        for dy, dx in ((-1, 0), (1, 0), (0, -1), (0, 1)):
+            edge |= (lum - pad[1 + dy:1 + dy + H, 1 + dx:1 + dx + W]) >= MONO_EDGE
+        ink |= edge
+        nc = self.W // 8
+        ci = np.full((25, nc), MONO_INK, np.uint8)
+        cp = np.full((25, nc), BLACK, np.uint8)
         return ink, ci, cp
 
     def rgb(self, quant=True):
@@ -208,20 +256,20 @@ class Pic:
             return np.array(PAL, np.uint8)[self.c]
         ink, ci, cp = self.cells()
         pal = np.array(PAL, np.uint8)
-        fg = pal[np.repeat(np.repeat(ci, 8, 0), 8, 1)]
-        bg = pal[np.repeat(np.repeat(cp, 8, 0), 8, 1)]
+        fg = pal[np.repeat(np.repeat(ci, CELL, 0), 8, 1)]
+        bg = pal[np.repeat(np.repeat(cp, CELL, 0), 8, 1)]
         return np.where(ink[:, :, None], fg, bg)
 
-    def pack(self, name='', limit=PIC_GLYPHS):
-        """-> 1000 codes, 1000 banks (1..4), 1000 colours, 4096 bytes of
+    def pack(self, name='', limit=PIC_GLYPHS, mono=False):
+        """-> 1000 codes, 1000 banks (1..4), 1000 colours, 5120 bytes of
         glyphs, the number used; glyph 0 is blank"""
-        ink, ci, cp = self.cells()
-        glyphs = {bytes(8): 0}
+        ink, ci, cp = self.cells_mono() if mono else self.cells()
+        glyphs = {bytes(CELL): 0}
         codes, banks, cols = bytearray(), bytearray(), bytearray()
         for cy in range(25):
             for cx in range(40):
-                cell = ink[cy * 8:cy * 8 + 8, cx * 8:cx * 8 + 8]
-                pat = bytes(int(sum(128 >> x for x in range(8) if cell[y, x])) for y in range(8))
+                cell = ink[cy * CELL:cy * CELL + CELL, cx * 8:cx * 8 + 8]
+                pat = bytes(int(sum(128 >> x for x in range(8) if cell[y, x])) for y in range(CELL))
                 if pat not in glyphs:
                     glyphs[pat] = len(glyphs)
                 g = glyphs[pat]
@@ -229,9 +277,9 @@ class Pic:
                 banks.append(1 + (g >> 7))
                 cols.append((int(cp[cy, cx]) << 4) | int(ci[cy, cx]))
         assert len(glyphs) <= limit, '%s: %d glyphs' % (name, len(glyphs))
-        g = bytearray(limit * 8)
+        g = bytearray(limit * CELL)
         for pat, i in glyphs.items():
-            g[i * 8:i * 8 + 8] = pat
+            g[i * CELL:i * CELL + CELL] = pat
         return bytes(codes), bytes(banks), bytes(cols), bytes(g), len(glyphs)
 
 
@@ -665,7 +713,7 @@ def preview(path, pics=None, quant=True):
         ims.append(np.zeros_like(ims[0]))
     rows = [np.concatenate(ims[i:i + 2], 1) for i in range(0, len(ims), 2)]
     sheet = np.concatenate(rows, 0)
-    Image.fromarray(sheet).resize((int(sheet.shape[1] * 1.25 * 1.5), sheet.shape[0] * 3 // 2), Image.NEAREST).save(path)
+    Image.fromarray(sheet).resize((int(sheet.shape[1] * 1.09 * 1.5), sheet.shape[0] * 3 // 2), Image.NEAREST).save(path)
 
 
 if __name__ == '__main__':

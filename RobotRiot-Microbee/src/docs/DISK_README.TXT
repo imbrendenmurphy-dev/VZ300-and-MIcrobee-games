@@ -2,6 +2,7 @@ ROBOT RIOT 2086
 Microbee Premium Plus, 1MB RAM, 32K PCG. VIBED BY BPM 2026
 
 At the A> prompt type:  RIOT
+then C for a colour monitor or M for a monochrome one.
 
 2086. The robot factories have risen up. One cyborg hero with a
 plasma gun stands between the machines and the last human family.

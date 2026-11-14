@@ -377,3 +377,17 @@ In CSS1, player 1 is magenta and player 2 orange, with cyan detail. The HUD text
    - **(a) The 18K high bank:** port $37 bit 2 swaps $B800-$FFFF. Earlier tests were inconclusive, so a test program comes first.
    - **(b) Keeping the DOS intact:** fighter frames go in bank 1 and main RAM, shifted copies are dropped where needed, and `RUMBLE.DAT` is loaded between matches.
 3. **Six new fighters.** They use the same pose renderer as Flick and Dusty, with two signature moves each.
+
+## 14. v0.7: the roster, loading from SD, finishers
+
+This section replaces the memory plan in section 6.
+
+- **Why the memory changed.** Two fighters filled both 10K SRAM banks in v0.6, which meant overwriting the SD software and never loading again. Nine fighters can't all be in memory, so v0.7 keeps the SD software in bank 0 and loads per match.
+- **Where things live.** Fighter A: SRAM bank 1. Fighter B: the second 18K high bank (port $37 bit 2), together with the draw tables and 6K of game code. The arena and its clean copies: normal high memory, switched in only for backdrop work. Code that must always be reachable (interrupt, loader, drawing) sits in $8000-$AFFF, which is never banked. Stack and interrupt table are in $7B00-$7FFF, as in Graves 'n' Gargoyles.
+- **Calling the DOS.** Exactly as the working games do: mapping 1, sector buffer $F800, a 2.5K stack below it, interrupts allowed during the call and off straight after, nothing touched from $FA00 up. Fighter B is loaded last and copied in a sector at a time through the shadow screen, with no stack use while its bank is in.
+- **What is not proven on hardware:** running code and keeping data in the second high bank across SD calls. RASTEST showed the bank switching on the real machine, but no earlier game relied on it. The game checks the banks at start-up, checksums every fighter and re-copies its banked code after every load, and says plainly on screen if any of that fails.
+- **Fighter limit:** 10,240 bytes each (the size of an SRAM bank). The largest, Sable, is about 9.8K.
+- **Finishers.** The blow that would win the match (a knock-out on a grounded opponent, with the attacker already one round up) leaves the loser dizzy for 80 ticks. The winner's stick is tracked through two directions (first held, first released, second held), which arms A+B for 30 ticks. The CPU performs its finisher three times in four.
+- **Thrown things.** One per fighter, resolved through the same hit and block code as a strike.
+- **Relief.** The arena tool adds a one-pixel dark edge below long ledges and to the right of long posts (light from the upper left), and a shadow line under roofs. Groups of ruled lines are left alone so fences and seating don't turn to stripes.
+- **Speed.** Emulator: 3 to 4 slow ticks per 100 over long CPU-against-CPU runs. The new fighters are taller than Flick, and the background animation redraws the scrolling rows about twice a second.

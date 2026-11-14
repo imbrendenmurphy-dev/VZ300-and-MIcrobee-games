@@ -47,9 +47,12 @@ def grow(bits):
     return g
 
 
+CH = 10         # lines in a cell (cells are 8 x 10)
+
+
 def pat8(bits):
-    """8 x 8 booleans -> 8 bytes"""
-    return bytes(sum((128 >> x) for x in range(8) if bits[y][x]) for y in range(8))
+    """8 x CH booleans -> CH bytes"""
+    return bytes(sum((128 >> x) for x in range(8) if bits[y][x]) for y in range(len(bits)))
 
 
 # ---------------------------------------------------------------- walls
@@ -61,27 +64,27 @@ STYLE_COL = [(GREY, DGREY), (BGREEN, GREEN), (BROWN, BLACK), (BLACK, RED), (BBLU
 WALL_FLASH = [WHITE, YELLOW, WHITE, YELLOW, WHITE, WHITE]
 
 
-def tube(mask, lo, hi):
-    """filled tube shape: a centre square lo..hi with arms to the joined sides"""
+def tube(mask, lo, hi, ylo, yhi):
+    """filled tube shape: a centre block with arms to the joined sides"""
     def inside(x, y):
-        if lo <= x <= hi and lo <= y <= hi:
+        if lo <= x <= hi and ylo <= y <= yhi:
             return True
-        if lo <= x <= hi and ((y < lo and mask & MU) or (y > hi and mask & MD)):
+        if lo <= x <= hi and ((y < ylo and mask & MU) or (y > yhi and mask & MD)):
             return True
-        if lo <= y <= hi and ((x < lo and mask & ML) or (x > hi and mask & MR)):
+        if ylo <= y <= yhi and ((x < lo and mask & ML) or (x > hi and mask & MR)):
             return True
         return False
     return inside
 
 
-def tube_ext(mask, lo, hi):
+def tube_ext(mask, lo, hi, ylo, yhi):
     """the tube, continued into the neighbouring cells (for outlines)"""
-    t = tube(mask, lo, hi)
+    t = tube(mask, lo, hi, ylo, yhi)
 
     def inside(x, y):
-        xx, yy = min(max(x, 0), 7), min(max(y, 0), 7)
+        xx, yy = min(max(x, 0), 7), min(max(y, 0), CH - 1)
         if (xx, yy) != (x, y):
-            if y < 0 and not mask & MU or y > 7 and not mask & MD or x < 0 and not mask & ML or x > 7 and not mask & MR:
+            if y < 0 and not mask & MU or y > CH - 1 and not mask & MD or x < 0 and not mask & ML or x > 7 and not mask & MR:
                 return False
         return t(xx, yy)
     return inside
@@ -89,6 +92,7 @@ def tube_ext(mask, lo, hi):
 
 def wall_bits(style, mask, c, r):
     v = (c + r) & 1
+    B = CH - 1
     if style == 0:          # crypt: bevelled stone blocks
         def fn(x, y):
             if y == 0 and not mask & MU:
@@ -97,18 +101,18 @@ def wall_bits(style, mask, c, r):
                 return True
             if y == 1 and not mask & MU and x % 2 == v:
                 return True
-            if (x, y) in (((2, 5), (5, 3)) if v else ((5, 5), (3, 3))):
+            if (x, y) in (((2, 7), (5, 4)) if v else ((5, 7), (3, 4))):
                 return True
             return False
     elif style == 1:        # hedge: leaves
         def fn(x, y):
             if y == 0 and not mask & MU:
                 return (x + v) % 2 == 0
-            if y == 7 and not mask & MD:
+            if y == B and not mask & MD:
                 return False
             return ((x + 2 * y + 3 * v) % 5 == 0) or ((2 * x - y + v) % 7 == 0)
     elif style == 2:        # boiler room: copper pipes
-        t = tube(mask, 1, 6)
+        t = tube(mask, 1, 6, 1, B - 1)
         n = bin(mask).count('1')
         straight = mask in (MU | MD, ML | MR)
 
@@ -117,21 +121,20 @@ def wall_bits(style, mask, c, r):
                 return False
             if straight:
                 if mask == ML | MR:
-                    return y != 2 and not (v and x == 3)
-                return x != 2 and not (v and y == 3)
-            if (x, y) in ((1, 1), (6, 1), (1, 6), (6, 6)):
+                    return y != 3 and not (v and x == 3)
+                return x != 2 and not (v and y == 4)
+            if (x, y) in ((1, 1), (6, 1), (1, B - 1), (6, B - 1)):
                 return False
-            if n != 2 and 3 <= x <= 4 and 3 <= y <= 4:
+            if n != 2 and 3 <= x <= 4 and 4 <= y <= 5:
                 return False
             return True
     elif style == 3:        # brick: mortar lines (ink black on red)
         def fn(x, y):
-            if y % 4 == 3:
+            if y % 5 == 4:
                 return True
-            row = (y // 4 + 2 * r) % 2
-            return x == (3 if row else 7)
+            return x == (3 if (y // 5) % 2 else 7)
     elif style == 4:        # neon: the arcade's double line
-        t = tube_ext(mask, 2, 5)
+        t = tube_ext(mask, 2, 5, 3, B - 3)
 
         def fn(x, y):
             if not t(x, y):
@@ -144,33 +147,33 @@ def wall_bits(style, mask, c, r):
         def fn(x, y):
             if y == 0 and not mask & MU:
                 return True
-            if y == 7 and not mask & MD:
+            if y == B and not mask & MD:
                 return True
             if x == 0 and not mask & ML:
                 return True
             if x == 7 and not mask & MR:
                 return True
-            return (x + y) % 8 == 3 or (x - y) % 8 == 4
-    return [[bool(fn(x, y)) for x in range(8)] for y in range(8)]
+            return (x + y) % 10 == 3 or (x - y) % 10 == 4
+    return [[bool(fn(x, y)) for x in range(8)] for y in range(CH)]
 
 
-DOOR = pat8([[3 <= y <= 4 for x in range(8)] for y in range(8)])
+DOOR = pat8([[4 <= y <= 5 for x in range(8)] for y in range(CH)])
 DOOR_COL = (BMAGENTA, BLACK)
 
 
 def dot_glyph(mask, ecorner):
     """corner dots: bit 0 TL, 1 TR, 2 BL, 3 BR; ecorner = corner holding an
     energiser quarter (or None)"""
-    b = [[False] * 8 for _ in range(8)]
+    b = [[False] * 8 for _ in range(CH)]
     for k in range(4):
         fx, fy = k & 1, k >> 1
         if ecorner == k:
             for y in range(3):
                 for x in range(3):
                     if (x, y) != (2, 2):
-                        b[7 - y if fy else y][7 - x if fx else x] = True
+                        b[CH - 1 - y if fy else y][7 - x if fx else x] = True
         elif mask & (1 << k):
-            b[7 if fy else 0][7 if fx else 0] = True
+            b[CH - 1 if fy else 0][7 if fx else 0] = True
     return pat8(b)
 
 
@@ -460,16 +463,16 @@ def sprites():
 
 # ---------------------------------------------------------------- HUD icons
 def g8(rows):
-    return bytes(int(r, 2) for r in rows)
+    return bytes([0] + [int(r, 2) for r in rows] + [0])
 
 
 ICONS = [
     ('heart', g8(["01101100", "11111110", "11111110", "11111110", "01111100", "00111000", "00010000", "00000000"])),
     ('heart_e', g8(["01101100", "10010010", "10000010", "10000010", "01000100", "00101000", "00010000", "00000000"])),
     ('life', g8(["00111000", "01111100", "11111110", "00000000", "01111100", "11101110", "11111000", "01111100"])),
-    ('solid', bytes([255] * 8)),
+    ('solid', bytes([255] * CH)),
     ('ghost', g8(["00111100", "01111110", "11011011", "11011011", "11111111", "11111111", "11111111", "10110101"])),
-] + [('bar%d' % k, bytes([0, 0] + [(0xFF00 >> k) & 0xFF] * 4 + [0, 0])) for k in range(9)]
+] + [('bar%d' % k, bytes([0, 0, 0] + [(0xFF00 >> k) & 0xFF] * 4 + [0, 0, 0])) for k in range(9)]
 
 
 # ---------------------------------------------------------------- the title picture
@@ -487,7 +490,7 @@ def scale_text(text, sx, sy):
 
 
 def title_picture():
-    W, H = 320, 200
+    W, H = 320, 250
     bits = np.zeros((H, W), bool)
     ink = np.full((25, 40), WHITE, np.uint8)
     paper = np.zeros((25, 40), np.uint8)
@@ -501,9 +504,9 @@ def title_picture():
     # stars
     for i in range(46):
         x = int(hsh(i, 1, 5) * 320)
-        y = 96 + int(hsh(i, 2, 5) * 36)
+        y = 120 + int(hsh(i, 2, 5) * 44)
         bits[y, x] = True
-        ink[y // 8, x // 8] = (WHITE, BCYAN, GREY, YELLOW)[i % 4]
+        ink[y // CH, x // 8] = (WHITE, BCYAN, GREY, YELLOW)[i % 4]
     # the logo: fat wavy letters with an inline stripe and a hatched shadow
     def logo(text, x0, y0, sx, sy, fat, amp, phase, cols, c0, c1):
         raw = scale_text(text, sx, sy)[:, :-sx]
@@ -550,26 +553,26 @@ def title_picture():
         ys, xs = y0 - pad, x0 - pad
         for y in range(H2):
             for x in range(W2):
-                if out[y, x] and 0 <= ys + y < 200 and 0 <= xs + x < 320:
+                if out[y, x] and 0 <= ys + y < H and 0 <= xs + x < 320:
                     bits[ys + y, xs + x] = True
-        r0, r1 = max(0, (ys + pad - fat - amp) // 8), min(25, (ys + pad + h + fat + amp + 4) // 8 + 1)
+        r0, r1 = max(0, (ys + pad - fat - amp) // CH), min(25, (ys + pad + h + fat + amp + 4) // CH + 1)
         for i, r in enumerate(range(r0, r1)):
             colour(r, r + 1, c0, c1, cols[min(i * len(cols) // max(1, r1 - r0), len(cols) - 1)])
-    logo('GHOST', 10, 7, 6, 5, 1, 2, 0.0, (WHITE, BCYAN, BCYAN, CYAN, BBLUE, BBLUE), 0, 24)
-    logo("'26", 214, 7, 5, 5, 1, 2, 2.0, (WHITE, BGREEN, BGREEN, BGREEN, GREEN, GREEN), 24, 40)
-    logo('HUNTER', 54, 53, 6, 5, 1, 2, 1.6, (YELLOW, YELLOW, BRED, BRED, RED, RED), 0, 40)
+    logo('GHOST', 10, 8, 6, 6, 1, 2, 0.0, (WHITE, BCYAN, BCYAN, CYAN, BBLUE, BBLUE), 0, 24)
+    logo("'26", 214, 8, 5, 6, 1, 2, 2.0, (WHITE, BGREEN, BGREEN, BGREEN, GREEN, GREEN), 24, 40)
+    logo('HUNTER', 54, 66, 6, 6, 1, 2, 1.6, (YELLOW, YELLOW, BRED, BRED, RED, RED), 0, 40)
     # the moon
-    mx, my, mr = 30, 112, 12
+    mx, my, mr = 30, 138, 14
     for y in range(my - mr, my + mr + 1):
         for x in range(mx - mr - 3, mx + mr + 4):
-            d = math.hypot((x - mx) / 1.2, y - my)
+            d = math.hypot((x - mx) / 1.1, y - my)
             if d <= mr and not (math.hypot(x - mx + 5, y - my + 4) < 3 or math.hypot(x - mx - 6, y - my - 5) < 4 or math.hypot(x - mx - 3, y - my + 8) < 2):
                 bits[y, x] = True
-    colour(12, 16, 1, 7, YELLOW)
+    colour(12, 16, 0, 7, YELLOW)
     # the graveyard
     for x in range(W):
-        top = 166 + int(round(3 * math.sin(x / 31.0) + 2 * math.sin(x / 13.0 + 1)))
-        for y in range(top, 176):
+        top = 203 + int(round(2 * math.sin(x / 31.0) + math.sin(x / 13.0 + 1)))
+        for y in range(top, 220):
             bits[y, x] = ((x + y) % 2 == 0) or y == top or hsh(x, y, 3) < 0.3
     colour(20, 22, 0, 40, GREEN)
     stone = art([
@@ -578,14 +581,14 @@ def title_picture():
         ".#.############.", ".##########.###.", ".##############.", ".##############.", ".######.#######.", ".##############.",
         ".##############.", ".##############.", ".##############.", ".##############.", ".##############.", ".##############."])
     for sxp in (24, 88, 184, 240):
-        put(stone, sxp, 138)
-        colour(17, 20, sxp // 8, sxp // 8 + 2, GREY)
+        put(stone, sxp, 180)
+        colour(18, 20, sxp // 8, sxp // 8 + 2, GREY)
     cross = art([
         "......####......", "......####......", "......####......", "..############..", "..############..", "......####......",
         "......####......", "......####......", "......####......", "......####......", "......####......", "......####......",
         "......####......", "......####......", "......####......", "......####......"])
     for sxp in (56, 136):
-        put(cross, sxp, 144)
+        put(cross, sxp, 188)
         colour(18, 20, sxp // 8, sxp // 8 + 2, DGREY)
     # a dead tree
     tree = np.zeros((56, 32), bool)
@@ -599,6 +602,6 @@ def title_picture():
             if 0 <= xx < 32 and 0 <= yy < 56:
                 tree[yy, xx] = True
                 tree[yy + 1, xx] = True
-    put(tree, 280, 104)
-    colour(13, 20, 35, 39, BROWN)
+    put(tree, 280, 148)
+    colour(14, 20, 35, 39, BROWN)
     return bits, ink, paper

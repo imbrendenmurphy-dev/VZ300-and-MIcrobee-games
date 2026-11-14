@@ -3,8 +3,8 @@
 ;  Z80 3.375 MHz, 1MB RAM (32 blocks of 32K), 32K PCG RAM (16 banks of
 ;  128 glyphs), 6545 CRTC.
 ;
-;  Display: the 40-column mode, 40 x 25 cells of 8 x 8 pixels (320 x
-;  200). The screen, attribute and colour RAM are 2K each, so there is
+;  Display: the 40-column mode, 40 x 25 cells of 8 x 10 pixels (320 x
+;  250, a full PAL picture). The screen, attribute and colour RAM are 2K each, so there is
 ;  room for two pages of 1000 cells: the game draws the hidden one and
 ;  swaps them in the vertical blanking.
 ; =====================================================================
@@ -32,6 +32,8 @@ BLK_WORK    EQU 1
 BLK_FIGHT   EQU 4           ; the six fighters: blocks 4..9
 BLK_GFX     EQU 10          ; font, the title (picture 0), the ending (picture 1)
 BLK_STG     EQU 11          ; the five stages: blocks 11..15
+BLK_STGM    EQU 16          ; the same for a monochrome monitor: blocks 16..20
+BLK_GFXM    EQU 21          ; the title and the ending for a monochrome monitor
 
 ; ---- a stage block (tools/build.py, pack_stage)
 SB_NGLYPH   EQU $00
@@ -44,7 +46,7 @@ SB_MID      EQU $08         ; dw: the same, 8 rows x MIDW
 SB_FCELL    EQU $0A         ; dw: the same, 8 rows x 40 (the floor's cells)
 SB_FDESC    EQU $0C         ; dw: 8 x (k, dw first glyph, 0, dw table)
 SB_PHASE    EQU $0E         ; dw: 48 x 8 strip offsets
-SB_GLYPHS   EQU $10         ; dw: 8 bytes a glyph
+SB_GLYPHS   EQU $10         ; dw: 10 bytes a glyph
 FAR_ROW     EQU 1           ; far layer: rows 1..7
 FAR_ROWS    EQU 7
 MID_ROW     EQU 8           ; midground: rows 8..15
@@ -59,11 +61,11 @@ FB_PUNCH    EQU $0002       ; reach of the punch, pixels
 FB_KICK     EQU $0003
 FB_BODY     EQU $0004
 FB_FRAMES   EQU $0010       ; dw offset of each frame record
-FB_GLYPHS   EQU $4000       ; 16 bytes a glyph: 8 pattern, 8 mask
+FB_GLYPHS   EQU $4000       ; 20 bytes a glyph: 10 pattern, 10 mask
 
 ; ---- a picture record (in the GFX blocks)
-PIC_BASE    EQU $0400
-PIC_SLOT    EQU $1C00
+PIC_BASE    EQU $0500
+PIC_SLOT    EQU $2000
 PIC_CODES   EQU 0
 PIC_BANKS   EQU 1000
 PIC_COLS    EQU 2000
@@ -73,9 +75,9 @@ PIC_GLYPHS  EQU 3008
 ; ---- PCG banks
 BK_FONT     EQU 0           ; font 0..63, HUD 64.., overlap pool 96..127
 BK_PIC      EQU 1           ; the title or ending picture: banks 1..4
-BK_SCN      EQU 1           ; the stage's scenery: banks 1..6
-BK_HERO     EQU 7           ; banks 7..10
-BK_FOE      EQU 11          ; banks 11..15
+BK_SCN      EQU 1           ; the stage's scenery: banks 1..4
+BK_HERO     EQU 5           ; banks 5..9
+BK_FOE      EQU 10          ; banks 10..15
 POOL0       EQU 96
 POOLN       EQU 16          ; pool glyphs a page
 
@@ -123,6 +125,7 @@ K_A         EQU 1
 K_D         EQU 4
 K_K         EQU 11
 K_L         EQU 12
+K_M         EQU 13
 K_P         EQU 16
 K_S         EQU 19
 K_ESC       EQU $30

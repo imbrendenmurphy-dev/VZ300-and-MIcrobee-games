@@ -102,13 +102,16 @@ reset_view:
         ld a,8                  ; 7 rows of near floor
         ld bc,279
 ; fillv: BC+1 bytes of A from HL; HL ends on the last byte
-fillv:  ld (hl),a
-        ld d,h
-        ld e,l
-        inc de
-        ldir
-        dec de
-        ex de,hl
+fillv:  inc bc                  ; (plain writes: video memory is never read back)
+        ld e,a
+.l      ld (hl),e
+        inc hl
+        dec bc
+        ld a,b
+        or c
+        jr nz,.l
+        dec hl
+        ld a,e
         ret
 
 ; --------------------------------------------------------------------------

@@ -165,7 +165,7 @@ ending:
 en_1a:      db "YOU DID IT!",0
 en_1b:      db "THE COSMIC COCKATOO IS PLUCKED",0
 en_1c:      db "AND THE GALAHXY PARTIES ON.",0
-en_1d:      db "(SOMEBODY HAS TO CLEAN UP, THOUGH)",0
+en_1d:      db "(SOMEONE HAS TO CLEAN UP...)",0
 en_2a:      db "OUR HEROES FLEW HOME",0
 en_2b:      db "FOR A CUPPA, SOME TOAST",0
 en_2c:      db "AND A GOOD LONG SQUAWK.",0

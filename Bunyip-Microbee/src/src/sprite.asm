@@ -631,7 +631,27 @@ draw_sprites:
         pop bc
         inc hl
         djnz .l
-        jp tabblk
+        call tabblk
+        ld hl,(rl_head)         ; forget which cells were taken (CMAP)
+        ld a,(hl)
+        or a
+        ret z
+        ld b,a
+        inc hl
+.cm     ld e,(hl)
+        inc hl
+        ld a,(hl)
+        and 3
+        add a,high(CMAP)
+        ld d,a
+        xor a
+        ld (de),a
+        inc hl
+        inc hl
+        inc hl
+        inc hl
+        djnz .cm
+        ret
 
 ; --------------------------------------------------------------------------
 ; draw_one: IY = VIS entry
@@ -791,6 +811,58 @@ draw_one:
         ld (M_cl2+1),a
         ld a,h
         ld (cmp_hi),a
+        ; this column's wall state, for claim
+        ld a,(page)
+        add a,a
+        add a,high(STATE)
+        ld h,a
+        ld a,(dcx)
+        ld l,a                  ; HL -> S_EL of the column (fields 40 apart)
+        ld a,(hl)
+        push hl
+        ld l,a
+        ld h,0
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        ld de,PROFL4
+        add hl,de
+        ld (c_pl),hl
+        pop hl
+        ld a,l
+        add a,40
+        ld l,a
+        ld a,(hl)               ; S_ER
+        push hl
+        ld l,a
+        ld h,0
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        ld de,PROF4
+        add hl,de
+        ld (c_pr),hl
+        pop hl
+        ld a,l
+        add a,40
+        ld l,a
+        ld a,(hl)               ; S_COL
+        ld (c_col),a
+        ld a,l
+        add a,40
+        ld l,a
+        ld a,(hl)               ; S_PAT (FFh until the column is first drawn)
+        cp NPAT
+        jr c,.pt
+        xor a
+.pt     ld (c_pat),a
+        ld a,l
+        add a,40
+        ld l,a
+        ld a,(hl)               ; S_TMIN
+        ld (c_n),a
         ld a,(dcx)
         ld l,a
         ld h,0
@@ -1072,8 +1144,17 @@ M_cvv:  and 0
 ; put_cell: take cell (caddr) and lay TMPM/TMPD over it; the cell takes the
 ;   sprite's ink if the sprite is most of what is lit in it; to PCG RAM
 ; --------------------------------------------------------------------------
+; Everything that touches video memory here is done with RAM block 4 in the
+; lower window, exactly as the start-up glyph upload is: on the real
+; Premium Plus the glyph writes did not land while a sprite block was
+; mapped (the cells showed whatever the pool banks held before).
 put_cell:
-        ld hl,TMPM              ; covers the whole cell? (all NOT masks 0)
+        ld a,BLK_PCG
+        call setblk
+        call .do
+        ld a,(dblk)             ; back to the sprite's block
+        jp setblk
+.do     ld hl,TMPM              ; covers the whole cell? (all NOT masks 0)
         ld a,(hl)
         rept CELLH-1
         inc l
@@ -1225,14 +1306,18 @@ put_cell:
         cp c
         jr z,.ink
         jr nc,.up               ; lit > sprite pixels * 2: keep the old ink
-.ink    ld hl,(caddr)
+.ink    ld a,(dr)               ; the row's paper with the sprite's ink
+        cp 11
+        ld a,(cpaper)
+        jr c,.ip
+        ld a,(fpaper)
+.ip     or (iy+V_INK)
+        ld e,a
+        ld hl,(caddr)
         set 3,h
         ld a,40h
         out (PORT_08),a
-        ld a,(hl)
-        and 0F0h
-        or (iy+V_INK)
-        ld (hl),a
+        ld (hl),e
         xor a
         out (PORT_08),a
 .up     ; the glyph to PCG RAM: pool bank, or bank 15 for slots 128+
@@ -1260,9 +1345,10 @@ put_cell:
         add hl,de
         ex de,hl
         ld hl,(cmp_sh)
-        rept CELLH
-        ldi
-        endm
+        ld bc,CELLH             ; (ldir, as the start-up upload does)
+        ldir
+        ld a,X1C                ; (screen RAM is only touched with bank 0 selected)
+        out (PORT_1C),a
         ret
 
 ; --------------------------------------------------------------------------
@@ -1274,28 +1360,20 @@ put_cell:
 ; --------------------------------------------------------------------------
 claim:
         ld hl,(caddr)
-        ld c,(hl)               ; C = code
-        ld a,X1C_ATTR
-        out (PORT_1C),a
-        ld b,(hl)               ; B = bank
-        ld a,X1C
-        out (PORT_1C),a
-        ld a,(poolbk)
-        cp b
-        jr nz,.n15
-        ld a,c                  ; already one of this frame's glyphs
-        sub 80h
-        jp .old
-.n15    ld a,b
-        cp 15
-        jr nz,.new
-        ld a,(pool15)
-        ld e,a
-        ld a,c
-        sub 80h
-        sub e
-        add a,128
-        jp .old
+        ld a,h                  ; taken already this frame? (CMAP: slot + 1)
+        and 3
+        add a,high(CMAP)
+        ld d,a
+        ld e,l
+        ld a,(de)
+        or a
+        jr z,.new
+        dec a
+        ld (cmp_slot),a         ; a glyph of this frame: lit pixels not known
+        ld a,0FFh
+        ld (pc_bg),a
+        or a
+        ret
 .new    ld a,(nslot)            ; a free glyph in the pool?
         cp POOLN
         ccf
@@ -1303,39 +1381,75 @@ claim:
         ld (cslot),a
         inc a
         ld (nslot),a
-        ; restore entry: address, code, bank, ink
-        ld de,(rl_ptr)
-        ld a,l
-        ld (de),a
-        inc de
-        ld a,h
-        ld (de),a
-        inc de
-        ld a,c
-        ld (de),a
-        inc de
-        ld a,b
-        ld (de),a
-        inc de
-        set 3,h
-        ld a,40h
-        out (PORT_08),a
-        ld a,(hl)
-        ld (de),a
-        xor a
-        out (PORT_08),a
-        res 3,h
-        inc de
-        ld (rl_ptr),de
-        push hl
+        ld (de),a               ; CMAP
+        ; What the wall renderer has in this cell, worked out from the
+        ; column's state (the screen is never read back):
+        ;   code = PROFL[el * 16 + row] + PROF[er * 16 + row], rows mirrored
+        ;   below the horizon; bank = the row's group + the wall's texture;
+        ;   ink = the wall's inside its span, the floor's outside
+        ld a,(dr)               ; (block 4 is mapped: see put_cell)
+        cp 11
+        jr c,.top
+        neg
+        add a,21
+.top    ld e,a
+        ld hl,(c_pl)
+        or l
+        ld l,a
+        ld d,(hl)
+        ld hl,(c_pr)
+        ld a,e
+        or l
+        ld l,a
+        ld a,d
+        add a,(hl)
+        ld c,a                  ; C = code
+        ld a,(dr)
+        cp 11
+        ld a,(c_pat)
+        jr c,.bk
+        add a,NPAT
+.bk     ld b,a                  ; B = bank
+        ld a,(c_n)              ; inside the wall's rows n .. 21 - n?
+        ld e,a
+        ld a,(dr)
+        cp e
+        jr c,.fl
+        add a,e
+        cp 22
+        jr nc,.fl
+        ld a,(c_col)
+        jr .pk
+.fl     ld a,(floorc)
+.pk     ld e,a
+        ld a,(dr)
+        cp 11
+        ld a,(cpaper)
+        jr c,.pp
+        ld a,(fpaper)
+.pp     or e
+        ld e,a                  ; E = colour byte
+        ; restore entry: address, code, bank, colour
+        ld hl,(rl_ptr)
+        ld a,(caddr)
+        ld (hl),a
+        inc hl
+        ld a,(caddr+1)
+        ld (hl),a
+        inc hl
+        ld (hl),c
+        inc hl
+        ld (hl),b
+        inc hl
+        ld (hl),e
+        inc hl
+        ld (rl_ptr),hl
         ld hl,(rl_head)
         inc (hl)
-        ld a,b                  ; lit pixels of the old glyph (LITC), if known
-        and 15
-        cp 13
-        ld a,0FFh
-        jr nc,.lq
-        ld a,b
+        ld a,(pc_full)
+        or a
+        jr z,.nc                ; covered: nothing to copy
+        ld a,b                  ; lit pixels of the old glyph: LITC[bank * 128 + code]
         rrca
         ld h,a
         and 80h
@@ -1349,34 +1463,31 @@ claim:
         add a,high(LITC)
         ld h,a
         ld a,(hl)
-.lq     ld (pc_bg),a
-        ld a,(pc_full)
-        or a
-        jr z,.nc                ; covered: nothing to copy
-        ; copy the old glyph from PCG RAM: bank B, (code - 80h) * 16
-        ld a,b
-        and 15
-        or X1C
-        out (PORT_1C),a
+        ld (pc_bg),a
+        ; copy the old glyph from the tileset: bank * 1280 + code * 10
         ld a,c
         and 7Fh
         ld l,a
         ld h,0
         add hl,hl
+        ld d,h
+        ld e,l
         add hl,hl
         add hl,hl
-        add hl,hl
-        ld de,PCGWIN
-        add hl,de
+        add hl,de               ; code * 10
+        ld a,b
+        add a,a
+        add a,a
+        add a,b                 ; bank * 5
+        add a,h
+        ld h,a
         ld a,(cslot)
         call slot_ptr           ; DE = private glyph
         rept CELLH
         ldi
         endm
-        ld a,X1C
-        out (PORT_1C),a
-.nc     pop hl
-        ; point the cell at it
+.nc     ; point the cell at it
+        ld hl,(caddr)
         ld a,(cslot)
         cp 128
         jr nc,.h
@@ -1398,13 +1509,8 @@ claim:
         ld a,X1C
         out (PORT_1C),a
         ld a,(cslot)
-.have   ld (cmp_slot),a
+        ld (cmp_slot),a
         or a                    ; (no carry)
-        ret
-.old    ld (cmp_slot),a         ; a glyph of this frame: lit pixels not known
-        ld a,0FFh
-        ld (pc_bg),a
-        or a
         ret
 
 ; slot_ptr: A = slot -> DE = its private glyph (keeps HL, BC)
@@ -1429,3 +1535,8 @@ cmp_ad: dw 0
 cmp_slot: db 0
 pc_full: db 0
 pc_bg:  db 0FFh
+c_pl:   dw 0
+c_pr:   dw 0
+c_col:  db 0
+c_pat:  db 0
+c_n:    db 0

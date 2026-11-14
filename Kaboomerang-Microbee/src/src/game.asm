@@ -173,30 +173,35 @@ set_tile:
         ld (t_ptr),hl
         ld a,d
         add a,a
-        add a,ARENA_C
-        ld d,a
+        dec a
+        ld (t_c),a              ; column 2tx-1 (FFh: off the left edge)
         ld a,e
         add a,a
-        add a,ARENA_R
-        ld e,a
-        call cell_of            ; HL = top-left cell
+        ld (t_r),a              ; row 2ty
         ld a,(curblk)
         push af
         ld a,BLK_RT
         call map_blk
         ld b,0                  ; quadrant
-.q:     push hl
-        ld a,b
-        cp 2
-        jr c,.top
-        ld de,40
-        add hl,de
-.top:   ld a,b
-        and 1
-        jr z,.l
-        inc hl
-.l:     push bc
-        ex de,hl                ; DE = cell
+.q:     ld a,(t_c)
+        bit 0,b
+        jr z,$+3
+        inc a
+        cp 40
+        jr nc,.skip             ; off the left or right edge
+        ld d,a
+        ld a,(t_r)
+        bit 1,b
+        jr z,$+3
+        inc a
+        or a
+        jr z,.skip              ; row 0 is the HUD
+        cp 25
+        jr nc,.skip
+        ld e,a
+        call cell_of            ; HL = cell
+        push bc
+        push hl
         ld hl,(t_ptr)
         ld a,b
         add a,a
@@ -204,30 +209,21 @@ set_tile:
         ld l,a
         jr nc,$+3
         inc h
-        ld c,(hl)
+        ld e,(hl)
         inc hl
-        ld b,(hl)               ; BC = glyph
+        ld d,(hl)               ; DE = glyph
         ld hl,(t_ptr)
         ld a,8
+        add a,b
         add a,l
         ld l,a
         jr nc,$+3
         inc h
-        pop af                  ; A = quadrant (was B), F junk
-        push af
-        add a,l
-        ld l,a
-        jr nc,$+3
-        inc h
-        ld a,(hl)               ; colour
-        ex de,hl                ; HL = cell
-        ld d,b
-        ld e,c
-        ld c,a
+        ld c,(hl)               ; colour
+        pop hl
         call set_cell_rt
         pop bc
-        pop hl
-        inc b
+.skip:  inc b
         ld a,b
         cp 4
         jr nz,.q
@@ -637,19 +633,15 @@ enemy_type:
         ld a,ET_TOAD
         ret
 
-; the whole screen: HUD, arena, bottom bar
+; the whole screen: the HUD row, the arena
 draw_screen:
         call clear_screen
         call draw_arena
         call draw_hud
-        ld hl,s_name
-        ld de,1*256+24
-        ld a,CYAN
-        call print_at
-        ld hl,s_vibed
-        ld de,27*256+24
-        ld a,GREY
-        call print_at
+        ld a,$FF                ; nothing flies over the HUD
+        ld e,0
+        ld c,1
+        call block_rows
         jp all_dirty
 
 ; print HL at D, E in colour A
@@ -661,11 +653,10 @@ print_at:
         pop hl
         jp print
 
-s_name: db "KABOOMERANG",0
-s_vibed: db "VIBED BY BPM",0
 s_world: db "RED CENTRE",0
 s_score: db "SCORE",0
 
+; the HUD, row 0:  1-3  hearts  nut x3  flame x2  boomerang thongs  WORLD  score
 draw_hud:
         ld hl,numbuf            ; "1-n"
         ld (hl),'1'
@@ -683,20 +674,16 @@ draw_hud:
         inc hl
         ld (hl),0
         ld hl,numbuf
-        ld de,1*256+0
+        ld de,0*256+0
         ld a,YELLOW
         call print_at
         ld hl,s_world
-        ld de,5*256+0
-        ld a,YELLOW
-        call print_at
-        ld hl,s_score
-        ld de,27*256+0
-        ld a,WHITE
+        ld de,23*256+0
+        ld a,BRED
         call print_at
         call score_text
         ld hl,numbuf
-        ld de,33*256+0
+        ld de,34*256+0
         ld a,WHITE
         call print_at
         ; hearts
@@ -713,33 +700,33 @@ draw_hud:
         ld c,DGREY
         ld hl,IC_HEART_E        ; an empty heart: its own shape for mono
 .hl:    ld a,b
-        inc a
+        add a,4
         ld d,a
-        ld e,1
+        ld e,0
         push bc
         call put_icon
         pop bc
         inc b
         jr .h
 .hx:    ; bombs, range, boomerang, thongs
-        ld d,8
-        ld e,1
+        ld d,10
+        ld e,0
         ld hl,IC_NUT
         ld c,BGREEN
         call put_icon
         ld a,(p_bombs)
-        ld d,9
+        ld d,11
         call put_count
-        ld d,13
-        ld e,1
+        ld d,14
+        ld e,0
         ld hl,IC_FLAME
         ld c,YELLOW
         call put_icon
         ld a,(p_range)
-        ld d,14
+        ld d,15
         call put_count
         ld d,18
-        ld e,1
+        ld e,0
         ld hl,IC_BOOM
         ld c,YELLOW
         ld a,(bm_on)
@@ -748,19 +735,14 @@ draw_hud:
         ld hl,0                 ; thrown: the slot is empty
 .bo:    call put_icon
         ld d,20
-        ld e,1
+        ld e,0
         ld hl,IC_THONG
         ld c,BCYAN
         ld a,(p_speed)
         or a
         jr nz,.th
         ld hl,0
-.th:    call put_icon
-        ld hl,s_keys
-        ld de,27*256+1
-        ld a,DGREY
-        jp print_at
-s_keys: db "ESC H S",0
+.th:    jp put_icon
 
 ; icon HL at D, E in colour C
 put_icon:
@@ -768,7 +750,7 @@ put_icon:
         call cell_of
         pop de
         jp set_cell
-; "xN" at D, row 1
+; "xN" at D, row 0
 put_count:
         add a,'0'
         ld (numbuf+1),a
@@ -777,7 +759,7 @@ put_count:
         xor a
         ld (numbuf+2),a
         ld hl,numbuf
-        ld e,1
+        ld e,0
         ld a,GREY
         jp print_at
 
@@ -839,7 +821,7 @@ show_msg:
         ld (fc_glyph),hl
         ld a,BLUE*16
         ld (txt_col),a
-        ld de,ARENA_C*256+MSG_ROW-1
+        ld de,1*256+MSG_ROW-1
         ld bc,38*256+3
         call fill_cells
         ld a,WHITE+BLUE*16
@@ -861,7 +843,7 @@ hide_msg:
         ld e,MSG_ROW-1
         ld c,3
         call block_rows
-        ld e,4                  ; tile rows 4 and 5 hold cell rows 10-13
+        ld e,5                  ; tile rows 5 and 6 hold cell rows 10-13
 .r:     ld d,0
 .c:     call draw_tile
         inc d
@@ -870,7 +852,7 @@ hide_msg:
         jr nz,.c
         inc e
         ld a,e
-        cp 6
+        cp 7
         jr nz,.r
         ret
 
@@ -1175,7 +1157,8 @@ tile_scr:
         ld a,e
         add a,a
         add a,a
-        add a,a
+        add a,e
+        add a,a                 ; ty * 10 (a tile is 20 lines)
         add a,OY/2+3
         ld c,a
         ret
@@ -1260,7 +1243,7 @@ tiles_pass:
 .r:     ld d,1
 .c:     push hl
         ld a,(hl)               ; bomb
-        ld bc,352
+        ld bc,MAPSZ
         add hl,bc
         or (hl)                 ; flame
         add hl,bc

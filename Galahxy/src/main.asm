@@ -106,6 +106,8 @@ shell:      ld sp,STACK_TOP
             xor a
             call load_pack
             jr c,shell
+            ld a,L_MODE|L_SPK0      ; the front end is always in the main palette
+            ld (latchv),a
             ld a,(game_won)
             or a
             call nz,FE_ENDING

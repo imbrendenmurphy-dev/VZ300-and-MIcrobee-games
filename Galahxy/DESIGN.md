@@ -23,19 +23,29 @@ common sprites (cast, shots, bullets, pickups) are drawn so they read in both pa
 example, the player has a one-pixel outline, and enemy bullets are a ring around a core, so they
 show against any background.
 
-## The full game plan (after the slice)
+## The full game
 
-| # | Stage | Palette | Joke and mechanic | Midboss | Boss |
-|---|---|---|---|---|---|
-| 1 | PARTY PLANET (built) | CSS0 | the party snacks are alive; candy cannons on the ground; route split CLOUD TOPS / LOLLY GARDEN, golden gingerbread secret | THE CAROUSEL | KING WOBBLE |
-| 2 | BATH-TIME NEBULA | CSS1 pastel | a cosmic bathtub; rising foam pushes a ceiling down, rubber-duck formations; pull the plug for a secret drain route | THE SOAP DISH UFO | ADMIRAL DUCKWORTH (a giant rubber duck battleship) |
-| 3 | TOY BOX TOWERS | CSS0 | stacked toy blocks you can shoot away to open routes; wind-up soldiers march on top | JACK-IN-THE-BOX | THE BIG TOP TRAIN (circus train looping round the screen) |
-| 4 | SHERBET SEA | CSS1 pastel | a fizzy sea where bubbles carry you up; fizz geysers | THE ICE-CREAM SUB | QUEEN JELLYFISH (tentacles with clear wind-ups) |
-| 5 | CLOCKWORK KITCHEN | CSS0 | a kitchen in space; the toaster pops, the kettle steams; a timer that speeds the scroll | THE EGG-BEATER | THE GRILLFATHER (a moustached kettle barbecue) |
-| 6 | THE GALAH GALAXY | CSS1 pastel | the finale: a boss rush made into a joke parade, then the big one | | THE COSMIC COCKATOO |
+Six stages, alternating palettes: 1 PARTY PLANET (CSS0), 2 BATH-TIME NEBULA (CSS1), 3 TOY BOX
+TOWERS (CSS0), 4 SHERBET SEA (CSS1), 5 BACKYARD BLITZ (CSS0), 6 THE GALAH GALAXY (CSS1). The
+README has the table of jokes, secrets and bosses.
 
-Each new stage is one `GLXSn.DAT`: its scenery, sprites, enemy types, timeline and boss code,
-in the 11K stage area. The engine and front end stay as they are.
+**Packs.** The resident program (`GALAHXY.VZ` + `GLXCOM.DAT`) holds the engine, the cast, the
+shop and a stage toolkit (`boss.asm`). Everything else is an 11K pack loaded into $B800-$E3FF:
+
+- `GLXS0.DAT` is the front end: title, cast select, high scores, name entry and the ending.
+- `GLXS1.DAT` to `GLXS6.DAT` are the stages: scenery, sprites, tunes, enemy type table,
+  timeline, and the midboss and boss scripts.
+
+A pack starts with a jump table (init, per-frame, special objects, hit, kill, segment, draw),
+so the engine never needs to know which stage is loaded. The build assembles the program once
+per pack and checks the resident code comes out byte-identical every time.
+
+**Stage toolkit.** A stage is mostly data. The timeline spawns formations at scroll columns.
+The segment table strings ground maps together (with forks and loops for boss arenas). A boss
+is a definition (HP, entry style, messages, phase thresholds) plus one script per phase, a list
+of timed actions: show a frame, flash (the tell), lob, fan of aimed shots, shoot out an arm,
+rain from above, spawn a helper, line up with the player. Only stage-specific tricks (geysers,
+meteors, block walls, secrets) need code.
 
 ## Hardware facts this is built on
 
@@ -59,30 +69,29 @@ VZ-DECK) or from the MAME `sdloader` model they matched:
 |---|---|---|
 | $4000-$51FF | SRAM low bank 3 | ground band rings (4 pre-shifted copies, 64 columns) |
 | $5200-$5DFF | SRAM low bank 3 | skyline band rings |
-| $5E00-$677F | SRAM low bank 3 | **GLXCOM.DAT**: logo, font, colour tables, sound and music data, some sprites |
+| $5E00-$67BF | SRAM low bank 3 | **GLXCOM.DAT**: font, colour tables, sound engine data, shop text, some sprites |
 | $67C0-$67FF | SRAM low bank 3 | high-score table (kept until power-off) |
 | $7000-$77FF | video RAM | |
 | $7C00-$7D7F | main RAM | IM2 table and vector |
 | $7D80-$7FFF | main RAM | stack |
-| $8000-$AB83 | main RAM | **GALAHXY.VZ**: the engine, game flow, high scores, shop |
-| $ABC0-$AFF7 | main RAM | variables and object tables |
+| $8000-$AB9F | main RAM | **GALAHXY.VZ**: the engine, game flow, shop |
+| $ABA0-$AFFF | main RAM | variables and object tables |
 | $B000-$B7FF | main RAM | back buffer 0 (also the SD bounce buffer) |
-| $B800-$E3FF | SRAM upper bank 1 | **GLXSn.DAT**: the current stage (header and jump table, sprites, types, code, timeline, scenery) |
-| $E400-$F7E7 | SRAM upper bank 1 | **GLXCOM.DAT**: common sprites, front end |
+| $B800-$E3FF | SRAM upper bank 1 | **GLXSn.DAT**: the front end (pack 0) or the current stage (header and jump table, sprites, types, code, timeline, scenery) |
+| $E400-$F7FF | SRAM upper bank 1 | **GLXCOM.DAT**: common sprites, the stage toolkit and boss engine |
 | $F800-$FFFF | SRAM upper bank 1 | back buffer 1 |
 
 Low bank 1 (the DOS) and upper bank 0 (DOS RAM and stack) are left untouched, so the DOS stays
 usable for loading the next stage between stages.
 
-**What stays resident:** the engine, the common sprites and front end, sound and the high
-scores. **What is banked per stage:** a stage's art, enemies, timeline and bosses (11K).
+**What stays resident:** the engine, the common sprites, the boss engine, sound and the high
+scores. **What is banked:** the front end, or a stage's art, enemies, timeline and bosses (11K).
 **What loads between stages:** the next `GLXSn.DAT`, behind a LOADING card. The `.VZ` checks the
 SRAM is there before anything else.
 
-Space is the tight resource. Main RAM has 60 bytes spare, the common area 24 and stage 1 has 74.
-The full game would move the front end into upper bank 0 behind a mapping switch when it runs
-(the title doesn't need the DOS at the same time). That frees about 2.5K of the common area for
-more common sprites. It's the planned first step after the slice.
+Space is the tight resource. Main RAM has about 480 bytes spare and the common area about 860
+high and 680 low. The stage packs have between 1K and 3.6K spare each. Moving the front end out
+of the resident code into pack 0 is what made room for the boss engine.
 
 ## Frame budget: what was measured
 

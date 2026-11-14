@@ -1,15 +1,18 @@
-SPR_PLANE equ 128
-SPR_SOLDIER equ 130
-SPR_BLOCK equ 132
-SPR_MARBLE equ 134
-SPR_ROBOT equ 136
-SPR_YOYO equ 138
-SPR_KITE equ 140
-SPR_WALNUT equ 142
-SPR_SABRE equ 143
-SPR_JACK equ 145
-SPR_NUTCRACKER equ 147
-stgspr_n equ 22
+SPR_UFO equ 128
+SPR_COMET equ 130
+SPR_ALIEN equ 132
+SPR_ROVER equ 134
+SPR_DISH equ 136
+SPR_ROCKET equ 138
+SPR_METEOR equ 140
+SPR_GOLDUFO equ 142
+SPR_EGG equ 143
+SPR_BEAK equ 144
+SPR_CLAW equ 146
+SPR_STARS equ 147
+SPR_CHOOK equ 148
+SPR_COCKY equ 150
+stgspr_n equ 25
 stgspr_tab:
             dw stgspr_r0
             dw stgspr_r1
@@ -33,3 +36,6 @@ stgspr_tab:
             dw stgspr_r19
             dw stgspr_r20
             dw stgspr_r21
+            dw stgspr_r22
+            dw stgspr_r23
+            dw stgspr_r24

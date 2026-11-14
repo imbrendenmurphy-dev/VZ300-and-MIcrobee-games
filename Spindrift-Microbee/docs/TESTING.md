@@ -18,11 +18,15 @@ All testing so far is in the **raster-accurate Premium Plus model** in `tools/em
 
 | Test | What it checks | Result (final build) |
 |---|---|---|
-| `tools/fronttest.py` | Monitor question, title, the attract cycle (hall of fame, how to play, demo), joystick start, joystick steering, pause shows and freezes everything, unpause, R restarts with a fresh score, a real game over with no help, initials into the table, back to the title, M for monochrome | **16 of 16** |
+| `tools/fronttest.py` | Monitor question, the screen-shape screen (Z widens the ring), title, the title playing SWIRL, the attract cycle (hall of fame, how to play, demo), joystick start, joystick steering, pause shows and freezes everything, unpause, R restarts with a fresh score, a real game over with no help, initials into the table, back to the title, M for monochrome and the shape screen again | **20 of 20** |
 | `tools/playtest.py --god` | A scripted pilot flies the whole campaign: 8 sectors, 4 Guardians, 4 Chance Stages, into the second lap, with no hang | pass (900 s of play) |
 | `tools/loadertest.py` | The disk's directory and every file byte for byte; `SPIN.COM` run off the image with a stand-in for CP/M's file calls; the loader finds CP/M's bank, passes its 1 MB check, stages every file, copies the program to 8000h intact and starts the game | pass |
-| `tools/perf2.py` | Frame rate, commit length and cells in the busiest wave of every sector and every Guardian | 24.3 fps, 94.5% of frames on time |
-| Flash checks | 9 flashes in a Guardian fight with real damage: no HUD cell keeps flash paper; messages and the core get their colours back | pass |
+| `tools/perf2.py` | Frame rate, commit length and cells in the busiest wave of every sector and every Guardian | 23.9 fps, 90.5% of frames on time (8 × 10 cells, 62-line blanking) |
+| Sound timing | SWIRL: 59.3 ticks a second, the title's gap 2.1% of a tick. In the game: 263.5 T a sample (pitch within 0.2% of the tables), 91 samples a typical frame | as designed |
+| Sound checks | Silence between effects measured at -170 dB or below (no frame-rate buzz); spectrograms of every effect (dives fall, wuckas swing, the warp climbs) | pass |
+| Warp countdown | 4, 3, 2, 1 WARPS TO COMET LANES, then 4 WARPS TO CINDER GATE | pass |
+| Flash checks | 9 flashes in a Guardian fight with real damage: no HUD corner cell is ever on flash paper (even mid-flash); the sides of the middle rows do flash; messages and the core get their colours back | pass |
+| HUD | Read back as text: SCORE / HI top left; SECTOR n, the name a word a row, LAP 2 top right; SHIELD bottom left; WARPS and the count (CORE and its bar in a Guardian fight) bottom right | pass |
 
 ## Not tested here
 
@@ -36,3 +40,5 @@ All testing so far is in the **raster-accurate Premium Plus model** in `tools/em
 3. Sweeping feels tight on Z / X and on the stick.
 4. A Guardian fight (sector 2) stays smooth.
 5. Tapping H, R and S always registers.
+6. The screen shape: which of the eight settings makes the ring round on each of your monitors (and whether the default, the third, suits the amber CRT).
+7. How "Spiral Arms" and the new effects sound through the real speaker.

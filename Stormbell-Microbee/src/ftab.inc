@@ -23,7 +23,7 @@ FR_RUN4 equ 19
 ; ranges in cells: an attack lands when the fighters are this close
 rangetab:
 	db 6,7,6,7	; OX
-	db 6,6,6,7	; REED
+	db 6,7,6,7	; REED
 	db 5,6,5,6	; SPARROW
 	db 6,7,6,7	; GORSE
 	db 6,7,6,7	; CROW

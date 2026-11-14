@@ -10,6 +10,7 @@ P_PIOAC     EQU $01
 P_PIOB      EQU $02         ; b6 speaker
 P_PIOBC     EQU $03
 P_COLCTL    EQU $08         ; b6: F800 window = colour RAM
+P_CLK40     EQU $09         ; IN with A = 1: the 40-column dot clock
 P_ROMLAT    EQU $0B         ; 1 during keyboard scans
 P_CRTCA     EQU $0C         ; 6545 address / status (b5 vertical blanking)
 P_CRTCD     EQU $0D

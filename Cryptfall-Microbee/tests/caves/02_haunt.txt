@@ -1,0 +1,15 @@
+name: HAUNTERS
+quota: 9
+time: 99
+map:
+####################
+#P                 #
+#.   o     o     o #
+#.   .     .     . #
+#.  W W   W W   W W#
+#.  WgW   WbW   WkW#
+#.  WWW   WWW   WWW#
+#.                 #
+#.                 #
+#..................X
+####################

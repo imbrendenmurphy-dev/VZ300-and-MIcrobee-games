@@ -3,10 +3,13 @@
 ;  loading, pictures and text.
 ; =====================================================================
 
-; The 40-column mode: 40 x 25 cells of 8 lines. Two things select it, and
-; the real Premium Plus needs both (found with FRILLSEEKER): the dot clock
-; (IN (09h) with A = 1) and the 6545 table of BPM's MODES40 test.
-crtc_game:  db $35,$28,$2C,$34,$26,$01,$19,$21,$48,$07,$20,$07,0,0,0,0
+; The 40-column mode: 40 x 25 cells of 8 x 10 pixels, a 320 x 250 picture
+; that fills a PAL screen (the tallest that leaves room for two pages in
+; the 2K of screen RAM). Two things select it, and the real Premium Plus
+; needs both: the dot clock (IN (09h) with A = 1) and the 6545 table of
+; BPM's MODES test: 31 rows of 10 lines + 2 = 312 lines.
+;               R0  R1  R2  R3  R4  R5  R6  R7  R8  R9  R10 R11
+crtc_game:  db $35,$28,$2C,$34,$1E,$02,$19,$1C,$48,$09,$20,$09,0,0,0,0
 DROWS       EQU 25
 
 hw_init:
@@ -45,6 +48,7 @@ hw_init:
         call display_off
         ld hl,$C0DE
         ld (rseed),hl
+        ld (sseed),hl
         ld a,1
         ld (sound_on),a
         ; the font and HUD glyphs
@@ -99,9 +103,10 @@ map_blk:
         pop de
         pop hl
         ret
-; port 50h for blocks 0..15: ((b & 1Ch) << 3) | ((b & 3) ^ 2) | 4
+; port 50h for blocks 0..31: ((b & 1Ch) << 3) | ((b & 3) ^ 2) | 4
 blkport:
         db $06,$07,$04,$05,$26,$27,$24,$25,$46,$47,$44,$45,$66,$67,$64,$65
+        db $86,$87,$84,$85,$A6,$A7,$A4,$A5,$C6,$C7,$C4,$C5,$E6,$E7,$E4,$E5
 
 win_screen:
         xor a
@@ -123,7 +128,7 @@ win_col:
         ret
 
 ; ---------------------------------------------------------------------
-;  HL = patterns (8 bytes a glyph), A = first PCG bank, BC = glyphs
+;  HL = patterns (10 bytes a glyph), A = first PCG bank, BC = glyphs
 ; ---------------------------------------------------------------------
 pcg_load:
         ld (pl_bank),a
@@ -142,9 +147,11 @@ pcg_load:
         ldi
         ldi
         ldi
+        ldi
+        ldi
         pop bc
         ld a,e
-        add a,8
+        add a,6
         ld e,a
         jr nc,.nc
         inc d
@@ -165,7 +172,7 @@ pcg_load:
 
 ; ---------------------------------------------------------------------
 ;  a fighter's glyphs: A = block, C = first PCG bank. The block holds
-;  16 bytes a glyph (pattern, mask); the PCG takes the pattern.
+;  20 bytes a glyph (pattern, mask); the PCG takes the pattern.
 ; ---------------------------------------------------------------------
 fighter_load:
         call map_blk
@@ -191,12 +198,14 @@ fighter_load:
         ldi
         ldi
         ldi
-        ld bc,8
+        ldi
+        ldi
+        ld bc,10
         add hl,bc
         pop bc
         dec bc
         ld a,e
-        add a,8
+        add a,6
         ld e,a
         jr nc,.g
         inc d
@@ -374,10 +383,13 @@ print_mid2:
 ;  (picbase) = its record.
 ; ---------------------------------------------------------------------
 pic_find:
-        ld b,BLK_GFX
         ld c,a
-        ld a,b
-        ld (picblk),a
+        ld a,(mono)
+        or a
+        ld a,BLK_GFX
+        jr z,.c
+        ld a,BLK_GFXM
+.c:     ld (picblk),a
         call map_blk
         ld hl,PIC_BASE
         ld de,PIC_SLOT
