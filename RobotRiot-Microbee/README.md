@@ -6,6 +6,8 @@ An original single-screen robot-uprising arena shooter for the **Microbee Premiu
 
 **VIBED BY BPM 2026**
 
+See [BLURB.md](BLURB.md) for the blurb, tech specs and screenshots.
+
 ![showcase](screenshots/showcase.gif)
 
 ## Status: build 0.5
