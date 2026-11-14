@@ -7,6 +7,16 @@ Vibed by BPM, 2026.
 ![Title](screenshots/title.png)
 ![Everything that lives (and doesn't) in the outback](screenshots/bestiary.png)
 
+## Title and attract sequence
+
+Left alone, the game runs an arcade-style attract loop. Press fire at any point to start playing.
+
+1. **Title:** an arched, dripping logo in a chunky metal font, with a tense three-channel beeper tune (about 25 seconds). The music gets the whole CPU, so the screen stays still while it plays. You can hear it in `music/title_music.wav`, rendered from the simulated speaker.
+2. **Meet the locals:** each creature appears with a little three-note fanfare, animates, and runs itself down in its own words. It's silent between fanfares.
+3. **Demo:** an autopilot plays a different area each time round the loop, with every creature in the area awake and coming for it.
+
+![The gallery](screenshots/gallery.png)
+
 ## The game
 
 Drop bears have overrun the outback. Fight your way through nine connected areas, beat the Big Three and get back to your ute.
@@ -73,7 +83,7 @@ Nothing is read from the SD card after loading, so power-cycle to leave.
 
 ## Status
 
-Version 0.3. The whole game has been played start to finish in the project's own Z80 simulator: all nine areas, three bosses and all 20 opals. It runs at a median of about 16 frames a second, dipping to about 14 in the busiest rooms. Dying and respawning were also tested.
+Version 0.4. The whole game has been played start to finish in the project's own Z80 simulator: all nine areas, three bosses and all 20 opals. It runs at a median of about 16 frames a second, dipping to about 14 in the busiest rooms. Dying and respawning were also tested.
 
 The engine's timing was checked on a real VZ300 (see `bench/`). Version 0.2 ran on real hardware. This version adds the high bank ($B800–$FFFF, mapper value 5), which is new to this game.
 
@@ -84,8 +94,9 @@ The engine's timing was checked on a real VZ300 (see `bench/`). Version 0.2 ran 
 | Folder | What's in it |
 |---|---|
 | `release/` | `DROPBEAR.VZ`, ready for the SD card |
-| `src/` | `dropbear.asm` (the game), `build.py` (tables, textures, sprites, world, packer), `z80tools.py` (assembler and simulator), `play.py` (plays the whole game in the simulator), `prof.py` (shows where each frame's time goes) |
-| `screenshots/` | Pictures and a playthrough GIF from the simulator |
+| `src/` | `dropbear.asm` (the game), `build.py` (tables, textures, sprites, logo, music, world, packer), `z80tools.py` (assembler and simulator), `play.py` (plays the whole game in the simulator), `attract.py` (runs the attract loop and renders the title music), `prof.py` (shows where each frame's time goes) |
+| `music/` | The title music as a WAV, rendered from the simulator |
+| `screenshots/` | Pictures, a playthrough GIF and an attract-demo GIF from the simulator |
 | `bench/` | RAYBENCH, the raycaster speed test that came first |
 
 To rebuild: `python3 build.py` in `src/` (needs Python 3 with Pillow). `python3 play.py` plays it through and reports frame rates.

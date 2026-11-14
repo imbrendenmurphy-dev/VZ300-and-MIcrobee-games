@@ -128,12 +128,12 @@ def bot(nframe):
     return k
 
 frames = []; shots = {}; ftimes = []; fstart = None; nframe = 0
-watch = {S[n]: n for n in ('gloop', 'wf1', 'wf2', 'tt2', 'main', 'dead', 'changearea')}
+watch = {S[n]: n for n in ('gloop', 'wf1', 'wf2', 'qpm0', 'main', 'dead', 'changearea')}
 titles = 0; done = False; deaths = 0; minhp = 100; wins = 0; pages = 0
 log = []; area_frames = {}; lastarea = None; enter_frame = 0; mapshot = False
 while not done:
     n = watch.get(z.pc)
-    if n == 'tt2':
+    if n == 'qpm0':
         titles += 1
         if titles == 2: shots['title'] = shot(z)
         press(' ' if titles > 3 else '')

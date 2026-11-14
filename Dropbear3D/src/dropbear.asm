@@ -15,11 +15,30 @@ MUSP:   equ 14
 start:  di
         ld sp,stacktop
         call joyinit
-main:   call titlescreen
+main:   call attract                ; title, music, gallery, demo - until fire is pressed
         ld hl,PG_INTRO
         call textpage
         call newgame
-gloop:  call getinput
+gloop:  call gameframe
+        ld a,(hp)
+        or a
+        jr z,dead
+        ld a,(leveldone)
+        or a
+        jr z,gloop
+        call jingle_up
+        call cls
+        ld hl,PG_WIN
+        call showpage
+        ld a,(opals)
+        ld de,WINNUM
+        call print2
+        call waitfire
+        jp main
+
+; one frame of play (the attract demo uses this too)
+gameframe:
+        call getinput
         ld a,(mapkey)
         or a
         jr z,gl1
@@ -30,7 +49,7 @@ gloop:  call getinput
         call blit
         xor a
         ld (fcnt),a
-        jr gloop
+        ret
 gl0:    ld a,(msgt)
         or a
         jr nz,gl1
@@ -48,22 +67,8 @@ gl1:    call turnmove
         call drawgun
         call blit
         call hud
-        call timers
-        ld a,(hp)
-        or a
-        jr z,dead
-        ld a,(leveldone)
-        or a
-        jr z,gloop
-        call jingle_up
-        call cls
-        ld hl,PG_WIN
-        call showpage
-        ld a,(opals)
-        ld de,WINNUM
-        call print2
-        call waitfire
-        jp main
+        jp timers
+
 dead:   call jingle_down
         ld hl,PG_DEAD
         call textpage
@@ -229,92 +234,446 @@ db1:    pop af
         jr nz,drawbmp
         ret
 
+; ---------------- attract sequence ------------------------------
+; returns when fire is pressed: title + music, the gallery, then a demo
+attract:
+        call titlescreen
+        ret c
+        call gallery
+        ret c
+        call demo
+        ret c
+        jr attract
+
 titlescreen:
+        ld a,1
+        out ($37),a
         ld a,$08
         ld (latchbase),a
         call setlatch
         call cls
-        ld hl,LOGO
-        ld de,$7000+2*32+5
-        ld a,LOGOH
-        ld c,LOGOW
-        call drawbmp
-        ld hl,$7000+15*32+5
-        ld b,2
-        ld c,22
-        ld a,$FF
-        call fillrect
+        ld hl,LOGO2             ; the logo lives in the high bank: copy it straight to the screen
+        ld de,$7000
+        ld bc,LOGOLEN
+        call HICOPY
         ld hl,PG_TITLE
         call showpage
-        ld hl,ZBUF
-        ld b,32
-tz1:    ld (hl),0
+        ld hl,MUSIC
+        ld de,ACTTEX
+        ld bc,MUSLEN
+        call HICOPY
+        call playmus
+        ret c
+        ld b,250                ; let the last chord ring in the silence
+tl1:    push bc
+        ld a,1
+        call pause
+        call getinput
+        pop bc
+        ld a,(inp)
+        bit 6,a
+        scf
+        ret nz
+        djnz tl1
+        or a
+        ret
+
+; three-channel music: each channel is a square wave from its own counter, and the
+; speaker is handed to each channel in turn many thousand times a second
+; row: period1, toggle1, period2, toggle2, period3, toggle3, length (16 bit, $FFxx ends)
+playmus:
+        ld hl,ACTTEX
+qpm0:    ld a,(hl)
+        ld (qmp1+1),a
         inc hl
-        djnz tz1
-        xor a
-        ld (tframe),a
-        ld (tap),a
-        ld hl,TTUNE
-        ld (ttptr),hl
-tt0:    ld hl,$7000+24*32+1
-        ld b,40
-        ld c,13
-        ld a,$AA
-        call fillrect
-        ld hl,$7000
-        ld (s_base),hl
-        ld a,2
-        ld (s_left),a
-        ld a,26
-        ld (s_top),a
-        ld a,255
-        ld (s_z),a
-        ld hl,TBEAR0
-        ld a,(tframe)
-        rrca
-        jr nc,tt1
-        ld hl,TBEAR1
-tt1:    call drawspr
-        ld a,4
-        ld (tcount),a
-tt2:    ld hl,(ttptr)
+        ld a,(hl)
+        ld (qmx1+1),a
+        inc hl
+        ld a,(hl)
+        ld (qmp2+1),a
+        inc hl
+        ld a,(hl)
+        ld (qmx2+1),a
+        inc hl
+        ld a,(hl)
+        ld (qmp3+1),a
+        inc hl
+        ld a,(hl)
+        ld (qmx3+1),a
+        inc hl
+        ld c,(hl)
+        inc hl
+        ld b,(hl)
+        inc hl
+        ld a,b
+        cp $FF
+        ret z
+        push hl
+        push bc
+        call getinput
+        pop bc
+        ld a,(inp)
+        bit 6,a
+        jr z,qpm1
+        pop hl
+        scf
+        ret
+qpm1:    push bc
+        exx
+        pop bc
+        exx
+        ld a,(latch)
+        and $DE
+        or 1
+        ld d,a
+        ld h,a
+        ld l,a
+        ld b,1
+        ld c,1
+        ld e,1
+qmloop:  dec b
+        jr nz,qml1
+qmp1:    ld b,0
+        ld a,d
+qmx1:    xor $21
+        ld d,a
+qml1:    ld a,d
+        ld ($6800),a
+        dec c
+        jr nz,qml2
+qmp2:    ld c,0
+        ld a,h
+qmx2:    xor $21
+        ld h,a
+qml2:    ld a,h
+        ld ($6800),a
+        dec e
+        jr nz,qml3
+qmp3:    ld e,0
+        ld a,l
+qmx3:    xor $21
+        ld l,a
+qml3:    ld a,l
+        ld ($6800),a
+        exx
+        dec bc
+        ld a,b
+        or c
+        exx
+        jp nz,qmloop
+        pop hl
+        jp qpm0
+
+; the locals introduce themselves
+gallery:
+        ld hl,GALL
+        ld de,ACTTEX
+        ld bc,GALLLEN
+        call HICOPY
+        ld hl,ACTTEX
+ga0:    ld (gptr),hl
+        ld a,(hl)
+        inc hl
+        or (hl)
+        ret z
+        ld hl,(gptr)
+        ld de,10
+        add hl,de
+        ld a,(hl)
+        ld (latchbase),a
+        call setlatch
+        call cls
+        ld hl,(gptr)
+        ld de,6
+        add hl,de
         ld e,(hl)
         inc hl
         ld d,(hl)
+        ex de,hl
+        call showpage
+        xor a
+        ld (gframe),a
+        call gdraw
+        ld hl,(gptr)            ; a little ta-da
+        ld de,11
+        add hl,de
+        ld b,3
+gji:    push bc
+        ld e,(hl)
         inc hl
-        ld a,d
-        cp $FF
-        jr nz,tt3
-        ld hl,TTUNE
-        ld (ttptr),hl
-        jr tt2
-tt3:    ld b,(hl)
+        ld d,0
+        ld b,(hl)
         inc hl
-        ld a,(hl)
-        inc hl
-        ld (ttptr),hl
-        push af
-        ld a,d
-        or e
-        call nz,beep
-        pop af
+        push hl
+        call beep
+        ld a,8
+        call pause
+        pop hl
+        pop bc
+        djnz gji
+        ld b,7                  ; then show off for a couple of seconds
+gw1:    push bc
+        ld a,90
         call pause
         call getinput
+        pop bc
         ld a,(inp)
         bit 6,a
-        jr nz,ttx
-        ld a,(tap)
-        or a
-        jr nz,ttx
-        ld hl,tcount
-        dec (hl)
-        jr nz,tt2
-        ld hl,tframe
-        inc (hl)
-        jp tt0
-ttx:    ld hl,BUF
+        scf
+        ret nz
+        ld a,(gframe)
+        xor 1
+        ld (gframe),a
+        push bc
+        call gdraw
+        pop bc
+        djnz gw1
+        ld hl,(gptr)
+        ld de,17
+        add hl,de
+        jr ga0
+; draw this entry's sprite in the frame gframe
+gdraw:  ld a,1
+        out ($37),a
+        ld hl,(gptr)
+        ld de,4
+        add hl,de
+        ld a,(hl)               ; backdrop colour for this one
+        ld hl,$7000
+        ld b,46
+        ld c,32
+        call fillrect
+        ld hl,(gptr)
+        ld a,(gframe)
+        add a,a
+        ld e,a
+        ld d,0
+        add hl,de
+        ld e,(hl)
+        inc hl
+        ld d,(hl)
+        push de
+        ld hl,(gptr)
+        ld de,8
+        add hl,de
+        ld a,(hl)
+        ld (s_top),a
+        inc hl
+        ld a,(hl)
+        ld (s_left),a
+        ld a,255
+        ld (s_z),a
+        ld hl,$7000
         ld (s_base),hl
+        pop hl
+        call drawspr
+        ld hl,BUF
+        ld (s_base),hl
+        ld a,1
+        out ($37),a
         ret
+
+; the demo: the autopilot plays a different area each time round
+demo:   ld a,(dcycle)
+        ld (dsa),a
+        inc a
+        cp NAREA
+        jr c,dm0
+        xor a
+dm0:    ld (dcycle),a
+        ld a,(dsa)
+        add a,a
+        ld e,a
+        ld d,0
+        ld hl,DEMOTAB
+        add hl,de
+        ld a,(hl)
+        ld (dsc),a
+        inc hl
+        ld a,(hl)
+        ld (dsang),a
+        call newgame2
+        ld hl,OBJ               ; in the demo, everything here is awake and coming for you
+        ld b,NOBJ
+dmw:    ld a,(hl)
+        or a
+        jr z,dmw1
+        cp NENEMY+1
+        jr nc,dmw1
+        push hl
+        ld de,6
+        add hl,de
+        set 7,(hl)
+        pop hl
+dmw1:   ld de,8
+        add hl,de
+        djnz dmw
+        ld a,1
+        ld (demo_on),a
+        xor a
+        ld (dquit),a
+        ld (aturn),a
+        ld hl,MSG_DEMO
+        call setmsg
+        ld hl,DEMOLEN
+        ld (dtime),hl
+dml:    call gameframe
+        ld a,(msgt)             ; keep the DEMO banner up
+        or a
+        jr nz,dml1
+        ld hl,MSG_DEMO
+        call setmsg
+dml1:   ld a,(dquit)
+        or a
+        jr nz,dmq
+        ld a,(hp)
+        or a
+        jr z,dme
+        ld a,(leveldone)
+        or a
+        jr nz,dme
+        ld hl,(dtime)
+        dec hl
+        ld (dtime),hl
+        ld a,h
+        or l
+        jr nz,dml
+dme:    xor a
+        ld (demo_on),a
+        ret
+dmq:    xor a
+        ld (demo_on),a
+        scf
+        ret
+
+; steer for the demo: face the nearest creature in view and shoot, otherwise wander
+autopilot:
+        ld c,0
+        ld a,(aimz)
+        or a
+        jr z,ap3
+        ld a,(aimcol)
+        cp 14
+        jr nc,ap1
+        set 2,c
+        jr ap2
+ap1:    cp 19
+        jr c,ap2
+        set 3,c
+ap2:    ld hl,(target)
+        ld a,h
+        or l
+        ret z
+        set 6,c
+        ret
+ap3:    ld a,(aturn)
+        or a
+        jr z,ap4
+        xor a
+        ld (awalk),a
+        ld a,(aturn)
+        dec a
+        ld (aturn),a
+        ld a,(adir)
+        ld c,a
+        ret
+ap4:    ld a,(awalk)            ; tried to walk last time but didn't move? turn away
+        ld b,a
+        ld hl,(px)
+        ld de,(lastpx)
+        ld (lastpx),hl
+        or a
+        sbc hl,de
+        ld a,h
+        or l
+        ld hl,(py)
+        ld de,(lastpy)
+        ld (lastpy),hl
+        jr nz,ap5
+        or a
+        sbc hl,de
+        ld a,h
+        or l
+        jr nz,ap5
+        or b
+        jr nz,ap8
+ap5:    ld a,(ZBUF+16)          ; wall close ahead (last frame's depth buffer)? turn to the open side
+        cp 43
+        jr c,ap5w
+        call ahead              ; unless it's a door or a way out: walk into those
+        cp 3
+        jr z,ap5w
+        cp 4
+        jr nz,ap9
+ap5w:   set 0,c
+        ld a,1
+        ld (awalk),a
+        call rnd
+        and 127
+        jr z,ap8                ; now and then, wander off somewhere new
+        ld a,(ZBUF+4)           ; drift towards the more open side
+        ld b,a
+        ld a,(ZBUF+28)
+        sub b
+        jr nc,ap6
+        neg
+        cp 8
+        ret c
+        set 3,c
+        ret
+ap6:    cp 8
+        ret c
+        set 2,c
+        ret
+; the map cell a step and a quarter in front of us
+ahead:  push bc
+        ld hl,(vx)
+        add hl,hl
+        ld d,h
+        ld e,l
+        add hl,hl
+        add hl,hl
+        add hl,de
+        ld de,(px)
+        add hl,de
+        ld b,h
+        ld hl,(vy)
+        add hl,hl
+        ld d,h
+        ld e,l
+        add hl,hl
+        add hl,hl
+        add hl,de
+        ld de,(py)
+        add hl,de
+        ld c,h
+        call mapat
+        and $7F
+        pop bc
+        ret
+ap8:    call rnd
+        and 4
+        jr nz,ap7
+        ld a,8
+        jr ap7
+ap9:    ld a,(ZBUF+4)
+        ld b,a
+        ld a,(ZBUF+28)
+        cp b
+        ld a,8
+        jr c,ap7
+        ld a,4
+ap7:    ld (adir),a
+        xor a
+        ld (awalk),a
+        ld a,(adir)
+        ld c,a
+        call rnd
+        and 7
+        add a,6
+        ld (aturn),a
+        ret
+
 
 ; ---------------- the world -------------------------------------
 ; area record: theme, flags, name (16 + $FF), exit count, exits (cell, to area,
@@ -513,6 +872,13 @@ ms2:    ld de,8
 
 newgame:
         xor a
+        ld (dsa),a
+        ld a,STARTCELL
+        ld (dsc),a
+        ld a,STARTANG
+        ld (dsang),a
+newgame2:
+        xor a
         ld (keys),a
         ld (opals),a
         ld (leveldone),a
@@ -532,11 +898,11 @@ ng1:    ld (area),a
         inc a
         cp NAREA
         jr nz,ng1
-        xor a
+        ld a,(dsa)
         ld (area),a
-        ld a,STARTCELL
+        ld a,(dsc)
         ld (entrycell),a
-        ld a,STARTANG
+        ld a,(dsang)
         ld (entryang),a
         ld hl,GTUNE
         ld (gtptr),hl
@@ -734,6 +1100,17 @@ gj6:    in a,($2E)
         jr nz,gi9
         set 6,c
 gi9:    ld a,c
+        ld (inp),a
+        ld a,(demo_on)
+        or a
+        ret z
+        ld a,c
+        and $40
+        ld (dquit),a
+        xor a
+        ld (mapkey),a
+        call autopilot
+        ld a,c
         ld (inp),a
         ret
 
@@ -1955,6 +2332,7 @@ objects:
         xor a
         ld (nvis),a
         ld (tz),a
+        ld (aimz),a
         ld hl,0
         ld (target),hl
         ld hl,OBJ
@@ -2708,7 +3086,14 @@ pj8b:   ld (otop),a
         ld de,6
         add hl,de
         set 7,(hl)
-        ld a,(oleft)
+        ld a,(oz)
+        ld hl,aimz
+        cp (hl)
+        jr c,pjn
+        ld (hl),a
+        ld a,(scol)
+        ld (aimcol),a
+pjn:    ld a,(oleft)
         ld b,a
         ld a,16
         sub b
@@ -3089,6 +3474,22 @@ ptx:    db 0
 ptc:    db 0
 seed:   db 37
 kflg:   db 0
+awalk:  db 0
+gptr:   dw 0
+gframe: db 0
+dcycle: db 0
+dsa:    db 0
+dsc:    db 0
+dsang:  db 0
+demo_on: db 0
+dquit:  db 0
+dtime:  dw 0
+aimz:   db 0
+aimcol: db 0
+aturn:  db 0
+adir:   db 0
+lastpx: dw 0
+lastpy: dw 0
 fcx:    db 0
 fcy:    db 0
 p1:     dw 0

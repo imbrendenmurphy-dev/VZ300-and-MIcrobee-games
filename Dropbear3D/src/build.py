@@ -482,8 +482,8 @@ GLYPHS = {
  '4': "#.# #.# ### ..# ..#", '5': "### #.. ##. ..# ##.", '6': ".## #.. ### #.# ###", '7': "### ..# .#. .#. .#.",
  '8': "### #.# ### #.# ###", '9': "### #.# ### ..# ##.", '!': ".#. .#. .#. ... .#.", '-': "... ... ### ... ...",
  '+': "... .#. ### .#. ...", '.': "... ... ... ... .#.", ':': "... .#. ... .#. ...", "'": ".#. .#. ... ... ...",
- '/': "..# ..# .#. #.. #..", ',': "... ... ... .#. #.."}
-CHARS = " ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!-+.:'/,"
+ '/': "..# ..# .#. #.. #..", ',': "... ... ... .#. #..", '?': "##. ..# .#. ... .#."}
+CHARS = " ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!-+.:'/,?"
 font = []
 for ch in CHARS:
     for r in GLYPHS[ch].split(): font.append(sum((1 if c == '#' else 2) << (6-2*i) for i, c in enumerate(r)) | 2)
@@ -497,21 +497,9 @@ def page(name, lines):
         a = 0x7000+row*32+col; out += [a & 255, a >> 8] + enc(s)
     return blob(name, out+[0, 0])
 def centre(row, s): return (row, (32-len(s))//2, s)
-LOGOTXT = "DROPBEAR 3D"; LW = len(LOGOTXT)*8; LH = 12
-lg = [[2]*LW for _ in range(LH)]
-for pas, col in ((1, 3), (0, 1)):
-    for ci, ch in enumerate(LOGOTXT):
-        for ry, r in enumerate(GLYPHS[ch].split()):
-            for rx, c in enumerate(r):
-                if c == '#':
-                    for yy in range(2):
-                        for xx in range(2):
-                            x = ci*8+rx*2+xx+pas; y = ry*2+yy+pas
-                            if x < LW and y < LH: lg[y][x] = col
-blob('LOGO', [sum(lg[y][x*4+i] << (6-2*i) for i in range(4)) for y in range(LH) for x in range(LW//4)])
-syms['LOGOW'] = LW//4; syms['LOGOH'] = LH
-page('PG_TITLE', [centre(18, "VIBED BY BPM 2026"), (27, 16, "W S    WALK"), (34, 16, "A D    TURN"),
-                  (41, 16, "Q E    STRAFE"), (48, 16, "SPACE  FIRE"), (57, 16, "PRESS FIRE!")])
+
+page('PG_TITLE', [centre(32, "VIBED BY BPM 2026"), (40, 1, "W S  WALK     A D    TURN"),
+                  (46, 1, "Q E  STRAFE   SPACE  FIRE"), (52, 1, "HOLD M FOR THE MAP"), centre(58, "PRESS FIRE")])
 page('PG_INTRO', [centre(3, "G'DAY, RANGER!"), centre(12, "DROP BEARS HAVE OVERRUN THE"),
                   centre(18, "OUTBACK. FIGHT THROUGH NINE"), centre(24, "AREAS, BEAT THE BIG THREE"),
                   centre(30, "AND GET BACK TO YOUR UTE."), centre(39, "KEYS OPEN LOCKED DOORS. BUMP"),
@@ -526,7 +514,7 @@ for nm, s in (('MSG_NOMAP', "NO MAP HERE YET"), ('MSG_SECRET', "SECRET FOUND!"),
               ('MSG_HEALTH', "VEGEMITE! +25"), ('MSG_AMMO', "AMMO +15"), ('MSG_OUCH', "OUCH!"), ('MSG_BLANK', ""),
               ('MSG_K1', "GOT ONE!"), ('MSG_K2', "BAT DOWN!"), ('MSG_K3', "BIG FELLA DOWN!"),
               ('MSG_K4', "BUNYIP BEATEN!"), ('MSG_K5', "YOWIE DOWN!"), ('MSG_K6', "TOAD SQUASHED!"),
-              ('MSG_K7', "MAGPIE DOWN!"), ('MSG_K8', "SNAKE GONE!"), ('MSG_K9', "SPIDER SPLAT!"), ('MSG_K10', "DINGO DOWN!")):
+              ('MSG_K7', "MAGPIE DOWN!"), ('MSG_DEMO', "DEMO. PRESS FIRE"), ('MSG_K8', "SNAKE GONE!"), ('MSG_K9', "SPIDER SPLAT!"), ('MSG_K10', "DINGO DOWN!")):
     assert len(s) <= 16
     blob(nm, enc(s.ljust(16)))
 
@@ -820,11 +808,7 @@ def ttune(seq):
         if n == '-': out += [0, 0, 0, gap]
         else: f = freq(n); out += [count(f) & 255, count(f) >> 8, min(255, max(2, int(round(f*2*ms/1000)))), gap]
     return out + [0xFF, 0xFF]
-riff = [('E3', 110, 12), ('E3', 110, 12), ('G3', 110, 12), ('E3', 110, 30), ('A3', 110, 12), ('G3', 110, 12), ('E3', 150, 40),
-        ('E3', 110, 12), ('E3', 110, 12), ('G3', 110, 12), ('A3', 110, 30), ('B3', 110, 12), ('A3', 110, 12), ('G3', 150, 40),
-        ('E3', 110, 12), ('E3', 110, 12), ('G3', 110, 12), ('E3', 110, 30), ('D3', 110, 12), ('D3', 110, 12), ('E3', 220, 60),
-        ('-', 0, 40)]
-blob('TTUNE', ttune(riff))
+
 def gtune(seq):
     out = []
     for n in seq:
@@ -833,6 +817,146 @@ def gtune(seq):
     return out + [0xFF, 0xFF]
 blob('GTUNE', gtune(['E4', '-', '-', 'E4', 'G4', 'E4', '-', '-', 'D4', '-', '-', 'D4', 'F4', 'D4', '-', '-',
                      'E4', '-', '-', 'E4', 'G4', 'A4', '-', '-', 'B4', '-', 'A4', '-', 'G4', '-', '-', '-']))
+
+# ---- the title logo: chunky bevelled metal letters on an arch, with slime drips (lives in the high bank) ----
+BIG = {
+ 'D': ["#########..", "##########.", "###....####", "###.....###", "###.....###", "###.....###", "###.....###", "###....####", "##########.", "#########.."],
+ 'R': ["#########..", "##########.", "###....####", "###.....###", "###....####", "#########..", "###...###..", "###....###.", "###.....###", "###.....###"],
+ 'O': ["..#######..", ".#########.", "####...####", "###.....###", "###.....###", "###.....###", "###.....###", "####...####", ".#########.", "..#######.."],
+ 'P': ["#########..", "##########.", "###....####", "###.....###", "###....####", "##########.", "#########..", "###........", "###........", "###........"],
+ 'B': ["#########..", "##########.", "###....####", "###....###.", "#########..", "##########.", "###.....###", "###....####", "##########.", "#########.."],
+ 'E': ["###########", "###########", "###........", "###........", "########...", "########...", "###........", "###........", "###########", "###########"],
+ 'A': ["...#####...", ".#########.", "####...####", "###.....###", "###.....###", "###########", "###########", "###.....###", "###.....###", "###.....###"]}
+SMALL = {
+ '3': ["######.", "#######", ".....##", "..####.", "..####.", ".....##", "#######", "######."],
+ 'D': ["######.", "#######", "##...##", "##...##", "##...##", "##...##", "#######", "######."]}
+LGH = 30
+def make_logo():
+    W = 128; L = [[0]*W for _ in range(LGH)]
+    word = "DROPBEAR"; gw = 11; gap = 2; width = len(word)*gw+(len(word)-1)*gap; ox = (W-width)//2
+    base = 15                                       # bottom row of the big letters
+    for k, ch in enumerate(word):
+        x0 = ox + k*(gw+gap)
+        for x in range(gw):
+            X = x0+x; sc = 1 + 0.55*((X-63.5)/(width/2))**2   # taller towards the ends
+            hgt = int(round(10*sc))
+            for yy in range(hgt):
+                sy = 9 - int(yy/sc)
+                if 0 <= sy < 10 and BIG[ch][sy][x] == '#': L[base-yy][X] = 1
+    sw = 7; sox = (W-(2*sw+2))//2
+    for k, ch in enumerate("3D"):
+        for y, row in enumerate(SMALL[ch]):
+            for x, c in enumerate(row):
+                if c == '#': L[19+y][sox+k*(sw+2)+x] = 2
+    pic = [[2]*W for _ in range(LGH)]
+    for y in range(LGH):                               # extrusion, down and to the right
+        for x in range(W):
+            if L[y][x]:
+                for dx, dy in ((1, 1), (1, 2), (0, 2)):
+                    if y+dy < LGH and x+dx < W and not L[y+dy][x+dx]: pic[y+dy][x+dx] = 0
+    for y in range(LGH):
+        for x in range(W):
+            v = L[y][x]
+            if not v: continue
+            edge = y < 2 or not L[y-1][x] or not L[y-2][x]
+            if v == 1: pic[y][x] = 1 if edge else 3
+            else: pic[y][x] = 3 if edge else 1
+    for k in (0, 2, 5, 7):                             # slime drips
+        X = ox + k*(gw+gap) + (2 if k % 2 else 8)
+        bot = max(y for y in range(LGH) if L[y][X])
+        for y in range(bot+3, bot+3+2+(k % 3)): pic[y][X] = 0
+    return [sum(pic[y][x*4+i] << (6-2*i) for i in range(4)) for y in range(LGH) for x in range(32)], pic
+logo_bytes, LOGO_PIC = make_logo()
+blob('LOGO2', logo_bytes, 1, 'hi'); syms['LOGOLEN'] = len(logo_bytes)
+
+# ---- title music: three channels, slow and ominous, with a cheeky ending ----
+SR = 3546900/134.4
+def per(f): return max(2, min(255, round(SR/(2*f))))
+N = {'A1': 55.0, 'Bb1': 58.27, 'E2': 82.41, 'G#2': 103.83, 'A2': 110.0, 'Bb2': 116.54, 'B2': 123.47, 'C3': 130.81,
+     'Db3': 138.59, 'D#3': 155.56, 'E3': 164.81, 'F3': 174.61, 'F#3': 185.0, 'G3': 196.0, 'G#3': 207.65, 'A3': 220.0,
+     'Bb3': 233.08}
+BEAT = 0.5
+v_bass = []; v_mid = []; v_top = []
+for bar in range(20):                          # heartbeat: dum-dum ... dum-dum
+    t = bar*2; v_bass += [(t, .25, 'A1'), (t+.5, .25, 'A1')]
+for k in range(8): v_bass.append((40+k*.5, .25, 'A1' if k % 2 == 0 else 'Bb1'))
+for k, n in enumerate(['A2', 'Bb2', 'A2', 'G#2']): v_mid.append((8+k*4, 3.5, n))
+for k, n in enumerate(['C3', 'Db3', 'C3', 'B2']): v_mid.append((24+k*4, 3.5, n))
+for k, n in enumerate(['E3', 'F3', 'E3', 'D#3', 'A3', 'G#3', 'G3', 'F#3']): v_top.append((24+k*2, 1.75, n))
+v_mid.append((40, 3.8, 'E3')); v_top.append((40, 3.8, 'Bb3'))          # the stinger: a tritone
+v_top += [(45, .55, 'Bb2'), (45.7, .55, 'A2'), (46.4, 1.6, 'G#2')]      # ...and a sad trombone
+v_bass.append((46.4, 1.6, 'E2'))
+END = 48.5; STEP = 1/20
+def at(voice, t):
+    for t0, d, n in voice:
+        if t0 <= t < t0+d: return n
+    return None
+rows = []
+t = 0.0
+while t < END-1e-9:
+    key = (at(v_top, t), at(v_mid, t), at(v_bass, t))
+    if rows and rows[-1][0] == key: rows[-1][1] += STEP
+    else: rows.append([key, STEP])
+    t += STEP
+mus = []
+for (a, m, bs), d in rows:
+    for n in (a, m, bs): mus += [per(N[n]) if n else 0, 0x21 if n else 0]
+    loops = round(d*BEAT*SR); mus += [loops & 255, loops >> 8]
+    assert loops < 0xFF00
+mus += [0, 0, 0, 0, 0, 0, 0, 0xFF]
+assert len(mus) <= 1024, len(mus)
+blob('MUSIC', mus, 1, 'hi'); syms['MUSLEN'] = len(mus)
+
+# ---- the gallery: each local introduces itself (built for its working copy at ACTTEX) ----
+GAL = [('SPR_WALK', 'SPR_BITE', 0x08, "DROP BEAR", "I DROP OUT OF TREES.", "MOSTLY ON PURPOSE.", ('C5', 'E5', 'G5')),
+       ('SPR_BAT0', 'SPR_BAT1', 0x18, "FRUIT BAT", "I ONLY CAME FOR THE MANGOES.", "THE BITING JUST HAPPENS.", ('E5', 'G5', 'B5')),
+       ('SPR_TOAD0', 'SPR_TOAD1', 0x18, "CANE TOAD", "NOBODY INVITED ME.", "I STAYED ANYWAY.", ('G4', 'C5', 'E5')),
+       ('SPR_MAG0', 'SPR_MAG1', 0x18, "MAGPIE", "I SWOOP. I MISS. I SWOOP AGAIN.", "IT'S A SPRING THING.", ('A5', 'C6', 'E6')),
+       ('SPR_SNAKE0', 'SPR_SNAKE1', 0x08, "SNAKE", "SLOW, BUT GRUMPY ABOUT IT.", "PLEASE DON'T STEP ON ME.", ('D5', 'F5', 'A5')),
+       ('SPR_SPIDER0', 'SPR_SPIDER1', 0x08, "HUNTSMAN", "I'M TOTALLY HARMLESS.", "WHY IS EVERYONE SCREAMING?", ('F5', 'A5', 'C6')),
+       ('SPR_DINGO0', 'SPR_DINGO1', 0x08, "DINGO", "I ATE YOUR SANDWICH.", "AND I'D DO IT AGAIN.", ('C5', 'D#5', 'G5')),
+       ('SPR_BITE', 'SPR_WALK', 0x08, "BIG FELLA", "I'M NOT FAT.", "I'M BIG BONED.", ('C4', 'D#4', 'F#4')),
+       ('SPR_BUN1', 'SPR_BUN0', 0x18, "THE BUNYIP", "MOSTLY TEETH.", "SOME FEELINGS.", ('D4', 'F4', 'G#4')),
+       ('SPR_YOW1', 'SPR_YOW0', 0x18, "THE YOWIE", "BLURRY IN EVERY PHOTO.", "THIS IS MY GOOD SIDE.", ('E4', 'G4', 'A#4'))]
+NOTE2 = {n: 440*2**((i-9)/12) for i, n in enumerate(['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'])}
+def nf(n): return NOTE2[n[:-1]]*2**(int(n[-1])-4)
+LADN = {'SPR_WALK': len(BEAR_L), 'SPR_BITE': len(BEAR_L), 'SPR_BAT0': len(BAT_L), 'SPR_BAT1': len(BAT_L),
+        'SPR_BUN0': len(BIG_L), 'SPR_BUN1': len(BIG_L), 'SPR_YOW0': len(BIG_L), 'SPR_YOW1': len(BIG_L)}
+for nm in ('TOAD', 'MAG', 'SNAKE', 'SPIDER', 'DINGO'):
+    nl = (syms['SPR_'+nm+'1']-syms['SPR_'+nm+'0'])//4 if False else None
+GBASE = syms['ACTTEX']; ent = []; pages = []
+poff = GBASE + 17*len(GAL) + 2
+def lastrec(nm):
+    t = syms[nm]; n = 0
+    while mem[t+n*4+1] and n < 20:
+        n += 1
+        if t+n*4 >= used['main'] or mem[t+n*4+1] <= mem[t+(n-1)*4+1]: break
+    return t+(n-1)*4
+for f0, f1, css, name, c1, c2, notes in GAL:
+    r0 = lastrec(f0); r1 = lastrec(f1)
+    w = mem[r0] & 0x3F; hgt = mem[r0+1]
+    pg = []
+    for row, col, s_ in (centre(47, name), centre(53, c1), centre(59, c2)):
+        assert col+len(s_) <= 32, s_
+        a = 0x7000+row*32+col; pg += [a & 255, a >> 8] + enc(s_)
+    pg += [0, 0]
+    e = [r0 & 255, r0 >> 8, r1 & 255, r1 >> 8, 0x00 if name == 'MAGPIE' else 0xAA, 0, poff & 255, poff >> 8, 45-hgt, (32-w)//2, css]
+    for n in notes:
+        f = nf(n); c = max(4, min(255, round((CLOCK/(2*f)-130)/26))); e += [c, min(255, round(f*2*0.09))]
+    ent += e; pages += pg; poff += len(pg)
+gal = ent + [0, 0] + pages
+assert len(gal) <= 1024, len(gal)
+blob('GALL', gal, 1, 'hi'); syms['GALLLEN'] = len(gal)
+
+# ---- where the demo starts in each area ----
+dt = []
+for ai in range(NAREA):
+    if ai == 0: cell, face = syms['STARTCELL'], syms['STARTANG']
+    else:
+        (ent_, face), = [(e2, f2) for (a0, c), (t, e2, f2) in EXITS.items() if t == ai][:1]
+        cell = ent_[1]*16+ent_[0]
+    dt += [cell, face]
+blob('DEMOTAB', dt); syms['DEMOLEN'] = 420
 
 # ---- assemble ---------------------------------------------------------------------------------------
 syms['CODEORG'] = used['main']
