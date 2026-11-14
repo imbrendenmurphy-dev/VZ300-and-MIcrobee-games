@@ -91,9 +91,9 @@ The game is locked to **25 frames a second**. Measured in the raster-accurate Pr
 
 | Scene | Frames a second | Frames on time |
 |---|---|---|
-| Sector waves (8 scenes) | 24.1 – 25.0 | 93 – 100% |
-| Guardians (4 scenes) | 23.7 – 25.0 | 89 – 100% |
-| **All play** | **24.6** | **97.0%** |
+| Sector waves (8 scenes) | 23.4 – 24.9 | 86 – 99% |
+| Guardians (4 scenes) | 23.5 – 24.6 | 87 – 97% |
+| **All play** | **24.3** | **94.5%** |
 
 The details, what was changed to get there, and how it was tested are in [docs/DESIGN.md](docs/DESIGN.md) and [docs/TESTING.md](docs/TESTING.md).
 

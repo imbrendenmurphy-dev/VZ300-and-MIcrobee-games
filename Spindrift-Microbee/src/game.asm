@@ -1130,8 +1130,11 @@ stars_draw:
 .l:     push bc
         ld a,(ix+0)
         ld b,(ix+2)
-        call polar
-        ld a,(ix+2)
+        call star_polar
+        jr nc,.on
+        call star_new           ; off the screen: back to the centre
+        jr .nx
+.on:    ld a,(ix+2)
         ld b,DGREY
         cp 80
         jr c,.c
@@ -1155,10 +1158,39 @@ stars_draw:
 .cm:    ld b,(hl)
         pop hl
         call star_cell
-        ld de,5
+.nx:    ld de,5
         add ix,de
         pop bc
         djnz .l
+        ret
+
+; The stars are drawn at twice the vortex's scale, so they stream past
+; the ring and out to every edge of the screen (the HUD corners stay
+; clear: their cells are marked as text).
+; A = angle, B = depth -> HL = x, C = y, carry set = off the screen
+star_polar:
+        call polar
+        add hl,hl               ; x = 2 * x - CX
+        ld de,-CX
+        add hl,de
+        ld a,h
+        or a
+        jr z,.y
+        dec a
+        jr nz,.off
+        ld a,l
+        cp 320-256
+        jr nc,.off
+.y:     ld a,c                  ; y = 2 * (y - CY/2)
+        sub CY/2
+        jr c,.off
+        cp 100
+        jr nc,.off
+        add a,a
+        ld c,a
+        or a                    ; carry clear: on the screen
+        ret
+.off:   scf
         ret
 
 ; ---------------------------------------------------------------------
