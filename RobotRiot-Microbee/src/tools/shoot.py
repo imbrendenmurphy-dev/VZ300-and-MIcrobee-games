@@ -7,7 +7,7 @@ from run import boot, peek, BUILD
 
 out = BUILD / 'shots'
 out.mkdir(exist_ok=True)
-A = 1.2
+A = 0.96                     # 320 x 250 on a 4:3 screen
 pp = boot()
 S = pp.S
 

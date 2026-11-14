@@ -66,429 +66,429 @@ glowtab:		; 256 ink + paper pairs for the glowing dither
 	db $19,$19,$3B,$3B,$2A,$2A,$6E,$6E,$4C,$4C,$5D,$5D,$7F,$7F,$1B,$1B,$19,$19,$3B,$3B,$2A,$2A,$6E,$6E,$4C,$4C,$5D,$5D,$7F,$7F,$1B,$1B,$19,$19,$3B,$3B,$2A,$2A,$6E,$6E,$4C,$4C,$5D,$5D,$7F,$7F,$1B,$1B,$19,$19,$3B,$3B,$2A,$2A,$6E,$6E,$4C,$4C,$5D,$5D,$7F,$7F,$1B,$1B,$19,$19,$3B,$3B,$2A,$2A,$6E,$6E,$4C,$4C,$5D,$5D,$7F,$7F,$1B,$1B,$19,$19,$3B,$3B,$2A,$2A,$6E,$6E,$4C,$4C,$5D,$5D,$7F,$7F,$1B,$1B,$19,$19,$3B,$3B,$2A,$2A,$6E,$6E,$4C,$4C,$5D,$5D,$7F,$7F,$1B,$1B,$19,$19,$3B,$3B,$2A,$2A,$6E,$6E,$4C,$4C,$5D,$5D,$7F,$7F,$1B,$1B,$19,$19,$3B,$3B,$2A,$2A,$6E,$6E,$4C,$4C,$5D,$5D,$7F,$7F,$1B,$1B,$19,$19,$3B,$3B,$2A,$2A,$6E,$6E,$4C,$4C,$5D,$5D,$7F,$7F,$1B,$1B,$19,$19,$3B,$3B,$2A,$2A,$6E,$6E,$4C,$4C,$5D,$5D,$7F,$7F,$1B,$1B,$19,$19,$3B,$3B,$2A,$2A,$6E,$6E,$4C,$4C,$5D,$5D,$7F,$7F,$1B,$1B,$19,$19,$3B,$3B,$2A,$2A,$6E,$6E,$4C,$4C,$5D,$5D,$7F,$7F,$1B,$1B,$19,$19,$3B,$3B,$2A,$2A,$6E,$6E,$4C,$4C,$5D,$5D,$7F,$7F,$1B,$1B,$19,$19,$3B,$3B,$2A,$2A,$6E,$6E,$4C,$4C,$5D,$5D,$7F,$7F,$1B,$1B,$19,$19,$3B,$3B,$2A,$2A,$6E,$6E,$4C,$4C,$5D,$5D,$7F,$7F,$1B,$1B
 logotab:		; address, glint column, char, bank, reverse char, bank
 	dw $F0CB
-	db 6,$D5,9,$FB,10
+	db 6,$E0,9,$F9,10
 	dw $F07B
-	db 7,$A6,9,$CC,10
+	db 7,$AD,9,$C6,10
 	dw $F0A3
-	db 7,$BC,9,$E2,10
+	db 7,$C7,9,$E0,10
 	dw $F0CC
-	db 7,$D6,9,$FC,10
+	db 7,$E1,9,$FA,10
 	dw $F053
-	db 8,$8D,9,$B3,10
+	db 8,$97,9,$B0,10
 	dw $F07C
-	db 8,$A7,9,$CD,10
+	db 8,$AE,9,$C7,10
 	dw $F0A4
-	db 8,$BD,9,$E3,10
-	dw $F0CD
-	db 8,$D7,9,$FD,10
+	db 8,$C8,9,$E1,10
 	dw $F02C
-	db 9,$F6,8,$EC,8
+	db 9,$89,9,$A2,10
 	dw $F054
-	db 9,$8E,9,$B4,10
+	db 9,$98,9,$B1,10
 	dw $F07D
-	db 9,$A8,9,$CE,10
+	db 9,$AF,9,$C8,10
 	dw $F0A5
-	db 9,$BE,9,$E4,10
+	db 9,$C9,9,$E2,10
 	dw $F0CE
-	db 9,$D8,9,$FE,10
+	db 9,$E2,9,$FB,10
 	dw $F02D
-	db 10,$F6,8,$EC,8
+	db 10,$89,9,$A2,10
 	dw $F055
-	db 10,$8F,9,$B5,10
+	db 10,$99,9,$B2,10
 	dw $F07E
-	db 10,$A9,9,$CF,10
+	db 10,$B0,9,$C9,10
 	dw $F0A6
-	db 10,$BF,9,$E5,10
+	db 10,$CA,9,$E3,10
 	dw $F0CF
-	db 10,$D9,9,$FF,10
+	db 10,$E0,9,$F9,10
 	dw $F02E
-	db 11,$F7,8,$A6,10
+	db 11,$8A,9,$A3,10
 	dw $F056
-	db 11,$90,9,$B6,10
+	db 11,$9A,9,$B3,10
 	dw $F07F
-	db 11,$AA,9,$D0,10
+	db 11,$B1,9,$CA,10
 	dw $F0A7
-	db 11,$C0,9,$E6,10
+	db 11,$CB,9,$E4,10
 	dw $F0D0
-	db 11,$DA,9,$89,11
+	db 11,$E3,9,$FC,10
 	dw $F02F
-	db 12,$F8,8,$A7,10
+	db 12,$8B,9,$A4,10
 	dw $F057
-	db 12,$91,9,$B7,10
+	db 12,$9B,9,$B4,10
 	dw $F080
-	db 12,$AB,9,$D1,10
+	db 12,$B2,9,$CB,10
 	dw $F0A8
-	db 12,$C1,9,$E7,10
+	db 12,$CC,9,$E5,10
 	dw $F0D1
-	db 12,$DB,9,$8A,11
+	db 12,$E3,9,$FC,10
 	dw $F030
-	db 13,$F6,8,$EC,8
+	db 13,$89,9,$A2,10
 	dw $F058
-	db 13,$92,9,$B8,10
+	db 13,$9C,9,$B5,10
 	dw $F081
-	db 13,$AC,9,$D2,10
+	db 13,$B3,9,$CC,10
 	dw $F0A9
-	db 13,$C2,9,$E8,10
+	db 13,$CD,9,$E6,10
 	dw $F0D2
-	db 13,$DC,9,$8B,11
-	dw $F19C
-	db 13,$9B,10,$C1,11
+	db 13,$E4,9,$FD,10
+	dw $F174
+	db 13,$96,10,$AF,11
 	dw $F031
-	db 14,$F6,8,$EC,8
+	db 14,$89,9,$A2,10
 	dw $F059
-	db 14,$93,9,$B9,10
+	db 14,$9D,9,$B6,10
 	dw $F082
-	db 14,$AD,9,$D3,10
+	db 14,$B4,9,$CD,10
 	dw $F0AA
-	db 14,$C3,9,$E9,10
+	db 14,$CE,9,$E7,10
 	dw $F0D3
-	db 14,$DD,9,$8C,11
+	db 14,$E3,9,$FC,10
+	dw $F124
+	db 14,$F2,9,$94,11
 	dw $F14C
-	db 14,$F8,9,$A7,11
+	db 14,$89,10,$A2,11
 	dw $F175
-	db 14,$8F,10,$B5,11
-	dw $F19D
-	db 14,$9C,10,$C2,11
+	db 14,$97,10,$B0,11
 	dw $F032
-	db 15,$F9,8,$A8,10
+	db 15,$8C,9,$A5,10
 	dw $F05A
-	db 15,$94,9,$BA,10
+	db 15,$9E,9,$B7,10
 	dw $F083
-	db 15,$AE,9,$D4,10
+	db 15,$B5,9,$CE,10
 	dw $F0AB
-	db 15,$C4,9,$EA,10
+	db 15,$CF,9,$E8,10
 	dw $F0D4
-	db 15,$DA,9,$89,11
+	db 15,$E3,9,$FC,10
 	dw $F125
-	db 15,$EC,9,$9B,11
+	db 15,$F3,9,$95,11
 	dw $F14D
-	db 15,$F9,9,$A8,11
+	db 15,$8A,10,$A3,11
 	dw $F176
-	db 15,$90,10,$B6,11
-	dw $F19E
-	db 15,$ED,9,$9C,11
+	db 15,$98,10,$B1,11
 	dw $F033
-	db 16,$FA,8,$A9,10
+	db 16,$8D,9,$A6,10
 	dw $F05B
-	db 16,$95,9,$BB,10
+	db 16,$9F,9,$B8,10
 	dw $F084
-	db 16,$A8,9,$CE,10
+	db 16,$B6,9,$CF,10
 	dw $F0AC
-	db 16,$C5,9,$EB,10
+	db 16,$D0,9,$E9,10
 	dw $F0D5
-	db 16,$DE,9,$8D,11
+	db 16,$E2,9,$FB,10
+	dw $F0FD
+	db 16,$E7,9,$89,11
 	dw $F126
-	db 16,$ED,9,$9C,11
+	db 16,$F4,9,$96,11
 	dw $F14E
-	db 16,$FA,9,$A9,11
+	db 16,$8B,10,$A4,11
 	dw $F177
-	db 16,$91,10,$B7,11
-	dw $F19F
-	db 16,$9D,10,$C3,11
+	db 16,$99,10,$B2,11
 	dw $F034
-	db 17,$F6,8,$EC,8
+	db 17,$89,9,$A2,10
 	dw $F05C
-	db 17,$96,9,$BC,10
+	db 17,$A0,9,$B9,10
 	dw $F085
-	db 17,$AF,9,$D5,10
+	db 17,$B7,9,$D0,10
 	dw $F0AD
-	db 17,$C6,9,$EC,10
+	db 17,$D1,9,$EA,10
 	dw $F0D6
-	db 17,$DF,9,$8E,11
+	db 17,$E4,9,$FD,10
+	dw $F0FE
+	db 17,$E8,9,$8A,11
 	dw $F127
-	db 17,$EE,9,$9D,11
+	db 17,$F5,9,$97,11
 	dw $F14F
-	db 17,$FB,9,$AA,11
+	db 17,$8C,10,$A5,11
 	dw $F178
-	db 17,$92,10,$B8,11
-	dw $F1A0
-	db 17,$9E,10,$C4,11
+	db 17,$9A,10,$B3,11
 	dw $F035
-	db 18,$F6,8,$EC,8
+	db 18,$89,9,$A2,10
 	dw $F05D
-	db 18,$97,9,$BD,10
+	db 18,$A1,9,$BA,10
 	dw $F086
-	db 18,$B0,9,$D6,10
+	db 18,$B8,9,$D1,10
 	dw $F0AE
-	db 18,$C7,9,$ED,10
+	db 18,$D2,9,$EB,10
 	dw $F0D7
-	db 18,$E0,9,$8F,11
+	db 18,$E3,9,$FC,10
+	dw $F0FF
+	db 18,$E9,9,$8B,11
 	dw $F128
-	db 18,$EF,9,$9E,11
+	db 18,$F6,9,$98,11
 	dw $F150
-	db 18,$FC,9,$AB,11
+	db 18,$8D,10,$A6,11
 	dw $F179
-	db 18,$93,10,$B9,11
-	dw $F1A1
-	db 18,$ED,9,$9C,11
+	db 18,$98,10,$B1,11
 	dw $F036
-	db 19,$FB,8,$AA,10
+	db 19,$8E,9,$A7,10
 	dw $F05E
-	db 19,$98,9,$BE,10
+	db 19,$A2,9,$BB,10
 	dw $F087
-	db 19,$B1,9,$D7,10
+	db 19,$B9,9,$D2,10
 	dw $F0AF
-	db 19,$C8,9,$EE,10
+	db 19,$D3,9,$EC,10
 	dw $F0D8
-	db 19,$E1,9,$90,11
+	db 19,$E3,9,$FC,10
+	dw $F100
+	db 19,$EA,9,$8C,11
 	dw $F129
-	db 19,$F0,9,$9F,11
+	db 19,$F7,9,$99,11
 	dw $F151
-	db 19,$FD,9,$AC,11
+	db 19,$8E,10,$A7,11
 	dw $F17A
-	db 19,$94,10,$BA,11
-	dw $F1A2
-	db 19,$9F,10,$C5,11
+	db 19,$9B,10,$B4,11
 	dw $F037
-	db 20,$FC,8,$AB,10
+	db 20,$8F,9,$A8,10
 	dw $F05F
-	db 20,$99,9,$BF,10
+	db 20,$A3,9,$BC,10
+	dw $F088
+	db 20,$BA,9,$D3,10
 	dw $F0B0
-	db 20,$C9,9,$EF,10
+	db 20,$D4,9,$ED,10
 	dw $F0D9
-	db 20,$E2,9,$91,11
+	db 20,$E1,9,$FA,10
+	dw $F101
+	db 20,$EB,9,$8D,11
 	dw $F12A
-	db 20,$ED,9,$9C,11
+	db 20,$F8,9,$9A,11
 	dw $F152
-	db 20,$FE,9,$AD,11
+	db 20,$8F,10,$A8,11
 	dw $F17B
-	db 20,$95,10,$BB,11
-	dw $F1A3
-	db 20,$A0,10,$C6,11
+	db 20,$9C,10,$B5,11
 	dw $F038
-	db 21,$F6,8,$EC,8
+	db 21,$89,9,$A2,10
 	dw $F060
-	db 21,$8F,9,$B5,10
+	db 21,$99,9,$B2,10
 	dw $F089
-	db 21,$B2,9,$D8,10
+	db 21,$BB,9,$D4,10
 	dw $F0B1
-	db 21,$CA,9,$F0,10
+	db 21,$D5,9,$EE,10
+	dw $F102
+	db 21,$E8,9,$8A,11
 	dw $F12B
-	db 21,$F1,9,$A0,11
+	db 21,$F9,9,$9B,11
 	dw $F153
-	db 21,$FF,9,$AE,11
+	db 21,$90,10,$A9,11
 	dw $F17C
-	db 21,$96,10,$BC,11
-	dw $F1A4
-	db 21,$A1,10,$C7,11
+	db 21,$9D,10,$B6,11
 	dw $F039
-	db 22,$FD,8,$AC,10
+	db 22,$90,9,$A9,10
 	dw $F061
-	db 22,$9A,9,$C0,10
+	db 22,$A4,9,$BD,10
 	dw $F08A
-	db 22,$B3,9,$D9,10
+	db 22,$BC,9,$D5,10
 	dw $F0DB
-	db 22,$E3,9,$92,11
+	db 22,$E5,9,$FE,10
+	dw $F103
+	db 22,$EC,9,$8E,11
 	dw $F12C
-	db 22,$F2,9,$A1,11
+	db 22,$FA,9,$9C,11
 	dw $F154
-	db 22,$89,10,$AF,11
+	db 22,$91,10,$AA,11
 	dw $F17D
-	db 22,$90,10,$B6,11
-	dw $F1A5
-	db 22,$ED,9,$9C,11
+	db 22,$98,10,$B1,11
 	dw $F03A
-	db 23,$FE,8,$AD,10
+	db 23,$91,9,$AA,10
 	dw $F062
-	db 23,$9B,9,$C1,10
+	db 23,$A5,9,$BE,10
 	dw $F08B
-	db 23,$B4,9,$DA,10
+	db 23,$BD,9,$D6,10
 	dw $F0B3
-	db 23,$CB,9,$F1,10
-	dw $F0DC
-	db 23,$E4,9,$93,11
+	db 23,$D6,9,$EF,10
+	dw $F104
+	db 23,$ED,9,$8F,11
 	dw $F12D
-	db 23,$F3,9,$A2,11
+	db 23,$FB,9,$9D,11
 	dw $F155
-	db 23,$8A,10,$B0,11
+	db 23,$8B,10,$A4,11
 	dw $F17E
-	db 23,$97,10,$BD,11
-	dw $F1A6
-	db 23,$A2,10,$C8,11
+	db 23,$9E,10,$B7,11
 	dw $F03B
-	db 24,$F6,8,$EC,8
+	db 24,$89,9,$A2,10
 	dw $F063
-	db 24,$97,9,$BD,10
+	db 24,$A1,9,$BA,10
 	dw $F08C
-	db 24,$B5,9,$DB,10
+	db 24,$BE,9,$D7,10
 	dw $F0B4
-	db 24,$CC,9,$F2,10
+	db 24,$D7,9,$F0,10
+	dw $F105
+	db 24,$E8,9,$8A,11
 	dw $F12E
-	db 24,$F4,9,$A3,11
+	db 24,$FC,9,$9E,11
 	dw $F156
-	db 24,$8B,10,$B1,11
+	db 24,$92,10,$AB,11
 	dw $F17F
-	db 24,$98,10,$BE,11
-	dw $F1A7
-	db 24,$A3,10,$C9,11
+	db 24,$9F,10,$B8,11
 	dw $F03C
-	db 25,$F6,8,$EC,8
+	db 25,$89,9,$A2,10
 	dw $F064
-	db 25,$9C,9,$C2,10
+	db 25,$A6,9,$BF,10
 	dw $F0DE
-	db 25,$E5,9,$94,11
+	db 25,$E4,9,$FD,10
+	dw $F106
+	db 25,$EE,9,$90,11
 	dw $F12F
-	db 25,$F5,9,$A4,11
+	db 25,$FD,9,$9F,11
 	dw $F157
-	db 25,$8C,10,$B2,11
+	db 25,$93,10,$AC,11
 	dw $F180
-	db 25,$99,10,$BF,11
-	dw $F1A8
-	db 25,$A4,10,$CA,11
+	db 25,$A0,10,$B9,11
 	dw $F03D
-	db 26,$FF,8,$AE,10
+	db 26,$92,9,$AB,10
 	dw $F065
-	db 26,$9D,9,$C3,10
+	db 26,$99,9,$B2,10
 	dw $F08E
-	db 26,$B6,9,$DC,10
+	db 26,$BF,9,$D8,10
 	dw $F0B6
-	db 26,$CD,9,$F3,10
+	db 26,$D8,9,$F1,10
 	dw $F0DF
-	db 26,$E6,9,$95,11
+	db 26,$E6,9,$FF,10
+	dw $F107
+	db 26,$EF,9,$91,11
 	dw $F130
-	db 26,$F6,9,$A5,11
+	db 26,$FE,9,$A0,11
 	dw $F158
-	db 26,$8D,10,$B3,11
+	db 26,$94,10,$AD,11
 	dw $F181
-	db 26,$90,10,$B6,11
-	dw $F1A9
-	db 26,$ED,9,$9C,11
+	db 26,$98,10,$B1,11
 	dw $F08F
-	db 27,$AE,9,$D4,10
+	db 27,$B5,9,$CE,10
 	dw $F0B7
-	db 27,$C4,9,$EA,10
+	db 27,$D9,9,$F2,10
+	dw $F108
+	db 27,$F0,9,$92,11
 	dw $F131
-	db 27,$ED,9,$9C,11
+	db 27,$F4,9,$96,11
 	dw $F159
-	db 27,$FA,9,$A9,11
+	db 27,$8B,10,$A4,11
 	dw $F182
-	db 27,$9A,10,$C0,11
-	dw $F1AA
-	db 27,$A5,10,$CB,11
+	db 27,$A1,10,$BA,11
 	dw $F03F
-	db 28,$FA,8,$A9,10
+	db 28,$8D,9,$A6,10
 	dw $F067
-	db 28,$9E,9,$C4,10
+	db 28,$A7,9,$C0,10
 	dw $F090
-	db 28,$A8,9,$CE,10
-	dw $F0B8
-	db 28,$CE,9,$F4,10
+	db 28,$C0,9,$D9,10
 	dw $F0E1
-	db 28,$E3,9,$92,11
+	db 28,$E5,9,$FE,10
+	dw $F109
+	db 28,$E8,9,$8A,11
 	dw $F132
-	db 28,$ED,9,$9C,11
+	db 28,$FF,9,$A1,11
 	dw $F15A
-	db 28,$8E,10,$B4,11
+	db 28,$95,10,$AE,11
 	dw $F040
-	db 29,$F6,8,$EC,8
+	db 29,$89,9,$A2,10
 	dw $F068
-	db 29,$96,9,$BC,10
+	db 29,$A0,9,$B9,10
 	dw $F091
-	db 29,$B7,9,$DD,10
+	db 29,$C1,9,$DA,10
 	dw $F0B9
-	db 29,$CF,9,$F5,10
+	db 29,$DA,9,$F3,10
 	dw $F0E2
-	db 29,$E7,9,$96,11
+	db 29,$E0,9,$F9,10
+	dw $F10A
+	db 29,$E8,9,$8A,11
 	dw $F133
-	db 29,$F7,9,$A6,11
+	db 29,$E1,9,$FA,10
 	dw $F041
-	db 30,$F6,8,$EC,8
+	db 30,$89,9,$A2,10
 	dw $F069
-	db 30,$97,9,$BD,10
+	db 30,$A1,9,$BA,10
 	dw $F092
-	db 30,$B5,9,$DB,10
+	db 30,$C2,9,$DB,10
 	dw $F0BA
-	db 30,$D0,9,$F6,10
+	db 30,$DB,9,$F4,10
 	dw $F0E3
-	db 30,$E8,9,$97,11
+	db 30,$E3,9,$FC,10
+	dw $F10B
+	db 30,$F1,9,$93,11
 	dw $F042
-	db 31,$89,9,$AF,10
+	db 31,$93,9,$AC,10
 	dw $F06A
-	db 31,$9F,9,$C5,10
+	db 31,$A8,9,$C1,10
 	dw $F093
-	db 31,$B8,9,$DE,10
+	db 31,$C3,9,$DC,10
 	dw $F0BB
-	db 31,$D1,9,$F7,10
+	db 31,$DC,9,$F5,10
 	dw $F0E4
-	db 31,$E9,9,$98,11
+	db 31,$E1,9,$FA,10
 	dw $F043
-	db 32,$F6,8,$EC,8
+	db 32,$89,9,$A2,10
 	dw $F06B
-	db 32,$A0,9,$C6,10
+	db 32,$A9,9,$C2,10
 	dw $F094
-	db 32,$B9,9,$DF,10
+	db 32,$C4,9,$DD,10
 	dw $F0BC
-	db 32,$D2,9,$F8,10
+	db 32,$DD,9,$F6,10
 	dw $F0E5
-	db 32,$DD,9,$8C,11
+	db 32,$E3,9,$FC,10
 	dw $F044
-	db 33,$8A,9,$B0,10
+	db 33,$94,9,$AD,10
 	dw $F06C
-	db 33,$A1,9,$C7,10
+	db 33,$AA,9,$C3,10
 	dw $F095
-	db 33,$BA,9,$E0,10
+	db 33,$C5,9,$DE,10
 	dw $F0BD
-	db 33,$D3,9,$F9,10
+	db 33,$CF,9,$E8,10
 	dw $F0E6
-	db 33,$DA,9,$89,11
+	db 33,$E3,9,$FC,10
 	dw $F045
-	db 34,$8B,9,$B1,10
+	db 34,$95,9,$AE,10
 	dw $F06D
-	db 34,$A2,9,$C8,10
+	db 34,$9F,9,$B8,10
+	dw $F0BE
+	db 34,$D0,9,$E9,10
 	dw $F0E7
-	db 34,$DE,9,$8D,11
+	db 34,$E2,9,$FB,10
 	dw $F046
-	db 35,$F6,8,$EC,8
+	db 35,$89,9,$A2,10
 	dw $F06E
-	db 35,$96,9,$BC,10
+	db 35,$A0,9,$B9,10
 	dw $F097
-	db 35,$B4,9,$DA,10
+	db 35,$BD,9,$D6,10
 	dw $F0BF
-	db 35,$CB,9,$F1,10
-	dw $F0E8
-	db 35,$E4,9,$93,11
+	db 35,$D1,9,$EA,10
 	dw $F047
-	db 36,$F6,8,$EC,8
+	db 36,$89,9,$A2,10
 	dw $F06F
-	db 36,$97,9,$BD,10
+	db 36,$A1,9,$BA,10
 	dw $F098
-	db 36,$B5,9,$DB,10
+	db 36,$BE,9,$D7,10
 	dw $F0C0
-	db 36,$CC,9,$F2,10
+	db 36,$D7,9,$F0,10
 	dw $F0E9
-	db 36,$EA,9,$99,11
+	db 36,$E4,9,$FD,10
 	dw $F048
-	db 37,$89,9,$AF,10
+	db 37,$93,9,$AC,10
 	dw $F070
-	db 37,$9F,9,$C5,10
+	db 37,$A8,9,$C1,10
 	dw $F099
-	db 37,$AC,9,$D2,10
+	db 37,$B3,9,$CC,10
 	dw $F0C1
-	db 37,$C2,9,$E8,10
+	db 37,$DE,9,$F7,10
 	dw $F0EA
-	db 37,$EB,9,$9A,11
+	db 37,$E1,9,$FA,10
 	dw $F049
-	db 38,$F6,8,$EC,8
+	db 38,$89,9,$A2,10
 	dw $F071
-	db 38,$A3,9,$C9,10
+	db 38,$AB,9,$C4,10
 	dw $F09A
-	db 38,$BB,9,$E1,10
+	db 38,$C6,9,$DF,10
 	dw $F0C2
-	db 38,$D4,9,$FA,10
+	db 38,$DF,9,$F8,10
 	dw $F04A
-	db 39,$F6,8,$EC,8
+	db 39,$89,9,$A2,10
 	dw $F072
-	db 39,$A4,9,$CA,10
+	db 39,$9E,9,$B7,10
 	dw $F04B
-	db 40,$F6,8,$EC,8
+	db 40,$89,9,$A2,10
 	dw $F073
-	db 40,$8F,9,$B5,10
+	db 40,$99,9,$B2,10
 	dw $F04C
-	db 41,$8C,9,$B2,10
+	db 41,$96,9,$AF,10
 	dw $F074
-	db 41,$A5,9,$CB,10
+	db 41,$AC,9,$C5,10
 logostart:		; first logotab entry of each glint column 0-48
-	dw logotab+0,logotab+0,logotab+0,logotab+0,logotab+0,logotab+0,logotab+0,logotab+7,logotab+28,logotab+56,logotab+91,logotab+126,logotab+161,logotab+196,logotab+238,logotab+294,logotab+357,logotab+420,logotab+483,logotab+546,logotab+609,logotab+665,logotab+721,logotab+777,logotab+840,logotab+896,logotab+945,logotab+1008,logotab+1050,logotab+1099,logotab+1141,logotab+1176,logotab+1211,logotab+1246,logotab+1281,logotab+1302,logotab+1337,logotab+1372,logotab+1407,logotab+1435,logotab+1449,logotab+1463,logotab+1477,logotab+1477,logotab+1477,logotab+1477,logotab+1477,logotab+1477,logotab+1477,logotab+1477
+	dw logotab+0,logotab+0,logotab+0,logotab+0,logotab+0,logotab+0,logotab+0,logotab+7,logotab+28,logotab+49,logotab+84,logotab+119,logotab+154,logotab+189,logotab+231,logotab+287,logotab+343,logotab+406,logotab+469,logotab+532,logotab+595,logotab+658,logotab+714,logotab+770,logotab+826,logotab+882,logotab+931,logotab+994,logotab+1036,logotab+1085,logotab+1134,logotab+1176,logotab+1211,logotab+1246,logotab+1281,logotab+1309,logotab+1337,logotab+1372,logotab+1407,logotab+1435,logotab+1449,logotab+1463,logotab+1477,logotab+1477,logotab+1477,logotab+1477,logotab+1477,logotab+1477,logotab+1477,logotab+1477
 
 bigtab:			; gallery frames: 9 cells of (char, bank)
 	db $89,8,$8A,8,$8B,8,$8C,8,$8D,8,$8E,8,$8F,8,$90,8,$91,8
@@ -499,13 +499,13 @@ bigtab:			; gallery frames: 9 cells of (char, bank)
 	db $AA,8,$AB,8,$AC,8,$AD,8,$AE,8,$AF,8,$A7,8,$A8,8,$A9,8
 	db $B0,8,$B1,8,$B2,8,$B3,8,$B4,8,$B5,8,$B6,8,$B7,8,$B8,8
 	db $B0,8,$B1,8,$B2,8,$B9,8,$BA,8,$BB,8,$BC,8,$BD,8,$BE,8
-	db $BF,8,$A2,8,$C0,8,$C1,8,$A2,8,$C2,8,$C3,8,$C4,8,$C5,8
-	db $BF,8,$A2,8,$C0,8,$C6,8,$C7,8,$C8,8,$C9,8,$CA,8,$CB,8
-	db $CC,8,$CD,8,$CE,8,$CF,8,$D0,8,$D1,8,$D2,8,$D3,8,$D4,8
-	db $D5,8,$A2,8,$D6,8,$D7,8,$D0,8,$D8,8,$D9,8,$DA,8,$DB,8
-	db $D2,8,$8D,8,$D4,8,$DC,8,$DD,8,$DE,8,$CC,8,$DF,8,$CE,8
-	db $D2,8,$8D,8,$D4,8,$E0,8,$DD,8,$E1,8,$E2,8,$E3,8,$E4,8
-	db $E5,8,$E6,8,$E7,8,$DC,8,$A2,8,$DE,8,$E8,8,$E9,8,$EA,8
-	db $E5,8,$E6,8,$E7,8,$E0,8,$A2,8,$E1,8,$EB,8,$EC,8,$ED,8
-	db $80,8,$EE,8,$80,8,$EF,8,$A5,8,$F0,8,$CC,8,$DF,8,$CE,8
-	db $80,8,$F1,8,$80,8,$F2,8,$A5,8,$F3,8,$F4,8,$E3,8,$F5,8
+	db $BF,8,$A2,8,$C0,8,$C1,8,$C2,8,$C3,8,$C4,8,$C5,8,$C6,8
+	db $BF,8,$A2,8,$C0,8,$C7,8,$C8,8,$C9,8,$CA,8,$CB,8,$CC,8
+	db $CD,8,$CE,8,$CF,8,$D0,8,$D1,8,$D2,8,$D3,8,$D4,8,$D5,8
+	db $D6,8,$A2,8,$D7,8,$D8,8,$D1,8,$D9,8,$DA,8,$DB,8,$DC,8
+	db $C4,8,$DD,8,$C6,8,$DE,8,$DF,8,$E0,8,$E1,8,$E2,8,$E3,8
+	db $C4,8,$DD,8,$C6,8,$E4,8,$DF,8,$E5,8,$E6,8,$E7,8,$E8,8
+	db $E9,8,$EA,8,$EB,8,$EC,8,$ED,8,$EE,8,$EF,8,$F0,8,$F1,8
+	db $E9,8,$EA,8,$EB,8,$F2,8,$ED,8,$F3,8,$F4,8,$F5,8,$F6,8
+	db $80,8,$F7,8,$80,8,$F8,8,$F9,8,$FA,8,$E1,8,$E2,8,$E3,8
+	db $80,8,$FB,8,$80,8,$FC,8,$F9,8,$FD,8,$FE,8,$E7,8,$FF,8

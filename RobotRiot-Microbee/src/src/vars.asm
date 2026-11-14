@@ -32,6 +32,8 @@ dln1:    db 0
 ds_bk:   db 0
 ds_col2: db 0
 sp_save: dw 0
+fl_n:    db 0
+fl_fn:   dw 0
 ; ---- sound
 acc1:    dw 0
 acc2:    dw 0

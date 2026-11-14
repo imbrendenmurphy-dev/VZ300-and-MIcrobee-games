@@ -66,10 +66,10 @@ wavetab:
         db 16,6,4,4,6,6, 3,40
         db 8,2,0,10,6,6, 3,45          ; 11 whirlwind
         db 10,3,8,2,6,6, 3,45          ; 12 crusher colony
-        db 18,4,2,2,12,6, 3,40         ; 13 node maze
+        db 16,4,2,2,12,6, 3,40         ; 13 node maze
         db 8,12,2,2,6,6, 3,40          ; 14 zapper army
-        db 22,4,2,4,4,6, 2,40          ; 15 stampede
-        db 14,8,5,5,4,6, 2,35          ; 16 the final riot
+        db 20,4,2,4,4,6, 2,40          ; 15 stampede
+        db 13,8,5,5,4,6, 2,35          ; 16 the final riot
 NWAVES  equ 16
 wavetext:
         dw s_w1,s_w2,s_w3,s_w4,s_w5,s_w6,s_w7,s_w8,s_w9,s_w10

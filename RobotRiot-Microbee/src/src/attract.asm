@@ -128,6 +128,7 @@ att_title:
         ld de,mus_title_1
         call song
 .f:     call title_balls
+        call vschk
         call logo_shine
         ld a,(monomode)
         or a

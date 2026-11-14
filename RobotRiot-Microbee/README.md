@@ -8,8 +8,9 @@ An original single-screen robot-uprising arena shooter for the **Microbee Premiu
 
 ![showcase](screenshots/showcase.gif)
 
-## Status: build 0.4
+## Status: build 0.5
 
+- Build 0.5 moves to the 8 x 10 MODES mode: a 320 x 250 picture that fills a PAL screen.
 - Build 0.4 adds 6 more hand-designed waves (16 in all), and an endless loop that gets harder every pass.
 - Build 0.3 adds a monochrome mode (press C or M at start-up) and a new stylised title logo.
 
@@ -99,9 +100,9 @@ The glowing borders are dithered cells whose ink and paper colour pairs chase ro
 | 7-10 | Everything at once, building to Robot Meltdown |
 | 11 | **Whirlwind:** 10 whirlers swooping |
 | 12 | **Crusher Colony:** 8 crushers going for the family. Hurry! |
-| 13 | **The Node Maze:** 12 shock nodes and 18 stompers |
+| 13 | **The Node Maze:** 12 shock nodes and 16 stompers |
 | 14 | **The Zapper Army:** 12 zappers, with sparks flying faster from here on |
-| 15 | **Stampede:** 22 stompers at top speed |
+| 15 | **Stampede:** 20 stompers at top speed |
 | 16 | **The Final Riot:** everything, at its quickest |
 | 17+ | Waves 12-16 round and round. Each pass, stompers get a step quicker (to their limit), zappers throw sooner and sparks fly faster. |
 
@@ -109,13 +110,19 @@ Within every wave the stompers also speed up the longer it lasts. The shock node
 
 ## Under the hood
 
-- **Display:** 40 × 25 cells of 8 × 8 pixels (320 × 200). This needs the 40-column dot clock (`IN A,(09h)` with A = 1) as well as the 6545 table. Two pages are flipped with the 6545 start address. The arena is rows 1-24, the whole screen below the score line.
+- **Display:** BPM's MODES.COM mode: 40 × 25 cells of 8 × 10 pixels, a 320 × 250 picture that fills a PAL screen.
+  - The 6545 table is `$35,$28,$2C,$34,$1E,$02,$19,$1C,$48,$09,$20,$09`: 31 rows of 10 lines + 2 = 312 lines.
+  - It also needs the 40-column dot clock (`IN A,(09h)` with A = 1).
+  - It's the tallest picture that still leaves room for two screen pages in the 2K of screen RAM. The two pages are flipped with the 6545 start address.
+  - The arena is rows 1-24, the whole screen below the score line.
+  - Glyphs are 10 lines, and sprites move on a 4 × 5 pixel grid.
+  - The vertical blank is only 62 lines here, so the drawing passes run in chunks of 32 cells and check for it in between.
 - **Border:**
   - The arena border is one pixel thick. Its 8 glyphs sit at numbers 1-8 of every PCG bank, so a cell needs no bank change to show it.
   - When a sprite moves off a cell, that cell is restored from a 1K background map: blank, or border.
   - The border's colours run as a rainbow, with half the border recoloured each frame.
 - **Sprites:**
-  - Sprites are 12 × 12 on a 4-pixel grid, so each always covers 2 × 2 cells.
+  - Sprites are 12 × 12 on a 4 × 5 pixel grid, so each always covers 2 × 2 cells.
   - Each frame is stored as 16 ready-made PCG glyphs, and sprites are two-tone: top cells in one colour, bottom cells in another.
   - The gallery shows the same art at double size, using 3 × 3 cells.
 - **Draw list:** each frame's cells go into a draw list, written in three passes (characters, PCG banks, colours) using stack pops.

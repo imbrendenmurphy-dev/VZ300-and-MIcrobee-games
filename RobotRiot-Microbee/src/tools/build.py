@@ -24,8 +24,9 @@ os.makedirs(BUILD, exist_ok=True)
 import art as A
 
 NBANKS = 16
+CH = 10                    # lines in a character cell (the 8 x 10 MODES mode)
 FRAMES_PER_BANK = 7        # glyphs 16..127; glyph 0 of every bank stays blank
-PIC_BASE = 0x4000
+PIC_BASE = 2048 * CH       # the glyphs are stored CH bytes each
 
 
 class Store:
@@ -33,15 +34,15 @@ class Store:
     glyphs 1-8 are the arena border, so an erased cell needs no bank."""
 
     def __init__(self):
-        self.g = [bytes(8)] * (NBANKS * 128)
+        self.g = [bytes(CH)] * (NBANKS * 128)
         self.used = [False] * (NBANKS * 128)
         self.key = {}
         for b in range(NBANKS):
             self.used[b * 128] = True
-            for i, pat in enumerate(A.BORDER):
+            for i, pat in enumerate(BORDER10):
                 self.g[b * 128 + 1 + i] = pat
                 self.used[b * 128 + 1 + i] = True
-        self.key[bytes(8)] = 0
+        self.key[bytes(CH)] = 0
 
     def put(self, n, pat, share=True):
         assert not self.used[n] or self.g[n] == pat, n
@@ -69,9 +70,9 @@ def frame_glyphs(a):
     out = []
     for oy in range(2):
         for ox in range(2):
-            c = np.zeros((16, 16), bool)
+            c = np.zeros((2 * CH, 16), bool)
             w = 16 - 4 * ox
-            c[4 * oy:4 * oy + 12, 4 * ox:4 * ox + w] = a[:, :w]
+            c[5 * oy:5 * oy + 12, 4 * ox:4 * ox + w] = a[:, :w]
             for cy in range(2):
                 for cx in range(2):
                     out.append(cell_bytes(c, cx, cy))
@@ -79,11 +80,11 @@ def frame_glyphs(a):
 
 
 def cell_bytes(bits, cx, cy):
-    out = bytearray(8)
-    for y in range(8):
+    out = bytearray(CH)
+    for y in range(CH):
         v = 0
         for x in range(8):
-            if bits[cy * 8 + y, cx * 8 + x]:
+            if bits[cy * CH + y, cx * 8 + x]:
                 v |= 128 >> x
         out[y] = v
     return bytes(out)
@@ -96,7 +97,7 @@ class Pic:
         self.st = st
         self.g = np.zeros((25, 40), int)
         self.col = np.full((25, 40), A.WHITE, int)
-        self.bits = np.zeros((200, 320), bool)
+        self.bits = np.zeros((25 * CH, 320), bool)
         self.ink = np.full((25, 40), -1, int)
 
     def text(self, c, r, s, colour):
@@ -110,7 +111,7 @@ class Pic:
     def blit(self, x, y, a, colour):
         h, w = a.shape
         self.bits[y:y + h, x:x + w] |= a
-        for r in range(y // 8, (y + h + 7) // 8):
+        for r in range(y // CH, (y + h + CH - 1) // CH):
             for c in range(x // 8, (x + w + 7) // 8):
                 self.ink[r, c] = colour
 
@@ -143,23 +144,57 @@ def big_text(text, sx, sy, stripes=True):
     return a
 
 
+def to10(b):
+    """an 8-line glyph centred in a 10-line cell"""
+    b = bytes(b)
+    return b if len(b) == CH else bytes(1) + b + bytes(CH - 9)
+
+
+def quad10(pat4):
+    """a 4 x 4 pattern in each quarter (4 x 5) of a cell -> 4 glyphs"""
+    out = []
+    rows = pat4.split()
+    for qy in range(2):
+        for qx in range(2):
+            b = bytearray(CH)
+            for y, r in enumerate(rows):
+                for x, c in enumerate(r):
+                    if c == '#':
+                        b[qy * 5 + y] |= 128 >> (qx * 4 + x)
+            out.append(bytes(b))
+    return out
+
+
+BORDER10 = [bytes([0xFF] + [0] * 9), bytes([0] * 9 + [0xFF]), bytes([0x80] * 10), bytes([0x01] * 10),
+            bytes([0xFF] + [0x80] * 9), bytes([0xFF] + [0x01] * 9), bytes([0x80] * 9 + [0xFF]), bytes([0x01] * 9 + [0xFF])]
+
+
+def icons10():
+    ic = {k: to10(v) for k, v in A.ICONS.items()}
+    ic['dith1'] = bytes([0xAA, 0x55] * 5)
+    ic['dith2'] = bytes([0x55, 0xAA] * 5)
+    ic['block'] = bytes([0xFF] * 10)
+    return ic
+
+
 def build_gfx():
     st = Store()
     equ = {}
     # ---- bank 0: icons and shots at 9-63, the font at 64-127 (char = ASCII + A0h)
     n = 9
-    for name, pat in A.ICONS.items():
+    for name, pat in icons10().items():
         st.put(n, pat)
         equ['G_' + name.upper()] = 0x80 | n
         n += 1
-    for name, pats in (('SHOT', A.SHOT_H + A.SHOT_V + A.SHOT_D1 + A.SHOT_D2), ('SPARK', A.SPARK_A + A.SPARK_B)):
+    for name, pats in (('SHOT', quad10(".... #### #### ....") + quad10(".##. .##. .##. .##.") + quad10("##.. ###. .### ..##") + quad10("..## .### ###. ##..")),
+                       ('SPARK', quad10("#..# .##. .##. #..#") + quad10(".##. #..# #..# .##."))):
         equ['G_' + name] = 0x80 | n
         for pat in pats:
             st.put(n, pat, share=False)
             n += 1
     assert n <= 64, n
     for i, f in enumerate(A.font_glyphs()):
-        st.put(64 + i, f)
+        st.put(64 + i, bytes(1) + f[:7] + bytes(2))
     for i, nm in enumerate(('TOP', 'BOT', 'LEFT', 'RIGHT', 'TL', 'TR', 'BL', 'BR')):
         equ['G_B' + nm] = 0x81 + i
     # ---- banks 1..: sprite frames
@@ -182,12 +217,12 @@ def build_gfx():
     for i, (name, a) in enumerate(A.big_frames()):
         if name:
             bnum[name] = i
-        bits = np.zeros((24, 24), bool)
-        bits[:, :] = np.kron(a[:, :12], np.ones((2, 2), bool))
+        bits = np.zeros((3 * CH, 24), bool)
+        bits[3:27, :] = np.kron(a[:, :12], np.ones((2, 2), bool))
         cells = []
         for cy in range(3):
             for cx in range(3):
-                p = cell_bytes(np.pad(bits, ((0, 0), (0, 0))), cx, cy)
+                p = cell_bytes(bits, cx, cy)
                 g = st.alloc(p, first_free) if any(p) else first_free * 128
                 cells.append((0x80 | (g & 127), g >> 7))
         bigtab.append(cells)
@@ -195,8 +230,8 @@ def build_gfx():
     import logo
     p = Pic(st)
     main, year = logo.title_logo()
-    p.blit((320 - main.shape[1]) // 2, 12, main, A.WHITE)
-    p.blit((320 - year.shape[1]) // 2, 58, year, A.WHITE)
+    p.blit((320 - main.shape[1]) // 2, 15, main, A.WHITE)
+    p.blit((320 - year.shape[1]) // 2, 66, year, A.WHITE)
     p.ctext(12, 'THE ROBOTS HAVE RISEN', A.BCYAN)
     p.ctext(18, 'MOVE WASD   FIRE IJKL OR ARROWS', A.BGREEN)
     p.ctext(19, 'SPACE FIRES AHEAD  P PAUSE  M SOUND', A.GREY)

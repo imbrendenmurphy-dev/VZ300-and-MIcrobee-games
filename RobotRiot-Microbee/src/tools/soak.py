@@ -29,7 +29,7 @@ for f in range(0, N, 2):
     ok_sp = 0x8000 <= sp <= 0xF000   # the stack, or a table or draw list being popped
     if not (0x8000 <= pc < 0xCC00) or not ok_sp:
         print('CRASH? frame %d pc %04X sp %04X' % (f, pc, sp))
-        pp.png(out / 'crash.png', aspect=1.2)
+        pp.png(out / 'crash.png', aspect=0.96)
         break
     st = peek(pp, 'state')
     maxwave = max(maxwave, peek(pp, 'wave'))

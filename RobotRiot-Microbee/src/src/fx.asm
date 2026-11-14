@@ -95,6 +95,7 @@ title_balls:
 .blank: ld (hl),a
         djnz .c
         ld sp,(sp_save)
+        call vschk
         ld a,COL_ON
         out (P_COLCTL),a
         ld a,(fxt)
@@ -313,6 +314,7 @@ rainbow_rows:
         djnz .c
         pop de
         inc d
+        call vschk
         jr .r
 .x:     xor a
         out (P_COLCTL),a
