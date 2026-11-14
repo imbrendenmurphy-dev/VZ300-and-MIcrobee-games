@@ -559,6 +559,8 @@ f_test: xor a
         call .res
         ld hl,5AA5h
         ld (t_e),hl
+        call wait_space
+        call f_test2
         jp wait_space
 ; .res: A = row, D, E = the two values read: show them and a verdict
 .res    ld l,a
@@ -616,6 +618,161 @@ f_test: xor a
         pop de
         inc de
         ret
+; f_test2: the sprite data exactly as this machine holds it
+f_test2:
+        ld b,CWHITE
+        call cls
+        ld hl,T2_HEAD
+        ld de,40
+        ld b,CYELLOW
+        call printc
+        ; sums of ART.BIN (7840 bytes) and the tileset (5000h bytes)
+        ld a,BLK_ART
+        call setblk
+        ld hl,0
+        ld bc,7840
+        call t2sum
+        ld (t_s1),de
+        ld a,BLK_PCG
+        call setblk
+        ld hl,0
+        ld bc,5000h
+        call t2sum
+        ld (t_s2),de
+        call tabblk
+        ld hl,T2_SUMS
+        ld de,3*40
+        ld b,CBCYAN
+        call printc
+        ld hl,t_s1
+        ld de,3*40+9
+        ld b,2
+        call t2hex
+        ld hl,t_s2
+        ld de,3*40+20
+        ld b,2
+        call t2hex
+        ; image 0 (key) size 15, then image 1 (pie) size 15
+        ld a,0
+        ld de,5*40
+        call t2img
+        ld a,1
+        ld de,12*40
+        call t2img
+        ld a,7
+        ld de,19*40
+        jp t2img
+; t2sum: HL = start, BC = length (lower window) -> DE = 16 bit sum
+t2sum:  ld de,0
+.l      ld a,(hl)
+        add a,e
+        ld e,a
+        jr nc,.n
+        inc d
+.n      inc hl
+        dec bc
+        ld a,b
+        or c
+        jr nz,.l
+        ret
+; t2hex: HL -> B bytes, shown as hex at screen offset DE (colour white)
+t2hex:  ld a,(hl)
+        inc hl
+        push hl
+        push bc
+        push af
+        rrca
+        rrca
+        rrca
+        rrca
+        call t2dig
+        pop af
+        call t2dig
+        pop bc
+        pop hl
+        djnz t2hex
+        ret
+t2dig:  and 15
+        add a,'0'
+        cp '9'+1
+        jr c,.d9
+        add a,7
+.d9     ld b,CWHITE
+        push de
+        call putch
+        pop de
+        inc de
+        ret
+; t2img: A = image, DE = screen offset: its size-15 directory entry, the
+;   first 32 plain bytes and the first 32 shifted bytes
+t2img:  ld (t_ds),de
+        ld l,a
+        ld h,0
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        ld bc,15
+        add hl,bc
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        ld bc,SPRDIR
+        add hl,bc
+        ld a,BLK_PCG
+        call setblk
+        ld de,t_dir
+        ld bc,8
+        ldir
+        call tabblk
+        ld hl,t_dir
+        ld de,(t_ds)
+        ld b,8
+        call t2hex
+        ld ix,t_dir
+        ld a,(ix+D_BLK)
+        call setblk
+        ld l,(ix+D_B0)
+        ld h,(ix+D_B0+1)
+        ld de,t_buf
+        ld bc,32
+        ldir
+        ld l,(ix+D_B1)
+        ld h,(ix+D_B1+1)
+        ld bc,32
+        ldir
+        call tabblk
+        ld hl,t_buf
+        ld a,1
+        call t2row
+        ld hl,t_buf+16
+        ld a,2
+        call t2row
+        ld hl,t_buf+32
+        ld a,3
+        call t2row
+        ld hl,t_buf+48
+        ld a,4
+        call t2row
+        ret
+; t2row: HL -> 16 bytes, shown on line A below (t_ds)
+t2row:  ld de,(t_ds)
+        ld b,a
+.m      push hl
+        ld hl,40
+        add hl,de
+        ex de,hl
+        pop hl
+        djnz .m
+        ld b,16
+        jp t2hex
+t_s1:   dw 0
+t_s2:   dw 0
+t_ds:   dw 0
+t_dir:  ds 8
+t_buf:  ds 64
+T2_HEAD: db "SPRITE DATA - PHOTO THIS PAGE",0
+T2_SUMS: db "ART SUM",0
 ; ramtest: HL = offset: write its own number into each of blocks 5-31
 ;   there, read them back -> A = the first block that read back wrong, or FFh
 ramtest:
