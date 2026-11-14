@@ -83,17 +83,17 @@ Two engines, both original, both on the one speaker bit:
 
 ## How it works
 
-The display is the 40-column mode BPM proved on the Premium Plus: 40 × 25 cells of 8 × 8 pixels, 320 × 200, with the 40-column dot clock selected.
+The display is the 40 × 25 table from BPM's MODES40 test on the Premium Plus: cells of **8 × 10**, so the picture is **320 × 250** and fills a PAL screen (31 rows of 10 lines + 2 = 312 lines, 50 Hz), with the 40-column dot clock selected. 40 × 25 = 1000 cells, so both screen pages still fit their 1K each.
 
-The PCG RAM holds 2048 glyphs, twice the number of cells, so nothing is built from tiles. Every cell a sprite touches gets a private glyph composed in RAM, and the cell is pointed at it. Two screen pages and two glyph banks take turns, so sprites move a pixel at a time, overlap freely and never flicker or tear. All video RAM writes happen in the vertical blanking, when the 6545 doesn't hold the CPU.
+The PCG RAM holds 2048 glyphs, twice the number of cells, so nothing is built from tiles. Every cell a sprite touches gets a private glyph composed in RAM, and the cell is pointed at it. Two screen pages and two glyph banks take turns, so sprites move a pixel at a time, overlap freely and never flicker or tear. All video RAM writes happen in the vertical blanking, when the 6545 doesn't hold the CPU. A 250-line picture leaves only 62 lines of blanking (13.4K T), so a commit too big for one blanking finishes its last part (the new cells and the page flip) in the next: at 25 frames a second there are two blankings a frame.
 
 The game is locked to **25 frames a second**. Measured in the raster-accurate Premium Plus model, flying the busiest wave of every sector and every Guardian:
 
 | Scene | Frames a second | Frames on time |
 |---|---|---|
-| Sector waves (8 scenes) | 23.4 – 24.9 | 86 – 99% |
-| Guardians (4 scenes) | 23.5 – 24.6 | 87 – 97% |
-| **All play** | **24.3** | **94.5%** |
+| Sector waves (8 scenes) | 22.7 – 25.0 | 79 – 100% |
+| Guardians (4 scenes) | 22.8 – 23.8 | 80 – 89% |
+| **All play** | **23.9** | **90.5%** |
 
 The details, what was changed to get there, and how it was tested are in [docs/DESIGN.md](docs/DESIGN.md) and [docs/TESTING.md](docs/TESTING.md).
 

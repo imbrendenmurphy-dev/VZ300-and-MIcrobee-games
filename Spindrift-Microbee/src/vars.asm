@@ -15,6 +15,12 @@ dcol:       DS 1
 vlast:      DS 1
 vb_age:     DS 1
 fields:     DS 1
+cpend:      DS 1            ; 1: a commit's last part waits for a blanking
+pend_list:  DS 1
+pend_page:  DS 1
+cest:       DS 2
+pl_n:       DS 1
+c_late:     DS 1            ; FFh: this commit began late in its blanking
 frameno:    DS 2
 commit_late:DS 1
 flashcnt:   DS 1

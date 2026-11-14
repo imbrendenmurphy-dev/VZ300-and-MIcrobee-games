@@ -1128,6 +1128,7 @@ stars_draw:
         ld ix,stars
         call star_count
 .l:     push bc
+        call vbpoll_q
         ld a,(ix+0)
         ld b,(ix+2)
         call star_polar
@@ -1181,12 +1182,13 @@ star_polar:
         ld a,l
         cp 320-256
         jr nc,.off
-.y:     ld a,c                  ; y = 2 * (y - CY/2)
-        sub CY/2
+.y:     ld a,c                  ; y = 2 * y - CY = 2 * (y - 63) + 1
+        sub (CY+1)/2
         jr c,.off
-        cp 100
+        cp (SCRH+1)/2-1
         jr nc,.off
         add a,a
+        inc a
         ld c,a
         or a                    ; carry clear: on the screen
         ret

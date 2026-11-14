@@ -7,9 +7,9 @@
 | Fact (Premium Plus) | What it meant for the game |
 |---|---|
 | Z80 at 3.375 MHz; a scanline is 216 T, a field 313 lines = 67 608 T | Every cost below is in T-states. At 25 frames a second a frame has 135 216 T |
-| The 40-column mode: dot clock select (`IN A,(09h)` with A = 1) plus 6545 R0–R3 = 35h 28h 2Ch 34h | 40 × 25 cells of 8 × 8 = 320 × 200, full width, near-square pixels. BPM proved this mode on the real machine (MODES40); every recent Premium game uses it |
+| The 40-column mode: dot clock select (`IN A,(09h)` with A = 1) plus BPM's MODES40 6545 table for 40 × 25 cells of 8 × 10: 35h 28h 2Ch 34h 1Eh 02h 19h 1Ch 48h 09h | 320 × 250, a full PAL picture (31 rows of 10 lines + 2 = 312 lines). The tallest picture whose 1000 cells still let the two screen pages fit 1K each. (1.0–1.3 used 8 × 8 cells, 320 × 200) |
 | 32K PCG RAM = 2048 glyphs; the screen is 1000 cells | Every cell can show a glyph of its own: sprites are composed per cell, not built from tiles |
-| The 6545 holds the CPU on any video RAM access while a line is drawn | All video writes go in the vertical blanking: 113 lines = 24 408 T |
+| The 6545 holds the CPU on any video RAM access while a line is drawn | All video writes go in the vertical blanking: 312 − 250 = 62 lines = 13 392 T (it was 113 lines with 8 × 8 cells). At 25 frames a second a frame has two blankings, and the commit uses both when it must |
 | 1 MB RAM in 32K blocks | Art for six depth sizes, eight shifts each, without squeezing |
 | One speaker bit, no sound chip | Music and effects are played in the time the frame waits for the blanking |
 
@@ -17,7 +17,9 @@
 
 **Theme.** Spindrift is the spray the wind tears off a wave. The player rides the rim of a vortex; the enemies are the spray it throws outward. Eight sectors run from the Oort cloud inward to the sun's corona and finally *The Eye*, the thing at the centre of the spiral.
 
-**The orbit.** The ship's angle is 8.8 fixed point (256 to a turn). Z and X sweep; the stick or arrows choose a side of the vortex and the ship takes the short way round. The orbit is 92 lines high (the arena is all 25 rows: the HUD is in the corners) and, by default, 84 pixels wide: round on a CRT, where a 40-column pixel shows about 1.1 lines wide. (Version 1.0 stretched it to 136 pixels to fill the width; it looked like an ellipse.) Because a screen that stretches the picture to fill 4:3 shows the pixel narrower (about 0.83), the width is a setting: the **screen shape** screen offers eight, 71 to 136 pixels. The position table's dx column is rebuilt from a pristine copy for a 136-pixel orbit (block 6) through a 256-entry scale map, in about 0.2 s. Everything else works in angle and depth, so aiming, hits and formations follow the shape by themselves.
+**The orbit.** The ship's angle is 8.8 fixed point (256 to a turn). Z and X sweep; the stick or arrows choose a side of the vortex and the ship takes the short way round. The orbit is 115 lines high (the arena is all 25 rows of 10 lines: the HUD is in the corners) and, by default, 105 pixels wide: round on a CRT, where a 40-column pixel shows about 1.1 lines wide. (Version 1.0 stretched it to fill the width; it looked like an ellipse.) Because a screen that stretches the picture to fill 4:3 shows the pixel narrower, the width is a setting: the **screen shape** screen offers eight, 89 to 150 pixels (1.3's 71–136 scaled by 1.25 for the taller picture; the widest is held at 150 so the ship stays on screen). The position table's dx column is rebuilt from a pristine copy for a 150-pixel orbit (block 6) through a 256-entry scale map, in about 0.2 s. `polar` clips y: a point off the top or bottom comes back as FFh, and `draw_spr` skips a sprite whose centre is at or past line 250. Everything else works in angle and depth, so aiming, hits and formations follow the shape by themselves.
+
+**8 × 10 cells (1.4).** Every glyph is 10 lines: sprite glyph buffers are 10 bytes, 25 to each 256-byte page (100 slots, D000–D3FF), copied to the PCG by an unrolled stack copy of five pops and five pushes (~141 T a glyph); 8-line glyphs (the font, icons) are loaded with two blank lines under them. Lines map to rows through page-aligned tables (`ysub`, `yrow2`, `ystar`), so `draw_spr` and `star_cell` never divide by 10. The logo and the Guardian's core were re-cut into 10-line cells (the core is now 4 × 4 cells, 16 glyphs a face); the star dots sit on lines 1, 3, 6 and 8 of a cell.
 
 **The starfield fills the screen.** In 1.3 the stars are drawn at twice the vortex's scale (`star_polar`: x = 2x − CX, y = 2y − CY from the ring's own position table), so they stream past the ring and out into the side borders and corners at every screen shape; a star that leaves the screen is sent back to the centre at once instead of travelling on unseen.
 
@@ -66,7 +68,7 @@ An effect is a list of frames; each frame sets a start pitch, duty (or noise) an
 Two screen pages (0000h and 0400h of screen RAM) and two PCG banks (14 and 15) take turns. While one page is shown, the next frame is built for the other:
 
 1. **Compose (ordinary RAM, any time).** For each sprite, each cell it touches is given a private glyph buffer (`alloc`) and the sprite's pre-shifted bytes are ORed in (`col_draw`). Sprites overlap freely.
-2. **Commit (the vertical blanking).** The new glyphs are copied into the back page's PCG bank by an unrolled stack copy, the cells the back page showed last time are blanked, text is written, and the new cells get their codes and colours. Then the 6545's start address is switched.
+2. **Commit (the vertical blanking).** The new glyphs are copied into the back page's PCG bank by an unrolled stack copy, the cells the back page showed last time are blanked and text is written. Then the new cells get their codes and colours and the 6545's start address is switched, either straight away or, when the estimate says the 62-line blanking won't hold it, at the next blanking (`commit_rest`, run from the blanking poll or the frame's wait). Everything the deferred part reads (its cell list, its page) is left alone by the next frame's compose, so nothing is shared.
 
 Nothing on the page being shown is ever touched, so the picture never tears.
 
@@ -87,7 +89,7 @@ What was done:
 | The Guardian's core became 60 fixed glyphs (3 faces × 20) in PCG bank 12, placed through the text queue and re-queued only when its face or colour changes | ~24 000 T a frame less in Guardian fights |
 | `alloc` trimmed; glyph buffers cleared after the commit by a stack fill instead of one by one | ~100 T less per cell |
 | Half the stars during a Guardian; pods drawn at 10 lines near the rim | fewer cells |
-| A late frame commits only at the start of a fresh blanking | the commit always gets the whole window (A/B-tested: slightly better than committing late) |
+| A late frame commits only at the start of a fresh blanking | the commit always gets the whole window (A/B-tested: slightly better than committing late). In 1.4 a frame that arrives later in the blanking commits anyway and leaves its new cells and flip for the next blanking |
 | The HUD redraw split over two frames, and it waits a frame when messages are being written | no text burst over ~44 cells |
 | A new message only blanks the old cells it does not cover | fewer text cells |
 | The flash fill by stack pushes | 15 000 T → 5 400 T |
@@ -100,7 +102,17 @@ Result, final build:
 | Guardian, sectors 2/4/6/8 | 24.6 / 24.6 / 24.3 / 23.5 | 97 / 97 / 94 / 87% |
 | **All play** | **24.3** | **94.5%** |
 
-(Measured again for 1.3: the round, full-height ring and the starfield out to the screen's edges. 1.2's stars stopped at the ring and measured 24.6 fps, 97.0%; 24 stars over the wider field measured 23.0 fps, so it stays at 18.)
+(Measured for 1.3, 8 × 8 cells: 1.2's stars stopped at the ring and measured 24.6 fps, 97.0%; 24 stars over the wider field measured 23.0 fps, so it stays at 18.)
+
+**1.4, 8 × 10 cells, 320 × 250.** The blanking fell from 113 lines to 62. Measured again:
+
+| Scene | fps | frames on time |
+|---|---|---|
+| Sector 1–8, wave 2 | 22.7 – 25.0 | 79 – 100% |
+| Guardian, sectors 2/4/6/8 | 23.4 / 23.7 / 23.8 / 22.8 | 85 / 88 / 89 / 80% |
+| **All play** | **23.9** | **90.5%** |
+
+What it took: (1) the commit's last part can wait for the next blanking (above); (2) **more blanking polls.** The game counts fields by polling the 6545's blanking bit, and the first 8 × 10 build missed whole blankings in long stretches without a poll (the star draw, the shots' hit tests, the enemy updates ran up to 25K T), so frames waited a field for nothing: 22.5 fps, and only 59% on time even in sector 1. Polls inside those loops (`vbpoll_q`, which sees a blanking begin but doesn't age it, so the late-commit guard isn't fooled) brought the longest gap to 10K T; (3) the commit estimate calibrated against the model (~55 T a unit). The busiest scenes lose a frame in five because the bigger 1.4 arena keeps more enemies on screen at once and the shorter blanking leaves less slack.
 
 Controls are read once a frame (at most 40 ms old), and every key is scanned every frame.
 

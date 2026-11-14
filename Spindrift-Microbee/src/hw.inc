@@ -37,9 +37,10 @@ MP_MUS      EQU ((BLK_MUS & $1C) << 3) | ((BLK_MUS & 3) ^ 2) | 4
 ; ---- upper memory (block 0): code 8000-C7FF, then
 CELLHI      EQU $C800       ; per cell: high byte of its glyph buffer (0 = none)
 CELLLO      EQU $CC00       ; low byte (CELLHI + 400h: code relies on it)
-POOLBUF     EQU $D000       ; this frame's composed glyphs, 8 bytes a slot
-TRASH       EQU $D380       ; where sprites go under text
-CELLPTR     EQU $D400       ; CELLHI address of each slot's cell
+POOLBUF     EQU $D000       ; this frame's composed glyphs: 10 bytes a slot,
+                            ;  25 slots in each 256-byte page (D000-D3FF)
+CELLPTR     EQU $D400       ; CELLHI address of each slot's cell (200 bytes)
+TRASH       EQU $D4F0       ; where sprites go under text (10 bytes)
 ENT         EQU $D500       ; game objects D500-D7FF
 LISTA       EQU $D800       ; three cell lists, 1K each: addresses +0,
 LISTB       EQU $DC00       ;  codes +200h, colours +300h, count +1FEh
@@ -49,7 +50,7 @@ TQB         EQU $E800
 VARS        EQU $EC00       ; EC00-EEFF
 STACK       EQU $EFF0
 
-MAXSLOT     EQU 111         ; sprite glyphs a frame (codes 91h-FFh)
+MAXSLOT     EQU 100         ; sprite glyphs a frame (codes 91h-F4h)
 MAXLIST     EQU 250
 MAXTQ       EQU 200
 NCELL       EQU 1000
@@ -59,13 +60,15 @@ PAGE1       EQU $0400       ; second screen page (6545 start address)
 BK_FONT     EQU 0           ; 64 characters
 BK_HUD      EQU 1           ; icons
 BK_PIC      EQU 2           ; title picture: banks 2..9
-BK_CORE     EQU 12          ; the Guardian's core: 3 faces x 20 glyphs
+BK_CORE     EQU 12          ; the Guardian's core: 3 faces x 16 glyphs
 BK_POOL0    EQU 14          ; page 0: blank, 16 star dots, 111 sprite glyphs
 BK_POOL1    EQU 15
 
 ; ---- the playfield
 CX          EQU 160
-CY          EQU 100
+CY          EQU 125
+CH          EQU 10          ; lines in a character cell
+SCRH        EQU 250         ; lines on the screen
 R_RIM       EQU 224         ; the player's orbit (radius units: index * 4)
 
 ; ---- colours

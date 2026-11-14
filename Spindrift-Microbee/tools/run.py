@@ -73,11 +73,11 @@ def start_game(mono=False):
 
 
 def view(pp, mono=False, current=False):
-    """the last complete picture off the model's tube: the 320 x 200
+    """the last complete picture off the model's tube: the 320 x 250
     picture (each pixel 2 wide in the model) with a little border"""
     from PIL import Image
     rgb = pp.frame_rgb(mono, current)
-    return Image.fromarray(rgb[36:244, 32:688])
+    return Image.fromarray(rgb[15:273, 32:688])
 
 
 def shot(pp, path, mono=False, scale=1.5):

@@ -584,8 +584,8 @@ boss_draw:
         ret
 
 ; A = face << 4 | colour, or FFh to take the core away
-CORE_C  EQU 18                  ; its 4 x 5 cells start at column 18, row 10
-CORE_R  EQU 10
+CORE_C  EQU 18                  ; its 4 x 4 cells start at column 18, row 11
+CORE_R  EQU 11
 core_put:
         ld (core_shown),a
         cp $FF
@@ -604,15 +604,13 @@ core_put:
         rrca
         rrca
         and 15
-        ld b,a
         add a,a
         add a,a
-        add a,b
         add a,a
         add a,a
-        add a,$80               ; the face's first glyph: 80h + face * 20
+        add a,$80               ; the face's first glyph: 80h + face * 16
         ld hl,CORE_R*40+CORE_C
-        ld e,5
+        ld e,4
 .r:     ld d,4
 .c:     ld b,BK_CORE
         call tq_put
@@ -629,7 +627,7 @@ core_put:
         ret
 core_clear:
         ld hl,CORE_R*40+CORE_C
-        ld e,5
+        ld e,4
 .r:     ld b,4
         call clear_q
         push de

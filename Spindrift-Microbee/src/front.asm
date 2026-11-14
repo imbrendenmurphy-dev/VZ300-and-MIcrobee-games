@@ -94,7 +94,7 @@ title:
         ld hl,0
         ld a,BK_PIC
         ld bc,LOGO_NG
-        call pcg_load
+        call pcg_load10
         ld ix,LOGO_MAP
         ld hl,2*40+(40-LOGO_W)/2
         ld de,logo_cols

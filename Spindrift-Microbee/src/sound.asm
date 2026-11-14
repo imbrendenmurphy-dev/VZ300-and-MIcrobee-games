@@ -29,7 +29,10 @@ snd_field:
         ld (vlast),a
         ld hl,fields
         inc (hl)
-        ret
+        ld a,(cpend)            ; the last frame's commit to finish?
+        or a
+        ret z
+        jp commit_rest
 
 ; play until (6545 status AND 20h) = E
 snd_until:

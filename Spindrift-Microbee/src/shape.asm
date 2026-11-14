@@ -6,18 +6,18 @@
 ;
 ;  The position table (block 4) holds dx, dy for 128 radii x 65 angles.
 ;  dy never changes; dx is rebuilt from a pristine copy made for a
-;  136-pixel orbit (block 6, DX136) through a 256-entry scale map.
+;  150-pixel orbit (block 6, DX136) through a 256-entry scale map.
 ; =====================================================================
 NSHAPE      EQU 8
 SHAPE_CRT   EQU 2                   ; the default: round on a CRT
 MAPBUF      EQU POOLBUF             ; scratch (zeroed again afterwards)
 CHUNK       EQU POOLBUF+$100
 
-; orbit half-widths in pixels (the half-height is 92 lines: the arena is
-; all 25 rows), as 8.8 steps of the scale map: round(RX * 256 / 136)
+; orbit half-widths in pixels (the half-height is 115 lines: the arena is
+; all 25 rows of 10 lines), as 8.8 steps of the scale map: RX * 256 / 150
 shape_step:
-        dw 71*256/136, 77*256/136, 84*256/136, 90*256/136
-        dw 98*256/136, 106*256/136, 115*256/136, 136*256/136
+        dw 89*256/150, 96*256/150, 105*256/150, 112*256/150
+        dw 122*256/150, 132*256/150, 142*256/150, 150*256/150
 
 ; A = shape 0..7: rebuild the dx column of the position table
 set_shape:
