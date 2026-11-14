@@ -8,7 +8,9 @@ An original single-screen robot-uprising arena shooter for the **Microbee Premiu
 
 ![showcase](screenshots/showcase.gif)
 
-## Status: build 0.2
+## Status: build 0.3
+
+- Build 0.3 adds a monochrome mode (press C or M at start-up) and a new stylised title logo.
 
 - Re-themed from build 0.1 (ROGUE MUSTER) to a robot uprising, with all-new robots.
 - New attract sequence, a thin rainbow border with a full-screen arena, and Robotron-style rectangles between waves.
@@ -23,7 +25,7 @@ An original single-screen robot-uprising arena shooter for the **Microbee Premiu
 
     RIOT
 
-It needs a Premium Plus with 1MB RAM.
+Then press **C** for a colour monitor or **M** for a monochrome one. It needs a Premium Plus with 1MB RAM.
 
 | Action | Keys |
 |---|---|
@@ -37,7 +39,8 @@ It needs a Premium Plus with 1MB RAM.
 It loops until someone presses SPACE, RETURN, a fire key or joystick fire.
 
 1. **Title.**
-   - The ROBOT RIOT 2086 logo in rolling rainbow bands.
+   - The ROBOT RIOT 2086 logo in a stylised 80s chrome-style font: chamfered, forward-leaning letters with a dotted drop shadow and venetian-blind stripes, over a hollow outlined "2086".
+   - The logo rolls in rainbow bands, and a glint sweeps across it, flipping its cells to reverse video.
    - A train of spinning, colour-cycling balls orbits the screen edge.
    - The hero dances between a stomper and a crusher.
    - A squelchy, robotic title jingle plays.
@@ -46,7 +49,17 @@ It loops until someone presses SPACE, RETURN, a fire key or joystick fire.
 4. **Hall of Legends.** The top 8 scores with initials, in rolling colours, with a robot fanfare.
 5. **Demo.** The machine plays wave 3 for 20 seconds.
 
-The glowing borders are dithered cells whose ink and paper colour pairs chase round the screen edge. On an amber monitor they show as shimmering dither.
+The glowing borders are dithered cells whose ink and paper colour pairs chase round the screen edge.
+
+**Monochrome mode:**
+- Built for an amber screen: no paper colours anywhere.
+- The glowing borders become dither with solid blocks marching round them.
+- The logo keeps its glint.
+- A crusher taking a hit blinks instead of flashing white.
+- A new Hall of Legends entry is marked with arrows.
+- The robots, family, shots and sparks are told apart by shape.
+
+![amber](screenshots/15_amber_title.png)
 
 **Audio:** the title jingle is short and plays over the title, where the screen work is light (about 6% of each frame). The other attract screens use effects and jingles: typewriter clicks, beam-ins and the fanfare. That keeps the sound smooth rather than chopped up.
 
@@ -121,6 +134,7 @@ This writes `build/RIOT.DS8`. Tests:
 |---|---|
 | `src/src/` | Z80 source: `main.asm`, `game.asm`, `actors.asm`, `attract.asm` (the attract sequence, Hall of Legends, demo AI), `fx.asm` (border, balls, glow, rectangles), `render.asm`, `sound.asm`, `loader.asm` |
 | `src/tools/art.py` | All the artwork, as text |
+| `src/tools/logo.py` | The stylised title logo |
 | `src/tools/music.py` | The tunes |
 | `src/tools/build.py` | Glyphs, tables and the disk |
 

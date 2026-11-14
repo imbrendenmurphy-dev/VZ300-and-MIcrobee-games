@@ -29,9 +29,12 @@ start:
         ld a,64
         ld (blade_spd),a
         call load_pcg
+        ld a,(boot_mono)
+        ld (monomode),a
         ld a,(boot_test)
         or a
         jp nz,game_new
+        call choose_mono
         ; fall into the title
 
 title:
@@ -125,9 +128,14 @@ att_title:
         ld de,mus_title_1
         call song
 .f:     call title_balls
-        ld d,3
-        ld e,12
+        call logo_shine
+        ld a,(monomode)
+        or a
+        jr nz,.nr
+        ld d,1
+        ld e,11
         call rainbow_rows
+.nr:
         ; the hero between a stomper and a crusher, dancing
         ld a,(fxt)
         and 7
@@ -564,7 +572,29 @@ draw_legends:
         call p0_bcd
         pop bc
         pop bc
-        ld de,6
+        ld a,(hs_new)           ; arrows either side of a new entry
+        cp b
+        jr nz,.nm
+        push bc
+        ld a,b
+        add a,a
+        add a,5
+        call row_off
+        push hl
+        ld de,8
+        add hl,de
+        ld b,'>'+$A0
+        ld c,BRED
+        ld d,0
+        call p0_put
+        pop hl
+        ld de,29
+        add hl,de
+        ld b,'<'+$A0
+        ld d,0
+        call p0_put
+        pop bc
+.nm:    ld de,6
         add ix,de
         inc b
         ld a,b
@@ -1056,3 +1086,62 @@ bits_of:
         ret
 
 boot_test: db 0
+boot_mono: db 0
+
+; ---------------------------------------------------------------------
+;  colour or monochrome monitor?
+s_cm0:  db "ROBOT RIOT 2086",0
+s_cm1:  db "C  FOR A COLOUR MONITOR",0
+s_cm2:  db "M  FOR A MONOCHROME MONITOR",0
+s_cm3:  db "VIBED BY BPM 2026",0
+
+choose_mono:
+        call clear_both
+        call show0
+        ld hl,s_cm0
+        ld e,6
+        ld c,YELLOW
+        call p0_ctext
+        ld hl,s_cm1
+        ld e,11
+        ld c,WHITE
+        call p0_ctext
+        ld hl,s_cm2
+        ld e,13
+        ld c,WHITE
+        call p0_ctext
+        ld hl,s_cm3
+        ld e,20
+        ld c,GREY
+        call p0_ctext
+.w:     ld a,2
+        call frame_wait
+        ld a,1
+        out (P_ROMLAT),a
+        ld a,3                  ; C
+        call keytest
+        ld b,0
+        jr nz,.set
+        ld a,13                 ; M
+        call keytest
+        ld b,1
+        jr nz,.set
+        xor a
+        out (P_ROMLAT),a
+        jr .w
+.set:   xor a
+        out (P_ROMLAT),a
+        ld a,b
+        ld (monomode),a
+        ld a,SFX_MENU
+        call play_sfx
+.rel:   call read_input         ; wait for the key to be let go
+        call input_used
+        ld a,2
+        call frame_wait
+        ld a,(keys)
+        ld b,a
+        ld a,(pad)
+        or b
+        jr nz,.rel
+        ret

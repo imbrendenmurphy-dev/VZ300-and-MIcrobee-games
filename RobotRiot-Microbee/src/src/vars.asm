@@ -62,6 +62,7 @@ sfxprio: db 0
 sfxpend: db 0
 ; ---- attract
 att:     db 0
+monomode: db 0
 fxt:     dw 0
 demo:    db 0
 demo_t:  dw 0

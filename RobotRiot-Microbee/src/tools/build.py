@@ -192,16 +192,44 @@ def build_gfx():
                 cells.append((0x80 | (g & 127), g >> 7))
         bigtab.append(cells)
     # ---- the title picture (the logo; balls, colours and sprites are added live)
+    import logo
     p = Pic(st)
-    t = big_text('ROBOT RIOT', 4, 4)
-    p.blit((320 - t.shape[1]) // 2, 3 * 8 + 2, t, A.WHITE)
-    t = big_text('2086', 4, 4)
-    p.blit((320 - t.shape[1]) // 2, 8 * 8 + 2, t, A.WHITE)
-    p.ctext(13, 'THE ROBOTS HAVE RISEN', A.BCYAN)
+    main, year = logo.title_logo()
+    p.blit((320 - main.shape[1]) // 2, 12, main, A.WHITE)
+    p.blit((320 - year.shape[1]) // 2, 58, year, A.WHITE)
+    p.ctext(12, 'THE ROBOTS HAVE RISEN', A.BCYAN)
     p.ctext(18, 'MOVE WASD   FIRE IJKL OR ARROWS', A.BGREEN)
     p.ctext(19, 'SPACE FIRES AHEAD  P PAUSE  M SOUND', A.GREY)
     p.ctext(22, 'VIBED BY BPM 2026', A.BMAGENTA)
     title = p.bake(first_free)
+    # the logo's cells, each with a reverse-video twin, for the glint that
+    # sweeps across it; sorted along the glint (which leans with the letters)
+    cells = []
+    for r in range(1, 11):
+        for c in range(1, 39):
+            if p.ink[r, c] < 0:
+                continue
+            pat = cell_bytes(p.bits, c, r)
+            if not any(pat):
+                continue
+            n = int(p.g[r, c])
+            inv = st.alloc(bytes(b ^ 0xFF for b in pat), first_free)
+            d = c - (r - 1) // 2 + 5
+            cells.append((d, r * 40 + c, n, inv))
+    cells.sort()
+    L2 = ['logotab:\t\t; address, glint column, char, bank, reverse char, bank']
+    for d, off, n, inv in cells:
+        L2.append('\tdw $%04X\n\tdb %d,$%02X,%d,$%02X,%d' % (0xF000 + off, d, 0x80 | (n & 127), n >> 7, 0x80 | (inv & 127), inv >> 7))
+    L2.append('logostart:\t\t; first logotab entry of each glint column 0-48')
+    idx = 0
+    starts = []
+    for d in range(50):
+        while idx < len(cells) and cells[idx][0] < d:
+            idx += 1
+        starts.append('logotab+%d' % (idx * 7))
+    L2.append('\tdw ' + ','.join(starts))
+    logo_inc = '\n'.join(L2) + '\n'
+    print('logo: %d cells (max glint column %d)' % (len(cells), max(c[0] for c in cells)))
     print('glyphs used: %d of 2048' % sum(st.used))
 
     blk = bytearray(st.data())
@@ -252,6 +280,7 @@ def build_gfx():
           '\tdb ' + ','.join(str(rb[(i // 2) % 8]) for i in range(256)),
           'glowtab:\t\t; 256 ink + paper pairs for the glowing dither',
           '\tdb ' + ','.join('$%02X' % gl[(i // 2) % 8] for i in range(256))]
+    L.append(logo_inc)
     L += ['bigtab:\t\t\t; gallery frames: 9 cells of (char, bank)']
     for cells in bigtab:
         L.append('\tdb ' + ','.join('$%02X,%d' % c for c in cells))
