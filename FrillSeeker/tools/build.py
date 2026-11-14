@@ -27,7 +27,7 @@ import rooms
 import font
 import title
 
-BLK_SPR, BLK_GFX, BLK_ROOMC, BLK_ROOMM, BLK_TITLE, BLK_FRONT = 4, 8, 9, 15, 21, 22
+BLK_SPR, BLK_GFX, BLK_ROOM, BLK_TITLE, BLK_FRONT = 4, 8, 9, 21, 22
 
 
 def sprites():
@@ -194,6 +194,7 @@ def front():
 
 def build_rooms(shots=None):
     n = len(rooms.ROOMS)
+    subprocess.check_call(['cc', '-O2', '-o', os.path.join(BUILD, 'lzbc'), os.path.join(HERE, 'lzbc.c')])
     for mono, tag in ((False, 'C'), (True, 'M')):
         banks = []
         for i in range(n):
@@ -205,8 +206,70 @@ def build_rooms(shots=None):
             if shots:
                 art.save_png(rc['rgb'], os.path.join(shots, 'room%d%s.png' % (i, 'm' if mono else '')))
         for k, b in enumerate(banks):
-            open(os.path.join(BUILD, 'ROOM%s%d.BNK' % (tag, k)), 'wb').write(bytes(b))
-    return (n + 1) // 2
+            raw = os.path.join(BUILD, 'ROOM%s%d.BNK' % (tag, k))     # (as the model loads it)
+            open(raw, 'wb').write(bytes(b).ljust(0x8000, b'\0'))
+            subprocess.check_call([os.path.join(BUILD, 'lzbc'), raw, raw[:-3] + 'PAK'])
+    # on the disk a block of rooms is packed, and padded in front so that,
+    # loaded at a page boundary, it ends where its block ends: the loader
+    # unpacks it downward from there in place. The model of that below
+    # checks nothing is written over before it is read.
+    pages = []
+    for k in range((n + 1) // 2):
+        pk = [open(os.path.join(BUILD, 'ROOM%s%d.PAK' % (t, k)), 'rb').read() for t in 'CM']
+        page = 0x80 - (max(len(x) for x in pk) + 2 + 255) // 256
+        for t, x in zip('CM', pk):
+            pad = (0x80 - page) * 256 - 2 - len(x)
+            assert pad >= 0
+            f = bytes([pad & 255, pad >> 8]) + bytes(pad) + x
+            inplace_ok(f, page * 256, open(os.path.join(BUILD, 'ROOM%s%d.BNK' % (t, k)), 'rb').read())
+            open(os.path.join(BUILD, 'ROOM%s%d.LZB' % (t, k)), 'wb').write(f)
+        pages.append(page)
+        print('  rooms %d-%d: %d + %d bytes packed' % (2 * k, 2 * k + 1, len(pk[0]), len(pk[1])))
+    return pages
+
+
+def inplace_ok(f, base, want):
+    """unpack the file f, loaded at base in a 32K block, to 0 of the same
+    block, as the loader does, checking it against want"""
+    m = bytearray(0x8000)
+    m[base:base + len(f)] = f
+    src = base + 2 + m[base] + 256 * m[base + 1]
+    tab = bytes(m[src:src + 16])
+    n = m[src + 16] | (m[src + 17] << 8)
+    st = dict(pos=src + 18, cur=0, left=0)
+    w = 0
+
+    def bit():
+        if st['left'] == 0:
+            st['cur'] = m[st['pos']]
+            st['pos'] += 1
+            st['left'] = 8
+        st['left'] -= 1
+        return (st['cur'] >> st['left']) & 1
+
+    def bits(k):
+        v = 0
+        for _ in range(k):
+            v = (v << 1) | bit()
+        return v
+    while w < n:
+        if bit() == 0:
+            m[w] = tab[bits(4)] if bit() == 0 else bits(8)
+            w += 1
+        else:
+            k = 1
+            while bit() == 0:
+                k += 1
+            v = 1
+            for _ in range(k - 1):
+                v = (v << 1) | bit()
+            L = v + 1
+            d = (bits(7) if bit() == 0 else bits(12)) + 1
+            for _ in range(L):
+                m[w] = m[w - d]
+                w += 1
+        assert w <= st['pos'], 'packed rooms overtaken at %04X' % w
+    assert bytes(m[:n]) == want[:n] and n == len(want), 'unpacks wrong'
 
 
 def loadfiles(nspr, nroom):
@@ -216,9 +279,8 @@ def loadfiles(nspr, nroom):
     names.append((BLK_GFX, 0, 'GFX', 'BNK'))
     names.append((BLK_TITLE, 0, 'TITLE', 'BNK'))
     names.append((BLK_FRONT, 0, 'FRONT', 'BNK'))
-    for i in range(nroom):
-        names.append((BLK_ROOMC + i, 0, 'ROOMC%d' % i, 'BNK'))
-        names.append((BLK_ROOMM + i, 0, 'ROOMM%d' % i, 'BNK'))
+    for i, page in enumerate(nroom):
+        names.append((BLK_ROOM + i, page, 'ROOM?%d' % i, 'LZB'))
     for b, o, n, e in names:
         assert b == 'STG_PROG' or 4 <= b <= 22, b      # the blocks proven safe while CP/M is alive
     lines = ['\tDB %s, $%02X, "%-8s%s"' % (b, o, n, e) for b, o, n, e in names]
@@ -243,7 +305,8 @@ def disk(names):
     files = {'SAVE.DAT': b'\x1a' * 4096}
     files['FRILL.COM'] = (B / 'FRILL.COM').read_bytes()
     for b, o, n, e in names:
-        files['%s.%s' % (n, e)] = (B / ('%s.%s' % (n, e))).read_bytes()
+        for n in ([n.replace('?', 'C'), n.replace('?', 'M')] if '?' in n else [n]):
+            files['%s.%s' % (n, e)] = (B / ('%s.%s' % (n, e))).read_bytes()
     files['CCP.SYS'] = (Path(ROOT) / 'resources' / 'CCP.SYS').read_bytes()
     readme = Path(ROOT) / 'docs' / 'DISK_README.TXT'
     if readme.exists():

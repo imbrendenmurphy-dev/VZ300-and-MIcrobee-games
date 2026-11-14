@@ -43,54 +43,6 @@ E_OBJ       EQU 10
 E_SIZE      EQU 16
 
 ; ---------------------------------------------------------------------
-monitor_select:
-        ld a,$0F
-        call cls
-        ld hl,t_name
-        ld de,$050E
-        ld c,YELLOW
-        call print
-        ld hl,t_l1
-        ld de,$080C
-        ld c,WHITE
-        call print
-        ld hl,t_l2
-        ld de,$0A0E
-        ld c,WHITE
-        call print
-        ld hl,t_l3
-        ld de,$0F0B
-        ld c,BCYAN
-        call print
-        ld hl,t_l4
-        ld de,$110C
-        ld c,BCYAN
-        call print
-        ld hl,t_credit
-        ld de,$160A
-        ld c,BGREEN
-        call print
-        call display_on
-.w:     call read_menu
-        call rnd
-        ld a,(pad)
-        bit 6,a
-        jr nz,.col
-        bit 5,a
-        jr z,.w
-        ld a,1
-        ld (mono),a
-        ld a,BLK_ROOMM
-        jr .go
-.col:   xor a
-        ld (mono),a
-        ld a,BLK_ROOMC
-.go:    ld (roomblk0),a
-        ; fall into the title
-
-; ---------------------------------------------------------------------
-;  the title: the picture, the theme in two voices, SPACE to play
-; ---------------------------------------------------------------------
 title_screen:
         ld sp,STACK
         ld a,$80                ; from the top
@@ -192,11 +144,6 @@ demo_pad:
         ld (pad),a
         ret
 
-t_name:   db "FRILLSEEKER",0
-t_l1:     db "FOR THE MICROBEE",0
-t_l2:     db "PREMIUM PLUS",0
-t_l3:     db "C - COLOUR MONITOR",0
-t_l4:     db "M - MONO MONITOR",0
 t_credit: db " VIBED BY BPM 2026 ",0
 t_demo:   db "DEMO",0
 

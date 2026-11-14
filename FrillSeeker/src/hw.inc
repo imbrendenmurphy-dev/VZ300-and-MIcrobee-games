@@ -34,8 +34,7 @@ MEMV        MACRO blk
 BLK_WORK    EQU 1
 BLK_SPR     EQU 4           ; sprite frames, blocks 4..7
 BLK_GFX     EQU 8           ; font
-BLK_ROOMC   EQU 9           ; rooms, colour art: two rooms a block (9-14)
-BLK_ROOMM   EQU 15          ; rooms, monochrome art (15-20)
+BLK_ROOM    EQU 9           ; rooms, two to a block, for the monitor chosen at the loader: 9-20
 BLK_TITLE   EQU 21          ; the title picture: colour at 0000, mono at 4000
 BLK_FRONT   EQU 22          ; the front end: music, attract sequence, demonstrations (src/front.asm)
 

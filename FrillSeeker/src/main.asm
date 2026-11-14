@@ -7,11 +7,18 @@
         INCLUDE "hw.inc"
 
         ORG $8000
-entry:  di
+entry:  jr start
+        nop
+boot_mono: db 0                 ; 8003h: the loader puts the monitor here (1 = monochrome)
+start:  di
         ld sp,STACK
         MEMV BLK_WORK
         call hw_init
-        jp monitor_select
+        ld a,(boot_mono)
+        ld (mono),a
+        ld a,BLK_ROOM
+        ld (roomblk0),a
+        jp title_screen
 
         INCLUDE "engine.asm"
         INCLUDE "anim.asm"

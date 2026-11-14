@@ -42,14 +42,30 @@ start:      ld sp,$A7F0
             ld de,$A000
             ld bc,reloc_end-reloc_start
             ldir
+            ; which monitor? The rooms for it are the ones loaded.
+            ld de,m_mon
+            ld c,9
+            call BDOS
+.key:       ld c,1
+            call BDOS
+            and $5F
+            cp 'C'
+            jr z,.col
+            cp 'M'
+            jr nz,.key
+            ld (roomset),a
+            ld a,1
+            ld (monoflag),a
+.col:
             ld hl,sig
             ld de,sig_copy
             ld bc,16
             ldir
             jp main
 
-m_title:    DB 13,10,"FRILLSEEKER - ENGINE PROTOTYPE",13,10
+m_title:    DB 13,10,"FRILLSEEKER",13,10
             DB "VIBED BY BPM 2026",13,10,"$"
+m_mon:      DB 13,10,"Colour or Monochrome monitor (C/M)? $"
 m_tpa:      DB "Needs a CP/M with a TPA above B000h.",13,10,"$"
 
 reloc:
@@ -283,6 +299,12 @@ load_file:  ld hl,fcb
             ld hl,(cur_name)
             ld bc,11
             ldir
+            ld a,(fcb+5)            ; ROOM?n: the set for this monitor
+            cp '?'
+            jr nz,.nm
+            ld a,(roomset)
+            ld (fcb+5),a
+.nm:
             ld hl,fcb+12
             ld b,24
 .z:         ld (hl),0
@@ -328,8 +350,149 @@ load_file:  ld hl,fcb
             ld c,2
             call BDOS   ; a dot per 4K
             jr .rec
-.eof:       or a
+.eof:       ld a,(cur_off)          ; loaded high in its block: packed. Unpack it
+            or a                    ; down to the bottom of the same block
+            ret z
+            di
+            ld a,(cur_blk)
+            call blk_port
+            out (P_MEM),a
+            ld a,(cur_off)
+            ld h,a
+            ld l,0
+            ld e,(hl)               ; the padding that put its end at 8000h
+            inc hl
+            ld d,(hl)
+            inc hl
+            add hl,de
+            ld de,0
+            call unlzb
+            ld a,(cpm_port)
+            out (P_MEM),a
+            ei
+            or a
             ret
+
+; ---- LZB unpack: HL = packed source, DE = destination (tools/lzb.py)
+unlzb:      push de                 ; its table of common bytes is kept aside:
+            ld de,lzb_tbuf          ; unpacking in place writes over it
+            ld (lzb_tab),de
+            ld bc,16
+            ldir
+            pop de
+            ld a,(hl)
+            ld (lzb_n),a
+            inc hl
+            ld a,(hl)
+            ld (lzb_n+1),a
+            inc hl
+            ld c,$80
+.loop:      push hl
+            ld hl,(lzb_n)
+            ld a,h
+            or l
+            pop hl
+            ret z
+            call gbit
+            jr c,.match
+            call gbit
+            jr c,.lit8
+            ld b,4
+            call gbits
+            push hl
+            ld hl,(lzb_tab)
+            add a,l
+            ld l,a
+            jr nc,.nc
+            inc h
+.nc:        ld a,(hl)
+            pop hl
+            jr .put
+.lit8:      ld b,8
+            call gbits
+.put:       ld (de),a
+            inc de
+            push hl
+            ld hl,(lzb_n)
+            dec hl
+            ld (lzb_n),hl
+            pop hl
+            jr .loop
+.match:     ld b,1
+.gz:        call gbit
+            jr c,.g1
+            inc b
+            jr .gz
+.g1:        ld a,1
+            dec b
+            jr z,.gd
+.gl:        call gbit
+            rla
+            djnz .gl
+.gd:        inc a
+            ld (lzb_len),a
+            call gbit
+            jr c,.o12
+            ld b,7
+            call gbits
+            ld b,0
+            jr .od
+.o12:       ld b,4
+            call gbits
+            ld (lzb_hi),a
+            ld b,8
+            call gbits
+            push af
+            ld a,(lzb_hi)
+            ld b,a
+            pop af
+.od:        push hl
+            push bc
+            ld c,a
+            ld a,e
+            sub c
+            ld l,a
+            ld a,d
+            sbc a,b
+            ld h,a
+            dec hl
+            pop bc
+            push bc
+            ld a,(lzb_len)
+            ld c,a
+            ld b,0
+            ldir
+            pop bc
+            ld hl,(lzb_n)
+            ld a,(lzb_len)
+            push de
+            ld e,a
+            ld d,0
+            or a
+            sbc hl,de
+            ld (lzb_n),hl
+            pop de
+            pop hl
+            jp .loop
+gbits:      xor a
+.l:         call gbit
+            rla
+            djnz .l
+            ret
+gbit:       sla c
+            ret nz
+            ld c,(hl)
+            inc hl
+            scf
+            rl c
+            ret
+lzb_tab:    DW 0
+lzb_tbuf:   DS 16
+lzb_n:      DW 0
+lzb_len:    DB 0
+lzb_hi:     DB 0
+roomset:    DB 'C'
+monoflag:   DB 0
 
 cur_blk:    DB 0
 cur_off:    DB 0
@@ -355,6 +518,8 @@ final_src:
             DISP $F000
 final_start:
             ld sp,$FFF0
+            ld a,(monoflag)         ; (the program may land on top of it)
+            ex af,af'
             ; program: staging block -> 8000h of block 0
             ld a,STG_PROG
             call blk_port_f
@@ -363,6 +528,8 @@ final_start:
             ld de,$8000
             ld bc,PROG_LEN
             ldir
+            ex af,af'
+            ld ($8003),a            ; boot_mono
             ; staged banks -> their home blocks
             ld hl,moves
 .mv:        ld a,(hl)
