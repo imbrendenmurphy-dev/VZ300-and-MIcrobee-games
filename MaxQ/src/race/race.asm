@@ -59,7 +59,6 @@ main:   CHKEI
         jr nz,.wr
         call compose
         call draw_hud
-        call draw_gates
         call draw_rivals
         call draw_craft
         call draw_banner
@@ -394,23 +393,7 @@ physics:
         dec b
 .sp3:   ld a,b
         ld (SPEED),a
-        ; speed stripes flow at 1.5x the track's own speed, capped so that they move
-        ; less than half a band per frame (above that, at ~10 fps, they would seem to stall)
-        ld a,b
-        srl a
-        srl a
-        srl a
-        ld c,a
-        srl a
-        add a,c                 ; speed * 3/16
-        cp 23
-        jr c,.ph
-        ld a,22
-.ph:    ld c,a
-        ld a,(PHASE)
-        add a,c
-        ld (PHASE),a
-        ; ... while the track itself unrolls at half speed (gentler curves and hills)
+        ; the track unrolls at half the speed figure
         ld a,b
         srl a
         ld c,a
@@ -1126,6 +1109,15 @@ init_vars:
         ld (LATBASE),a
         ld a,255
         ld (CURMODE),a
+        ld hl,ROWCL             ; no polygons: every row is clear for the skyline
+        ld b,0
+.rc:    ld (hl),a
+        inc l
+        djnz .rc
+        ld hl,ROWLP             ; row lists start at the head of their 32-byte slots
+.rl:    ld (hl),0
+        inc l
+        djnz .rl
         call make_skyline
         call mode_upd
         ld hl,4

@@ -1,0 +1,445 @@
+
+; =====================================================================
+;  RASTER ROAD (v0.11) - mirrors road_ref.py step for step
+;  The road is 32 fixed depth slots (d = 32 near .. 1 far).  Walking from
+;  near to far:  dx += CURV[section], x += dx  bends it;
+;                dh += SLP[section] - SLP[here], h += dh  makes the hills.
+;  Slot tables (page XCA):  +d XC (centre, screen x + 64)   +$40+d curve px
+;                           +$80+d screen row               +$C0+d rows hidden below
+;  Page SECL: +d section low, +$40+d section high, +$80+row slot of each screen row
+;  Page ZTL (constants): +d depth low, +$40+d depth high, +$80+d half-width, +$C0+d rumble
+; =====================================================================
+render:
+        ld hl,(CAM_I)           ; heading for the skyline, eased across the section
+        ld de,TRK_H
+        add hl,de
+        ld a,(hl)
+        ld (HC),a
+        ld hl,(CAM_I)
+        inc hl
+        ld a,h
+        and 1
+        ld h,a
+        add hl,de
+        ld a,(HC)
+        ld b,a
+        ld a,(hl)
+        sub b
+        ld b,a
+        ld a,(CAM_F)
+        srl a
+        ld c,a
+        call mul8
+        add hl,hl
+        ld a,(HC)
+        add a,h
+        ld (HC),a
+        ld hl,(CAM_I)           ; our own slope: a steady climb looks flat
+        ld de,TRK_SL
+        add hl,de
+        ld a,(hl)
+        ld (RS0),a
+        ld hl,0
+        ld (RDX),hl
+        ld (RX),hl
+        ld (RDH),hl
+        ld (RH),hl
+        ld a,(CAM_LAT)          ; the road slides under the craft: -lat px at the bottom row,
+        neg                     ; tapering to nothing at the horizon
+        ld h,a
+        ld l,0
+        ld (RLX),hl
+        ld a,(CAM_LAT)
+        call sext
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        ld (RLS),hl
+        ld a,64
+        ld (RTOP),a
+        ld a,ND
+        ld (RD),a
+.lp:    ld l,a                  ; section at this slot = camera + depth
+        ld h,ZTL/256
+        ld e,(hl)
+        set 6,l
+        ld d,(hl)
+        ld a,(CAM_F)
+        add a,e
+        ld a,(CAM_I)
+        adc a,d
+        ld c,a
+        ld a,(CAM_I+1)
+        adc a,0
+        and 1
+        ld b,a                  ; BC = section
+        res 6,l
+        ld h,SECL/256
+        ld (hl),c
+        set 6,l
+        ld (hl),b
+        ld h,XCA/256            ; curve offset and road centre
+        ld de,(RX)
+        ld (hl),d
+        res 6,l
+        push hl
+        ld hl,(RLX)
+        add hl,de
+        ld a,h
+        add a,128
+        pop hl
+        ld (hl),a
+        ld a,(RH+1)             ; screen row = HZ0 + d - h/1024
+        sra a
+        sra a
+        ld e,a
+        ld a,l
+        add a,HZ0
+        sub e
+        ld e,a                  ; E = y
+        set 7,l
+        ld (hl),e
+        set 6,l
+        ld a,(RTOP)
+        ld (hl),a
+        ld d,a                  ; D = top
+        ld a,e
+        cp d
+        jr nc,.hid              ; behind a crest
+        cp RYMIN
+        jr nc,.y1
+        ld a,RYMIN
+.y1:    ld (RTOP),a
+        ld e,a
+        ld a,d
+        sub e
+        jr z,.hid
+        ld d,a                  ; rows y .. top-1 show this slot
+        ld a,e
+        add a,ROWMAP & 255
+        ld l,a
+        ld h,ROWMAP/256
+        ld a,(RD)
+.rm:    ld (hl),a
+        inc l
+        dec d
+        jr nz,.rm
+.hid:   ld hl,TRK_CV            ; bend: dx += curve, x += dx
+        add hl,bc
+        ld a,(hl)
+        call sext
+        ld de,(RDX)
+        add hl,de
+        ld (RDX),hl
+        ld de,(RX)
+        add hl,de
+        ld (RX),hl
+        ld hl,TRK_SL            ; hill: dh += slope - ours, h += dh
+        add hl,bc
+        ld a,(RS0)
+        ld e,a
+        ld a,(hl)
+        sub e
+        call sext
+        ld de,(RDH)
+        add hl,de
+        ld (RDH),hl
+        ld de,(RH)
+        add hl,de
+        ld (RH),hl
+        ld hl,(RLX)
+        ld de,(RLS)
+        add hl,de
+        ld (RLX),hl
+        ld hl,RD
+        dec (hl)
+        ld a,(hl)
+        jp nz,.lp
+        ld a,(RTOP)
+        ld (SPLIT),a
+        ; ---- row lists: sky rows first (bands spread down to the horizon)
+        sub TOPROW
+        ld (RN),a
+        ld hl,LISTS+TOPROW*32+1
+        ld de,ROWPG+TOPROW
+        ld c,TOPROW
+        ld b,0
+        ld a,2
+        ld (RBAND),a
+.sk:    ld a,(SPLIT)
+        cp c
+        jr z,.road
+        push hl
+        ld hl,(SKYTAB)
+        ld a,(RBAND)
+        add a,l
+        ld l,a
+        jr nc,.s1
+        inc h
+.s1:    ld a,(hl)
+        pop hl
+        bit 0,c
+        jr z,.ev
+        add a,16
+.ev:    ld (hl),a
+        inc l
+        ld (hl),128
+        ld a,l
+        add a,31
+        ld l,a
+        jr nc,.s2
+        inc h
+.s2:    ld a,PATTAB/256
+        ld (de),a
+        inc e
+        ld a,b
+        add a,3
+        ld b,a
+        push hl
+        ld hl,RN
+        cp (hl)
+        jr c,.s3
+        sub (hl)
+        ld b,a
+        ld hl,RBAND
+        inc (hl)
+.s3:    pop hl
+        inc c
+        jr .sk
+        ; ---- road rows
+.road:  dec hl                  ; HL = list of row C, DE -> its ROWPG entry
+        ld (RLP),hl
+        ld (RPGP),de
+        ld a,c
+        ld (RROW),a
+.rr:    add a,ROWMAP & 255
+        ld l,a
+        ld h,ROWMAP/256
+        ld l,(hl)               ; slot
+        ld h,SECL/256
+        ld c,(hl)
+        set 6,l
+        ld b,(hl)               ; BC = section
+        res 6,l
+        ld a,RDP0/256           ; band page: two sections light, two dark
+        bit 1,c
+        jr z,.b0
+        ld a,RDP1/256
+.b0:    ld de,(RPGP)
+        ld (de),a
+        inc de
+        ld (RPGP),de
+        ld a,c                  ; surface: boost pad, jump ramp, start line or plain
+        and 126
+        cp 40
+        jr nz,.n1
+        ld a,c
+        and 1
+        add a,PAD_ID
+        jr .cid
+.n1:    ld a,c
+        and 254
+        cp 228
+        jr nz,.n2
+        ld a,c
+        and 1
+        add a,RAMP_ID
+        jr .cid
+.n2:    ld a,c
+        or b
+        ld a,LINE_ID
+        jr z,.cid
+        ld a,C_ID
+.cid:   ld (.rc+1),a
+        ld h,XCA/256
+        ld a,(hl)               ; centre (screen x + 64)
+        ld h,ZTL/256
+        set 7,l
+        ld e,(hl)               ; half-width
+        set 6,l
+        ld d,(hl)               ; rumble width
+        ld c,a
+        sub e
+        jr nc,$+3
+        xor a
+        ld b,a
+        sub d
+        jr nc,$+3
+        xor a
+        call .clmp
+        ld (RB0),a
+        ld a,b
+        call .clmp
+        ld (RB1),a
+        ld a,c
+        add a,e
+        jr nc,$+4
+        ld a,255
+        ld b,a
+        call .clmp
+        ld (RB2),a
+        ld a,b
+        add a,d
+        jr nc,$+4
+        ld a,255
+        call .clmp
+        ld (RB3),a
+        ld hl,(RLP)
+        ld a,(RROW)
+        and 1
+        rrca
+        rrca
+        rrca
+        rrca
+        ld d,a                  ; D = 16 on odd rows (other half of the dither)
+        ld (hl),0
+        inc l
+        ld (hl),a               ; ground (G_ID = 0)
+        ld b,0
+        ld a,(RB0)
+        ld c,R_ID
+        call .emit
+        jr nc,.end
+        ld a,(RB1)
+.rc:    ld c,0
+        call .emit
+        jr nc,.end
+        ld a,(RB2)
+        ld c,R_ID
+        call .emit
+        jr nc,.end
+        ld a,(RB3)
+        ld c,G_ID
+        call .emit
+.end:   inc l
+        ld (hl),128
+        ld hl,(RLP)
+        ld de,32
+        add hl,de
+        ld (RLP),hl
+        ld a,(RROW)
+        inc a
+        ld (RROW),a
+        cp 64
+        jp nz,.rr
+        ret
+.clmp:  sub 64                  ; screen x + 64 -> 0..128
+        jr nc,.c1
+        xor a
+        ret
+.c1:    cp 129
+        ret c
+        ld a,128
+        ret
+.emit:  cp 128                  ; A = x, C = colour; B = last x, HL -> last colour.  NC = off screen
+        ret nc
+        cp b
+        jr z,.rep
+        inc l
+        ld (hl),a
+        ld b,a
+        inc l
+.rep:   ld a,c
+        add a,d
+        ld (hl),a
+        scf
+        ret
+
+; ---------------------------------------------------------------------
+; RV_PROJECT: screen position, size, view and crest clip of every record
+; in view (rivals, pickups, arrows, missile, mine).  R_D sections + R_FR
+; ahead of the camera -> depth slot -> row, centre and width.
+; ---------------------------------------------------------------------
+rv_project:
+        ld ix,RV
+        ld b,NREC
+.r:     push bc
+        ld (ix+R_VIS),0
+        ld a,(ix+R_D)
+        cp 255
+        jp z,.nx
+        cp 16
+        jr c,.near
+        cp 21
+        ld a,3
+        jr c,.gd
+        ld a,2
+        jr .gd
+.near:  rlca
+        rlca
+        rlca
+        rlca
+        ld c,a
+        ld a,(ix+R_FR)
+        rrca
+        rrca
+        rrca
+        rrca
+        and 15
+        or c
+        ld l,a
+        ld h,DIDX/256
+        ld a,(hl)
+.gd:    ld e,a                  ; E = slot
+        ld l,a
+        ld h,XCA/256
+        ld d,(hl)               ; D = road centre there
+        set 7,l
+        ld a,(hl)
+        add a,65
+        ld (ix+R_SY),a          ; sits on its row
+        set 6,l
+        ld a,(hl)
+        add a,64
+        ld (ix+R_YCL),a         ; rows from here down are behind a crest
+        res 7,l
+        ld a,(hl)               ; curve offset: which way the road there has turned
+        sra a
+        sra a
+        sra a
+        bit 7,a
+        jr nz,.vn
+        cp 3
+        jr c,.vk
+        ld a,2
+        jr .vk
+.vn:    cp -2
+        jr nc,.vk
+        ld a,-2
+.vk:    add a,2
+        ld (ix+R_VIEW),a
+        ld a,e                  ; width: the craft is 24 px at slot 27
+        rrca
+        rrca
+        rrca
+        rrca
+        and 15
+        neg
+        add a,e
+        ld (ix+R_W),a
+        push de
+        ld b,(ix+R_LAT)         ; x = centre + lat * d / 32
+        ld c,e
+        call mul8
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        pop de
+        ld a,h
+        or a
+        jp m,.neg
+        add a,d
+        jr nc,.sok
+        ld a,255
+        jr .sok
+.neg:   add a,d
+        jr c,.sok
+        xor a
+.sok:   ld (ix+R_SX),a
+        ld (ix+R_VIS),1
+.nx:    ld de,32
+        add ix,de
+        pop bc
+        dec b
+        jp nz,.r
+        ret
