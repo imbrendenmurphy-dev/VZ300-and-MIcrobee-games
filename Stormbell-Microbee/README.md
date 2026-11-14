@@ -17,6 +17,12 @@ steps, and blows you can see coming. Spacing and timing win.
 Every opponent has a rhythm you can learn, and every one punishes button
 mashing in its own way.
 
+![showcase](showcase/showcase.gif)
+
+The release blurb with tech specs is in [BLURB.md](BLURB.md). More
+pictures: [gameplay](screenshots/gameplay/) · [screens](screenshots/info/).
+The release package is `release/STORMBELL_v1.3.zip`.
+
 | | |
 |---|---|
 | ![](screenshots/02-outer-gate.png) | ![](screenshots/03-river-bridge.png) |
