@@ -68,6 +68,7 @@ static int disp_lines(void) { return crtc[6] * (crtc[9] + 1); }
 static u8 lowblk[32][0x8000];
 static int curblk = 2;        /* CP/M's lower block */
 static int garbage_regs = 0;
+static int rrdmode = 0;
 static int hibank = 0; static long hibank_hits = 0;
 static int strict_video = 0; static long strict_hits = 0;
 static int vidpos = 0;        /* 0 = F000, 1 = off, 2 = 8000 */
@@ -415,7 +416,12 @@ static int exec_ed(void)
             case 1: Rr = A; return 9;
             case 2: A = I; F = (F & FC) | sz[A] | (IFF2 ? FP : 0); return 9;
             case 3: A = Rr; F = (F & FC) | sz[A] | (IFF2 ? FP : 0); return 9;
-            case 4: { u8 m = mem_rd(HL); mem_wr(HL, (A << 4) | (m >> 4)); A = (A & 0xf0) | (m & 15); F = (F & FC) | szp[A]; return 18; }
+            case 4: { u8 m = mem_rd(HL);
+                if (rrdmode == 1) { mem_wr(HL, (m << 4) | (A & 15)); A = (A & 0xf0) | (m >> 4); }
+                else if (rrdmode == 2) { mem_wr(HL, (A << 4) | (m >> 4)); }
+                else if (rrdmode == 3) { }
+                else { mem_wr(HL, (A << 4) | (m >> 4)); A = (A & 0xf0) | (m & 15); }
+                F = (F & FC) | szp[A]; return 18; }
             case 5: { u8 m = mem_rd(HL); mem_wr(HL, (m << 4) | (A & 15)); A = (A & 0xf0) | (m >> 4); F = (F & FC) | szp[A]; return 18; }
             default: return 8;
             }
@@ -717,6 +723,7 @@ int main(int argc, char **argv)
     memcpy(crtc, init_crtc, 16);
     for (int b = 0; b < 32; b++) memset(lowblk[b], 0xE5, 0x8000);
     if (getenv("STRICT")) strict_video = 1;
+    if (getenv("RRDMODE")) rrdmode = atoi(getenv("RRDMODE"));
     if (getenv("HIBANK")) hibank = atoi(getenv("HIBANK"));
     if (getenv("GARBAGE")) {     /* a real machine: nothing starts out tidy */
         srand(atoi(getenv("GARBAGE")));

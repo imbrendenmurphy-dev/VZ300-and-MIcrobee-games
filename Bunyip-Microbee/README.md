@@ -13,9 +13,9 @@ VIBED BY BPM 2026
 | Part | State |
 |---|---|
 | Wall engine (`release/BEECAST2.DS8`, program `RAY`) | Runs on a real Premium Plus |
-| Game (`release/BUNYIP.DS8`, program `BUNYIP`) | Loads and runs on a real Premium Plus: walls, HUD, title and controls work. Sprites came out as scrambled fragments on hardware in the first three builds: the cells showed stale glyphs (pieces of the title logo), so the sprite glyph uploads were not landing in PCG RAM while a sprite RAM block was mapped. This build does every video write with RAM block 4 mapped, as the start-up upload (which works) does. **Not yet confirmed on hardware.** |
+| Game (`release/BUNYIP.DS8`, program `BUNYIP`) | Loads and runs on a real Premium Plus: walls, HUD, title, music and controls work. Sprites were garbled on hardware through four builds; by the fourth the backgrounds behind them were right and the sprites themselves came out as thin vertical strips. The half-cell-shifted sprite copies were being built with the Z80's `RRD` instruction, the only use of it in the game, and the test emulator reproduces those strips when `RRD` is made to misbehave. This build makes the shifted copies with plain ANDs and rotates. **Not yet confirmed on hardware.** |
 
-The title screen's `T` key shows a test card of what the machine reads back from its video memories, to settle the question.
+The title screen's `T` key shows a test card: video memory read-back, `RRD` and `RLD`, whether RAM blocks 5-31 are each their own memory, and video writes with a high block mapped.
 
 ## Playing
 

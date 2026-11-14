@@ -490,6 +490,75 @@ f_test: xor a
         out (PORT_1C),a
         ld a,16
         call .res
+        ; two instructions nothing else uses: RRD and RLD
+        ld hl,t_m
+        ld (hl),20h
+        ld a,84h
+        rrd
+        ld d,a
+        ld e,(hl)
+        ld hl,8042h
+        ld (t_e),hl
+        ld a,17
+        call .res
+        ld hl,t_m
+        ld (hl),31h
+        ld a,7Ah
+        rld
+        ld d,a
+        ld e,(hl)
+        ld hl,731Ah
+        ld (t_e),hl
+        ld a,18
+        call .res
+        ; RAM blocks 5-31: is each its own memory, low and high in the block?
+        ld hl,0FFFFh
+        ld (t_e),hl
+        ld hl,0100h
+        call ramtest
+        push af
+        ld hl,3F00h
+        call ramtest
+        pop de
+        ld e,a
+        ld a,19
+        call .res
+        ld hl,4100h
+        call ramtest
+        push af
+        ld hl,7F00h
+        call ramtest
+        pop de
+        ld e,a
+        ld a,20
+        call .res
+        ; video writes made while a high RAM block is mapped
+        ld hl,5AA5h
+        ld (t_e),hl
+        ld a,20
+        call setblk
+        ld hl,TCELL
+        ld (hl),5Ah
+        ld hl,PCGWIN+127*16+15
+        ld a,X1C+FONT_BANK
+        out (PORT_1C),a
+        ld (hl),0A5h
+        ld a,X1C
+        out (PORT_1C),a
+        call tabblk
+        ld hl,TCELL
+        ld d,(hl)
+        ld (hl),128
+        ld hl,PCGWIN+127*16+15
+        ld a,X1C+FONT_BANK
+        out (PORT_1C),a
+        ld e,(hl)
+        ld a,X1C
+        out (PORT_1C),a
+        ld a,21
+        call .res
+        ld hl,5AA5h
+        ld (t_e),hl
         jp wait_space
 ; .res: A = row, D, E = the two values read: show them and a verdict
 .res    ld l,a
@@ -517,11 +586,11 @@ f_test: xor a
         call .hex
         inc de
         pop hl
-        ld a,h
-        cp 5Ah
+        ld a,(t_e+1)
+        cp h
         jr nz,.no
-        ld a,l
-        cp 0A5h
+        ld a,(t_e)
+        cp l
         jr nz,.no
         ld hl,T_OK
         ld b,CBGREEN
@@ -547,5 +616,56 @@ f_test: xor a
         pop de
         inc de
         ret
+; ramtest: HL = offset: write its own number into each of blocks 5-31
+;   there, read them back -> A = the first block that read back wrong, or FFh
+ramtest:
+        ld (t_o),hl
+        ld ix,t_sv
+        ld b,5
+.w      ld a,b
+        call setblk
+        ld hl,(t_o)
+        ld a,(hl)
+        ld (ix+0),a
+        ld (hl),b
+        inc ix
+        inc b
+        ld a,b
+        cp 32
+        jr nz,.w
+        ld c,0FFh
+        ld b,31
+.r      ld a,b
+        call setblk
+        ld hl,(t_o)
+        ld a,(hl)
+        cp b
+        jr z,.g
+        ld c,b
+.g      dec b
+        ld a,b
+        cp 4
+        jr nz,.r
+        ld ix,t_sv
+        ld b,5
+.x      ld a,b
+        call setblk
+        ld hl,(t_o)
+        ld a,(ix+0)
+        ld (hl),a
+        inc ix
+        inc b
+        ld a,b
+        cp 32
+        jr nz,.x
+        push bc
+        call tabblk
+        pop bc
+        ld a,c
+        ret
+t_e:    dw 5AA5h               ; the values a line should show (second, first)
+t_m:    db 0
+t_o:    dw 0
+t_sv:   ds 27
 T_OK:   db "OK",0
 T_NO:   db "NO",0
