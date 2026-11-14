@@ -8,8 +8,9 @@ An original single-screen robot-uprising arena shooter for the **Microbee Premiu
 
 ![showcase](screenshots/showcase.gif)
 
-## Status: build 0.3
+## Status: build 0.4
 
+- Build 0.4 adds 6 more hand-designed waves (16 in all), and an endless loop that gets harder every pass.
 - Build 0.3 adds a monochrome mode (press C or M at start-up) and a new stylised title logo.
 
 - Re-themed from build 0.1 (ROGUE MUSTER) to a robot uprising, with all-new robots.
@@ -87,14 +88,24 @@ The glowing borders are dithered cells whose ink and paper colour pairs chase ro
 
 ## Waves
 
+16 hand-designed waves, then an endless loop that gets harder every time round.
+
 | Wave | What's new |
 |---|---|
-| 1-2 | Stompers and shock nodes |
+| 1-2 | Stompers and shock nodes, slow and easy to read |
 | 3 | Zappers |
-| 4-5 | Crushers |
+| 4-5 | Crushers (5 is a crusher wave) |
 | 6 | Whirlers |
-| 7-10 | Everything at once |
-| 11+ | Waves 6-10 again, faster each time round |
+| 7-10 | Everything at once, building to Robot Meltdown |
+| 11 | **Whirlwind:** 10 whirlers swooping |
+| 12 | **Crusher Colony:** 8 crushers going for the family. Hurry! |
+| 13 | **The Node Maze:** 12 shock nodes and 18 stompers |
+| 14 | **The Zapper Army:** 12 zappers, with sparks flying faster from here on |
+| 15 | **Stampede:** 22 stompers at top speed |
+| 16 | **The Final Riot:** everything, at its quickest |
+| 17+ | Waves 12-16 round and round. Each pass, stompers get a step quicker (to their limit), zappers throw sooner and sparks fly faster. |
+
+Within every wave the stompers also speed up the longer it lasts. The shock nodes change shape every two waves.
 
 ## Under the hood
 

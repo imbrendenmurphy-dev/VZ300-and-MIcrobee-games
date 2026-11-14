@@ -753,7 +753,7 @@ draw_message:
         ld c,YELLOW
         call draw_msg
         ld a,(wave)
-        cp 11
+        cp NWAVES+1
         ld hl,s_wmore
         jr nc,.w2
         dec a

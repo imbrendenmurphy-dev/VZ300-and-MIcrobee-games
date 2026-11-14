@@ -64,8 +64,16 @@ wavetab:
         db 10,8,2,0,6,6, 3,50
         db 15,4,3,4,6,6, 3,50
         db 16,6,4,4,6,6, 3,40
+        db 8,2,0,10,6,6, 3,45          ; 11 whirlwind
+        db 10,3,8,2,6,6, 3,45          ; 12 crusher colony
+        db 18,4,2,2,12,6, 3,40         ; 13 node maze
+        db 8,12,2,2,6,6, 3,40          ; 14 zapper army
+        db 22,4,2,4,4,6, 2,40          ; 15 stampede
+        db 14,8,5,5,4,6, 2,35          ; 16 the final riot
+NWAVES  equ 16
 wavetext:
         dw s_w1,s_w2,s_w3,s_w4,s_w5,s_w6,s_w7,s_w8,s_w9,s_w10
+        dw s_w11,s_w12,s_w13,s_w14,s_w15,s_w16
 s_w1:   db "SAVE THE LAST HUMAN FAMILY",0
 s_w2:   db "DON'T TOUCH THE SHOCK NODES",0
 s_w3:   db "ZAPPERS SHOOT WHERE YOU'RE GOING",0
@@ -76,6 +84,12 @@ s_w7:   db "TOTAL RIOT",0
 s_w8:   db "SPARKS EVERYWHERE",0
 s_w9:   db "KEEP MOVING, HERO",0
 s_w10:  db "ROBOT MELTDOWN",0
+s_w11:  db "WHIRLWIND",0
+s_w12:  db "CRUSHER COLONY - HURRY!",0
+s_w13:  db "THE NODE MAZE",0
+s_w14:  db "THE ZAPPER ARMY",0
+s_w15:  db "STAMPEDE!",0
+s_w16:  db "THE FINAL RIOT",0
 s_wmore: db "THEY'RE GETTING FASTER",0
 s_wave: db "WAVE ",0
 s_ready: db "GET READY",0
@@ -427,17 +441,20 @@ wave_setup:
         ld bc,NACT*ASZ+NSHOT*SSZ+NBLADE*BSZ-1
         ld (hl),0
         ldir
-        ld a,(wave)
-        dec a
-        cp 10
+        ld a,(wave)             ; waves 1-16 as designed, then 12-16 round
+        dec a                   ; and round, quicker every pass
+        ld c,0                  ; C = passes beyond wave 16
+        cp NWAVES
         jr c,.r
-        sub 10
-.m5:    cp 5
+        sub NWAVES
+.m5:    inc c
+        cp 5
         jr c,.m
         sub 5
         jr .m5
-.m:     add a,5
-.r:     ld l,a
+.m:     add a,NWAVES-5
+.r:     push bc
+        ld l,a
         ld h,0
         add hl,hl
         add hl,hl
@@ -447,17 +464,39 @@ wave_setup:
         ld de,w_heel
         ld bc,8
         ldir
-        ld a,(wave)             ; later waves: quicker heelers, more blades
-        cp 11
-        jr c,.nf
+        pop bc
+        ld a,(wave)             ; the zappers' sparks fly faster from wave 14
+        cp 14
+        ld a,64
+        jr c,$+4
+        ld a,80
+        ld b,c
+        inc b
+.bs:    dec b                   ; and 16 faster each pass, up to 160
+        jr z,.bd
+        add a,16
+        cp 160
+        jr c,.bs
+        ld a,160
+.bd:    ld (blade_spd),a
+        ld a,c                  ; each pass: stompers a step quicker (to 2),
+        or a                    ; zappers throw 8 frames sooner (to 20)
+        jr z,.nf
         ld a,(heel_per)
-        dec a
+        sub c
         cp 2
         jr nc,$+4
         ld a,2
+        jp p,$+5
+        ld a,2
         ld (heel_per),a
+        ld b,c
         ld a,(shear_gap)
-        sub 10
+.sg:    sub 8
+        cp 20
+        jr nc,$+4
+        ld a,20
+        djnz .sg
         ld (shear_gap),a
 .nf:    ld a,(wave)
         cp 6
