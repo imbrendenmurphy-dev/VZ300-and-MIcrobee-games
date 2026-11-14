@@ -621,6 +621,13 @@ far_dirty:
 ;  the floor's glyphs to phase A. Called at a page flip, in the vertical
 ;  blanking. Keeps every register; leaves the mapped block as it was.
 ; ---------------------------------------------------------------------
+x10:    add hl,hl               ; HL x 10 (10 bytes a glyph); uses BC
+        ld b,h
+        ld c,l
+        add hl,hl
+        add hl,hl
+        add hl,bc
+        ret
 floor_set:
         push bc
         push de
@@ -685,27 +692,21 @@ floor_set:
         djnz .sm                ; A = shift x k
 .s0:    ld l,a
         ld h,0
-        add hl,hl
-        add hl,hl
-        add hl,hl
+        call x10
         add hl,de
         ld (fs_tab),hl          ; this shift's k glyph images
         ; HL = the image for strip byte q, wrapping at fs_end
         ld a,(fs_k)
         ld l,a
         ld h,0
-        add hl,hl
-        add hl,hl
-        add hl,hl
+        call x10
         ld de,(fs_tab)
         add hl,de
         ld (fs_end),hl
         ld a,(fs_q)
         ld l,a
         ld h,0
-        add hl,hl
-        add hl,hl
-        add hl,hl
+        call x10
         add hl,de
         push hl
         ; DE = the first glyph's place in the PCG window, its bank selected
@@ -741,6 +742,8 @@ floor_set:
         ldi
         ldi
         ldi
+        ldi
+        ldi
         push de
         ld de,(fs_end)
         or a
@@ -751,7 +754,7 @@ floor_set:
 .nw:    add hl,de
 .w2:    pop de
         ld a,e                  ; the next glyph: 16 bytes on
-        add a,8
+        add a,6
         ld e,a
         jr nc,.d
         inc d

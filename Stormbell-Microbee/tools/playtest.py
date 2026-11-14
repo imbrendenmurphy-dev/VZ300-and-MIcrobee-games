@@ -51,7 +51,7 @@ class Game:
     def shot(self, tag):
         self.shots += 1
         p = self.out / ('%02d_%s.png' % (self.shots, tag))
-        self.pp.png(str(p), scale=2, aspect=1.2)
+        self.pp.png(str(p), scale=2, aspect=0.92)
         return p
 
     def in_fight(self):

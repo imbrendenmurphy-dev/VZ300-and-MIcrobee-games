@@ -30,15 +30,16 @@ import music
 BLK_FIGHT = 4            # fighters: blocks 4..9
 BLK_GFX = 10             # font, the title and the ending
 BLK_STG = 11             # the five stages: blocks 11..15
-SCN_BANK = 1             # PCG banks 1..6: the stage on show (768 glyphs)
-SCN_GLYPHS = 6 * 128
-HERO_BANK = 7            # PCG banks 7..10 (512 glyphs)
-HERO_BANKS = 4
-FOE_BANK = 11            # PCG banks 11..15 (640 glyphs)
-FOE_BANKS = 5
-PIC_SLOT = 0x1C00
+SCN_BANK = 1             # PCG banks 1..4: the stage on show (512 glyphs)
+SCN_GLYPHS = 4 * 128
+HERO_BANK = 5            # PCG banks 5..9 (640 glyphs)
+HERO_BANKS = 5
+FOE_BANK = 10            # PCG banks 10..15 (768 glyphs)
+FOE_BANKS = 6
+PIC_SLOT = 0x2000
+CELL = art.CELL              # lines a cell (10)
 FR_BASE = 0x0100         # frame records
-GL_BASE = 0x4000         # glyph records: 8 pattern bytes + 8 mask bytes
+GL_BASE = 0x4000         # glyph records: 10 pattern bytes + 10 mask bytes
 
 
 def dilate8(m):
@@ -51,7 +52,7 @@ def dilate8(m):
 
 
 def rowbytes(cell):
-    return bytes(int(sum(128 >> x for x in range(8) if cell[y, x])) for y in range(8))
+    return bytes(int(sum(128 >> x for x in range(8) if cell[y, x])) for y in range(CELL))
 
 
 def merge_glyphs(keys, uses, limit):
@@ -64,7 +65,7 @@ def merge_glyphs(keys, uses, limit):
     remap = list(range(n))
     if n <= limit:
         return remap, keys
-    bits = np.unpackbits(np.frombuffer(b''.join(k[:8] for k in keys), np.uint8).reshape(n, 8), axis=1).astype(np.int16)
+    bits = np.unpackbits(np.frombuffer(b''.join(k[:CELL] for k in keys), np.uint8).reshape(n, CELL), axis=1).astype(np.int16)
     alive = np.ones(n, bool)
     uses = np.array(uses, float)
     while alive.sum() > limit:
@@ -110,7 +111,7 @@ def pack_fighter(idx, f):
     for name, ink, col, jt in frs:
         mask = dilate8(ink)
         cc = F.cellcol(ink, col)
-        cells = ink.reshape(F.CH, 8, F.CW, 8).any(axis=(1, 3))
+        cells = ink.reshape(F.CH, CELL, F.CW, 8).any(axis=(1, 3))
         ys, xs = np.where(cells)
         x0, x1, y0, y1 = xs.min(), xs.max(), ys.min(), ys.max()
         w, h = x1 - x0 + 1, y1 - y0 + 1
@@ -120,7 +121,7 @@ def pack_fighter(idx, f):
                 if not cells[cy, cx]:
                     cl.append(None)
                     continue
-                key = rowbytes(ink[cy * 8:cy * 8 + 8, cx * 8:cx * 8 + 8]) + rowbytes(mask[cy * 8:cy * 8 + 8, cx * 8:cx * 8 + 8])
+                key = rowbytes(ink[cy * CELL:cy * CELL + CELL, cx * 8:cx * 8 + 8]) + rowbytes(mask[cy * CELL:cy * CELL + CELL, cx * 8:cx * 8 + 8])
                 if key not in glyphs:
                     glyphs[key] = len(glyphs)
                     uses.append(0)
@@ -167,8 +168,9 @@ def pack_fighter(idx, f):
         off += len(r)
     assert off <= GL_BASE
     for key, g in glyphs.items():
-        blk[GL_BASE + g * 16:GL_BASE + g * 16 + 16] = key
-    used = GL_BASE + len(glyphs) * 16
+        blk[GL_BASE + g * 2 * CELL:GL_BASE + (g + 1) * 2 * CELL] = key
+    used = GL_BASE + len(glyphs) * 2 * CELL
+    assert used <= 0x8000
     print('  %-8s %4d glyphs (room %d), frames %5d bytes, punch %2d px, kick %2d px, body %2d px' % (
         f.key, len(glyphs), limit, off - FR_BASE, info['punch'], info['kick'], front))
     return bytes(blk[:used]), dict(punch=info['punch'], kick=info['kick'], body=front)
@@ -186,7 +188,7 @@ def build_fighters():
 def build_gfx():
     """GFX0.BNK: the font (400h), then the title and the ending. A
     picture slot: codes, banks, colours (1000 each), the glyph count,
-    then 512 x 8 bytes of glyphs."""
+    then 512 x 10 bytes of glyphs."""
     blks = [bytearray(art.font_bytes())]
     for i, (name, fn) in enumerate([p for p in art.PICS if p[0] in ('title', 'ending')]):
         codes, banks, cols, gl, n = fn().pack(name)
@@ -209,7 +211,7 @@ def pack_stage(i):
     mid: the same for 8 rows x MIDW (rows 8..15)
     floor cells: the same for 8 rows x 40 (rows 16..23), never moving
     floor strips: per row k, first glyph (dw), 0, dw table; a table holds
-      8 shifts x k positions x 8 bytes
+      8 shifts x k positions x 10 bytes
     floor phases: 48 x 8 bytes, the pixel offset of each row's strip for
       each camera position mod 48 pixels (the floor tile at the feet)"""
     f, m = SG.STAGES[i]()
@@ -217,9 +219,9 @@ def pack_stage(i):
     mi, mc, mp = m.cells()
 
     def pat(ink, r, c):
-        cell = ink[r * 8:r * 8 + 8, c * 8:c * 8 + 8]
-        return bytes(int(sum(128 >> x for x in range(8) if cell[y, x])) for y in range(8))
-    glyphs = {bytes(8): 0}
+        cell = ink[r * CELL:r * CELL + CELL, c * 8:c * 8 + 8]
+        return bytes(int(sum(128 >> x for x in range(8) if cell[y, x])) for y in range(CELL))
+    glyphs = {bytes(CELL): 0}
     uses = [0]
     grid = []                       # (layer, row, col, glyph)
     for layer, ink, rows, w in (('f', fi, range(1, 8), SG.FARW), ('m', mi, range(8, 16), SG.MIDW)):
@@ -269,7 +271,7 @@ def pack_stage(i):
         tab = bytearray()
         for sh in range(8):
             for q in range(k):
-                for y in range(8):
+                for y in range(CELL):
                     v = 0
                     for b in range(8):
                         if st[y, (8 * q + sh + b) % P]:
@@ -292,13 +294,13 @@ def pack_stage(i):
             P = 8 * SG.KS[r]
             phases.append(int(round(ph * P / T_FLOOR)) % P)
     # the glyph patterns, floor glyphs at phase 0
-    gl = bytearray(total * 8)
+    gl = bytearray(total * CELL)
     for k_, idx in zip(keys, range(n)):
-        gl[idx * 8:idx * 8 + 8] = k_
+        gl[idx * CELL:(idx + 1) * CELL] = k_
     for r in range(SG.FLOOR_ROWS):
         k = SG.KS[r]
         g = int.from_bytes(desc[r * 6 + 1:r * 6 + 3], 'little')
-        gl[g * 8:(g + k) * 8] = tables_[r][:k * 8]
+        gl[g * CELL:(g + k) * CELL] = tables_[r][:k * CELL]
     # lay it out
     blk = bytearray(0x20)
     def put(data):

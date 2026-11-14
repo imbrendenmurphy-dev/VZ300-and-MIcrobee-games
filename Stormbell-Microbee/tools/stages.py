@@ -70,18 +70,22 @@ class Floor:
         self.seed = seed
 
     def strip(self, r):
-        """-> 8 x P bool for cell row 16 + r"""
+        """-> CELL x P bool for cell row 16 + r (y in 200-line drawing
+        coordinates, as the seams are)"""
         k = KS[r]
         P = k * 8
         y0 = 128 + r * 8
-        out = np.zeros((8, P), bool)
+        out = np.zeros((art.CELL, P), bool)
         rnd = np.random.RandomState(self.seed * 31 + r)
-        noise = rnd.rand(8, P)
-        for ly in range(8):
-            y = y0 + ly
+        noise = rnd.rand(art.CELL, P)
+        seen = set()
+        for ly in range(art.CELL):
+            y = y0 + ly * 8 // art.CELL
+            fresh = y not in seen       # a drawing line can cover two screen lines
+            seen.add(y)
             # which tile row (depth band) this line is in
             band = sum(1 for s in self.seams if y >= s)
-            on_seam = y in self.seams
+            on_seam = y in self.seams and fresh
             for x in range(P):
                 v = False
                 if self.kind == 'flags':
@@ -377,18 +381,19 @@ def preview(path):
     """the five stages at the duel camera, floor at phase 0 (for the eye)"""
     from PIL import Image
     pal = np.array(art.PAL, np.uint8)
+    C = art.CELL
     ims = []
     for i, fn in enumerate(STAGES):
         f, m = fn()
         fi, fc, fp = f.cells()
         mi, mc, mp = m.cells()
-        img = np.zeros((200, 320, 3), np.uint8)
+        img = np.zeros((art.LINES, 320, 3), np.uint8)
         fo, mo = DUEL_C // 4, DUEL_C
         def put(ink, ci, cp, r0, r1, off):
             for r in range(r0, r1):
                 for c in range(40):
-                    sub = ink[r * 8:r * 8 + 8, (off + c) * 8:(off + c) * 8 + 8]
-                    img[r * 8:r * 8 + 8, c * 8:c * 8 + 8] = np.where(sub[:, :, None], pal[ci[r, off + c]], pal[cp[r, off + c]])
+                    sub = ink[r * C:r * C + C, (off + c) * 8:(off + c) * 8 + 8]
+                    img[r * C:r * C + C, c * 8:c * 8 + 8] = np.where(sub[:, :, None], pal[ci[r, off + c]], pal[cp[r, off + c]])
         put(fi, fc, fp, 1, 8, fo)
         put(mi, mc, mp, 8, 16, mo)
         fl = stage_floor(i)
@@ -396,10 +401,10 @@ def preview(path):
             s = fl.strip(r)
             P = s.shape[1]
             for x in range(320):
-                img[128 + r * 8:136 + r * 8, x] = np.where(s[:, x % P][:, None], pal[fl.rows_ink[r]], pal[fl.rows_paper[r]])
+                img[(16 + r) * C:(17 + r) * C, x] = np.where(s[:, x % P][:, None], pal[fl.rows_ink[r]], pal[fl.rows_paper[r]])
         ims.append(img)
     sheet = np.concatenate([np.concatenate(ims[:2], 1), np.concatenate(ims[2:4], 1), np.concatenate([ims[4], np.zeros_like(ims[4])], 1)], 0)
-    Image.fromarray(sheet).resize((int(640 * 1.25 * 1.5), 600 * 3 // 2), Image.NEAREST).save(path)
+    Image.fromarray(sheet).resize((int(640 * 1.09 * 1.5), sheet.shape[0] * 3 // 2), Image.NEAREST).save(path)
 
 
 if __name__ == '__main__':

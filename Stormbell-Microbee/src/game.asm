@@ -24,7 +24,16 @@ vschk:  in a,(P_CRTCA)
         ld a,(flip_ask)
         or a
         jr z,.nf
-        ld a,(mid_pend)         ; the midground first, in its own blanking
+        ; a blanking (62 lines) holds one scenery copy or the flip: the
+        ; far layer, then the midground, then the flip
+        ld a,(far_pend)
+        or a
+        jr z,.nofar
+        xor a
+        ld (far_pend),a
+        call blit_far
+        jr .nf
+.nofar: ld a,(mid_pend)
         or a
         jr z,.flip
         xor a
@@ -33,15 +42,11 @@ vschk:  in a,(P_CRTCA)
         jr .nf
 .flip:  xor a
         ld (flip_ask),a
-        ld a,(far_pend)
-        or a
-        jr z,.nofar
-        xor a
-        ld (far_pend),a
-        call blit_far
-.nofar: ld a,(hidpage)
+        ld a,(hidpage)
         call show_page
         ld a,(fl_ask)           ; the floor slides with the page shown
+                                ; (done before the beam reaches it, 160
+                                ; lines down: it needn't fit the blanking)
         ld hl,fl_shown
         cp (hl)
         call nz,floor_set
@@ -56,7 +61,8 @@ vschk:  in a,(P_CRTCA)
 ; wait for the next tick, playing sound meanwhile
 tick_wait:
         call sound_tick
-.w:     call vschk
+.w:     call pump
+        call vschk
         ld a,(fields)
         cp TICK_FIELDS
         jr c,.w
@@ -66,9 +72,34 @@ tick_wait:
         inc (hl)
         ret
 
+; a slice of sound (about 2.6 ms). Keeps HL.
+pump:   push hl
+        ld a,(flip_ask)
+        ld hl,mid_pend
+        or (hl)
+        ld hl,far_pend
+        or (hl)
+        jr z,.free
+        ; page work waits for the next blanking: the sound gives way the
+        ; moment it starts (the blanking is only 62 lines)
+        ld a,(vlast)
+        or a
+        jr nz,.free             ; this blanking is already dealt with
+        in a,(P_CRTCA)
+        and $20
+        jr nz,.x                ; one has just begun: vschk's turn
+        ld a,$20
+        jr .go
+.free:  xor a
+.go:    ld (watch),a
+        call sound_pump
+.x:     pop hl
+        ret
+
 ; wait until a page asked for has been shown
 flip_wait:
-.w:     call vschk
+.w:     call pump
+        call vschk
         ld a,(flip_ask)
         or a
         jr nz,.w
@@ -160,7 +191,7 @@ title:
         ld c,BMAGENTA
         call print_mid2
         call display_on
-        ld a,SFX_GONG
+        ld a,SFX_THUNDER
         call sfx
         ld hl,tune_title
         call play_music
@@ -307,6 +338,8 @@ duel_intro:
         ld (msg_t),a
         call take_new
 
+        call duel_dirty
+
 ; ---------------------------------------------------------------------
 fight_loop:
         call tick_wait
@@ -350,8 +383,19 @@ fight_loop:
         call print_mid2
         ld a,12
         ld (msg_t),a
-.nc:    call draw_frame
-        ; the end of the duel?
+.nc:    call draw_duel
+        ; a blow that lands holds the picture a moment
+        ld a,(hitstop)
+        or a
+        jr z,.nh
+        ld b,a
+        xor a
+        ld (hitstop),a
+.hs:    push bc
+        call tick_wait
+        pop bc
+        djnz .hs
+.nh:    ; the end of the duel?
         ld a,(foe+F_ST)
         cp ST_DOWN
         jr nz,.nw
@@ -360,7 +404,7 @@ fight_loop:
         jp nc,won
 .nw:    ld a,(hero+F_ST)
         cp ST_DOWN
-        jr nz,fight_loop
+        jp nz,fight_loop
         ld a,(hero+F_T)
         cp 20
         jp nc,lost
@@ -583,6 +627,53 @@ run_on:
         ret
 
 ; render: the hero under, the foe over, unless the hero is attacking
+; the duel's frame: while both fighters hold their poses the page on
+; show is already right, so nothing is drawn and the whole tick is free
+; for sound
+draw_duel:
+        call flip_wait
+        ld a,(hero+F_ST)
+        cp ST_ATK
+        ld a,0
+        jr nz,.t
+        inc a
+.t:     ld (sig_now+4),a
+        ld hl,(hero+F_X)        ; column and frame
+        ld (sig_now),hl
+        ld hl,(foe+F_X)
+        ld (sig_now+2),hl
+        ld hl,sig0
+        ld a,(vispage)
+        or a
+        jr z,.p
+        ld hl,sig1
+.p:     ld de,sig_now
+        ld b,5
+.c:     ld a,(de)
+        cp (hl)
+        jr nz,.draw
+        inc hl
+        inc de
+        djnz .c
+        ret
+.draw:  ld de,sig1              ; the hidden page gets it
+        ld a,(vispage)
+        or a
+        jr z,.h
+        ld de,sig0
+.h:     ld hl,sig_now
+        ld bc,5
+        ldir
+        jr draw_frame
+fight_resume:
+        call duel_dirty
+        jp fight_loop
+duel_dirty:
+        ld a,$FF
+        ld (sig0+4),a
+        ld (sig1+4),a
+        ret
+
 draw_frame:
         ld a,(hero+F_ST)
         cp ST_ATK
@@ -765,7 +856,7 @@ pause:
         jr z,.w
         call rub_messages
         call resume_music
-        jp fight_loop
+        jp fight_resume
 
 quit_ask:
         call take_new
@@ -780,7 +871,7 @@ quit_ask:
         and 1 << PB_START | 1 << PB_PAUSE | 1 << PB_PUNCH | 1 << PB_KICK | 1 << PB_FWD | 1 << PB_BACK
         jr z,.w
         call rub_messages
-        jp fight_loop
+        jp fight_resume
 
 won:
         call stop_music
@@ -888,9 +979,9 @@ ending:
         ld c,BMAGENTA
         call print_mid2
         call display_on
-        ld a,SFX_GONG
+        ld a,SFX_TOLL
         call sfx
-        ld a,50
+        ld a,70
         call pause_ticks
         ld hl,tune_end
         call play_music

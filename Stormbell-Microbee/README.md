@@ -32,7 +32,7 @@ Boot it, and at the `A>` prompt type:
 STORM
 ```
 
-and press RETURN. The game takes about 12 seconds to load.
+and press RETURN. The game takes about 15 seconds to load.
 
 Needs a **Microbee Premium Plus** (or a Premium with 1 MB RAM and 32K PCG RAM)
 and a colour monitor. It also reads on an amber monochrome monitor: the
@@ -84,6 +84,38 @@ road.
 | 4. The Dojo Hall | **Captain Gorse** | Closes behind his guard and punches straight back at any blow he blocks. | Make him attack first. Never swing into his guard. |
 | 5. The Bell Tower | **Lord Currawong** | The Storm Lord: all of the above, faster, with feints. | Watch, wait, and punish only what you're sure of. |
 
+## What's new in 1.2
+
+* **A full PAL picture.** The game now uses the 40 × 25 table from MODES
+  with **8 × 10 cells: 320 × 250**, which fills a PAL screen. It's the
+  tallest picture that still leaves room for two screen pages in the 2K of
+  screen RAM. The 6545 table is 31 rows of 10 lines plus 2 (312 lines),
+  with the 40-column dot clock. Every glyph, font letter and floor strip
+  is now 10 lines tall.
+* **Taller fighters.** The fighters are drawn 15% taller to fill the
+  10-line band. That also fixes their shape: they had been drawn for
+  pixels wider than the 40-column mode really has, so they looked squat.
+  Wren now has PCG banks 5–9, the opponent banks 10–15 and the scenery
+  banks 1–4, so nothing had to be simplified to fit.
+* **A new sound engine.** Sound now plays continuously between frames, in
+  2.6 ms slices, instead of one short burst a tick. There are two
+  generators: a noise/tone toggler swept slice by slice, and a two-voice
+  pulse mixer with fading voices. They give swishes for punches and kicks,
+  a crack and thump when a blow lands (heavier for a kick), a dry wooden
+  knock on a block, a whoosh and a boom for a fall, footfalls on the road,
+  a struck gong and duel bell that ring and fade, thunder on the title,
+  and three tolls of the storm bell at the end. The title and ending tunes
+  have a melody over a bass line. A blow that lands also holds the picture
+  for a moment (one tick for a punch, two for a kick).
+* **Sound gives way to the screen.** The blanking between pictures is now
+  only 62 lines (about 4 ms). So while a page flip or scenery copy is
+  waiting, the sound loops check the 6545 every few samples and stop the
+  moment the blanking starts. The road still runs at about 17 frames a
+  second, and duels at about 24. When neither fighter moves, the duel
+  frame isn't redrawn at all, which leaves the whole tick to the sound.
+* Listen: `docs/stormbell-sound-demo.wav` (recorded from the emulator's
+  speaker: the title, a stage 1 duel, then the bell tolling).
+
 ## What's new in 1.1
 
 * **The fighters stand like people.** Their legs used to be placed by
@@ -102,34 +134,32 @@ road.
 * Bramble shrugs off a blow sooner (a heavy man staggers less), so a
   button-masher can't hold him in a stagger.
 
-## Test results (v1.1, 13 Nov 2026)
+## Test results (v1.2, 14 Nov 2026)
 
 **Emulator** (`tools/emu`, Premium Plus model): `release/STORM.DS8` booted
-from its own boot sector to CP/M's `A>`, `DIR` listed the files, `STORM`
-loaded and showed the title. The scripted player (0.2 s reactions) then
-ran each road and played straight through from the title to the ending
-with no retries:
+from its own boot sector to CP/M's `A>`, `DIR` listed the files, and
+`STORM` set up the 320 × 250 display about 15 seconds after it was typed.
+The scripted player (0.2 s reactions) then ran each road and played from
+the title to the ending:
 
 | Stage | Opponent | Result | Time | Wren's health left |
 |---|---|---|---|---|
-| 1 | Bramble the Ox | won | 12 s | 12 / 12 |
-| 2 | Old Reed | won | 23 s | 3 / 12 |
-| 3 | Sparrow | won | 23 s | 1 / 12 |
-| 4 | Captain Gorse | won | 40 s | 11 / 12 |
-| 5 | Lord Currawong | won | 46 s | 1 / 12 |
+| 1 | Bramble the Ox | won | 13 s | 9 / 12 |
+| 2 | Old Reed | won | 15 s | 12 / 12 |
+| 3 | Sparrow | lost twice, then won | 21 s | 5 / 12 |
+| 4 | Captain Gorse | won | 19 s | 12 / 12 |
+| 5 | Lord Currawong | won | 41 s | 2 / 12 |
 
 Also checked:
 
-* Lord Currawong, a second duel started fresh at stage 5: won, 9 of 12
-  health left, 35 s. (The emulator runs are deterministic, so repeating a
-  duel with the same inputs replays it exactly.)
-* Bramble, 3 more duels: won 3 of 3 with 11 of 12 health left on average.
-  A button-masher (holds advance, hammers punch and kick) beats him only
-  2 times in 4, with 4 to 6 health left, and loses to Old Reed every time.
+* Sparrow, 3 more duels: won 2 of 3. She is the stiffest test of guarding.
+* A button-masher (holds advance, hammers punch and kick) beats Bramble
+  only 1 time in 4.
 * Standing still loses. "YOU HAVE FALLEN", then **SPACE** restarts the
   same duel at full health.
-* Frame rates: the duel runs at a steady 24 to 25 frames a second, the
-  run along the road at about 17.
+* Frame rates: duels about 24 frames a second, the road about 17.
+* Every sound effect recorded from the speaker: no silence longer than
+  15 ms inside any of them.
 
 ![The road](screenshots/10-the-road.png) ![Running the road, in real time](screenshots/10-running.gif)
 
@@ -188,12 +218,12 @@ that mashing loses.
 
 ## What's inside
 
-* **The 40-column mode:** 40 × 25 cells of 8 × 8, 320 × 200, set up as
-  FRILLSEEKER proved on a real Premium Plus (the 40-column dot clock and
-  BPM's MODES40 6545 table).
+* **The 40-column mode:** 40 × 25 cells of 8 × 10, 320 × 250, a full PAL
+  picture: the 40-column dot clock, and the 40 × 25 8 × 10 table from
+  BPM's MODES test (R4 = 1Eh, R5 = 2, R7 = 1Ch, R9 = R11 = 9).
 * **Fighters drawn by pointing cells at glyphs.** Every frame of every
-  fighter is pre-cut into 8 × 8 glyphs held in the PCG (Wren in banks 7–10,
-  the current opponent in banks 11–15). Drawing a fighter is just setting
+  fighter is pre-cut into 8 × 10 glyphs held in the PCG (Wren in banks 5–9,
+  the current opponent in banks 10–15). Drawing a fighter is just setting
   each cell's glyph, bank and ink. Nothing is erased and no pixels are moved.
 * **No colour clash on the fighters.** A fighter's cell takes the fighter's
   ink over a dark shade of the scenery's paper, so a fighter stands in a
@@ -215,17 +245,21 @@ that mashing loses.
   and midground rows are copied in the vertical blanking, so they never tear.
 * **The pictures and stages** are painted in full colour with ordered
   dithering. Each cell is then cut down to the two colours it can show and
-  de-duplicated into glyphs: the title and ending into PCG banks 1–4, and
-  each stage's scenery into banks 1–6.
+  de-duplicated into glyphs: the title and ending, or each stage's
+  scenery, into PCG banks 1–4.
 * **The fighters are puppets**, posed by joint angles the way Tiger Gate
   draws its fighters, so knees bend the way knees do. One skeleton, twenty
   poses (including a four-frame run), six builds:
   every move reads the same whoever throws it, and the silhouettes (the
   headband, the bald brute, the straw hat, the hood, the crested helmet,
   the horned mask and cape) tell them apart.
-* **Sound** is the speaker, a few milliseconds of tone or noise a tick:
-  thumps, whooshes, a clack on a block, a gong, and slow spaced tunes
-  ("dink, dink-dink") that leave the game time to run.
+* **Sound** is the speaker, played continuously in 2.6 ms slices whenever
+  the game is waiting for its next frame. A toggler flips the speaker
+  every P + (random AND M) counts, and sweeping P and M slice by slice
+  makes noise, grit and tone. A two-voice pulse mixer plays the music and
+  the ringing gong and bells, its voices fading by narrowing their pulses.
+  `tools/soundtest.py` records every effect from the emulator's speaker as
+  a WAV with a spectrogram.
 
 Source: `src/` (Z80 assembly) and `tools/` (Python). The Z80 core in
 `tools/emu` is third-party code used only for testing; see the repository

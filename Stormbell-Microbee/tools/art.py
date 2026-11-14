@@ -1,5 +1,5 @@
 """STORMBELL pictures: the 8 x 8 font, the HUD glyphs, the five stages,
-the title and the ending. Each picture is drawn here as 320 x 200 ink
+the title and the ending. Each picture is painted here on 320 x 250 ink
 pixels with an ink and a paper colour for every 8 x 8 cell, then cut
 into cells and de-duplicated into at most 128 glyphs (one PCG bank).
 
@@ -52,9 +52,16 @@ HUD = [
     ["........", "........", "........", "########", "........", "........", "........", "........"],   # f rule
     ["#.#.#.#.", ".#.#.#.#", "#.#.#.#.", ".#.#.#.#", "#.#.#.#.", ".#.#.#.#", "#.#.#.#.", ".#.#.#.#"],   # g shade
 ]
+CELL = 10                       # lines a cell: 40 x 25 cells of 8 x 10
+LINES = 25 * CELL               # 320 x 250, a full PAL picture
 N_FONT = 64
 N_HUD = len(HUD)
 POOL0 = 96                      # glyphs 96..127 of bank 0: the overlap pool
+
+
+def tall(rows8):
+    """8 drawn rows -> the 10 lines of a cell (rows 1 and 5 doubled)"""
+    return [rows8[i] for i in (0, 1, 1, 2, 3, 4, 5, 5, 6, 7)]
 
 
 def font_bytes():
@@ -68,11 +75,12 @@ def font_bytes():
                 for x, ch in enumerate(r):
                     if ch == '1':
                         v |= 0x40 >> x
-                rows[j] = v
-        out += bytes(rows)
+                rows[j + 1] = v
+        # letters: 7 drawn rows become 9 (the second and fifth doubled)
+        out += bytes([rows[i] for i in (0, 1, 2, 2, 3, 4, 5, 5, 6, 7)])
     for g in HUD:
-        out += bytes(sum(128 >> x for x, ch in enumerate(r) if ch == '#') for r in g)
-    out += bytes(128 * 8 - len(out))
+        out += bytes(tall([sum(128 >> x for x, ch in enumerate(r) if ch == '#') for r in g]))
+    out += bytes(128 * CELL - len(out))
     return bytes(out)
 
 
@@ -91,23 +99,29 @@ PIC_GLYPHS = 512
 class Pic:
     def __init__(self, bg=BLACK, W=320):
         self.W = W
-        self.c = np.full((200, W), bg, np.uint8)
-        self.y, self.x = np.mgrid[0:200, 0:W]
-        self.bay = BAYER[self.y & 3, self.x & 3]
+        # the picture is drawn in 200-line coordinates (as it was first
+        # designed) and painted on 250 lines: y is the drawing line each
+        # screen line belongs to, yf the same without rounding (for
+        # smooth edges), py the screen line itself (for the dithers)
+        self.c = np.full((LINES, W), bg, np.uint8)
+        self.py, self.x = np.mgrid[0:LINES, 0:W]
+        self.y = self.py * 200 // LINES
+        self.yf = (self.py + 0.5) * 200.0 / LINES - 0.5
+        self.bay = BAYER[self.py & 3, self.x & 3]
         self.fix = {}                          # (row, col) -> (ink, paper) forced
 
     # -- masks
     def rect(self, x0, y0, x1, y1):
-        return (self.x >= x0) & (self.x < x1) & (self.y >= y0) & (self.y < y1)
+        return (self.x >= x0) & (self.x < x1) & (self.yf + 0.5 >= y0) & (self.yf + 0.5 < y1)
 
     def disc(self, cx, cy, rx, ry=None):
         ry = rx if ry is None else ry
-        return ((self.x + 0.5 - cx) / rx) ** 2 + ((self.y + 0.5 - cy) / ry) ** 2 <= 1.0
+        return ((self.x + 0.5 - cx) / rx) ** 2 + ((self.yf + 0.5 - cy) / ry) ** 2 <= 1.0
 
     def poly(self, pts):
         inside = np.zeros(self.x.shape, bool)
         n = len(pts)
-        px, py = self.x + 0.5, self.y + 0.5
+        px, py = self.x + 0.5, self.yf + 0.5
         for i in range(n):
             x0, y0 = pts[i]
             x1, y1 = pts[(i + 1) % n]
@@ -119,8 +133,8 @@ class Pic:
     def line(self, x0, y0, x1, y1, w=1.0):
         dx, dy = x1 - x0, y1 - y0
         L2 = dx * dx + dy * dy or 1e-6
-        t = np.clip(((self.x + 0.5 - x0) * dx + (self.y + 0.5 - y0) * dy) / L2, 0, 1)
-        return np.hypot(self.x + 0.5 - (x0 + t * dx), self.y + 0.5 - (y0 + t * dy)) <= w / 2
+        t = np.clip(((self.x + 0.5 - x0) * dx + (self.yf + 0.5 - y0) * dy) / L2, 0, 1)
+        return np.hypot(self.x + 0.5 - (x0 + t * dx), self.yf + 0.5 - (y0 + t * dy)) <= w / 2
 
     def profile(self, base, amp, seed, waves=((31, .5), (13, .3), (7, .2))):
         """y of a ridge line at each x"""
@@ -180,7 +194,7 @@ class Pic:
         pal = np.array(PAL, float)
         for cy in range(25):
             for cx in range(nc):
-                blk = self.c[cy * 8:cy * 8 + 8, cx * 8:cx * 8 + 8]
+                blk = self.c[cy * CELL:cy * CELL + CELL, cx * 8:cx * 8 + 8]
                 cnt = np.bincount(blk.ravel(), minlength=16)
                 order = np.argsort(-cnt, kind='stable')
                 a, b = int(order[0]), int(order[1])
@@ -189,7 +203,7 @@ class Pic:
                 elif cnt[b] == 0:
                     if a in LIGHT:
                         ci[cy, cx], cp[cy, cx] = a, BLACK
-                        ink[cy * 8:cy * 8 + 8, cx * 8:cx * 8 + 8] = True
+                        ink[cy * CELL:cy * CELL + CELL, cx * 8:cx * 8 + 8] = True
                     else:
                         ci[cy, cx], cp[cy, cx] = WHITE, a
                     continue
@@ -199,7 +213,7 @@ class Pic:
                 da = ((pal[blk] - pal[a]) ** 2).sum(-1)
                 db = ((pal[blk] - pal[b]) ** 2).sum(-1)
                 m = (blk == a) | ((blk != b) & (da <= db))
-                ink[cy * 8:cy * 8 + 8, cx * 8:cx * 8 + 8] = m
+                ink[cy * CELL:cy * CELL + CELL, cx * 8:cx * 8 + 8] = m
                 ci[cy, cx], cp[cy, cx] = a, b
         return ink, ci, cp
 
@@ -208,20 +222,20 @@ class Pic:
             return np.array(PAL, np.uint8)[self.c]
         ink, ci, cp = self.cells()
         pal = np.array(PAL, np.uint8)
-        fg = pal[np.repeat(np.repeat(ci, 8, 0), 8, 1)]
-        bg = pal[np.repeat(np.repeat(cp, 8, 0), 8, 1)]
+        fg = pal[np.repeat(np.repeat(ci, CELL, 0), 8, 1)]
+        bg = pal[np.repeat(np.repeat(cp, CELL, 0), 8, 1)]
         return np.where(ink[:, :, None], fg, bg)
 
     def pack(self, name='', limit=PIC_GLYPHS):
-        """-> 1000 codes, 1000 banks (1..4), 1000 colours, 4096 bytes of
+        """-> 1000 codes, 1000 banks (1..4), 1000 colours, 5120 bytes of
         glyphs, the number used; glyph 0 is blank"""
         ink, ci, cp = self.cells()
-        glyphs = {bytes(8): 0}
+        glyphs = {bytes(CELL): 0}
         codes, banks, cols = bytearray(), bytearray(), bytearray()
         for cy in range(25):
             for cx in range(40):
-                cell = ink[cy * 8:cy * 8 + 8, cx * 8:cx * 8 + 8]
-                pat = bytes(int(sum(128 >> x for x in range(8) if cell[y, x])) for y in range(8))
+                cell = ink[cy * CELL:cy * CELL + CELL, cx * 8:cx * 8 + 8]
+                pat = bytes(int(sum(128 >> x for x in range(8) if cell[y, x])) for y in range(CELL))
                 if pat not in glyphs:
                     glyphs[pat] = len(glyphs)
                 g = glyphs[pat]
@@ -229,9 +243,9 @@ class Pic:
                 banks.append(1 + (g >> 7))
                 cols.append((int(cp[cy, cx]) << 4) | int(ci[cy, cx]))
         assert len(glyphs) <= limit, '%s: %d glyphs' % (name, len(glyphs))
-        g = bytearray(limit * 8)
+        g = bytearray(limit * CELL)
         for pat, i in glyphs.items():
-            g[i * 8:i * 8 + 8] = pat
+            g[i * CELL:i * CELL + CELL] = pat
         return bytes(codes), bytes(banks), bytes(cols), bytes(g), len(glyphs)
 
 
@@ -665,7 +679,7 @@ def preview(path, pics=None, quant=True):
         ims.append(np.zeros_like(ims[0]))
     rows = [np.concatenate(ims[i:i + 2], 1) for i in range(0, len(ims), 2)]
     sheet = np.concatenate(rows, 0)
-    Image.fromarray(sheet).resize((int(sheet.shape[1] * 1.25 * 1.5), sheet.shape[0] * 3 // 2), Image.NEAREST).save(path)
+    Image.fromarray(sheet).resize((int(sheet.shape[1] * 1.09 * 1.5), sheet.shape[0] * 3 // 2), Image.NEAREST).save(path)
 
 
 if __name__ == '__main__':
