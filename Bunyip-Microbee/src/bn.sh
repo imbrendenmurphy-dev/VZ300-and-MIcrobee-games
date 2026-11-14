@@ -7,6 +7,7 @@ mkdir -p build
 python3 tools/gen.py build >/dev/null
 python3 tools/art.py build
 python3 tools/zones.py build
+python3 tools/front.py build
 python3 tools/zasm.py src/main.asm -o build/BN.BIN -l build/main.lst -s build/main.sym
 (cd src && python3 ../tools/zasm_sj.py loader.asm --sym=../build/loader.sym)
 python3 tools/build_disk.py bunyip

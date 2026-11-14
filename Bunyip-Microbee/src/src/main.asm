@@ -18,6 +18,7 @@
         include "../build/tabsym.inc"
         include "../build/artsym.inc"
         include "../build/zonesym.inc"
+        include "../build/frontsym.inc"
 
 PORT_PIOBC equ 03h
 LEVERS  equ ZH+(Z_LEVERS-400h)
@@ -25,7 +26,7 @@ GATES   equ ZH+(Z_GATES-400h)
 ZINKS   equ ZH+(Z_INKS-400h)
 ZKINDS  equ ZH+(Z_KINDS-400h)
 SOLID   equ MAP+1C00h       ; 1 where scenery blocks the cell (block 1)
-ZHN     equ 2A0h            ; the header up to the end of the intro text
+ZHN     equ 2C8h            ; the header up to the end of the textures
 
 ; --------------------------------------------------------------------------
 start:  di
@@ -67,19 +68,6 @@ start:  di
         ld a,l
         cp 52
         jr nz,.rw
-        ld hl,C10               ; code * 10
-        ld de,0
-.c10    ld (hl),e
-        inc h
-        ld (hl),d
-        dec h
-        ex de,hl
-        ld bc,10
-        add hl,bc
-        ex de,hl
-        inc l
-        bit 7,l
-        jr z,.c10
         call init_video
         ld bc,0010h             ; all 16 PCG banks
         call upload_pcg
@@ -87,17 +75,16 @@ start:  di
         ld b,CWHITE
         call cls
         ld hl,T_PREP
-        ld de,10*40+8
+        ld de,10*40+2
         ld b,CYELLOW
         call printc
-        call make_litc
         call prescale_all
         ld hl,1234h
         ld (seed),hl
 
 title:  ld a,(dbg_on)
         or a
-        call z,title_screen
+        call z,front
         ; a new game
         ld a,100
         ld (health),a
@@ -158,113 +145,8 @@ make_litc:
         jp tabblk
 
 NCOMMON equ IMG_RB_A          ; images 0.. NCOMMON-1 are in every zone
-T_PREP: db "PREPARING THE DEEP...",0
+T_PREP: db "SHARPENING THE PIXELS. BOTH OF THEM.",0
 
-; --------------------------------------------------------------------------
-; title_screen: the logo; SPACE starts, C swaps colour / amber mono
-; --------------------------------------------------------------------------
-title_screen:
-        call showpage0
-        ld bc,0D10h             ; banks 13..15: the logo
-        call upload_pcg
-        ld b,CWHITE
-        call cls
-        ld hl,LOGO
-        ld de,40                ; screen row 1
-        ld c,LOGO_H
-.r      ld b,LOGO_W
-.c      push bc
-        ld a,(hl)               ; code
-        inc hl
-        ld b,(hl)               ; bank (255 = blank)
-        inc hl
-        push hl
-        push de
-        ld hl,VRAM
-        add hl,de
-        inc b
-        jr nz,.g
-        ld a,128                ; blank
-        ld b,FONT_BANK+1
-.g      dec b
-        ld (hl),a
-        ld a,X1C_ATTR
-        out (PORT_1C),a
-        ld (hl),b
-        ld a,X1C
-        out (PORT_1C),a
-        pop de
-        pop hl
-        pop bc
-        push bc
-        ld a,c                  ; letters yellow, the Bunyip green
-        cp LOGO_H-5
-        ld b,CYELLOW
-        jr nc,.ink
-        ld b,CBGREEN
-.ink    push hl
-        ld hl,PCGWIN
-        add hl,de
-        ld a,40h
-        out (PORT_08),a
-        ld (hl),b
-        xor a
-        out (PORT_08),a
-        pop hl
-        pop bc
-        inc de
-        djnz .c
-        dec c
-        jr nz,.r
-        ld hl,T_T1
-        ld de,17*40+3
-        ld b,CBCYAN
-        call printc
-        ld hl,T_T2
-        ld de,19*40+4
-        ld b,CWHITE
-        call printc
-        ld hl,T_T3
-        ld de,21*40+1
-        ld b,CGREY
-        call printc
-        ld hl,T_T4
-        ld de,22*40+1
-        ld b,CGREY
-        call printc
-        ld hl,T_CRED
-        ld de,24*40+12
-        ld b,CYELLOW
-        call printc
-.mode   ld hl,T_COLOUR
-        ld a,(mono)
-        or a
-        jr z,.m
-        ld hl,T_MONO
-.m      ld de,19*40+26
-        ld b,CBGREEN
-        call printc
-.w      call wait_vb
-        call readkeys
-        ld a,KY_C
-        call edge
-        jr z,.s
-        ld a,(mono)
-        xor 1
-        ld (mono),a
-        jr .mode
-.s      ld a,KY_FIRE
-        call edge
-        jr z,.w
-        ret
-
-T_T1:   db "A FIRST-PERSON ADVENTURE DOWN UNDER",0
-T_T2:   db "SPACE: START   C:",0
-T_COLOUR: db "COLOUR    ",0
-T_MONO: db "AMBER MONO",0
-T_T3:   db "ARROWS/WASD WALK+TURN  Z X SIDESTEP",0
-T_T4:   db "SPACE ZAP E USE M MAP P PAUSE R WALLS",0
-T_CRED: db "VIBED BY BPM 2026",0
 
 ; --------------------------------------------------------------------------
 ; zone_load: zone (zone) from block 2: map, header, colours, things
@@ -309,8 +191,135 @@ zone_load:
         ld (bossdead),a
         ld (zdone),a
         ld (losn),a
+        call wallgen
         call colours
         jp to_start
+
+; --------------------------------------------------------------------------
+; wallgen: the zone's wall glyphs.  Banks 0-5 (above the horizon) and 6-11
+;   (below it, over the zone's floor) of the tileset in block 4 are made
+;   from six 8 x 10 textures: the zone's three (Z_TEX: lit wall, shaded
+;   wall, accent) and the door, gate and panel every zone shares.  Then
+;   they go to PCG RAM, and LITC (lit dots per glyph) is counted.
+; --------------------------------------------------------------------------
+wallgen:
+        ld a,BLK_PCG
+        call setblk
+        xor a
+        ld (wg_p),a
+        ld hl,0
+        ld (wg_t),hl
+        ld hl,NPAT*1280
+        ld (wg_b),hl
+.p      ld a,(wg_p)
+        ld hl,ZH+(Z_TEX-400h)
+        cp 3
+        jr c,.pp
+        sub 3
+        ld hl,PAT_FIXED
+.pp     add a,a
+        ld e,a
+        add a,a
+        add a,a
+        add a,e                 ; * 10
+        ld e,a
+        ld d,0
+        add hl,de
+        ld (wg_pat),hl
+        ld b,0                  ; B = scanlines of wall in the left half
+.l      ld c,0                  ; C = ... the right half
+.r      push bc
+        ld d,0                  ; D = scanline
+.y      ld hl,(wg_pat)
+        ld a,d
+        add a,l
+        ld l,a
+        jr nc,.n1
+        inc h
+.n1     ld e,(hl)               ; E = the texture's line
+        ; above the horizon: wall up from the cell's bottom (y + n >= 10)
+        ld h,0
+        ld a,d
+        add a,b
+        cp CELLH
+        jr c,.tl
+        ld a,e
+        and 0F0h
+        ld h,a
+.tl     ld a,d
+        add a,c
+        cp CELLH
+        jr c,.tr
+        ld a,e
+        and 0Fh
+        or h
+        ld h,a
+.tr     ld a,h
+        ld hl,(wg_t)
+        ld (hl),a
+        inc hl
+        ld (wg_t),hl
+        ; below it: wall down from the cell's top (y < n), floor under it
+        ld hl,ZH+(Z_TEX-400h)+30
+        ld a,d
+        add a,l
+        ld l,a
+        jr nc,.n2
+        inc h
+.n2     ld l,(hl)               ; L = the floor's line
+        ld a,d
+        cp b
+        ld a,e
+        jr c,.bl
+        ld a,l
+.bl     and 0F0h
+        ld h,a
+        ld a,d
+        cp c
+        ld a,e
+        jr c,.br
+        ld a,l
+.br     and 0Fh
+        or h
+        ld hl,(wg_b)
+        ld (hl),a
+        inc hl
+        ld (wg_b),hl
+        inc d
+        ld a,d
+        cp CELLH
+        jr nz,.y
+        pop bc
+        inc c
+        ld a,c
+        cp CELLH+1
+        jr nz,.r
+        inc b
+        ld a,b
+        cp CELLH+1
+        jr nz,.l
+        ld de,1280-1210         ; on to the next bank
+        ld hl,(wg_t)
+        add hl,de
+        ld (wg_t),hl
+        ld hl,(wg_b)
+        add hl,de
+        ld (wg_b),hl
+        ld hl,wg_p
+        inc (hl)
+        ld a,(hl)
+        cp NPAT
+        jp nz,.p
+        ld bc,000Ch             ; banks 0..11 to PCG RAM
+        call upload_pcg
+        jp make_litc
+
+wg_p:   db 0
+wg_t:   dw 0
+wg_b:   dw 0
+wg_pat: dw 0
+; texture for each kind of wall cell (0: the wall's own, lit or shaded face)
+TPAT:   db 0,0,0,2,2,3,3,3,3,5,2,5,4,0,4,2
 
 ; to_start: the player at the zone's start
 to_start:
@@ -371,15 +380,24 @@ colours:
         pop hl
         ld (hl),a               ; colour ink
         inc h
+        push hl
         ld a,c
-        and 3
-        ld (hl),a               ; colour pattern = band
+        rrca
+        rrca
+        rrca
+        and 15
+        ld e,a
+        ld d,0
+        ld hl,TPAT
+        add hl,de
+        ld a,(hl)
+        pop hl
+        or a
+        jr nz,.p
+        ld a,b                  ; plain walls: lit or shaded face
+.p      ld (hl),a               ; the texture, in colour
         set 7,l
-        add a,b
-        cp 4
-        jr c,.p
-        ld a,3
-.p      ld (hl),a               ; mono pattern: the faces differ by dither
+        ld (hl),a               ; ... and in mono
         dec h
         ld (hl),CWHITE          ; mono ink
         res 7,l
@@ -433,7 +451,7 @@ zone_intro:
         ld b,CBGREEN
         call printc
         ld hl,ZH+(Z_INTRO-400h)
-        ld de,8*40+4
+        ld de,8*40+2
         ld c,4
 .l      push bc
         push hl
@@ -456,12 +474,12 @@ zone_intro:
         call printc
         call prescale_zone
         ld hl,T_ENTER
-        ld de,20*40+11
+        ld de,20*40+7
         ld b,CYELLOW
         call printc
         jp wait_space
 
-T_ENTER: db "PRESS SPACE TO ENTER",0
+T_ENTER: db "PRESS SPACE. DEEP BREATH.",0
 
 ; wait_space: until SPACE is pressed (after it is let go)
 wait_space:
@@ -521,7 +539,7 @@ zone_clear:
         ld b,CYELLOW
         call prnum
         ld hl,T_ON
-        ld de,20*40+10
+        ld de,20*40+6
         ld b,CYELLOW
         call printc
         jp wait_space
@@ -560,19 +578,19 @@ stat:   push af
         ld b,CWHITE
         jp prnum
 
-T_CLEAR: db "CLEARED!",0
+T_CLEAR: db "SURVIVED!",0
 T_CREAT: db "CREATURES",0
 T_OPALS: db "OPALS",0
 T_SECR:  db "SECRETS",0
 T_OF:    db " OF ",0
-T_ON:    db "PRESS SPACE TO GO ON",0
+T_ON:    db "PRESS SPACE. IT GETS WORSE.",0
 
 victory:
         call showpage0
         ld b,CWHITE
         call cls
         ld hl,T_V1
-        ld de,4*40+7
+        ld de,4*40+4
         ld b,CYELLOW
         call printc
         ld hl,T_V2
@@ -598,15 +616,16 @@ victory:
         ld b,CBGREEN
         call printc
         ld hl,T_ON
-        ld de,22*40+10
+        ld de,22*40+6
         ld b,CGREY
         call printc
         jp wait_space
 
-T_V1:   db "THE BUNYIP SLEEPS AGAIN",0
-T_V2:   db "THE BLACK WATER STILLS. THE FOUR",0
-T_V3:   db "GUARDIANS ARE GONE AND THE DEEP",0
-T_V4:   db "IS QUIET. YOU CLIMB TO THE SUN.",0
+T_CRED: db "VIBED BY BPM 2026",0
+T_V1:   db "THE BUNYIP IS HAVING A LIE DOWN",0
+T_V2:   db "THE BLACK WATER STILLS. THE SHIRE",0
+T_V3:   db "IS SAFE, THE OPALS ARE BACK AND",0
+T_V4:   db "THE COUNCIL OWES YOU A NEW PIE.",0
 
 ; --------------------------------------------------------------------------
 ; play: the zone, until its exit
@@ -675,83 +694,55 @@ P_flip: call flip
 
 ; draw_gun: the zapper, 4 x 3 font glyphs at the bottom of the hidden page
 draw_gun:
-        ld hl,VRAM+20*40+18
+        ld hl,VRAM+19*40+17
         ld a,(page)
         or a
         jr z,.p
-        ld hl,VRAM+400h+20*40+18
-.p      ld a,(gun_fire)
-        or a
-        ld a,GUN_CODE
+        ld hl,VRAM+400h+19*40+17
+.p      ld de,GUNMAP
         ld c,CGREY
-        jr nz,.fi
-        ld de,(pwrt)            ; powered up: a yellow zapper
-        inc e
-        dec e
-        jr nz,.py
-        inc d
-        dec d
-        jr z,.f
-.py     ld c,CYELLOW
-        jr .f
-.fi
-        ld a,GUN_CODE+12
+        ld a,(gun_fire)
+        or a
+        jr z,.nf
+        ld de,GUNMAP+24
         ld c,CYELLOW
-.f      ld b,a
-        ld a,(mono)
+        jr .f
+.nf     ld a,(pwrt)             ; powered up: a yellow zapper
+        ld b,a
+        ld a,(pwrt+1)
+        or b
+        jr z,.f
+        ld c,CYELLOW
+.f      ld a,(mono)
         or a
         jr z,.m
         ld c,CWHITE
-.m      ld de,40-4
-        push hl
-        ld a,3
-.r      push af
-        ld a,b
+.m      ld b,4
+.r      push bc
+        ld b,6
+.c      ld a,(de)
+        inc de
+        or a
+        jr z,.s                 ; not part of the zapper: the view shows
         ld (hl),a
-        inc hl
-        inc a
-        ld (hl),a
-        inc hl
-        inc a
-        ld (hl),a
-        inc hl
-        inc a
-        ld (hl),a
-        inc a
-        ld b,a
-        add hl,de
-        inc hl
-        pop af
-        dec a
-        jr nz,.r
-        pop hl
-        push hl
         ld a,X1C_ATTR
         out (PORT_1C),a
-        ld a,FONT_BANK
-        call .fill
+        ld (hl),FONT_BANK
         ld a,X1C
         out (PORT_1C),a
-        pop hl
-        set 3,h                 ; colour RAM
+        set 3,h
         ld a,40h
         out (PORT_08),a
-        ld a,c
-        call .fill
+        ld (hl),c
         xor a
         out (PORT_08),a
-        ret
-.fill   ld b,3
-.fr     ld (hl),a
-        inc hl
-        ld (hl),a
-        inc hl
-        ld (hl),a
-        inc hl
-        ld (hl),a
-        add hl,de
-        inc hl
-        djnz .fr
+        res 3,h
+.s      inc hl
+        djnz .c
+        ld bc,40-6
+        add hl,bc
+        pop bc
+        djnz .r
         ret
 
 ; view_reset: empty 3D view on both pages, no sprite cells to put back
@@ -821,6 +812,7 @@ overcome:
         ld (hud_dirty),a
         ret
 
+        include "front.asm"
         include "engine.asm"
         include "sprite.asm"
         include "prescale.asm"

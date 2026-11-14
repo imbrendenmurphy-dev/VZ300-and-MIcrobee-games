@@ -67,6 +67,7 @@ static int disp_lines(void) { return crtc[6] * (crtc[9] + 1); }
 
 static u8 lowblk[32][0x8000];
 static int curblk = 2;        /* CP/M's lower block */
+static int strict_video = 0; static long strict_hits = 0;
 static int vidpos = 0;        /* 0 = F000, 1 = off, 2 = 8000 */
 static inline int vid_at(u16 a, u16 *o)
 {
@@ -81,13 +82,11 @@ static inline u8 mem_rd(u16 a)
     if (!vid_at(a, &vo)) return ram[a];
     a = 0xF000 + vo;
     if (!(a < 0xF800 && (port1c & 0x10))) wait_extra += vwait;
+    if (strict_video) return (u8)(rand() >> 5);   /* STRICT=1: no video memory reads back */
     if (a >= 0xF800) {
         u16 o = a - 0xF800;
         if (port08 & 0x40) return cram[o];
-        /* PCG RAM did not read back on the real Premium Plus (sprites drawn
-           over a read-back glyph came out on black), so neither does it here */
-        (void)o;
-        return 0;
+        return pram[(((port1c & 15) + 1) << 11) | o];
     }
     if (a >= 0xF000) {
         u16 o = a - 0xF000;
@@ -103,6 +102,9 @@ static inline void mem_wr(u16 a, u8 v)
     if (!vid_at(a, &vo)) { ram[a] = v; return; }
     a = 0xF000 + vo;
     if (!(a < 0xF800 && (port1c & 0x10))) wait_extra += vwait;
+    /* STRICT=1: a screen, attribute or colour write with a PCG bank still
+       selected in port 1C is treated as going astray */
+    if (strict_video && (port1c & 15) && (a < 0xF800 || (port08 & 0x40))) { v = (u8)(rand() >> 5); strict_hits++; }
     if (a >= 0xF800) {
         u16 o = a - 0xF800;
         if (port08 & 0x40) cram[o] = v;
@@ -707,6 +709,13 @@ int main(int argc, char **argv)
     static const u8 init_crtc[16] = {0x6b,0x40,0x51,0x37,0x12,0x09,0x10,0x12,0x48,0x0f,0x2f,0x0f,0,0,0,0};
     memcpy(crtc, init_crtc, 16);
     for (int b = 0; b < 32; b++) memset(lowblk[b], 0xE5, 0x8000);
+    if (getenv("STRICT")) strict_video = 1;
+    if (getenv("GARBAGE")) {     /* a real machine: nothing starts out tidy */
+        srand(atoi(getenv("GARBAGE")));
+        for (int b = 0; b < 32; b++) for (int i = 0; i < 0x8000; i++) lowblk[b][i] = rand() >> 4;
+        for (int i = 0; i < 0x10000; i++) ram[i] = rand() >> 4;
+        for (int i = 0x800; i < (int)sizeof pram; i++) pram[i] = rand() >> 4;
+    }
     size_t n = 0;
     if (upf) {
         /* as the loader leaves the machine: program at 8000h, RAM blocks filled,

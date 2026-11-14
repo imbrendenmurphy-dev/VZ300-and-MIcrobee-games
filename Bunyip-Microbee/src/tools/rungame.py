@@ -17,6 +17,7 @@ ap.add_argument('--mono-crt', action='store_true')
 ap.add_argument('--poke', action='append', default=[])
 ap.add_argument('--peek')
 ap.add_argument('--hist', action='store_true')
+ap.add_argument('--wav')
 ap.add_argument('--at', help='zone,x,y,angle: start there (skips the screens)')
 a = ap.parse_args()
 
@@ -33,6 +34,7 @@ cmd = [os.path.join(B, 'beemu'), '-up', os.path.join(B, 'BN.BIN'), '-sym', os.pa
        '-keys', a.keys, '-prof', prof, '-vwait', '4']
 if a.mono_crt: cmd.append('-mono')
 if a.hist: cmd.append('-hist')
+if a.wav: cmd += ['-wav', a.wav]
 if a.at:
     S = {l.split()[1]: int(l.split()[0], 16) for l in open(os.path.join(B, 'main.sym'))}
     z, x, y, ang = [int(v, 0) for v in a.at.split(',')]

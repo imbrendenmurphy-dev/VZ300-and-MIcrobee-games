@@ -69,10 +69,15 @@ ZONES = [
  dict(
   name='SANDSTONE GALLERY',
   intro=['THE BILLABONG HAS DRAINED INTO',
-         'OLD SANDSTONE HALLS. REDBACKS',
-         'NEST IN THE DARK. FIND THE GOLD',
-         'KEY BEHIND THE LEVER GATES.'],
+         'OLD SANDSTONE HALLS. THE REDBACKS',
+         'MOVED IN AT ONCE. THE GOLD KEY IS',
+         'BEHIND THE GATES. OF COURSE IT IS.'],
   hint='LEVERS SWING THE GATES. BUMP THEM.',
+  # sandstone blocks: lit face, shaded face, fluted pillars; a dusty floor
+  tex=([0x00, 0xFE, 0xFE, 0xFE, 0xFE, 0x00, 0xEF, 0xEF, 0xEF, 0xEF],
+       [0x00, 0xAA, 0x54, 0xAA, 0x54, 0x00, 0xAA, 0x45, 0xAA, 0x45],
+       [0xFF, 0x00, 0xDB, 0xDB, 0xDB, 0xDB, 0xDB, 0xDB, 0x00, 0xFF]),
+  floortex=[0x00, 0x00, 0x40, 0x00, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00],
   kinds=('REDBACK', 'FLYINGFOX', 'REDBACK', 'CANETOAD'),
   props=('URN', 'BRAZIER', 'BONES'),
   extras=[('m', 1, 1), ('n', 5, 6), ('n', 1, 6), ('m', 7, 1), ('m', 19, 1), ('n', 7, 6), ('n', 19, 6),
@@ -121,10 +126,15 @@ ZONES = [
  dict(
   name='MANGROVE TUNNELS',
   intro=['ROOTS HAVE TORN THE TUNNELS',
-         'APART. FLYING FOXES ROOST IN',
-         'THE GLOOM. THE BLUE KEY LIES',
+         'APART. DROP BEARS ARE A MYTH, SO',
+         'DO NOT LOOK UP. THE BLUE KEY IS',
          'PAST THREE GATES AND A MAZE.'],
   hint='SOME LEVERS SWING MORE THAN ONE GATE.',
+  # tangled roots, the same in shadow, hanging leaves; tufts of grass
+  tex=([0xB6, 0xB6, 0x6D, 0x6D, 0xDB, 0xDB, 0x6D, 0x6D, 0xB6, 0xB6],
+       [0x92, 0x92, 0x49, 0x49, 0x24, 0x24, 0x49, 0x49, 0x92, 0x92],
+       [0x18, 0x3C, 0x7E, 0xFF, 0x7E, 0x3C, 0x18, 0x81, 0xC3, 0x81]),
+  floortex=[0x00, 0x00, 0x20, 0x50, 0x00, 0x00, 0x00, 0x02, 0x05, 0x00],
   kinds=('FLYINGFOX', 'YOWIE', 'FLYINGFOX', 'DROPBEAR'),
   props=('STUMP', 'SHROOM', 'NEST'),
   extras=[('n', 5, 1), ('m', 1, 4), ('m', 5, 6), ('m', 7, 5), ('m', 13, 7), ('n', 12, 9), ('j', 13, 13),
@@ -171,11 +181,16 @@ ZONES = [
   ]),
  dict(
   name='OPAL MINES',
-  intro=['MINERS DUG TOO DEEP AND WOKE',
-         'THE YOWIES. THE TUNNELS TWIST',
-         'LIKE A WARREN. SOME WALLS ARE',
-         'NOT WHAT THEY SEEM. PRESS M.'],
+  intro=['THE MINERS DUG TOO DEEP, WOKE THE',
+         'YOWIES AND LEFT THEIR TNT LYING',
+         'ABOUT. SOME WALLS ARE NOT WHAT',
+         'THEY SEEM. NEITHER IS THE MAP (M).'],
   hint='PRESS M FOR THE MAP. TRY THE WALLS.',
+  # cracked rock, the same in shadow, timber props; gravel
+  tex=([0x00, 0xFB, 0xFB, 0xDB, 0xFB, 0x00, 0xBF, 0xBF, 0xB7, 0xBF],
+       [0x00, 0xA2, 0x51, 0x8A, 0x51, 0x00, 0x2A, 0x15, 0x22, 0x15],
+       [0xFF, 0xFF, 0xDB, 0xFF, 0x00, 0xFF, 0xFF, 0xDB, 0xFF, 0x00]),
+  floortex=[0x00, 0x08, 0x00, 0x00, 0x40, 0x00, 0x02, 0x00, 0x00, 0x20],
   kinds=('YOWIE', 'REDBACK', 'YOWIE', 'MINMIN'),
   props=('CART', 'LANTERN', 'TNT'),
   extras=[('m', 8, 8), ('m', 16, 8), ('n', 7, 7), ('n', 17, 13), ('j', 16, 7), ('j', 10, 9), ('n', 5, 7),
@@ -224,10 +239,15 @@ ZONES = [
  dict(
   name="THE BUNYIP'S DEEP",
   intro=['BENEATH IT ALL, IN BLACK WATER,',
-         'THE BUNYIP WAITS. YOU NEED THE',
-         'GOLD, BLUE AND RED KEYS, AND THE',
-         'LEVERS MUST ALL AGREE.'],
+         'THE BUNYIP WAITS. YOU NEED ALL',
+         'THREE KEYS, EVERY LEVER, AND A',
+         'BIGGER ZAPPER. YOU HAVE THIS ONE.'],
   hint='ALL THREE GATES MUST STAND OPEN AT ONCE.',
+  # a lattice of scales, the same in shadow, a wall of skulls; ripples
+  tex=([0xC3, 0xE7, 0x7E, 0x3C, 0x18, 0x3C, 0x7E, 0xE7, 0xC3, 0x81],
+       [0x81, 0x42, 0x24, 0x18, 0x18, 0x24, 0x42, 0x81, 0x00, 0x00],
+       [0x3C, 0x7E, 0xDB, 0xDB, 0xFF, 0x7E, 0x5A, 0x5A, 0x00, 0x00]),
+  floortex=[0x00, 0x30, 0xCC, 0x00, 0x00, 0x00, 0x03, 0x0C, 0xC0, 0x00],
   kinds=('YOWIE', 'REDBACK', 'BUNYIP', 'CROC'),
   props=('BONES', 'REEDS', 'TAR'),
   extras=[('m', 6, 1), ('n', 1, 5), ('j', 14, 4), ('n', 8, 1), ('m', 26, 1), ('m', 18, 5), ('g', 24, 4),
@@ -413,6 +433,9 @@ def build(out):
         for n in needed_images(z):
             need |= 1 << idx[n]
         blob[base + 0x570:base + 0x576] = need.to_bytes(6, 'little')
+        tex = [v for t in z['tex'] for v in t] + list(z['floortex'])
+        assert len(tex) == 40
+        blob[base + 0x6A0:base + 0x6C8] = bytes(tex)
         blob[base + 0x424:base + 0x444] = bytes(v for pair in z['inks'] for v in pair)
         blob[base + 0x444] = len(levers)
         for i, ((x, y), m) in enumerate(zip(levers, z['levers'])):
@@ -427,7 +450,8 @@ def build(out):
         hint = z['hint'].encode()[:39]
         blob[base + 0x580:base + 0x580 + len(hint)] = hint
         for i, line in enumerate(z['intro']):
-            t = line.encode()[:32]
+            assert len(line) <= 36, line
+            t = line.encode()
             blob[base + 0x600 + i * 40:base + 0x600 + i * 40 + len(t)] = t
         n_en = sum(1 for e in ents if e[0] in (8, 9, 11))
         n_pr = sum(1 for e in ents if e[0] >= 16)
@@ -436,7 +460,7 @@ def build(out):
     (out / 'ZONES.BIN').write_bytes(blob)
     S += ['Z_NAME       equ 400h', 'Z_START      equ 418h', 'Z_CEIL       equ 41Ch', 'Z_FLOOR      equ 41Dh',
           'Z_FLINK      equ 41Eh', 'Z_KINDS      equ 41Fh', 'Z_INKS       equ 424h', 'Z_LEVERS     equ 444h',
-          'Z_GATES      equ 460h', 'Z_ENTS       equ 4B0h', 'Z_NEED       equ 570h', 'Z_HINT       equ 580h', 'Z_INTRO      equ 600h',
+          'Z_GATES      equ 460h', 'Z_ENTS       equ 4B0h', 'Z_NEED       equ 570h', 'Z_TEX        equ 6A0h', 'Z_HINT       equ 580h', 'Z_INTRO      equ 600h',
           'NZONES       equ %d' % len(ZONES)]
     (out / 'zonesym.inc').write_text('\n'.join(S) + '\n')
 
