@@ -2,9 +2,11 @@
 
 A first-person drop bear hunt for the Dick Smith **VZ300**: textured 3D walls, nine connected areas with their own colour schemes, ten kinds of creature, exploding enemies, furniture, keys, switches, secret walls, an automap and three bosses, all in Z80 machine code.
 
-Vibed by BPM, 2026.
+Vibed by BPM, 2026. See [BLURB.md](BLURB.md) for the blurb and full tech specs.
 
-![Title](screenshots/title.png)
+![Showcase](screenshots/showcase.gif)
+
+![Title](screenshots/title/01_title.png)
 ![Everything that lives (and doesn't) in the outback](screenshots/bestiary.png)
 
 ## Title and attract sequence
@@ -65,7 +67,7 @@ Joystick 1 also works if it is plugged in at start-up: directions to move and tu
 
 ## Hardware
 
-VZ300 with a BennVenn SD loader and its 128K RAM expansion. Copy `release/DROPBEAR.VZ` to the SD card and run it. It is a single 24 KB file that loads at $8000–$E000.
+VZ300 with a BennVenn SD loader and its 128K RAM expansion. Copy `release/DROPBEAR.VZ` to the SD card and run it. It is a single 26 KB file that loads at $8000–$E7C8.
 
 The loader first checks that both extra RAM banks are present. If either is missing, it shows "NEEDS BENNVENN 128K RAM" instead of crashing. It then unpacks itself into:
 
@@ -94,9 +96,10 @@ The engine's timing was checked on a real VZ300 (see `bench/`). Version 0.2 ran 
 | Folder | What's in it |
 |---|---|
 | `release/` | `DROPBEAR.VZ`, ready for the SD card |
+| `BLURB.md` | Blurb, features and tech specs |
 | `src/` | `dropbear.asm` (the game), `build.py` (tables, textures, sprites, logo, music, world, packer), `z80tools.py` (assembler and simulator), `play.py` (plays the whole game in the simulator), `attract.py` (runs the attract loop and renders the title music), `prof.py` (shows where each frame's time goes) |
 | `music/` | The title music as a WAV, rendered from the simulator |
-| `screenshots/` | Pictures, a playthrough GIF and an attract-demo GIF from the simulator |
+| `screenshots/` | `showcase.gif`; `title/` (title, intro, each gallery card, ending); `gameplay/` (every area, each boss, critters, explosions, automap); contact sheets and playthrough/attract GIFs. All captured from the simulator |
 | `bench/` | RAYBENCH, the raycaster speed test that came first |
 
 To rebuild: `python3 build.py` in `src/` (needs Python 3 with Pillow). `python3 play.py` plays it through and reports frame rates.
