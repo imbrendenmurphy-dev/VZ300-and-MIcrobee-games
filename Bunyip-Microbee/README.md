@@ -13,7 +13,7 @@ VIBED BY BPM 2026
 | Part | State |
 |---|---|
 | Wall engine (`release/BEECAST2.DS8`, program `RAY`) | Runs on a real Premium Plus |
-| Game (`release/BUNYIP.DS8`, program `BUNYIP`) | Loads and runs on a real Premium Plus: walls, HUD and controls work. Sprites came out garbled on hardware in the first two builds; this build removes every read-back of video memory from the sprite code, which is the suspected cause. **That fix is not yet confirmed on hardware.** |
+| Game (`release/BUNYIP.DS8`, program `BUNYIP`) | Loads and runs on a real Premium Plus: walls, HUD, title and controls work. Sprites came out as scrambled fragments on hardware in the first three builds: the cells showed stale glyphs (pieces of the title logo), so the sprite glyph uploads were not landing in PCG RAM while a sprite RAM block was mapped. This build does every video write with RAM block 4 mapped, as the start-up upload (which works) does. **Not yet confirmed on hardware.** |
 
 The title screen's `T` key shows a test card of what the machine reads back from its video memories, to settle the question.
 

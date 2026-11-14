@@ -1144,8 +1144,17 @@ M_cvv:  and 0
 ; put_cell: take cell (caddr) and lay TMPM/TMPD over it; the cell takes the
 ;   sprite's ink if the sprite is most of what is lit in it; to PCG RAM
 ; --------------------------------------------------------------------------
+; Everything that touches video memory here is done with RAM block 4 in the
+; lower window, exactly as the start-up glyph upload is: on the real
+; Premium Plus the glyph writes did not land while a sprite block was
+; mapped (the cells showed whatever the pool banks held before).
 put_cell:
-        ld hl,TMPM              ; covers the whole cell? (all NOT masks 0)
+        ld a,BLK_PCG
+        call setblk
+        call .do
+        ld a,(dblk)             ; back to the sprite's block
+        jp setblk
+.do     ld hl,TMPM              ; covers the whole cell? (all NOT masks 0)
         ld a,(hl)
         rept CELLH-1
         inc l
@@ -1336,9 +1345,8 @@ put_cell:
         add hl,de
         ex de,hl
         ld hl,(cmp_sh)
-        rept CELLH
-        ldi
-        endm
+        ld bc,CELLH             ; (ldir, as the start-up upload does)
+        ldir
         ld a,X1C                ; (screen RAM is only touched with bank 0 selected)
         out (PORT_1C),a
         ret
@@ -1379,9 +1387,7 @@ claim:
         ;   code = PROFL[el * 16 + row] + PROF[er * 16 + row], rows mirrored
         ;   below the horizon; bank = the row's group + the wall's texture;
         ;   ink = the wall's inside its span, the floor's outside
-        ld a,BLK_PCG
-        call setblk
-        ld a,(dr)
+        ld a,(dr)               ; (block 4 is mapped: see put_cell)
         cp 11
         jr c,.top
         neg
@@ -1480,9 +1486,7 @@ claim:
         rept CELLH
         ldi
         endm
-.nc     ld a,(dblk)             ; back to the sprite's block
-        call setblk
-        ; point the cell at it
+.nc     ; point the cell at it
         ld hl,(caddr)
         ld a,(cslot)
         cp 128
