@@ -323,13 +323,14 @@ chase:  ld a,(t_c)
         jp put_px
 .giant: push hl
         ld a,(t_r)
-        sub 16
+        sub 18
         ld e,a
         ld a,SF_BIGHAT
         ld c,BRED
         call put_px
         pop hl
         ld a,(t_r)
+        sub 2
         ld e,a
         ld a,(t_c)
         rrca
@@ -369,7 +370,7 @@ title_page:
         ld (t_k),a
         ld a,4
         ld (t_n),a
-        ld a,104
+        ld a,132
         ld (t_r),a
         ld hl,title_cb
         ld (att_cb),hl
@@ -472,9 +473,11 @@ meet_cb:
         add a,a
         add a,a
         add a,a
+        ld d,a
         add a,a
-        add a,a                 ; 32 pixels a row
-        add a,30
+        add a,a
+        add a,d                 ; 40 lines (4 rows) apart
+        add a,42
         ld e,a
         ld a,b
         ld hl,gcols
@@ -507,7 +510,7 @@ meet_cb:
         cp 4
         jr nz,.g
         ld hl,40
-        ld e,158
+        ld e,202
         ld a,SF_HAT_R
         ld c,BRED
         call put_px
@@ -517,7 +520,7 @@ meet_cb:
         and 2
         add a,SF_FACE_R0
         ld hl,40
-        ld e,158
+        ld e,202
         ld c,YELLOW
         jp put_px
 s_meet: db "MEET THE GHOSTS",0
@@ -662,7 +665,7 @@ fame_page:
         ld (t_k),a
         ld a,4
         ld (t_n),a
-        ld a,168
+        ld a,212
         ld (t_r),a
         ld hl,fame_cb
         ld (att_cb),hl
@@ -887,7 +890,7 @@ intermission:
         ld (t_c),a
         inc a
         ld (t_k),a
-        ld a,104
+        ld a,132
         ld (t_r),a
         ld hl,mus_inter_0
         ld de,mus_inter_1

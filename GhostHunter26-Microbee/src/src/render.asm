@@ -1,7 +1,7 @@
 ; =====================================================================
 ;  RENDER: the PCG screen engine.
 ;
-;  GHOST HUNTER '26: the HULLBREACH / KABOOMERANG engine at 40 x 25 cells of 8 x 8 pixels
+;  GHOST HUNTER '26: the HULLBREACH / KABOOMERANG engine at 40 x 25 cells of 8 x 10 pixels
 ;  (half dot clock). Every cell shows one of the 2048 PCG glyphs (code
 ;  80h+n, attribute = bank) in its own ink/paper colour.
 ;  The background is a picture of glyphs (cur_lo/cur_hi/cur_col).
@@ -219,6 +219,23 @@ cell_of:
         ld l,a
         ret nc
         inc h
+        ret
+; div10 / div10r (256-byte aligned, built by init_div10): y -> y/10, y%10
+init_div10:
+        ld hl,div10
+        ld bc,0                 ; B = row, C = line
+.l:     ld (hl),b
+        inc h
+        ld (hl),c
+        dec h
+        inc c
+        ld a,c
+        cp 10
+        jr nz,.n
+        ld c,0
+        inc b
+.n:     inc l
+        jr nz,.l
         ret
 rowtab:
         dw 0,40,80,120,160,200,240,280,320,360,400,440,480,520,560,600,640,680,720,760,800,840,880,920,960,1000,1040,1080
@@ -721,32 +738,29 @@ col_blit:
         or a
         ret nz                  ; below the screen
         ld a,l
-        cp 200
+        cp 250
         ret nc
         add a,c
-        cp 201
+        jr c,.clip
+        cp 251
         jr c,.ok
-        ld a,200                ; clip the bottom
+.clip:  ld a,250                ; clip the bottom
         sub l
         ld c,a
 .ok:    ld a,c
         ld (cb_left),a
-        ld a,l
-        and 7
+        ld h,div10r/256         ; row and line within it: tables
+        ld a,(hl)
         ld (cb_r),a
-        ld a,l
-        rrca
-        rrca
-        rrca
-        and $1F
-        ld e,a
+        dec h
+        ld e,(hl)
         ld a,(sd_cx)
         ld d,a
         call cell_of
         ld (cb_cell),hl
 .seg:   ld a,(cb_r)
         ld e,a
-        ld a,8
+        ld a,10
         sub e
         ld hl,cb_left
         cp (hl)
@@ -918,7 +932,7 @@ cell_alloc:
         add hl,hl               ; store at 0000h
         ld d,b
         ld e,c
-        REPT 8
+        REPT 10
         ldi
         ENDR
         ld a,(ca_idx)
@@ -927,7 +941,7 @@ cell_alloc:
 .blank: ld h,b
         ld l,c
         xor a
-        REPT 8
+        REPT 10
         ld (hl),a
         inc l
         ENDR
@@ -951,14 +965,14 @@ cell_alloc:
         add hl,hl
         add hl,hl
         ld de,glyphbuf
-        REPT 8
+        REPT 10
         ldi
         ENDR
         ld a,(poolport)
         out (P_LV),a
         pop de
         ld hl,glyphbuf
-        REPT 8
+        REPT 10
         ldi
         ENDR
         ld a,(ca_idx)

@@ -1,8 +1,8 @@
 ; =====================================================================
 ;  GHOST HUNTER '26 - Microbee Premium Plus hardware, memory map, constants.
 ;  Z80 3.375 MHz; 1MB RAM (32 blocks of 32K); 32K PCG RAM (16 banks of
-;  128 glyphs). 6545 CRTC: 40 x 25 characters of 8 lines at half dot
-;  clock = 320 x 200 pixels.   VIBED BY BPM 2026
+;  128 glyphs). 6545 CRTC: 40 x 25 characters of 10 lines at half dot
+;  clock = 320 x 250 pixels (8 x 10 cells).   VIBED BY BPM 2026
 ; =====================================================================
 P_PIOA      EQU $00         ; joystick (active low), b7 fire
 P_PIOAC     EQU $01
