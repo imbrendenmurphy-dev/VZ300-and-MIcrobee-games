@@ -1,8 +1,8 @@
 ; =====================================================================
 ;  KABOOMERANG - Microbee Premium Plus hardware, memory map, constants.
 ;  Z80 3.375 MHz; 1MB RAM (32 blocks of 32K); 32K PCG RAM (16 banks of
-;  128 glyphs). 6545 CRTC: 40 x 25 characters of 8 lines at half dot
-;  clock = 320 x 200 pixels.   ViBED by BPM 2026
+;  128 glyphs). 6545 CRTC: 40 x 25 characters of 10 lines at half dot
+;  clock = 320 x 250 pixels (8 x 10 cells).   ViBED by BPM 2026
 ; =====================================================================
 P_PIOA      EQU $00         ; joystick (active low), b7 fire
 P_PIOAC     EQU $01
@@ -40,13 +40,15 @@ RT_END      EQU $1000
 BK_POOL     EQU 14          ; sprite glyph pools: 14 (page 0), 15 (page 1)
 POOLN       EQU 120         ; glyphs per pool
 
-; ---- the screen: 40 x 25. Arena of 19 x 11 tiles (2 x 2 cells) at cell (1,2)
-ARENA_C     EQU 1
-ARENA_R     EQU 2
-AW          EQU 19
-AH          EQU 11
-OX          EQU 8           ; arena origin in pixels
-OY          EQU 16
+; ---- the screen: 40 x 25 cells of 8 x 10. Row 0 is the HUD; the arena is
+; 21 x 13 tiles (2 x 2 cells, 16 x 20 pixels) with tile (tx, ty) at cell
+; column 2tx-1, row 2ty, so the border walls show as half tiles at the edges
+; and the 19 x 11 inside fills the rest of the screen.
+AW          EQU 21
+AH          EQU 13
+MAPSZ       EQU 32*AH       ; map stride 32
+OX          EQU -8          ; arena origin in pixels (x = OX + 2hx)
+OY          EQU 0           ;  (y = OY + 5hy/2)
 
 ; ---- colours
 BLACK       EQU 0

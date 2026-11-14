@@ -1446,7 +1446,7 @@ damage:
         ret
 
 ; ---------------------------------------------------------------------
-; drawing. Sprite position: spr_x = OX + 2*hx + dx, spr_y = OY + 2*hy + dy
+; drawing. Sprite position: spr_x = OX + 2*hx + dx, spr_y = OY + 5*hy/2 + dy
 ; A = frame, C = ink, D = dx, E = dy (signed pixels), (t_tx, t_ty) = hx, hy
 put_spr:
         push af
@@ -1468,7 +1468,13 @@ put_spr:
         ld a,(t_ty)
         ld l,a
         ld h,0
+        ld b,h
+        ld c,l
         add hl,hl
+        add hl,hl
+        add hl,bc
+        srl h
+        rr l                    ; 5hy/2
         ld a,e
         ld c,a
         rla
@@ -1715,7 +1721,7 @@ draw_wally:
         pop bc
         ld a,b
         ld de,0
-        ld c,GREY
+        ld c,BROWN
         jp put_spr
 .idle:  ld a,(p_dir)
         cp DIR_R
@@ -1850,7 +1856,7 @@ draw_wally:
         call put_spr
         ld a,SF_W_SQUASH
         ld de,0
-        ld c,GREY
+        ld c,BROWN
         jp put_spr
 ; A = face (0 norm 1 back 2 blink 3 lookL 4 lookR 5 wide 6 dizzy 7 happy),
 ; C = feet (0 a 1 b 2 c 3 wide 4 up), D/E = offset of both parts
@@ -1879,7 +1885,12 @@ draw_wally:
         add a,a
         add a,b                 ; face * 5
         add a,c
-        add a,SF_W_norm_a
-        ld c,GREY
+        ld hl,wcombo
+        add a,l
+        ld l,a
+        jr nc,$+3
+        inc h
+        ld a,(hl)
+        ld c,BROWN
         jp put_spr
 walkfeet: db 0,1,0,2

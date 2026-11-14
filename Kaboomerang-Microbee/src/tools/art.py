@@ -26,6 +26,28 @@ def hsh(x, y, s):
     return ((n ^ (n >> 16)) & 0xFFFFFFFF) / 4294967296.0
 
 
+TW, TH = 16, 20            # a tile: 16 x 20 pixels = 2 x 2 cells of 8 x 10
+ASPECT = 1.09              # a 40-column pixel is about 1.09 times wider than tall
+
+
+def resample(bits, mode):
+    """16-row art -> 20 rows. 'fill' stretches it over the whole tile (flames,
+    mounds); 'round' keeps it round on screen, centred; 'stand' keeps it round
+    and stands it on the floor (creatures)"""
+    bits = np.asarray(bits, bool)
+    h, w = bits.shape
+    out = np.zeros((TH, w), bool)
+    top = 0 if mode == 'fill' else (TH - h * ASPECT) / (2 if mode == 'round' else 1)
+    for r in range(TH):
+        if mode == 'fill':
+            sy = int((r + 0.5) * h / TH)
+        else:
+            sy = int((r + 0.5 - top) / ASPECT)
+        if 0 <= sy < h:
+            out[r] = bits[sy]
+    return out
+
+
 def mk(fn, w=16, h=16):
     return np.array([[bool(fn(x, y)) for x in range(w)] for y in range(h)], bool)
 
@@ -41,8 +63,11 @@ def mirror(a):
 # ---------------------------------------------------------------- tiles
 # a tile: bits (16,16) and four (ink, paper) pairs: TL, TR, BL, BR
 class Tile:
-    def __init__(self, name, bits, cols, floor=False):
-        self.name, self.bits, self.cols, self.floor = name, np.asarray(bits, bool), cols, floor
+    def __init__(self, name, bits, cols, floor=False, mode='fill'):
+        bits = np.asarray(bits, bool)
+        if bits.shape[0] != TH:
+            bits = resample(bits, mode)
+        self.name, self.bits, self.cols, self.floor = name, bits, cols, floor
 
 
 def q4(a, b):
@@ -51,7 +76,7 @@ def q4(a, b):
 
 def floor_tile(v, shadow):
     def fn(x, y):
-        if shadow and y < 3 and ((x + y) & 1) == 0:
+        if shadow and y < 4 and ((x + y) & 1) == 0 and (y < 2 or x & 2):
             return True
         r = hsh(x + v * 37, y + v * 11, 7)
         if r < 0.045:
@@ -60,31 +85,33 @@ def floor_tile(v, shadow):
             return True
         return False
     cols = [(DGREY, BLACK), (DGREY, BLACK), (RED, BLACK), (RED, BLACK)] if shadow else q4((RED, BLACK), (RED, BLACK))
-    return Tile('FLOOR%d%s' % (v, 'S' if shadow else ''), mk(fn), cols, floor=True)
+    return Tile('FLOOR%d%s' % (v, 'S' if shadow else ''), mk(fn, TW, TH), cols, floor=True)
 
 
 def pillar():
+    """a sandstone block: sunlit top and left edge, layered strata, a shaded foot"""
     def fn(x, y):
-        if y < 8:
-            if y == 0 or x == 0:
+        if y < 10:
+            if y <= 1 or x == 0:
                 return True
-            if y == 1 and x == 1:
+            if y == 2 and x < 3:
                 return True
-            return (y % 4 == 3) and hsh(x, y, 11) < 0.55 and x < 15
-        if y >= 14 or x == 15:
+            return (y in (5, 8)) and hsh(x, y, 11) < 0.6 and 1 < x < 15
+        if y >= 18 or x == 15:
             return True
-        return (y % 4 == 1) and hsh(x, y, 12) < 0.5
-    return Tile('PILLAR', mk(fn), [(YELLOW, RED), (YELLOW, RED), (BLACK, RED), (BLACK, RED)])
+        return (y in (12, 15)) and hsh(x, y, 12) < 0.55
+    return Tile('PILLAR', mk(fn, TW, TH), [(YELLOW, RED), (YELLOW, RED), (BLACK, RED), (BLACK, RED)])
 
 
 def border():
+    """the outback fence: weathered posts"""
     def fn(x, y):
-        if y == 0:
+        if y in (0, 10):
             return True
-        if (y in (3, 12)) and x in (3, 12):
+        if y in (4, 15) and x % 4 == 1:
             return False
         return (x % 4) < 2
-    return Tile('BORDER', mk(fn), q4((GREY, DGREY), (GREY, DGREY)))
+    return Tile('BORDER', mk(fn, TW, TH), q4((GREY, DGREY), (GREY, DGREY)))
 
 
 def mound(k):
@@ -129,7 +156,7 @@ def bomb_bits(pulse, flick):
 def bomb_tile(pulse, flick, warn):
     body = (BRED if pulse else RED) if warn else (BGREEN if pulse else GREEN)
     top = WHITE if flick else YELLOW
-    return Tile('BOMB%d%d%d' % (pulse, flick, warn), bomb_bits(pulse, flick), [(top, BLACK), (top, BLACK), (body, BLACK), (body, BLACK)])
+    return Tile('BOMB%d%d%d' % (pulse, flick, warn), bomb_bits(pulse, flick), [(top, BLACK), (top, BLACK), (body, BLACK), (body, BLACK)], mode='round')
 
 
 FLAMECOL = [(WHITE, YELLOW), (YELLOW, BRED), (BRED, RED), (RED, BLACK)]
@@ -195,11 +222,11 @@ def item_tiles():
         dx, dy = (x - 7.5) / 7, (y - 8) / 6.5
         e = dx * dx + dy * dy
         return e < 1 and (e > 0.42 or hsh(x, y, 77) < 0.08)
-    return [Tile('IT_FIRE', mk(fire), [(YELLOW, BLACK), (YELLOW, BLACK), (BRED, BLACK), (BRED, BLACK)]),
-            Tile('IT_NUT', mk(nut), [(BROWN, BLACK), (BROWN, BLACK), (BGREEN, BLACK), (BGREEN, BLACK)]),
-            Tile('IT_HEART', mk(heart), q4((BRED, BLACK), (BRED, BLACK))),
-            Tile('IT_THONG', mk(thong), q4((BCYAN, BLACK), (BCYAN, BLACK))),
-            Tile('EXIT', mk(log), [(YELLOW, BLACK), (YELLOW, BLACK), (BROWN, BLACK), (BROWN, BLACK)])]
+    return [Tile('IT_FIRE', mk(fire), [(YELLOW, BLACK), (YELLOW, BLACK), (BRED, BLACK), (BRED, BLACK)], mode='round'),
+            Tile('IT_NUT', mk(nut), [(BROWN, BLACK), (BROWN, BLACK), (BGREEN, BLACK), (BGREEN, BLACK)], mode='round'),
+            Tile('IT_HEART', mk(heart), q4((BRED, BLACK), (BRED, BLACK)), mode='round'),
+            Tile('IT_THONG', mk(thong), q4((BCYAN, BLACK), (BCYAN, BLACK)), mode='round'),
+            Tile('EXIT', mk(log), [(YELLOW, BLACK), (YELLOW, BLACK), (BROWN, BLACK), (BROWN, BLACK)], mode='round')]
 
 
 def burrow():
@@ -207,10 +234,10 @@ def burrow():
         dx, dy = (x - 7.5) / 7, (y - 8) / 6
         e = dx * dx + dy * dy
         return (0.55 < e < 1 and ((x + y) & 1 or e > 0.75)) or (e >= 1 and hsh(x, y, 31) < 0.06)
-    return Tile('BURROW', mk(fn), q4((RED, BLACK), (RED, BLACK)))
+    return Tile('BURROW', mk(fn), q4((RED, BLACK), (RED, BLACK)), mode='round')
 
 
-HATCH = mk(lambda x, y: ((x + y) & 3) == 0)
+HATCH = mk(lambda x, y: ((x + y) & 3) == 0, TW, TH)
 
 
 def all_tiles():
@@ -238,24 +265,7 @@ def all_tiles():
 
 
 # ---------------------------------------------------------------- sprites
-B8 = ['.' * 16] * 8
-HAT_F = ["......####......", "....########....", "...##########...", "..###.####.###..", "..############..", ".##############.", "################", ".##############."]
-HAT_S = [".....#####......", "...#########....", "..###########...", "..##.#####.###..", "..############..", "..#############.", ".###############", "..##############"]
-FACE = {
-    'norm': ["..############..", ".###..####..###.", ".###..####..###.", ".######..######.", "..#####..#####..", "..############.."],
-    'blink': ["..############..", ".##############.", ".##....##....##.", ".######..######.", "..#####..#####..", "..############.."],
-    'lookL': ["..############..", ".##..####..####.", ".##..####..####.", ".######..######.", "..#####..#####..", "..############.."],
-    'lookR': ["..############..", ".####..####..##.", ".####..####..##.", ".######..######.", "..#####..#####..", "..############.."],
-    'wide': ["..############..", ".##..#.##.#..##.", ".##...####...##.", ".######..######.", "..####....####..", "..############.."],
-    'dizzy': ["..############..", ".#.#.####.#.#.#.", ".##.######.#.##.", ".#.#.####.#.#.#.", "..###......###..", "..############.."],
-    'happy': ["..############..", ".##.##.##.##.##.", ".#.####..####.#.", ".######..######.", "..##.######.##..", "..###......###.."],
-    'back': ["..############..", ".##############.", ".##############.", ".##############.", "..############..", "..############.."]}
-FEET = {'a': ["...##......##...", "..###......###.."], 'b': ["...##.....###...", "..........###..."],
-        'c': ["...###.....##...", "...###.........."], 'wide': ["..###......###..", ".###........###."],
-        'up': ["..##........##..", "................"]}
-SIDE_BODY = ["..##########....", ".#########..###.", ".#########..####", ".###############", "..##########.##.", "..###########..."]
-SIDE_FEET = [["..##..##..##....", ".##..##..##....."], ["...##..##..##...", "....##..##..##.."]]
-SQUASH = ["................", "................", "..############..", ".###..####..###.", ".##############.", "################", "################", "................"]
+import wally as W
 
 TOAD = ["................", "................", "...###....###...", "..##.##..##.##..", "..#####..#####..", ".##############.", "################", "#.############.#",
         "################", "###.###..###.###", "################", ".######..######.", ".##.##....##.##.", "##..##....##..##", "#....#....#....#", "................"]
@@ -280,17 +290,18 @@ def grow(bits):
     return m
 
 
-def split(full):
-    """16x16 sprite -> (top part bits, top mask), (bottom bits, bottom mask):
-    the mask is grown from the whole sprite so the parts don't erase each other."""
+def split(full, at=10):
+    """sprite -> (top part bits, mask), (bottom bits, mask): the mask grows
+    from the whole sprite so the two parts don't erase each other. The parts
+    meet at a cell boundary (row 10 for 20-row art, 4 for Wally's hat)."""
     full = np.asarray(full, bool)
     m = grow(full)
     tb, tm = full.copy(), m.copy()
-    tb[8:] = False
-    tm[8:] = False
+    tb[at:] = False
+    tm[at:] = False
     bb, bm = full.copy(), m.copy()
-    bb[:8] = False
-    bm[:8] = False
+    bb[:at] = False
+    bm[:at] = False
     return (tb, tm), (bb, bm)
 
 
@@ -309,55 +320,72 @@ def boom_frames():
     pts = list(base)
     out = []
     for r in range(4):
-        s = set(pts)
-        out.append(mk(lambda x, y: (x, y) in s))
+        st = set(pts)
+        out.append(resample(mk(lambda x, y: (x, y) in st), 'round'))
         pts = [(15 - y, x) for x, y in pts]
     return out
 
 
+WALLY_FACES = ('norm', 'back', 'blink', 'lookL', 'lookR', 'wide', 'dizzy', 'happy')
+WALLY_FEET = ('a', 'b', 'c', 'wide', 'up')
+# the face + feet pairs the game actually draws (the rest map to norm_a)
+WALLY_USED = [('norm', 'a'), ('norm', 'b'), ('norm', 'c'), ('back', 'a'), ('back', 'b'), ('back', 'c'),
+              ('blink', 'a'), ('blink', 'b'), ('blink', 'wide'), ('lookL', 'a'), ('lookL', 'b'),
+              ('lookR', 'a'), ('lookR', 'b'), ('wide', 'up'), ('happy', 'a'), ('happy', 'wide'),
+              ('dizzy', 'a'), ('dizzy', 'wide')]
+
+
+def wally_combo():
+    """face * 5 + feet -> index into WALLY_USED"""
+    out = []
+    for face in WALLY_FACES:
+        for feet in WALLY_FEET:
+            out.append(WALLY_USED.index((face, feet)) if (face, feet) in WALLY_USED else 0)
+    return out
+
+
 def sprites():
-    """-> list of (name, bits, mask). Parts named NAME_T / NAME_B are drawn in two inks."""
+    """-> list of (name, bits, mask). Two-ink sprites come as NAME_T / NAME_B."""
     S = []
 
-    def two(name, full):
-        (tb, tm), (bb, bm) = split(full)
+    def two(name, full, at=10):
+        (tb, tm), (bb, bm) = split(full, at)
         S.append((name + '_T', tb, tm))
         S.append((name + '_B', bb, bm))
 
-    def hat(name, rows):
-        full = art(rows + B8)
-        (tb, tm), _ = split(full)
-        S.append((name, tb, tm))
-
-    def body(name, rows):
-        full = art(B8 + rows)
-        _, (bb, bm) = split(full)
-        S.append((name, bb, bm))
-    hat('HAT_F', HAT_F)
-    hat('HAT_R', HAT_S)
+    # Wally: 16 x 24. The hat (rows 0-3) is one part, the wombat (4-23) another
+    hats = (('HAT_F', W.HAT), ('HAT_B', W.HAT_BACK), ('HAT_R', W.HAT_SIDE))
+    for n, h in hats:
+        full = art(h + ['.' * 16] * 20)
+        (tb, tm), _ = split(full, 4)
+        S.append((n, tb, tm))
     S.append(('HAT_L', mirror(S[-1][1]), mirror(S[-1][2])))
-    for face in ('norm', 'back', 'blink', 'lookL', 'lookR', 'wide', 'dizzy', 'happy'):
-        for feet in ('a', 'b', 'c', 'wide', 'up'):
-            body('W_%s_%s' % (face, feet), FACE[face] + FEET[feet])
+    for face, feet in WALLY_USED:
+        full = art(W.front(face, feet, back=(face == 'back')))
+        _, (bb, bm) = split(full, 4)
+        S.append(('W_%s_%s' % (face, feet), bb, bm))
     for i in range(2):
-        body('W_SIDE%d' % i, SIDE_BODY + SIDE_FEET[i])
-        b = art(B8 + SIDE_BODY + SIDE_FEET[i])
-        _, (bb, bm) = split(b)
+        full = art(W.side(i))
+        _, (bb, bm) = split(full, 4)
+        S.append(('W_SIDE%d' % i, bb, bm))
         S.append(('W_SIDEL%d' % i, mirror(bb), mirror(bm)))
-    body('W_SQUASH', SQUASH)
-    two('TOAD', art(TOAD))
-    two('TOADSQ', art(TOAD_SQ))
-    two('FRS0', art(FR_TOP_DOWN + FR_LEGS_A))
-    two('FRS1', art(FR_TOP_DOWN + FR_LEGS_B))
-    two('FRO0', art(FR_TOP + FR_LEGS_A))
-    two('FRO1', art(FR_TOP + FR_LEGS_B))
+    full = art(['.' * 16] * 4 + W.SQUASH)
+    _, (bb, bm) = split(full, 4)
+    S.append(('W_SQUASH', bb, bm))
+    # the wildlife: 16 x 20, standing on the floor
+    two('TOAD', resample(art(TOAD), 'stand'))
+    two('TOADSQ', resample(art(TOAD_SQ), 'stand'))
+    two('FRS0', resample(art(FR_TOP_DOWN + FR_LEGS_A), 'stand'))
+    two('FRS1', resample(art(FR_TOP_DOWN + FR_LEGS_B), 'stand'))
+    two('FRO0', resample(art(FR_TOP + FR_LEGS_A), 'stand'))
+    two('FRO1', resample(art(FR_TOP + FR_LEGS_B), 'stand'))
     for i in range(2):
-        two('IBL%d' % i, art(IBIS[i]))
-        two('IBR%d' % i, mirror(art(IBIS[i])))
+        two('IBL%d' % i, resample(art(IBIS[i]), 'stand'))
+        two('IBR%d' % i, resample(mirror(art(IBIS[i])), 'stand'))
     for i, b in enumerate(boom_frames()):
         S.append(('BOOM%d' % i, b, grow(b)))
-    puff0 = mk(lambda x, y: math.hypot(x - 7.5, y - 7.5) < 4 and hsh(x, y, 1) < 0.7)
-    puff1 = mk(lambda x, y: 3 < math.hypot(x - 7.5, y - 7.5) < 7 and hsh(x, y, 2) < 0.5)
+    puff0 = resample(mk(lambda x, y: math.hypot(x - 7.5, y - 7.5) < 4 and hsh(x, y, 1) < 0.7), 'round')
+    puff1 = resample(mk(lambda x, y: 3 < math.hypot(x - 7.5, y - 7.5) < 7 and hsh(x, y, 2) < 0.5), 'round')
     S.append(('PUFF0', puff0, puff0))
     S.append(('PUFF1', puff1, puff1))
     dot = mk(lambda x, y: x < 2 and y < 2, 2, 2)
@@ -366,9 +394,7 @@ def sprites():
     S.append(('SPARK', spark, spark))
     star = mk(lambda x, y: (abs(x - 3) == 0 or abs(y - 3) == 0 or (abs(x - 3) == abs(y - 3) and abs(x - 3) < 2)), 7, 7)
     S.append(('STAR', star, star))
-    # a bomb carried by the boomerang (or kicked): a sprite copy of the bomb
-    bb = bomb_bits(0, 0)
-    two('CBOMB', bb)
+    two('CBOMB', resample(bomb_bits(0, 0), 'round'))
     return S
 
 
@@ -394,20 +420,14 @@ CHARS = ' !"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
 
 def font_glyphs():
-    """64 glyphs for chars 32..95 (8x8, bytes)."""
-    out = []
-    for ch in CHARS:
-        rows = FD.get(ch)
-        if rows is None:
-            out.append(bytes(8))
-            continue
-        b = [int(r, 2) << 2 for r in rows.split()] + [0]
-        out.append(bytes(b))
-    return out
+    """64 rounded glyphs for chars 32..95 (8 x 10)"""
+    import fontgen
+    return fontgen.font_bytes()
 
 
 def g8(rows):
-    return bytes(int(r, 2) for r in rows)
+    """an 8 x 8 icon centred in an 8 x 10 cell"""
+    return bytes([0] + [int(r, 2) for r in rows] + [0])
 
 
 ICONS = {
@@ -416,6 +436,6 @@ ICONS = {
     'flame': g8(["00010000", "00011000", "00111000", "00111100", "01111110", "01111110", "00111100", "00000000"]),
     'boom': g8(["01100000", "01110000", "00111000", "00011100", "00001111", "00000111", "00000000", "00000000"]),
     'thong': g8(["00111100", "01111110", "01100110", "01100110", "01111110", "00111100", "00011000", "00000000"]),
-    'solid': bytes([255] * 8),
+    'solid': bytes([255] * 10),
     'heart_e': g8(["01101100", "10010010", "10000010", "10000010", "01000100", "00101000", "00010000", "00000000"]),
 }

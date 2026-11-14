@@ -68,7 +68,7 @@ Each world has seven stages and a boss stage. Six secret bonus stages hide behin
 
 ### Sound and presentation
 
-- Speaker on PIO port B bit 6. The two-voice engine from TENNIS II / HULLBREACH plays in each frame's idle time. In play, music is slow, short blipped notes so it never starves the game; the title, interludes and fanfares use the full engine. Music and effects switch off separately.
+- Speaker on PIO port B bit 6. The two-voice square-wave engine plays in each frame's idle time. There is no music in play: a sample-and-hold noise channel gives the fuse hiss and the KABOOM roar with a thump under it, and pickups ching. KABOOMs and pickups get a short hit-pause so they play unbroken. The title, interludes and fanfares keep the tunes.
 - Music: title, six world themes, boss, bonus, victory and world-clear fanfares, ending. Effects: bomb place, fuse fizz, explosions that deepen as a chain grows, crumble, power-up sparkle, boomerang whoosh, enemy calls, hurt, warning.
 - Title: big KABOOMERANG lettering from about 300 PCG characters, Wally lighting a fuse along the letters, attract mode replaying recorded play, hi-score table.
 - Illustrated interludes between worlds (the Baron's airship, Wally's ute crossing the map, the next boss). Credits close with **ViBED by BPM**.
@@ -79,7 +79,7 @@ Native Z80 at 3.375 MHz. The engine starts from the one already proven in MICROB
 
 | Area | Decision | Status |
 |---|---|---|
-| Display | 40 × 25 cells of 8 × 8 at half dot clock (320 × 200). 1,000 cells, so two pages fit in the 2K screen, attribute and colour RAM. CRTC: R0 35h, R1 28h, R2 2Ch, R3 34h, R4 26h, R5 01h, R6 19h, R7 21h, R9 07h | **Proven on hardware** by BPM's mode test (40×24 and 40×32 with 8×8 cells, H sync 2Ch). The half dot clock is selected by reading port 09h with 01h on the upper address lines (`LD A,1 : IN A,(09h)`; 00h restores 80 columns), as MODES.COM does. |
+| Display | 40 × 25 cells of 8 × 10 at half dot clock (320 × 250). 1,000 cells, so two pages fit in the 2K screen, attribute and colour RAM. CRTC (MODES.COM 40 × 25, 8 × 10): R0 35h, R1 28h, R2 2Ch, R3 34h, R4 1Eh, R5 03h, R6 19h, R7 1Ch, R9 09h | **Proven on hardware** by BPM's mode test (40×24 and 40×32 with 8×8 cells, H sync 2Ch). The half dot clock is selected by reading port 09h with 01h on the upper address lines (`LD A,1 : IN A,(09h)`; 00h restores 80 columns), as MODES.COM does. |
 | Fallback display | 64 × 16 cells of 8 × 16 (512 × 256), as in BILBIES!, AUSOPEN and HULLBREACH | proven on hardware |
 | Arena | 19 × 11 tiles of 2 × 2 cells (17 × 9 inside the border); 2 HUD rows above, a message row below | chosen |
 | Colour | Colour RAM at F800h via port 08h bit 6; paper high nibble, ink low; 1 red, 2 green, 4 blue, 8 dark grey, 9–15 bright | proven |
@@ -96,7 +96,7 @@ Native Z80 at 3.375 MHz. The engine starts from the one already proven in MICROB
 3. **Write** codes, banks and colours into the hidden page.
 4. **Flip** in vertical blanking.
 
-Grid movement is axis-locked, so a sprite walking sideways stays cell-aligned vertically and covers at most 3 × 2 cells. Two-band sprites (Wally's yellow hat over grey fur) therefore always line up with cell rows.
+Grid movement is axis-locked, so a sprite walking sideways stays cell-aligned vertically and covers at most 3 × 2 cells. Two-band sprites (Wally's yellow lamp knob over brown fur) therefore always line up with cell rows.
 
 **Shared animated glyphs:** every bomb's pulse, water ripple, conveyor stripe and lamp flicker is a small set of glyphs rewritten once a frame, so all instances animate for the cost of one. Flames use resident shapes; most of their flicker is colour RAM.
 
