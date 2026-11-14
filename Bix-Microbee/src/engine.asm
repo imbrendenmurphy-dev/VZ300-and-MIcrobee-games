@@ -72,13 +72,11 @@ hw_init:
         ld (pcol_h),a
         ld a,YELLOW
         ld (hud_col),a
-        ld a,1
-        ld (smooth),a
         call lad_init
         ; the font
-        ld a,BLK_GFX
+        ld a,BLK_MAP
         call map_blk
-        ld hl,GF_FONT
+        ld hl,M_FONT
         ld a,BK_FONT
         ld bc,64
         jp pcg_load
@@ -217,11 +215,21 @@ pcg_load:
         out (P_LV),a
         ret
 
-; the level's scroll glyphs: block GFX -> TILEPAT -> PCG banks 0-11
-e_gfx:  call display_off
-        ld a,BLK_GFX
+; ---------------------------------------------------------------------
+;  e_stage: A = stage (0..). Its glyphs go to TILEPAT and PCG banks 0-11,
+;  its cell-glyph map and tables to the map block, its tile map, spawn
+;  list and header to the game block. The display is left off.
+; ---------------------------------------------------------------------
+e_stage:
+        add a,BLK_STG
+        ld (stg_blk),a
+        call display_off
+        ld a,(stg_blk)
         call map_blk
-        ld hl,GF_PAT
+        ld hl,(S_HDR)           ; tiles wide
+        inc hl
+        ld (fc_w),hl
+        ld hl,S_PAT
         ld de,TILEPAT
         ld bc,12*1024
         ldir
@@ -235,23 +243,92 @@ e_gfx:  call display_off
         ld a,BK_HUD
         ld bc,128
         call pcg_load
+        ld a,(stg_blk)
+        ld c,a
+        push bc
+        ld a,BLK_MAP            ; the pair table, the tile cells, the logs, the inks
+        ld hl,S_TABLES
+        ld de,M_HASH
+        ld b,(M_CGMAP - M_HASH) / 512
+        call fcopy
+        pop bc
+        push bc
+        ld a,BLK_GAME           ; the tile map
+        ld hl,S_TMAP
+        ld de,MAP
+        ld b,10
+        call fcopy
+        pop bc
+        ld a,BLK_GAME           ; the spawn list and the header
+        ld hl,S_ENTS
+        ld de,ENTLIST
+        ld b,2
+        call fcopy
+        ; the cell-glyph map: each tile column is two columns of 32 cell glyphs
+        ld bc,(fc_w)
+        ld hl,S_TMAP
+        ld de,M_CGMAP
+.col:   push bc
+        ld a,(stg_blk)
+        call map_blk
+        push de
+        ld de,POOLBUF
+        ld bc,16
+        ldir
+        pop de
+        push hl
+        ld a,BLK_MAP
+        call map_blk
+        ld c,0
+.half:  ld b,16
+        ld hl,POOLBUF
+.t:     push hl
+        ld l,(hl)
+        ld h,0
+        add hl,hl
+        add hl,hl
+        ld a,l
+        or c
+        ld l,a
+        ld a,h
+        add a,M_TCELL >> 8
+        ld h,a
+        ld a,(hl)
+        ld (de),a
+        inc de
+        inc hl
+        inc hl
+        ld a,(hl)
+        ld (de),a
+        inc de
+        pop hl
+        inc hl
+        djnz .t
+        inc c
+        ld a,c
+        cp 2
+        jr nz,.half
+        pop hl
+        pop bc
+        dec bc
+        ld a,b
+        or c
+        jr nz,.col
         jp map_game
 
-; the cell-glyph map as it is at the start of the level: GFX -> MAP,
-; through a buffer up here
-e_mapreset:
-        ld hl,GF_CGMAP
-        ld de,M_CGMAP
-        ld b,(CGLEN + 511) / 512
+; copy B x 512 bytes from block C at HL to block A at DE, through a buffer up here
+fcopy:  ld (fc_dst),a
+        ld a,c
+        ld (fc_src),a
 .l:     push bc
-        ld a,BLK_GFX
+        ld a,(fc_src)
         call map_blk
         push de
         ld de,POOLBUF
         ld bc,512
         ldir
         pop de
-        ld a,BLK_MAP
+        ld a,(fc_dst)
         call map_blk
         push hl
         ld hl,POOLBUF
@@ -260,7 +337,7 @@ e_mapreset:
         pop hl
         pop bc
         djnz .l
-        jp map_game
+        ret
 
 ; ---------------------------------------------------------------------
 ;  text screens: the picture at the start of the ring, every cell a
@@ -1742,7 +1819,7 @@ keytest:
         pop bc
         ret
 
-keymap: db K_V,K_MONO, K_RIGHT,K_R, K_LEFT,K_L, K_UP,K_U, K_DOWN,K_D, K_SPACE,K_J
+keymap: db K_RIGHT,K_R, K_LEFT,K_L, K_UP,K_U, K_DOWN,K_D, K_SPACE,K_J
         db K_P,K_R, K_O,K_L, K_Q,K_U, K_A,K_D, K_M,K_J, K_X,K_R, K_Z,K_L
         db K_S,K_MUS, K_ESC,K_QUIT
         db $FF

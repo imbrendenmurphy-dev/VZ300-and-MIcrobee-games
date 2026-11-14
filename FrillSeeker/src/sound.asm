@@ -121,7 +121,7 @@ snd_until:
         cp e
         jr nz,.silent
         ret
-.noise: ld hl,(rseed)
+.noise: ld hl,(nseed)
 .n:     in a,(P_CRTCA)
         and $20
         cp e
@@ -141,112 +141,8 @@ snd_until:
         or l
         jr nz,.ns
         inc l
-.ns:    ld (rseed),hl
+.ns:    ld (nseed),hl
         ret
-
-; =====================================================================
-;  TWO VOICES, for the title and the jingles, when the CPU has nothing
-;  else to do. Each voice is a square wave counted down in a fixed 89 T
-;  loop; the speaker plays the two XORed. A rest is a voice whose
-;  toggle has been patched to do nothing.
-;  HL = song: events (p1, p2, len): p = half-period in loops (0 = rest),
-;  len in fiftieths, b7 set = run straight on (no gap). $FF = from the
-;  top, $FE = the end. tw_hook is called before each event.
-;  -> Z: the song ended; NZ: SPACE/fire or ESC was pressed (A = $10 / $80)
-; =====================================================================
-TW_ITER     EQU 760         ; 89 T loops in a fiftieth of a second
-TW_GAP      EQU 2600        ; 26 T loops in a fiftieth
-
-tw_song:
-        ld (tw_start),hl
-        ld (tw_ptr),hl
-tws_ev: ld hl,(tw_hook)
-        call jp_hl
-        ld hl,(tw_ptr)
-        ld a,(hl)
-        cp $FF
-        jr nz,tws_1
-        ld hl,(tw_start)
-        ld (tw_ptr),hl
-        ld a,(hl)
-tws_1:  cp $FE
-        ret z
-        ld d,a
-        inc hl
-        ld e,(hl)
-        inc hl
-        ld a,(hl)
-        inc hl
-        ld (tw_ptr),hl
-        ld (tw_len),a
-        push de
-        call read_menu
-        pop de
-        ld a,(padnew)
-        and $90                 ; SPACE (or fire), or ESC
-        ret nz
-        ld a,d
-        or a
-        ld a,$40
-        jr nz,tws_2
-        xor a
-        dec d                   ; a rest counts from 255: the loop keeps its time
-tws_2:  ld (tws_x1+1),a
-        ld a,e
-        or a
-        ld a,$40
-        jr nz,tws_3
-        xor a
-        dec e
-tws_3:  ld (tws_x2+1),a
-        ld a,(tw_len)
-        ld c,a
-        and $7F
-        bit 7,c
-        jr nz,tws_4
-        dec a                   ; the last fiftieth is a gap
-tws_4:  or a
-        jr z,tws_gap
-        ld (tw_cnt),a
-        ld b,d
-        ld c,e
-        ld hl,0
-tws_u:  ld ix,TW_ITER
-tws_l:  dec b
-        jr nz,tws_a
-        ld b,d
-        ld a,l
-tws_x1: xor $40
-        ld l,a
-tws_a:  dec c
-        jr nz,tws_b
-        ld c,e
-        ld a,h
-tws_x2: xor $40
-        ld h,a
-tws_b:  ld a,l
-        xor h
-        out (P_PIOB),a
-        dec ix
-        ld a,ixh
-        or ixl
-        jr nz,tws_l
-        ld a,(tw_cnt)
-        dec a
-        ld (tw_cnt),a
-        jr nz,tws_u
-        ld a,(tw_len)
-        bit 7,a
-        jp nz,tws_ev
-tws_gap:
-        xor a
-        out (P_PIOB),a
-        ld bc,TW_GAP
-tws_g:  dec bc
-        ld a,b
-        or c
-        jr nz,tws_g
-        jp tws_ev
 
 jp_hl:  jp (hl)
 hook_none:

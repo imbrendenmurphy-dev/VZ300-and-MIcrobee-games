@@ -27,20 +27,108 @@ def stamp(p, ink, cut, x0, y0, col):
     p.m[ys, xs][ink] = 15
 
 
-def logo(p):
-    """FRILLSEEKER in the font's 5 x 7 face, each dot 3 x 4"""
+# ---- the logo: its own heavy, slanted, chamfered letters (not the font)
+TX, TY = 0.30, 0.20         # stroke: stem width, bar height, of the letter box
+
+
+def _bar(y0, x1=1.0, slant=0.12):
+    """a bar from the stem to x1, its free end cut on the slant"""
+    return [(0, y0), (x1, y0), (x1 - slant, y0 + TY), (0, y0 + TY)]
+
+
+STEM = [(0, 0), (TX, 0), (TX, 1), (0, 1)]
+LETTERS = {
+    'F': ([STEM, _bar(0), _bar(0.41, 0.80)], []),
+    'I': ([[(0, 0), (1, 0), (1, 1), (0, 1)]], []),
+    'L': ([STEM, [(0, 1 - TY), (0.86, 1 - TY), (1.0, 1), (0, 1)]], []),
+    'E': ([STEM, _bar(0), _bar(0.39, 0.76), [(0, 1 - TY), (0.88, 1 - TY), (1.0, 1), (0, 1)]], []),
+    'R': ([STEM, [(0, 0), (0.84, 0), (1, 0.14), (1, 0.46), (0.84, 0.60), (0, 0.60)],
+           [(0.36, 0.56), (0.70, 0.56), (1.06, 1), (0.70, 1)]],
+          [[(TX, TY), (1 - TX, TY), (1 - TX, 0.60 - TY), (TX, 0.60 - TY)]]),
+    'K': ([STEM, [(TX - 0.02, 0.40), (0.62, 0), (1.02, 0), (TX + 0.14, 0.64), (TX - 0.02, 0.64)],
+           [(0.30, 0.50), (0.54, 0.36), (1.06, 1), (0.70, 1)]], []),
+    'S': ([[(0.14, 0), (1, 0), (0.88, TY), (0, TY), (0, 0.14)],
+           [(0, 0.10), (TX, 0.10), (TX, 0.61), (0.14, 0.61), (0, 0.47)],
+           [(0, 0.39), (0.86, 0.39), (1, 0.53), (1, 0.61), (0, 0.61)],
+           [(1 - TX, 0.45), (1, 0.45), (1, 0.86), (0.86, 1), (1 - TX, 1)],
+           [(0, 1 - TY), (0.12, 1 - TY), (1, 1 - TY), (1, 0.90), (0.86, 1), (0, 1)]],
+          [[(0, 1 - TY), (0.12, 1 - TY), (0, 1)]]),
+}
+SHEAR = 0.24
+LOGO_BANDS = [WHITE, YELLOW, YELLOW, BROWN, BRED, RED]      # a cell row each, top to bottom
+
+
+def letter(ch, w, h):
+    """-> (h, w + slant) boolean"""
+    from PIL import Image, ImageDraw
+    S = 8
+    ex = int(h * SHEAR) + 3
+    im = Image.new('L', ((w + ex) * S, h * S), 0)
+    d = ImageDraw.Draw(im)
+    polys, cuts = LETTERS[ch]
+
+    def tr(pts):
+        return [((x * w + (1 - y) * h * SHEAR) * S, y * h * S) for x, y in pts]
+    for pl in polys:
+        d.polygon(tr(pl), fill=255)
+    for pl in cuts:
+        d.polygon(tr(pl), fill=0)
+    a = np.asarray(im, np.float32).reshape(h, S, w + ex, S).mean(axis=(1, 3))
+    return a > 127
+
+
+def logo_mask():
+    """the logo as a 48 x 320 mask"""
+    m = np.zeros((48, 320), np.uint8)
     text = 'FRILLSEEKER'
-    x0 = (320 - (len(text) * 18 - 3)) // 2
+    W, H, GAP, WI = 20, 28, 5, 8
+    BW, BH = 27, 40                      # the F and the last R stand taller
+    widths = [BW if i in (0, len(text) - 1) else (WI if ch == 'I' else W) for i, ch in enumerate(text)]
+    total = sum(widths) + GAP * (len(text) - 1) + int(H * SHEAR)
+    x = (320 - total) // 2
+    top = 5
+    ink = np.zeros((48, 320), bool)
+    edges = []
     for i, ch in enumerate(text):
-        rows = font.F57[ch].split(',')
-        for j, row in enumerate(rows):
-            for k, d in enumerate(row):
-                if d == '1':
-                    x, y = x0 + i * 18 + k * 3, 6 + j * 4
-                    p.c[y:y + 4, x:x + 3] = YELLOW
-                    p.m[y:y + 4, x:x + 3] = 15
-                    p.c[y + 3, x:x + 3] = BROWN          # a shaded underside
-                    p.m[y + 3, x:x + 3] = 0 if j == 6 else 15
+        big = i in (0, len(text) - 1)
+        w, h = widths[i], (BH if big else H)
+        g = letter(ch, w, h)
+        # a taller letter leans from the same baseline slope: line its top up
+        dx = 0 if big else int((BH - H) * SHEAR)
+        ink[top:top + h, x + dx - (int((BH - H) * SHEAR) if big else 0) + 4:][:, :g.shape[1]] |= g
+        edges.append(x)
+        x += w + GAP
+    # the frill's edge, under the letters between the two tall ones
+    x0, x1 = edges[1] + 2, edges[-1] + 2
+    for xx in range(x0, x1):
+        k = (xx - x0) % 10
+        depth = 2 + (k if k < 5 else 9 - k)
+        ink[top + H + 3:top + H + 3 + depth, xx] = True
+    # speed lines trailing off the F
+    fx = edges[0]
+    for k, (yy, ln) in enumerate(((top + 9, 16), (top + 17, 26), (top + 25, 12), (top + 33, 20))):
+        x1 = fx + int((BH - (yy - top)) * SHEAR) - 2
+        ink[yy:yy + 2, max(0, x1 - ln):x1] = True
+    m[ink] = 1
+    return m
+
+
+def logo(p):
+    m = logo_mask()
+    p.c[:48, :] = BLACK
+    p.m[:48, :] = 0
+    for r in range(6):
+        ys = slice(r * 8, r * 8 + 8)
+        on = m[ys] > 0
+        p.c[ys][on] = LOGO_BANDS[r]
+        p.m[ys][on] = 15
+    # a few stars in the gaps
+    rng = np.random.RandomState(7)
+    for i in range(26):
+        x, y = rng.randint(2, 318), rng.randint(1, 47)
+        if not m[max(0, y - 3):y + 4, max(0, x - 4):x + 5].any():
+            p.c[y, x] = WHITE if i % 3 else BCYAN
+            p.m[y, x] = 15
 
 
 def paint(ph=0):

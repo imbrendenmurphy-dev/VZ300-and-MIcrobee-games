@@ -25,13 +25,9 @@ PCGWIN      EQU $F800
 ; ---- RAM blocks (the lower window, 0000-7FFF). Block 0 is the upper 32K.
 BLK_GAME    EQU 4           ; the game's logic, the tile map
 BLK_MAP     EQU 5           ; the cell-glyph map, the pair table, the cell builder
-BLK_GFX     EQU 6           ; the scroll glyphs, the font
+; a stage's data is in block BLK_STG + stage (see gen.inc for its layout)
 BLK_LAD     EQU 7           ; the attribute ladders (built at start-up)
-BLK_SPR     EQU 8           ; sprite frames, blocks 8..
 
-; ---- BLK_GFX
-GF_PAT      EQU $0000       ; 12 x 1024: glyph patterns by attribute (set * 4 + shift)
-GF_FONT     EQU $3000       ; 64 glyphs x 8
 
 ; ---- BLK_MAP (see map.asm)
 M_COLUMN    EQU $0000
@@ -44,6 +40,7 @@ M_PLATH     EQU $2100       ; 4 x 7
 M_PLATV     EQU $2120       ; 4 x 12
 M_PCOL      EQU $2200       ; ink by attribute * 128 + code: colour, then mono (+$600)
 M_CGMAP     EQU $2E00       ; 32 cell glyphs a column
+M_FONT      EQU $7C00       ; the 64-glyph font
 M_HUDG      EQU $7800       ; the status line's glyphs: 4 slides x 2 halves x 16
 
 ; ---- upper memory (block 0)

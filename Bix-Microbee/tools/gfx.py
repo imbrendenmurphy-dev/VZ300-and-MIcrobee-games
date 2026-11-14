@@ -121,11 +121,11 @@ def pic(rows):
     return np.array([[c == '#' for c in r] for r in rows])
 
 
-def soil(seed):
-    """red earth: solid, with a scatter of dark grit"""
+def soil(seed, grit=7):
+    """earth: solid, with a scatter of dark grit"""
     b = np.ones((16, 16), bool)
     r = rnd(seed)
-    for i in range(7):
+    for i in range(grit):
         x, y = r(16), r(16)
         b[y, x] = False
         if i % 3 == 0:
@@ -207,33 +207,152 @@ WATER = [
 ]
 
 
-def build_tiles():
-    """-> {name: (bits 16x16, ink 2x2, prio)}"""
-    T = {}
-    for name, rows, _attr in vz.TILES:
-        img = epx(chars(rows), 'b')
-        bits, ink = cells_of(img, 'b', STYLE.get(name))
-        T[name] = [bits, ink, PRIO.get(name, 2)]
-    s1, s2 = soil(11), soil(29)
-    T['soil'][0] = s1
-    T['soil2'][0] = s2
-    T['soil'][1] = T['soil2'][1] = np.full((2, 2), RED)
-    T['soilD'] = [tunnel(), np.full((2, 2), RED), PRIO['soilD']]
+GRASS_W = {
+    2: [   # crystal crust
+        "...#......#.....",
+        "..###....###..#.",
+        "..###.#..###.###",
+        ".#####.#.###.###",
+        "################",
+        "################",
+        "##.####.###.####",
+        "################",
+    ],
+    3: [   # a steel deck with a hazard stripe
+        "################",
+        "##..##..##..##..",
+        ".##..##..##..##.",
+        "################",
+        "................",
+        "################",
+        "#.#############.",
+        "################",
+    ],
+    4: [   # cloud-soft turf
+        "................",
+        "..##.....##.....",
+        ".####.######.##.",
+        "################",
+        "################",
+        "################",
+        "###.####.###.###",
+        "################",
+    ],
+    5: [   # cinder crust
+        "................",
+        ".#....#.....#...",
+        "###..###.#.###.#",
+        "################",
+        "################",
+        "#.##.###.##.###.",
+        "################",
+        "################",
+    ],
+}
+# per world: the character that is empty air, the default inks, the ground's
+# inks (earth, turf), the water's (top, body), and each tile's own style
+WORLD = {
+    2: dict(void='b', default={'g': GREY, 'y': BCYAN, 'r': MAGENTA}, earth=MAGENTA, turf=BCYAN, water=(BCYAN, BBLUE), grit=9,
+            style={
+                'sky_tw': {'g': DGREY}, 'sky_tw2': {'y': CYAN, 'g': DGREY},
+                'cloudL': {'r': DGREY, 'g': None}, 'cloudM': {'r': DGREY, 'g': None}, 'cloudR': {'r': DGREY, 'g': None},
+                'moonTL': {'y': BCYAN, 'g': None, 'r': BCYAN}, 'moonTR': {'y': BCYAN, 'g': None, 'r': BCYAN},
+                'moonBL': {'y': BCYAN, 'g': None, 'r': BCYAN}, 'moonBR': {'y': BCYAN, 'g': None, 'r': BCYAN},
+                'hillL': {'g': BLUE}, 'hillM': {'g': BLUE}, 'hillR': {'g': BLUE}, 'hillB': {'g': BLUE}, 'hillBT': {'g': BLUE},
+                'rocktop': {'g': GREY, 'y': GREY, 'r': None}, 'rock': {'g': GREY, 'r': None},
+                'log': {'g': BROWN, 'r': BROWN},
+                'trunk': {'g': GREY, 'r': None}, 'trunkB': {'g': GREY, 'r': None},
+                'leafT': {'r': BLUE, 'g': None}, 'leaf': {'r': BLUE, 'g': None}, 'leafB': {'r': BLUE, 'g': None, 'y': BLUE},
+                'bush': {'y': CYAN, 'g': None, 'r': CYAN}, 'flower': {'y': BGREEN, 'g': BGREEN},
+                'tuft': {'r': MAGENTA, 'g': MAGENTA}, 'thorn': {'y': BMAGENTA, 'g': None, 'r': BMAGENTA},
+                'shroom': {'y': WHITE, 'g': None, 'r': BRED},
+                'check': {'r': BRED, 'g': GREY}, 'checkon': {'y': YELLOW, 'g': YELLOW, 'r': YELLOW},
+                'exitT': {'y': YELLOW, 'g': None}, 'exitB': {'g': GREY, 'r': None},
+                'termite': {'y': CYAN, 'g': None}, 'bonus': {'g': YELLOW, 'y': None, 'r': None}, 'used': {'r': BROWN},
+                'fern': {'g': GREY, 'y': GREY}, 'rockS': {'g': GREY, 'r': GREY}, 'lantern': {'r': YELLOW, 'g': None, 'y': YELLOW},
+            }),
+    3: dict(void='g', default={'b': GREY, 'y': YELLOW, 'r': BROWN}, earth=BROWN, turf=YELLOW, water=(YELLOW, BRED), grit=5,
+            style={
+                'sky_tw': {'y': DGREY}, 'sky_tw2': {'b': DGREY, 'y': None},
+                'cloudL': {'b': DGREY, 'y': None, 'r': DGREY}, 'cloudM': {'b': DGREY, 'y': None, 'r': DGREY}, 'cloudR': {'b': DGREY, 'y': None, 'r': DGREY},
+                'moonTL': {'b': CYAN, 'y': None}, 'moonTR': {'b': CYAN, 'y': None}, 'moonBL': {'b': CYAN, 'y': None}, 'moonBR': {'b': CYAN, 'y': None},
+                'hillL': {'b': BLUE}, 'hillM': {'b': BLUE}, 'hillR': {'b': BLUE}, 'hillB': {'b': BLUE}, 'hillBT': {'b': BLUE},
+                'rocktop': {'b': DGREY, 'y': None}, 'rock': {'b': DGREY, 'y': None},
+                'log': {'y': BGREEN, 'r': None, 'b': BGREEN},
+                'trunk': {'b': CYAN, 'y': None}, 'trunkB': {'b': CYAN, 'y': None},
+                'leafT': {'b': DGREY, 'y': None}, 'leaf': {'b': DGREY, 'y': None}, 'leafB': {'b': DGREY, 'y': None, 'r': DGREY},
+                'bush': {'b': GREY, 'y': None}, 'flower': {'r': BRED, 'b': BRED}, 'tuft': {'b': GREY, 'y': None},
+                'thorn': {'y': BCYAN, 'b': BCYAN, 'r': None},
+                'shroom': {'y': BRED, 'b': BRED},
+                'check': {'b': GREY, 'r': BRED}, 'checkon': {'b': YELLOW, 'y': YELLOW},
+                'exitT': {'y': YELLOW, 'r': None}, 'exitB': {'b': GREY, 'y': None},
+                'termite': {'y': BROWN, 'r': None}, 'bonus': {'y': YELLOW, 'r': None, 'b': None}, 'used': {'b': BROWN},
+                'fern': {'b': GREY, 'y': None}, 'rockS': {'b': GREY, 'y': None}, 'lantern': {'r': YELLOW, 'y': YELLOW, 'b': None},
+            }),
+}
+
+WORLD[4] = dict(void='g', default={'y': WHITE, 'b': GREY, 'r': CYAN}, earth=CYAN, turf=WHITE, water=None, grit=6,
+                style={
+                    'sky_tw': {'y': DGREY}, 'sky_tw2': {'y': DGREY},
+                    'cloudL': {'y': DGREY}, 'cloudM': {'y': DGREY}, 'cloudR': {'y': DGREY},
+                    'moonTL': {'r': YELLOW}, 'moonTR': {'r': YELLOW}, 'moonBL': {'r': YELLOW}, 'moonBR': {'r': YELLOW},
+                    'rocktop': {'b': GREY, 'y': None}, 'rock': {'b': GREY, 'y': None},
+                    'log': {'y': WHITE},
+                    'trunk': {'y': BGREEN, 'r': None}, 'trunkB': {'y': BGREEN, 'r': None},
+                    'leafT': {'y': WHITE}, 'leaf': {'r': CYAN, 'b': None}, 'leafB': {'r': CYAN, 'b': None},
+                    'bush': {'y': BGREEN, 'b': None}, 'flower': {'b': BMAGENTA, 'y': BMAGENTA}, 'tuft': {'y': BGREEN},
+                    'thorn': {'y': YELLOW, 'r': YELLOW},
+                    'shroom': {'y': BRED},
+                    'check': {'b': BRED, 'r': GREY}, 'checkon': {'y': YELLOW, 'r': YELLOW},
+                    'exitT': {'y': YELLOW, 'b': None}, 'exitB': {'r': BROWN},
+                    'termite': {'y': GREY}, 'bonus': {'y': YELLOW, 'b': None}, 'used': {'b': BROWN},
+                    'fern': {'y': BBLUE}, 'rockS': {'b': GREY}, 'lantern': {'r': YELLOW, 'y': YELLOW, 'b': None},
+                })
+WORLD[5] = dict(void='b', default={'g': GREY, 'y': YELLOW, 'r': BRED}, earth=DGREY, turf=BRED, water=(YELLOW, BRED), grit=10,
+                style={
+                    'sky_tw': {'y': DGREY}, 'sky_tw2': {'y': RED, 'r': RED},
+                    'cloudL': {'g': DGREY}, 'cloudM': {'g': DGREY}, 'cloudR': {'g': DGREY},
+                    'moonTL': {'r': RED, 'y': RED}, 'moonTR': {'r': RED, 'y': RED},
+                    'moonBL': {'r': RED, 'y': None}, 'moonBR': {'r': RED, 'y': None},
+                    'rocktop': {'g': GREY, 'y': GREY}, 'rock': {'g': GREY, 'y': None},
+                    'log': {'g': GREY},
+                    'trunk': {'r': BROWN, 'y': None}, 'trunkB': {'r': BROWN, 'y': None},
+                    'leafT': {'g': DGREY}, 'leaf': {'g': DGREY}, 'leafB': {'g': DGREY, 'y': None},
+                    'bush': {'g': GREY, 'y': GREY}, 'flower': {'y': YELLOW, 'r': YELLOW}, 'tuft': {'y': BROWN},
+                    'thorn': {'y': YELLOW, 'r': YELLOW},
+                    'shroom': {'g': BRED, 'r': None, 'y': BRED},
+                    'check': {'g': GREY, 'y': GREY}, 'checkon': {'y': YELLOW, 'r': None, 'g': YELLOW},
+                    'exitT': {'y': YELLOW, 'r': None}, 'exitB': {'g': GREY, 'y': GREY},
+                    'termite': {'g': GREY}, 'bonus': {'y': YELLOW, 'r': None}, 'used': {'r': BROWN},
+                    'fern': {'y': RED, 'r': RED}, 'rockS': {'g': GREY, 'y': None}, 'lantern': {'y': YELLOW, 'r': None},
+                })
+
+
+def ground_tiles(T, earth, turf, top, water, grit=7):
+    """the tiles drawn at the Microbee's own resolution, in a world's inks"""
+    s1, s2 = soil(11, grit), soil(29, grit)
+    T['soil'] = [s1, np.full((2, 2), earth), PRIO['soil']]
+    T['soil2'] = [s2, np.full((2, 2), earth), PRIO['soil2']]
+    T['soilD'] = [tunnel(), np.full((2, 2), earth), PRIO['soilD']]
     g = s1.copy()
-    g[:8] = pic(GRASS_TOP)
-    T['grass'] = [g, np.array([[BGREEN, BGREEN], [RED, RED]]), PRIO['grass']]
+    g[:8] = pic(top)
+    T['grass'] = [g, np.array([[turf, turf], [earth, earth]]), PRIO['grass']]
     g = tunnel()
-    g[:8] = pic(GRASS_TOP)
-    T['grassD'] = [g, np.array([[BGREEN, BGREEN], [RED, RED]]), PRIO['grassD']]
+    g[:8] = pic(top)
+    T['grassD'] = [g, np.array([[turf, turf], [earth, earth]]), PRIO['grassD']]
     T['star'] = [pic(STAR), np.full((2, 2), YELLOW), PRIO['star']]
     # a buried star: the star glowing in a pocket of the earth
     b = pic(STAR)
     b[0, :] = b[15, :] = True
     b[0, 5] = b[15, 11] = False
     T['bstar'] = [b, np.full((2, 2), YELLOW), PRIO['bstar']]
-    T['watert'] = [pic(WATER_T), np.full((2, 2), BCYAN), 3]
-    T['water'] = [pic(WATER), np.full((2, 2), BBLUE), 3]
-    # the 45 degree ramps: earth below the diagonal, a grassy edge on it
+    if water:
+        T['watert'] = [pic(WATER_T), np.full((2, 2), water[0]), 3]
+        T['water'] = [pic(WATER), np.full((2, 2), water[1]), 3]
+    else:                                        # the open sky under the islands
+        T['watert'] = [np.zeros((16, 16), bool), np.zeros((2, 2), int), 2]
+        T['water'] = [np.zeros((16, 16), bool), np.zeros((2, 2), int), 2]
+    # the 45 degree ramps: earth below the diagonal, a turf edge on it
     for name, right in (('slopeR', True), ('slopeL', False)):
         b = np.zeros((16, 16), bool)
         for y in range(16):
@@ -248,12 +367,40 @@ def build_tiles():
                 xx = x if right else 15 - x
                 if y == 15 - xx + 4 and x % 4 != 1:
                     b2[y, x] = False
-        ink = np.full((2, 2), RED)
+        ink = np.full((2, 2), earth)
         if right:
-            ink[0, 1] = BGREEN; ink[1, 0] = BGREEN
+            ink[0, 1] = turf; ink[1, 0] = turf
         else:
-            ink[0, 0] = BGREEN; ink[1, 1] = BGREEN
+            ink[0, 0] = turf; ink[1, 1] = turf
         T[name] = [b2, ink, PRIO[name]]
+
+
+def build_tiles(world=1):
+    """-> {name: (bits 16x16, ink 2x2, prio)}"""
+    T = {}
+    if world == 1:
+        for name, rows, _attr in vz.TILES:
+            img = epx(chars(rows), 'b')
+            bits, ink = cells_of(img, 'b', STYLE.get(name))
+            T[name] = [bits, ink, PRIO.get(name, 2)]
+        ground_tiles(T, RED, BGREEN, GRASS_TOP, (BCYAN, BBLUE))
+        return T
+    import art2
+    Wd = WORLD[world]
+    src = getattr(art2, 'W%d_TILES' % world)
+    void = Wd['void']
+    for name, _rows, _attr in vz.TILES:
+        rows = src.get(name)
+        if rows is None:                         # the slopes are made below
+            T[name] = [np.zeros((16, 16), bool), np.zeros((2, 2), int), 2]
+            continue
+        st = {'g': None, 'y': None, 'r': None, 'b': None}
+        st.update(Wd['default'])
+        st.update(Wd['style'].get(name, {}))
+        img = epx(chars(rows), void)
+        bits, ink = cells_of(img, void, st)
+        T[name] = [bits, ink, PRIO.get(name, 2)]
+    ground_tiles(T, Wd['earth'], Wd['turf'], GRASS_W[world], Wd['water'], Wd.get('grit', 7))
     return T
 
 
@@ -265,6 +412,10 @@ def sprite_from(rows, red_dark_rows=()):
     ink = (a == 'y') | (a == 'r') | (a == 'g')
     cut = (a == 'b')
     return ink, cut
+
+
+def boss_sprite(rows, world):
+    return sprite_from(rows)
 
 
 def bix_frames():

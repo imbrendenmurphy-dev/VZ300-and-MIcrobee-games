@@ -48,7 +48,7 @@ start:      ld sp,$A7F0
             ldir
             jp main
 
-m_title:    DB 13,10,"BIX THE BILBY - MICROBEE PROTOTYPE",13,10
+m_title:    DB 13,10,"BIX THE BILBY - THE STAR DIGGER",13,10
             DB "VIBED BY BPM 2026",13,10,"$"
 m_tpa:      DB "Needs a CP/M with a TPA above B000h.",13,10,"$"
 

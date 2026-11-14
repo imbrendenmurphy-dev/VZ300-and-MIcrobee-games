@@ -11,8 +11,6 @@ entry:  di
         ld sp,STACK
         MEMV BLK_WORK
         call hw_init
-        ld hl,hook_none
-        ld (tw_hook),hl
         jp monitor_select
 
         INCLUDE "engine.asm"
@@ -27,3 +25,5 @@ prog_end:
         ASSERT prog_end <= COLSH
         INCLUDE "vars.asm"
         SAVEBIN "../build/FRILL.BIN",$8000,prog_end-$8000
+        INCLUDE "front.asm"
+        SAVEBIN "../build/FRONT.BNK",$0000,front_end

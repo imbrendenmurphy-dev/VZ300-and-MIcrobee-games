@@ -63,16 +63,91 @@ g_start:
         ld sp,STACK
         call title
         call new_game
+.stage: call stage_card
         call level_start
         call game_loop
         call e_music_off
         ld a,(levdone)
         or a
         jr z,.over
-        call clear_screen
+        ld a,(lv_bossid)
+        or a
+        call nz,clear_screen    ; a boss beaten: the world is clear
+        ld hl,stage
+        inc (hl)
+        ld a,(hl)
+        cp NSTAGE
+        jr c,.stage
+        call end_screen
         jr g_start
 .over:  call over_screen
         jr g_start
+
+; A = stage -> B = world (0..), A = its part (0..2)
+stage_wp:
+        ld b,0
+.l:     cp 3
+        ret c
+        sub 3
+        inc b
+        jr .l
+
+; the card before a stage
+stage_card:
+        xor a
+        call e_text
+        ld a,(stage)
+        call stage_wp
+        push af
+        push bc
+        add a,'1'
+        ld (t_world+8),a
+        ld a,b
+        add a,'1'
+        ld (t_world+6),a
+        ld hl,t_world
+        ld de,$090F
+        ld c,YELLOW
+        call e_print
+        pop bc
+        pop af
+        ld hl,t_back
+        cp 1
+        jr z,.pr
+        ld hl,t_names
+        or a
+        jr z,.nm
+        ld hl,t_bosses
+.nm:    ld a,b
+        add a,a
+        ld e,a
+        ld d,0
+        add hl,de
+        ld a,(hl)
+        inc hl
+        ld h,(hl)
+        ld l,a
+.pr:    ld de,$0C00
+        ld e,(hl)               ; its column, then the name
+        inc hl
+        ld c,BGREEN
+        call e_print
+        ld a,40
+        jp e_wait
+t_world: db "WORLD 1-1",0
+t_back: db 14,"THE WAY BACK",0
+t_names: dw t_n1,t_n2,t_n3,t_n4,t_n5
+t_bosses: dw t_b1,t_b2,t_b3,t_b4,t_b5
+t_n1:   db 13,"GUMLEAF GULLY",0
+t_n2:   db 12,"CRYSTAL CAVERNS",0
+t_n3:   db 12,"CLOCKWORK WORKS",0
+t_n4:   db 13,"SKYWARD ISLES",0
+t_n5:   db 14,"MOLTEN PEAKS",0
+t_b1:   db 15,"KING CANE",0
+t_b2:   db 12,"THE GEODE GOLEM",0
+t_b3:   db 14,"RUST-O-TRON",0
+t_b4:   db 14,"THUNDERHAWK",0
+t_b5:   db 12,"THE MAGMA DRAGON",0
 
 ; ---------------------------------------------------------------- front end
 title:  xor a
@@ -104,10 +179,6 @@ title:  xor a
         ld hl,t_5c
         ld de,$1103
         ld c,BCYAN
-        call e_print
-        ld hl,t_5d
-        ld de,$1203
-        ld c,GREY
         call e_print
         ld hl,t_7
         ld de,$170B
@@ -154,15 +225,17 @@ title:  xor a
 t_1:    db "BIX THE BILBY",0
 t_2:    db "THE STAR DIGGER",0
 t_3:    db "MICROBEE PREMIUM PLUS VERSION",0
-t_4:    db "PROTOTYPE: WORLD 1-1 GUMLEAF GULLY",0
+t_4:    db "     FIVE WORLDS, FIFTEEN STAGES",0
 t_5:    db "O P OR ARROWS: RUN   SPACE: JUMP",0
 t_5b:   db "A OR DOWN: DIG IN, THEN TUNNEL",0
 t_5c:   db "HOLD SPACE UNDERGROUND: BURST OUT",0
-t_5d:   db "V: SMOOTH / STEPPED VERTICAL SCROLL",0
 t_6c:   db "MONITOR: COLOUR  (M = MONO)   SPACE",0
 t_6m:   db "MONITOR: MONO  (C = COLOUR)   SPACE",0
 t_7:    db "VIBED BY BPM 2026",0
-t_clr:  db "GUMLEAF GULLY CLEAR!",0
+t_clr:  db "WORLD 1 CLEAR!",0
+t_end1: db "THE STARS ARE HOME!",0
+t_end2: db "BIX DUG THEM ALL BACK OUT OF THE EARTH",0
+t_end3: db "WELL DUG, STAR DIGGER",0
 t_stars: db "STARS",0
 t_score: db "SCORE",0
 t_over: db "GAME OVER",0
@@ -171,9 +244,28 @@ t_sp:   db "PRESS SPACE",0
 clear_screen:
         xor a
         call e_text
+        ld a,(lv_world)
+        add a,'0'
+        ld (t_clr+6),a
         ld hl,t_clr
-        ld de,$080A
+        ld de,$080D
         ld c,YELLOW
+        call e_print
+        jr res_common
+end_screen:
+        xor a
+        call e_text
+        ld hl,t_end1
+        ld de,$050A
+        ld c,YELLOW
+        call e_print
+        ld hl,t_end2
+        ld de,$0701
+        ld c,BGREEN
+        call e_print
+        ld hl,t_end3
+        ld de,$0909
+        ld c,BCYAN
         call e_print
         jr res_common
 over_screen:
@@ -277,7 +369,9 @@ tmp1      dw 0
 tmp2      dw 0
 tmp3      dw 0
 shake     db 0
-levw      dw LEVW
+levw      dw 0
+stage     db 0
+lv_bossid db 0
 lv_world  db 1
 lv_sx     dw 0
 lv_sy     db 0
@@ -322,13 +416,7 @@ read_input:
         ld a,(mus_on)
         xor 1
         ld (mus_on),a
-.nm:    ld a,(padnew)
-        and K_MONO              ; V: the smooth vertical scroll on / off
-        jr z,.nv
-        ld a,(smooth)
-        xor 1
-        ld (smooth),a
-.nv:    ld a,(keys)
+.nm:    ld a,(keys)
         ld (keysold),a
         cpl
         and c
@@ -358,7 +446,6 @@ block_debris:
 sparkle_burst:
 sparkle_one:
 spawn_part:
-conveyor:
         ret
 
 mul12:  add hl,hl               ; x 16: the map's column height here
@@ -421,15 +508,40 @@ new_game:
         ld (score),a
         ld (score+1),a
         ld (score+2),a
+        ld a,(startstg)
+        ld (stage),a
         ret
+startstg db 0                   ; the stage a game starts at (testing)
+        INCLUDE "tunes.inc"
 
 level_start:
-        call e_gfx
-        call e_mapreset
-        ld hl,MAP0
-        ld de,MAP
-        ld bc,MAPLEN
-        ldir
+        ld a,(stage)
+        call e_stage
+        ld hl,(LVHDR)
+        ld (levw),hl
+        ld a,(LVHDR+5)
+        ld (lv_bossid),a
+        ld a,(LVHDR+6)
+        ld (lv_world),a
+        dec a
+        ld b,a
+        add a,a
+        ld c,a                  ; x 2
+        add a,a
+        add a,a
+        add a,a                 ; x 16
+        sub b                   ; x 15
+        ld (ef_base),a
+        ld a,c
+        add a,a
+        add a,a
+        add a,a
+        sub c                   ; x 14
+        ld e,a
+        ld d,0
+        ld hl,ent_ink
+        add hl,de
+        ld (ink_base),hl
         ld hl,(levw)
         add hl,hl
         add hl,hl
@@ -448,9 +560,9 @@ level_start:
         add hl,hl
         add hl,hl
         ld (pxmax16),hl
-        ld hl,START_X
+        ld hl,(LVHDR+2)
         ld (chkx),hl
-        ld a,START_Y
+        ld a,(LVHDR+4)
         ld (chky),a
         ld hl,ENTST
         ld b,64
@@ -468,7 +580,26 @@ level_start:
         ld (frame),a
         ld (nmapq),a
         ld (ndraw),a
-        ld hl,tune
+        ld a,(lv_world)         ; this world's tune, or its boss's
+        dec a
+        add a,a
+        ld e,a
+        ld a,(lv_bossid)
+        or a
+        jr z,.tn
+        inc e
+.tn:    ld d,0
+        ld hl,tune_tab
+        add hl,de
+        add hl,de
+        ld a,(hl)
+        inc hl
+        ld h,(hl)
+        ld l,a
+        ld de,tunebuf
+        ld bc,TUNELEN
+        ldir
+        ld hl,tunebuf
         call e_music
         ; fall through
 respawn:
@@ -494,8 +625,9 @@ respawn:
         ld (ridedy),a
         ld (burstt),a
         ld (look),a
-        ld (facing),a
         ld (ndraw),a
+        ld a,(LVHDR+7)          ; the way back runs west
+        ld (facing),a
         ld a,3
         ld (health),a
         ld a,1
@@ -862,13 +994,20 @@ player_draw:
 
 ent_frame:      ; type -> first sprite frame
         db 0, EF_ANT1, EF_MAG1, EF_DROP1, EF_TOAD1, 0, 0, EF_GLOW1, EF_ONEUP, 0
-        db EF_WORM1, EF_BOOM, 0, 0
-ent_ink:
-        db 0, BRED, WHITE, GREY, BGREEN, 0, 0, YELLOW, YELLOW, 0
-        db BMAGENTA, WHITE, 0, 0
+        db EF_WORM1, EF_BOOM, EF_FLY, 0
+ent_ink:        ; by world
+        db 0, BRED, WHITE, GREY, BGREEN, 0, 0, YELLOW, YELLOW, 0, BMAGENTA, WHITE, WHITE, 0
+        db 0, BCYAN, WHITE, GREY, BGREEN, 0, 0, YELLOW, YELLOW, 0, BMAGENTA, WHITE, BCYAN, 0
+        db 0, WHITE, BCYAN, GREY, BRED, 0, 0, YELLOW, YELLOW, 0, BMAGENTA, WHITE, YELLOW, 0
+        db 0, BRED, BMAGENTA, WHITE, BGREEN, 0, 0, YELLOW, YELLOW, 0, BCYAN, WHITE, YELLOW, 0
+        db 0, BRED, YELLOW, GREY, BRED, 0, 0, YELLOW, YELLOW, 0, YELLOW, WHITE, YELLOW, 0
+boss_ink:
+        db BGREEN, BRED, BCYAN, BMAGENTA, BRED
+ef_base db 0                    ; (world - 1) * NEN: this world's enemy frames
+ink_base dw ent_ink
 
 ent_jt: dw ant_upd, mag_upd, drop_upd, toad_upd, plath_upd, platv_upd
-        dw glow_upd, oneup_upd, ent_nop, worm_upd, boom_upd, ent_nop, ent_nop
+        dw glow_upd, oneup_upd, ent_nop, worm_upd, boom_upd, spit_upd, boss_upd
 
 ents_draw:
         ld ix,POOL
@@ -881,7 +1020,12 @@ ents_draw:
         cp E_PLATV
         jr z,.n
         cp E_BOSS
-        jr nc,.n
+        jr nz,.nb0
+        push bc
+        call boss_draw
+        pop bc
+        jr .n
+.nb0:   jr nc,.n
         cp E_WORM
         jr nz,.d0
         ld a,(ix+1)
@@ -891,7 +1035,7 @@ ents_draw:
         ld a,(ix+0)
         ld e,a
         ld d,0
-        ld hl,ent_ink
+        ld hl,(ink_base)
         add hl,de
         ld c,(hl)
         ld hl,ent_frame
@@ -900,7 +1044,9 @@ ents_draw:
         ld a,(hl)
         jr z,.nb
         add a,(ix+8)
-.nb:    ld b,(ix+9)
+.nb:    ld hl,ef_base
+        add a,(hl)
+        ld b,(ix+9)
         ld l,(ix+2)
         ld h,(ix+3)
         ld e,(ix+4)
@@ -910,6 +1056,44 @@ ents_draw:
         add ix,de
         djnz .l
         ret
+
+; ---------------------------------------------------------------- King Cane
+; (his moves are the VZ game's, in logic.asm)
+
+boss_draw:
+        ld a,(ix+15)
+        and 2
+        ret nz                  ; he flickers when hit
+        ld a,(ix+8)
+        ld b,a
+        ld a,(ix+15)
+        cp 21
+        jr c,.f
+        ld b,3
+.f:     ld a,b
+        ld c,a
+        ld a,(lv_bossid)
+        dec a
+        ld e,a
+        ld d,0
+        ld hl,boss_ink
+        add hl,de
+        add a,a
+        add a,a
+        add a,c
+        add a,BF_BOSS
+        ld c,(hl)
+        ld b,(ix+9)
+        push af
+        ld a,(lv_bossid)
+        cp 2
+        jr z,.fc                ; the golem turns to face; the others are drawn one way
+        ld b,0
+.fc:    pop af
+        ld l,(ix+2)
+        ld h,(ix+3)
+        ld e,(ix+4)
+        jp q_ent
 
 ; ---------------------------------------------------------------- the floating logs
 ; A log is not a sprite: it is cell glyphs put into the map (the engine
@@ -1084,7 +1268,19 @@ hud_update:
 .h1:    ld (hl),a
         inc l
         djnz .h
-        ld hl,HUDBUF+14
+        ld a,(lv_bossid)        ; a boss: his hits to go, as stars
+        or a
+        jr z,.st
+        ld hl,HUDBUF+13
+        ld a,(bosshp)
+        or a
+        jr z,.sc
+        ld b,a
+.bh:    ld (hl),11
+        inc l
+        djnz .bh
+        jr .sc
+.st:    ld hl,HUDBUF+14
         ld (hl),11
         inc l
         inc l
@@ -1100,7 +1296,7 @@ hud_update:
         call .dig
         pop af
         call .dig
-        ld hl,HUDBUF+22
+.sc:    ld hl,HUDBUF+22
         ld de,score
         ld b,3
 .s:     ld a,(de)
@@ -1115,12 +1311,18 @@ hud_update:
         djnz .s
         xor a
         call .dig
-        ld hl,HUDBUF+36
-        ld (hl),2
-        inc l
+        ld hl,HUDBUF+37
         ld (hl),15
         inc l
-        ld (hl),2
+        ld a,(stage)
+        call stage_wp
+        add a,2
+        ld (hl),a
+        dec l
+        dec l
+        ld a,b
+        add a,2
+        ld (hl),a
         ret
 .dig:   and 15
         inc a

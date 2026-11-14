@@ -5,6 +5,7 @@
 	DB 7, $00, "SPR3    BNK"
 	DB 8, $00, "GFX     BNK"
 	DB 21, $00, "TITLE   BNK"
+	DB 22, $00, "FRONT   BNK"
 	DB 9, $00, "ROOMC0  BNK"
 	DB 15, $00, "ROOMM0  BNK"
 	DB 10, $00, "ROOMC1  BNK"

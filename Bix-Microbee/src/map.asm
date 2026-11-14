@@ -678,19 +678,11 @@ q_show: push hl
 mapcode_end:
         ASSERT mapcode_end <= M_HASH
 
-        ORG M_HASH
-        INCBIN "../build/hash.bin"
-        ORG M_TCELL
-        INCBIN "../build/tcell.bin"
-        ORG M_PLATH
-        INCBIN "../build/plat.bin"
-        ORG M_PCOL
-        INCBIN "../build/pcol.bin"
-        ORG M_CGMAP
-        INCBIN "../build/cgmap.bin"
-map_end:
-        ASSERT map_end <= M_HUDG
+; M_HASH .. M_CGMAP and the cell-glyph map are filled from the stage's
+; blocks when it starts (e_stage)
         ORG M_HUDG
         INCBIN "../build/hudg.bin"
+        ORG M_FONT
+        INCBIN "../build/font.bin"
 map_end2:
         SAVEBIN "../build/MAP.BNK",0,map_end2

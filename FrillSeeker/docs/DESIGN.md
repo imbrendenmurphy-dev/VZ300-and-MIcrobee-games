@@ -357,8 +357,56 @@ RAM blocks 4–21. A third region will need the rooms compressed on the disk
 (the LZ packer from the Australian Open Tennis disk is already in `tools/`)
 and loaded a region at a time.
 
-**Not yet:** the other three regions, King Bufo, an attract mode, checkpoint
-saves to disk, key set-up, in-game music worth the name, an ending.
+**Not yet:** the other three regions, King Bufo, checkpoint saves to disk,
+key set-up, an ending.
+
+### The front end, the soundtrack and the attract sequence
+
+* **A block of its own.** Upper memory holds the game in 11K, so the front
+  end lives in RAM block 22 (`src/front.asm`, assembled at 0100h, mapped at
+  0000–7FFF when it runs): the music player, the songs, the pages, the
+  demonstration scripts and its own variables. The game calls down through a
+  two-entry jump table (`front_attract`, `front_jingle`); the front end calls
+  up for text and keys, and `far_title` for the one job that maps another
+  block over it.
+* **The music player** is the phase-accumulator kind (the same family as the
+  Dracula's Castle 2 player elsewhere in this repository, rewritten for this
+  machine): three 16-bit accumulators, the speaker high while any voice's
+  phase is under its pulse width, 205 T a sample whichever path is taken
+  (the noise path is padded so a drum does not bend the other voices). The
+  loop itself watches the 6545 for the vertical blanking; fifty times a
+  second the tick steps four note streams (bass, lead, third voice, drums -
+  a drum takes over the third voice while it sounds), narrows each pulse
+  toward its floor, and runs slides and four-note arpeggios. Streams have
+  patterns, calls, transposition and jumps, so the 77-second title tune is
+  about 1.3K. Instruments are eight bytes: start width, narrowing, floor,
+  noise flag, slide, arpeggio.
+* **The Frillseeker Strut** (`tools/music.py`, in a small text notation): a
+  twelve-bar shuffle in E, 125 to the minute, swung long-short. A plucked
+  bass riff with the flat five in it; a lead that scoops into its notes and
+  leaves gaps; minor and seventh chords rattled out as arpeggio stabs on the
+  back of each beat; kick and snare. Intro, the head, a busier chorus, the
+  head again over stop-time, and round. Jingles for a region cleared and for
+  game over; the walking tune in the game is the same riff, an octave up, in
+  the gaps the frame leaves.
+* **The logo** is drawn, not typed: heavy letters built from slanted,
+  chamfered polygons (`tools/title.py`), the F and the last R standing taller,
+  a frill's zig-zag edge underlining the rest, speed lines off the front, and
+  bands of white, yellow, orange and red laid along the cell rows so no cell
+  needs a third colour. On amber it is solid.
+* **Pages** are lists of text and pictures on black; the pictures are the
+  game's own sprites at twice the size, loaded into the PCG as the page is
+  drawn. Region cards take the region's name and a line about it.
+* **Demonstrations.** In a demonstration the pad comes from a script of
+  (pad, ticks) pairs, read a tick at a time; everything that matters to the
+  game is cleared and the random seed set before it starts, and the speaker
+  noise has its own seed. `tools/demo.py` records them: a pilot reads Bluff,
+  the toads, magpies and the tile map out of the emulated machine and holds
+  the pad (walk up, frill, hop on the belly, steer, float), the game counting
+  ticks in its recording mode. `python3 tools/demo.py check` plays the built
+  recordings back in colour and in monochrome - different frame timings,
+  the same game to the pixel. **Any change to the game's logic or rooms
+  means recording them again** (`python3 tools/demo.py <dir>`, then build).
 
 ## 6. Next
 
@@ -367,4 +415,6 @@ saves to disk, key set-up, in-game music worth the name, an ending.
 2. **Rooms compressed and loaded by region**, to make room on the disk and in
    memory for the rest of the Top End.
 3. **The Diggings**: an opal mine — dark, glittering, minecarts.
-4. **Saving** progress to the disk, an attract mode, King Bufo, the ending.
+4. **Saving** progress to the disk, King Bufo, the ending.
+5. **More disks:** the Premium Plus mounts up to four logical drives, so the
+   later regions and their music can have a disk to themselves.

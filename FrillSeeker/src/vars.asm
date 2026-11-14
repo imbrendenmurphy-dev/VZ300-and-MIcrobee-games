@@ -16,13 +16,7 @@ nb_right:   ds 1
 nb_up:      ds 1
 nb_down:    ds 1
 game_end:   ds 1
-t_count:    ds 1
 tt_base:    ds 2
-tw_ptr:     ds 2
-tw_start:   ds 2
-tw_len:     ds 1
-tw_cnt:     ds 1
-tw_hook:    ds 2
 mono:       ds 1
 pl_bank:    ds 1
 vlast:      ds 1
@@ -59,6 +53,9 @@ ds_h:       ds 1
 pad:        ds 1
 padnew:     ds 1
 rseed:      ds 2
+nseed:      ds 2
+demo:       ds 1
+; (a demonstration clears from here to dm_ptr)
 gtick:      ds 1
 newroom:    ds 1
 want_start: ds 1
@@ -106,5 +103,10 @@ mus_left:   ds 1
 mus_gate:   ds 1
 mus_note:   ds 1
 mus_ptr:    ds 2
+dm_left:    ds 1
+dm_pad:     ds 1
+dm_prev:    ds 1
+dm_n:       ds 2
+dm_ptr:     ds 2
 vars_end:
         ASSERT vars_end <= ENTS

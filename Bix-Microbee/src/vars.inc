@@ -75,6 +75,10 @@ slide:      ds 1            ; lines the 6545 holds the picture down (0, 2, 4, 6)
 smooth:     ds 1            ; 1: slide between rows; 0: step a row at a time
 colstep:    ds 1
 hf_v:       ds 1
+stg_blk:    ds 1
+fc_src:     ds 1
+fc_dst:     ds 1
+fc_w:       ds 2
 hud_rb:     ds 1            ; the band's codes need working out again
 m_x:        ds 2            ; map block scratch
 m_r:        ds 1

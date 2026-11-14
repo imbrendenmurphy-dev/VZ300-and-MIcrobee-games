@@ -24,19 +24,22 @@ want_g = ['getpos', 'setposx', 'setposy', 'tile_at', 'div16_8', 'camxmax', 'pxma
           'player_update', 'wings', 'dblused', 'wasground', 'dec_nz', 'add_px', 'p_horiz', 'get_acc',
           'do_jump', 'abs_a', 'p_collide_x', 'col3', 'p_collide_y', 'slope_land', 'sl_x', 'sl_f', 'sl_p',
           'feet_probe', 'plat_probe', 'p_checks', 'body_tile', 'got_star', 'player_hurt', 'safex', 'safey',
-          'player_die', 'win_update', 'burrow_update', 'bpoint_ok', 'p_anim']
+          'player_die', 'win_update', 'burrow_update', 'bpoint_ok', 'p_anim', 'conveyor', 'updraft', 'p_collide_x_push']
 want_e = ['platix', 'spawnpend', 'spawn_scan', 'svlo', 'svhi', 'spawnall', 'spawn_rec', 'free_slot',
           'reveal_bonus', 'ents_update', 'jp_hl', 'ent_nop', 'ent_release', 'ent_far', 'ent_tile', 'anim2',
           'ant_upd', 'mag_upd', 'drop_upd', 'toad_upd', 'plath_upd', 'ridedx_tmp', 'plat_ride', 'platv_upd',
-          'glow_upd', 'oneup_upd', 'worm_upd', 'boom_upd', 'dx_player', 'ent_touch', 'mark_dead']
+          'glow_upd', 'oneup_upd', 'worm_upd', 'boom_upd', 'spit_upd', 'dx_player', 'ent_touch', 'mark_dead']
 want_f = ['random', 'add_score_a']
+B, bo = blocks('boss.asm')
+want_b = ['BOSS_HP', 'BOSS_GY', 'bosshp', 'boss_init', 'boss_upd', 'dx_boss', 'boss_dust', 'boss_hitcheck',
+          'boss_flying', 'free_slot_keep', 'GOLEM_HP', 'golem_upd', 'shard', 'ROBO_TOP', 'DRAGON_HP', 'robo_upd']
 L = ['; =====================================================================',
      ';  logic.asm - Bix, the enemies and the items: the VZ300 game\'s own',
      ';  routines, lifted from its source. They work in VZ pixels (a tile is',
      ';  8 x 8 of them) and sixteenths, 25 frames a second, and never touch',
      ';  the display.',
      '; =====================================================================']
-for src, want in ((G, want_g), (E, want_e), (F, want_f)):
+for src, want in ((G, want_g), (E, want_e), (F, want_f), (B, want_b)):
     for w in want:
         L += src[w]
 s = '\n'.join(L) + '\n'
@@ -55,7 +58,19 @@ rep('\nent_release:', '\nent_release0:')
 rep('        ld de,20\n        add hl,de\n        ld (tmp2),hl', '        ld de,24\n        add hl,de\n        ld (tmp2),hl')
 rep('        ld de,16\n        add hl,de\n        ld (svhi),hl', '        ld de,20\n        add hl,de\n        ld (svhi),hl')
 rep('        cp 224\n        ccf\n        ret', '        or a                    ; within 48 pixels of a 160 pixel screen\n        ret')
-rep('.nm:    cp E_BOSS\n        jp z,boss_init\n        cp E_PLATH\n        jr nz,.n1\n        ld (ix+9),0\n.n1:    cp E_PLATV\n        ret nz\n        ld (ix+9),1\n        ret',
-    '.nm:    cp E_PLATH\n        jr nz,.n1\n        ld (ix+9),0\n        jp plat_new\n.n1:    cp E_PLATV\n        ret nz\n        ld (ix+9),1\n        jp plat_new')
+rep('        cp E_PLATH\n        jr nz,.n1\n        ld (ix+9),0\n.n1:    cp E_PLATV\n        ret nz\n        ld (ix+9),1\n        ret',
+    '        cp E_PLATH\n        jr nz,.n1\n        ld (ix+9),0\n        jp plat_new\n.n1:    cp E_PLATV\n        ret nz\n        ld (ix+9),1\n        jp plat_new')
+# King Cane: the arena here is 20 tiles wide and the ground two tiles lower
+rep('BOSS_GY   equ 52', 'BOSS_GY   equ 68')
+rep('        cp 8\n        jr c,.ay\n        cp 97\n        jr nc,.ay', '        cp 8\n        jr c,.ay\n        cp 129\n        jr nc,.ay')
+rep('        cp 6\n        jr c,.gone\n        cp 118\n        ret c', '        cp 6\n        jr c,.gone\n        cp 150\n        ret c')
+rep('        ld (ix+4),a\n        cp 100\n        jr nc,.gone', '        ld (ix+4),a\n        cp 124\n        jr nc,.gone')
+# the other bosses, in the same wider, lower arena
+rep('        cp 8\n        jr c,.w2\n        cp 97\n        jr nc,.w2', '        cp 8\n        jr c,.w2\n        cp 129\n        jr nc,.w2')
+rep('        cp 8\n        jr c,.dn\n        cp 97\n        jr nc,.dn', '        cp 8\n        jr c,.dn\n        cp 129\n        jr nc,.dn')
+rep('        cp 8\n        jr c,.flip\n        cp 97\n        jr nc,.flip', '        cp 8\n        jr c,.flip\n        cp 129\n        jr nc,.flip')
+rep('ROBO_TOP equ 34', 'ROBO_TOP equ 50')
+rep('        and 63\n        ld b,a\n        call random\n        and 31\n', '        and 63\n        ld b,a\n        call random\n        and 63\n')
+rep('        ld (iy+4),16\n        ld (iy+13),16', '        ld (iy+4),32\n        ld (iy+13),32')
 Path(sys.argv[1]).write_text(s)
 print(len(s.split('\n')), 'lines')
