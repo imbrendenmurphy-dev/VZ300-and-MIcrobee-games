@@ -13,6 +13,8 @@ import math
 import numpy as np
 from art import *
 
+MW_, MH_ = 20, 11
+
 TW, TH = 16, 16
 MW, MH = 20, 11
 PW, PH = 320, 176
@@ -21,7 +23,8 @@ GROUND = 144             # the usual ground line (tile row 9)
 # tile flags
 T_EMPTY, T_SOLID, T_ONEWAY, T_WATER = 0, 1, 2, 3
 # object types
-O_BUG, O_TOAD, O_START, O_GOAL, O_MAGPIE, O_GOANNA = 1, 2, 3, 5, 6, 7
+O_BUG, O_TOAD, O_START, O_GOAL, O_MAGPIE, O_GOANNA, O_BAT, O_BUFO = 1, 2, 3, 5, 6, 7, 8, 9
+T_WIND = 4               # an updraught: under the frill, Bluff rises in it
 
 SKY_BANDS = [(5, BLACK), (4, BLUE), (4, MAGENTA), (3, RED), (6, BROWN)]   # cell rows, top to bottom
 
@@ -191,10 +194,171 @@ ROOMS = [
              "RRRRRRRRRRRRRRRRRRRR",
              "RRRRRRRRRRRRRRRRRRRR",
              "RRRRRRRRRRRRRRRRRRRR"]),
+    # ---- THE DIGGINGS: an opal field. Down the shaft, along the drive, up
+    # the winze on the air from the vents.
+    dict(name='SHAFT HEAD', left=-1, right=-1, down=13, moon=(250, 26),
+         bands=[(9, BLACK), (5, BLUE), (4, MAGENTA), (4, RED)],
+         mesa=[(0, 120), (90, 120), (100, 108), (200, 108), (212, 120), (320, 120)],
+         headframe=(192, 144), map=[
+             "....................",
+             "....B.........B.....",
+             "....................",
+             "....................",
+             "....................",
+             ".......P............",
+             "....B...............",
+             "....M...............",
+             "S..MMM..T........B..",
+             "###########..#######",
+             "###########..#######"]),
+    dict(name='THE DROP', left=-1, right=14, up=12, mine=True, props=[100, 230], map=[
+             "DDDDDDDDDDD..DDDDDDD",
+             "DDDDDDDDDDD..DDDDDDD",
+             "D..B..............BD",
+             "D^^..::........::..D",
+             "D^^...............BD",
+             "D^^......::........D",
+             "D^^..B.............D",
+             "D^^.....V....::....D",
+             "D^^.............T...",
+             "DDDDDDDDDDDDDDDDDDDD",
+             "DDDDDDDDDDDDDDDDDDDD"]),
+    dict(name='THE DRIVE', left=13, right=15, mine=True, props=[60, 260], map=[
+             "DDDDDDDDDDDDDDDDDDDD",
+             "DDDDDDDDDDDDDDDDDDDD",
+             "DDDDDDD....B...DDDDD",
+             "DDDD.......^^....DDD",
+             "DD...B.....^^..B..DD",
+             "D....::....^^......D",
+             "D..........^^......D",
+             "...V.......^^..::...",
+             "......T....^^....T..",
+             "DDDDDDDDDD.^^.DDDDDD",
+             "DDDDDDDDDD.^^.DDDDDD"]),
+    dict(name='OPAL GALLERY', left=14, right=16, mine=True, opal=True, props=[150], map=[
+             "DDDDDDDDDDDDDDDDDDDD",
+             "D..................D",
+             "D.B......B.......B.D",
+             "D.::....::.....DDDDD",
+             "D.........V....DDDDD",
+             "D^^...::...........D",
+             "D^^.........::.....D",
+             ".^^.................",
+             ".^^..T.....T........",
+             "DDDDDDDDDDDDDDDDDDDD",
+             "DDDDDDDDDDDDDDDDDDDD"]),
+    dict(name='THE WINZE', left=15, right=-1, up=17, mine=True, props=[60, 250], map=[
+             "DDDDDDDDD^^DDDDDDDDD",
+             "DDDDDDDDD^^DDDDDDDDD",
+             "D...B....^^......B.D",
+             "D..::....^^...::...D",
+             "D........^^........D",
+             "D....V...^^........D",
+             "D.::.....^^....::..D",
+             ".........^^........D",
+             "...T.....^^.....T..D",
+             "DDDDDDDDDDDDDDDDDDDD",
+             "DDDDDDDDDDDDDDDDDDDD"]),
+    dict(name='DAYLIGHT', left=-1, right=-1, down=16, sun=(250, 96, 24),
+         mesa=[(0, 116), (130, 116), (140, 104), (320, 104)], map=[
+             "....................",
+             "......B......B......",
+             "....................",
+             "....................",
+             "....................",
+             "....................",
+             ".........^^.........",
+             ".........^^.........",
+             "..T......^^......J..",
+             "#########^^#########",
+             "#########^^#########"]),
+    # ---- THE WET: the monsoon has the floodplain under water
+    dict(name='THE FLOODPLAIN', left=-1, right=19, rain=True, moon=None,
+         bands=[(8, BLACK), (8, BLUE), (6, MAGENTA)], trees=[(52, 144, 84)], map=[
+             "....................",
+             "...B..........B.....",
+             "....................",
+             "....................",
+             "........P...........",
+             "....................",
+             ".............B......",
+             "....................",
+             "S.....T.............",
+             "WWWWWWWWW~~~oo~~~WWW",
+             "WWWWWWWWW~~~~~~~~WWW"]),
+    dict(name='PAPERBARK SWAMP', left=18, right=20, rain=True, moon=None,
+         bands=[(8, BLACK), (8, BLUE), (6, MAGENTA)], trees=[(36, 144, 112), (288, 144, 112)], map=[
+             "....................",
+             ".....B.......B......",
+             "....................",
+             "...---.......---....",
+             "....................",
+             ".......---..........",
+             "..................B.",
+             "....................",
+             "..T.............G...",
+             "WWWW~~oo~~~oo~~WWWWW",
+             "WWWW~~~~~~~~~~~WWWWW"]),
+    dict(name='THE STORM', left=19, right=21, rain=True, moon=None,
+         bands=[(10, BLACK), (8, BLUE), (4, MAGENTA)], map=[
+             "....................",
+             "...B.....B.....B....",
+             "....................",
+             "...^^.........^^....",
+             "...^^.........^^....",
+             "...^^....P....^^....",
+             "...^^.........^^....",
+             "...^^.........^^....",
+             "...^^.........^^....",
+             "WWW~~~~~oo~~~~~~~WWW",
+             "WWW~~~~~~~~~~~~~~WWW"]),
+    dict(name="BUFO'S GATE", left=20, right=-1, rain=True, moon=None,
+         bands=[(8, BLACK), (8, BLUE), (6, MAGENTA)], gate=True, map=[
+             "....................",
+             "......B......B......",
+             "....................",
+             "....................",
+             "..........::........",
+             "....................",
+             "......::......::....",
+             "....................",
+             "...T.....T....T..J..",
+             "WWWWWWWWWWWWWWWWWWWW",
+             "WWWWWWWWWWWWWWWWWWWW"]),
+    # ---- KING BUFO'S COURT
+    dict(name='THE LARDER', left=-1, right=23, court=True, jars=[60, 150, 240], map=[
+             "KKKKKKKKKKKKKKKKKKKK",
+             "K...................",
+             "K...B....B....B.....",
+             "K...::...::...::....",
+             "K...................",
+             "K.B.............B...",
+             "K.::....::......::..",
+             "K...................",
+             ".S..................",
+             "KKKKKKKKKKKKKKKKKKKK",
+             "KKKKKKKKKKKKKKKKKKKK"]),
+    dict(name='THE THRONE', left=22, right=-1, court=True, throne=True, map=[
+             "KKKKKKKKKKKKKKKKKKKK",
+             "...................K",
+             "...................K",
+             "...................K",
+             "...................K",
+             "...................K",
+             "...................K",
+             "...................K",
+             "..............F....K",
+             "KKKKKKKKKKKKKKKKKKKK",
+             "KKKKKKKKKKKKKKKKKKKK"]),
 ]
 
 REGIONS = [dict(name='THE RED DIRT', start=0, rooms=range(0, 6)),
-           dict(name='STONE COUNTRY', start=6, rooms=range(6, 12))]
+           dict(name='STONE COUNTRY', start=6, rooms=range(6, 12)),
+           dict(name='THE DIGGINGS', start=12, rooms=range(12, 18)),
+           dict(name='THE WET', start=18, rooms=range(18, 22)),
+           dict(name="KING BUFO'S COURT", start=22, rooms=range(22, 24))]
+for _r in ROOMS:
+    assert len(_r['map']) == MH_ and all(len(row) == MW_ for row in _r['map']), _r['name']
 
 
 class Paint:
@@ -223,13 +387,22 @@ class Paint:
         return mask & ~(np.roll(mask, 1, 0) & np.roll(mask, -1, 0) & np.roll(mask, 1, 1) & np.roll(mask, -1, 1))
 
 
+def _band_rows(bands):
+    y = 0
+    for rows, col in bands:
+        yield y, y + rows * CH, col
+        y += rows * CH
+
+
 def sky(p, room):
     y = 0
+    p.bands = room.get('bands', SKY_BANDS)
+    p.band_at = lambda yy: next((c for y0, y1, c in _band_rows(p.bands) if y0 <= yy < y1), p.bands[-1][1])
     for rows, col in room.get('bands', SKY_BANDS):
         p.put(p.rect(0, y, PW, y + rows * CH), col, 0)
         y += rows * CH
     # stars in the dark bands; every fourth one twinkles
-    for n in range(56):
+    for n in range(0 if room.get('rain') else 56):
         x, yy = p.rng.randint(3, PW - 3), p.rng.randint(3, 70)
         col = WHITE if yy < 40 else BCYAN
         big = n % 4 == 0 and (p.ph + n // 4) % 4 == 0
@@ -241,7 +414,7 @@ def sky(p, room):
             p.c[yy, x] = col
             p.m[yy, x] = 15
     # thin cloud streaks low in the sky
-    for i in range(5):
+    for i in range(0 if room.get('rain') else 5):
         x0 = p.rng.randint(0, PW - 60)
         yy = 76 + p.rng.randint(0, 6) * 8
         L = p.rng.randint(24, 60)
@@ -250,6 +423,9 @@ def sky(p, room):
         msk = p.rect(x0, yy, x0 + L, yy + 1)
         p.put(msk, lite, None)
         p.put(p.rect(x0, yy, x0 + L, yy + 1) & (p.xx % 2 == 0), lite, 1)
+    if room.get('rain'):
+        rain(p)
+        return
     if room.get('moon'):
         mx, my = room['moon']
         d = (p.xx - mx) ** 2 + ((p.yy - my) * 1.1) ** 2
@@ -419,8 +595,8 @@ def solid_at(mp, tx, ty):
     if ty >= MH:
         return True
     if tx < 0 or tx >= MW:
-        return mp[ty][max(0, min(MW - 1, tx))] in '#R'
-    return mp[ty][tx] in '#M=R'
+        return mp[ty][max(0, min(MW - 1, tx))] in '#RDWK'
+    return mp[ty][tx] in '#M=RDWK'
 
 
 def dirt(p, mp, tx, ty):
@@ -617,6 +793,176 @@ def reeds(p, x, y, n):
         p.put(p.rect(top - 1, y - hgt - 4, top + 1, y - hgt), BROWN, 1)
 
 
+def rain(p):
+    """the monsoon: streaks that fall two pixels a phase, the same in every
+    cell of open sky, so the whole downpour is a handful of living glyphs"""
+    on = ((p.xx % 16 == 3) & ((p.yy - 2 * p.ph) % 8 < 3)) | ((p.xx % 16 == 11) & ((p.yy - 2 * p.ph + 4) % 8 < 3))
+    p.c[on] = GREY
+    p.m[on & ((p.yy - 2 * p.ph) % 4 != 1)] = 15
+
+
+def wind(p, mp, tx, ty, inside):
+    """an updraught: motes climbing two pixels a phase"""
+    x0, y0 = tx * TW, ty * TH
+    r = p.rect(x0, y0, x0 + TW, y0 + TH)
+    if inside:
+        p.put(r, BLACK, 0)
+    w = 1 if inside else 2
+    on = r & (((p.xx % 8 >= 1) & (p.xx % 8 < 1 + w) & ((p.yy + 2 * p.ph) % 8 < 2)) |
+              ((p.xx % 8 >= 5) & (p.xx % 8 < 5 + w) & ((p.yy + 2 * p.ph + 4) % 8 < 2)))
+    p.put(on, BCYAN if inside else WHITE, 1)
+
+
+def mine(p, room):
+    """underground at the diggings: dark, pick-marked, timbered"""
+    p.put(p.rect(0, 0, PW, PH), BLACK, 0)
+    sp = ((p.xx * 7 + p.yy * 13) % 29 == 0)
+    p.put(sp, BLUE, None)
+    p.m[((p.xx * 7 + p.yy * 13) % 58 == 0)] = 15
+    for x in room.get('props', []):
+        # a set of timber: two legs and a cap, and a lamp hung from it
+        for lx in (x - 14, x + 13):
+            leg = p.rect(lx, 40, lx + 3, 144)
+            p.put(leg, BROWN, 0)
+            p.put(p.rect(lx, 40, lx + 1, 144), YELLOW, 1)
+            p.put(leg & (p.yy % 11 == 5), BLACK, 0)
+        cap = p.rect(x - 18, 36, x + 20, 40)
+        p.put(cap, BROWN, 0)
+        p.put(p.rect(x - 18, 36, x + 20, 37), YELLOW, 1)
+        p.put(p.rect(x, 40, x + 1, 46), GREY, 1)
+        glow = (abs(p.xx - x) + abs(p.yy - 50) * 1.2) < (4 if p.ph % 2 else 3)
+        p.put(glow, YELLOW, 1)
+        p.put(p.rect(x - 1, 49, x + 2, 52), WHITE, 1)
+
+
+def court(p, room):
+    """King Bufo's hall: dark, with pillars and bug-jars on shelves"""
+    p.put(p.rect(0, 0, PW, PH), BLACK, 0)
+    sp = ((p.xx * 11 + p.yy * 5) % 41 == 0)
+    p.put(sp, MAGENTA, None)
+    for x in (40, 120, 200, 280):
+        col = p.rect(x - 5, 16, x + 5, 144)
+        p.put(col, BLACK, 0)
+        p.put(p.rect(x - 5, 16, x - 4, 144) | p.rect(x + 4, 16, x + 5, 144), MAGENTA, 1)
+        p.put(col & (p.xx == x) & (p.yy % 4 < 2), BMAGENTA, None)
+        p.put(p.rect(x - 8, 16, x + 8, 19) | p.rect(x - 8, 141, x + 8, 144), BMAGENTA, 1)
+    for x in room.get('jars', []):
+        _stamp(p, _cr.JAR, x, 143, BCYAN)
+    if room.get('throne'):
+        # the royal lily pad: a dais and a banner with a crown
+        p.put(p.rect(196, 136, 268, 144) & ((p.xx + p.yy) % 2 == 0), GREEN, 1)
+        p.put(p.rect(196, 136, 268, 137), BGREEN, 1)
+        ban = p.rect(222, 24, 242, 64) & ~((p.yy > 56) & (abs(p.xx - 232) < (p.yy - 56)))
+        p.put(ban, RED, 0)
+        p.put(p.outline(ban), YELLOW, 1)
+        crown = p.rect(226, 40, 238, 44) | (p.rect(226, 34, 238, 40) & ((p.xx - 226) % 5 < 2))
+        p.put(crown, YELLOW, 1)
+
+
+def _stamp(p, rows, cx, by, col):
+    for j, row in enumerate(rows):
+        for i, ch in enumerate(row):
+            x, y = cx - len(row) // 2 + i, by - len(rows) + j
+            if ch == '#' and 0 <= x < PW and 0 <= y < PH:
+                p.c[y, x] = col
+                p.m[y, x] = 15
+            elif ch == 'o' and 0 <= x < PW and 0 <= y < PH:
+                p.c[y, x] = BLACK
+                p.m[y, x] = 0
+
+
+def headframe(p, x, by):
+    """the poppet head over the shaft: a timber tripod and its wheel"""
+    for k in range(60):
+        for sx in (-1, 1):
+            xx = x + sx * (4 + k // 3)
+            y = by - 60 + k
+            p.put(p.rect(xx, y, xx + 2, y + 1), YELLOW if sx < 0 else BROWN, 1)
+    p.put(p.rect(x - 8, by - 34, x + 10, by - 32), BROWN, 1)
+    d = (p.xx - x) ** 2 + ((p.yy - (by - 62)) * 1.15) ** 2
+    p.put((d < 49) & (d > 25), WHITE, 1)
+    p.put(p.rect(x, by - 68, x + 1, by - 56) | p.rect(x - 6, by - 62, x + 7, by - 61), GREY, 1)
+    p.put(p.rect(x, by - 56, x + 1, by) & (p.yy % 2 == 0), GREY, 1)
+
+
+def digrock(p, mp, tx, ty, opal=False):
+    """the diggings' rock: blue-black, pick-marked; here and there a seam
+    of opal that glitters"""
+    x0, y0 = tx * TW, ty * TH
+    r = p.rect(x0, y0, x0 + TW, y0 + TH)
+    p.put(r, BLUE, 0)
+    p.m[r & ((p.xx + p.yy * 2) % 4 == 0)] = 15          # amber: rock is stippled, the dark is not
+    top = ty > 0 and not solid_at(mp, tx, ty - 1)
+    h = (tx * 7 + ty * 13 + tx * ty) % (5 if opal else 11)
+    for half in (0, 1):
+        ya = y0 + half * 8
+        seam = (h == 0 and half == 0) or (h == 1 and half == 1)
+        cell = p.rect(x0, ya, x0 + TW, ya + 8)
+        marks = cell & (((p.xx * 3 + p.yy * 5 + tx) % 13 == 0) | (((p.xx - p.yy + ty * 3) % 16 == 0) & (p.yy % 2 == 0)))
+        if seam and not (top and half == 0):
+            col = BCYAN if (tx + ty) % 2 else BMAGENTA
+            vein = cell & ((p.xx + p.yy * 2 + tx * 5) % 9 < 2) & ((p.yy + tx) % 4 != 0)
+            tw = cell & ((p.xx * 5 + p.yy * 3 + p.ph * 7) % 23 == 0)
+            p.put(vein | tw, col, 1)
+            p.m[cell & ~(vein | tw)] = 0
+        else:
+            p.put(marks, BLACK, 0)
+    if top:
+        p.put(p.rect(x0, y0, x0 + TW, y0 + 2), BCYAN, 1)
+        p.put(p.rect(x0, y0 + 2, x0 + TW, y0 + 3), BLACK, 0)
+    if tx > 0 and not solid_at(mp, tx - 1, ty):
+        p.put(p.rect(x0, y0, x0 + 1, y0 + TH), BLACK, 1)
+    if tx < MW - 1 and not solid_at(mp, tx + 1, ty):
+        p.put(p.rect(x0 + TW - 1, y0, x0 + TW, y0 + TH), BLACK, 1)
+    if ty < MH - 1 and not solid_at(mp, tx, ty + 1):
+        p.put(p.rect(x0, y0 + TH - 1, x0 + TW, y0 + TH), BLACK, 1)
+
+
+def wetbank(p, mp, tx, ty):
+    """the Wet: black soil under long green grass that bends in the rain"""
+    x0, y0 = tx * TW, ty * TH
+    r = p.rect(x0, y0, x0 + TW, y0 + TH)
+    top = ty > 0 and not solid_at(mp, tx, ty - 1)
+    p.put(r, GREEN, 0)
+    sp = r & (((p.xx * 5 + p.yy * 9 + tx) % 19 == 0) | ((p.xx * 3 - p.yy * 7 + ty) % 23 == 0))
+    p.put(sp, BGREEN, None)
+    p.m[sp & ((p.xx + p.yy) % 2 == 0)] = 15
+    if top:
+        p.put(p.rect(x0, y0, x0 + TW, y0 + 2), BGREEN, 1)
+        for i in range(p.rng.randint(3, 6)):
+            gx = x0 + p.rng.randint(1, TW - 1)
+            hgt = p.rng.randint(4, 10)
+            sway = 1 if (p.ph + gx) % 4 < 2 else 0
+            for k in range(hgt):
+                x = gx + (k // 3) + (sway if k >= hgt - 4 else 0)
+                y = y0 - 1 - k
+                if 0 <= x < PW and y >= 0:
+                    p.c[y, x] = BGREEN
+                    p.m[y, x] = 15
+    for sx, nb in ((x0, tx - 1), (x0 + TW - 1, tx + 1)):
+        if 0 <= nb < MW and not solid_at(mp, nb, ty):
+            p.put(p.rect(sx, y0, sx + 1, y0 + TH) & (p.yy % 3 != 0), BGREEN, 1)
+
+
+def brick(p, mp, tx, ty):
+    """the court: mud brick, a gold course along the top"""
+    x0, y0 = tx * TW, ty * TH
+    r = p.rect(x0, y0, x0 + TW, y0 + TH)
+    top = ty > 0 and not solid_at(mp, tx, ty - 1)
+    p.put(r, MAGENTA, 0)
+    mortar = r & ((p.yy % 8 == 7) | ((p.xx + (p.yy // 8) * 8) % 16 == 15))
+    p.put(mortar, BLACK, None)
+    p.m[r & (p.yy % 8 == 7) & (p.xx % 2 == 0)] = 15
+    p.m[r & ((p.xx + (p.yy // 8) * 8) % 16 == 15) & (p.yy % 2 == 0)] = 15
+    if top:
+        cell = p.rect(x0, y0, x0 + TW, y0 + 8)
+        p.put(cell, MAGENTA, 0)
+        p.put(p.rect(x0, y0, x0 + TW, y0 + 2), YELLOW, 1)
+        p.put(p.rect(x0, y0 + 3, x0 + TW, y0 + 4) & (p.xx % 4 < 2), YELLOW, None)
+    if ty < MH - 1 and not solid_at(mp, tx, ty + 1):
+        p.m[p.rect(x0, y0 + TH - 1, x0 + TW, y0 + TH)] = 15
+
+
 def paint_room(idx, ph=0):
     room = ROOMS[idx]
     mp = room['map']
@@ -630,6 +976,12 @@ def paint_room(idx, ph=0):
         leaves(p, *lv)
     if room.get('cave'):
         cave(p)
+    if room.get('mine'):
+        mine(p, room)
+    if room.get('court'):
+        court(p, room)
+    if room.get('headframe'):
+        headframe(p, *room['headframe'])
     for kind, x, y in room.get('art', []):
         rock_art(p, kind, x, y)
     for f in room.get('falls', []):
@@ -643,8 +995,14 @@ def paint_room(idx, ph=0):
                 tm[ty, tx] = T_SOLID
             elif ch == '=':
                 tm[ty, tx] = T_SOLID
-            elif ch in 'MR':
+            elif ch in 'MRDWK':
                 tm[ty, tx] = T_SOLID
+            elif ch == '^':
+                tm[ty, tx] = T_WIND
+            elif ch == 'V':
+                objs.append((O_BAT, tx * TW + 8, ty * TH + 16))
+            elif ch == 'F':
+                objs.append((O_BUFO, tx * TW + 8, ty * TH + 16))
             elif ch == ':':
                 tm[ty, tx] = T_ONEWAY
             elif ch == 'P':
@@ -673,6 +1031,9 @@ def paint_room(idx, ph=0):
                 water(p, mp, tx, ty)
             elif ch == 'o':
                 lily(p, mp, tx, ty)
+            elif ch == '^':
+                wind(p, mp, tx, ty, bool(room.get('mine') or room.get('court') or room.get('cave')
+                                         or solid_at(mp, tx - 1, ty) or solid_at(mp, tx + 2, ty)))
     if idx == 1:
         reeds(p, 40, 150, 4)
         reeds(p, 150, 150, 3)
@@ -692,6 +1053,12 @@ def paint_room(idx, ph=0):
                 dirt(p, mp, tx, ty)
             elif mp[ty][tx] == 'R':
                 sandstone(p, mp, tx, ty)
+            elif mp[ty][tx] == 'D':
+                digrock(p, mp, tx, ty, bool(room.get('opal')))
+            elif mp[ty][tx] == 'W':
+                wetbank(p, mp, tx, ty)
+            elif mp[ty][tx] == 'K':
+                brick(p, mp, tx, ty)
     return p, tm, objs
 
 

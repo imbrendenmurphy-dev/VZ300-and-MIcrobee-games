@@ -9,6 +9,7 @@
         ORG $0100
         jp f_attract            ; A: b7 = from the top -> A = 0 play, else demo of region A-1 (HL = its script)
         jp f_jingle             ; A = jingle -> Z: it ended, NZ: a key (A = pad bits)
+        jp f_end                ; A = 1 region clear, 2 game over -> A = 0 next region, 1 again, 2 title
 
 ; =====================================================================
 ;  MUSIC: three pulse voices and a drum voice on one speaker bit.
@@ -367,6 +368,133 @@ f_jingle:
         or a
         jr nz,.l
         ret
+
+; ---------------------------------------------------------------------
+;  The end of a region, of a game, or of the whole thing.
+;  A = 1 region clear, 2 game over -> A = 0 next region, 1 again, 2 title
+; ---------------------------------------------------------------------
+f_end:  push af
+        call display_off
+        ld a,$0F
+        call cls
+        xor a
+        ld (fa_tune),a          ; the title tune starts over after this
+        pop af
+        dec a
+        jp nz,.over
+        ld a,(region)
+        inc a
+        cp NREGIONS
+        jp nc,ending
+        dec a
+        call reg_name_a
+        ld d,3
+        ld c,YELLOW
+        call print_centred
+        ld hl,t_isclear
+        ld d,5
+        ld c,YELLOW
+        call print_centred
+        ld de,$090A
+        call tally
+        ld hl,t_next
+        ld d,14
+        ld c,WHITE
+        call print_centred
+        ld a,(region)
+        inc a
+        call reg_name_a
+        ld d,16
+        ld c,BCYAN
+        call print_centred
+        ld hl,t_again
+        ld d,22
+        ld c,BGREEN
+        call print_centred
+        call display_on
+        xor a
+        call f_jingle
+        call z,wait_key
+        xor a
+        ret
+.over:  ld hl,pg_over
+        call page
+        ld a,1
+        call f_jingle
+        call z,wait_choice
+        and $80
+        ld a,1
+        ret z
+        inc a
+        ret
+
+; "BUGS FOUND nn OF nn" at DE, for the regions so far
+tally:  push de
+        ld hl,t_found
+        ld c,WHITE
+        call print
+        pop de
+        push de
+        ld a,e
+        add a,11
+        ld e,a
+        ld a,(bugs)
+        ld c,YELLOW
+        call print_num
+        ld a,(region)
+        ld hl,reg_total
+        call index_hl
+        pop de
+        ld b,a
+        ld a,e
+        add a,17
+        ld e,a
+        ld a,b
+        ld c,YELLOW
+        jp print_num
+
+; King Bufo is beaten: the story's end, the count, the credits
+ending: ld hl,song_end
+        call m_play
+        ld hl,pg_end1
+        call page
+        ld bc,150
+        call fa_hold
+        ld bc,1500
+        call fa_wait
+        ld hl,pg_end2
+        call page
+        ld de,$0B0A
+        call tally
+        ld a,(bugs)
+        cp TOTAL_BUGS
+        jr c,.some
+        ld hl,t_every
+        ld d,14
+        ld c,BGREEN
+        call print_centred
+.some:  ld bc,150
+        call fa_hold
+        ld bc,3000
+        call fa_wait
+        ld a,2
+        ret
+; BC fields of music with the keys ignored (so a held button does not skip a page)
+fa_hold:
+.l:     push bc
+        call m_frame
+        pop bc
+        dec bc
+        ld a,b
+        or c
+        jr nz,.l
+        ret
+
+t_isclear: db "IS CLEAR!",0
+t_found:  db "BUGS FOUND    OF",0
+t_next:   db "NEXT STOP",0
+t_again:  db "PRESS SPACE",0
+t_every:  db "EVERY LAST ONE. LEGEND.",0
 
 ; =====================================================================
 ;  THE ATTRACT SEQUENCE: the title, then a page of information, then a

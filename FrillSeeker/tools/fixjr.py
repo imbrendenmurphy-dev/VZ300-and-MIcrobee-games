@@ -4,7 +4,8 @@ import re, subprocess, sys
 from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 for it in range(80):
-    r = subprocess.run([sys.executable, 'tools/build.py'], cwd=ROOT, capture_output=True, text=True)
+    r = subprocess.run([sys.executable, 'tools/build.py'] + (['--asm'] if it or '--asm' in sys.argv else []),
+                       cwd=ROOT, capture_output=True, text=True)
     out = r.stdout + r.stderr
     m = re.search(r'(\w+)\.asm:(\d+): relative jump out of range', out)
     if not m:

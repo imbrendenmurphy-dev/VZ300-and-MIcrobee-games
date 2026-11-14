@@ -7,7 +7,9 @@ import critters
 import rooms
 from art import *
 
-REG_LINES = ['TERMITE MOUNDS, A BILLABONG, ONE OLD GUM', 'GORGES, ROCK ART AND A GRUMPY GOANNA']
+REG_LINES = ['TERMITE MOUNDS, A BILLABONG, ONE OLD GUM', 'GORGES, ROCK ART AND A GRUMPY GOANNA',
+             'DOWN THE OPAL MINE, UP ON THE VENT AIR', 'THE MONSOON: RUN ON WATER, RIDE THE WIND',
+             'HIS MAJESTY IS AT HOME']
 ORD = ['ONE', 'TWO', 'THREE', 'FOUR', 'FIVE', 'SIX']
 
 
@@ -29,7 +31,7 @@ def picture(ink, col):
     img[H - h:, (W - w) // 2:(W - w) // 2 + w][ink] = 1
     out = []
     for mono in (False, True):
-        pat, i, p = cells_from_image(img * (15 if mono else col), solid=mono)
+        pat, i, p = cells_from_image(img * (15 if mono else col), solid=True)
         out.append(bytes(np.asarray(pat, np.uint8).reshape(-1)))
     cols = bytes([col] * ((H // 8) * (W // 8)))
     return W // 8, H // 8, out[0], out[1], cols
@@ -56,6 +58,7 @@ def pictures():
     spr('JAR', BCYAN)
     spr('GLIDE0', YELLOW, 1)
     spr('SPR2', YELLOW, 1)
+    spr('BUFO_BACK0', BGREEN, 2)
     return P
 
 
@@ -117,6 +120,25 @@ def build():
         pic('BUG0', 15, 12), pic('JAR', 14, 18), pic('BUG0', 15, 25),
         text(19, 'BLUFF PLAYS IT HIMSELF', BCYAN),
         text(22, 'PRESS SPACE TO PLAY', BGREEN)])
+    page('pg_over', [
+        text(8, 'GAME OVER', BRED),
+        text(12, 'THE TOADS HAVE IT - FOR NOW', WHITE),
+        text(17, 'SPACE - TRY AGAIN', BGREEN),
+        text(19, 'ESC - BACK TO THE TITLE', GREY)])
+    page('pg_end1', [
+        text(1, 'LONG LIVE NOBODY', YELLOW),
+        pic('BUFO_BACK0', 4, 4), pic('BLUFF2', 4, 28),
+        text(13, 'KING BUFO IS FLAT ON HIS BACK,', WHITE),
+        text(15, 'THE JARS ARE OPEN, AND EVERY BUG', WHITE),
+        text(17, 'IN THE TOP END IS FREE AGAIN.', WHITE),
+        text(20, 'FOR ABOUT A MINUTE.', BCYAN),
+        text(22, 'BLUFF IS VERY HUNGRY.', BCYAN)])
+    page('pg_end2', [
+        text(2, 'FRILLSEEKER', YELLOW),
+        text(5, 'THE END', WHITE),
+        pic('BUG0', 8, 8), pic('BUG0', 8, 29),
+        text(18, 'THANKS FOR PLAYING', BCYAN),
+        text(21, 'VIBED BY BPM 2026', BGREEN)])
     L.append('pages:\tdw pg_story,pg_cast,pg_moves')
     n = len(rooms.REGIONS)
     L.append('reg_lines:\tdw ' + ','.join('rl%d' % i for i in range(n)))

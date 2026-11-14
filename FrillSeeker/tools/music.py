@@ -233,6 +233,8 @@ def build():
         o, lens = song.build(loops)
         L += o
         info.append((song.name, lens))
+    # the ending: the strut from the head, no intro
+    L.append('song_end:\tdw ' + ','.join('song_title_c%d_loop' % i for i in range(4)))
     L.append('jingles:\tdw song_clear,song_over')
     return L, info
 

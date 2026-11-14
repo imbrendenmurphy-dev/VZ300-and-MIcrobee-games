@@ -169,7 +169,7 @@ find_cpm:   in a,(P_LV)
 .scan:      ld a,c
             call blk_port
             out (P_MEM),a
-            ld hl,$0700
+            ld hl,$0800
             ld de,sig_copy
             ld b,16
 .cmp:       ld a,(de)
@@ -589,9 +589,9 @@ final_end:
             ASSERT final_end <= $F800
             ENT
 
-            ASSERT $ <= $0700
-            ORG $0700
+            ASSERT $ <= $0800
+            ORG $0800
 sig:        DB "FRILLSEEKER-LDR!"               ; CP/M bank signature
             DB $1A
 
-            SAVEBIN "../build/FRILL.COM",$0100,$0611
+            SAVEBIN "../build/FRILL.COM",$0100,$0711

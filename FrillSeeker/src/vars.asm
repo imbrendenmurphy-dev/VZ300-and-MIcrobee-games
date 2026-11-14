@@ -62,7 +62,7 @@ want_start: ds 1
 hud_dirty:  ds 1
 hearts:     ds 1
 bugs:       ds 1
-collected:  ds 16
+collected:  ds 24          ; a byte a room: its bugs found
 region:     ds 1
 hudname:    ds 17
 ; Bluff

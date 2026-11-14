@@ -1040,4 +1040,5 @@ song_over_c3:
 	db 0
 	db $FF
 song_over:	dw song_over_c0,song_over_c1,song_over_c2,song_over_c3
+song_end:	dw song_title_c0_loop,song_title_c1_loop,song_title_c2_loop,song_title_c3_loop
 jingles:	dw song_clear,song_over
