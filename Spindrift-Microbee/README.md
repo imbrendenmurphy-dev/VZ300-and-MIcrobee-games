@@ -12,6 +12,8 @@ Your ship rides the rim of a vortex. The swarm spirals out of deep space from it
 | ![Title](screenshots/01_title.png) | ![Oort Drift](screenshots/03_oort_drift.png) |
 | ![Guardian](screenshots/07_guardian.png) | ![Screen shape](screenshots/00_screen_shape.png) |
 
+The blurb: [BLURB.md](BLURB.md). More pictures: [gameplay](screenshots/gameplay/) (every sector, every Guardian, the Chance Stage, a warp, the amber monitor) · [screens](screenshots/info/). Regenerate them with `python3 tools/gallery.py`.
+
 Videos with sound, from the emulator model: [the title and its music](media/spindrift_title_music.mp4) · [play](media/spindrift_gameplay_sound.mp4)
 
 ## Play it
