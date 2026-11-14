@@ -1,0 +1,17 @@
+name: GRATE SLIME DOOR
+quota: 2
+time: 99
+magic: 30
+slow: 99
+map:
+####################
+#P  o  o   WWWWW  y#
+#.  .  .   WsssW  .#
+#.         WsssW  .#
+#.  m  m   WWWWW  .#
+#.                 #
+#.         D$      #
+#.      +h v       #
+#.                 #
+#..................X
+####################
