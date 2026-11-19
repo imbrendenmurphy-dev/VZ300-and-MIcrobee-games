@@ -35,10 +35,11 @@
         jp m_tabinit            ; 18 M_TABINIT: an empty quad table, slots, phases
         jp m_cgscatter          ; 21 M_CGSCATTER: HL = n x 10 bytes, B = n
         jp m_pcgclear           ; 24 M_PCGCLEAR: the empty glyph in every bank
-        jp m_hudput             ; 27 M_HUDPUT: the status line, now (display off)
+        jp m_hudfull            ; 27 M_HUDPUT: the status line, now (display off)
         jp m_platcells          ; 30 M_PLAT: a moving log's cells this frame
         jp m_restores           ; 33 M_RESTORES: the sprites' cells, last frame's
         jp m_qbuild             ; 36 M_QBUILD: HL = quad records, B = how many: their records
+        jp m_show               ; 39 M_SHOW: the frame on show, in the blanking
 
 CGROWS  EQU 32                  ; cell glyphs in a column of the map
 CGCOL   EQU 33                  ; ... as fetched (with an empty one under them)
@@ -129,8 +130,8 @@ step_right:
         inc hl
         ld (camcell),hl
         call new_start
-        ld a,2                  ; the status line moved with the start
-        ld (hud_dirty),a
+        ld hl,hud_dirty         ; the status line moved with the start
+        set 0,(hl)
         ld hl,(camcell)
         ld de,COLS-1
         add hl,de
@@ -148,8 +149,8 @@ step_left:
         dec hl
         ld (camcell),hl
         call new_start
-        ld a,2
-        ld (hud_dirty),a
+        ld hl,hud_dirty
+        set 0,(hl)
         ld hl,(camcell)
         ld (m_x),hl
         xor a                   ; the first row was the status line's
@@ -162,6 +163,8 @@ col_go: ld (m_cfirst),a
         jp col_draw
 
 step_down:
+        ld a,1
+        ld (colstep),a
         ld hl,(sstart)          ; the playfield's top row leaves
         ld de,COLS
         add hl,de
@@ -169,12 +172,14 @@ step_down:
         ld hl,camrow
         inc (hl)
         call new_start
-        ld a,2
-        ld (hud_dirty),a
+        ld hl,hud_dirty
+        set 1,(hl)
         ld a,(camrow)
         add a,PFROWS-1
         jp row_draw
 step_up:
+        ld a,1
+        ld (colstep),a
         ld hl,(sstart)          ; the playfield's bottom row leaves
         ld de,COLS*PFROWS
         add hl,de
@@ -182,8 +187,8 @@ step_up:
         ld hl,camrow
         dec (hl)
         call new_start
-        ld a,2
-        ld (hud_dirty),a
+        ld hl,hud_dirty
+        set 1,(hl)
         ld a,(camrow)
         jp row_draw
 
@@ -194,6 +199,7 @@ row_leave:
         call ringw
         push hl
         call cell_leave
+        call mpoll
         pop hl
         inc hl
         pop bc
@@ -254,6 +260,7 @@ new_start:
 ;  (m_cfirst) / (m_clast): were its first / last cells on show before
 ; ---------------------------------------------------------------------
 col_draw:
+        call lq_reset
         call cg_col             ; (engine) CGBUF = columns m_x and m_x+1
         ld a,1
         ld (m_colclr),a
@@ -275,52 +282,59 @@ col_draw:
         ld (m_r),a
         call ring_of            ; HL = ring of (m_x, m_r)
         ld (m_ring),hl
+        ld a,(camrow)
+        add a,CGBUF & 255
+        ld (cd_src),a
+        ld a,(m_cfirst)
+        ld (m_cnt),a
         ld b,PFROWS
 .l:     push bc
-        ld a,b
-        cp PFROWS
-        ld a,(m_cfirst)
-        jr z,.c
-        ld a,b
-        dec a
-        ld a,(m_clast)
-        jr z,.c
-        ld a,1
-.c:     ld (m_cnt),a
-        ld a,(m_r)
-        ld e,a
-        ld d,0
-        ld hl,CGBUF
-        add hl,de
+        ld a,(cd_src)           ; the quad: CGBUF rows r, r+1 of both columns
+        ld l,a
+        inc a
+        ld (cd_src),a
+        ld h,CGBUF >> 8
         ld b,(hl)
-        inc hl
+        inc l
         ld d,(hl)
         ld a,l
         add a,CGCOL-1
         ld l,a
         ld c,(hl)
-        inc hl
+        inc l
         ld e,(hl)
         call m_cell
         ld hl,(m_ring)
         ld de,COLS
         add hl,de
-        call ringw
+        ld a,h
+        and 7
+        ld h,a
         ld (m_ring),hl
-        call vpoll
         ld hl,m_r
         inc (hl)
         pop bc
+        ld a,b
+        and 3
+        call z,mpoll            ; (keeps BC)
+        ld a,b
+        cp 2
+        ld a,1
+        jr nz,.nl
+        ld a,(m_clast)
+.nl:    ld (m_cnt),a
         djnz .l
         xor a
         ld (m_colclr),a
         ret
+cd_src: db 0
 m_cfirst: db 0
 m_clast: db 0
 
 ; A = world row: its cells across the screen (none were on show)
 row_draw:
         ld (m_r),a
+        call lq_reset
         call cg_row             ; (engine) CGBUF = rows m_r and m_r+1 of 41 columns
         ld hl,(camcell)
         ld (m_x),hl
@@ -348,7 +362,7 @@ row_draw:
         ld hl,(m_x)
         inc hl
         ld (m_x),hl
-        call vpoll
+        call mpoll
         pop hl
         inc hl
         pop bc
@@ -386,8 +400,19 @@ m_cell:
         or d
         or e
         jr z,.blank
+        ld hl,(m_lq)            ; the same quad as the cell before?
+        or a
+        sbc hl,bc
+        jr nz,.find
+        ld hl,(m_lq+2)
+        sbc hl,de
+        jr nz,.find
+        ld a,(m_lslot)
+        jr .have
+.find:  ld (m_lq),bc
+        ld (m_lq+2),de
         call qfind
-        jr z,.blank             ; not in the table: shown empty
+        jr z,.nf                ; not in the table: shown empty
         ld (m_ent),hl
         ld a,l
         or 6
@@ -395,11 +420,13 @@ m_cell:
         ld a,(hl)
         or a
         call z,slot_alloc       ; -> A = slot (0: none free)
+        ld (m_lslot),a
         jr .have
+.nf:    xor a
+        ld (m_lslot),a
 .blank: xor a
         ld (m_ent+1),a          ; no quad
-.have:  ld (m_slot),a
-        ld c,a
+.have:  ld c,a                  ; C = the slot from here on
         ld hl,(m_ring)
         ld a,h
         or SCRSH >> 8
@@ -419,17 +446,18 @@ m_cell:
         jr z,.new
         push hl
         ld b,a
-        call slot_dec
+        call slot_dec           ; (keeps C)
         pop hl
-.new:   ld a,(m_slot)
+.new:   ld a,c
         or a
         jr z,.write
-        push hl
+        ld e,l
+        ld d,h
         ld l,a
         ld h,M_SLREF >> 8
         inc (hl)
-        pop hl
-.write: ld a,(m_slot)
+        ex de,hl
+.write: ld a,c
         or $80
         ld (hl),a
         ld c,a
@@ -463,7 +491,8 @@ m_cell:
         ld (entptr),de
         ld hl,nflip             ; (never past NFLIPMAX: the list is long enough)
         inc (hl)
-        ld a,(m_slot)           ; does its ink change across, or down?
+        ld a,c                  ; does its ink change across, or down?
+        and $7F
         ld l,a
         ld h,M_SLFL >> 8
         ld a,(hl)
@@ -519,6 +548,13 @@ m_cell:
         ALIGN 8
 bitmask: db 1,2,4,8,16,32,64,128
 
+; forget the last quad (its slot may have gone since)
+lq_reset:
+        ld hl,0
+        ld (m_lq),hl
+        ld (m_lq+2),hl
+        ret
+
 ; the ink table at this phase: m_inkb = (phase & 1) x 128, its page
 ink_base:
         ld a,(phase)
@@ -532,6 +568,8 @@ ink_base:
         ld (m_inkb+1),a
         ret
 m_inkb: dw 0
+m_lq:   ds 4                    ; the last quad looked up (C B E D), and its slot
+m_lslot: db 0
 m_colclr: db 0
 
 ; A = slot -> A = its ink at the present phase
@@ -860,6 +898,11 @@ slots_reset:
         ld a,1
 .f:     ld (hl),a
         inc l
+        push hl
+        ld l,a                  ; (bit 0 of its flags: it is in the ring)
+        ld h,M_SLFL >> 8
+        ld (hl),1
+        pop hl
         inc a
         djnz .f
         xor a
@@ -899,6 +942,12 @@ slot_dec:
         ld h,M_SLREF >> 8
         dec (hl)
         ret nz
+slot_free:                      ; B = slot, shown nowhere: to the free ring
+        ld l,b                  ; (once)
+        ld h,M_SLFL >> 8
+        bit 0,(hl)
+        ret nz
+        set 0,(hl)
         ld a,(fq_tail)          ; none: it may be reused
         ld l,a
         ld h,M_FREEQ >> 8
@@ -919,6 +968,8 @@ slot_alloc:
         inc a
         ld (fq_head),a
         ld l,c
+        ld h,M_SLFL >> 8
+        res 0,(hl)              ; out of the ring
         ld h,M_SLREF >> 8
         ld a,(hl)
         or a
@@ -1001,30 +1052,16 @@ voff:   db 0,3,7
 ;  changes down (M_VMIX)
 ; ---------------------------------------------------------------------
 m_mixed:
-        ; the rows on show, camrow .. camrow+23, as a mask of 32 bits, put
-        ; into the AND instructions below
+        ; the rows on show, camrow .. camrow+23, as a mask of 32 bits (from
+        ; a table), put into the AND instructions below
         ld a,(camrow)
-        ld b,a
-        ld c,0                  ; the row
-        ld hl,mx_mask
-.mk:    ld e,0
-        ld d,1
-.mb:    ld a,c
-        sub b
-        cp PFROWS
-        jr nc,.mn
-        ld a,e
-        or d
-        ld e,a
-.mn:    inc c
-        sla d
-        jr nz,.mb
-        ld (hl),e
-        inc hl
-        ld a,c
-        cp 32
-        jr c,.mk
-        ld hl,mx_mask
+        and 31
+        add a,a
+        add a,a
+        ld l,a
+        ld h,0
+        ld de,mx_masks
+        add hl,de
         ld a,(hl)
         ld (mxh0+1),a
         ld (mxv0+1),a
@@ -1040,8 +1077,12 @@ m_mixed:
         ld a,(hl)
         ld (mxh3+1),a
         ld (mxv3+1),a
-        ; world row -> screen offset, for the rows on show
+        ; world row -> screen offset, for the rows on show (if they moved)
         ld a,(camrow)
+        ld hl,mx_lrow
+        cp (hl)
+        jr z,.rs
+        ld (hl),a
         ld b,a
         add a,a
         add a,rowoff & 255
@@ -1057,6 +1098,7 @@ m_mixed:
         ld b,0
         ld hl,ROW40
         ldir
+.rs:
         ; the ink table at this phase
         ld a,(phase)
         rrca
@@ -1067,6 +1109,15 @@ m_mixed:
         and $7F
         add a,M_SLINK >> 8
         ld (mxih+1),a
+        ld a,(oldphase)         ; and at the old one (no flip if it is the same)
+        rrca
+        ld b,a
+        and $80
+        ld (mxol+1),a
+        ld a,b
+        and $7F
+        add a,M_SLINK >> 8
+        ld (mxoh+1),a
         ; the flip list
         exx
         ld hl,(centptr)
@@ -1157,15 +1208,31 @@ mx_end: exx
         exx
         ret
 
+; a poll of the blanking in the map's loops: if the middle blanking has
+; just begun, the slots waiting go to the PCG now (keeps BC, DE)
+mpoll:  call vpoll
+        ld a,(fields)
+        dec a
+        ret nz
+        ld a,(nload)
+        or a
+        ret z
+        in a,(P_CRTCA)
+        and $20
+        ret z
+        push bc
+        push de
+        call m_upload
+        pop de
+        pop bc
+        ret
+
 mx_nextcol:
+        ld a,b                  ; a poll every fourth column
+        and 3
+        ret nz
         push hl
-        call vpoll
-        ld hl,(mx_ring)
-        inc hl
-        ld a,h
-        and 7
-        ld h,a
-        ld (mx_ring),hl
+        call mpoll
         pop hl
         ret
 
@@ -1182,13 +1249,25 @@ mx_b3:  ld c,(rowoff & 255) + 48
 mx_bits:
         push bc
         push hl
-        ld b,a                  ; the set bits left
-        ld de,(mx_ring)         ; the column's ring address at camrow
-mxb_bit:   ld l,b
+        ld e,a
+        ld a,c
+        ld (mxrb+1),a
+        ld a,COLS               ; the column: COLS - columns left
+        sub b
+        ld b,e                  ; the set bits left
+        ld hl,(mx_ring)         ; its ring address at camrow
+        add a,l
+        ld e,a
+        ld a,h
+        adc a,0
+        and 7
+        ld d,a
+mxb_bit:
+        ld l,b
         ld h,M_LSB >> 8
         ld a,(hl)               ; the lowest one
         add a,a
-        add a,c
+mxrb:   add a,0
         ld l,a
         ld h,rowoff >> 8
         ld a,(hl)               ; its row's offset on the screen
@@ -1204,10 +1283,19 @@ mxb_bit:   ld l,b
         ld h,a
         ld a,(hl)               ; the slot it shows
         and $7F
+        ld c,a
 mxil:   or 0                    ; its ink at this phase
         ld l,a
 mxih:   ld h,0
+        ld a,c
+        ld c,(hl)
+mxol:   or 0                    ; and at the last
+        ld l,a
+mxoh:   ld h,0
         ld a,(hl)
+        cp c
+        jr z,mxb_same
+        ld a,c
         exx
         pop de
         dec b
@@ -1224,6 +1312,7 @@ mxih:   ld h,0
         inc hl
         inc hl
         exx
+mxb_next:
         ld a,b
         dec a
         and b                   ; that bit off
@@ -1232,13 +1321,49 @@ mxih:   ld h,0
         pop hl
         pop bc
         ret
+mxb_same:
+        pop hl
+        jr mxb_next
 mxb_full:  inc b
         exx
         pop hl
         pop bc
         ret
 mx_ring: dw 0
-mx_mask: ds 4
+mx_lrow: db $FF
+mx_masks:                       ; camrow -> the rows on show, 32 bits
+        db 255,255,255,0
+        db 254,255,255,1
+        db 252,255,255,3
+        db 248,255,255,7
+        db 240,255,255,15
+        db 224,255,255,31
+        db 192,255,255,63
+        db 128,255,255,127
+        db 0,255,255,255
+        db 0,254,255,255
+        db 0,252,255,255
+        db 0,248,255,255
+        db 0,240,255,255
+        db 0,224,255,255
+        db 0,192,255,255
+        db 0,128,255,255
+        db 0,0,255,255
+        db 0,0,254,255
+        db 0,0,252,255
+        db 0,0,248,255
+        db 0,0,240,255
+        db 0,0,224,255
+        db 0,0,192,255
+        db 0,0,128,255
+        db 0,0,0,255
+        db 0,0,0,254
+        db 0,0,0,252
+        db 0,0,0,248
+        db 0,0,0,240
+        db 0,0,0,224
+        db 0,0,0,192
+        db 0,0,0,128
         ALIGN 64
 rowoff: ds 64                   ; world row -> its offset on the screen (x 40)
 
@@ -1423,6 +1548,7 @@ cell_redo:
         ld (m_ring),hl
         pop de
         pop bc
+        call lq_reset
         ld a,1
         ld (m_cnt),a
         jp m_cell
@@ -1544,33 +1670,39 @@ m_restores:
 ;  address, every cell's bank (if the phase changed), the colours, the
 ;  cells. 25 frames a second.
 ; ---------------------------------------------------------------------
+; M_PRESENT (the frame is built): the new slots' and the sprites' glyphs
+; to the PCG in the middle blanking, if it is not past; then the game's
+; logic runs, and M_SHOW puts the frame on show in the next blanking.
 m_present:
         call snd_tick
         xor a
         ld (bl_edge),a
         ld (lateblast),a
+        call vpoll              ; a blanking just begun is counted now
         ld a,(nslots)
         ld hl,nload
         or (hl)
-        jr z,.vis
-        call vpoll
+        ret z
         ld a,(fields)
         or a
         jr nz,.f1
         call snd_wait           ; to the middle blanking
         call m_upload
-        call blast
-        jr .vis
+        jp blast
 .f1:    dec a
         jr nz,.late
         in a,(P_CRTCA)
         and $20
         jr z,.late
         call m_upload           ; it has begun: there is still time
-        call blast
-        jr .vis
+        jp blast
 .late:  ld a,1
         ld (lateblast),a
+        ret
+
+m_show: ld a,(fields)
+        ld (pr_f0),a
+        call vpoll
 .vis:   ld a,(fields)
         cp 2
         jr nc,.over
@@ -1583,6 +1715,10 @@ m_present:
         inc (hl)
         ld a,(bl_edge)
         or a
+        jr nz,.show
+        ld a,(pr_f0)            ; the second blanking began just now: use it
+        ld hl,fields
+        cp (hl)
         jr nz,.show
         call snd_wait
 .show:  ld a,(lateblast)
@@ -1607,6 +1743,8 @@ m_present:
         ld (vlast),a
         ret
 
+pr_f0:  db 0
+
 set_start:
         ld a,12
         out (P_CRTCA),a
@@ -1625,42 +1763,16 @@ m_upload:
         ret z
         xor a
         out (P_COLCTL),a
-        ld c,0
-.ph:    ld a,c
-        or LV_SCREEN
-        out (P_LV),a
-        push bc
-        ld a,c
-        add a,a
-        ld l,a
-        ld h,M_PH1280 >> 8
+        ld (up_n),a
+.sl:    ld l,a                  ; the next slot waiting
+        ld h,M_LOADQ >> 8
         ld a,l
-        add a,M_PH1280 & 255
+        add a,M_LOADQ & 255
         ld l,a
-        ld e,(hl)
-        inc l
-        ld d,(hl)               ; DE = SLOTPAT + phase x 1280
-        ld (up_base),de
-        ld a,(nload)
-        ld b,a
-        ld hl,M_LOADQ
-.sl:    push bc
-        push hl
-        ld a,(hl)               ; slot
+        ld a,(hl)
         ld c,a
-        ld l,a                  ; source: + slot x 10
-        ld h,MUL10 >> 8
-        ld a,l
-        add a,MUL10 & 255
-        ld l,a
-        ld e,(hl)
-        set 7,l
-        ld d,(hl)
-        ld hl,(up_base)
-        add hl,de
-        ld e,c                  ; destination: PCGWIN + slot x 16
-        ld d,0
-        ex de,hl
+        ld l,a                  ; destination: PCGWIN + slot x 16
+        ld h,0
         add hl,hl
         add hl,hl
         add hl,hl
@@ -1668,7 +1780,20 @@ m_upload:
         ld a,h
         add a,PCGWIN >> 8
         ld h,a
-        ex de,hl
+        ld (up_dst),hl
+        ld l,c                  ; source: SLOTPAT + slot x 10, then + 1280 a phase
+        ld h,MUL10 >> 8
+        ld a,l
+        add a,MUL10 & 255
+        ld l,a
+        ld e,(hl)
+        set 7,l
+        ld d,(hl)
+        ld hl,SLOTPAT
+        add hl,de
+        ld a,LV_SCREEN + 0
+        out (P_LV),a
+        ld de,(up_dst)
         ldi
         ldi
         ldi
@@ -1679,21 +1804,184 @@ m_upload:
         ldi
         ldi
         ldi
-        pop hl
-        inc l
-        pop bc
-        djnz .sl
-        pop bc
-        inc c
-        ld a,c
-        cp NPH
-        jr nz,.ph
+        ld bc,1280 - 10
+        add hl,bc
+        ld a,LV_SCREEN + 1
+        out (P_LV),a
+        ld de,(up_dst)
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ld bc,1280 - 10
+        add hl,bc
+        ld a,LV_SCREEN + 2
+        out (P_LV),a
+        ld de,(up_dst)
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ld bc,1280 - 10
+        add hl,bc
+        ld a,LV_SCREEN + 3
+        out (P_LV),a
+        ld de,(up_dst)
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ld bc,1280 - 10
+        add hl,bc
+        ld a,LV_SCREEN + 4
+        out (P_LV),a
+        ld de,(up_dst)
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ld bc,1280 - 10
+        add hl,bc
+        ld a,LV_SCREEN + 5
+        out (P_LV),a
+        ld de,(up_dst)
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ld bc,1280 - 10
+        add hl,bc
+        ld a,LV_SCREEN + 6
+        out (P_LV),a
+        ld de,(up_dst)
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ld bc,1280 - 10
+        add hl,bc
+        ld a,LV_SCREEN + 7
+        out (P_LV),a
+        ld de,(up_dst)
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ld bc,1280 - 10
+        add hl,bc
+        ld a,LV_SCREEN + 8
+        out (P_LV),a
+        ld de,(up_dst)
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ld bc,1280 - 10
+        add hl,bc
+        ld a,LV_SCREEN + 9
+        out (P_LV),a
+        ld de,(up_dst)
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ld bc,1280 - 10
+        add hl,bc
+        ld a,LV_SCREEN + 10
+        out (P_LV),a
+        ld de,(up_dst)
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ld bc,1280 - 10
+        add hl,bc
+        ld a,LV_SCREEN + 11
+        out (P_LV),a
+        ld de,(up_dst)
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ld hl,up_n
+        inc (hl)
+        ld a,(nload)
+        cp (hl)
+        ld a,(hl)
+        jp nz,.sl
         xor a
         ld (nload),a
         ld a,LV_SCREEN
         out (P_LV),a
         ret
-up_base: dw 0
+up_dst: dw 0
+up_n:   db 0
 
 ; every playfield cell's bank = the phase (a run of PUSHes; the ring may
 ; wrap in the middle)
@@ -1850,7 +2138,12 @@ do_flips:
         ret
 
 ; M_HUDPUT: the status line (row 0): codes, banks, colours (in the blanking)
+m_hudfull:
+        ld a,2
+        ld (hud_dirty),a
 m_hudput:
+        ld a,(hud_dirty)
+        ld (hp_how),a
         xor a
         ld (hud_dirty),a
         ld hl,(sstart)          ; the ring may wrap within the line: two runs
@@ -1877,15 +2170,39 @@ m_hudput:
         ld b,a
         ld hl,0
         call hp_run
-.done:  ld a,LV_SCREEN
+.done:  ld a,(hp_how)           ; banks: all after a row step, the ends after
+        bit 1,a                 ; a column step
+        jr nz,.done2
+        and 1
+        jr z,.done2
+        ld a,LV_ATTR
+        out (P_LV),a
+        ld hl,(sstart)
+        call hp_bank
+        inc hl
+        call hp_bank
+        ld de,COLS-3
+        add hl,de
+        call hp_bank
+        inc hl
+        call hp_bank
+.done2: ld a,LV_SCREEN
         out (P_LV),a
         ret
-hp_n1:  db 0
-hp_v:   dw 0
-; HL = ring, C = the first of HUDBUF's cells, B = how many
-hp_run: push hl
-        push bc
+hp_bank: push hl
+        call ringw
         ld a,h
+        or VIDEO >> 8
+        ld h,a
+        ld (hl),BK_HUD
+        pop hl
+        ret
+hp_n1:  db 0
+hp_how: db 0
+hp_v:   dw 0
+; HL = ring, C = the first of HUDBUF's cells, B = how many: codes, colours
+; (and banks after a row step)
+hp_run: ld a,h
         or VIDEO >> 8
         ld h,a
         ld (hp_v),hl
@@ -1897,13 +2214,13 @@ hp_run: push hl
         add a,HUDBUF & 255
         ld l,a
         push bc
-.s:     ld a,(hl)
-        or $80
-        ld (de),a
-        inc l
-        inc de
-        djnz .s
+        ld c,b
+        ld b,0
+        ldir
         pop bc
+        ld a,(hp_how)
+        bit 1,a
+        jr z,.nb
         ld a,LV_ATTR
         out (P_LV),a
         ld hl,(hp_v)
@@ -1912,6 +2229,8 @@ hp_run: push hl
         inc hl
         djnz .a
         pop bc
+.nb:    ld a,LV_ATTR
+        out (P_LV),a
         ld a,COL_ON
         out (P_COLCTL),a
         ld hl,(hp_v)
@@ -1926,14 +2245,6 @@ hp_run: push hl
         ldir
         xor a
         out (P_COLCTL),a
-        pop bc
-        pop hl
-        ld a,h                  ; SCRSH: not the background's any more
-        or SCRSH >> 8
-        ld h,a
-.k:     ld (hl),$80
-        inc hl
-        djnz .k
         ret
 
 ; M_PCGCLEAR: code 80h (the empty quad) empty in every scroll bank
@@ -2073,7 +2384,7 @@ m_snap: call slots_reset
         call m_fill
         xor a
         ld (sdirty),a
-        call m_hudput
+        call m_hudfull
         jp set_start
 
 mapcode_end:

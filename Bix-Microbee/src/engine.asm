@@ -807,6 +807,15 @@ e_frame:
         ld de,-10
         add hl,de
         ld (dispy),hl
+        ld hl,POOLBUF+10        ; the pool buffers, from slot 1
+        ld (gb_dst),hl
+        ld a,(phase)            ; the backgrounds' pictures at this phase
+        ld b,a
+        add a,a
+        add a,a
+        add a,b
+        add a,SLOTPAT >> 8
+        ld (gb_ph),a
         ; ---- the sprites
 ef_sprites:
         ld hl,(entptr)
@@ -852,6 +861,12 @@ ef_sprites:
 .nospr: call map_map
         call M_RESTORES
         call M_PRESENT
+        jp map_game
+
+; e_present: the frame computed by e_frame to the screen, in the blankings
+e_present:
+        call map_map
+        call M_SHOW
         jp map_game
 voffs:  db 0,3,7,0
 dispy:  dw 0
@@ -1067,6 +1082,9 @@ spr_draw:
         jr nc,.colnext
         inc h
 .colnext:
+        push hl
+        call vpoll
+        pop hl
         ld a,(ds_cx)
         inc a
         ld (ds_cx),a
@@ -1180,10 +1198,10 @@ getbuf:
         inc hl
         inc hl
         ld (entptr),hl
-        ld hl,(nflip)
-        inc hl
-        ld (nflip),hl
-        ; the background's picture: SLOTPAT + phase x 1280 + its slot x 10
+        ld hl,nflip
+        inc (hl)
+        ; the background's picture: SLOTPAT + phase x 1280 + its slot x 10,
+        ; to the next pool buffer (gb_dst)
         ld hl,(gb_ring)
         ld a,h
         or SCRSH >> 8
@@ -1192,36 +1210,13 @@ getbuf:
         and $7F
         ld l,a
         ld h,MUL10 >> 8
-        ld a,l
-        add a,MUL10 & 255
-        ld l,a
         ld e,(hl)
         set 7,l
-        ld d,(hl)
-        ld a,(phase)
-        ld b,a
-        add a,a
-        add a,a
-        add a,b                 ; x 5 (x 256 = x 1280)
-        add a,SLOTPAT >> 8
-        add a,d
-        ld d,a
-        ex de,hl                ; HL = source
-        ld e,c                  ; DE = POOLBUF + slot x 10
-        ld d,MUL10 >> 8
-        ld a,e
-        add a,MUL10 & 255
-        ld e,a
-        ld a,(de)
-        push af
-        set 7,e
-        ld a,(de)
-        ld d,a
-        pop af
-        ld e,a
-        ld a,d
-        add a,POOLBUF >> 8
-        ld d,a
+        ld a,(gb_ph)
+        add a,(hl)
+        ld h,a
+        ld l,e
+        ld de,(gb_dst)
         push de
         ldi
         ldi
@@ -1233,6 +1228,7 @@ getbuf:
         ldi
         ldi
         ldi
+        ld (gb_dst),de
         pop de
         pop hl                  ; L = the line
         ld a,l
@@ -1247,6 +1243,8 @@ getbuf:
         ld d,scratch >> 8
         ret
 gb_row: db 0
+gb_dst: dw 0
+gb_ph:  db 0
 gb_idx: dw 0
 gb_ring: dw 0
 

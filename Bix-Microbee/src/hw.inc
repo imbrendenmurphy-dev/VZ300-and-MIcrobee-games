@@ -67,6 +67,7 @@ M_HUDPUT    EQU $001B
 M_PLAT      EQU $001E
 M_RESTORES  EQU $0021
 M_QBUILD    EQU $0024
+M_SHOW      EQU $0027
 
 ; ---- upper memory (block 0)
 VARS        EQU $9400

@@ -1,7 +1,7 @@
-snd_tick equ $8997
-snd_wait equ $89F3
+snd_tick equ $89A1
+snd_wait equ $89FD
 vpoll equ $84FE
-blast equ $8836
+blast equ $8840
 cg_col equ $816F
 cg_row equ $818F
 cg_put equ $81CE

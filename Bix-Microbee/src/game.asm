@@ -373,17 +373,13 @@ pgrav     db 0
 st_t      db 0
 
 ; ---------------------------------------------------------------- the frame
+; The engine builds a frame (e_frame) from the last round of the game's
+; logic; the next round runs while that frame waits for its blanking
+; (e_present).
 game_loop:
-.lp:    call read_input
-        call player_update
-        call camera_update
-        call vpoll
-        call ents_update
-        call vpoll
-        call hud_update
-        call player_draw
-        call ents_draw
+.lp:    call logic
         call e_frame
+        call e_present
         ld hl,frame
         inc (hl)
         ld a,(keys)
@@ -398,6 +394,16 @@ game_loop:
         or a
         ret nz
         jr .lp
+logic:  call read_input
+        call player_update
+        call camera_update
+        call vpoll
+        call ents_update
+        call vpoll
+        call hud_update
+        call player_draw
+        call vpoll
+        jp ents_draw
 
 read_input:
         call e_input            ; C = keys
@@ -1304,6 +1310,11 @@ hud_update:
         ld a,b
         add a,2
         ld (hl),a
+        ld hl,HUDBUF            ; as screen codes (80h on)
+        ld b,COLS
+.or:    set 7,(hl)
+        inc l
+        djnz .or
         ret
 .dig:   and 15
         inc a

@@ -61,7 +61,7 @@ The VZ game's "Lost Levels" update: in each world, the first level, then two new
 | View | 16 × 7 tiles, scrolls both ways | 20 × 12 tiles, scrolls both ways |
 | Scroll step | 1 VZ pixel | 2 pixels across (the same distance); 3 or 4 lines down |
 | Backgrounds | hills in a second colour | the same shapes as dithered dots in the night sky |
-| Frame rate | 25 | 25 most of the time (see below) |
+| Frame rate | 25 | 23 to 25 (see below) |
 
 ## How the engine works
 
@@ -75,7 +75,13 @@ The 6545 can only move the picture a whole cell. Everything finer is done with t
 - **Sprites** are composed as in FrillSeeker: a private glyph for each cell a sprite touches, in two PCG pools that take turns.
 - **No interrupts.** The vertical blanking is found by polling the 6545's status, inside the long loops too, so a blanking is never missed.
 
-Measured in the emulator by `tools/alltest.py`, which visits six places in every level and fights every boss: 21 to 23 frames a second over the whole run. A frame is two fields when the camera only moves across; the slow ones are where a row of 40 cells comes on (a vertical pan) or the twelve offsets of many new quads go to the PCG at once.
+Measured in the emulator by `tools/alltest.py`, which visits six places in every level and fights every boss: 22.6 to 24 frames a second in the levels, and 24.5 to 25 in the boss fights. A frame is two fields; the slow ones are where four or more new quads come on at once (each needs its twelve pictures built and sent to the PCG) or a row of 40 cells comes on during a vertical pan. `tools/bench.py` runs a fixed course over four stages for comparing builds.
+
+How the time is kept down:
+
+- The frame's work runs while the last frame is on show; new slots' pictures go to the PCG in the middle blanking as soon as it is seen, and the second blanking only switches the picture (start address, the PUSH fill, the cells that changed, the status line).
+- The recolour pass writes a cell only if its ink really changes between the old offset and the new one.
+- A cell with the same quad as the one before it skips the quad table.
 
 ## Real machine
 
@@ -90,6 +96,7 @@ python3 tools/fixjr.py        # builds everything into build/ (and fixes long JR
 python3 tools/tour.py out/    # visits each part of Gumleaf Gully, saves pictures
 python3 tools/alltest.py out/ # visits every stage and beats every boss by script
 python3 tools/prof2.py 0 230  # where a frame's T-states go, by routine
+python3 tools/bench.py        # frames a second over a fixed course
 ```
 
 - `src/engine.asm`: start-up, stage loading, the frame, the sprite compositor, input
