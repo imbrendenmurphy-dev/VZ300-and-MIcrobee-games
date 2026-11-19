@@ -24,6 +24,7 @@ sys.path.insert(0, HERE)
 os.makedirs(BUILD, exist_ok=True)
 
 import art as A
+import roundfont as RF
 import mazes as MZ
 
 STORE_N = 512          # glyphs 0..511 (banks 0-3) are kept in every sprite block
@@ -163,9 +164,8 @@ def build_store():
     for i, (pc, pm) in enumerate(gs.pats):
         store_c[i * 16:i * 16 + CH] = pc
         store_m[i * 16:i * 16 + CH] = pm
-    for i, f in enumerate(A.font_glyphs()):
+    for i, f in enumerate(RF.font_bytes()):    # the rounded, double-thick game font
         g = G_FONT + i
-        f = bytes([f[0], f[1], f[1], f[2], f[3], f[4], f[5], f[5], f[6], 0])   # 5 x 7 drawn 9 lines tall
         store_c[g * 16:g * 16 + CH] = f
         store_m[g * 16:g * 16 + CH] = f
     for i, (n, f) in enumerate(A.ICONS):

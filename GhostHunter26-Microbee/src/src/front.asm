@@ -224,13 +224,6 @@ chase:  ld a,(t_c)
         push hl
         ld a,(t_r)
         ld e,a
-        ld a,SF_HAT_R
-        ld c,BRED
-        call put_px
-        pop hl
-        push hl
-        ld a,(t_r)
-        ld e,a
         ld a,(t_c)
         rrca
         and 2
@@ -306,13 +299,6 @@ chase:  ld a,(t_c)
         ld a,(t_k)
         or a
         jr nz,.giant
-        push hl
-        ld a,(t_r)
-        ld e,a
-        ld a,SF_HAT_L
-        ld c,BRED
-        call put_px
-        pop hl
         ld a,(t_r)
         ld e,a
         ld a,(t_c)
@@ -321,16 +307,8 @@ chase:  ld a,(t_c)
         add a,SF_FACE_L0
         ld c,YELLOW
         jp put_px
-.giant: push hl
-        ld a,(t_r)
+.giant: ld a,(t_r)
         sub 18
-        ld e,a
-        ld a,SF_BIGHAT
-        ld c,BRED
-        call put_px
-        pop hl
-        ld a,(t_r)
-        sub 2
         ld e,a
         ld a,(t_c)
         rrca
@@ -509,11 +487,6 @@ meet_cb:
         ld a,b
         cp 4
         jr nz,.g
-        ld hl,40
-        ld e,202
-        ld a,SF_HAT_R
-        ld c,BRED
-        call put_px
         ld a,(gtick)
         rrca
         rrca

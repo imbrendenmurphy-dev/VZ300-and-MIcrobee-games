@@ -32,11 +32,13 @@ A tapped direction is remembered until the next junction, so you can turn early.
 
 ## What's in it
 
-**The screen.** 320 × 250 in sixteen colours, every 8 × 10 cell with its own ink and paper, using all 25 rows of a PAL picture. The maze is arcade scale: 13 lanes across and 7 down, lanes 16 pixels wide and 20 lines tall, 16-pixel characters. Characters only ever stand in lane cells, so they never discolour a wall.
+**The screen.** 320 × 250 in sixteen colours, every 8 × 10 cell with its own ink and paper, using all 25 rows of a PAL picture. The maze is arcade scale: 13 lanes across and 7 down, lanes 16 pixels wide and 20 lines tall, characters 16 × 18. All text uses a bubbly, rounded, double-thickness font (`src/tools/roundfont.py`). Characters only ever stand in lane cells, so they never discolour a wall.
 
 ![crypt](screenshots/04_old_crypt.png)
 
 **Forgiving play.** A ghost's touch costs a heart, not a life. The ghost that caught you is sent home as a pair of eyes and you flash, safe, for a couple of seconds. Three hearts a life, three lives, an extra life at 10,000 and then every 50,000.
+
+**The hunter** is a round chomping head under a little hat, all in one colour: each cell shows one ink, so a separately coloured hat would tint half his head.
 
 **The ghosts** (names and habits from Ghost Hunter 2):
 

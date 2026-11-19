@@ -150,7 +150,7 @@ put_actor:
         ld c,a
         ld b,0
         add hl,bc
-        ld bc,-8                ; (16 lines high, in the middle of a 20-line lane)
+        ld bc,-9                ; (18 lines high, in the middle of a 20-line lane)
         add hl,bc
         ld a,(a_oy)
         ld c,a
@@ -1610,7 +1610,6 @@ parts_draw:
 ;  drawing the hunter
 ; ---------------------------------------------------------------------
 mouth_seq: db 0,1,2,1
-hat_of:  db SF_HAT_R,SF_HAT_L,SF_HAT_F,SF_HAT_F
 hunt_col: db WHITE,YELLOW,BRED,YELLOW
 
 draw_player:
@@ -1653,17 +1652,10 @@ draw_player:
         add a,SF_RING0
         ld c,BCYAN
         call put_actor
-.ns:    ld a,(p_x)
+.ns:    ld a,(p_x)               ; (the hat is part of every hunter frame)
         ld d,a
         ld a,(p_y)
         ld e,a
-        ld a,(p_dir)
-        ld hl,hat_of
-        call tab_a
-        ld c,BRED
-        push de
-        call put_actor
-        pop de
         ld c,YELLOW
         ld a,(t_hunter)
         or a
@@ -1711,11 +1703,6 @@ draw_death:
         ld a,(gtimer)
         cp 44
         jr c,.an
-        push de
-        ld a,SF_HAT_F
-        ld c,BRED
-        call put_actor
-        pop de
         ld a,SF_FACE_D0
         ld c,YELLOW
         jp put_actor
@@ -1728,10 +1715,10 @@ draw_death:
         and 7                   ; 0..5
         cp 4
         jr c,.fr
-        ld a,8                  ; the hat alone, on the floor
+        ld a,10                 ; the hat alone, on the floor
         ld (a_oy),a
         ld a,SF_HAT_F
-        ld c,BRED
+        ld c,YELLOW
         jp put_actor
 .fr:    push af
         push de
@@ -1743,7 +1730,7 @@ draw_death:
         add a,a
         ld (a_oy),a
         ld a,SF_HAT_F
-        ld c,BRED
+        ld c,YELLOW
         jp put_actor
 
 draw_pop:

@@ -237,65 +237,57 @@ def ellipse(cx, cy, rx, ry):
     return lambda x, y: ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2 <= 1.0
 
 
-HAT = art([
-    "................",
-    "................",
-    ".....######.....",
-    "....########....",
-    "....########....",
-    "....#......#....",
-    "..############..",
-    ".##############.",
-])
-HAT_R = art([
-    "................",
-    "................",
-    "....######......",
-    "...########.....",
-    "...########.....",
-    "...#......#.....",
-    ".#############..",
-    ".###############",
-])
+SH = 18         # sprite height (lines): the characters are 16 x 18
+
+# The hunter is one sprite in one colour (a cell shows a single ink, so a
+# red hat would turn half his head red): a little hat silhouette sits on a
+# round chomping head, with a one-line gap between them.
+HAT_ROWS = {
+    'R': ["................", ".....#####......", "....#######.....", "..###########..."],
+    'F': ["................", "......####......", ".....######.....", "...##########..."],
+}
+HAT_ROWS['L'] = [r[::-1] for r in HAT_ROWS['R']]
 
 
-def face(direction, mouth, scale=1.0):
-    """the hunter's head: rows 8..15 of the 16 x 16 box"""
-    e = ellipse(7.5, 11.6, 6.9 * scale, 4.3 * scale)
-    k = (0.0, 0.45, 0.95)[mouth]
+def hat(direction):
+    b = np.zeros((SH, 16), bool)
+    b[:4] = art(HAT_ROWS[direction])
+    return b
+
+
+def face(direction, mouth, scale=1.0, with_hat=True):
+    """the hunter: head on rows 4..17 of the 16 x 18 box, hat above"""
+    cy = 11.0
+    e = ellipse(7.5, cy, 7.4 * scale, 7.0 * scale)
+    k = (0.0, 0.5, 1.0)[mouth]
 
     def fn(x, y):
-        if y < 8 or not e(x, y):
+        if not e(x, y):
             return False
-        if direction == 'R':
-            if (x, y) in ((8, 9), (9, 9)):
-                return False
-            if mouth and x > 6.5 and abs(y - 12.0) < (x - 6.5) * k:
-                return False
+        if direction in 'RL':
+            if 9 <= x <= 10 and 7 <= y <= 8:
+                return False                    # eye
+            if mouth and x > 6.0 and abs(y - 11.5) < (x - 6.0) * k:
+                return False                    # mouth
         elif direction == 'D':
-            if (x, y) in ((4, 10), (5, 10), (10, 10), (11, 10)):
+            if (4 <= x <= 5 or 10 <= x <= 11) and 8 <= y <= 9:
                 return False
-            if mouth and y > 11.5 and abs(x - 7.5) < (y - 11.2) * (k + 0.3):
+            if mouth and y > 11.8 and abs(x - 7.5) < (y - 11.6) * (k + 0.3):
                 return False
-            if not mouth and y == 13 and 5 <= x <= 10:
+            if not mouth and y == 14 and 5 <= x <= 10:
                 return False
-        elif direction == 'U':
-            if mouth and y == 15:
+        elif direction == 'U':                  # looking up, chomping
+            if (4 <= x <= 5 or 10 <= x <= 11) and 6 <= y <= 7:
+                return False
+            if mouth and 11 <= y <= 14 and abs(x - 7.5) < 2.6 - abs(y - 12.5) * 0.6:
+                return False
+            if not mouth and y == 13 and 6 <= x <= 9:
                 return False
         return True
-    return mk(fn)
-
-
-def split(full):
-    """16 x 16 -> (top bits, top mask), (bottom bits, bottom mask) with the
-    outline kept inside each half"""
-    m = grow(full)
-    t, tm, b, bm = full.copy(), m.copy(), full.copy(), m.copy()
-    t[8:] = False
-    tm[8:] = False
-    b[:8] = False
-    bm[:8] = False
-    return (t, tm), (b, bm)
+    b = mk(fn, 16, SH)
+    if with_hat and scale == 1.0:
+        b |= hat('F' if direction in 'UD' else direction)
+    return b
 
 
 GHOST_BODY = [
@@ -303,16 +295,7 @@ GHOST_BODY = [
     ".....######.....",
     "...##########...",
     "..############..",
-    ".##############.",
-    ".##############.",
-    ".##############.",
-    ".##############.",
-    ".##############.",
-    ".##############.",
-    ".##############.",
-    ".##############.",
-    ".##############.",
-]
+] + [".##############."] * 11
 GHOST_FEET = [
     [".##############.", ".###.####.####..", "..#...##...##..."],
     [".##############.", "..####.####.###.", "...##...##...#.."],
@@ -337,12 +320,12 @@ def ghost(kind, direction, anim):
         for ex in (4, 9):
             for y in range(3):
                 for x in range(3):
-                    b[5 + y + oy, ex + x + ox] = True
+                    b[6 + y + oy, ex + x + ox] = True
         return b
     eh = 4
-    ey = 4
+    ey = 5
     if kind == 1:
-        eh, ey = 2, 6
+        eh, ey = 2, 7
     for ex in (3, 9):
         for y in range(eh):
             for x in range(4):
@@ -353,19 +336,19 @@ def ghost(kind, direction, anim):
         for y in range(2):
             for x in range(2):
                 yy, xx = py + y, px + x
-                if 0 <= yy < 16 and 0 <= xx < 16:
+                if 0 <= yy < SH and 0 <= xx < 16:
                     b[yy, xx] = True
     if kind == 0:           # angry brows
-        for ex, s in ((3, 1), (9, -1)):
+        for ex, s_ in ((3, 1), (9, -1)):
             for x in range(4):
                 xx = ex + ox + x
-                d = x if s == 1 else 3 - x
+                d = x if s_ == 1 else 3 - x
                 if d < 2:
                     b[ey + oy, xx] = True
                 if d < 1:
                     b[ey + oy + 1, xx] = True
     if kind == 2:           # stripes
-        for y in range(9, 13):
+        for y in range(11, 15):
             for x in (4, 7, 10):
                 b[y, x] = False
     return b
@@ -374,25 +357,25 @@ def ghost(kind, direction, anim):
 def fright(anim):
     b = art(GHOST_BODY + GHOST_FEET[anim])
     for ex in (4, 10):
-        b[5:7, ex:ex + 2] = False
+        b[6:8, ex:ex + 2] = False
     for x in range(3, 13):
-        y = 10 if (x // 2) % 2 == 0 else 9
+        y = 12 if (x // 2) % 2 == 0 else 11
         b[y, x] = False
     return b
 
 
 def eyes(direction):
     ox, oy = {'R': (1, 0), 'L': (-1, 0), 'U': (0, -1), 'D': (0, 1)}[direction]
-    b = np.zeros((16, 16), bool)
+    b = np.zeros((SH, 16), bool)
     for ex in (3, 9):
         for y in range(5):
             for x in range(4):
                 if (x in (0, 3)) and (y in (0, 4)):
                     continue
-                b[4 + y, ex + x] = True
+                b[5 + y, ex + x] = True
         for y in range(2):
             for x in range(2):
-                b[5 + oy + y + (1 if oy == 0 else 0), ex + 1 + ox + x] = False
+                b[6 + oy + y + (1 if oy == 0 else 0), ex + 1 + ox + x] = False
     return b
 
 
@@ -401,13 +384,15 @@ DIG = {'0': "111 101 101 101 111", '1': "010 110 010 010 111", '2': "111 001 111
 
 
 def number(txt):
-    w = len(txt) * 4 - 1
+    w = len(txt) * 5 - 1
     b = np.zeros((5, w), bool)
     for i, ch in enumerate(txt):
         for y, row in enumerate(DIG[ch].split()):
             for x, c in enumerate(row):
-                b[y, i * 4 + x] = c == '1'
-    return b
+                b[y, i * 5 + x] = c == '1'
+    bold = b.copy()
+    bold[:, 1:] |= b[:, :-1]                # double-thick strokes
+    return bold
 
 
 def sprites():
@@ -417,23 +402,16 @@ def sprites():
     def add(name, b, outline=True):
         b = np.asarray(b, bool)
         S.append((name, b, grow(b) if outline else b.copy()))
-
-    def half(name, full, top):
-        (t, tm), (b, bm) = split(full)
-        S.append((name, t, tm) if top else (name, b, bm))
-    blank8 = np.zeros((8, 16), bool)
-    half('HAT_F', np.vstack([HAT, blank8]), True)
-    half('HAT_R', np.vstack([HAT_R, blank8]), True)
-    half('HAT_L', mirror(np.vstack([HAT_R, blank8])), True)
+    add('HAT_F', hat('F'))                  # (only for his last moments)
     for m in range(3):
         f = face('R', m)
-        half('FACE_R%d' % m, f, False)
-        half('FACE_L%d' % m, mirror(f), False)
+        add('FACE_R%d' % m, f)
+        add('FACE_L%d' % m, mirror(f))
     for m in range(2):
-        half('FACE_U%d' % m, face('U', m), False)
-        half('FACE_D%d' % m, face('D', m * 2), False)
+        add('FACE_U%d' % m, face('U', m))
+        add('FACE_D%d' % m, face('D', m * 2))
     for i, sc in enumerate((0.85, 0.65, 0.42, 0.2)):
-        half('DIE%d' % i, face('D', 0, sc), False)
+        add('DIE%d' % i, face('D', 0, sc))
     for k in range(4):
         for d in 'RLUD':
             for a in range(2):
@@ -448,16 +426,13 @@ def sprites():
     sp1 = mk(lambda x, y: abs(x - 3) == abs(y - 3) and abs(x - 3) < 3, 7, 7)
     add('SPARK0', sp0, False)
     add('SPARK1', sp1, False)
-    ring = mk(lambda x, y: 6.6 <= math.hypot(x - 7.5, (y - 7.5)) <= 7.9 and (x + y) % 2 == 0)
-    add('RING0', ring, False)
-    ring1 = mk(lambda x, y: 6.6 <= math.hypot(x - 7.5, (y - 7.5)) <= 7.9 and (x + y) % 2 == 1)
-    add('RING1', ring1, False)
-    # the giant hunter of the intermissions (32 x 32, facing left)
-    hat = np.kron(mirror(np.vstack([HAT_R, blank8])), np.ones((2, 2), bool))
-    S.append(('BIGHAT', hat[:16], hat[:16].copy()))
+    for i in range(2):
+        ring = mk(lambda x, y: 0.82 <= math.hypot((x - 7.5) / 7.9, (y - 8.5) / 8.9) <= 1.0 and (x + y) % 2 == i, 16, SH)
+        add('RING%d' % i, ring, False)
+    # the giant hunter of the intermissions (32 x 36, facing left)
     for m in (0, 2):
         f = np.kron(mirror(face('R', m)), np.ones((2, 2), bool))
-        S.append(('BIGFACE%d' % (m // 2), f[16:], f[16:].copy()))
+        add('BIGFACE%d' % (m // 2), f)
     return S
 
 
