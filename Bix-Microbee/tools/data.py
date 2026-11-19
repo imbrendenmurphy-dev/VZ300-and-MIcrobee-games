@@ -17,37 +17,46 @@ import gfx
 import art as vz
 import level1
 
-W = level1.W
-TOP, DEEP = 2, 2                # the VZ level is 12 tiles high: two more of sky, two more of earth
+import levels2
+
+TOP, DEEP = 2, 2                # the VZ levels are 12 tiles high: two more above, two more of earth
 H = level1.H + TOP + DEEP
 ALT = {'soil': 'soilD', 'soil2': 'soilD', 'bstar': 'soilD', 'grass': 'grassD', 'star': 'sky',
        'bonus': 'used', 'termite': 'sky', 'check': 'checkon'}
 E_PLATH, E_PLATV = 5, 6
+E_START, E_BOSS = 9, 13
 MAXPAIR = 384
-ENTS = [(x, y + TOP, t, p) for (x, y, t, p) in level1.ents]
+NWORLD = int(__import__('os').environ.get('BIX_WORLDS', '5'))
+NAMES = {1: ('GUMLEAF GULLY', 'KING CANE'), 2: ('CRYSTAL CAVERNS', 'THE GEODE GOLEM'),
+         3: ('CLOCKWORK WORKS', 'RUST-O-TRON'), 4: ('SKYWARD ISLES', 'THUNDERHAWK'),
+         5: ('MOLTEN PEAKS', 'THE MAGMA DRAGON')}
+SOLID = lambda t: vz.TILES[vz.TID[t]][2] & vz.SOLID
+EARTH = ('soil', 'soil2', 'bstar', 'grass')
 
 
-def level_grid():
-    """Gumleaf Gully made taller: deeper earth with star pockets to tunnel
-    to, and high logs over the springs that only a full bounce reaches."""
-    solid = lambda t: vz.TILES[vz.TID[t]][2] & vz.SOLID
+def tall(g12, ents, world):
+    """a VZ level made taller: what is at its top edge carried up, deeper
+    earth with star pockets to tunnel to, and a high log with stars over
+    each spring that only a full bounce reaches"""
+    W = len(g12)
+    ents = [(x, y + TOP, t, p) for (x, y, t, p) in ents]
     g = []
-    for x, col in enumerate(level1.g):
-        col = ['sky' if t.startswith('hill') else t for t in col]
+    for x, col in enumerate(g12):
+        col = list(col)
+        col = ['sky' if t.startswith('hill') else t for t in col]     # the far hills cost too many glyphs
         b = col[-1]
-        if b in ('soil', 'soil2', 'bstar', 'grass'):
+        if b in EARTH:
             deep = ['soil2' if (x * 7 + k * 3) % 5 == 0 else 'soil' for k in range(DEEP)]
         else:
             deep = [b] * DEEP
-        g.append(['sky'] * TOP + col + deep)
+        top = [col[0] if world > 1 and col[0] in ('rock', 'leaf') else 'sky'] * TOP
+        g.append(top + col + deep)
     earth = lambda x, y: 0 <= x < W and g[x][y] in ('soil', 'soil2')
-    # star pockets in the deep earth
     for x in range(6, W - 8):
         if x % 11 == 5 and all(earth(x + d, H - 1) and earth(x + d, H - 2) for d in (-1, 0, 1, 2)):
             g[x][H - 1] = 'bstar'
             g[x + 1][H - 1] = 'bstar'
             g[x + 1][H - 2] = 'bstar'
-    # a high log and a line of stars over each spring
     for x in range(W - 8):
         for y in range(9, H):
             if g[x][y] == 'shroom':
@@ -60,7 +69,7 @@ def level_grid():
                     g[x + 6][ly - 2] = 'star'
     nonsolid = lambda t: vz.TILES[vz.TID[t]][2] == 0
     # nothing behind the moving logs: they are drawn as background cells
-    for (x, y, t, p) in ENTS:
+    for (x, y, t, p) in ents:
         if t == E_PLATH:
             for tx in range(x, x + p + 4):
                 if tx < W and nonsolid(g[tx][y]):
@@ -68,9 +77,72 @@ def level_grid():
         if t == E_PLATV:
             for tx in range(x, x + 3):
                 for ty in range(max(0, y - p), y + 1):
-                    if nonsolid(g[tx][ty]):
+                    if tx < W and nonsolid(g[tx][ty]):
                         g[tx][ty] = 'sky'
-    return g
+    return g, ents
+
+
+MIRROR = {'slopeL': 'slopeR', 'slopeR': 'slopeL', 'cloudL': 'cloudR', 'cloudR': 'cloudL',
+          'moonTL': 'moonTR', 'moonTR': 'moonTL', 'moonBL': 'moonBR', 'moonBR': 'moonBL',
+          'hillL': 'hillR', 'hillR': 'hillL'}
+
+
+def mirrored(L):
+    """'The Way Back': the same land run the other way"""
+    w = L['W']
+    g = [[MIRROR.get(t, t) for t in col] for col in reversed(L['g'])]
+    ents = []
+    for (x, y, t, p) in L['ents']:
+        if t == E_PLATH:
+            x2 = w - 3 - x - p          # a log is three tiles wide and travels p
+        elif t == E_PLATV:
+            x2 = w - 3 - x
+        else:
+            x2 = w - 1 - x
+        ents.append((x2, y, t, p))
+    return dict(g=g, W=w, ents=ents, boss=0, world=L['world'], mirror=1)
+
+
+LOOSE = ('moon', 'lantern', 'flower', 'tuft', 'bush', 'sky_tw', 'log', 'trunk', 'cloud')
+
+
+def arena(world):
+    """a boss's arena: the VZ one (16 tiles) with four more let into its middle
+    to fill a 20 tile screen"""
+    L = getattr(levels2, 'level_%d_2' % world)()
+    plain = []
+    for y in range(12):
+        t = L.g[9][y]
+        if any(t.startswith(k) for k in LOOSE):
+            t = L.g[6][y] if not any(L.g[6][y].startswith(k) for k in LOOSE) else 'sky'
+        plain.append(t)
+    cols = [list(c) for c in L.g[:9]] + [list(plain) for _ in range(4)] + [list(c) for c in L.g[9:]]
+    for y in range(12):                         # the ceiling's pattern runs on
+        if L.g[9][y].startswith('cloud') and L.g[0][y].startswith('cloud'):
+            for x in range(20):
+                cols[x][y] = ('cloudL', 'cloudM', 'cloudR')[x % 3]
+    ents = [(2, 7, E_START, 0), (12, 6, E_BOSS, 0)]
+    g, ents = tall(cols, ents, world)
+    for x in (0, 19):                           # the walls go all the way up
+        if g[x][TOP + 4] == 'rock':
+            for y in range(TOP):
+                g[x][y] = 'rock'
+    return dict(g=g, W=20, ents=ents, boss=world, world=world)
+
+
+def stages():
+    out = []
+    for w in range(1, NWORLD + 1):
+        if w == 1:
+            g, ents = tall(level1.g, level1.ents, 1)
+        else:
+            L = getattr(levels2, 'level_%d_1' % w)()
+            g, ents = tall(L.g, L.ents, w)
+        s0 = dict(g=g, W=len(g), ents=ents, boss=0, world=w)
+        out += [s0, mirrored(s0), arena(w)]
+    for L in out:
+        L['start'] = [(x, y) for (x, y, t, p) in L['ents'] if t == E_START][0]
+    return out
 
 
 class Cells:
@@ -89,15 +161,16 @@ class Cells:
         return self.ids[k]
 
 
-def build():
-    T = gfx.build_tiles()
+def build(L):
+    T = gfx.build_tiles(L['world'])
+    W = L['W']
     C = Cells()
     tcell = {}
     for name, _, _ in vz.TILES:
         bits, ink, prio = T[name]
         tcell[name] = [C.add(bits[cy * 8:cy * 8 + 8, cx * 8:cx * 8 + 8], ink[cy, cx], prio)
                        for cy in (0, 1) for cx in (0, 1)]        # TL TR BL BR
-    g = level_grid()
+    g = L['g']
     pairs = {(0, 0): 0}
     plist = [(0, 0)]
 
@@ -143,7 +216,7 @@ def build():
                 pair(a, b)
         platv.append(rows)
     assert len(C.list) <= 256, len(C.list)
-    return dict(T=T, C=C, tcell=tcell, g=g, pairs=pairs, plist=plist, plath=plath, platv=platv)
+    return dict(T=T, C=C, tcell=tcell, g=g, W=W, pairs=pairs, plist=plist, plath=plath, platv=platv)
 
 
 def pair_glyphs(D):
@@ -203,20 +276,3 @@ def hash_table(D, mixed):
     return bytes(tab), probes
 
 
-def cgmap(D):
-    """32 cell glyphs a column (two a tile)"""
-    out = bytearray()
-    for tx in range(W):
-        for half in (0, 1):
-            for ty in range(H):
-                c = D['tcell'][D['g'][tx][ty]]
-                out += bytes([c[half], c[2 + half]])
-    out += bytes(2 * H * 2)                 # blank columns past the end
-    return bytes(out)
-
-
-if __name__ == '__main__':
-    D = build()
-    pat, colc, colm, mixed = pair_glyphs(D)
-    tab, probes = hash_table(D, mixed)
-    print('cell glyphs', len(D['C'].list), 'pairs', len(D['plist']), 'mixed', sum(mixed), 'extra probes', probes)

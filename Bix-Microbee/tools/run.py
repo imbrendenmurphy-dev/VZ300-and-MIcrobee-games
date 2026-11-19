@@ -41,9 +41,10 @@ def boot():
     return pp
 
 
-def start(mono=False):
+def start(mono=False, stage=0):
     """boot, choose the monitor, into the level"""
     pp = boot()
+    pp.blocks[4][pp.S['startstg']] = stage
     pp.run_frames(20)
     if mono:
         pp.keys = ['M']
@@ -53,7 +54,7 @@ def start(mono=False):
     pp.keys = ['SPACE']
     pp.run_frames(6)
     pp.keys = []
-    pp.run_frames(40)
+    pp.run_frames(150)          # the stage card, the stage loading
     return pp
 
 

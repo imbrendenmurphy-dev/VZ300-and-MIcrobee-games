@@ -6,8 +6,8 @@ import run
 from mbee import FRAME_T
 
 class Bot:
-    def __init__(self, mono=False):
-        self.pp = run.start(mono)
+    def __init__(self, mono=False, stage=0):
+        self.pp = run.start(mono, stage)
         self.S = self.pp.S
         self.g = self.pp.blocks[4]
         self.mono = mono
