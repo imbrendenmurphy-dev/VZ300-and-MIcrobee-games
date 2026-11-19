@@ -195,15 +195,28 @@ step_up:
 ; HL = ring offset: 40 cells leave the screen
 row_leave:
         ld b,COLS
-.l:     push bc
-        call ringw
+.l:     ld a,h                  ; (ring offset & 7FFh) in SCRSH
+        and 7
+        or SCRSH >> 8
+        ld h,a
+        ld a,(hl)
+        ld (hl),$80
+        and $7F
+        jr z,.n
+        push bc
         push hl
-        call cell_leave
-        call mpoll
+        ld b,a
+        call slot_dec
         pop hl
-        inc hl
         pop bc
-        djnz .l
+.n:     inc hl
+        ld a,b
+        and 7
+        jr nz,.np
+        push hl
+        call mpoll              ; (keeps BC)
+        pop hl
+.np:    djnz .l
         ret
 
 ; HL = ring offset (0..2047): the cell is not on show any more
@@ -357,16 +370,23 @@ row_draw:
         call m_cell
         ld hl,(m_ring)
         inc hl
-        call ringw
+        ld a,h
+        and 7
+        ld h,a
         ld (m_ring),hl
         ld hl,(m_x)
         inc hl
         ld (m_x),hl
-        call mpoll
         pop hl
         inc hl
         pop bc
-        djnz .l
+        ld a,b
+        and 3
+        jr nz,.np
+        push hl
+        call mpoll              ; (keeps BC)
+        pop hl
+.np:    djnz .l
         ret
 
 ; (m_x), (m_r) -> HL = its ring offset
@@ -1010,11 +1030,12 @@ slot_alloc:
         call slot_inks
         pop bc
         ld a,(nload)
+        add a,UPLQ & 255
         ld l,a
-        ld h,M_LOADQ >> 8
+        ld h,UPLQ >> 8
         ld (hl),c
-        inc a
-        ld (nload),a
+        ld hl,nload
+        inc (hl)
         ld a,c
         ret
 .none:  ld hl,ovf_count
@@ -1222,10 +1243,13 @@ mpoll:  call vpoll
         ret z
         push bc
         push de
+        ld a,UP_BLANK           ; as many as the blanking has room for
+        ld (up_max),a
         call m_upload
         pop de
         pop bc
         ret
+UP_BLANK EQU 4
 
 mx_nextcol:
         ld a,b                  ; a poll every fourth column
@@ -1757,231 +1781,7 @@ set_start:
         ret
 
 ; the slots waiting: their 12 pictures to PCG banks 0-11
-m_upload:
-        ld a,(nload)
-        or a
-        ret z
-        xor a
-        out (P_COLCTL),a
-        ld (up_n),a
-.sl:    ld l,a                  ; the next slot waiting
-        ld h,M_LOADQ >> 8
-        ld a,l
-        add a,M_LOADQ & 255
-        ld l,a
-        ld a,(hl)
-        ld c,a
-        ld l,a                  ; destination: PCGWIN + slot x 16
-        ld h,0
-        add hl,hl
-        add hl,hl
-        add hl,hl
-        add hl,hl
-        ld a,h
-        add a,PCGWIN >> 8
-        ld h,a
-        ld (up_dst),hl
-        ld l,c                  ; source: SLOTPAT + slot x 10, then + 1280 a phase
-        ld h,MUL10 >> 8
-        ld a,l
-        add a,MUL10 & 255
-        ld l,a
-        ld e,(hl)
-        set 7,l
-        ld d,(hl)
-        ld hl,SLOTPAT
-        add hl,de
-        ld a,LV_SCREEN + 0
-        out (P_LV),a
-        ld de,(up_dst)
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ld bc,1280 - 10
-        add hl,bc
-        ld a,LV_SCREEN + 1
-        out (P_LV),a
-        ld de,(up_dst)
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ld bc,1280 - 10
-        add hl,bc
-        ld a,LV_SCREEN + 2
-        out (P_LV),a
-        ld de,(up_dst)
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ld bc,1280 - 10
-        add hl,bc
-        ld a,LV_SCREEN + 3
-        out (P_LV),a
-        ld de,(up_dst)
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ld bc,1280 - 10
-        add hl,bc
-        ld a,LV_SCREEN + 4
-        out (P_LV),a
-        ld de,(up_dst)
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ld bc,1280 - 10
-        add hl,bc
-        ld a,LV_SCREEN + 5
-        out (P_LV),a
-        ld de,(up_dst)
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ld bc,1280 - 10
-        add hl,bc
-        ld a,LV_SCREEN + 6
-        out (P_LV),a
-        ld de,(up_dst)
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ld bc,1280 - 10
-        add hl,bc
-        ld a,LV_SCREEN + 7
-        out (P_LV),a
-        ld de,(up_dst)
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ld bc,1280 - 10
-        add hl,bc
-        ld a,LV_SCREEN + 8
-        out (P_LV),a
-        ld de,(up_dst)
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ld bc,1280 - 10
-        add hl,bc
-        ld a,LV_SCREEN + 9
-        out (P_LV),a
-        ld de,(up_dst)
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ld bc,1280 - 10
-        add hl,bc
-        ld a,LV_SCREEN + 10
-        out (P_LV),a
-        ld de,(up_dst)
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ld bc,1280 - 10
-        add hl,bc
-        ld a,LV_SCREEN + 11
-        out (P_LV),a
-        ld de,(up_dst)
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ld hl,up_n
-        inc (hl)
-        ld a,(nload)
-        cp (hl)
-        ld a,(hl)
-        jp nz,.sl
-        xor a
-        ld (nload),a
-        ld a,LV_SCREEN
-        out (P_LV),a
-        ret
-up_dst: dw 0
-up_n:   db 0
+m_upload: jp e_upload
 
 ; every playfield cell's bank = the phase (a run of PUSHes; the ring may
 ; wrap in the middle)

@@ -68,18 +68,18 @@ The VZ game's "Lost Levels" update: in each world, the first level, then two new
 The 6545 can only move the picture a whole cell. Everything finer is done with the PCG.
 
 - **Quads.** Each screen cell shows a 2 × 2 block of the world's cell glyphs (a "quad") at one of twelve offsets: four across (0, 2, 4, 6 pixels) by three down (0, 3, 7 lines). The offset is the PCG bank: all twelve pictures of a quad are kept at the same screen code in banks 0 to 11, so a fine scroll step is one attribute byte a cell, written to all 960 cells by a run of `PUSH` instructions in the vertical blanking.
-- **Slots.** 127 screen codes are shared by the quads on show, with reference counts and a free ring. A quad coming on takes a slot and its twelve pictures go to the PCG in the next blanking. The pictures are built once per stage, when it loads, into a cache in RAM blocks 6, 21 and 22.
+- **Slots.** 127 screen codes are shared by the quads on show, with reference counts and a free ring. A quad coming on takes a slot and its twelve pictures go to the PCG in the next blanking. The pictures are built once per stage, when it loads, into a cache in RAM blocks 6, 21 and 22, and go to the PCG straight from there (no copy in the main 64K). A sprite's cell takes its background's picture from the same cache.
 - **Coarse scroll is free.** The start address moves the picture a whole cell; the screen RAM is a ring of 2048 cells, so only the column or row coming on is written. The status line moves with the start address and is rewritten (codes, banks, colours: about 2 000 T) at each step.
 - **The night painting is budgeted.** The scenery dots are cell-sized patterns at three densities. The stage builder thins the painting until no screen anywhere in the level needs more than 116 different quads.
 - **Colour.** Paper is black everywhere, so a sprite over the painting shares its black. A quad that joins two inks takes, at each offset, the ink of the side showing more of itself; such cells are kept in per-column bitmaps and recoloured when the offset changes.
 - **Sprites** are composed as in FrillSeeker: a private glyph for each cell a sprite touches, in two PCG pools that take turns.
 - **No interrupts.** The vertical blanking is found by polling the 6545's status, inside the long loops too, so a blanking is never missed.
 
-Measured in the emulator by `tools/alltest.py`, which visits six places in every level and fights every boss: 22.6 to 24 frames a second in the levels, and 24.5 to 25 in the boss fights. A frame is two fields; the slow ones are where four or more new quads come on at once (each needs its twelve pictures built and sent to the PCG) or a row of 40 cells comes on during a vertical pan. `tools/bench.py` runs a fixed course over four stages for comparing builds.
+Measured in the emulator by `tools/alltest.py`, which visits six places in every level and fights every boss: 22.7 to 24.2 frames a second in the levels, and 21.5 to 25 in the boss fights. A frame is two fields; the slow ones are where a row of 40 cells comes on during a vertical pan (with the two-ink cells recoloured as the picture moves down), or many new quads come on at once. `tools/bench.py` runs a fixed course over four stages for comparing builds.
 
 How the time is kept down:
 
-- The frame's work runs while the last frame is on show; new slots' pictures go to the PCG in the middle blanking as soon as it is seen, and the second blanking only switches the picture (start address, the PUSH fill, the cells that changed, the status line).
+- The frame's work runs while the last frame is on show; new slots' pictures go to the PCG in the middle blanking as soon as it is seen (as many as it has room for), and the second blanking only switches the picture (start address, the PUSH fill, the cells that changed, the status line).
 - The recolour pass writes a cell only if its ink really changes between the old offset and the new one.
 - A cell with the same quad as the one before it skips the quad table.
 

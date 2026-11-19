@@ -147,6 +147,7 @@ map_blk:
         out (P_MEM),a
         pop hl
         ret
+        ALIGN 32
 blkport:
         db 6,7,4,5,38,39,36,37,70,71,68,69,102,103,100,101
         db 134,135,132,133,166,167,164,165,198,199,196,197,230,231,228,229
@@ -349,43 +350,253 @@ qdb_put:
         ldir
         jp map_map
 
-; HL = record number, C = slot: its 12 pictures -> SLOTPAT (each phase's at
-; phase x 1280 + slot x 10), its inks and flags -> qd_tmp
+; HL = record number, C = slot: where its record is (for the upload and the
+; sprites' backgrounds), its inks and flags -> qd_tmp
 qdb_load:
         push bc
-        call qdb_addr
+        call qdb_addr           ; (maps its block)
         pop bc
-        push hl
-        ld l,c                  ; DE = SLOTPAT + slot x 10
-        ld h,MUL10 >> 8
-        ld e,(hl)
-        set 7,l
-        ld d,(hl)
-        ld hl,SLOTPAT
+        ld e,c
+        ld d,SLRA >> 8
+        ld a,l
+        ld (de),a
+        set 7,e
+        ld a,h
+        ld (de),a
+        res 7,e
+        inc d                   ; SLRB
+        ld a,(cur_blk)
+        ld (de),a
+        ld de,NPH*10
         add hl,de
-        ex de,hl
-        pop hl
-        ld a,NPH
-.p:     ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ex de,hl                ; on 1280 - 10
-        ld bc,1280-10
-        add hl,bc
-        ex de,hl
-        dec a
-        jr nz,.p
         ld de,qd_tmp
         ld bc,13
         ldir
         jp map_map
+
+; the slots waiting (UPLQ): their 12 pictures, from their records, to PCG
+; banks 0-11 (in a blanking; called from the map block)
+e_upload:
+        ld a,(nload)
+        or a
+        ret z
+        ld b,a                  ; how many now: all, or up_max
+        ld a,(up_max)
+        cp b
+        jr c,.lim
+        ld a,b
+.lim:   ld (up_cnt),a
+        ld a,255
+        ld (up_max),a
+        xor a
+        out (P_COLCTL),a
+        ld (up_n),a
+.sl:    add a,UPLQ & 255
+        ld l,a
+        ld h,UPLQ >> 8
+        ld c,(hl)               ; the slot
+        ld l,c
+        ld a,(cur_blk)          ; its record's block (SLRB)
+        cp (hl)
+        ld a,(hl)
+        call nz,map_blk
+        ld l,c                  ; destination: PCGWIN + slot x 16
+        ld h,0
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        ld a,h
+        add a,PCGWIN >> 8
+        ld h,a
+        ld (up_dst),hl
+        ld l,c                  ; source: the record, a picture after another
+        ld h,SLRA >> 8
+        ld a,(hl)
+        set 7,l
+        ld h,(hl)
+        ld l,a
+        ld a,LV_SCREEN + 0
+        out (P_LV),a
+        ld de,(up_dst)
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ld a,LV_SCREEN + 1
+        out (P_LV),a
+        ld de,(up_dst)
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ld a,LV_SCREEN + 2
+        out (P_LV),a
+        ld de,(up_dst)
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ld a,LV_SCREEN + 3
+        out (P_LV),a
+        ld de,(up_dst)
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ld a,LV_SCREEN + 4
+        out (P_LV),a
+        ld de,(up_dst)
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ld a,LV_SCREEN + 5
+        out (P_LV),a
+        ld de,(up_dst)
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ld a,LV_SCREEN + 6
+        out (P_LV),a
+        ld de,(up_dst)
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ld a,LV_SCREEN + 7
+        out (P_LV),a
+        ld de,(up_dst)
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ld a,LV_SCREEN + 8
+        out (P_LV),a
+        ld de,(up_dst)
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ld a,LV_SCREEN + 9
+        out (P_LV),a
+        ld de,(up_dst)
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ld a,LV_SCREEN + 10
+        out (P_LV),a
+        ld de,(up_dst)
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ld a,LV_SCREEN + 11
+        out (P_LV),a
+        ld de,(up_dst)
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ld hl,up_n
+        inc (hl)
+        ld a,(up_cnt)
+        cp (hl)
+        ld a,(hl)
+        jp nz,.sl
+        ld a,LV_SCREEN
+        out (P_LV),a
+        ld a,(nload)            ; the rest wait (to the front of the queue)
+        sub (hl)
+        ld (nload),a
+        jp z,map_map
+        ld c,a
+        ld b,0
+        ld a,(hl)
+        add a,UPLQ & 255
+        ld l,a
+        ld h,UPLQ >> 8
+        ld de,UPLQ
+        ldir
+        jp map_map
+up_dst: dw 0
+up_n:   db 0
+up_cnt: db 0
+up_max: db 255                  ; set to limit the next upload (then all again)
 
 ; ---------------------------------------------------------------------
 ;  e_stage: A = stage (0..). Its data from its block: the cell glyphs and
@@ -809,12 +1020,12 @@ e_frame:
         ld (dispy),hl
         ld hl,POOLBUF+10        ; the pool buffers, from slot 1
         ld (gb_dst),hl
-        ld a,(phase)            ; the backgrounds' pictures at this phase
+        ld a,(phase)            ; the backgrounds' pictures at this phase:
+        add a,a                 ; phase x 10 into a record
         ld b,a
         add a,a
         add a,a
         add a,b
-        add a,SLOTPAT >> 8
         ld (gb_ph),a
         ; ---- the sprites
 ef_sprites:
@@ -1200,7 +1411,7 @@ getbuf:
         ld (entptr),hl
         ld hl,nflip
         inc (hl)
-        ; the background's picture: SLOTPAT + phase x 1280 + its slot x 10,
+        ; the background's picture at this phase, from its slot's record,
         ; to the next pool buffer (gb_dst)
         ld hl,(gb_ring)
         ld a,h
@@ -1208,15 +1419,29 @@ getbuf:
         ld h,a
         ld a,(hl)
         and $7F
+        jr z,.empty
         ld l,a
-        ld h,MUL10 >> 8
-        ld e,(hl)
-        set 7,l
-        ld a,(gb_ph)
+        ld h,SLRB >> 8
+        ld a,(cur_blk)          ; (the sprite's block, back after)
+        ld (gb_blk),a
+        cp (hl)
+        jr z,.inb
+        ld a,(hl)               ; its record's block into the lower window
+        ld (cur_blk),a
+        add a,blkport & 255
+        ld e,a
+        ld d,blkport >> 8
+        ld a,(de)
+        out (P_MEM),a
+.inb:   ld h,SLRA >> 8
+        ld a,(gb_ph)            ; + phase x 10
         add a,(hl)
-        ld h,a
-        ld l,e
-        ld de,(gb_dst)
+        set 7,l
+        ld h,(hl)
+        ld l,a
+        jr nc,.pc
+        inc h
+.pc:    ld de,(gb_dst)
         push de
         ldi
         ldi
@@ -1229,7 +1454,27 @@ getbuf:
         ldi
         ldi
         ld (gb_dst),de
+        ld a,(gb_blk)
+        ld hl,cur_blk
+        cp (hl)
+        jr z,.outb
+        ld (hl),a
+        add a,blkport & 255
+        ld l,a
+        ld h,blkport >> 8
+        ld a,(hl)
+        out (P_MEM),a
+.outb:  pop de
+        jr .bgd
+.empty: ld hl,(gb_dst)
+        push hl
+        ld b,10
+.ez:    ld (hl),a
+        inc hl
+        djnz .ez
+        ld (gb_dst),hl
         pop de
+.bgd:
         pop hl                  ; L = the line
         ld a,l
         add a,e
@@ -1245,6 +1490,7 @@ getbuf:
 gb_row: db 0
 gb_dst: dw 0
 gb_ph:  db 0
+gb_blk: db 0
 gb_idx: dw 0
 gb_ring: dw 0
 

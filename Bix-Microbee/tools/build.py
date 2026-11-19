@@ -234,7 +234,7 @@ def sound():
     (SRC / 'snd.inc').write_text('\n'.join(L) + '\n')
 
 
-ENGSYMS = ('snd_tick', 'snd_wait', 'vpoll', 'blast', 'cg_col', 'cg_row', 'cg_put', 'cg_quad', 'list_reset', 'qdb_put', 'qdb_load')
+ENGSYMS = ('snd_tick', 'snd_wait', 'vpoll', 'blast', 'cg_col', 'cg_row', 'cg_put', 'cg_quad', 'list_reset', 'qdb_put', 'qdb_load', 'e_upload', 'up_max')
 
 
 def assemble(spr, stg):

@@ -94,7 +94,10 @@ SCRSH       EQU $A800       ; ring: the code of the background quad shown there
 CFLIPL      EQU $B000       ; colour flips: address, colour, - (4)
 NCFLIPMAX   EQU 126
 DIV10       EQU $B200       ; n -> n / 10, then n mod 10 at +256 (n < 256)
-SLOTPAT     EQU $B400       ; 12 phases x 128 slots x 10 bytes: what is in the PCG
+SLOTPAT     EQU $B400       ; (while a stage loads) its data, a part at a time
+SLRA        EQU $EE00       ; slot -> its record's address (low; high at +80h)
+SLRB        EQU $EF00       ; slot -> the block its record is in
+UPLQ        EQU $EF80       ; the slots whose pictures go to the PCG next blanking
 
 MAXSLOT     EQU 80
 RING        EQU 2048
