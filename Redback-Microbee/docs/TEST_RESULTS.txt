@@ -1,0 +1,85 @@
+REDBACK - test results (own Z80/Premium Plus C model; NOT uBee512, NOT hardware)
+
+=====================================================================
+PHASE 2 (combat) - 2026-11-19, Windows 10, model built with TinyCC 0.9.27
+(tools/mbee.py builds tools/emu/mbee.dll). Before any Phase 2 change the Phase 1
+build reproduced byte-identical and all Phase 1 results below repeated exactly.
+=====================================================================
+
+== scrolltest.py (no sprites, no combat: nospr=1) - unchanged from Phase 1
+accelerate right   frames  60  X  192.. 518  max step 7  mismatching frames 0  frames with display-time writes 0
+coast              frames  40  X  525.. 656  max step 6  mismatching frames 0  frames with display-time writes 0
+reverse to left    frames  90  X  139.. 656  max step 7  mismatching frames 0  frames with display-time writes 0
+coast left         frames  60  X    7.. 133  max step 6  mismatching frames 0  frames with display-time writes 0
+right again        frames 100  X    7.. 594  max step 7  mismatching frames 0  frames with display-time writes 0
+ALL EXACT
+
+== sprtest.py (every committed frame vs Python deck+sprite model; new 600-frame combat flight)
+still            frames  40 mismatching 0  frames with writes ahead of beam 0 / behind beam (tear) 1  idle iters min/avg 1279/1368 (=68%/73% free)  max cells 6
+right            frames  80 mismatching 0  frames with writes ahead of beam 59 / behind beam (tear) 0  idle iters min/avg 49/603 (=3%/32% free)  max cells 24
+right+up         frames  40 mismatching 0  frames with writes ahead of beam 32 / behind beam (tear) 0  idle iters min/avg 533/918 (=28%/49% free)  max cells 12
+left+down        frames  80 mismatching 0  frames with writes ahead of beam 48 / behind beam (tear) 0  idle iters min/avg 361/787 (=19%/42% free)  max cells 23
+right again      frames  80 mismatching 0  frames with writes ahead of beam 58 / behind beam (tear) 0  idle iters min/avg 139/616 (=7%/33% free)  max cells 26
+combat flight    frames 600 mismatching 0  frames with writes ahead of beam 230 / behind beam (tear) 0  idle iters min/avg 23/619 (=1%/33% free)  max cells 39
+ALL EXACT
+(The scenes differ from Phase 1: the demo enemies are replaced by waves, so the cell
+counts are not comparable line by line. The 'still' tear is the same one Phase 1 had.)
+
+== perf.py (frame period; 1.00 = 50 Hz; now includes the combat logic and waves)
+still: 150 frames, dropped (period>1.5) 0, period mean 1.00 max 1.04; busy 34277 T/frame (51% of a frame)
+right: 300 frames, dropped (period>1.5) 0, period mean 1.00 max 1.09; busy 34688 T/frame (51% of a frame)
+left: 300 frames, dropped (period>1.5) 0, period mean 1.00 max 1.07; busy 36997 T/frame (55% of a frame)
+right+up: 200 frames, dropped (period>1.5) 0, period mean 1.00 max 1.09; busy 38028 T/frame (56% of a frame)
+left+down: 200 frames, dropped (period>1.5) 0, period mean 1.00 max 1.08; busy 39610 T/frame (59% of a frame)
+
+== combattest.py (new: 3000 frames = 60 s scripted flight, fire held, turns every 6 s, climbs/dives)
+frames 3000  score 500  kills 18  deaths 5  game overs 1  ships now 1  max objects 6
+frame period mean 1.004 max 2.08  dropped (>1.5) 12  frames with writes behind the beam (tear) 0
+pc 83F9 in code
+(score 500 at the end because the GAME OVER after the 3rd death reset it; 'kills' counts
+score changes. 12 of 3000 frames ran late = 0.4%.)
+
+== dropprof.py (same flight)
+3000 frames: dropped 12, cells mean 13.6 max 34, busy mean 39808 T (59%) max 76135 T
+Late frames happen when ~21+ sprite cells coincide with pair loads, or ~30+ cells alone.
+
+== boottest.py - NOT RUN in Phase 2 (needs the owner's bn60.rom, not on this PC).
+
+=====================================================================
+PHASE 1 (technical demo) - original results, Linux build of the model
+=====================================================================
+
+== scrolltest.py (pixel-exact scroll vs reference, both directions, up to 7 px/frame)
+accelerate right   frames  60  X  192.. 518  max step 7  mismatching frames 0  frames with display-time writes 0
+coast              frames  40  X  525.. 656  max step 6  mismatching frames 0  frames with display-time writes 0
+reverse to left    frames  90  X  139.. 656  max step 7  mismatching frames 0  frames with display-time writes 0
+coast left         frames  60  X    7.. 133  max step 6  mismatching frames 0  frames with display-time writes 0
+right again        frames 100  X    7.. 594  max step 7  mismatching frames 0  frames with display-time writes 0
+ALL EXACT
+
+== sprtest.py (every committed frame vs Python deck+sprite model)
+still            frames  40 mismatching 0  frames with writes ahead of beam 0 / behind beam (tear) 1  idle iters min/avg 667/808 (=36%/43% free)  max cells 29
+right            frames  80 mismatching 0  frames with writes ahead of beam 65 / behind beam (tear) 0  idle iters min/avg 189/705 (=10%/38% free)  max cells 25
+right+up         frames  40 mismatching 0  frames with writes ahead of beam 25 / behind beam (tear) 0  idle iters min/avg 577/976 (=31%/52% free)  max cells 8
+left+down        frames  80 mismatching 0  frames with writes ahead of beam 35 / behind beam (tear) 0  idle iters min/avg 897/1086 (=48%/58% free)  max cells 8
+right again      frames  80 mismatching 0  frames with writes ahead of beam 47 / behind beam (tear) 0  idle iters min/avg 648/1027 (=35%/55% free)  max cells 8
+ALL EXACT
+
+== perf.py (frame period; 1.00 = 50 Hz; scene: player + 4 demo enemies)
+still: 150 frames, dropped (period>1.5) 0, period mean 1.00 max 1.03; busy 35543 T/frame (53% of a frame)
+right: 300 frames, dropped (period>1.5) 3, period mean 1.01 max 2.00; busy 28177 T/frame (42% of a frame)
+left: 300 frames, dropped (period>1.5) 0, period mean 1.00 max 1.07; busy 20578 T/frame (30% of a frame)
+right+up: 200 frames, dropped (period>1.5) 3, period mean 1.01 max 2.00; busy 33999 T/frame (50% of a frame)
+left+down: 200 frames, dropped (period>1.5) 0, period mean 1.00 max 1.08; busy 22786 T/frame (34% of a frame)
+
+== boottest.py (boot ROM -> CP/M -> REDBACK -> fly -> ESC -> CP/M)
+CP/M prompt after 118 frames
+game took the display 10.7 s after REDBACK was typed (pc 8AA3, crtc R1 40)
+flying: pc 8C36
+after ESC: crtc R1 = 80, pc A20F
+REDBACK - Microbee Premium Plus
+VIBED BY BPM 2026
+Loading..............................
+REDBACK - Microbee Premium Plus
+VIBED BY BPM 2026
+Loading..............................

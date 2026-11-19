@@ -1,0 +1,3 @@
+# shell scripts run under bash (also on Windows via build_win.cmd): keep LF
+*.sh text eol=lf
+tools/win/python3 text eol=lf

@@ -1,11 +1,11 @@
 ; =====================================================================
 ;  FRILLSEEKER - Microbee Premium Plus hardware, memory map, constants
 ;  Z80 3.375 MHz, 1MB RAM (32 blocks of 32K), 32K PCG RAM (16 banks of
-;  128 glyphs), 6545 CRTC. A scanline is 216 T; a frame is 313 lines.
+;  128 glyphs), 6545 CRTC. A scanline is 216 T; a frame is 312 lines.
 ;
-;  Display: the 40-column mode, 40 x 25 cells of 8 x 8 pixels (320 x
-;  200) at half the dot clock: near-square pixels, square cells, the
-;  full width of the tube.
+;  Display: the full-height 40-column mode, 40 x 32 cells of 8 x 8
+;  pixels (320 x 256) at half the dot clock: near-square pixels, square
+;  cells, the whole of a PAL tube.
 ; =====================================================================
 P_PIOA      EQU $00         ; joystick (active low), b7 fire
 P_PIOAC     EQU $01

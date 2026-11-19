@@ -302,7 +302,7 @@ room_load:
         ld hl,R_TMAP
         call room_ptr
         ld de,TMAP
-        ld bc,TM_SIZE
+        ld bc,TM_SIZE+4          ; and the two edge masks
         ldir
         ld hl,R_NPAT
         call room_ptr

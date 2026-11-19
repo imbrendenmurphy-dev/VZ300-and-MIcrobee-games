@@ -1310,6 +1310,17 @@ def room_bytes(rc):
     d[R_ATTR:R_ATTR + NCELL] = rc['attr'].tobytes()
     d[R_COL:R_COL + NCELL] = rc['col'].tobytes()
     d[R_TMAP:R_TMAP + MW * MH] = rc['tmap'].tobytes()
+    # the edges: the rows where the room next door is solid at the touching
+    # column, so that Bluff meets a wall there rather than walking in to rock
+    room = rc['room']
+    for k, (nb, col) in enumerate(((room['left'], MW - 1), (room['right'], 0))):
+        m = 0
+        if nb is not None and nb >= 0:
+            for r in range(MH):
+                if solid_at(ROOMS[nb]['map'], col, r):
+                    m |= 1 << r
+        d[R_TMAP + MW * MH + 2 * k] = m & 255
+        d[R_TMAP + MW * MH + 2 * k + 1] = m >> 8
     o = R_OBJ
     for t, x, y in rc['objs']:
         d[o:o + 4] = bytes([t, x & 255, x >> 8, y & 255])
