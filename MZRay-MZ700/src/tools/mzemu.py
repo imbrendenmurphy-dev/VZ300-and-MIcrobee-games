@@ -11,7 +11,7 @@ class MZ:
     def __init__(s,load,data,exe):
         s.mem=bytearray(65536)
         s.mem[load:load+len(data)]=data
-        s.row=0; s.held=set()
+        s.row=0; s.held=set(); s.snd=[]
         s.cpu=Z80(s.rd,s.wr); s.cpu.pc=exe
     def rd(s,a):
         if 0xE000<=a<=0xE00F:
@@ -30,8 +30,28 @@ class MZ:
         if a<0x1000: return
         if 0xE000<=a<=0xE00F:
             if a==0xE000: s.row=v&0x0F
+            if a in (0xE004,0xE007,0xE008): s.snd.append((s.cpu.t,a,v))
             return
         s.mem[a]=v
+    def wav(s,fn,t0,t1,clk=894886,rate=22050):
+        """Render the 8253 counter 0 square wave (gated by E008 bit 0) between T-states t0 and t1."""
+        import wave,struct
+        cpu_hz=3546895; ev=[e for e in s.snd if e[0]<t1]; i=0
+        count=0; lo=None; gate=0; phase=0.0; out=bytearray()
+        for n in range(int((t1-t0)*rate/cpu_hz)):
+            t=t0+n*cpu_hz/rate
+            while i<len(ev) and ev[i][0]<=t:
+                _,a,v=ev[i]; i+=1
+                if a==0xE007: lo=None
+                elif a==0xE004:
+                    if lo is None: lo=v
+                    else: count=lo|v<<8; lo=None
+                elif a==0xE008: gate=v&1
+            if gate and count:
+                phase=(phase+clk/count/rate)%1.0
+                out+=struct.pack('<h',6000 if phase<0.5 else -6000)
+            else: out+=struct.pack('<h',0)
+        w=wave.open(fn,'wb'); w.setnchannels(1); w.setsampwidth(2); w.setframerate(rate); w.writeframes(bytes(out)); w.close()
     def run_t(s,tt):
         c=s.cpu; end=c.t+tt
         while c.t<end: c.step()

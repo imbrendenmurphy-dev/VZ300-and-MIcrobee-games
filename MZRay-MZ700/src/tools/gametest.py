@@ -114,8 +114,43 @@ putobj(0, 1, 11.5, 9.5, hp=2, flags=0x80, cool=200)
 frame(2); walk(['SPACE'], 1); frame(2)
 check('shooting uses ammo and hurts', m.mem[sym['ammo']] == ammo0-1 and m.mem[OBJ+5] == 1)
 m.shot('g_gunflash.png', 2)
-frame(20); walk(['SPACE'], 1); frame(2)
+frame(20); walk(['SPACE'], 1)
 check('second shot kills the bear', m.mem[OBJ] == 0)
+PART = sym['PART']
+live = lambda: sum(1 for i in range(32) if m.mem[PART+i*8+7])
+check('the bear bursts into pieces', live() >= 15)
+check('a splat is playing', m.mem[sym['sact']] == 1)
+for i in range(4):
+    frame(1); m.shot('g_explode%d.png' % i, 2)
+frame(40)
+check('the pieces fade away', live() == 0)
+t_snd = m.cpu.t
+
+# bitten: the sky flashes red
+GOD[0] = False; m.mem[sym['hp']] = 100
+putobj(0, 1, 9.1, 9.5, flags=0x80, cool=0); frame(1)
+check('bite flashes the sky red', m.mem[sym['d1_cl']+1] == 0x22 or m.mem[sym['d2_cl']+1] == 0x22)
+m.shot('g_bitten.png', 2)
+GOD[0] = True; clearobjs(); frame(6)
+check('sky back to normal', m.mem[sym['d1_cl']+1] == m.mem[sym['skycol']])
+
+# a boss: big burst, white flash, its gates open
+go(4); clearobjs()
+place(10.5, 7.5, 64); putobj(0, 3, 10.5, 8.5, hp=1, flags=0x80, cool=250)   # Big Fella in the den
+frame(3); walk(['SPACE'], 1)
+check('Big Fella goes down', m.mem[OBJ] == 0)
+check('boss burst is big', live() >= 28)
+check('white flash', m.mem[sym['d1_cl']+1] == 0x77 or m.mem[sym['d2_cl']+1] == 0x77)
+check('the den gate opens', mapcell(13, 9) == 0)
+frame(1); m.shot('g_boss_burst.png', 2)
+frame(60)
+m.wav('sfx_preview.wav', t_snd - 8*70938*10, m.cpu.t)
+
+# the in-game tune dinks away when nothing else is playing
+go(0); clearobjs(); n0 = len(m.snd); frame(60)
+dinks = sum(1 for t, a, v in m.snd[n0:] if a == 0xE008 and v == 1)
+check('in-game tune plays', dinks >= 2)
+m.wav('tune_preview.wav', m.snd[n0][0], m.cpu.t)
 m.shot('g_kill.png', 2)
 putobj(0, 1, 11.5, 9.5, hp=2, flags=0x80, cool=200)
 place(8.5, 9.5, 128); frame(2)
@@ -124,7 +159,7 @@ place(8.5, 9.5, 0); putobj(0, 1, 12.5, 9.5, hp=2, flags=0x80, cool=200)
 x0 = m.mem[OBJ+2] << 8 | m.mem[OBJ+1]; frame(10)
 check('awake bear walks towards you', (m.mem[OBJ+2] << 8 | m.mem[OBJ+1]) < x0)
 # busy view: speed with sprites on screen
-clearobjs()
+go(1); clearobjs()
 for i, (x, y) in enumerate([(10.5, 8.5), (11.5, 9.5), (12.5, 10.5), (13.5, 9.5), (11, 11)]):
     putobj(i, [1, 6, 9, 10, 16][i], x, y, hp=9, cool=250)
 for mode, key in enumerate('1234'):

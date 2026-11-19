@@ -6,8 +6,22 @@ creatures and shooting.
 
 VIBED BY BPM 2026
 
-## DROPBEAR 3D test v0.2: creatures and shooting
-Load `release/DROPBEAR.MZT` through UniCMT (load address 1200h, starts automatically, 32K).
+## DROPBEAR 3D test v0.3: splats and sounds
+Load `release/DROPBEAR.MZT` through UniCMT (load address 1200h, starts automatically, 33K).
+
+New in v0.3:
+- Beaten creatures burst into chunky pieces in their own colours. The pieces fly, fall and bounce
+  off the floor.
+- Bosses go up in a bigger burst with a white flash, and the sky flashes red when something bites you.
+- Gritty 8253 sounds: a wucka-thump blaster, thwacks, spurting splats, a boss rumble, growly bites,
+  creaking doors, a key rattle, a ding-ding for pickups, and jingles for dying and winning.
+- DROPBEAR's slow, sparse "dink" tune plays between the sound effects.
+
+You can hear the sounds as the simulator renders them in `sounds/sfx_preview.wav` and `sounds/tune_preview.wav`.
+
+![Splat](screenshots/v03_explode1.png) ![Big Fella down](screenshots/v03_boss_burst.png)
+
+Also in the game (from v0.2):
 
 All nine areas of DROPBEAR 3D: The Homestead, The Bush Track, Gum Tree Maze, The Old Mine,
 Big Fellas Den, The Billabong, Bunyips Pool, The Ridge and Yowies Lair. Each area theme has its
@@ -18,13 +32,12 @@ own wall textures and sky and ground colours.
   bite, flinch when shot and drop when beaten. Bosses open their gates.
 - Pickups you can see: Vegemite, ammo, keys, opals and the map. Furniture too: drums, lamps,
   shrubs, termite mounds, carts, stumps, reeds and bones.
-- A chunky blaster with a muzzle flash, and simple 8253 sounds.
+- A chunky blaster with a muzzle flash.
 - Doors, ways out between areas, locked doors and keys, lever switches and gates, and cracked walls
   that hide secrets. Each area remembers what you've opened and beaten.
 - It's forgiving: if you go down, you start again at the door you came in by, with full health.
 
-**Not yet:** creatures don't explode into pieces, the sound is placeholder beeps, and there's no
-automap, title music or attract mode.
+**Not yet:** the automap, fog, the title screen and music, and the attract mode.
 
 | Key | Action |
 |---|---|

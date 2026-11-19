@@ -234,9 +234,11 @@ ai5:    ld hl,(otp)
 ai6:    ld (hp),a
         ld hl,MSG_OUCH
         call setmsg
-        ld de,1400              ; a low grunt
-        ld a,6
-        jp sound
+        ld a,0x22               ; the sky flashes red
+        ld c,3
+        call flash
+        ld hl,SFX_BITE
+        jp sfx
 ai_ch:  ld hl,(otp)
         ld de,6
         add hl,de
@@ -672,6 +674,23 @@ pv3:    ld hl,otop
         jr c,pa1
         ld (tgth),a
         ld (target),iy
+        ld a,(ohs)              ; where it is, for the burst if it's beaten
+        ld (tsz),a
+        ld hl,(ocen)
+        ld a,h
+        or a
+        ld a,l
+        jr z,pa0
+        ld a,20
+pa0:    cp 40
+        jr c,pa2
+        ld a,20
+pa2:    ld (tcen),a
+        ld a,(orows)
+        srl a
+        ld hl,otop
+        add a,(hl)
+        ld (trow),a
 pa1:    ; ---- write the entry
         ld a,(nvis)
         add a,a
@@ -829,7 +848,12 @@ sc0:    ld (scol),a
         jr nz,sc1
         ld a,c
         ld (cwall),a
-sc1:    ld hl,MASKS             ; which entries cover this column?
+sc1:    call sprites
+        call partcol
+        jp sndtick
+
+sprites:
+        ld hl,MASKS             ; which entries cover this column?
         add hl,de
         add hl,de
         ld a,(hl)
@@ -838,13 +862,13 @@ sc1:    ld hl,MASKS             ; which entries cover this column?
         ld l,a
         or h
         ret z
-        ld (smask),hl
+        ld (sprmask),hl
         ld hl,VIS+ORDLO
 sc_l:   push hl
-        ld hl,(smask)
+        ld hl,(sprmask)
         srl h
         rr l
-        ld (smask),hl
+        ld (sprmask),hl
         pop hl
         jp nc,sc_skip
         push hl
@@ -930,9 +954,9 @@ sl2s:   add hl,de
 sc_n:   pop hl
 sc_skip:
         inc hl
-        ld a,(smask)
+        ld a,(sprmask)
         ld b,a
-        ld a,(smask+1)
+        ld a,(sprmask+1)
         or b
         jp nz,sc_l
         ret
@@ -949,18 +973,16 @@ fire:   ld a,(inp)
         ld a,(ammo)
         or a
         jr nz,fi1
-        ld de,3000              ; click: nothing left
-        ld a,1
-        jp sound
+        ld hl,SFX_EMPTY         ; click: nothing left
+        jp sfx
 fi1:    dec a
         ld (ammo),a
         ld a,1
         ld (huddirty),a
         ld a,2
         ld (gunflash),a
-        ld de,180               ; crack
-        ld a,3
-        call sound
+        ld hl,SFX_SHOT
+        call sfx
         ld hl,(target)
         ld a,h
         or l
@@ -981,10 +1003,12 @@ fi1:    dec a
         ld (iy+6),a
         dec (iy+5)
         jr z,fi2
-        ld de,700               ; thwack
-        ld a,3
-        jp sound
+        ld hl,SFX_HIT
+        jp sfx
 fi2:    ld a,(iy+0)
+        ld (otype),a
+        call burst
+        ld a,(otype)
         ld (iy+0),0
         ld hl,0
         ld (target),hl
@@ -1004,22 +1028,14 @@ fi2:    ld a,(iy+0)
         push af
         ex de,hl
         call setmsg
-        ld de,2200              ; squelch
-        ld a,8
-        call sound
         pop af
         rrca
-        ret nc
-        jp opengates            ; a boss: whatever it guarded is open now
-
-; ---- sound on the 8253: DE = count (894.9 kHz / frequency), A = fields to play
-sound:  ld (sndt),a
-        ld a,0x36
-        ld (0xE007),a
-        ld a,e
-        ld (0xE004),a
-        ld a,d
-        ld (0xE004),a
-        ld a,1
-        ld (0xE008),a
-        ret
+        jr c,fi3
+        ld hl,SFX_KILL          ; splat
+        jp sfx
+fi3:    ld a,0x77               ; a boss: white flash, long rumble, and its gates open
+        ld c,4
+        call flash
+        ld hl,SFX_BOSS
+        call sfx
+        jp opengates

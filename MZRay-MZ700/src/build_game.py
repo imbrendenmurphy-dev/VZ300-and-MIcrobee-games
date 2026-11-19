@@ -202,14 +202,19 @@ TYPES = [
  ('BONES',   (A_.d_bones,),                    'WKKK', 'K', .28, 1.2,   0,   0,  0,  0, 0, ''),
 ]
 assert len(TYPES) == 23
+# burst size when beaten (DROPBEAR's piece counts)
+BURSTN = dict(BEAR=22, BAT=14, BIGF=32, BUNYIP=32, YOWIE=32, TOAD=14, MAGPIE=14, SNAKE=16, SPIDER=14, DINGO=20)
 tt = ['TYPET:', ' ds 16']
 for nm, frames, p, ol, frac, asp, rs, hp, sp, bite, fl, kmsg in TYPES:
     pages = [sprpage('SPR_%s%d' % (nm, i), f, pal(p), ol) for i, f in enumerate(frames)]
     if len(pages) == 1: pages.append(pages[0])
     if kmsg: msgname = 'MSG_K_' + nm; msg(msgname, kmsg)
     else: msgname = 'MSG_BLANK'
-    tt.append(' db %s>>8,%s>>8,%d,%d,%d,%d,%d,%d,%d\n dw %s\n ds 5' %
-              (pages[0], pages[1], min(255, round(frac*256)), round(asp*64), round(rs*256), hp, sp, bite, fl, msgname))
+    bc = [c for c in p if c != 'K'] or ['W']          # pieces in the creature's own colours
+    bc = [cb(bc[i % len(bc)]) for i in range(4)]
+    tt.append(' db %s>>8,%s>>8,%d,%d,%d,%d,%d,%d,%d\n dw %s\n db %s,%d' %
+              (pages[0], pages[1], min(255, round(frac*256)), round(asp*64), round(rs*256), hp, sp, bite, fl, msgname,
+               ','.join(map(str, bc)), BURSTN.get(nm, 0)))
 out.append('\n'.join(tt))
 
 # the gun: art at its final size, one texel per cell (u = column, v = row)
@@ -240,6 +245,42 @@ out.append(' align 256\nSVSTEP:\n%s' % dbl([255] + [max(1, min(255, 256//h)) for
 import raytables
 df = [0x7FFF if h < 2 else min(0x7FFF, int((raytables.PROJ/h*1.42/0.85 + 0.5)*256)) for h in range(256)]
 out.append(' align 256\nDFL:\n%s\nDFH:\n%s' % (dbl([v & 255 for v in df]), dbl([v >> 8 for v in df])))
+out.append('ROW40: dw ' + ','.join(str(r*40) for r in range(raytables.VIEWH)))
+
+# ---- sound -------------------------------------------------------------------------------------
+# 8253 counter 0 clock on the MZ-700 (assumed 894.886 kHz; if the PAL machine differs, every pitch
+# shifts by the same ratio, so tunes stay in tune).
+SCLK = 894886
+NOTE = {n: 440*2**((i-9)/12) for i, n in enumerate(['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'])}
+def freq(n): return NOTE[n[:-1]]*2**(int(n[-1])-4)
+def count(n): return round(SCLK/freq(n))
+# effect parts: (start count, change per field, noise mask, fields). Bigger count = lower pitch.
+SFX = dict(
+ SHOT  =[(220, 90, 0x0F, 3), (1200, 150, 0x7F, 3)],              # wucka-thump
+ HIT   =[(900, 250, 0x3F, 5)],                                   # thwack
+ KILL  =[(500, 200, 0xFF, 8), (2600, 300, 0x7F, 10)],             # spurt, then squelch
+ BOSS  =[(400, 120, 0xFF, 20), (3000, 150, 0xFF, 30)],            # long rumbling splat
+ BITE  =[(2600, -120, 0x3F, 7)],                                  # a growly chomp
+ PICK  =[(count('E6'), 0, 0, 3), (count('A6'), 0, 0, 4)],         # ding-ding
+ EMPTY =[(3000, 0, 0, 1)],                                        # click
+ DOOR  =[(2200, -120, 0x0F, 10)],                                 # creak
+ SECRET=[(1500, -80, 0, 6), (900, -40, 0, 8)],
+ NOKEY =[(3500, 0, 0x07, 6)],                                     # rattle
+ GATE  =[(3200, -150, 0x1F, 14)],
+ DEATH =[(1200, 60, 0x07, 25), (4000, 100, 0x3F, 20)],            # sad slide down
+ WIN   =[(count(n), 0, 0x01, 7) for n in ('C5', 'E5', 'G5', 'C6', 'G5', 'C6')],
+)
+for nm, parts in SFX.items():
+    lines = []
+    for i, (c, dlt, mask, f) in enumerate(parts):
+        nxt = 'SFX_%s_%d' % (nm, i+1) if i+1 < len(parts) else '0'
+        lines.append('%s: dw %d,%d\n db %d,%d\n dw %s' % ('SFX_'+nm if i == 0 else 'SFX_%s_%d' % (nm, i),
+                                                        c, dlt & 0xFFFF, mask, f, nxt))
+    out.append('\n'.join(lines))
+# DROPBEAR's in-game tune: sparse dinks, one step every MUSP fields
+GT = ['E4', '-', '-', 'E4', 'G4', 'E4', '-', '-', 'D4', '-', '-', 'D4', 'F4', 'D4', '-', '-',
+      'E4', '-', '-', 'E4', 'G4', 'A4', '-', '-', 'B4', '-', 'A4', '-', 'G4', '-', '-', '-']
+out.append('GTUNE: dw ' + ','.join('0' if n == '-' else str(count(n)) for n in GT) + ',0xFFFF')
 qs = [n*n//4 for n in range(512)]              # quarter squares for the fast 8x8 multiply
 out.append(' align 256\nQSL:\n%s\nQSH:\n%s' % (dbl([v & 255 for v in qs]), dbl([v >> 8 for v in qs])))
 
@@ -258,7 +299,7 @@ def page(nm, items):
     out.append('\n'.join(lines))
 def centre(r, s): return (r, (40-len(s))//2, s)
 NOPALS = sum(1 for W in WORLD for o in W['objs'] if o[0] == 14)
-page('PG_TITLE', [centre(2, 'DROPBEAR 3D'), centre(4, 'FOR THE SHARP MZ 700'), centre(6, 'TEST V0.2  CREATURES AND SHOOTING'),
+page('PG_TITLE', [centre(2, 'DROPBEAR 3D'), centre(4, 'FOR THE SHARP MZ 700'), centre(6, 'TEST V0.3  SPLATS AND SOUNDS'),
                   (9, 4, 'W S  OR UP DOWN      WALK'), (10, 4, 'A D  OR LEFT RIGHT   TURN'),
                   (11, 4, 'Q E                  STRAFE'), (12, 4, 'SPACE                FIRE'),
                   (13, 4, '1 2 3 4              RENDER MODE'),
@@ -273,10 +314,10 @@ page('PG_WIN', [centre(6, 'YOU BEAUTY'), centre(9, 'YOU MADE IT BACK TO THE UTE.
 (sx, sy), = [(x, y) for y, r in enumerate(AREAS[0]['rows']) for x, ch in enumerate(r) if ch == 'P']
 consts = dict(NAREA=NAREA, STARTCELL=sy*16+sx, STARTANG=0, T_HEALTH=11, T_AMMO=12, T_KEY=13, T_OPAL=14,
               T_MAP=15, DECOR=16, NENEMY=10, WINNUM=0xD000+13*40+10+12,
-              GUNW=len(GUN[0]), GUNL=20-len(GUN[0])//2, GUNH=len(GUN))
+              GUNW=len(GUN[0]), GUNL=20-len(GUN[0])//2, GUNH=len(GUN), MUSP=14)
 gamedata = '\n'.join('%-10s equ %d' % kv for kv in consts.items()) + '\n' + '\n'.join(out)
 
-src = open('game.asm').read().replace(';@@GAMEDATA@@', gamedata).replace(';@@OBJECTS@@', open('objects.asm').read())
+src = open('game.asm').read().replace(';@@GAMEDATA@@', gamedata).replace(';@@OBJECTS@@', open('objects.asm').read()).replace(';@@FX@@', open('fx.asm').read())
 src = fill(src, [0]*256, texlist(0), sprhook=' call sprcol')
 if '--preview' in sys.argv:                    # contact sheet of every sprite
     from PIL import Image

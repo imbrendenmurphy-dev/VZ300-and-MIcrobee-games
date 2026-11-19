@@ -61,8 +61,27 @@ Credits line for anything user-facing: **VIBED BY BPM 2026** (the user's standin
     Creatures don't explode yet (step 3).
   - The MZT is now 32,000 bytes (the sprites are ~9K, padded to pages), with ~10K free. Packing is still
     to do, and the UniCMT load time is unknown.
-- **Next:** see `PORTING.md` step 3 (exploding pieces, gritty sounds, in-game tune). Real-hardware results
-  are still outstanding.
+- **Game step 3 (pieces, flashes, sound) done, v0.3.** New `src/fx.asm` (inserted at `;@@FX@@`).
+  - **Pieces:** PART, 32×8 bytes, in screen space: x and y in 8.8 cells, vx and vy in 1/32 cell per field,
+    colour, life. `parts` (per frame, before render) moves them `lastf` fields with gravity (GRAV=3) and a
+    floor bounce. It files each piece under its ray in PHEAD/PNEXT linked lists, and `partcol` draws them in
+    the per-column hook (no flicker).
+  - **Bursts:** `burst` uses the target's screen position (tcen/trow/tsz, recorded during projection),
+    with colours and counts from TYPET+11..15.
+  - **Flashes:** `flash` (A = sky colour, C = frames) pokes the sky immediates. `flashend` restores
+    `skycol` (set by settheme). Bites flash red (22h), bosses white (77h).
+  - **Sound:** `sfx` HL = effect, a chain of parts (dw count, dw delta per field, db noise mask, db fields,
+    dw next) generated from `SFX` in build_game.py. `sndframe` (timers) sweeps per field. `sndtick`
+    (per column) adds `(rnd & mask)<<3` to the count for grit. With no effect playing, `tune` plays
+    GTUNE dinks every MUSP=14 fields. `sndwait` plays a jingle to the end (death and win pages).
+  - The 8253 clock is **assumed** to be 894,886 Hz. If the PAL MZ-700 differs, all pitches shift together.
+  - `mzemu.py` now logs E004/E007/E008 writes, and `MZ.wav()` renders them as a square wave.
+    gametest writes `sfx_preview.wav` and `tune_preview.wav`, copied to `sounds/`.
+  - Simulator fps, first room: 19.7 / 18.1 / 11.9 / 11.3. Busy view: 17.5 / 15.3 / 10.0 / 9.6.
+    `gametest.py` runs 37 checks, all passing.
+  - MZT 33,536 bytes, ~8.3K free.
+- **Next:** see `PORTING.md` step 4 (automap, fog, win screen polish), then step 5 (title, music, gallery,
+  attract demo). Real-hardware results are still outstanding.
 
 ## 1. Purpose and current status
 
@@ -341,7 +360,9 @@ MZRay-MZ700/
   src/build.py             benchmark build -> MZRAY.MZT, mzray.sym
   src/game.asm             the game
   src/build_game.py        areas, textures, themes, text -> DROPBEAR.MZT, game.sym
-  src/objects.asm          creatures, projection, per-column sprite drawer, shooting, sound
+  src/objects.asm          creatures, projection, per-column sprite drawer, shooting
+  src/fx.asm               sound effects engine + tune, exploding pieces, screen flashes
+  sounds/                  simulator renders of the sound effects and in-game tune (WAV)
   src/dbart.py             DROPBEAR shape functions + 16x16 sprite rasteriser
   src/tools/gametest.py    game checks (walk, doors, keys, switches, exits, pickups, creatures) + screenshots
   src/tools/prof.py        per-routine T-state profile of a game frame

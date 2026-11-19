@@ -41,7 +41,9 @@ I'll ask before changing `render`/`castray` for this.
 2. **Done (v0.2): sprites, creatures, shooting.** Per-column compositing (approved), with all 23 object types drawn
    from DROPBEAR's shapes. AI is ported (sleep, wake, chase, bite, bursts, faster when hurt), along with the
    blaster, flinch and kill, bosses opening gates, death and respawn, and placeholder 8253 beeps.
-3. Exploding pieces, bosses, 8253 sound effects and the in-game "dink" tune.
+3. **Done (v0.3): exploding pieces, flashes, sound.** 32 pieces drawn per column, with gravity and bounce.
+   There's a red bite flash and a white boss flash, a chained-part 8253 effects engine with per-column noise,
+   DROPBEAR's in-game tune, and the death and win jingles.
 4. Automap, fog, death and respawn, win screen.
 5. Title (chunky logo from colour cells), title music, monster gallery, AI attract demo.
 6. Fit, pack and load-time check through UniCMT.

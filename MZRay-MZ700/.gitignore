@@ -4,3 +4,4 @@ src/*.sym
 src/*_full.asm
 src/*.png
 __pycache__/
+src/*.wav

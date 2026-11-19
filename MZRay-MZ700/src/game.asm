@@ -41,9 +41,12 @@ gloop:
         ld a,(leveldone)
         or a
         jr z,gloop
+        call sndoff
         call cls
         ld hl,PG_WIN
         call showpage
+        ld hl,SFX_WIN
+        call sndwait
         ld a,(opals)
         ld de,WINNUM
         ld c,2
@@ -52,11 +55,21 @@ gloop:
         jp title
 
 ; no instant death: back to the door you came in by, full health, everything you'd collected
-dead:   xor a
-        ld (0xE008),a
+dead:   call sndoff
         call cls
         ld hl,PG_DEAD
         call showpage
+        ld hl,SFX_DEATH
+        call sndwait
+        ld hl,PART+7            ; no pieces left hanging about
+        ld b,32
+        ld de,8
+dd0:    ld (hl),0
+        add hl,de
+        djnz dd0
+        ld a,(skycol)
+        ld c,0
+        call flash
         call waitspace
         ld a,100
         ld (hp),a
@@ -84,6 +97,7 @@ frame:
         call nz,changearea
         call fire
         call objects
+        call parts
         call render
         call hud
         jp timers
@@ -384,10 +398,14 @@ bump:   cp 3
         ret nz
         ld (hl),0               ; secret wall
         ld hl,MSG_SECRET
-        jp setmsg
+        call setmsg
+        ld hl,SFX_SECRET
+        jp sfx
 bdoor:  ld (hl),0
         ld hl,MSG_DOOR
-        jp setmsg
+        call setmsg
+        ld hl,SFX_DOOR
+        jp sfx
 block:  ld a,(keys)
         or a
         jr z,bnokey
@@ -397,17 +415,23 @@ block:  ld a,(keys)
         ld a,1
         ld (huddirty),a
         ld hl,MSG_UNLOCK
-        jp setmsg
+        call setmsg
+        ld hl,SFX_DOOR
+        jp sfx
 bnokey: ld a,(msgt)
         or a
         ret nz
         ld hl,MSG_NEEDKEY
-        jp setmsg
+        call setmsg
+        ld hl,SFX_NOKEY
+        jp sfx
 bswitch:
         ld (hl),8
         call opengates
         ld hl,MSG_GATE
-        jp setmsg
+        call setmsg
+        ld hl,SFX_GATE
+        jp sfx
 bexit:  ld c,l
         ld hl,(aexits)
         ld b,(hl)
@@ -511,9 +535,8 @@ pk_d:   ld (hl),0               ; it's gone
         ld (huddirty),a
         ex de,hl
         call setmsg
-        ld de,600               ; a cheerful ding
-        ld a,4
-        jp sound
+        ld hl,SFX_PICK
+        jp sfx
 
 ; ---------------------------------------------------------------- the world
 ; area record: theme, known, name (16 + FF), exit count, exits (cell, to area, to cell, facing),
@@ -719,6 +742,14 @@ newgame:
         ld (ammo),a
         ld a,100
         ld (hp),a
+        ld hl,GTUNE
+        ld (gtptr),hl
+        ld hl,PART+7
+        ld b,32
+        ld de,8
+ng0:    ld (hl),0
+        add hl,de
+        djnz ng0
         xor a
 ng1:    ld (area),a
         call expand
@@ -776,6 +807,7 @@ settheme:
         ld hl,THEMES
         add hl,de
         ld a,(hl)
+        ld (skycol),a
         ld (d1_cl+1),a
         ld (d2_cl+1),a
         ld (d2_cl+4),a
@@ -920,16 +952,9 @@ ti_nz:  ld (lastf),a
         ld (animt),a
         ld hl,firecd
         call tdec
-        ld a,(sndt)             ; sound off when its time is up
-        or a
-        jr z,ti_s
-        ld hl,sndt
-        call tdec
-        ld a,(sndt)
-        or a
-        jr nz,ti_s
-        ld (0xE008),a
-ti_s:   ld a,(gunflash)
+        call sndframe
+        call flashend
+        ld a,(gunflash)
         or a
         jr z,ti_g
         dec a
@@ -980,6 +1005,8 @@ td1:    ld (hl),a
         ret
 
 ;@@OBJECTS@@
+
+;@@FX@@
 
 ;@@RAYCORE@@
 
@@ -1158,7 +1185,27 @@ msgt:      db 0
 animt:     db 0
 firecd:    db 0
 gunflash:  db 0
-sndt:      db 0
+scount:    dw 0
+sdelta:    dw 0
+smask:     db 0
+sfld:      db 0
+snext:     dw 0
+sact:      db 0
+mdink:     db 0
+musict:    db 0
+gtptr:     dw 0
+seed:      db 37
+flasht:    db 0
+skycol:    db 0x11
+pnext:     db 0
+pcx:       db 0
+pcy:       db 0
+pspr:      db 0
+pcolp:     dw 0
+pidx:      db 0
+tcen:      db 20
+trow:      db 11
+tsz:       db 8
 nvis:      db 0
 tgth:      db 0
 target:    dw 0
@@ -1197,7 +1244,7 @@ orows:     db 0
 oentry:    db 0
 zminc:     db 0
 zminl:     db 0
-smask:     dw 0
+sprmask:   dw 0
 dthr:      dw 0
 
 ;@@GAMEDATA@@
@@ -1211,6 +1258,9 @@ VIS     equ COLL+256            ; visible sprite entries; their draw order at VI
 ORDLO   equ 0xC0
 ZB      equ VIS+0xD0            ; last frame's wall height per column (40)
 MASKS   equ VIS+256             ; per column: which ORD positions cover it (40 words)
-LIVE    equ MASKS+80
+PHEAD   equ MASKS+0x50          ; per ray: first piece drawn there (index+1, 0 = none) (40)
+PNEXT   equ MASKS+0x80          ; per piece: the next one under the same ray (32)
+PART    equ MASKS+256           ; 32 pieces x 8 bytes
+LIVE    equ PART+256
 BUF     equ LIVE+512*NAREA
 BUFEND  equ BUF+880
