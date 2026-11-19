@@ -239,55 +239,48 @@ def ellipse(cx, cy, rx, ry):
 
 SH = 18         # sprite height (lines): the characters are 16 x 18
 
-# The hunter is one sprite in one colour (a cell shows a single ink, so a
-# red hat would turn half his head red): a little hat silhouette sits on a
-# round chomping head, with a one-line gap between them.
-HAT_ROWS = {
-    'R': ["................", ".....#####......", "....#######.....", "..###########..."],
-    'F': ["................", "......####......", ".....######.....", "...##########..."],
-}
-HAT_ROWS['L'] = [r[::-1] for r in HAT_ROWS['R']]
+# The hunter: a round chomper filling the 16 x 18 box, no hat, no eye, with
+# a wedge mouth that opens towards where he is going (Pac-Man style).
+DIR_ANGLE = {'U': 0.0, 'R': 90.0, 'D': 180.0, 'L': -90.0}
 
 
-def hat(direction):
-    b = np.zeros((SH, 16), bool)
-    b[:4] = art(HAT_ROWS[direction])
-    return b
-
-
-def face(direction, mouth, scale=1.0, with_hat=True):
-    """the hunter: head on rows 4..17 of the 16 x 18 box, hat above"""
-    cy = 11.0
-    e = ellipse(7.5, cy, 7.4 * scale, 7.0 * scale)
-    k = (0.0, 0.5, 1.0)[mouth]
+def chomper(open_deg, facing='R', scale=1.0):
+    """a disc with a wedge of open_deg degrees (each side of the facing
+    direction) cut out from the centre"""
+    cx, cy = 7.5, 8.5
+    e = ellipse(cx, cy, 7.6 * scale, 8.4 * scale)
+    phi = DIR_ANGLE[facing]
 
     def fn(x, y):
         if not e(x, y):
             return False
-        if direction in 'RL':
-            if 9 <= x <= 10 and 7 <= y <= 8:
-                return False                    # eye
-            if mouth and x > 6.0 and abs(y - 11.5) < (x - 6.0) * k:
-                return False                    # mouth
-        elif direction == 'D':
-            if (4 <= x <= 5 or 10 <= x <= 11) and 8 <= y <= 9:
-                return False
-            if mouth and y > 11.8 and abs(x - 7.5) < (y - 11.6) * (k + 0.3):
-                return False
-            if not mouth and y == 14 and 5 <= x <= 10:
-                return False
-        elif direction == 'U':                  # looking up, chomping
-            if (4 <= x <= 5 or 10 <= x <= 11) and 6 <= y <= 7:
-                return False
-            if mouth and 11 <= y <= 14 and abs(x - 7.5) < 2.6 - abs(y - 12.5) * 0.6:
-                return False
-            if not mouth and y == 13 and 6 <= x <= 9:
-                return False
-        return True
-    b = mk(fn, 16, SH)
-    if with_hat and scale == 1.0:
-        b |= hat('F' if direction in 'UD' else direction)
-    return b
+        if open_deg <= 0:
+            return True
+        th = math.degrees(math.atan2(x - cx, cy - y))      # 0 = up, 90 = right
+        d = abs((th - phi + 180.0) % 360.0 - 180.0)
+        return d >= open_deg
+    return mk(fn, 16, SH)
+
+
+MOUTH_DEG = (0, 28, 52)        # closed, half, wide
+
+
+def face(direction, mouth, scale=1.0):
+    return chomper(MOUTH_DEG[mouth], direction, scale)
+
+
+def death_frame(i):
+    """the classic exit: the mouth opens upward until he folds away, then a pop"""
+    if i < 5:
+        return chomper((60, 95, 130, 160, 176)[i], 'U')
+    star = np.zeros((SH, 16), bool)
+    for k in range(8):
+        a = math.radians(k * 45)
+        for r in range(3, 8):
+            x, y = 7.5 + r * math.sin(a), 8.5 - r * math.cos(a) * 1.05
+            if r % 2 == 1 or k % 2 == 0:
+                star[int(round(y)), int(round(x))] = True
+    return star
 
 
 GHOST_BODY = [
@@ -402,16 +395,14 @@ def sprites():
     def add(name, b, outline=True):
         b = np.asarray(b, bool)
         S.append((name, b, grow(b) if outline else b.copy()))
-    add('HAT_F', hat('F'))                  # (only for his last moments)
     for m in range(3):
-        f = face('R', m)
-        add('FACE_R%d' % m, f)
-        add('FACE_L%d' % m, mirror(f))
-    for m in range(2):
+        add('FACE_R%d' % m, face('R', m))
+        add('FACE_L%d' % m, face('L', m))
+    for m in range(2):                      # (up and down: closed and half open)
         add('FACE_U%d' % m, face('U', m))
-        add('FACE_D%d' % m, face('D', m * 2))
-    for i, sc in enumerate((0.85, 0.65, 0.42, 0.2)):
-        add('DIE%d' % i, face('D', 0, sc))
+        add('FACE_D%d' % m, face('D', m))
+    for i in range(6):
+        add('DIE%d' % i, death_frame(i), i < 5)
     for k in range(4):
         for d in 'RLUD':
             for a in range(2):
@@ -431,7 +422,7 @@ def sprites():
         add('RING%d' % i, ring, False)
     # the giant hunter of the intermissions (32 x 36, facing left)
     for m in (0, 2):
-        f = np.kron(mirror(face('R', m)), np.ones((2, 2), bool))
+        f = np.kron(face('L', m), np.ones((2, 2), bool))
         add('BIGFACE%d' % (m // 2), f)
     return S
 
@@ -444,7 +435,7 @@ def g8(rows):
 ICONS = [
     ('heart', g8(["01101100", "11111110", "11111110", "11111110", "01111100", "00111000", "00010000", "00000000"])),
     ('heart_e', g8(["01101100", "10010010", "10000010", "10000010", "01000100", "00101000", "00010000", "00000000"])),
-    ('life', g8(["00111000", "01111100", "11111110", "00000000", "01111100", "11101110", "11111000", "01111100"])),
+    ('life', g8(["00111100", "01111110", "11111000", "11100000", "11111000", "01111110", "00111100", "00000000"])),
     ('solid', bytes([255] * CH)),
     ('ghost', g8(["00111100", "01111110", "11011011", "11011011", "11111111", "11111111", "11111111", "10110101"])),
 ] + [('bar%d' % k, bytes([0, 0, 0] + [(0xFF00 >> k) & 0xFF] * 4 + [0, 0, 0])) for k in range(9)]

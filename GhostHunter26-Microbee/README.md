@@ -38,7 +38,7 @@ A tapped direction is remembered until the next junction, so you can turn early.
 
 **Forgiving play.** A ghost's touch costs a heart, not a life. The ghost that caught you is sent home as a pair of eyes and you flash, safe, for a couple of seconds. Three hearts a life, three lives, an extra life at 10,000 and then every 50,000.
 
-**The hunter** is a round chomping head under a little hat, all in one colour: each cell shows one ink, so a separately coloured hat would tint half his head.
+**The hunter** is a round chomper, 16 × 18, with a wedge mouth that opens the way he's heading. When he's caught, his mouth opens wider and wider until he folds away with a pop.
 
 **The ghosts** (names and habits from Ghost Hunter 2):
 

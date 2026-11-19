@@ -502,7 +502,7 @@ meet_txt:
         db BGREEN,"SNEAKY",0,"CUTS YOU OFF UP AHEAD.",0
         db BMAGENTA,"DIZZY",0,"WANDERS ABOUT... MOSTLY.",0
         db BCYAN,"PEEKABOO",0,"COMES ROUND THE OTHER SIDE.",0
-        db YELLOW,"THE HUNTER",0,"THAT'S YOU. HAT AND ALL.",0
+        db YELLOW,"THE HUNTER",0,"THAT'S YOU. CHOMP CHOMP!",0
 s_hearts: db "THREE HEARTS A LIFE - THREE LIVES",0
 
 ; ---------------------------------------------------------------------

@@ -1652,7 +1652,7 @@ draw_player:
         add a,SF_RING0
         ld c,BCYAN
         call put_actor
-.ns:    ld a,(p_x)               ; (the hat is part of every hunter frame)
+.ns:    ld a,(p_x)               ; (the hunter: one frame, one colour)
         ld d,a
         ld a,(p_y)
         ld e,a
@@ -1691,7 +1691,7 @@ draw_player:
 .u1:    add a,SF_FACE_U0
         jp put_actor
 
-; the last moments: the head shrinks away and the hat drops
+; the last moments: the mouth opens until he folds away, then a little pop
 draw_death:
         xor a
         ld (a_ox),a
@@ -1712,24 +1712,8 @@ draw_death:
         rrca
         rrca
         rrca
-        and 7                   ; 0..5
-        cp 4
-        jr c,.fr
-        ld a,10                 ; the hat alone, on the floor
-        ld (a_oy),a
-        ld a,SF_HAT_F
-        ld c,YELLOW
-        jp put_actor
-.fr:    push af
-        push de
+        and 7                   ; 0..5: the mouth opens up and he folds away, then a pop
         add a,SF_DIE0
-        ld c,YELLOW
-        call put_actor
-        pop de
-        pop af
-        add a,a
-        ld (a_oy),a
-        ld a,SF_HAT_F
         ld c,YELLOW
         jp put_actor
 
