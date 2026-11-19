@@ -1881,10 +1881,17 @@ set_mono:			; the far stars' colour; fold on or off
 	or a
 	ld a,STAR_COL
 	ld b,$C9		; RET
+	ld c,$FE		; and CP 0 / NOP at the sprite code's call
+	ld hl,0
 	jr z,.s
 	ld a,GREY
 	ld b,$C5		; PUSH BC
+	ld c,$CD		; CALL fold
+	ld hl,fold
 .s:	ld (star_col),a
+	ld a,c
+	ld (spr_row.fd),a
+	ld (spr_row.fd+1),hl
 	ld a,b
 	ld (fold),a
 	ret

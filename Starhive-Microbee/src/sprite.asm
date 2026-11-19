@@ -33,16 +33,38 @@ frame_begin:
 	ld a,(hl)
 	ld (spr_row.cv+1),a
 	ld (ovl_draw.cv+1),a
-	xor a
-	ld (nslot),a
+	ld a,$80
+	ld (spr_row.ns+1),a	; no pool slots used yet
 	ld a,(page)
 	add a,a
 	add a,BK_POOL
 	ld (pgbank),a
+	ld (spr_row.pb+1),a
 	or LV_SCREEN
 	ld (sr_dbk),a
 	ld hl,PCGWIN
-	ld (sr_dst),hl
+	ld (spr_row.dst+1),hl
+	ld a,(k)		; this frame's merge flag: byte and bit
+	ld b,0
+	cp 8
+	jr c,.f0
+	sub 8
+	ld b,128
+.f0:	ld c,a
+	ld a,b
+	ld (bg_get.mo+1),a
+	ld b,c
+	inc b
+	ld a,$80
+.f1:	rlca
+	djnz .f1
+	ld (bg_get.mm+1),a
+	ld a,(k)
+	add a,COLT>>8
+	ld (bg_get.ch+1),a
+	ld a,(k)
+	or LV_SCREEN
+	ld (bg_get.kb+1),a
 	ld a,(page)
 	or a
 	ld hl,SB0+2
@@ -154,6 +176,7 @@ spr_draw:
 	ld l,a
 	ld h,0
 	ld (sd_sstr),hl
+	ld (spr_row.ss+1),hl
 	pop de			; x
 	srl d			; first column = x / 8 - 2 (signed)
 	rr e
@@ -244,10 +267,11 @@ spr_row:
 	inc hl
 	ld h,(hl)
 	ld l,a
-	ld (sr_bp),hl
+	ld (.bp+1),hl
 	ld a,(sd_wb)		; room for the whole row? (else it's clipped)
 	ld b,a
-	ld a,(nslot)
+	ld a,(.ns+1)
+	sub $80			; slots used
 	add a,b
 	cp NSLOT+1
 	ret nc
@@ -296,7 +320,9 @@ spr_row:
 	exx
 	ld hl,-2		; the stack pointer during a merge (after the
 	add hl,sp		; column loop's PUSH BC), to restore after it
-	ld (sr_sp),hl
+	ld (.spv+1),hl
+	ld a,(sr_dbk)		; the pool's bank in the window
+	out (P_LV),a
 	ld iy,(sd_bnd)
 	ld a,(sd_cx)
 	ld c,a
@@ -320,14 +346,13 @@ spr_row:
 	adc a,0
 	and 7
 	ld d,a			; DE = ring offset of the cell
-	ld (sr_ring),de
 	or $60
 	ld h,a
 	ld l,e
 .cv:	ld (hl),0		; covered this frame (the frame's number)
 	or $78			; SHA
-	ld d,a
-	ld a,(de)
+	ld h,a
+	ld a,(hl)
 	cp STAR_BANK
 	jp nz,.pair
 	; over black space (or a far star, which the sprite hides)
@@ -340,38 +365,14 @@ spr_row:
 	ENDR
 	jp .done
 	; over scenery: the pair glyph at phase k, masked and merged
-.pair:	res 3,d			; SHC
-	ld a,(de)
+.pair:	res 3,h			; SHC
+	ld a,(hl)
 	and $7F
 	ld c,a
+	push de
 	call .mset
-	ld a,(k)
-	add a,COLT>>8
-	ld h,a
-	ld l,c
-	ld a,(hl)
-	and $F0
-	push af
-	ld a,(k)
-	or LV_SCREEN
-	out (P_LV),a
-	ld a,c
-	rrca
-	rrca
-	rrca
-	rrca
-	ld l,a
-	and $07
-	or $F8
-	ld h,a
-	ld a,l
-	and $F0
-	ld l,a
-	ld de,sr_bg
-	REPT CL
-	ldi
-	ENDR
-	pop af
+	call bg_get		; the background, A = paper
+	pop de
 	call .entry
 	ld hl,sr_bg
 .j0:	ld a,0
@@ -386,7 +387,7 @@ spr_row:
 	exx
 .jn:	jp 0
 .newdone:
-	ld sp,(sr_sp)
+.spv:	ld sp,0
 .tail:	ld a,0
 	or a
 	jr z,.done
@@ -397,7 +398,7 @@ spr_row:
 .skip:	exx			; next column
 	add hl,de
 	exx
-	ld de,(sd_sstr)
+.ss:	ld de,0
 	add ix,de
 	ld de,3
 	add iy,de
@@ -405,7 +406,7 @@ spr_row:
 	dec b
 	jp nz,.col
 	ld hl,(sr_bpa)		; the row's bucket pointer
-	ld de,(sr_bp)
+	ld de,(.bp+1)
 	ld (hl),e
 	inc hl
 	ld (hl),d
@@ -413,42 +414,38 @@ spr_row:
 	out (P_LV),a
 	ret
 
-; the new cell's bucket entry (A = paper) and its glyph: DE = the glyph,
-; its bank in the window; the next slot's glyph moves on
+; the new cell's bucket entry (A = paper, DE = its ring offset) and its
+; glyph: DE = the glyph, its bank in the window; the next slot's glyph
+; moves on
 .entry:	ld c,a
 	ld a,(iy+2)
-	call fold
 	or c
+.fd:	call fold		; (patched to CP 0 / NOP while monochrome is off)
 	ld c,a
-	ld hl,(sr_bp)
-	ld de,(sr_ring)
+.bp:	ld hl,0			; this row's bucket
 	ld (hl),e		; address
 	inc l
 	ld a,d
 	or $F0
 	ld (hl),a
 	inc l
-	ld a,(nslot)
-	or $80
-	ld (hl),a		; code
+.ns:	ld a,$80		; code: the next pool slot
+	ld (hl),a
+	inc a
+	ld (.ns+1),a
 	inc l
-	ld a,(pgbank)
-	ld (hl),a		; attribute: the pool's bank
+.pb:	ld (hl),0		; attribute: the pool's bank
 	inc l
 	ld (hl),c		; colour
 	inc l
 	inc l
-	ld (sr_bp),hl
-	ld hl,nslot
-	inc (hl)
-	ld a,(sr_dbk)
-	out (P_LV),a
-	ld hl,(sr_dst)
+	ld (.bp+1),hl
+.dst:	ld hl,0			; DE = the slot's glyph; the next one moves on
 	ld d,h
 	ld e,l
 	ld bc,16
 	add hl,bc
-	ld (sr_dst),hl
+	ld (.dst+1),hl
 	ret
 
 ; patch the merge code for this row (once)
@@ -545,36 +542,18 @@ ovl_draw:
 	rr e
 	ld a,e
 	sub 2
-	ld (ov_col0),a
+	ld (ov_col0),a		; first column (signed)
 	ld a,c
-	call .row		; top: codes 0, 1
-	inc hl
-	inc hl
-	ld a,c
-	inc a			; below: codes 2, 3
-.row:	ld b,a
-	ld a,(hl)		; nothing in this row of the overlay?
-	inc hl
-	or (hl)
-	dec hl
-	ret z
-	ld a,b
-	cp EROW0
-	ret c
-	cp EROW1+1
-	ret nc
-	push bc
-	push hl
 	ld (ov_row),a
-	sub 2			; this row's bucket pointer
-	add a,a
-	add a,low(bk_s)
-	ld e,a
-	ld a,high(bk_s)
+	push hl
+	add a,a			; the row's bucket pointer's address
+	add a,low(bk_s-4)
+	ld l,a
+	ld a,high(bk_s-4)
 	adc a,0
-	ld d,a
-	ld (ov_bpa),de
-	ld a,(ov_row)		; ring offset of the row's first column
+	ld h,a
+	ld (ov_bpa),hl
+	ld a,c			; ring offset of the row's first column
 	add a,a
 	ld e,a
 	ld d,0
@@ -591,71 +570,271 @@ ovl_draw:
 	sbc a,a
 	ld d,a
 	add hl,de
-	ex de,hl		; DE = ring offset of column col0
+	ex de,hl		; DE = ring offset
 	pop hl
+	ld a,(ov_row)
+	call .row		; top: codes 0, 1
+	inc hl
+	inc hl
+	ex de,hl
+	ld bc,40
+	add hl,bc
+	ex de,hl
+	ld bc,(ov_bpa)
+	inc bc
+	inc bc
+	ld (ov_bpa),bc
+	ld a,(ov_row)
+	inc a			; below: codes 2, 3
+	ld (ov_row),a
+.row:	cp EROW0		; A = row, HL -> its two codes, DE = ring
+	ret c			; offset of the first column
+	cp EROW1+1
+	ret nc
+	ld a,(hl)		; nothing in this row of the overlay?
+	inc hl
+	or (hl)
+	dec hl
+	ret z
 	push hl
-	ld b,2
-.c:	ld a,(hl)
-	or a
-	jr z,.n
-	ld (ov_code),a
-	ld a,(ov_col0)		; column on the screen?
-	add a,2
-	sub b
-	cp SCOLS
-	jr nc,.n
-	push hl
+	push de
+	ld b,(hl)
+	inc hl
+	ld c,(hl)		; B, C = the codes
 	ld hl,(ov_bpa)
 	ld a,(hl)
 	inc hl
 	ld h,(hl)
-	ld l,a
+	ld l,a			; HL = the row's bucket
 	and $7F
-	cp 128-8
-	jr nc,.f
-	ld (hl),e		; address, code, attribute, colour
-	inc l
-	ld a,d
-	and 7
-	or $F0
-	ld (hl),a
-	inc l
-	ld a,(ov_code)
-	ld (hl),a
-	inc l
-	ld a,(ov_bank)
-	ld (hl),a
-	inc l
-	ld a,(ov_col)
-	ld (hl),a
-	inc l
-	inc l
-	push hl			; covered this frame
-	ld a,d
-	and 7
-	or $60
-	ld h,a
-	ld l,e
-.cv:	ld (hl),0
-	pop hl
-	push de
+	cp 128-14		; room for two (else clipped)
+	jr nc,.rx
+	ld a,(ov_col0)
+	cp SCOLS
+	ld a,b
+	call c,.cell
+	inc de
+	ld a,(ov_col0)
+	inc a
+	cp SCOLS
+	ld a,c
+	call c,.cell
 	ex de,hl
 	ld hl,(ov_bpa)
 	ld (hl),e
 	inc hl
 	ld (hl),d
-	pop de
-.f:	pop hl
-.n:	inc hl
-	inc de
-	djnz .c
+.rx:	pop de
 	pop hl
+	ret
+.cell:	or a			; A = code (0: none), DE = ring offset,
+	ret z			; HL = bucket (moves on)
+	ld (ov_code),a
+	push bc
+	push de
+	ld (hl),e		; address
+	inc l
+	ld a,d
+	and 7
+	ld d,a
+	or $F0
+	ld (hl),a
+	inc l
+	push hl
+	ld a,d
+	or $60
+	ld h,a
+	ld l,e
+.cv:	ld (hl),0		; covered this frame
+	or $78			; SHA: over scenery?
+	ld d,a
+	ld a,(de)
+	cp STAR_BANK
+	jr z,.pl
+	call ovl_merge		; yes: a composed cell (A = code, C = colour)
+	jr c,.pl
+	ld b,a
+	ld a,(pgbank)
+	jr .wr
+.pl:	ld a,(ov_col)		; no: the ready-drawn cell
+	ld c,a
+	ld a,(ov_code)
+	ld b,a
+	ld a,(ov_bank)
+.wr:	pop hl
+	ld (hl),b		; code
+	inc l
+	ld (hl),a		; attribute
+	inc l
+	ld (hl),c		; colour
+	inc l
+	inc l
+	pop de
 	pop bc
+	ret
+
+; an overlay cell over scenery: the pair glyph at phase k (slot from
+; SHC) with the overlay's pixels set, into the next pool slot, in the
+; overlay's ink on the scenery's paper. DE = the cell's SHA address.
+; -> A = code, C = colour; carry if the pool is full. HL kept.
+ovl_merge:
+	ld a,(spr_row.ns+1)	; (wraps to 0 when all 128 are used)
+	cp $80
+	ret c
+	push hl
+	res 3,d			; SHC: the pair's slot
+	ld a,(de)
+	and $7F
+	ld c,a
+	call bg_get		; the background into sr_bg, A = paper
+	ld b,a
+	ld a,(ov_col)
+	and $0F
+	or b
+	call fold
+	ld (ov_scol),a		; the overlay's ink on that paper
+	ld a,(ov_bank)
+	or LV_SCREEN
+	out (P_LV),a
+	ld a,(ov_code)
+	and $7F
+	call .gl
+	ld de,sr_bg		; its pixels set, the detail cleared a pixel
+	ld c,CL			; either side (so it stands out)
+.or:	ld a,(hl)
+	or a
+	jr z,.o0		; (a line without the overlay: as it was)
+	ld b,a
+	add a,a
+	or b
+	srl b
+	or b			; the overlay a pixel wider each side
+	cpl
+	ex de,hl
+	and (hl)
+	ex de,hl
+	or (hl)
+	ld (de),a
+.o0:	inc hl
+	inc de
+	dec c
+	jr nz,.or
+	ld a,(sr_dbk)		; into the pool
+	out (P_LV),a
+	ld hl,(spr_row.dst+1)
+	ex de,hl
+	ld hl,sr_bg
+	REPT CL
+	ldi
+	ENDR
+	ld hl,(spr_row.dst+1)
+	ld bc,16
+	add hl,bc
+	ld (spr_row.dst+1),hl
+	ld a,LV_SCREEN
+	out (P_LV),a
+	ld a,(ov_scol)
+	ld c,a
+	ld a,(spr_row.ns+1)
+	inc a
+	ld (spr_row.ns+1),a
+	dec a
+	pop hl
+	or a
+	ret
+.gl:	rrca			; A = slot -> HL = its glyph in the window
+	rrca
+	rrca
+	rrca
+	ld l,a
+	and $07
+	or $F8
+	ld h,a
+	ld a,l
+	and $F0
+	ld l,a
+	ret
+
+; the background of a sprite or overlay cell over scenery: C = the pair's
+; slot -> sr_bg = its glyph at phase k, A = the paper (high nibble).
+; Where the glyph's set pixels are the majority (MFLG, from the level
+; data) it is inverted and the ink becomes the paper: the cell keeps its
+; main colour and only the thinner detail takes the sprite's colour.
+; Black detail is dropped. Leaves the pool's bank in the window.
+bg_get:
+.ch:	ld h,COLT>>8		; (frame_begin: + k)
+	ld l,c
+	ld a,(hl)
+	ld (.col+1),a		; its colours (ink low, paper high)
+	ld a,c
+.mo:	or 0			; (frame_begin: 0 or 128, by phase)
+	ld l,a
+	ld h,MFLG>>8
+	ld a,(hl)
+.mm:	and 0			; (frame_begin: the phase's bit)
+	jr nz,.inv
+	ld a,(.col+1)		; set pixels the detail, in the ink
+	and $0F
+	jr z,.zp		; (black: dropped)
+	call .addr
+	REPT CL
+	ldi
+	ENDR
+	ld a,(sr_dbk)
+	out (P_LV),a
+	jr .pp
+.zp:	call .zero
+.pp:	ld a,(.col+1)		; the paper stays
+	and $F0
+	ret
+.inv:	ld a,(.col+1)		; set pixels the main part: inverted, the
+	and $F0			; paper's pixels the detail
+	jr z,.zi		; (black: dropped)
+	call .addr
+	REPT CL
+	ld a,(hl)
+	cpl
+	ld (de),a
+	inc l
+	inc e
+	ENDR
+	ld a,(sr_dbk)
+	out (P_LV),a
+	jr .col
+.zi:	call .zero
+.col:	ld a,0			; the ink is the paper
+	rlca
+	rlca
+	rlca
+	rlca
+	and $F0
+	ret
+.zero:	ld hl,sr_bg
+	ld b,CL
+.zl:	ld (hl),0
+	inc hl
+	djnz .zl
+	ret
+.addr:
+.kb:	ld a,LV_SCREEN		; (frame_begin: + k) phase k's bank in the
+	out (P_LV),a		; window: HL = slot C's glyph, DE = sr_bg
+	ld a,c
+	rrca
+	rrca
+	rrca
+	rrca
+	ld l,a
+	and $07
+	or $F8
+	ld h,a
+	ld a,l
+	and $F0
+	ld l,a
+	ld de,sr_bg
 	ret
 
 mul40:	dw 0,40,80,120,160,200,240,280,320,360,400,440,480,520,560,600
 	dw 640,680,720,760,800,840,880,920
-sr_bg:	ds 16
 
 ; ---------------------------------------------------------------------
 ;  the playfield rows (2..23), top first: last frame's sprite cells in
