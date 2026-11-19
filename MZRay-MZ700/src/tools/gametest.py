@@ -97,6 +97,8 @@ def view(): return bytes(m.mem[0xD800+40:0xD800+40+880])
 PREVP = sym['PREVP']
 for area, x, y in ((0, 1.5, 1.5), (1, 8.5, 9.5), (3, 1.5, 3.5)):
     go(area)
+    for i in range(32):                          # creatures asleep, so nothing moves between the two frames
+        if 0 < m.mem[sym['OBJ']+i*8] <= 10: m.mem[sym['OBJ']+i*8+6] = 0
     for key in '13':
         m.held = {key}; frame(); m.held = set()
         for step in range(6):

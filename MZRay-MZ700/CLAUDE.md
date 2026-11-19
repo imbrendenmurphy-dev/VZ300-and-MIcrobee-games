@@ -1,4 +1,4 @@
-﻿# CLAUDE.md â€” MZRAY (Sharp MZ-700 WolfenDoom project)
+# CLAUDE.md â€” MZRAY (Sharp MZ-700 WolfenDoom project)
 
 Handover from Claude chat to Claude Code, 19 Nov 2026. Read all of this before changing anything.
 
@@ -128,7 +128,8 @@ Credits line for anything user-facing: **VIBED BY BPM 2026** (the user's standin
     and is still byte-identical.
   - **Tried and dropped:** skipping unchanged wall cells via an 880-byte RAM shadow of the view. It gave
     no gain, and its first version left a stale view.
-  - **Result (emulator-like, average of 4 views):** mode 1 12.5 → 13.3 fps, mode 3 8.7 → 8.9. Mode 1
+  - **Bearing cull:** in proj, for things 2+ cells away, |dx|,|dy| are scaled to 0..15 and QANG (a 256-byte quadrant atan table, right after QSH) gives the angle. Anything more than CULLA=36/256 of a turn off the facing is skipped before any multiply. Cell-pair writes use inc l/dec l (pairs never cross a page).
+  - **Result (emulator-like, average of 4 views):** mode 1 12.5 → 13.7 fps, mode 3 8.7 → 9.0. Mode 1 is now about half screen-write time; further gains need design changes (a shorter view, or mode 1 as the default). Mode 1
     frames are now ~half walls, ~half objects/projection. The next real gain would be culling objects
     before any multiply (e.g. a bearing table), then sprite drawing.
   - **Creatures:** chasers stop at CLOSE=0x90 (was 0x50), still inside the 0xB0 bite range. Creatures whose

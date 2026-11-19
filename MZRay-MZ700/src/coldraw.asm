@@ -72,9 +72,9 @@ gdraw2: ld c,a
         call growp
         ld a,(gsky)
 g2s:    ld (hl),a
-        inc hl
+        inc l
         ld (hl),a
-        dec hl
+        dec l
         add hl,de
         djnz g2s
 g2w:    ld a,(gt1)
@@ -89,9 +89,9 @@ g2l:    exx
         ld a,(hl)
         exx
         ld (hl),a
-        inc hl
+        inc l
         ld (hl),a
-        dec hl
+        dec l
         add hl,de
         djnz g2l
         ld a,(gf0)
@@ -103,9 +103,9 @@ g2l:    exx
         ld b,a
         ld a,(gground)
 g2f:    ld (hl),a
-        inc hl
+        inc l
         ld (hl),a
-        dec hl
+        dec l
         add hl,de
         djnz g2f
         ret

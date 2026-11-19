@@ -296,6 +296,10 @@ GT = ['E4', '-', '-', 'E4', 'G4', 'E4', '-', '-', 'D4', '-', '-', 'D4', 'F4', 'D
 out.append('GTUNE: dw ' + ','.join('0' if n == '-' else str(count(n)) for n in GT) + ',0xFFFF')
 qs = [n*n//4 for n in range(512)]              # quarter squares for the fast 8x8 multiply
 out.append(' align 256\nQSL:\n%s\nQSH:\n%s' % (dbl([v & 255 for v in qs]), dbl([v >> 8 for v in qs])))
+# quadrant angle of (x, y) for x, y in 0..15 (index y*16+x), in 256ths of a turn: 0 = along x, 64 = along y
+import math
+qang = [round(math.atan2(y, x)*128/math.pi) if (x or y) else 0 for y in range(16) for x in range(16)]
+out.append('QANG:\n' + dbl(qang))          # follows QSH, so it's page aligned without padding
 
 # text
 for nm, s in (('MSG_BLANK', ''), ('MSG_SECRET', 'SECRET FOUND'), ('MSG_DOOR', 'DOOR OPENS'),

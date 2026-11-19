@@ -8,7 +8,8 @@
 
 VISMAX  equ 12
 EMARG   equ 72
-CLOSE   equ 0x90                ; creatures stop chasing a bit over half a cell away (bite range is 0xB0)
+CULLA   equ 36                  ; things more than this (256ths of a turn) off centre are out of view
+CLOSE   equ 0x90               ; creatures stop chasing a bit over half a cell away (bite range is 0xB0)
 
 objects:
         ld a,(zminc)            ; farthest wall seen last frame; anything smaller is hidden
@@ -404,7 +405,57 @@ pq1:    ld de,(dthr)
         or a
         sbc hl,de
         ret nc
-        ld a,(nvis)
+        ld a,(adx+1)            ; within two cells: always do it properly (it may be wide)
+        ld b,a
+        ld a,(ady+1)
+        or b
+        cp 2
+        jr c,pb7
+        ld hl,(adx)             ; direction to it, before any multiplying: scale |dx|,|dy| down to
+        ld de,(ady)             ; 0..15 and look the angle up
+pb1:    ld a,h
+        or d
+        jr nz,pb2
+        ld a,l
+        or e
+        and 0xF0
+        jr z,pb3
+pb2:    srl h
+        rr l
+        srl d
+        rr e
+        jr pb1
+pb3:    ld a,e
+        add a,a
+        add a,a
+        add a,a
+        add a,a
+        or l
+        ld l,a
+        ld h,QANG>>8
+        ld c,(hl)               ; 0..64 within the quadrant
+        ld a,(dx+1)
+        rlca
+        jr nc,pb4
+        ld a,128
+        sub c
+        ld c,a
+pb4:    ld a,(dy+1)
+        rlca
+        jr nc,pb5
+        xor a
+        sub c
+        ld c,a
+pb5:    ld a,(pang)             ; how far off the way we're facing?
+        ld b,a
+        ld a,c
+        sub b
+        bit 7,a
+        jr z,pb6
+        neg
+pb6:    cp CULLA
+        ret nc
+pb7:    ld a,(nvis)
         cp VISMAX-1
         ret nc
         ld a,(psgn)             ; depth z = dx cos + dy sin
@@ -984,9 +1035,9 @@ sl2:    exx
         cp 0xFF
         jr z,sl2s
         ld (hl),a
-        inc hl
+        inc l
         ld (hl),a
-        dec hl
+        dec l
 sl2s:   add hl,de
         djnz sl2
 sc_n:   pop hl
