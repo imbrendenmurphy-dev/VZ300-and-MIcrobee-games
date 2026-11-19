@@ -33,32 +33,40 @@ faster than Bluff can walk, so he has to jump it, climb away or outrun it.
 
 ## What is playable
 
-Two regions, twelve rooms, 34 bugs:
+The whole game, start to finish: five regions, 24 rooms, 68 bugs.
 
-* **The Red Dirt** — the savanna, the billabong, Mound City, up the Old Gum
+* **The Red Dirt**: the savanna, the billabong, Mound City, up the Old Gum
   into the Canopy, and Lookout Rock.
-* **Stone Country** — the escarpment, a gorge with a waterfall (glide across
+* **Stone Country**: the escarpment, a gorge with a waterfall (glide across
   it), a cave of ochre hand stencils, a chimney climbed ledge by ledge, the
   moonlit stone tops, and the Great Rock.
+* **The Diggings**: an opal field. Down the shaft, along the drive and up the
+  winze, riding the air from the vents with the frill open. Ghost bats.
+* **The Wet**: the monsoon floodplain in the rain. Sprint across the water,
+  ride the storm's gusts.
+* **King Bufo's Court**: the larder, then the King himself. He leaps at you;
+  when he lands he is winded, and a frill then puts him on his back. Bounce
+  on him three times.
 
 Each region ends at a jar of King Bufo's pinched bugs. Lose your hearts and
 you try again from the start of the region, keeping every bug you found (ESC
-goes back to the title).
+goes back to the title). Clearing a region writes your place to the disk;
+**C** at the title carries on from there. **K** at the title chooses your
+keys, and they are kept on the disk too. Beat the King for the ending.
 
 Leave the title alone and the game shows itself off: the logo and **The
 Frillseeker Strut** (a twelve-bar shuffle for three voices and drums), a page
-of the story, then a card for the first region and Bluff playing it by
-himself; back to the title, who's who, the second region played; the title,
-the moves, and round again. SPACE starts a game from anywhere in it. Still to
-come: the other three regions, King Bufo himself, saving to disk and an
-ending (see [docs/DESIGN.md](docs/DESIGN.md)).
+of the story, then a card for a region and Bluff playing it by himself; the
+title again, who's who, another region; the moves, and round again. SPACE
+starts a game from anywhere in it. (So far Bluff demonstrates the first two
+regions; the rest are still to be recorded.)
 
 ## To run it
 
 `release/FRILL.DS8` is a double-sided 80-track Microbee disk image. Boot it,
-and at the `A>` prompt type **FRILL**. Press **C** for a colour monitor or
-**M** for a monochrome one (the art is drawn separately for each), then SPACE
-at the title.
+and at the `A>` prompt type **FRILL**. The loader asks **C** for a colour
+monitor or **M** for a monochrome one (the art is drawn separately for each,
+and only that set is loaded), then SPACE at the title.
 
 | | Keys | Joystick |
 |---|---|---|

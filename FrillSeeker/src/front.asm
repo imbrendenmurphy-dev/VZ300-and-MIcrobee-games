@@ -386,7 +386,9 @@ f_end:  push af
         inc a
         cp NREGIONS
         jp nc,ending
-        dec a
+        call sv_progress
+        ld (fe_saved),a
+        ld a,(region)
         call reg_name_a
         ld d,3
         ld c,YELLOW
@@ -407,7 +409,14 @@ f_end:  push af
         ld d,16
         ld c,BCYAN
         call print_centred
-        ld hl,t_again
+        ld a,(fe_saved)
+        or a
+        jr nz,.ns
+        ld hl,t_kept
+        ld d,19
+        ld c,GREY
+        call print_centred
+.ns:    ld hl,t_again
         ld d,22
         ld c,BGREEN
         call print_centred
@@ -454,7 +463,9 @@ tally:  push de
         jp print_num
 
 ; King Bufo is beaten: the story's end, the count, the credits
-ending: ld hl,song_end
+ending: xor a
+        call sv_progress
+        ld hl,song_end
         call m_play
         ld hl,pg_end1
         call page
@@ -495,6 +506,7 @@ t_found:  db "BUGS FOUND    OF",0
 t_next:   db "NEXT STOP",0
 t_again:  db "PRESS SPACE",0
 t_every:  db "EVERY LAST ONE. LEGEND.",0
+t_kept:   db "YOUR PLACE IS KEPT ON THE DISK",0
 
 ; =====================================================================
 ;  THE ATTRACT SEQUENCE: the title, then a page of information, then a
@@ -538,7 +550,7 @@ f_attract:
         or a
         jr z,.title
         dec a
-        jr z,.page
+        jp z,.page
         ; a region's card, then out to the demonstration
         ld a,c
         ld (fa_region),a
@@ -546,7 +558,7 @@ f_attract:
         call page
         ld bc,260
         call fa_wait
-        jr nz,.key
+        jp nz,.key
         ld a,(fa_region)
         add a,a
         ld e,a
@@ -560,16 +572,45 @@ f_attract:
         ld a,(fa_region)
         inc a
         ret
-.title: call far_title
+.title: call sv_load            ; (the first time: what the disk remembers)
+        call far_title
         xor a
         ld (fa_count),a
         ld hl,title_hook
         ld (fa_hook+1),hl
         call display_on
+        ld a,(sv_region)        ; K for the keys; C if there is a game to carry on with
+        or a
+        ld a,$B0
+        jr z,.m
+        ld a,$F0
+.m:     ld (fa_mask),a
         ld bc,900
         call fa_wait
-        jr nz,.key
-        jr .stage
+        push af
+        ld a,$90
+        ld (fa_mask),a
+        pop af
+        jp z,.stage
+        bit 5,a
+        jr nz,.keys
+        bit 6,a
+        jr z,.key
+        ; carry on: the region reached, and the bugs found on the way
+        ld a,(sv_region)
+        ld (region),a
+        ld a,(sv_bugs)
+        ld (bugs),a
+        ld hl,sv_coll
+        ld de,collected
+        ld bc,24
+        ldir
+        ld a,$FF
+        ret
+.keys:  call keys_page
+        xor a
+        ld (fa_stage),a
+        jp .stage
 .page:  ld a,c
         add a,a
         ld e,a
@@ -583,7 +624,7 @@ f_attract:
         call page
         ld bc,650
         call fa_wait
-        jr z,.stage
+        jp z,.stage
 .key:   rla                     ; ESC: back to the title; SPACE: play
         jr nc,.play
         xor a
@@ -600,7 +641,8 @@ fa_hook: call hook_none
         call read_menu
         pop bc
         ld a,(padnew)
-        and $90
+        ld hl,fa_mask
+        and (hl)
         jr nz,fa_wo
         dec bc
         ld a,b
@@ -619,15 +661,274 @@ title_hook:
         and $3F
         ret nz
         ld a,(hl)
-        and $40
-        ld hl,t_press
-        jr z,.p
-        ld hl,t_credit
-.p:     ld de,$160A
+        rlca
+        rlca
+        and 3
+        ld e,a
+        cp 1
+        jr nz,.t
+        ld a,(sv_region)        ; "C - CONTINUE" only when there is something to continue
+        or a
+        jr nz,.t
+        ld e,0
+.t:     ld d,0
+        ld hl,t_lines
+        add hl,de
+        add hl,de
+        ld a,(hl)
+        inc hl
+        ld h,(hl)
+        ld l,a
+        ld de,$160A
         ld c,WHITE
         jp print
 
+t_lines:  dw t_press,t_cont,t_keys,t_credit
 t_press:  db "PRESS SPACE TO PLAY",0
+t_cont:   db "  C TO CARRY ON    ",0
+t_keys:   db "K TO CHOOSE KEYS   ",0
+
+; ---------------------------------------------------------------------
+;  choosing the keys: five presses, kept on the disk
+; ---------------------------------------------------------------------
+keys_page:
+        ld hl,pg_keys
+        call page
+        xor a
+        ld (kp_i),a
+.next:  ld a,'?'
+        ld c,YELLOW
+        call kp_put
+.up:    call m_frame            ; every key up, then one down
+        call kp_scan
+        jr c,.up
+.dn:    call m_frame
+        call kp_scan
+        jr nc,.dn
+        cp K_SPACE
+        jr z,.ok
+        or a
+        jr z,.dn
+        cp $30                  ; letters, digits and punctuation
+        jr nc,.dn
+.ok:    ld b,a
+        ld a,(kp_i)
+        ld e,a
+        ld d,0
+        ld hl,sv_keys
+        add hl,de
+        ld (hl),b
+        ld a,b
+        call kp_name
+        ld hl,kp_i
+        inc (hl)
+        ld a,(hl)
+        cp 5
+        jr c,.next
+        call keys_apply
+        call sv_save
+        ld hl,t_saved
+        or a
+        jr z,.s
+        ld hl,t_nosave
+.s:     ld d,21
+        ld c,BGREEN
+        call print_centred
+        ld bc,120
+        jp fa_hold
+
+; C = colour, A = a character: at this key's place
+kp_put: push af
+        ld a,(kp_i)
+        ld b,a
+        add a,a
+        add a,b
+        add a,5
+        ld d,a
+        ld e,24
+        pop af
+        jp putch
+; A = key code: its name
+kp_name:
+        ld c,WHITE
+        cp K_SPACE
+        jr nz,.ch
+        ld a,(kp_i)
+        ld b,a
+        add a,a
+        add a,b
+        add a,5
+        ld d,a
+        ld e,24
+        ld hl,t_space
+        jp print
+.ch:    cp $20
+        jr nc,.dig
+        add a,'@'
+        jr kp_put
+.dig:   sub $20
+        ld e,a
+        ld d,0
+        ld hl,t_digits
+        add hl,de
+        ld a,(hl)
+        jr kp_put
+t_digits: db "0123456789:;,-./"
+t_space:  db "SPACE",0
+t_saved:  db "KEPT ON THE DISK",0
+t_nosave: db "(NOT KEPT: NO DISK TO WRITE)",0
+; any key down? C set: A = its code
+kp_scan:
+        ld a,1
+        out (P_ROMLAT),a
+        ld c,0
+.l:     ld a,c
+        call keytest
+        jr nz,.hit
+        inc c
+        ld a,c
+        cp 64
+        jr c,.l
+        xor a
+        out (P_ROMLAT),a
+        ret
+.hit:   xor a
+        out (P_ROMLAT),a
+        ld a,c
+        scf
+        ret
+; the chosen keys into the game's key table
+keys_apply:
+        ld hl,sv_keys
+        ld de,key_slots
+        ld b,5
+.l:     ld a,(de)
+        inc de
+        push de
+        ld e,a
+        ld d,0
+        ld a,(hl)
+        inc hl
+        push hl
+        ld hl,keymap
+        add hl,de
+        ld (hl),a
+        pop hl
+        pop de
+        djnz .l
+        ret
+key_slots: db 12,10,14,16,6     ; left, right, frill, down, jump: their codes in keymap
+
+; ---------------------------------------------------------------------
+;  SAVE.DAT on the game's own disk: the region reached, the bugs found,
+;  the keys. Read at the first title; written when a region is cleared
+;  and when keys are chosen. The directory is checked before every
+;  write, every wait is bounded, and no disk just means nothing is kept.
+; ---------------------------------------------------------------------
+SVBUF   EQU $7C00
+SV_LEN  EQU sv_rec_end-sv_rec
+        INCLUDE "fdisk.inc"
+sv_sig: db "FRILLSEEKER1"
+sv_sum: ld hl,SVBUF+12
+        ld b,SV_LEN
+        xor a
+.b:     add a,(hl)
+        rlca
+        inc hl
+        djnz .b
+        ret
+sv_load:
+        ld hl,sv_done
+        ld a,(hl)
+        or a
+        ret nz
+        inc (hl)
+        call sv_dir
+        ret nz
+        ld a,SV_DATSEC
+        ld (sv_sec),a
+        call sv_read
+        ret nz
+        ld hl,SVBUF
+        ld de,sv_sig
+        ld b,12
+.s:     ld a,(de)
+        cp (hl)
+        ret nz
+        inc hl
+        inc de
+        djnz .s
+        call sv_sum
+        ld hl,SVBUF+12+SV_LEN
+        cp (hl)
+        ret nz
+        ld a,(SVBUF+12)
+        cp NREGIONS
+        ret nc
+        ld hl,SVBUF+12+SV_LEN-5 ; five sensible keys, or none of it
+        ld b,5
+.k:     ld a,(hl)
+        cp 64
+        ret nc
+        inc hl
+        djnz .k
+        ld hl,SVBUF+12
+        ld de,sv_rec
+        ld bc,SV_LEN
+        ldir
+        jp keys_apply
+; -> A = 0 written and read back, else not
+sv_save:
+        call sv_dir
+        jr nz,.bad
+        ld hl,SVBUF
+        ld b,0
+.c:     ld (hl),0
+        inc hl
+        ld (hl),0
+        inc hl
+        djnz .c
+        ld hl,sv_sig
+        ld de,SVBUF
+        ld bc,12
+        ldir
+        ld hl,sv_rec
+        ld bc,SV_LEN
+        ldir
+        call sv_sum
+        ld (SVBUF+12+SV_LEN),a
+        ld a,SV_DATSEC
+        ld (sv_sec),a
+        call sv_write
+        jr nz,.bad
+        call sv_read
+        jr nz,.bad
+        call sv_sum
+        ld hl,SVBUF+12+SV_LEN
+        cp (hl)
+        jr nz,.bad
+        xor a
+        ret
+.bad:   ld a,1
+        ret
+; the game so far into the record, and on to the disk. A = the region to carry on from
+sv_progress:
+        ld (sv_region),a
+        ld a,(bugs)
+        ld (sv_bugs),a
+        ld hl,collected
+        ld de,sv_coll
+        ld bc,24
+        ldir
+        or a
+        jr nz,sv_save
+        ld (sv_bugs),a          ; (the whole game done: a clean sheet)
+        ld hl,sv_coll
+        ld b,24
+.z:     ld (hl),a
+        inc hl
+        djnz .z
+        jr sv_save
 
 ; ---------------------------------------------------------------------
 ;  a page: text and pictures on black. HL = its items:
@@ -849,6 +1150,19 @@ picture:
         INCLUDE "demos.inc"
 
 ; ---- the front end's own variables (this block is RAM)
+fa_mask:    db $90
+fe_saved:   db 0
+kp_i:       db 0
+sv_done:    db 0
+sv_sec:     db 0
+sv_st:      db 0
+; the record kept on the disk
+sv_rec:
+sv_region:  db 0
+sv_bugs:    db 0
+sv_coll:    ds 24
+sv_keys:    db K_O,K_P,K_Q,K_A,K_SPACE
+sv_rec_end:
 fa_stage:   db 0
 fa_tune:    db 0
 fa_region:  db 0
@@ -868,4 +1182,4 @@ m_ch2:      ds CH_SIZE
 m_ch3:      ds CH_SIZE
 m_chd:      ds CH_SIZE
 front_end:
-        ASSERT front_end <= $8000
+        ASSERT front_end <= SVBUF

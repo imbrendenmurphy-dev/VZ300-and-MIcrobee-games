@@ -104,6 +104,7 @@ WHITE       EQU 15
 ; ---- keys (6545 light pen scan codes)
 K_A         EQU 1
 K_C         EQU 3
+K_K         EQU 11
 K_M         EQU 13
 K_O         EQU 15
 K_P         EQU 16

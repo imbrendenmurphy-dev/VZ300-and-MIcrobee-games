@@ -120,6 +120,11 @@ def build():
         pic('BUG0', 15, 12), pic('JAR', 14, 18), pic('BUG0', 15, 25),
         text(19, 'BLUFF PLAYS IT HIMSELF', BCYAN),
         text(22, 'PRESS SPACE TO PLAY', BGREEN)])
+    page('pg_keys', [
+        text(1, 'CHOOSE YOUR KEYS', YELLOW),
+        text(5, 'LEFT', WHITE, 10), text(8, 'RIGHT', WHITE, 10), text(11, 'FRILL', WHITE, 10),
+        text(14, 'DOWN', WHITE, 10), text(17, 'JUMP', WHITE, 10),
+        text(23, 'ARROWS AND A JOYSTICK ALWAYS WORK', GREY)])
     page('pg_over', [
         text(8, 'GAME OVER', BRED),
         text(12, 'THE TOADS HAVE IT - FOR NOW', WHITE),
@@ -147,8 +152,12 @@ def build():
         L.append('rl%d:\tdb "%s",0' % (i, REG_LINES[i]))
     # the sequence: title, a page, a region; and again
     st = []
-    for i in range(n * 3 if n % 3 else n):
-        st += [(0, 0), (1, i % 3), (2, i % n)]
+    # only the regions that have a recording are shown
+    from pathlib import Path
+    shown = [i for i in range(n) if (Path(__file__).resolve().parent.parent / 'demos' / ('region%d.txt' % i)).exists()]
+    k = len(shown)
+    for i in range(k * 3 if k % 3 else k):
+        st += [(0, 0), (1, i % 3), (2, shown[i % k])]
     L.append('stages:\tdb ' + ','.join('%d,%d' % s for s in st) + ',$FF,0')
     return L, tot
 

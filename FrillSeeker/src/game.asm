@@ -60,7 +60,12 @@ attract:
         call front_attract      ; -> 0: play; else region + 1 to demonstrate, HL = its script
         or a
         jp z,game_start
-        dec a
+        cp $FF                  ; carry on from the disk's record (already in place)
+        jr nz,.demo
+        xor a
+        ld (demo),a
+        jp region_restart
+.demo:  dec a
         ld (region),a
         ld (dm_ptr),hl
         ld a,1

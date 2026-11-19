@@ -1013,7 +1013,7 @@ keytest:
 ; SPACE (jump); a joystick too
 keymap: db K_RIGHT,1, K_LEFT,2, K_UP,4, K_SPACE,16, K_DOWN,8, K_P,1, K_O,2, K_Q,4, K_A,8, K_ESC,128
         db $FF
-keymenu: db K_M,32, K_C,64, K_SPACE,16, K_ESC,128
+keymenu: db K_K,32, K_C,64, K_SPACE,16, K_ESC,128
         db $FF
 
 read_menu:

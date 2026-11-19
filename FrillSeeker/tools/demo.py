@@ -195,7 +195,7 @@ def run(b, to_x=None, way=1, limit=600, frill_toads=True, leave=False):
         p = pad
         if b.on:
             if [m for m in magpie_near(b, 120) if m['state'] == 1]:
-                b.until(lambda: not [m for m in b.ents(6) if m['state'] == 1], F, 40)
+                b.until(lambda: not [m for m in b.ents(6) + b.ents(8) if m['state'] == 1], F, 40)
                 b.step(F, 4)
                 continue
             col = (b.x + 10 * way) // 16
@@ -204,6 +204,10 @@ def run(b, to_x=None, way=1, limit=600, frill_toads=True, leave=False):
             under = tile(b, (b.x + 12 * way) // 16, row + 1)
             if ahead == 1 or (under in (0, 3) and not b.v('h_spr')):
                 b.step(p | J, 12)
+                continue
+            g = [e for e in b.ents(7) if 0 < (e['x'] - b.x) * way < 46 and abs(e['y'] - b.y) < 20]
+            if g:                               # a goanna: over it
+                b.step(p | J, 14)
                 continue
             t = toad_ahead(b, way, 44)
             if t and t['state'] < 2 and frill_toads:
@@ -265,7 +269,7 @@ def hop(b, pad, hold=14, glide=False, until_x=None, way=1):
 
 
 def magpie_near(b, d=70):
-    return [m for m in b.ents(6) if abs(m['x'] - b.x) < d and abs(m['y'] - b.y) < d and m['state'] != 3]
+    return [m for m in b.ents(6) + b.ents(8) if abs(m['x'] - b.x) < d and abs(m['y'] - b.y) < d and m['state'] != 3]
 
 
 def stone_country(b):
@@ -314,7 +318,109 @@ def stone_country(b):
     return b
 
 
-PLANS = [red_dirt, stone_country]
+def ride(b, pad=0, until=None, limit=400):
+    """the frill open (in an updraught, up he goes) until until() or he lands"""
+    for i in range(limit):
+        if (until and until()) or b.on:
+            return
+        b.step(pad | F)
+
+
+def diggings(b):
+    b.step(0, 24)
+    run(b, 150)                      # over the mullock heap, past the toad
+    b.note('at the shaft')
+    b.step(0, 10)
+    room = b.room
+    b.until(lambda: b.room != room, R, 200)      # and in
+    b.land(0)
+    b.note('down the drop')
+    b.step(0, 16)
+    run(b, 40, way=-1)               # to the vent
+    b.left_to(34)
+    b.step(J | L, 6)
+    ride(b, 0, lambda: b.y < 40)     # up on the air
+    b.note('up the vent')
+    ride(b, R, None, 500)            # and all the way across under the frill
+    b.note('landed')
+    run(b)
+    b.note('the drive')
+    run(b, 140)
+    b.step(R | J, 10)
+    ride(b, R, None, 300)            # over the pit on its updraught
+    b.note('over the pit')
+    run(b, 260)
+    b.step(0, 30)
+    return b
+
+
+def the_wet(b):
+    b.step(0, 24)
+    t = bluff(b)
+    if t:
+        bounce(b, t, air=lambda b: R if b.x < 120 else 0)
+    b.note('bounced')
+    b.left_to(40)                    # a run-up, and across the water flat out
+    b.step(0, 6)
+    run(b)
+    b.note('paperbark swamp')
+    run(b)
+    b.note('the storm')
+    b.right_to(30)
+    b.step(R | J, 8)
+    ride(b, R, lambda: b.x >= 60)
+    ride(b, 0, lambda: b.y < 30)     # up the first gust
+    b.note('up the gust')
+    room = b.room
+    ride(b, R, lambda: b.room != room, 600)      # and the whole room under the frill
+    b.note('across')
+    b.land(R | F)
+    b.step(0, 30)
+    return b
+
+
+def court(b):
+    b.step(0, 30)
+    b.right_to(60)
+    hop(b, R, 14, until_x=80)        # a bug or two from the larder shelves
+    b.right_to(136)
+    hop(b, R, 14, until_x=150)
+    run(b)
+    b.note('the throne')
+    hits = 0
+    for i in range(1500):
+        k = b.ents(9)
+        if not k:
+            break
+        k = k[0]
+        d = k['x'] - b.x
+        to = R if d > 0 else L
+        away = L if (d > 0 and b.x > 40) or b.x > 280 else R
+        pad = 0
+        if k['state'] == 2:
+            pad = F if abs(d) < 90 and b.on else to
+        elif k['state'] == 3:
+            if abs(d) > 40:
+                pad = to
+            elif b.on:
+                pad = J | to
+            else:
+                pad = to if abs(d) > 2 else 0
+        elif k['state'] in (0, 1) and abs(d) < 110:
+            pad = away
+        b.step(pad)
+        h = b.pp.peek(b.S['ENTS'] + 14 + 16 * [j for j in range(8) if b.pp.peek(b.S['ENTS'] + 16 * j) == 9][0])
+        if h != hits:
+            hits = h
+            b.note('hit %d' % hits)
+            if hits == 2:
+                break
+    b.land(0)
+    b.step(0, 30)
+    return b
+
+
+PLANS = [red_dirt, stone_country, diggings, the_wet, court]
 
 
 def replay(region, mono=False, vwait=None):
@@ -343,7 +449,10 @@ def replay(region, mono=False, vwait=None):
 if __name__ == '__main__':
     if sys.argv[1] == 'check':
         for region in range(len(PLANS)):
-            want = (ROOT / 'demos' / ('region%d.end' % region)).read_text().strip()
+            f = ROOT / 'demos' / ('region%d.end' % region)
+            if not f.exists():
+                continue
+            want = f.read_text().strip()
             for mono in (False, True):
                 got, n = replay(region, mono)
                 print('region %d %-6s %s after %d ticks: %s' % (region, 'mono' if mono else 'colour', got, n,
