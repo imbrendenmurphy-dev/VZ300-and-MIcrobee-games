@@ -94,6 +94,12 @@ def build(sp):
                 g, col = best2(seg)
                 ph.append(g)
                 cols.append(col)
+            # a phase with no ink on black paper can take any ink: give it
+            # the commonest colour, so most cells keep one colour
+            inked = [cols[k] for k in range(CL) if any(ph[k]) or cols[k] >> 4]
+            if inked:
+                common = max(set(inked), key=inked.count)
+                cols = [c if (any(ph[k]) or c >> 4) else common for k, c in enumerate(cols)]
             colL, colU = tuple(cols), None
             key = (tuple(ph), colL)
             if key not in pid:
@@ -182,7 +188,7 @@ def main():
                 rec[c] = 0x80 + s
                 rec[40 + c] = 0
                 rec[80 + c] = cols[0]
-                plist.append((c, s))
+                plist.append((c, s | (0 if len(set(cols)) == 1 else 0x80)))  # 80h: colour varies
         rec[120] = len(plist)
         for i, (c, s) in enumerate(plist):
             rec[121 + 2 * i:123 + 2 * i] = bytes((c, s))
@@ -247,13 +253,39 @@ def main():
     for i, ch in enumerate(font.ORDER):
         if 32 <= ord(ch) < 96:
             fmap[ord(ch) - 32] = 0x80 + i
+    h.append('FONT_BAR\tequ $%02X' % (0x80 + font.ORDER.index('|')))
     h.append('font_map:\tdb ' + ','.join('$%02X' % x for x in fmap))
     # SHIPTEST's WORK block: row buckets (2 sets) below, sprites from 2C00h
-    lib, labels = art.sprite_lib(base=0x2C00, limit=0x5800)
-    (B / 'SWORK.BNK').write_bytes(bytes(0x2C00) + lib)
+    lib, labels = art.sprite_lib(base=0x1600, limit=0x6800)
+    (B / 'SWORK.BNK').write_bytes(bytes(0x1600) + lib)
     for name, v in labels.items():
         h.append('%s\tequ $%04X' % (name, v))
     print('sprite library %d bytes' % len(lib))
+    # overlays: bullets (bank 13) and shots (bank 15) drawn ready at every
+    # even x shift and every line offset; table (shift / 2, line) ->
+    # codes of the cells top left, top right, bottom left, bottom right
+    for name, art_, tabname in ((None, art.BULLET, 'ovl_bul'), (None, art.SHOT, 'ovl_shot')):
+        m = art_ >= 0
+        oh, ow = m.shape
+        gl, tab = [], []
+        for s2 in range(4):
+            for j in range(CL):
+                cv = np.zeros((2 * CL, 16), bool)
+                cv[j:j + oh, 2 * s2:2 * s2 + ow] = m
+                codes = [0, 0, 0, 0]
+                for n, (ri, ci) in enumerate(((0, 0), (0, 1), (1, 0), (1, 1))):
+                    cell = cv[ri * CL:(ri + 1) * CL, ci * 8:(ci + 1) * 8]
+                    if cell.any():
+                        codes[n] = 0x80 + len(gl)
+                        gl.append(bytes(gfx.byte8(cell[y]) for y in range(CL)))
+                tab += codes
+        assert len(gl) <= 128
+        h.append('%s:\tdb %s' % (tabname, ','.join('$%02X' % x for x in tab)))
+        h.append('%s_n\tequ %d' % (tabname, len(gl)))
+        flat = b''.join(gl)
+        for i in range(0, len(flat), 22):
+            h.append(('%s_gl:' % tabname if i == 0 else '') + '\tdb ' + ','.join('$%02X' % x for x in flat[i:i + 22]))
+        print('%s: %d glyphs' % (tabname, len(gl)))
     # sprite row tables: t = y + 16 (y = 0 at the top of display row 2)
     rt = [max(0, 2 + (t - 16) // CL) for t in range(256)]
     ot = [(t - 16) % CL for t in range(256)]

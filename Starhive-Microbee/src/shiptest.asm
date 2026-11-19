@@ -300,21 +300,22 @@ star_off:			; off = (s88 / 2 - k) mod 44
 ; ---------------------------------------------------------------------
 ;  HL = map row, DE = its ring offset: the row's segment (pair cells)
 ; ---------------------------------------------------------------------
-seg_build:
-	ld (bl_base),de
-	ld a,l
+seg_build:			; two lists: cells of one colour (address),
+	ld (bl_base),de		; from +0; cells whose colour changes with the
+	ld a,l			; phase (address, slot, 0), from +58h
 	and 31
 	or SEGS>>8
 	ld d,a
 	ld e,0
 	ld (bl_dst),de
+	ld e,$58
+	ld (bl_dstb),de
 	call row_rec
 	ld a,l
 	add a,120
 	ld l,a
 	ld b,(hl)
 	inc hl
-	ld de,(bl_dst)
 	ld a,b
 	or a
 	jr z,.e
@@ -329,20 +330,38 @@ seg_build:
 	ld a,h
 	and 7
 	or $F0
-	ex de,hl
+	ld h,a
+	ex de,hl		; DE = the cell's address
+	pop hl
+	ld a,(hl)		; slot (+80h: colour changes)
+	inc hl
+	push hl
+	bit 7,a
+	jr nz,.v
+	ld hl,(bl_dst)
 	ld (hl),e
+	inc hl
+	ld (hl),d
+	inc hl
+	ld (bl_dst),hl
+	jr .nx
+.v:	and $7F
+	ld hl,(bl_dstb)
+	ld (hl),e
+	inc hl
+	ld (hl),d
 	inc hl
 	ld (hl),a
 	inc hl
-	ex de,hl
-	pop hl
-	ld a,(hl)		; slot
 	inc hl
-	ld (de),a
-	inc de
-	inc de
+	ld (bl_dstb),hl
+.nx:	pop hl
 	djnz .c
-.e:	ex de,hl
+.e:	ld hl,(bl_dst)
+	ld (hl),0
+	inc hl
+	ld (hl),0
+	ld hl,(bl_dstb)
 	ld (hl),0
 	inc hl
 	ld (hl),0
@@ -938,6 +957,7 @@ hudd	ds 1
 spsave	ds 2
 bl_dst	ds 2
 bl_base	ds 2
+bl_dstb	ds 2
 rc_win	ds 1
 load_ptr ds 2
 load_left ds 1
@@ -958,6 +978,9 @@ sr_ring	ds 2
 sr_flag	ds 1
 ps_bkt	ds 1
 ps_old	ds 1
+ps_bk16	ds 2
+ps_old16 ds 2
+sd_flag	ds 1
 bk_s	ds 2*VROWS
 pgbank	ds 1
 sr_bpa	ds 2

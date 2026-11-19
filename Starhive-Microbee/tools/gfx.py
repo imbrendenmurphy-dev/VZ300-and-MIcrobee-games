@@ -107,7 +107,7 @@ def dilate(mask):
     return m
 
 
-def sprite_frame(art, outline=True):
+def sprite_frame(art, outline=True, even=False):
     """art: colour-index array (-1 = transparent), h x w pixels.
     -> frame bytes: wb, h, flags, 0, block size (2), then 8 blocks (one
     per pixel shift): wb x (first line, end line, colour), then wb
@@ -119,7 +119,7 @@ def sprite_frame(art, outline=True):
     pad = 1 if outline else 0
     wb = (w + 2 * pad + 7 + 7) // 8
     blocks = []
-    for s in range(8):
+    for s in ((0, 2, 4, 6) if even else range(8)):
         W = wb * 8
         g = np.zeros((h, W), bool)
         cimg = np.full((h, W), -1, np.int16)
@@ -155,4 +155,4 @@ def sprite_frame(art, outline=True):
             strips += bytes(CL) + bytes(byte8(g[y, c * 8:(c + 1) * 8]) for y in range(h)) + bytes(CL)
         blocks.append(bytes(head + data + strips))
     bsz = len(blocks[0])
-    return bytes([wb, h, 0, 0, bsz & 0xFF, bsz >> 8]) + b''.join(blocks)
+    return bytes([wb, h, 1 if even else 0, 0, bsz & 0xFF, bsz >> 8]) + b''.join(blocks)

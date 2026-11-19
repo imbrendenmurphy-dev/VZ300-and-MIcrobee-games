@@ -1,0 +1,46 @@
+frame	ds 1
+firecd	ds 1
+px	ds 2
+py	ds 1
+state	ds 1
+level	ds 1
+lives	ds 1
+dead	ds 1
+inv	ds 1
+boss	ds 1
+stimer	ds 1
+hisc	ds 3
+seed	ds 2
+scrolled ds 1
+wave_ptr ds 2
+sp_type	ds 1
+sp_x	ds 2
+sp_count ds 1
+sp_gap	ds 1
+sp_amp	ds 1
+sp_amp_now ds 1
+sp_wait	ds 1
+c_x	ds 2
+c_y	ds 1
+tx_code	ds 1
+tx_row	ds 1
+ov_col	ds 1
+ov_bank	ds 1
+ov_row	ds 1
+ov_col0	ds 1
+ov_code	ds 1
+ov_bpa	ds 2
+calm	ds 1
+spk	ds 1
+snd_len	ds 1
+snd_per	ds 1
+snd_cnt	ds 1
+snd_nse	ds 1
+snd_slide ds 1
+snd_pri	ds 1
+objects:
+enemies	ds NENEMY*ESIZE
+buls	ds NBUL*BSIZE
+shots	ds NSHOT*3
+objects_end:
+	ASSERT $ < $E9F0	; (E9F8: the spare byte's colour twin)

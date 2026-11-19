@@ -14,15 +14,15 @@
 ;  put back from the shadows, the row's scenery pass, this frame's cells
 ;  - all just ahead of the beam.
 ;
-;  WORK block (lower window): bucket sets 0000 and 1600 (22 rows of 256
-;  bytes each, by page), sprite library from 2C00, shadows SHK 6800,
+;  WORK block (lower window): bucket sets 0000 and 0B00 (22 rows of 128
+;  bytes each, by page), sprite library from 1600, shadows SHK 6800,
 ;  SHC 7000, SHA 7800 (scenery colour, code, attribute by ring cell).
 ; =====================================================================
 
-NSLOT	equ 255
+NSLOT	equ 128		; (one bank a page: 12 or 14)
 BK_POOL	equ 12
-SB0	equ $0000
-SB1	equ $1600
+SB0	equ $0000		; 22 buckets of 128 bytes (20 cells) per set
+SB1	equ $0B00
 
 ; ---------------------------------------------------------------------
 ;  start a frame: the bucket set of this page emptied
@@ -51,6 +51,10 @@ frame_begin:
 	ld a,h
 	ld (de),a
 	inc de
+	ld a,l
+	add a,128
+	ld l,a
+	jr nc,$+3
 	inc h
 	djnz .b
 	ret
@@ -73,12 +77,13 @@ finish_frame:
 ; both bucket sets empty (at the start)
 buckets_clear:
 	ld hl,SB0+2
+	ld de,128
 	ld b,2*VROWS
 .c:	ld (hl),0
 	inc hl
 	ld (hl),0
 	dec hl
-	inc h
+	add hl,de
 	djnz .c
 	ret
 
@@ -97,6 +102,8 @@ spr_draw:
 	add a,a
 	ld (sd_h2),a
 	inc hl
+	ld a,(hl)
+	ld (sd_flag),a
 	inc hl
 	inc hl
 	ld c,(hl)
@@ -106,6 +113,15 @@ spr_draw:
 	ld a,e
 	and 7
 	jr z,.s0
+	ex af,af'
+	ld a,(sd_flag)
+	rrca
+	jr nc,.s8
+	ex af,af'		; even shifts only: block (x & 7) / 2
+	srl a
+	jr z,.s0
+	jr .sh
+.s8:	ex af,af'
 .sh:	add hl,bc
 	dec a
 	jr nz,.sh
@@ -190,6 +206,7 @@ spr_draw:
 	ret nc			; below the playfield
 	cp EROW0
 	call nc,spr_row
+	call vschk
 	ld a,(sd_rn)
 	ld b,a
 	add a,a
@@ -278,7 +295,8 @@ spr_row:
 	cp NSLOT
 	jp nc,.skip		; pool full: clipped
 	ld a,(sr_bp)
-	cp 256-8
+	and $7F
+	cp 128-8
 	jp nc,.skip		; row bucket full: clipped
 	push bc
 	ld a,c
@@ -471,6 +489,148 @@ mrg_ntab:
 	dw mrg_new_end-35,mrg_new_end-42,mrg_new_end-49,mrg_new_end-56
 	dw mrg_new_end-63,mrg_new_end-70,mrg_new_end-77
 
+; ---------------------------------------------------------------------
+;  an overlay (bullet or shot): ready-drawn cells, no composing.
+;  DE = x + 16, C = y + 16, HL = its table, A = colour, B = PCG bank
+; ---------------------------------------------------------------------
+; DE = x + 16, C = y + 16, HL = table, A = colour, B = bank
+ovl_draw:
+	ld (ov_col),a
+	ld a,b
+	ld (ov_bank),a
+	ld a,e
+	and 6
+	rrca			; shift / 2
+	ld b,a
+	add a,a
+	add a,a
+	add a,a
+	add a,b
+	add a,b
+	add a,b
+	ld b,a			; 11 (shift / 2)
+	push hl
+	ld l,c
+	ld h,rowt>>8
+	ld c,(hl)		; row
+	inc h
+	ld a,(hl)		; line in the cell
+	add a,b
+	add a,a
+	add a,a
+	pop hl
+	add a,l
+	ld l,a
+	jr nc,$+3
+	inc h			; HL = the four codes
+	srl d
+	rr e
+	srl d
+	rr e
+	srl d
+	rr e
+	ld a,e
+	sub 2
+	ld (ov_col0),a
+	ld a,c
+	call .row		; top: codes 0, 1
+	inc hl
+	inc hl
+	ld a,c
+	inc a			; below: codes 2, 3
+.row:	ld b,a
+	ld a,(hl)		; nothing in this row of the overlay?
+	inc hl
+	or (hl)
+	dec hl
+	ret z
+	ld a,b
+	cp EROW0
+	ret c
+	cp EROW1+1
+	ret nc
+	push bc
+	push hl
+	ld (ov_row),a
+	sub 2			; this row's bucket pointer
+	add a,a
+	add a,low(bk_s)
+	ld e,a
+	ld a,high(bk_s)
+	adc a,0
+	ld d,a
+	ld (ov_bpa),de
+	ld a,(ov_row)		; ring offset of the row's first column
+	add a,a
+	ld e,a
+	ld d,0
+	ld hl,mul40
+	add hl,de
+	ld e,(hl)
+	inc hl
+	ld d,(hl)
+	ld hl,(scrS)
+	add hl,de
+	ld a,(ov_col0)
+	ld e,a
+	add a,a
+	sbc a,a
+	ld d,a
+	add hl,de
+	ex de,hl		; DE = ring offset of column col0
+	pop hl
+	push hl
+	ld b,2
+.c:	ld a,(hl)
+	or a
+	jr z,.n
+	ld (ov_code),a
+	ld a,(ov_col0)		; column on the screen?
+	add a,2
+	sub b
+	cp SCOLS
+	jr nc,.n
+	push hl
+	ld hl,(ov_bpa)
+	ld a,(hl)
+	inc hl
+	ld h,(hl)
+	ld l,a
+	and $7F
+	cp 128-8
+	jr nc,.f
+	ld (hl),e		; address, code, attribute, colour
+	inc l
+	ld a,d
+	and 7
+	or $F0
+	ld (hl),a
+	inc l
+	ld a,(ov_code)
+	ld (hl),a
+	inc l
+	ld a,(ov_bank)
+	ld (hl),a
+	inc l
+	ld a,(ov_col)
+	ld (hl),a
+	inc l
+	inc l
+	push de
+	ex de,hl
+	ld hl,(ov_bpa)
+	ld (hl),e
+	inc hl
+	ld (hl),d
+	pop de
+.f:	pop hl
+.n:	inc hl
+	inc de
+	djnz .c
+	pop hl
+	pop bc
+	ret
+
 mul40:	dw 0,40,80,120,160,200,240,280,320,360,400,440,480,520,560,600
 	dw 640,680,720,760,800,840,880,920
 sr_bg:	ds 16
@@ -493,16 +653,18 @@ rows_commit:
 	ld (ps_page),a
 	ld a,(page)		; this frame's set; last frame's the other
 	or a
-	ld a,SB0>>8
-	ld c,SB1>>8
+	ld hl,SB0+2
+	ld de,SB1+2
 	jr z,.p0
-	ld a,SB1>>8
-	ld c,SB0>>8
-.p0:	ld (ps_bkt),a
-	ld a,(step)
-	neg
-	add a,c
-	ld (ps_old),a
+	ex de,hl
+.p0:	ld (ps_bk16),hl
+	ld a,(step)		; (one row up before a step)
+	or a
+	jr z,.p1
+	ld hl,-128
+	add hl,de
+	ex de,hl
+.p1:	ld (ps_old16),de
 	ld a,VROWS
 	ld (ps_n),a
 	ld a,(k)
@@ -516,10 +678,7 @@ rows_commit:
 	ld a,(ps_n)
 	cp VROWS
 	jr z,.r2
-.ok:	ld a,(ps_old)
-	ld h,a
-	ld l,2
-	ld sp,hl
+.ok:	ld sp,(ps_old16)
 .r1:	pop hl			; put back last frame's cells
 	bit 7,h
 	jr z,.r2
@@ -549,7 +708,16 @@ rows_commit:
 	ld h,a
 	ld l,0
 	ld sp,hl
-.l:	pop hl			; scenery pass
+.la:	pop hl			; scenery of one colour: the phase bank
+	bit 7,h
+	jr z,.lb
+	ld (hl),d
+	jp .la
+.lb:	ld a,(ps_page)
+	ld h,a
+	ld l,$58
+	ld sp,hl
+.l:	pop hl			; scenery whose colour changes too
 	bit 7,h
 	jr z,.r3
 	pop bc
@@ -559,10 +727,7 @@ rows_commit:
 	set 3,h
 	ld (hl),a
 	jp .l
-.r3:	ld a,(ps_bkt)
-	ld h,a
-	ld l,2
-	ld sp,hl
+.r3:	ld sp,(ps_bk16)
 .r4:	pop hl			; this frame's sprite cells
 	bit 7,h
 	jr z,.r5
@@ -577,10 +742,13 @@ rows_commit:
 	set 3,h
 	ld (hl),e
 	jp .r4
-.r5:	ld hl,ps_bkt
-	inc (hl)
-	ld hl,ps_old
-	inc (hl)
+.r5:	ld hl,(ps_bk16)
+	ld de,128
+	add hl,de
+	ld (ps_bk16),hl
+	ld hl,(ps_old16)
+	add hl,de
+	ld (ps_old16),hl
 	ld a,(ps_page)
 	dec a
 	and 31
