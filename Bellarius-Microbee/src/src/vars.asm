@@ -29,15 +29,11 @@ poolport:   db 0
 poolcnt:    db 0
 dlcnt:      db 0
 rl_cur:     dw 0
-bl_cur:     dw 0
 rlcnt:      db 0,0
-blcnt:      db 0,0
 rs_ptr:     dw 0
 rs_n:       db 0
 rs_blk:     db 0
 rs_sp:      dw 0
-rs_full:    db 0
-rs_c:       db 0
 nstrip:     db 0
 st_blk:     db 0
 st_pg:      db 0
@@ -72,6 +68,36 @@ fb_blk:     db 0
 pb_bank:    db 0
 txt_col:    db 0
 fc_glyph:   dw 0
+; ---- the video discipline (render.asm): prepare in RAM, blast in the blanking
+dispoff:    db 0            ; 1: the picture is off (R6 = 0)
+fw_fresh:   db 0            ; 1: fw_core stopped at the start of a blanking
+bud:        dw 0            ; T-states left in this blanking
+bl_step:    db 0
+bl_last:    db 0
+early_ok:   db 0
+bl_i:       db 0
+bl_m:       db 0
+blank_n:    db 0
+st_new:     db 0            ; 1: the terrain rows' runs moved: copy them all
+stsig:      ds 12           ; per page: the scroll (6 bytes) its terrain rows show
+sdirty:     ds 12           ; per terrain row: copy it again (something left it)
+strip_src:  ds 12*9         ; per terrain row, per plane: port, address of column 0
+rowstrip:   ds 25           ; per screen row: terrain row index, or FFh
+rowpaper:   ds 25           ; per screen row: the sky colour
+lk_row:     db 0            ; the cell being looked up (base_at)
+lk_col:     db 0
+lk_si:      db 0
+lk_strip:   db 0
+ca_col:     db 0
+ca_bc:      dw 0
+tq_n:       db 0            ; text queue: cell (2), code, bank, colour
+tq_tmp:     dw 0
+tq:         ds 32*5
+bk_org:     ds 8            ; per page: the boss box (column, row, columns, rows)
+bossk0:     ds 120          ; per page: boss glyph+1 per cell of its box (12 wide)
+bossk1:     ds 120
+brw_n:      db 0
+brw:        ds 32           ; boss cells (k) to put back this blast
 ; ---- input
 rk_pad:     db 0,0
 pad:        db 0

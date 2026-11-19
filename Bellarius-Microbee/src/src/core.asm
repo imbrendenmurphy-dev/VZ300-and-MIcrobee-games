@@ -165,7 +165,10 @@ vschk:  in a,(P_CRTCA)
         ld a,(vcount)
         inc a
         ld (vcount),a
-        ret
+        ld a,(early_ok)         ; a blanking while the frame is prepared:
+        or a                    ; its terrain rows and boss can go in now
+        ret z
+        jp early_blast
 .lo:    ld (vblast),a
         ret
 
@@ -176,12 +179,33 @@ vschk:  in a,(P_CRTCA)
 ; Noise mode: channel 2 pulses when a byte of the program is below D'.
 ; ---------------------------------------------------------------------
 frame_wait:
+        call fw_core
+        call fw_book
+        call tq_flush           ; text for the screen goes in the blanking
+        xor a
+        ld (fw_fresh),a         ; (only good straight after the wait)
+        ret
+
+; vb_wait: play on until the next vertical blanking starts
+vb_wait:
+        ld a,(vcount)
+        inc a
+; fw_core: the beeper plays until (vcount) reaches A. (fw_fresh) = 1 if it
+; stopped at the start of a vertical blanking (the whole of it to come)
+fw_core:
         ld (fw_need),a
-        call vschk
+        xor a
+        ld (fw_fresh),a
+        ld a,(dispoff)
+        or a
+        jr z,.on
+        ld (fw_fresh),a         ; no picture: any time is blanking time
+        ret
+.on:    call vschk
         ld a,(vcount)
         ld hl,fw_need
         cp (hl)
-        jp nc,.done
+        ret nc
         ld a,(noiseon)
         or a
         jp nz,fw_noise
@@ -237,16 +261,55 @@ frame_wait:
         exx
         ld (acc2),hl
         exx
-.done:  ld a,(vcount)
+fw_fresh1:
+        ld a,1
+        ld (fw_fresh),a
+        ret
+
+; fw_book: a frame is done - count it, and carry a late field over
+fw_book:
+        ld a,(vcount)
         ld hl,fw_need
         sub (hl)
-        cp 2
+        jr nc,.p
+        xor a
+.p:     cp 2
         jr c,.k
         ld a,1
 .k:     ld (vcount),a
         ld hl,(framecount)
         inc hl
         ld (framecount),hl
+        ret
+
+; the picture off (6545 R6 = 0 rows) while a whole screen or the PCG is
+; rewritten: then video RAM can be written at any time. With the picture
+; on, the real Premium Plus in the 40-column mode garbles it if the CPU
+; touches video RAM while a line is drawn, so everything goes in the
+; vertical blanking (BPM's photos, Nov 2026).
+display_off:
+        ld a,(dispoff)
+        or a
+        ret nz
+        ld a,6
+        out (P_CRTCA),a
+        xor a
+        out (P_CRTCD),a
+        ld a,1
+        ld (dispoff),a
+.w:     in a,(P_CRTCA)          ; R6 only stops the picture at the next
+        and $20                 ; frame: wait for this one's blanking
+        jr z,.w
+        ret
+display_on:
+        ld a,6
+        out (P_CRTCA),a
+        ld a,$19
+        out (P_CRTCD),a
+        xor a
+        ld (dispoff),a
+        ld a,$20                ; (the picture starts at the next frame:
+        ld (vblast),a           ; only a blanking after it counts)
         ret
 
 fw_noise:
@@ -306,7 +369,7 @@ fw_noise:
         set 7,h
         ld (acc2),hl
         exx
-        jp frame_wait.done
+        jp fw_fresh1
 
 ; ---------------------------------------------------------------------
 random:

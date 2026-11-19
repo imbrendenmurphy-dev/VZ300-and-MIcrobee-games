@@ -41,7 +41,8 @@ python3 tools/build.py        # assembles, packs the art, writes build/BELLARIUS
 
 ## Status
 - Everything plays end to end in the emulator; soak tests run clean.
-- Frame rate (raster model, stage 1): 22–23 fps unpowered, 15–17 fps mid-power, 12–14 fps fully powered. Boss fights 15–18 fps. An optimisation pass is still to come.
-- Real hardware: the first test showed four small pictures and junk glyphs; fixed by selecting the 40-column dot clock (`in a,($09)` with A=1) — awaiting confirmation. Saving to the SD floppy emulation is untested on real hardware.
+- **Real hardware, test 2 (Nov 2026):** the full-width picture was right, but there were columns of garbage glyphs and damaged score/upgrade-bar text. The cause: in the 40-column mode the real Premium Plus garbles video RAM when the CPU touches it while a line is being drawn. The renderer now prepares every frame in ordinary RAM and writes video RAM (screen, attributes, colours, PCG) only in the vertical blanking, in budgeted batches; whole-screen redraws happen with the picture switched off. `tools/vidcheck.py` and `tools/vidcheck_all.py` check this in the raster model: no video access while the picture is displayed, anywhere in the game.
+- Frame rate (raster model): stage play about 15–18 fps, boss fights about 10–13 fps. A speed-up pass is still to come.
+- Saving to the SD floppy emulation is untested on real hardware.
 
 See `docs/DESIGN.md` for the full design.

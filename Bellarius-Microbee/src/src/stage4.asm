@@ -875,6 +875,6 @@ draw_boss_objs:
 warn1:      db "1.. 2.. 3.. 4!  ",0
 warn2:      db "* TAKES A BOW * ",0
 ovl_end:
-        ASSERT ovl_end <= OVL_END
+        ASSERT ovl_end <= POOLRAM       ; (POOLRAM: the pool glyphs during play)
         SAVEBIN "../build/OVL4.BIN",OVL,ovl_end-OVL
         DISPLAY "stage 4 overlay end: ",ovl_end

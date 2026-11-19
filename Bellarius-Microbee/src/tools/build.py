@@ -395,6 +395,13 @@ def main():
     spr = bytearray(SPR_DATA)
     spr[0:len(common.blob(False))] = common.blob(False)
     spr += gk + sdata
+    # the sprite frame table (256 x dw address, db block) at 7C00h: the common
+    # frames now, the stage's 64 copied in when a stage loads
+    assert len(spr) <= 0x7C00, 'common sprites too big'
+    spr += bytes(0x7C00 - len(spr))
+    for a, b in stab:
+        spr += bytes([a & 255, a >> 8, b])
+    spr += bytes(0x7C00 + 256 * 3 - len(spr))
     banks = {BLK_SPR: bytes(spr)}
     print('common sprites: %d frames, block %d: %d bytes' % (len(S), BLK_SPR, len(spr)))
     L = ['GK_TAB equ $%04X' % SPR_DATA]
@@ -491,6 +498,14 @@ def overlays(banks):
     blk[0:len(code)] = code
     banks[fb] = bytes(blk)
     print('front end overlay: %d bytes' % len(code))
+    mus = open(os.path.join(BUILD, 'MUS.BIN'), 'rb').read()
+    blk = bytearray(banks[fb])
+    MUSIC_AT = 0x7000
+    assert len(blk) <= MUSIC_AT, 'front block overlaps the tunes'
+    blk += bytes(MUSIC_AT - len(blk))
+    blk[MUSIC_AT:MUSIC_AT + len(mus)] = mus
+    banks[fb] = bytes(blk)
+    print('tunes: %d bytes in block %d at %04Xh' % (len(mus), fb, MUSIC_AT))
 
 
 if __name__ == '__main__':

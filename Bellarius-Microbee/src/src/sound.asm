@@ -156,10 +156,16 @@ sound_tick:
         ld a,(mplaying)
         or a
         jr z,.sfx
+        ld a,(curblk)
+        push af
+        ld a,BLK_FRONT          ; (the tunes are in the front block)
+        call map_blk
         ld ix,mptr0
         call mus_chan
         ld ix,mptr1
         call mus_chan
+        pop af
+        call map_port
         ld a,(mfin0)
         ld b,a
         ld a,(mfin1)

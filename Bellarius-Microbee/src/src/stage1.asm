@@ -927,6 +927,6 @@ draw_boss_objs:
 warn1:      db "! TONER LOW !   ",0
 warn2:      db "! TONER LOW !   ",0
 ovl_end:
-        ASSERT ovl_end <= OVL_END
+        ASSERT ovl_end <= POOLRAM       ; (POOLRAM: the pool glyphs during play)
         SAVEBIN "../build/OVL1.BIN",OVL,ovl_end-OVL
         DISPLAY "stage 1 overlay end: ",ovl_end
