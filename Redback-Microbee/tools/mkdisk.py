@@ -11,7 +11,7 @@ B = ROOT / 'build'
 sysdisk = (ROOT / 'resources' / 'boot_tracks.bin').read_bytes()
 files = {'REDBACK.COM': (B / 'REDBACK.COM').read_bytes(),
          'REDBACK.BIN': (B / 'REDBACK.BIN').read_bytes()}
-for n in ('PAIRS', 'DECK', 'SPR0', 'SPR1', 'SPR2'):
+for n in ['PAIRS', 'DECK'] + sorted(p.stem for p in B.glob('SPR*.BNK')):
     files[n + '.BNK'] = (B / (n + '.BNK')).read_bytes()
 files['CCP.SYS'] = (ROOT / 'resources' / 'CCP.SYS').read_bytes()
 files['README.TXT'] = (ROOT / 'docs' / 'DISK_README.TXT').read_text().replace('\r\n', '\n').replace('\n', '\r\n').encode('ascii') + b'\x1a'

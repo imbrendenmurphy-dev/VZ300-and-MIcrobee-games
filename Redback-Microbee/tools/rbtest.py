@@ -16,8 +16,11 @@ def boot(binname='REDBACK.BIN', sym='redback.sym'):
         pp.blocks[b][off:off + len(data)] = np.frombuffer(data, np.uint8)
     put(8, (B / 'PAIRS.BNK').read_bytes())
     put(12, (B / 'DECK.BNK').read_bytes())
-    for i in range(3):
-        put(13 + i, (B / ('SPR%d.BNK' % i)).read_bytes())
+    import sprites
+    i = 0
+    while (B / ('SPR%d.BNK' % i)).exists():
+        put(sprites.SPR_BLOCKS[i], (B / ('SPR%d.BNK' % i)).read_bytes())
+        i += 1
     put(0, (B / binname).read_bytes())
     pp.out(0x50, run.blk_port(8) | 8)
     pp.cpu.pc = 0x8000

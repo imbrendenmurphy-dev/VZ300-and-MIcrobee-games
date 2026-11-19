@@ -113,4 +113,6 @@ if __name__ == '__main__':
     bad += run(pp, 40, lambda f: ['RIGHT', 'UP'], 'right+up')
     bad += run(pp, 80, lambda f: ['LEFT', 'DOWN'], 'left+down')
     bad += run(pp, 80, lambda f: ['RIGHT'], 'right again')
+    import combattest      # Phase 2: the scripted combat flight (fire, turns, climbs, full speed)
+    bad += run(pp, 600, combattest.keys_at, 'combat flight')
     print('BAD' if bad else 'ALL EXACT')

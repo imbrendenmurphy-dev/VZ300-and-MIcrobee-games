@@ -27,7 +27,18 @@ DRAGY	EQU 60
 VYMAX	EQU $0300
 TXR	EQU 80			; ship screen x when facing right / left
 TXL	EQU 212
-NENEMY	EQU 4
+NENEMY	EQU 4			; enemy slots
+NSHOT	EQU 2			; player shots
+NBUL	EQU 2			; enemy bullets
+NOBJ	EQU NENEMY+NSHOT+NBUL	; one 16-byte record each, enemies / shots / bullets in a row
+OBJSZ	EQU 16
+SHOTV	EQU 12			; shot speed, px/frame (plus the ship's own speed)
+SHOTCOOL EQU 7			; frames between shots
+BULV	EQU 4			; enemy bullet speed
+PDIE_T	EQU 60			; frames of the player's explosion before the next ship
+INVUL_T	EQU 100			; invulnerable (blinking) frames after a new ship
+OVER_T	EQU 250			; GAME OVER shown for 5 s, then a new game
+LIVES0	EQU 3
 POOLMAX	EQU 80
 LOADMAX	EQU 6
 
@@ -110,7 +121,7 @@ init_tables:			; Y10 / YM, RES, PCOL, CMAP, SHC
 init_vars:
 	ld hl,VARS
 	ld de,VARS+1
-	ld bc,$FF
+	ld bc,vars_end-VARS-1
 	ld (hl),0
 	ldir
 	ld hl,S0*8
@@ -134,10 +145,12 @@ init_vars:
 	ld (psx),hl
 	ld a,60
 	ld (pyf+1),a
-	ld hl,enemy_init
-	ld de,enemies
-	ld bc,NENEMY*8
-	ldir
+	ld hl,$ACE1
+	ld (seed),hl
+	ld a,LIVES0
+	ld (lives),a
+	ld a,40
+	ld (spt),a		; the first wave comes in after 0.8 s
 	ld a,1
 	ld (dirty),a
 	ld (hudd),a
@@ -294,9 +307,10 @@ commit:	ld a,(stepd)
 	ld a,COL_ON
 	out (P_COLCTL),a
 	ld a,(stepd)
+	ld (hudlate),a		; on a step the bottom HUD row is written after the sprites
 	or a
 	jr z,.nh
-	call hud_codes
+	call hud_codes_top
 	call hud_edge_col
 	call commit_ent
 	jr .hd
@@ -307,34 +321,42 @@ commit:	ld a,(stepd)
 	ld (hudd),a
 	ld (stepd),a
 	ld (dirty),a
-	; ---- the sprite cells: old ones back to scenery, new ones in
+	; ---- the sprite cells: old ones back to scenery, new ones in.
+	; The top rows completely (attribute + colour, then codes) before the
+	; rest, so a crowded frame's top-row codes are not written behind the beam.
+	; In each list the old cells are restored before the new ones go in.
+	ld hl,(tprev)
+	ld de,(tbase)
+	call commit_list
+	ld hl,(bprev)
+	ld de,(bbase)
+	call commit_list
+	ld a,(hudlate)		; (LV_SCREEN is selected; row 24 is the last the beam draws)
+	or a
+	call nz,hud_codes_bot
+	xor a
+	out (P_COLCTL),a
+	ret
+
+; HL = last frame's list, DE = this frame's list (same rows): restore, then new
+commit_list:
+	ld (cl_prev),hl
+	ld (cl_new),de
 	ld a,LV_ATTR
 	out (P_LV),a
 	ld a,(kph)
 	ld c,a
-	ld hl,(tprev)
-	call restore1
-	ld hl,(bprev)
 	call restore1
 	ld a,(pbank)
 	ld e,a
-	ld hl,(tbase)
-	call new1
-	ld hl,(bbase)
+	ld hl,(cl_new)
 	call new1
 	ld a,LV_SCREEN
 	out (P_LV),a
-	ld hl,(tprev)
+	ld hl,(cl_prev)
 	call restore2
-	ld hl,(bprev)
-	call restore2
-	ld hl,(tbase)
-	call new2
-	ld hl,(bbase)
-	call new2
-	xor a
-	out (P_COLCTL),a
-	ret
+	ld hl,(cl_new)
+	jp new2
 
 ; old sprite cells: attribute k (C) and the scenery colour (LV_ATTR + COL_ON)
 restore1:
@@ -527,18 +549,22 @@ hud_edges_all:			; attribute RAM, whole HUD rows (LV_ATTR)
 	ret
 ; HUD codes (LV_SCREEN); colours of the two rows too (COL_ON on)
 hud_codes:
-	ld hl,(sphys)
-	ld de,VIDEO
-	add hl,de
-	ex de,hl
-	ld hl,HUDC
-	ld bc,40
-	ldir
+	call hud_codes_top
+hud_codes_bot:
 	ld hl,(sphys)
 	ld de,VIDEO+960
 	add hl,de
 	ex de,hl
 	ld hl,HUDC+40
+	ld bc,40
+	ldir
+	ret
+hud_codes_top:
+	ld hl,(sphys)
+	ld de,VIDEO
+	add hl,de
+	ex de,hl
+	ld hl,HUDC
 	ld bc,40
 	ldir
 	ret
@@ -553,10 +579,42 @@ logic:	call readinp
 	ld a,(frameno)
 	inc a
 	ld (frameno),a
+	ld a,(pstate)		; no control while exploding / GAME OVER
+	or a
+	ld a,(inp)
+	jr z,.ctl
+	xor a
+.ctl:	ld (pinp),a
 	call player_update
 	call scroll_update
-	call do_loads
+	ld a,(nospr)		; (nospr: the scroll test, no sprites and no combat)
+	or a
+	call z,combat
+	ld a,MV_PAIRS		; sprites_build reads the sprite index from the PAIRS block
+	out (P_MEM),a
 	call sprites_build
+	; pair loads after the sprites, fewer when there are many sprite cells, so
+	; a load spike and a crowded screen do not overrun the frame together.
+	; (The loads are for columns 2 ahead of the screen, so nothing visible changes.)
+	; A backlog of more than LOADMAX loads always gets the full budget.
+	ld b,LOADMAX
+	ld hl,(ldqp)
+	ld de,(ldqr)
+	or a
+	sbc hl,de		; bytes queued, 3 per load
+	ld de,3*LOADMAX+1
+	or a
+	sbc hl,de
+	jr nc,.ld
+	ld a,(poolcnt)
+	cp 16
+	jr c,.ld
+	ld b,LOADMAX-2
+	cp 24
+	jr c,.ld
+	ld b,LOADMAX-3
+.ld:	ld a,b
+	call dl0
 	call hud_update
 	ret
 
@@ -564,7 +622,7 @@ logic:	call readinp
 ;  player: thrust, turn state machine, banking, lead
 ; ---------------------------------------------------------------------
 player_update:
-	ld a,(inp)
+	ld a,(pinp)
 	ld c,a
 	ld hl,(vx)
 	bit 3,c
@@ -1072,10 +1130,38 @@ sprites_build:
 	ld a,(nospr)
 	or a
 	jr nz,.end
-	call enemies_draw	; enemies first, the player last: it wins a shared cell
+	call objs_draw		; enemies, shots, bullets first; the player last: it wins a shared cell
+	ld a,(pstate)
+	or a
+	jr nz,.pdead
+	ld a,(invul)		; a new ship blinks while it cannot be hit
+	and 4
+	jr nz,.end
 	ld a,(pframe)
 	ld (sp_f),a
 	ld hl,(psx)
+	ld (sp_x),hl
+	ld a,(pyf+1)
+	ld (sp_y),a
+	call spr_draw
+	jr .end
+.pdead:	dec a
+	jr nz,.end		; GAME OVER: no ship
+	ld a,(ptimer)		; exploding: X_0..X_3, 8 frames each
+	ld b,a
+	ld a,PDIE_T
+	sub b
+	rrca
+	rrca
+	rrca
+	and $1F
+	cp 4
+	jr nc,.end
+	add a,F_X_0
+	ld (sp_f),a
+	ld hl,(psx)
+	ld de,4
+	add hl,de
 	ld (sp_x),hl
 	ld a,(pyf+1)
 	ld (sp_y),a
@@ -1094,67 +1180,37 @@ sprites_build:
 	out (P_LV),a
 	ret
 
-; the demo enemies
-enemies_draw:
-	ld ix,enemies
-	ld b,NENEMY
-.e:	push bc
-	ld a,(ix+4)
-	add a,(ix+5)
-	ld (ix+4),a
-	ld l,a
-	ld h,sine>>8		; sine is page aligned
-	ld a,(hl)		; signed -63..63
-	ld e,a
-	rla
-	sbc a,a
-	ld d,a
-	ld l,(ix+0)
-	ld h,(ix+1)
-	add hl,de
-	ld de,(xpos)
+; every live object (enemies, explosions, shots, bullets): frame (ix+7) at
+; screen x (ix+8/9), line (ix+4); skipped unless -32 <= x < 320
+objs_draw:
+	ld ix,objs
+	ld b,NOBJ
+.l:	push bc
+	ld a,(ix+0)
 	or a
-	sbc hl,de		; screen x
+	jr z,.n
+	ld l,(ix+8)
+	ld h,(ix+9)
 	ld (sp_x),hl
-	; skip when far off screen
-	bit 7,h
-	jr z,.pos
+	ld de,32
+	add hl,de
 	ld a,h
-	cp $FF
-	jr nz,.skip
+	or a
+	jr z,.ok
+	dec a
+	jr nz,.n
 	ld a,l
-	cp -40
-	jr c,.skip
-	jr .vis
-.pos:	ld a,h
-	cp 2
-	jr nc,.skip
-	cp 1
-	jr nz,.vis
-	ld a,l
-	cp 64
-	jr nc,.skip
-.vis:	ld a,(ix+4)
-	add a,64
-	ld l,a
-	ld h,sine>>8
-	ld a,(hl)
-	sra a
-	sra a
-	add a,(ix+2)
+	cp 352-256
+	jr nc,.n
+.ok:	ld a,(ix+4)
 	ld (sp_y),a
-	ld a,(frameno)
-	rrca
-	rrca
-	rrca
-	and 1
-	add a,(ix+3)
+	ld a,(ix+7)
 	ld (sp_f),a
 	call spr_draw
-.skip:	ld de,8
+.n:	ld de,OBJSZ
 	add ix,de
 	pop bc
-	djnz .e
+	djnz .l
 	ret
 
 ; sp_f, sp_x (screen x, signed), sp_y (line in the playfield)
@@ -1352,6 +1408,8 @@ hud_build:
 	ld hl,hud_t0
 	ld de,HUDC
 	ld b,80
+; HL = ASCII text, DE = HUD code buffer, B = length
+hud_text:
 .c:	ld a,(hl)
 	sub 32
 	push hl
@@ -1416,23 +1474,29 @@ hud_update:
 	ld a,l
 	add a,$81
 	ld (de),a
-	; velocity: sign and integer part
-	ld hl,(vx)
-	ld a,(fmap+'+'-32)
-	ld c,a
-	bit 7,h
-	jr z,.vp
-	ld a,(fmap+'-'-32)
-	ld c,a
-	ex de,hl
-	ld hl,0
-	or a
-	sbc hl,de
-.vp:	ld a,c
-	ld (HUDC+VC),a
-	ld a,h
+	; score: 6 BCD digits, high byte first
+	ld hl,score+2
+	ld de,HUDC+SC
+	ld b,3
+.sc:	ld a,(hl)
+	rrca
+	rrca
+	rrca
+	rrca
+	and $0F
 	add a,$81
-	ld (HUDC+VC+1),a
+	ld (de),a
+	inc de
+	ld a,(hl)
+	and $0F
+	add a,$81
+	ld (de),a
+	inc de
+	dec hl
+	djnz .sc
+	ld a,(lives)
+	add a,$81
+	ld (HUDC+LC),a
 	ret
 .dig:	ld a,$80
 .d1:	inc a
@@ -1444,12 +1508,16 @@ hud_update:
 	inc de
 	ret
 
-XC	EQU 11
-VC	EQU 19
-IDLEC	EQU 28
-hud_t0:	db "REDBACK  X:0000  V:+0  IDLE:00%         "
-hud_t1:	db "VIBED BY BPM 2026   PHASE 1 TECH DEMO   "
+SC	EQU 6			; HUD columns: score, ships, X, idle
+LC	EQU 19
+XC	EQU 23
+IDLEC	EQU 33
+hud_t0:	db "SCORE:000000 SHIPS:3 X:0000 IDLE:00%    "
+hud_t1:	db "VIBED BY BPM 2026   "
+t_phase: db "PHASE 2 COMBAT TEST "
 	ASSERT $-hud_t0 == 80
+t_over:	db "     GAME OVER      "
+	ASSERT $-t_over == 20
 
 ; ---------------------------------------------------------------------
 ;  hardware
@@ -1565,30 +1633,14 @@ crtc80: db $6B,$50,$58,$37,$1B,$05,$18,$1A,$48,$0A,$2A,$0A,0,0,0,0
 ; 40 x 25 cells of 8 x 10, 313 lines (MODES.COM table, verified)
 crtc_tab: db $35,$28,$2C,$34,$1E,$03,$19,$1C,$48,$09,$20,$09,0,0,0,0
 
-enemy_init:			; bx lo, bx hi, y, frame, phase, speed, -, -
-	dw 330
-	db 40, F_D_0, 0, 3, 0, 0
-	dw 420
-	db 120, F_I_0, 40, 2, 0, 0
-	dw 470
-	db 80, F_D_0, 90, 4, 0, 0
-	dw 560
-	db 150, F_D_0, 140, 3, 0, 0
-	dw 700
-	db 60, F_I_0, 10, 2, 0, 0
-	dw 790
-	db 130, F_D_0, 200, 5, 0, 0
-	dw 900
-	db 100, F_I_0, 70, 3, 0, 0
-	dw 1000
-	db 40, F_D_0, 30, 4, 0, 0
-
+	INCLUDE "combat.asm"
 	INCLUDE "input.asm"
 	INCLUDE "../build/font.inc"
 	ALIGN 256
 	INCLUDE "../build/sine.inc"
 code_end:
 	ASSERT code_end <= SHC
+	ASSERT code_end <= $8000+$2000	; the loader copies 8K (PROG_LEN)
 
 ; ---------------------------------------------------------------------
 ;  variables
@@ -1656,7 +1708,28 @@ inp	ds 1
 inpold	ds 1
 inpedge	ds 1
 joyraw	ds 1
-enemies	ds NENEMY*8
+hudlate	ds 1
+cl_prev	ds 2
+cl_new	ds 2
+pinp	ds 1			; inp, or 0 while the ship cannot be steered
+pstate	ds 1			; 0 flying, 1 exploding, 2 GAME OVER
+ptimer	ds 1
+invul	ds 1
+lives	ds 1
+score	ds 3			; BCD, low byte first
+seed	ds 2
+spt	ds 1			; spawn timer
+wleft	ds 1			; wave members still to come
+wtype	ds 1
+wy	ds 1
+wdp	ds 1
+wside	ds 1
+scool	ds 1			; shot cooldown
+pobj	ds OBJSZ		; the ship's collision box (as an object record)
+objs:
+enemies	ds NENEMY*OBJSZ
+shots	ds NSHOT*OBJSZ
+buls	ds NBUL*OBJSZ
 vars_end:
 	ASSERT vars_end < STACK-64
 

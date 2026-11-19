@@ -32,6 +32,8 @@ MEMV        MACRO blk
 BLK_PAIRS   EQU 8           ; pair glyph records + sprites
 BLK_DECK    EQU 12          ; deck columns
 BLK_SAVE    EQU 16          ; CP/M's video state, saved by the loader
+; sprite streams: SPR0-3 in blocks 13, 14, 15, 17 (16 is skipped; list in tools/sprites.py SPR_BLOCKS,
+; the loader's list is generated into build/sprfiles.inc)
 EXIT_VID    EQU $E8FE       ; video window bits of CP/M's port 50h value
 EXIT_PORT   EQU $E8FF       ; CP/M's lower block (port 50h value)
 MV_SAVE     EQU ((BLK_SAVE & $1C) << 3) | ((BLK_SAVE & 3) ^ 2) | 4

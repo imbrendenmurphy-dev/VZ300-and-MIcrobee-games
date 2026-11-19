@@ -11,12 +11,19 @@ import numpy as np
 HERE = Path(__file__).resolve().parent
 FRAME_T = 67500
 SO = HERE / 'emu' / 'libmbee.so'
+# Windows: build mbee.dll with TinyCC unpacked in tools/tcc/tcc (-rdynamic exports all functions)
+TCC = HERE / 'tcc' / 'tcc' / 'tcc.exe'
+if os.name == 'nt':
+    SO = HERE / 'emu' / 'mbee.dll'
 
 
 def build_lib():
     src = [HERE / 'emu' / 'z80.c', HERE / 'emu' / 'mbee.c']
     if not SO.exists() or any(s.stat().st_mtime > SO.stat().st_mtime for s in src):
-        subprocess.check_call(['gcc', '-O2', '-shared', '-fPIC', '-o', str(SO)] + [str(s) for s in src])
+        if os.name == 'nt':
+            subprocess.check_call([str(TCC), '-shared', '-rdynamic', '-o', str(SO)] + [str(s) for s in src])
+        else:
+            subprocess.check_call(['gcc', '-O2', '-shared', '-fPIC', '-o', str(SO)] + [str(s) for s in src])
 
 
 build_lib()

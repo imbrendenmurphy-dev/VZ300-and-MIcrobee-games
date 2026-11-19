@@ -105,9 +105,7 @@ main:       di
 
 files:      DB 8,  "PAIRS   BNK"
             DB 12, "DECK    BNK"
-            DB 13, "SPR0    BNK"
-            DB 14, "SPR1    BNK"
-            DB 15, "SPR2    BNK"
+            INCLUDE "../build/sprfiles.inc"   ; SPR0.. -> blocks 13,14,15,17.. (16 = CP/M save)
             DB STG_PROG, "REDBACK BIN"
             DB 0
 

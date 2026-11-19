@@ -116,6 +116,45 @@ def shot():
     return dilate(m), d
 
 
+def bullet():
+    """enemy bullet: a small diamond"""
+    m = np.zeros((5, 5), bool)
+    for y, row in enumerate(('..#..', '.###.', '#####', '.###.', '..#..')):
+        for x, ch in enumerate(row):
+            m[y, x] = ch == '#'
+    return dilate(m), m
+
+
+def explosion(f):
+    """4 frames of a burst, 18 x 14: hot core -> flame ball -> broken ring -> sparks"""
+    w, h = 18, 14
+    cx, cy = 9, 7
+    rng = np.random.default_rng(40 + f)
+    if f == 0:
+        d = ellipse(cx, cy, 3.5, 2.6, w, h)
+        for dx, dy in ((5, 0), (-6, 0), (0, 4), (0, -5), (4, 3), (-5, -3)):
+            d[cy + dy, cx + dx] = True
+    elif f == 1:
+        d = ellipse(cx, cy, 6.5, 4.8, w, h)
+        d &= ~(ellipse(cx, cy, 2.2, 1.5, w, h))
+        yy, xx = np.mgrid[0:h, 0:w]
+        d &= ~((((xx + yy) % 3) == 0) & ~ellipse(cx, cy, 4.5, 3.2, w, h))
+    elif f == 2:
+        d = ellipse(cx, cy, 8.5, 6.5, w, h) & ~ellipse(cx, cy, 6.0, 4.4, w, h)
+        yy, xx = np.mgrid[0:h, 0:w]
+        d &= ((xx * 7 + yy * 3) % 5) < 3
+        d |= ellipse(cx - 2, cy + 1, 1.3, 1.0, w, h) | ellipse(cx + 3, cy - 1, 1.3, 1.0, w, h)
+    else:
+        d = np.zeros((h, w), bool)
+        for a in range(0, 360, 30):
+            r = 7.5 + rng.random() * 1.0
+            x = int(round(cx - 0.5 + r * math.cos(math.radians(a + 15))))
+            y = int(round(cy - 0.5 + r * 0.75 * math.sin(math.radians(a + 15))))
+            if 0 <= x < w and 0 <= y < h:
+                d[y, x] = True
+    return dilate(d), d
+
+
 def crop(data):
     ys, xs = np.nonzero(data)
     return data[ys.min():ys.max() + 1, xs.min():xs.max() + 1].copy()
@@ -164,7 +203,15 @@ def build_frames():
     add('D_1', BCYAN, *drone(1))
     add('I_0', BRED, *interceptor(0))
     add('I_1', BRED, *interceptor(1))
-    add('SHOT', YELLOW, *shot())
+    for f in (0, 1):                         # the interceptor flying right (nose right)
+        m, d = interceptor(f)
+        add('J_%d' % f, BRED, m[:, ::-1].copy(), d[:, ::-1].copy())
+    m, d = shot()
+    add('S_R', YELLOW, m, d)
+    add('S_L', YELLOW, m[:, ::-1].copy(), d[:, ::-1].copy())
+    add('B_0', 13, *bullet())                # bright magenta
+    for f, ink in enumerate((WHITE, YELLOW, BRED, 1)):
+        add('X_%d' % f, ink, *explosion(f))
     # crop each family to the union of its frames, so banking and the turn
     # keep their registration
     fam = {}
@@ -177,7 +224,13 @@ def build_frames():
     out = [(n, i, d[fam[n.split('_')[0]][0]:fam[n.split('_')[0]][1] + 1, fam[n.split('_')[0]][2]:fam[n.split('_')[0]][3] + 1].copy())
            for n, i, d in FRAMES]
     FRAMES[:] = out
+    FAMILY.clear()
+    for k, (y0, y1, x0, x1) in fam.items():
+        FAMILY[k] = (x1 - x0 + 1, y1 - y0 + 1)      # (width, height) after the crop
     return FRAMES
+
+
+FAMILY = {}          # family -> (w, h) of its cropped frames (for collision boxes)
 
 
 def variants(data):
@@ -204,6 +257,8 @@ def variants(data):
 
 
 BLK_SPR0 = 13
+# RAM blocks for the sprite streams: block 16 holds CP/M's saved video state, so skip it
+SPR_BLOCKS = [13, 14, 15, 17, 18, 19]
 SPRIDX = 0x4000
 
 
@@ -227,11 +282,12 @@ def pack():
                 rec += bytes([c, r * 40 + c, r]) + bs
             if len(blocks[-1]) + len(rec) > 0x8000:
                 blocks.append(bytearray())
+                assert len(blocks) <= len(SPR_BLOCKS), 'sprite data needs more RAM blocks'
             b = len(blocks) - 1
             p = len(blocks[-1])
             blocks[-1] += rec
             e = 4 * (80 * i + 10 * s + yo)
-            idx[e:e + 4] = bytes([mv(BLK_SPR0 + b), p & 255, p >> 8, ink])
+            idx[e:e + 4] = bytes([mv(SPR_BLOCKS[b]), p & 255, p >> 8, ink])
     return bytes(idx), [bytes(b) for b in blocks], ids, frames
 
 
