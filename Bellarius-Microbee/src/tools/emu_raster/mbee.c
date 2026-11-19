@@ -57,6 +57,8 @@ typedef struct {
     int fdc_writes;
     int rom_writes;
     uint32_t vram_writes_display;   /* writes to video RAM while not in vblank */
+    uint32_t vdhist[65536];         /* video accesses (read or write) while displaying, by PC */
+    uint32_t vreads;                /* video reads (any time) */
     int vwait;                      /* wait T-states owed by this instruction */
     int clk40;                      /* the 40-column dot clock (IN (09h) with A = 1): a character every 4 T */
     int ven_prev; uint64_t ven_tick;
@@ -140,18 +142,18 @@ static void vram_wait(M *m) {
 static uint8_t mrd(void *ctx, uint16_t a) {
     M *m = ctx;
     if (a >= 0x8000) {
-        if (video_at(m, a)) { vram_wait(m); return vread(m, a & 0xFFF); }
+        if (video_at(m, a)) { vram_wait(m); m->vreads++; if (!vblank(m)) m->vdhist[m->curpc]++; return vread(m, a & 0xFFF); }
         if (!(m->p50 & 4)) return a < 0xC000 ? m->rom[a - 0x8000] : 0xFF;
         return m->blocks[0][a - 0x8000];
     }
-    if (video_at(m, a)) { vram_wait(m); return vread(m, a & 0xFFF); }
+    if (video_at(m, a)) { vram_wait(m); m->vreads++; if (!vblank(m)) m->vdhist[m->curpc]++; return vread(m, a & 0xFFF); }
     return m->blocks[m->lower][a];
 }
 static void mwr(void *ctx, uint16_t a, uint8_t v) {
     M *m = ctx;
     if (video_at(m, a)) {
         vram_wait(m);
-        if (!vblank(m)) m->vram_writes_display++;
+        if (!vblank(m)) { m->vram_writes_display++; m->vdhist[m->curpc]++; }
         vwrite(m, a & 0xFFF, v);
         return;
     }
@@ -475,6 +477,8 @@ uint8_t *mb_fb(M *m) { return &m->fb[m->fbw ^ 1][0][0]; }
 uint8_t *mb_fb_cur(M *m) { return &m->fb[m->fbw][0][0]; }
 uint64_t mb_frame_no(M *m) { return m->frame_no; }
 uint32_t mb_vwait(M *m) { return m->vwait_total; }
+uint32_t *mb_vdhist(M *m) { return m->vdhist; }
+uint32_t mb_vreads(M *m, int reset) { uint32_t v = m->vreads; if (reset) m->vreads = 0; return v; }
 void mb_vwait_mode(int mode, int t) { g_vwait_mode = mode; g_vwait_t = t; }
 void mb_b5_lag(int n) { g_b5_lag = n; }
 int mb_frame_lines(M *m, uint16_t **p) { *p = m->fl_lines; return m->fl_n; }

@@ -19,10 +19,10 @@ T55 = {
 }
 CRUX = ["...yy...", "...bb...", "..yyyy..", ".ryyyyr.", "ryyrryyr", "y.yyyy.y", "...yy...", "..r..r.."]
 
-STARS = [(98, 4, 3), (98, 19, 3), (90, 11, 2), (106, 9, 2), (102, 15, 1),   # the Cross
-         (68, 15, 2), (78, 17, 2)]                                      # the Pointers
-PRESS = (10, 47)              # PRESS FIRE text origin (x multiple of 4)
-HI_X, HI_Y = 92, 57           # 8 digits, byte aligned
+STARS = [(104, 2, 2), (104, 11, 2), (97, 6, 2), (111, 5, 1), (108, 8, 1),   # the Cross
+         (78, 7, 2), (87, 8, 1)]                                        # the Pointers
+PRESS = (4, 43)               # PRESS FIRE text origin (x multiple of 4)
+HI_X, HI_Y = 16, 51           # 8 digits, byte aligned
 
 def title_image():
     img = [[B] * W for _ in range(H)]
@@ -30,8 +30,8 @@ def title_image():
         if 0 <= x < W and 0 <= y < H:
             img[y][x] = c
     rnd = random.Random(7)
-    for _ in range(60):
-        x, y = rnd.randrange(W), rnd.randrange(0, 26)
+    for _ in range(45):
+        x, y = rnd.randrange(W), rnd.randrange(0, 12)
         put(x, y, G if rnd.random() < 0.75 else Y)
     def star(x, y, s):
         put(x, y, Y)
@@ -41,24 +41,9 @@ def title_image():
             put(x, y + d, Y); put(x, y - d, Y)
     for x, y, s in STARS:
         star(x, y, s)
-    # the continent, squashed for tall pixels
-    pts = [(0.00,0.45),(0.05,0.30),(0.20,0.18),(0.30,0.05),(0.42,0.10),(0.48,0.00),(0.58,0.08),
-           (0.62,0.22),(0.70,0.25),(0.72,0.00),(0.78,0.15),(0.85,0.35),(0.95,0.50),(1.00,0.65),
-           (0.95,0.80),(0.85,0.95),(0.75,0.90),(0.68,0.78),(0.62,0.82),(0.55,0.70),(0.45,0.70),
-           (0.30,0.75),(0.12,0.85),(0.03,0.80),(0.02,0.65)]
-    m = Image.new('L', (W, H), 0)
-    d = ImageDraw.Draw(m)
-    ox, oy, sw, sh = 74, 33, 50, 20
-    d.polygon([(ox + x * sw, oy + y * sh) for x, y in pts], fill=1)
-    d.ellipse((ox + 0.80 * sw, oy + 1.06 * sh, ox + 0.88 * sw, oy + 1.16 * sh), fill=1)
-    mp = m.load()
-    for y in range(H):
-        for x in range(W):
-            if mp[x, y]:
-                inner = all(mp[min(W-1, max(0, x+a)), min(H-1, max(0, y+b))] for a, b in ((1,0),(-1,0),(0,1),(0,-1)))
-                img[y][x] = G if inner else Y
-                if inner and (x - 104) ** 2 + ((y - 43) * 2) ** 2 < 64 and (x + y) % 2 == 0:
-                    img[y][x] = R
+    # the continent: a stylised satellite view
+    import australia
+    australia.draw(img, 57, 22, 70)
     # logo
     def logo(s, ox, oy):
         on = set()
@@ -78,15 +63,13 @@ def title_image():
             put(x, y, R)
             if y - oy in (4, 5) and (x + y) % 3:
                 put(x, y, Y if y - oy == 4 else R)
-    logo("SOUTHERN", (W - 94) // 2, 21)
-    logo("CROSS", 8, 34)
+    logo("SOUTHERN", (W - 94) // 2, 13)
+    logo("CROSS", 4, 27)
     # the Crux climbing past the stars
     for j, row in enumerate(CRUX):
         for i, ch in enumerate(row):
             if ch != '.':
-                put(12 + i, 3 + j, CH[ch])
-    for y in range(12, 19, 2):
-        put(16, y, R)
+                put(14 + i, 1 + j, CH[ch])
     def text(x, y, s, c):
         for i, ch in enumerate(s):
             g = F35[ch]
@@ -94,7 +77,7 @@ def title_image():
                 for k in range(3):
                     if g[j * 3 + k] == '1':
                         put(x + i * 4 + k, y + j, c)
-    text(4, 57, "VIBED BY BPM 2026", G)
+    text(4, 58, "VIBED BY BPM 2026", G)
     text(HI_X - 12, HI_Y, "HI", R)
     return img
 

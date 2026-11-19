@@ -313,14 +313,14 @@ anim_kill:
         ld b,a
         inc hl
         ld a,d
-        add a,4
+        add a,SHD
         ld d,a
         ld a,(hl)
         ld (de),a
         ld c,a
         inc hl
         ld a,d
-        sub 8
+        sub 2*SHD
         ld d,a
         ld a,(hl)
         ld (de),a

@@ -7,13 +7,18 @@
         INCLUDE "hw.inc"
 
         ORG $8000
-entry:  di
+entry:  jr start
+        nop
+boot_mono: db 0                 ; 8003h: the loader puts the monitor here (1 = monochrome)
+start:  di
         ld sp,STACK
         MEMV BLK_WORK
         call hw_init
-        ld hl,hook_none
-        ld (tw_hook),hl
-        jp monitor_select
+        ld a,(boot_mono)
+        ld (mono),a
+        ld a,BLK_ROOM
+        ld (roomblk0),a
+        jp title_screen
 
         INCLUDE "engine.asm"
         INCLUDE "anim.asm"
@@ -24,6 +29,8 @@ entry:  di
         INCLUDE "snd.inc"
         INCLUDE "sprtab.inc"
 prog_end:
-        ASSERT prog_end <= COLSH
+        ASSERT prog_end <= TMAP
         INCLUDE "vars.asm"
         SAVEBIN "../build/FRILL.BIN",$8000,prog_end-$8000
+        INCLUDE "front.asm"
+        SAVEBIN "../build/FRONT.BNK",$0000,front_end

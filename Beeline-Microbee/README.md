@@ -18,6 +18,7 @@ Also on the disk:
 
 | Program | What it is |
 |---|---|
+| `ROADTEST` | Prototype of a new road renderer (see below). Starts on autopilot. M/N accelerate/brake, Z X steer (either takes over), A toggles the autopilot. The top line shows the frame rate. |
 | `BENCH` | Video RAM speed test. Wait ~8 s and photograph the screen. |
 | `CUBE` | Solid polygon test: a dither-shaded cube drawn into a PCG bitmap on every frame. |
 
@@ -64,6 +65,21 @@ Also on the disk:
   - Before taking over the machine, it reads `BEELINE.DAT` into 9000h–D7FFh through the BDOS. That file holds the static PCG, track, rival sprites and sound.
   - Runtime buffers are at 8000h, and the composited player-car table is built at D800h after CP/M is gone.
 
+## ROADTEST: an OutRun-style road (prototype)
+
+![ROADTEST: straight, entering a bend, in the bend](screenshots/roadtest.png)
+
+![ROADTEST in motion](screenshots/roadtest.gif)
+
+The road is not projected in 3D. Instead it is built the way Sega's early racers fake it. Each of the 64 road lines (two scan lines each, screen rows 8–15) has a fixed distance and width, set once at build time by `tools/mkroadtest.py`. Every frame, working up from the bottom of the screen:
+
+- **Curves.** Each line pair adds the curve of the track segment at its distance to a running slope, and the slope to a running sideways offset (`dx += curve; x += dx`). A bend ahead therefore sweeps the far road sideways while the road under the car stays put. The player's own offset is folded into the same 24-bit accumulator, so steering costs nothing extra.
+- **Bands.** Each line's band is one bit of (position + its distance). As you drive, the light and dark bands roll down the road like colour cycling; nothing is moved.
+- **Characters.** Each road row gets one verge character and one road character, holding that row's 8 band patterns. Every column that a road edge crosses within the row gets its own character, written line pair by line pair by one of nine generated routines (one per pair of band phases, with the dither patterns as immediate operands). The car's outline cells come from a table pre-composited over plain verge and road for every line and band phase. Only cells over an edge are composited at run time.
+- **Cost.** About 115–130K T-states per frame, so it holds a 2-field lock (25 fps) on straights and gentle bends. In the emulator it averages 24.3 fps; sharp bends drop to about 21. The edges are placed per line pair (32 steps); the bands are per line (64).
+
+What it leaves out for now: hills, traffic and the rest of the game. If the feel is right on the real machine, BEELINE gets rebuilt on this road.
+
 ## Measured (emulator with the real machine's video wait states)
 
 | | |
@@ -72,6 +88,7 @@ Also on the disk:
 | Engine alone (v4) | 12.3 fps |
 | BENCH (blocks/s) | emulator 603 507 414 413 472 973 599 · real Premium Plus 603 517 415 413 465 954 527 |
 | CUBE | 18 fps |
+| ROADTEST | 24.3 fps average on autopilot (2-field lock; sharp bends ~21) |
 
 Still to be confirmed on the real machine: the frame rate in a race, and how the beeper sounds.
 

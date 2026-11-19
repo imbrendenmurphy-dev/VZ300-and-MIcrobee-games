@@ -1,6 +1,6 @@
 ; =====================================================================
-;  GAME: Bluff, the toads, the bugs. All motion is in pixels (320 x 176
-;  playfield of 20 x 11 tiles), 8.8 fixed point, one tick = one 50 Hz field.
+;  GAME: Bluff, the toads, the bugs. All motion is in pixels (320 x 240
+;  playfield of 20 x 15 tiles), 8.8 fixed point, one tick = one 50 Hz field.
 ; =====================================================================
 WALKV       EQU $0140       ; 1.25 px a tick
 ACC         EQU $0028
@@ -15,6 +15,7 @@ HERO_H      EQU 15          ; he fits under a ledge one tile up
 T_SOLID     EQU 1
 T_ONEWAY    EQU 2
 T_WATER     EQU 3
+T_WIND      EQU 4           ; an updraught: under the frill he rises
 
 O_BUG       EQU 1
 O_TOAD      EQU 2
@@ -23,6 +24,8 @@ O_SPARK     EQU 4
 O_GOAL      EQU 5
 O_MAGPIE    EQU 6
 O_GOANNA    EQU 7
+O_BAT       EQU 8           ; a magpie's manners, underground
+O_BUFO      EQU 9           ; the King
 E_A         EQU 11          ; (magpie) home x, a word
 E_C         EQU 13          ; (magpie) set up
 E_D         EQU 14          ; cool-down before it attacks again
@@ -43,215 +46,143 @@ E_OBJ       EQU 10
 E_SIZE      EQU 16
 
 ; ---------------------------------------------------------------------
-monitor_select:
-        ld a,$0F
-        call cls
-        ld hl,t_name
-        ld de,$050E
-        ld c,YELLOW
-        call print
-        ld hl,t_l1
-        ld de,$080C
-        ld c,WHITE
-        call print
-        ld hl,t_l2
-        ld de,$0A0E
-        ld c,WHITE
-        call print
-        ld hl,t_l3
-        ld de,$0F0B
-        ld c,BCYAN
-        call print
-        ld hl,t_l4
-        ld de,$110C
-        ld c,BCYAN
-        call print
-        ld hl,t_credit
-        ld de,$160A
-        ld c,BGREEN
-        call print
-        call display_on
-.w:     call read_menu
-        call rnd
-        ld a,(pad)
-        bit 6,a
-        jr nz,.col
-        bit 5,a
-        jr z,.w
-        ld a,1
-        ld (mono),a
-        ld a,BLK_ROOMM
-        jr .go
-.col:   xor a
-        ld (mono),a
-        ld a,BLK_ROOMC
-.go:    ld (roomblk0),a
-        ; fall into the title
-
-; ---------------------------------------------------------------------
-;  the title: the picture, the theme in two voices, SPACE to play
-; ---------------------------------------------------------------------
 title_screen:
         ld sp,STACK
+        ld a,$80                ; from the top
+attract:
+        push af
         xor a
         ld (mus_on),a
         ld (sfx_on),a
-        ld (t_count),a
+        ld (demo),a
         out (P_PIOB),a
+        pop af
+        call front_attract      ; -> 0: play; else region + 1 to demonstrate, HL = its script
+        or a
+        jp z,game_start
+        cp $FF                  ; carry on from the disk's record (already in place)
+        jr nz,.demo
+        xor a
+        ld (demo),a
+        jp region_restart
+.demo:  dec a
+        ld (region),a
+        ld (dm_ptr),hl
+        ld a,1
+demo_go:
+        ld (demo),a
+        ld a,(region)
+        push af
+        ld hl,gtick             ; the same game every time: everything from the same start
+        ld b,dm_ptr-gtick
+.z:     ld (hl),0
+        inc hl
+        djnz .z
+        pop af
+        ld (region),a
+        ld hl,$2A17
+        ld (rseed),hl
+        call new_game
+        jp region_restart
+; tools/demo.py starts a recording here, with (region) set
+demo_rec:
+        ld sp,STACK
+        ld a,2
+        jr demo_go
+
+; the front end, in its own block (src/front.asm)
+front_attract:
+        ld hl,$0100
+        jr front
+front_jingle:
+        ld hl,$0103
+        jr front
+front_fin:
+        ld hl,$0106
+front:  push af
+        ld a,BLK_FRONT
+        call map_blk
+        pop af
+        jp (hl)
+; (from the front end) the title picture, and back
+far_title:
         call title_show
-        ld hl,t_press
-        ld de,$160A
-        ld c,WHITE
-        call print
-        call display_on
-        ld hl,title_hook
-        ld (tw_hook),hl
-.again: ld hl,song_title
-        call tw_song
-        jr z,.again
-        and $10
-        jr z,.again
-        ld hl,hook_none
-        ld (tw_hook),hl
-        jp game_start
+        ld a,BLK_FRONT
+        jp map_blk
 
-; every 64 notes, swap the line under the picture
-title_hook:
-        ld hl,t_count
-        inc (hl)
+; a tick of a demonstration: the pad comes from the script, pairs of
+; (pad, ticks), 0 ticks at the end
+demo_pad:
+        ld hl,(dm_n)
+        inc hl
+        ld (dm_n),hl
+        dec a
+        jr nz,.hold             ; (recording: the pad is put in dm_pad from outside)
+        ld a,(dm_left)
+        or a
+        jr nz,.run
+        ld a,(cur_blk)
+        push af
+        ld a,BLK_FRONT
+        call map_blk
+        ld hl,(dm_ptr)
         ld a,(hl)
-        and $3F
-        ret nz
+        ld (dm_pad),a
+        inc hl
         ld a,(hl)
-        and $40
-        ld hl,t_press
-        jr z,.p
-        ld hl,t_credit
-.p:     ld de,$160A
-        ld c,WHITE
-        jp print
+        inc hl
+        ld (dm_ptr),hl
+        ld (dm_left),a
+        pop af
+        call map_blk
+        ld a,(dm_left)
+        or a
+        jr nz,.run
+        ld a,3                  ; the script is over
+        ld (game_end),a
+        ret
+.run:   dec a
+        ld (dm_left),a
+.hold:  ld hl,dm_prev
+        ld a,(dm_pad)
+        ld b,a
+        ld a,(hl)
+        cpl
+        and b
+        ld (padnew),a
+        ld a,b
+        ld (hl),a
+        ld (pad),a
+        ret
 
-t_name:   db "FRILLSEEKER",0
-t_l1:     db "FOR THE MICROBEE",0
-t_l2:     db "PREMIUM PLUS",0
-t_l3:     db "C - COLOUR MONITOR",0
-t_l4:     db "M - MONO MONITOR",0
-t_press:  db "PRESS SPACE TO PLAY",0
 t_credit: db " VIBED BY BPM 2026 ",0
+t_demo:   db "DEMO",0
 
 ; ---------------------------------------------------------------------
 ;  the end of a game: the region cleared, or out of hearts
 ; ---------------------------------------------------------------------
 end_game:
         ld sp,STACK
-        push af
-        xor a
+        ld b,a
+        ld a,(demo)
+        or a
+        jr z,.real
+        xor a                   ; a demonstration: on with the attract sequence
+        jp attract
+.real:  xor a
         ld (sfx_on),a
         ld (mus_on),a
         out (P_PIOB),a
-        call display_off
-        ld a,$0F
-        call cls
-        pop af
-        dec a
-        jp nz,.over
-        ; a region cleared
-        ld a,(region)
-        call reg_name_a
-        ld d,3
-        ld c,YELLOW
-        call print_centred
-        ld hl,t_isclear
-        ld d,5
-        ld c,YELLOW
-        call print_centred
-        ld hl,t_found
-        ld de,$090A
-        ld c,WHITE
-        call print
-        ld a,(bugs)
-        ld de,$0915
-        ld c,YELLOW
-        call print_num
-        ld a,(region)
-        ld hl,reg_total
-        call index_hl
-        ld de,$091B
-        ld c,YELLOW
-        call print_num
-        ld a,(region)
-        inc a
-        cp NREGIONS
-        jr nc,.last
-        ld hl,t_next
-        ld d,14
-        ld c,WHITE
-        call print_centred
-        ld a,(region)
-        inc a
-        call reg_name_a
-        ld d,16
-        ld c,BCYAN
-        call print_centred
-        call .press
-        ld hl,song_clear
-        call tw_song
-        call z,wait_key         ; a key during the jingle counts
+        ld a,b
+        call front_fin          ; the screens, the jingles -> 0 on to the next region, 1 again, 2 the title
+        or a
+        jr nz,.n0
         ld hl,region
         inc (hl)
         jp region_restart
-.last:  ld hl,t_clear3
-        ld d,14
-        ld c,BCYAN
-        call print_centred
-        ld hl,t_clear4
-        ld d,16
-        ld c,BCYAN
-        call print_centred
-        call .press
-        ld hl,song_clear
-        call tw_song
-        call z,wait_key         ; a key during the jingle counts
+.n0:    dec a
+        jp z,region_restart
         jp title_screen
-.over:  ld hl,t_over1
-        ld d,8
-        ld c,BRED
-        call print_centred
-        ld hl,t_over2
-        ld d,12
-        ld c,WHITE
-        call print_centred
-        ld hl,t_over3
-        ld d,17
-        ld c,BGREEN
-        call print_centred
-        ld hl,t_over4
-        ld d,19
-        ld c,GREY
-        call print_centred
-        call display_on
-        ld hl,song_over
-        call tw_song
-        call z,wait_choice
-        and $80
-        jp nz,title_screen
-        jp region_restart
-.press: ld hl,t_again
-        ld d,22
-        ld c,BGREEN
-        call print_centred
-        jp display_on
-
-t_isclear: db "IS CLEAR!",0
-t_found:  db "BUGS FOUND    OF",0
-t_next:   db "NEXT STOP",0
-t_clear3: db "MORE OF THE TOP END",0
-t_clear4: db "COMING SOON",0
-t_over1:  db "GAME OVER",0
-t_over2:  db "THE TOADS HAVE IT - FOR NOW",0
-t_over3:  db "SPACE - TRY AGAIN",0
-t_over4:  db "ESC - BACK TO THE TITLE",0
-t_again:  db "PRESS SPACE",0
 
 ; HL = string, D = row, C = colour: printed in the middle of the row
 print_centred:
@@ -316,13 +247,19 @@ wait_key:
 ; ---------------------------------------------------------------------
 game_start:
         xor a
-        ld (bugs),a
+        ld (demo),a
         ld (region),a
+        call new_game
+        jr region_restart
+new_game:
+        xor a
+        ld (bugs),a
         ld hl,collected
-        ld b,16
+        ld b,24
 .c:     ld (hl),0
         inc hl
         djnz .c
+        ret
         ; fall into region_restart
 
 ; (re)start the current region at its first room, three hearts. Bugs
@@ -372,10 +309,21 @@ reg_name_a:
         ret
 
 main_loop:
-        call read_input
+        ld a,(demo)
+        or a
+        jr z,.live
+        call read_menu          ; a demonstration: ESC back to the title, SPACE to play
+        ld a,(pad)
+        and $90
+        jr z,.go
+        rla
+        jp c,title_screen
+        jp game_start
+.live:  call read_input
         ld a,(pad)
         rla                     ; ESC: back to the title
         jp c,title_screen
+.go:
         ld a,(fields)
         or a
         jr nz,.f1
@@ -412,6 +360,9 @@ main_loop:
         jr main_loop
 
 game_tick:
+        ld a,(demo)
+        or a
+        call nz,demo_pad
         ld hl,gtick
         inc (hl)
         call hero_tick
@@ -577,6 +528,13 @@ hud_all:
         ld de,$0006
         ld c,WHITE
         call print
+        ld a,(demo)
+        or a
+        jr z,hud_stats
+        ld hl,t_demo
+        ld de,$0024
+        ld c,BRED
+        call print
 hud_stats:
         xor a
         ld (hud_dirty),a
@@ -625,7 +583,7 @@ tile_at:
         or a
         jr nz,.none
         ld a,l
-        cp 176
+        cp PF_H
         jr nc,.none
         ld a,d
         or a
@@ -635,16 +593,18 @@ tile_at:
         ld a,e
         cp ROOM_W-256
         jr nc,.xout
-.xin:   ld a,l                  ; row * 20
+.xin:   ld a,l                  ; row * 20 (y < PF_H: row 0..14)
+        and $F0
         rrca
-        rrca
-        rrca
-        rrca
-        and 15
-        add a,row20tab & 255
+        rrca                    ; row * 4
+        ld h,a
+        add a,a
+        add a,a                 ; row * 16
+        add a,h
         ld l,a
-        ld h,row20tab >> 8
-        ld l,(hl)
+        ld a,TMAP >> 8
+        adc a,0
+        ld h,a
         srl d                   ; x / 16
         rr e
         srl e
@@ -653,19 +613,44 @@ tile_at:
         ld a,e
         add a,l
         ld l,a
-        ld h,TMAP >> 8
-        ld a,(hl)
+        jr nc,.t1
+        inc h
+.t1:    ld a,(hl)
         ret
 .none:  xor a
         ret
-.xout:  bit 7,d
+.xout:  push bc                  ; beyond the side: the next room's edge
+        bit 7,d
         ld a,(nb_left)
-        jr nz,.x1
+        ld bc,TMAP+TM_SIZE      ; (two words: the rows where the room to the
+        jr nz,.x1               ; left, and to the right, is solid at the edge)
         ld a,(nb_right)
+        ld bc,TMAP+TM_SIZE+2
 .x1:    inc a
-        jr z,.wall
-        xor a
+        jr z,.wall0
+        ld a,l                  ; its row
+        rrca
+        rrca
+        rrca
+        rrca
+        and 15
+        cp 8
+        jr c,.lo
+        inc bc
+        sub 8
+.lo:    ld h,a
+        ld a,(bc)
+        inc h
+.sh:    dec h
+        jr z,.got
+        rrca
+        jr .sh
+.got:   pop bc
+        and 1
+        ret z
+        ld a,T_SOLID
         ret
+.wall0: pop bc
 .wall:  ld a,T_SOLID
         ret
 
@@ -802,7 +787,30 @@ hero_tick:
         ld hl,sfx_jump
         call play_sfx
 .j9:
-.phys:  ; gravity
+.phys:  ; an updraught lifts him while the frill is open
+        ld a,(pad)
+        bit PB_FRILL,a
+        jr z,.grav
+        ld a,(h_on)
+        ld hl,h_hurt
+        or (hl)
+        jr nz,.grav
+        ld de,(hx)
+        ld hl,(hy)
+        dec hl
+        bit 7,h                 ; (at the very top the air still carries him out)
+        jr z,.wy
+        ld hl,0
+.wy:    call tile_at
+        cp T_WIND
+        jr nz,.grav
+        ld a,1
+        ld (h_glide),a
+        xor a
+        ld (h_jump),a
+        ld hl,-$0120
+        jp .sy
+.grav:  ; gravity
         ld hl,(hvy)
         ld de,GRAV
         add hl,de
@@ -1017,7 +1025,7 @@ hero_tick:
         ld a,(nb_up)
         cp $FF
         jp z,.anim
-        ld de,176
+        ld de,PF_H
         add hl,de
         ld (hy),hl
         ld (newroom),a
@@ -1026,7 +1034,7 @@ hero_tick:
         or a
         jr nz,.down
         ld a,l
-        cp 176
+        cp PF_H
         jr nc,.down
         ; water under the feet?
         ld de,-3
@@ -1044,7 +1052,7 @@ hero_tick:
 .down:  ld a,(nb_down)
         cp $FF
         jr z,.pit
-        ld de,-176
+        ld de,-PF_H
         add hl,de
         ld (hy),hl
         ld (newroom),a
@@ -1244,7 +1252,10 @@ scare:  ld hl,sfx_hiss
         ld ix,ENTS
         ld b,NENT
 .l:     ld a,(ix+E_TYPE)
-        cp O_MAGPIE
+        cp O_BAT
+        jr nz,.nb
+        ld a,O_MAGPIE
+.nb:    cp O_MAGPIE
         jr nz,.nm
         ld a,(ix+E_STATE)
         cp 3
@@ -1272,7 +1283,20 @@ scare:  ld hl,sfx_hiss
         jr nc,.n
         call goanna_charge
         jr .n
-.nt:    cp O_TOAD
+.nt:    cp O_BUFO
+        jr nz,.nt2
+        ld a,(ix+E_STATE)       ; the King only falls for it while he is winded
+        cp 2
+        jr nz,.n
+        call ent_dx
+        cp 100
+        jr nc,.n
+        ld (ix+E_STATE),3
+        ld (ix+E_T),220
+        ld hl,sfx_croak
+        call play_sfx
+        jr .n
+.nt2:   cp O_TOAD
         jr nz,.n
         ld a,(ix+E_STATE)
         cp 2
@@ -1287,7 +1311,8 @@ scare:  ld hl,sfx_hiss
         ld (ix+E_T),0
 .n:     ld de,E_SIZE
         add ix,de
-        djnz .l
+        dec b
+        jp nz, .l
         ret
 
 ; A = |entity x - hero x| (255 if far)
@@ -1340,6 +1365,10 @@ ents_tick:
         call z,magpie_tick
         cp O_GOANNA
         call z,goanna_tick
+        cp O_BAT
+        call z,magpie_tick
+        cp O_BUFO
+        call z,bufo_tick
         pop bc
         ld de,E_SIZE
         add ix,de
@@ -1811,6 +1840,153 @@ goanna_charge:
         jp play_sfx
 
 ; ---------------------------------------------------------------------
+;  King Bufo. He sits, he leaps at Bluff (the further away, the faster),
+;  and when he lands he is winded: a frill then, and over he goes; and a
+;  King on his back is a trampoline like any other toad. Three times.
+;  states: 0 sitting, 1 leaping, 2 winded, 3 on his back, 4 righting
+;  himself, 5 beaten.   E_D = times hit, E_C = leap speed
+; ---------------------------------------------------------------------
+bufo_tick:
+        ld a,(ix+E_STATE)
+        or a
+        jr z,.sit
+        dec a
+        jr z,.leap
+        dec a
+        jr z,.puff
+        dec a
+        jp z,.back
+        dec a
+        jr z,.puff              ; (righting himself: the same wait)
+        dec (ix+E_T)            ; beaten: a moment to enjoy it
+        jp nz,.done
+        ld a,1
+        ld (game_end),a
+        jp .done
+.puff:  dec (ix+E_T)
+        jp nz,.done
+.tosit: ld (ix+E_STATE),0
+        ld b,70
+.quick: ld a,(ix+E_D)           ; quicker every time he is hit
+        add a,a
+        add a,a
+        add a,a
+        add a,a
+        neg
+        add a,b
+        ld (ix+E_T),a
+        jp .done
+.sit:   call ent_face_hero
+        dec (ix+E_T)
+        jp nz,.touch
+        call ent_dx
+        ld b,1
+        cp 56
+        jr c,.sp
+        inc b
+        cp 112
+        jr c,.sp
+        inc b
+.sp:    ld (ix+E_C),b
+        ld (ix+E_STATE),1
+        ld (ix+E_T),0
+        ld hl,sfx_croak
+        call play_sfx
+        jp .touch
+.leap:  ld a,(ix+E_T)
+        cp 48
+        jr nc,.land
+        ld l,a
+        ld h,0
+        ld de,bufoarc
+        add hl,de
+        ld a,(hl)
+        ld (ix+E_OFF),a
+        inc (ix+E_T)
+        ld a,(ix+E_C)
+        call ent_dirstep
+        call ent_addx
+        ld a,(ix+E_X+1)         ; he stays in his hall: 24..280
+        or a
+        ld a,(ix+E_X)
+        jr nz,.hi
+        cp 24
+        jp nc,.touch
+        jr .clamp
+.hi:    cp 280-256
+        jr c,.touch
+.clamp: ld (ix+E_X),24
+        jr .touch
+.land:  ld (ix+E_OFF),0
+        ld (ix+E_STATE),2
+        ld hl,sfx_land
+        call play_sfx
+        ld b,104
+        jp .quick
+.back:  dec (ix+E_T)
+        jp z,.tosit
+        call ent_dx
+        cp 22
+        jr nc,.done
+        ld a,(hvy+1)            ; from above, falling
+        rla
+        jr c,.done
+        ld a,(h_on)
+        or a
+        jr nz,.done
+        ld l,(ix+E_Y)
+        ld h,(ix+E_Y+1)
+        ld de,(hy)
+        or a
+        sbc hl,de
+        ld a,h
+        or a
+        jr nz,.done
+        ld a,l
+        cp 6
+        jr c,.done
+        cp 28
+        jr nc,.done
+        ld hl,-BOUNCEV
+        ld (hvy),hl
+        xor a
+        ld (h_jump),a
+        ld hl,sfx_boing
+        call play_sfx
+        inc (ix+E_D)
+        ld a,(ix+E_D)
+        cp 3
+        jr nc,.beat
+        ld (ix+E_STATE),4
+        ld (ix+E_T),60
+        jr .done
+.beat:  ld (ix+E_STATE),5
+        ld (ix+E_T),150
+        jr .done
+.touch: call ent_dx             ; sitting or leaping, he hurts to touch
+        cp 20
+        jr nc,.done
+        ld l,(ix+E_Y)
+        ld h,(ix+E_Y+1)
+        ld e,(ix+E_OFF)
+        ld d,0
+        or a
+        sbc hl,de
+        ld de,(hy)
+        or a
+        sbc hl,de               ; his feet - Bluff's: touching from -15 to 25
+        ld de,15
+        add hl,de
+        ld a,h
+        or a
+        jr nz,.done
+        ld a,l
+        cp 41
+        call c,hero_hurt
+.done:  ld a,O_BUFO
+        ret
+
+; ---------------------------------------------------------------------
 draw_all:
         ; Bluff first: where sprites share a cell, his colour wins
         ld a,(h_inv)
@@ -1857,44 +2033,83 @@ draw_all:
         cp O_BUG
         jp z,.n
         cp O_SPARK
-        jr z,.spark
+        jp z,.spark
         cp O_GOAL
-        jr z,.jar
+        jp z,.jar
         cp O_MAGPIE
         jr z,.mag
         cp O_GOANNA
-        jr z,.goa
+        jp z,.goa
+        cp O_BAT
+        jr z,.bat
+        cp O_BUFO
+        jr z,.buf
         ; toad
         ld c,BGREEN
         ld a,(ix+E_STATE)
         ld b,SF_TOAD_SIT
         or a
-        jr z,.go
+        jp z,.go
         ld b,SF_TOAD_HOP
         dec a
-        jr z,.go
+        jp z,.go
         ld b,SF_TOAD_EEK
         dec a
-        jr z,.go
+        jp z,.go
         ld b,SF_TOAD_BACK0
         ld a,(ix+E_T)
         cp 50                   ; about to get up: kick harder
         jr nc,.slow
         add a,a
 .slow:  and 16
-        jr z,.go
+        jp z,.go
         ld b,SF_TOAD_BACK1
-        jr .go
+        jp .go
 .mag:   ld c,WHITE
         ld b,SF_MAG_DIVE
         ld a,(ix+E_STATE)
         cp 1
-        jr z,.go
+        jp z,.go
         ld b,SF_MAG_UP
         ld a,(gtick)
         and 4
         jr z,.go
         ld b,SF_MAG_DOWN
+        jr .go
+.bat:   ld c,BMAGENTA
+        ld b,SF_BAT_DIVE
+        ld a,(ix+E_STATE)
+        cp 1
+        jr z,.go
+        ld b,SF_BAT_UP
+        ld a,(gtick)
+        and 4
+        jr z,.go
+        ld b,SF_BAT_DOWN
+        jr .go
+.buf:   ld c,BGREEN
+        ld a,(ix+E_STATE)
+        ld b,SF_BUFO_SIT
+        or a
+        jr z,.go
+        ld b,SF_BUFO_LEAP
+        dec a
+        jr z,.go
+        ld b,SF_BUFO_PUFF
+        dec a
+        jr z,.go
+        sub 2
+        jr nz,.bb
+        ld b,SF_BUFO_SIT        ; just hit: he flickers as he rights himself
+        ld a,(gtick)
+        and 2
+        jr z,.go
+        jp .n
+.bb:    ld b,SF_BUFO_BACK0
+        ld a,(gtick)
+        and 16
+        jr z,.go
+        ld b,SF_BUFO_BACK1
         jr .go
 .goa:   ld c,GREY
         ld b,SF_GOAN2

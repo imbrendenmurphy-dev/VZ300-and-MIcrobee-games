@@ -28,11 +28,20 @@ polar:  ld c,a
         ld a,c
         add a,a
         xor c                   ; b7 = angle b7 xor b6: below the centre?
-        ld a,d
+        ld a,d                  ; y = CY +- dy; off the screen: FFh
         jp p,.yd
-        neg
+        ld d,a
+        ld a,CY
+        sub d
+        jr nc,.yok
+        ld a,$FF
+        jr .yok
 .yd:    add a,CY
-        ld b,c
+        jr c,.yoff
+        cp SCRH
+        jr c,.yok
+.yoff:  ld a,$FF
+.yok:   ld b,c
         ld c,a
         ld d,0
         ld hl,CX

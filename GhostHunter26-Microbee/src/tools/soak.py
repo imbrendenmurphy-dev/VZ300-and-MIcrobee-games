@@ -13,7 +13,7 @@ shots = set()
 f0 = pp.peekw(S['framecount'])
 def shot(name):
     if name not in shots:
-        shots.add(name); pp.png(out / (name + '.png'), aspect=1.2)
+        shots.add(name); pp.png(out / (name + '.png'), aspect=0.96)
 for f in range(0, N, 4):
     pp.poke(S['att_t'], 0); pp.poke(S['att_t'] + 1, 0)
     pp.poke(S['demo'], 1)

@@ -23,7 +23,7 @@ def symbols(path=BUILD / 'main.sym'):
     return S
 
 
-def boot(test=False):
+def boot(test=False, mono=False, answer=True):
     S = symbols()
     pp = Mbee()
     gfx = (BUILD / 'GFX.BNK').read_bytes()
@@ -36,6 +36,14 @@ def boot(test=False):
     pp.cpu.pc = 0x8000
     pp.cpu.sp = 0xEFF0
     pp.S = S
+    if mono:
+        pp.blocks[0][S['boot_mono'] - 0x8000] = 1
+    if not test and answer:             # the colour / mono question
+        pp.run_frames(30)
+        pp.keys = ['M' if mono else 'C']
+        pp.run_frames(6)
+        pp.keys = []
+        pp.run_frames(6)
     return pp
 
 

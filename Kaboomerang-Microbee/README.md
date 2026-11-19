@@ -6,25 +6,31 @@ An original Bomberman-inspired arcade game for the **Microbee Premium Plus** (1M
 
 ![title](screenshots/01_title.png)
 
-## Status: engine build 0.1
+## Status: engine build 0.2
 
-The first Z80 build, running in the 40 × 25 mode with 8 × 8 cells that BPM's mode test proved on the Premium Plus. World 1, Red Centre, is playable stage after stage.
+World 1, Red Centre, is playable stage after stage. Build 0.2 fills the screen: 40 × 25 cells of **8 × 10** pixels (320 × 250), MODES.COM's tallest 40-column table.
 
-- **The 40-column mode:** the same as BPM's MODES.COM test. Reading port 09h with 01h on the upper address lines (`LD A,1 : IN A,(09h)`) selects the half dot clock, and the CRTC table matches MODES.COM apart from the row count.
+- **The 40-column mode:** reading port 09h with 01h on the upper address lines (`LD A,1 : IN A,(09h)`) selects the half dot clock, as MODES.COM does. The CRTC table is MODES.COM's 40 × 25 (8 × 10) one: R4 1Eh, R5 03h, R7 1Ch, R9 09h.
+- **New in 0.2:**
+  - The arena fills the whole screen under a one-row HUD. The game-name bar at the bottom is gone, and the outer walls show as half tiles.
+  - A bubbly, bursting title logo with bomb O's.
+  - A rounded chunky font throughout.
+  - A cuter, Bomberman-style Wally: a big round head with a visor face and a tiny lamp knob instead of a hat.
+  - A new soundscape (see Sound below).
 - Tested in the emulator model only so far. The first real-hardware run is next.
 
-![explosion](screenshots/02_explosion.png)
+![arena](screenshots/02_arena.png)
 
 ## What's in this build
 
-- **The display:** 40 × 25 cells of 8 × 8 pixels, 320 × 200, near-square pixels. The arena is 19 × 11 tiles of 2 × 2 cells, each cell with its own ink and paper.
+- **The display:** 40 × 25 cells of 8 × 10 pixels (320 × 250). Row 0 is the HUD. The arena is 21 × 13 tiles of 2 × 2 cells (16 × 20 pixels), with a 19 × 11 open inside, and each cell has its own ink and paper.
 - **The engine** (from HULLBREACH and AUSOPEN):
   - Two screen pages flipped in vertical blanking, with a sprite-glyph bank per page.
   - Sprites are pre-shifted, masked and composited into private glyphs. They move smoothly in 2-pixel steps at 25 frames a second.
 - **Wally:**
   - walks in four directions
   - blinks, looks around and taps a foot when idle
-  - crouches to set a bomb, and his hat jumps at a nearby blast
+  - crouches to set a bomb, and his lamp knob jumps at a nearby blast
   - hops on a power-up, goes dizzy when hit, does a victory dance and gets flattened
 - **Bombs:**
   - Fuses pulse, then flash red in the last second.
@@ -45,7 +51,13 @@ The first Z80 build, running in the 40 × 25 mode with 8 × 8 cells that BPM's m
   - corner sliding and remembered taps
   - unlimited continues that keep your power-ups
 - **Monochrome:** choose C or M at start-up. Mono uses inverted patterns where needed, and the HUD shows empty hearts and missing power-ups by shape, not colour.
-- **Sound:** a two-voice beeper engine with an original title tune, slow in-game blips, jingles and effects.
+- **Sound:**
+  - No music in play: a square-wave beeper with a sample-and-hold noise channel instead of thin pulses.
+  - Lit bombs fizz with a fuse hiss that spits in the last second.
+  - Each blast is a deep KABOOM roar with a falling thump underneath, and chain blasts roar longer.
+  - Pickups go *ching!*
+  - The title tune and the short jingles stay.
+  - The big moments play unbroken for a few fields, a short hit-pause, because the beeper only sounds in each frame's spare time.
 
 ![amber mono](screenshots/05_amber_mono.png)
 

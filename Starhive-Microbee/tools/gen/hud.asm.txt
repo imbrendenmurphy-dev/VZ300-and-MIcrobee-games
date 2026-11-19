@@ -1,0 +1,131 @@
+; HUD buffers: row 0 score, high score, ships; row 1 the level (or the
+; title line), or the Queen's strength
+hud_build:
+	call vschk
+	ld hl,hud_t0
+	ld de,HUDC
+	ld b,40
+	call hud_text
+	ld hl,score
+	ld de,HUDC+6
+	call hud_bcd
+	ld hl,hisc
+	ld de,HUDC+17
+	call hud_bcd
+	ld a,(lives)
+	add a,$81
+	ld (HUDC+38),a
+	ld a,(boss)
+	or a
+	jr nz,.q
+	ld a,(state)
+	cp ST_TITLE
+	ld hl,hud_tt
+	jr z,.t1
+	ld hl,hud_t1
+.t1:	ld de,HUDC+40
+	ld b,40
+	call hud_text
+	ld a,(state)
+	cp ST_TITLE
+	jr z,.col
+	ld a,(level)
+.m10:	cp 10
+	jr c,.l
+	sub 10
+	jr .m10
+.l:	add a,$81
+	ld (HUDC+46),a
+	jr .col
+.q:	ld hl,hud_tq		; HIVE QUEEN and a bar
+	ld de,HUDC+40
+	ld b,40
+	call hud_text
+	ld ix,enemies
+	ld b,NENEMY
+	ld de,ESIZE
+	ld c,0
+.f:	ld a,(ix+E_TYPE)
+	cp T_QUEEN
+	jr nz,.fn
+	ld a,(ix+E_HP)
+	srl a
+	srl a
+	inc a
+	ld c,a
+.fn:	add ix,de
+	djnz .f
+	ld a,c
+	cp 27
+	jr c,.bl
+	ld a,27
+.bl:	or a
+	jr z,.col
+	ld b,a
+	ld hl,HUDC+40+12
+	ld a,FONT_BAR
+.bar:	ld (hl),a
+	inc hl
+	djnz .bar
+.col:	ld hl,HUDK
+	ld b,40
+.k0:	ld (hl),YELLOW
+	inc hl
+	djnz .k0
+	ld b,40
+	ld a,(boss)
+	or a
+	ld a,BCYAN
+	jr z,.k1
+	ld a,BRED
+.k1:	ld (hl),a
+	inc hl
+	djnz .k1
+	ld a,1
+	ld (hudd),a
+	jp vschk
+
+hud_text:			; B characters from HL to codes at DE
+	ld a,(hl)
+	sub 32
+	push hl
+	ld hl,font_map
+	add a,l
+	ld l,a
+	jr nc,$+3
+	inc h
+	ld a,(hl)
+	pop hl
+	ld (de),a
+	inc hl
+	inc de
+	djnz hud_text
+	ret
+
+hud_bcd:			; 3 BCD bytes at HL -> 6 digit codes at DE
+	ld b,3
+.d:	ld a,(hl)
+	rrca
+	rrca
+	rrca
+	rrca
+	and 15
+	add a,$81
+	ld (de),a
+	inc de
+	ld a,(hl)
+	and 15
+	add a,$81
+	ld (de),a
+	inc de
+	inc hl
+	djnz .d
+	ret
+
+;            0123456789012345678901234567890123456789
+hud_t0:	db "SCORE 000000  HI 000000         SHIPS 3 "
+hud_t1:	db "LEVEL 1   THE OUTER HIVE                "
+hud_tt:	db "  STARHIVE        VIBED BY BPM 2026     "
+hud_tq:	db "HIVE QUEEN                              "
+hud_attr:	ds 80,STAR_BANK
+

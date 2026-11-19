@@ -23,15 +23,21 @@ entry:  di
         INCLUDE "boss.asm"
         INCLUDE "hud.asm"
         INCLUDE "frontstub.asm"
-        INCLUDE "music.inc"
+        INCLUDE "notes.inc"
         INCLUDE "gen.inc"
-; the sprite frame table: 192 common frames, 64 of the stage's
-spr_tab:
-        INCLUDE "sprtab.inc"
 code_end:
         ASSERT code_end <= OVL
         SAVEBIN "../build/SKY.BIN",$8000,code_end-$8000
         DISPLAY "code end: ",code_end
+
+; the tunes live in the front block's lower window copy (sound_tick maps it)
+        ORG MUSIC_AT
+mus_start:
+        INCLUDE "music.inc"
+mus_end:
+        ASSERT mus_end <= $8000
+        SAVEBIN "../build/MUS.BIN",MUSIC_AT,mus_end-MUSIC_AT
+        DISPLAY "music: ",mus_end-MUSIC_AT
 
         ORG VARS
         INCLUDE "vars.asm"

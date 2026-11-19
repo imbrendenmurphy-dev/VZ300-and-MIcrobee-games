@@ -709,6 +709,7 @@ s_up:   db "^",0
 ; show_pic: a whole-screen picture from BLK_FRONT at HL onto both pages,
 ; its glyphs into the PCG from glyph 128
 show_pic:
+        call display_off
         ld a,BLK_FRONT
         call map_blk
         ld a,LV_SCREEN
@@ -765,7 +766,8 @@ show_pic:
         add hl,de
         pop bc
 .c:     ld de,128
-        jp glyphs_in
+        call glyphs_in
+        jp display_on
 
 ; =====================================================================
 ;  SAVE.DAT on the game's own disk (the routine from BPM's tennis game).

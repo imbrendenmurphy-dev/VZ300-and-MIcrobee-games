@@ -6,11 +6,11 @@ Real-time solid-polygon 3D racing on the Dick Smith VZ300: an anti-gravity hover
 Target: VZ300 + BennVenn SD loader + 128K RAM. Mode 1 (128x64, 4 colours).
 VIBED BY BPM 2026
 
-**Status: v0.10 — speed stripes.** The road bands now flow at full speed while the track itself unrolls at half speed, for gentle sweeping curves and hills (docs/STAGE7.md). The attract sequence no longer drops into text mode on real hardware. Races are 2 laps; about 10.6 fps.
+**Status: v0.12 — faster.** About 24.3 fps in a race (was 16.5): road builder rewritten, span lists per depth slot, and only changed rows are redrawn and copied (docs/STAGE9.md). v0.11 brought the OutRun / Hang-On style raster road (docs/STAGE8.md).
 
 v0.9 added the MAX Q CUP: four races against VOLT, NOVA and RAZE, with points and standings, pickups (boost, energy, missile, mine), boost arrows, speed jumps and dusk races.
 
-![v0.10 race](screenshots/maxq_v010_race.gif)
+![v0.11 race](screenshots/maxq_v011_race.gif)
 
 ## Loading
 

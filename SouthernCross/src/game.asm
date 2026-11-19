@@ -92,8 +92,13 @@ clear_objects:
 start_game:
         di
         ld sp,STACKTOP
-        ld hl,PK_STAGE1         ; stage 1 into SRAM bank B
-        call must_load
+        ld a,START_STAGE        ; 1 (test builds can start later)
+        ld (stage_no),a
+        xor a
+        ld (tl_flags),a
+        ld hl,0
+        ld (demo_tm),hl
+        call load_stage         ; stage 1 into SRAM bank B
         call build_code         ; copy code into the overlay (over the front pack)
         ld hl,HUD_INIT
         ld de,HUDBUF
@@ -126,15 +131,9 @@ start_game:
         ld (frame_ready),a
         ld (scroll_rate),a
         ld (paused),a
-        ld hl,STG_WAVES         ; checkpoint = the start of the stage
-        ld (cp_ptr),hl
-        ld a,(hl)
-        ld (cp_tm),a
-        ld hl,0
-        ld (cp_dist),hl
-        ld a,$28
+        call stage_begin
+        ld a,(latch_base)
         ld (latch),a
-        ld (latch_next),a
         ld (LATCH),a
         im 2
         ei
@@ -146,6 +145,8 @@ start_game:
 game_loop:
         call read_input
         ld a,(mode)
+        cp 6
+        jp z,initials_frame
         cp 1
         jr nz,.np
         ld a,(keys_new)
@@ -186,7 +187,7 @@ game_loop:
         jr z,.gs
         ld a,1
         ld (game_song),a
-        ld hl,SONG_GAME
+        ld hl,(H_SONG)
         call play_song
 .gs:    call draw_all
         call do_flash
@@ -196,6 +197,8 @@ game_loop:
         jp z,.over
         cp 3
         jp z,.clear
+        cp 5
+        jp z,.end
         jr game_loop
 .pause: call draw_all
         ld hl,SPR_T_PAUSE
@@ -224,8 +227,7 @@ game_loop:
         jp c,game_loop
 .cont:  call continue_game
         jp game_loop
-.toti:  di
-        jp title
+.toti:  jp hof_or_title
 
         ; stage clear: the tally, then back to the title (more stages to come)
 .clear: ld hl,(clear_tm)
@@ -241,9 +243,434 @@ game_loop:
 .cl2:   ld a,l
         cp 120                  ; 376 frames, about 15 seconds
         jp c,game_loop
+        ld hl,(H_NEXT)
+        ld a,h
+        or l
+        jp nz,next_stage
+        ; the last stage: the ending
+        ld a,5
+        ld (mode),a
+        ld hl,0
+        ld (mode_tm),hl
+        xor a
+        ld (end_lines),a
+        ld hl,SONG_GAME
+        call play_song
+        jp game_loop
+
+        ; the ending: the ship climbs away, the words come up, then the title
+.end:   ld hl,(mode_tm)
+        ld a,h
+        cp 3                    ; ~ 31 seconds
+        jp c,game_loop
         call new_hiscore
+        jp hof_or_title
+
+; ---------------------------------------------------------------- hall of fame
+; a score good enough for the hall of fame: the player puts in initials
+; (mode 6, over the scrolling scenery), otherwise straight to the title
+hof_or_title:
+        ld ix,HOF
+        ld c,0
+.r:     ld hl,score
+        push ix
+        pop de
+        ld b,4
+.cmp:   ld a,(de)
+        cp (hl)
+        jr c,.in                ; the entry is lower: in at this place
+        jr nz,.nx
+        inc hl
+        inc de
+        djnz .cmp
+.nx:    ld de,7
+        add ix,de
+        inc c
+        ld a,c
+        cp 5
+        jr c,.r
         di
         jp title
+.in:    ld a,4                  ; the ones below move down a place
+        sub c
+        jr z,.ns
+        ld b,a
+        xor a
+.m7:    add a,7
+        djnz .m7
+        ld c,a
+        ld hl,HOF+27
+        ld de,HOF+34
+        lddr
+.ns:    ld (ini_ptr),ix
+        push ix
+        pop de
+        ld hl,score
+        ld bc,4
+        ldir
+        ld a,'A'                ; "A  " until they're set
+        ld (de),a
+        inc de
+        ld a,' '
+        ld (de),a
+        inc de
+        ld (de),a
+        xor a
+        ld (ini_pos),a
+        ld (ini_idx),a
+        ld (ini_idx+1),a
+        ld (ini_idx+2),a
+        ld (tl_flags),a
+        ld (paused),a
+        ld (warn_tm),a
+        ld hl,0
+        ld (mode_tm),hl
+        ld a,6
+        ld (mode),a
+        call clear_objects
+        call clear_ebullets
+        ld hl,SONG_CLEAR
+        call play_song
+        jp game_loop
+
+INI_CHARS: db "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 .!"
+INI_N   equ 39
+
+initials_frame:
+        call tick_mode
+        call scroll_one
+        ld hl,(mode_tm)         ; a minute and it takes what it has
+        ld a,h
+        cp 6
+        jr nc,.done
+        or a
+        jr nz,.go
+        ld a,l
+        cp 25                   ; (ignore buttons held from the game)
+        jr c,.dr
+.go:    ld a,(ini_pos)
+        ld e,a
+        ld d,0
+        ld hl,ini_idx
+        add hl,de               ; HL = this letter's index
+        ld a,(keys_new)
+        ld b,a
+        and (1<<K_FIRE)|(1<<K_BURST)
+        jr nz,.fire
+        ld a,b
+        and (1<<K_LEFT)|(1<<K_RIGHT)|(1<<K_UP)|(1<<K_DOWN)
+        jr nz,.step0
+        ld a,(keys)             ; held: repeat
+        and (1<<K_LEFT)|(1<<K_RIGHT)|(1<<K_UP)|(1<<K_DOWN)
+        jr z,.dr
+        ld b,a
+        ld a,(ini_rep)
+        dec a
+        ld (ini_rep),a
+        jr nz,.dr
+        ld a,4
+        jr .step
+.step0: ld b,a
+        ld a,14
+.step:  ld (ini_rep),a
+        ld a,b
+        and (1<<K_RIGHT)|(1<<K_UP)
+        ld a,(hl)
+        jr z,.dn
+        inc a
+        cp INI_N
+        jr c,.st
+        xor a
+        jr .st
+.dn:    or a
+        jr nz,.d1
+        ld a,INI_N
+.d1:    dec a
+.st:    ld (hl),a
+        ld a,FX_TINK
+        call play_sfx
+        call ini_store
+        jr .dr
+.fire:  call ini_store
+        ld a,FX_SHARD
+        call play_sfx
+        ld hl,ini_pos
+        inc (hl)
+        ld a,(hl)
+        cp 3
+        jr nc,.done
+.dr:    call draw_all
+        call frame_end
+        jp game_loop
+.done:  call ini_store
+        ld hl,HOF               ; HI is the top of the table
+        ld de,hiscore
+        ld bc,4
+        ldir
+        di
+        jp title
+
+; the three letters into the table
+ini_store:
+        ld hl,(ini_ptr)
+        ld de,4
+        add hl,de
+        ex de,hl
+        ld hl,ini_idx
+        ld b,3
+.l:     push hl
+        ld a,(hl)
+        ld hl,INI_CHARS
+        add a,l
+        ld l,a
+        jr nc,$+3
+        inc h
+        ld a,(hl)
+        ld (de),a
+        inc de
+        pop hl
+        inc hl
+        djnz .l
+        ret
+
+; mode 6 captions
+draw_initials:
+        ld hl,STR_NEWHI
+        ld c,6
+        ld de,$55FF             ; yellow on red
+        xor a
+        call cached_text
+        ld hl,STR_INITS
+        ld c,16
+        ld de,$55AA
+        ld a,1
+        call cached_text
+        ld hl,STR_HOWTO
+        ld c,48
+        ld de,$00AA
+        ld a,2
+        call cached_text
+        ; the letters, the one being set flashing
+        ld hl,(ini_ptr)
+        ld de,4
+        add hl,de
+        ld de,txtbuf
+        ld b,3
+.l:     ld a,(hl)
+        ld (de),a
+        inc hl
+        inc de
+        ld a,' '
+        ld (de),a
+        inc de
+        djnz .l
+        dec de
+        xor a
+        ld (de),a
+        ld hl,txtbuf
+        ld b,9
+        ld c,30
+        ld de,$55AA
+        call draw_text
+        ld a,(anim)
+        and 8
+        ret z
+        ld a,(ini_pos)
+        cp 3
+        ret nc
+        ld e,a
+        add a,a
+        ld l,a
+        ld h,0
+        ld bc,txtbuf
+        add hl,bc
+        inc hl
+        ld (hl),0               ; just that letter
+        dec hl
+        add a,9
+        ld b,a
+        ld c,30
+        ld de,$FF55             ; red on yellow
+        jp draw_text
+
+draw_demo:
+        ld a,(anim)
+        and 16
+        ret z
+        ld hl,STR_DEMO
+        ld c,1
+        ld de,$55FF
+        ld a,2
+        jp cached_text
+
+; ---------------------------------------------------------------- the demo
+demo_end:
+        di
+        xor a
+        ld (demo),a
+        jp title
+
+; the autopilot (C = keys): fire, dodge bullets close above, chase the
+; lowest enemy; half a minute, or until it loses its last ship
+autopilot:
+        ld hl,(demo_tm)
+        inc hl
+        ld (demo_tm),hl
+        ld a,h
+        cp 3
+        jp nc,demo_end
+        ld a,(mode)
+        cp 2
+        jp z,demo_end
+        ld c,1<<K_FIRE
+        ld a,l
+        and 7
+        jr nz,$+4
+        ld c,0
+        ld ix,EBTAB
+        ld b,NEB
+.b:     ld a,(ix+0)
+        or a
+        jr z,.bn
+        ld a,(py)
+        sub (ix+4)
+        add a,2
+        cp 26
+        jr nc,.bn
+        ld a,(px)
+        add a,3
+        sub (ix+2)
+        add a,6
+        cp 13
+        jr nc,.bn
+        cp 6
+        jr c,.lf
+        set K_RIGHT,c
+        ret
+.lf:    set K_LEFT,c
+        ret
+.bn:    ld de,EBSIZE
+        add ix,de
+        djnz .b
+        ld ix,ETAB
+        ld b,NEN
+        ld hl,$00FF             ; H = lowest y so far, L = its x
+.e:     ld a,(ix+EO_T)
+        or a
+        jr z,.en
+        ld a,(ix+EO_W)
+        or a
+        jr z,.en
+        ld a,(py)
+        cp (ix+EO_Y)
+        jr c,.en
+        jr z,.en
+        ld a,(ix+EO_Y)
+        cp h
+        jr c,.en
+        ld h,a
+        ld a,(ix+EO_W)
+        srl a
+        add a,(ix+EO_X)
+        sub 4
+        jr nc,$+3
+        xor a
+        ld l,a
+.en:    ld de,EOSIZE
+        add ix,de
+        djnz .e
+        ld a,l
+        cp 255
+        jr nz,.t
+        ld a,44
+.t:     ld b,a
+        ld a,(px)
+        sub b
+        add a,2
+        cp 5
+        ret c
+        ld a,(px)
+        cp b
+        jr c,.rt
+        set K_LEFT,c
+        ret
+.rt:    set K_RIGHT,c
+        ret
+
+STR_DEMO:  db "DEMO - PRESS FIRE",0
+STR_NEWHI: db "A HALL OF FAME SCORE!",0
+STR_INITS: db "ENTER YOUR INITIALS",0
+STR_HOWTO: db "STICK PICKS  FIRE SETS",0
+
+; ---------------------------------------------------------------- stages
+; load the pack for (stage_no) into SRAM bank B
+load_stage:
+        ld a,(stage_no)
+        dec a
+        add a,a
+        ld e,a
+        ld d,0
+        ld hl,PK_STAGES
+        add hl,de
+        ld a,(hl)
+        inc hl
+        ld h,(hl)
+        ld l,a
+        jp must_load
+
+; checkpoint at the start of the stage, the stage's colour set
+stage_begin:
+        ld hl,(H_WAVES)
+        ld (cp_ptr),hl
+        ld a,(hl)
+        ld (cp_tm),a
+        ld hl,0
+        ld (cp_dist),hl
+        ld a,(H_CSS)
+        or $28
+        ld (latch_base),a
+        ld (latch_next),a
+        ret
+
+; on to the next stage, keeping the score, lives, weapon and stars
+next_stage:
+        di
+        xor a
+        ld (frame_ready),a
+        call stop_music
+        ld hl,stage_no
+        inc (hl)
+        call load_stage
+        call stage_begin
+        ld a,(stars_mask)       ; the stars on the ship come along
+        push af
+        ld a,(lives)
+        push af
+        ld a,(wlevel)
+        push af
+        call new_life_set
+        pop af
+        ld (wlevel),a
+        pop af
+        ld (lives),a
+        pop af
+        ld b,4
+        ld ix,STTAB
+.st:    ld (ix+0),ST_NONE
+        rrca
+        jr nc,$+6
+        ld (ix+0),ST_ON
+        ld de,STSIZE
+        add ix,de
+        djnz .st
+        call place_stars
+        call hud_all
+        xor a
+        ld (fieldcnt),a
+        ei
+        ld hl,SONG_JINGLE
+        call play_song
+        jp game_loop
 
 ; fresh ship, two wing stars, from the checkpoint
 new_life_set:
@@ -281,7 +708,7 @@ new_life_set:
         ld (wave_tm),a
         ld hl,(cp_dist)
         ld (dist),hl
-        ld a,$28
+        ld a,(latch_base)
         ld (latch_next),a
         jp hud_all
 
@@ -312,6 +739,9 @@ star_bonus:
         jp play_sfx
 
 new_hiscore:
+        ld a,(demo)             ; (the demo's score doesn't count)
+        or a
+        ret nz
         ld hl,score
         ld de,hiscore
         ld b,4
@@ -331,8 +761,7 @@ new_hiscore:
 
 ; Cross Burst flash: the other colour set for a few frames
 do_flash:
-        ld a,(latch)
-        and $EF
+        ld a,(latch_base)
         ld b,a
         ld a,(flash_tm)
         or a
@@ -340,7 +769,7 @@ do_flash:
         dec a
         ld (flash_tm),a
         ld a,b
-        or $10
+        xor $10                 ; the other colour set
         ld b,a
 .n:     ld a,b
         ld (latch_next),a
@@ -356,6 +785,15 @@ upd_player:
         ld a,(mode)
         cp 2
         ret z
+        cp 5                    ; the ending: climb away into space
+        jr nz,.nend
+        ld a,(py)
+        cp 2
+        ret c
+        dec a
+        ld (py),a
+        ret
+.nend:
         ld a,(pdead)
         or a
         jr z,.alive
@@ -1679,12 +2117,16 @@ hit_enemy_at:
 damage_enemy:
         ld d,a
         ld a,(ix+EO_T)
-        cp T_CORE
-        jr nz,.dm
-        ld a,(boss_ph)
-        cp 3
+        cp T_POD
+        jr c,.dm
+        jr nz,.co
+        ld a,(BD+BD_SHIELD)     ; shields can't be hurt
+        or a
         jr z,.dm
-        ld a,(tink_tm)          ; armour: a tink (not every frame)
+        jr .tk
+.co:    call core_exposed       ; the core: armoured?
+        jr c,.dm
+.tk:    ld a,(tink_tm)          ; armour: a tink (not every frame)
         or a
         ret nz
         ld a,6
@@ -2068,7 +2510,16 @@ game_over:
 
 ; ---------------------------------------------------------------- drawing
 draw_all:
-        call compose_bg
+        ld a,(mode)             ; the ending, once the ship has gone: the
+        cp 5                    ; scene holds still and each line of the
+        jr nz,.go               ; message is drawn once, as it arrives
+        ld a,(mode_tm+1)
+        or a
+        jp nz,end_text
+        ld a,(mode_tm)
+        cp 75
+        jp nc,end_text
+.go:    call compose_bg
         ; boats and their wakes (on the water, under everything)
         ld ix,ETAB
         ld b,NEN
@@ -2079,19 +2530,19 @@ draw_all:
         ld a,(ix+EO_X)
         cp 84
         jr nc,.btn
-        ld hl,SPR_BOAT0
+        ld hl,(H_BOAT0)
         ld a,(ix+EO_ST)
         or a
         jr nz,.bs
-        ld hl,SPR_RIPPLE0
+        ld hl,(H_RIP0)
         bit 2,(ix+EO_TM)
         jr z,.bs
-        ld hl,SPR_RIPPLE1
+        ld hl,(H_RIP1)
         jr .bd
 .bs:    ld a,(ix+EO_FL)
         or a
         jr z,.bd
-        ld hl,SPR_BOAT0W
+        ld hl,(H_BOATW)
 .bd:    ld b,(ix+EO_X)
         ld c,(ix+EO_Y)
         call draw_obj
@@ -2131,42 +2582,42 @@ draw_all:
         jr z,.pd2
         cp T_DART
         jr nz,.enn
-        ld hl,SPR_DART0
+        ld hl,(H_DART0)
         bit 1,(ix+EO_TM)
         jr z,.da
-        ld hl,SPR_DART1
+        ld hl,(H_DART1)
 .da:    ld a,(ix+EO_FL)
         or a
         jr z,.ed
-        ld hl,SPR_DART0W
+        ld hl,(H_DARTW)
         jr .ed
-.hn:    ld hl,SPR_HORNET0
+.hn:    ld hl,(H_HORN0)
         bit 2,(ix+EO_TM)
         jr z,.hw
-        ld hl,SPR_HORNET1
+        ld hl,(H_HORN1)
 .hw:    ld a,(ix+EO_FL)
         or a
         jr z,.ed
-        ld hl,SPR_HORNET0W
+        ld hl,(H_HORNW)
         jr .ed
-.pd2:   ld hl,SPR_TURRET0
+.pd2:   ld hl,(BD+BD_PSPR0)
         ld a,(anim)
         and 4
         jr z,.pw
-        ld hl,SPR_TURRET1
+        ld hl,(BD+BD_PSPR1)
 .pw:    ld a,(ix+EO_FL)
         or a
         jr z,.ed
-        ld hl,SPR_TURRETW
+        ld hl,(BD+BD_PSPRW)
         jr .ed
-.dr:    ld hl,SPR_DRONE0
+.dr:    ld hl,(H_DRONE0)
         bit 2,(ix+EO_TM)
         jr z,.dw
-        ld hl,SPR_DRONE1
+        ld hl,(H_DRONE1)
 .dw:    ld a,(ix+EO_FL)
         or a
         jr z,.ed
-        ld hl,SPR_DRONE0W
+        ld hl,(H_DRONEW)
 .ed:    ld a,(ix+EO_X)
         cp 88
         jr nc,.enn
@@ -2257,8 +2708,11 @@ draw_all:
         djnz .sr
         ; the ship
         ld a,(mode)
-        cp 1
-        jr nz,.nos
+        cp 2
+        jr z,.nos
+        ld a,(py)
+        cp 4
+        jr c,.nos
         ld a,(pdead)
         or a
         jr nz,.nos
@@ -2344,6 +2798,13 @@ draw_all:
         jr z,.over
         cp 3
         jp z,draw_tally
+        cp 5
+        jp z,draw_ending
+        cp 6
+        jp z,draw_initials
+        ld a,(demo)
+        or a
+        call nz,draw_demo
         ld a,(warn_tm)
         or a
         jr z,.nw
@@ -2357,7 +2818,7 @@ draw_all:
         ld c,22
         ld de,$FF55             ; red on yellow
         jp draw_text
-.w2:    ld hl,STR_WARN2
+.w2:    ld hl,(H_BNAME)
         ld b,255
         ld c,22
         ld de,$55AA
@@ -2369,6 +2830,11 @@ draw_all:
         ld a,l
         cp 60
         ret nc
+        ld hl,(H_NAME)          ; the stage's name over READY!
+        ld b,255
+        ld c,16
+        ld de,$55AA
+        call draw_text
         ld hl,SPR_T_READY
         ld b,36
         ld c,FBTOP+28
@@ -2399,11 +2865,16 @@ draw_all:
 
 ; the stage clear tally (mode 3)
 draw_tally:
+        ld hl,(H_NAME)          ; <stage> CLEAR!
+        ld de,txtbuf
+        call strcpy
         ld hl,STR_CLEAR
-        ld b,255
+        call strcpy
+        ld hl,txtbuf
         ld c,12
         ld de,$55FF             ; yellow on red
-        call draw_text
+        xor a
+        call cached_text
         ld hl,(clear_tm)
         ld a,h
         or a
@@ -2412,10 +2883,10 @@ draw_tally:
         cp 60
         ret c
 .t2:    ld hl,STR_STARS
-        ld b,255
         ld c,24
         ld de,$55AA
-        call draw_text
+        ld a,1
+        call cached_text
         ld hl,(clear_tm)
         ld a,h
         or a
@@ -2423,16 +2894,206 @@ draw_tally:
         ld a,l
         cp 200
         ret c
-.t3:    ld hl,STR_NEXT
-        ld b,255
-        ld c,40
+.t3:    ld hl,(H_NEXT)
+        ld a,h
+        or l
+        jr nz,.nx
+        ld hl,STR_FINAL
+        jr .t4
+.nx:    push hl
+        ld hl,STR_NEXT
+        ld de,txtbuf
+        call strcpy
+        pop hl
+        call strcpy
+        ld hl,txtbuf
+.t4:    ld c,40
         ld de,$00AA             ; green on blue
+        ld a,2
+        jp cached_text
+
+; a centred caption that stays up for a while: drawn once with draw_text,
+; then copied from a cache each frame (7 rows x up to 24 bytes, slot A of 3
+; in the boss trail's room, which is free after the fight)
+;   HL = text, C = row, DE = colours, A = slot.  tl_flags: slots filled
+TLCACHE equ BHIST               ; 3 x 172 bytes ($EC00-$EE03 would be one
+TLSLOT  equ 170                 ; too many: slots are 170, lines <= 23 chars)
+cached_text:
+        push hl
+        ld b,a
+        inc b
+        xor a
+        scf
+.bit:   rla
+        djnz .bit               ; A = 1 << slot
+        ld b,a
+        ld a,(tl_flags)
+        and b
+        jr nz,.blit
+        ld a,(tl_flags)
+        or b
+        ld (tl_flags),a
+        ld a,b                  ; slot address
+        call tl_slot
+        ex (sp),hl              ; (sp) = slot, HL = text
+        push hl
+        push bc
+        ld b,0                  ; length
+.ln:    ld a,(hl)
+        or a
+        jr z,.lnd
+        inc b
+        inc hl
+        jr .ln
+.lnd:   ld a,24
+        sub b
+        srl a                   ; first byte
+        ld (tl_x),a
+        ld a,b
+        ld (tl_n),a
+        pop bc
+        pop hl
+        push bc
+        ld a,(tl_x)
+        ld b,a
+        call draw_text          ; C = row, DE = colours
+        pop bc
+        ; copy what was drawn into the slot: dw source, db width, then rows
+        ld a,c
+        add a,FBTOP
+        add a,a
+        ld l,a
+        ld h,YTAB>>8
+        ld a,(hl)
+        inc l
+        ld h,(hl)
+        ld l,a
+        ld a,(tl_x)
+        add a,l
+        ld l,a
+        jr nc,$+3
+        inc h                   ; HL = frame buffer position
+        pop de                  ; DE = slot
+        ex de,hl
+        ld (hl),e
+        inc hl
+        ld (hl),d
+        inc hl
+        ld a,(tl_n)
+        ld (hl),a
+        inc hl
+        ex de,hl                ; HL = FB, DE = slot data
+        ld b,7
+.cr:    push bc
+        push hl
+        ld a,(tl_n)
+        ld c,a
+        ld b,0
+        ldir
+        pop hl
+        ld bc,FBW
+        add hl,bc
+        pop bc
+        djnz .cr
+        ret
+.blit:  pop hl
+        ld a,b
+        call tl_slot            ; HL = slot
+        ld e,(hl)
+        inc hl
+        ld d,(hl)
+        inc hl
+        ld a,(hl)
+        inc hl
+        ld (tl_n),a
+        ld b,7
+.br:    push bc
+        push de
+        ld a,(tl_n)
+        ld c,a
+        ld b,0
+        ldir
+        ex (sp),hl
+        ld bc,FBW
+        add hl,bc
+        ex de,hl
+        pop hl
+        pop bc
+        djnz .br
+        ret
+
+; A = slot bit (1, 2, 4) -> HL = slot address
+tl_slot:
+        ld hl,TLCACHE
+        rra
+        ret c
+        ld hl,TLCACHE+TLSLOT
+        rra
+        ret c
+        ld hl,TLCACHE+2*TLSLOT
+        ret
+
+; copy the string at HL to DE (DE ends on its 0, ready to append)
+strcpy: ld a,(hl)
+        ld (de),a
+        or a
+        ret z
+        inc hl
+        inc de
+        jr strcpy
+
+; the ending (mode 5): a line every three seconds
+draw_ending:
+        ret
+
+end_text:
+        ld hl,(mode_tm)
+        ld b,h
+        ld a,l
+        ld c,75
+        call div8               ; lines due
+        cp 7
+        jr c,$+4
+        ld a,7
+        ld hl,end_lines
+        cp (hl)
+        ret z
+        ret c
+        ld a,(hl)
+        inc (hl)
+        or a                    ; the first line: a clean sky to write on
+        jr nz,.nf
+        call compose_bg
+        xor a
+.nf:    ld b,a
+        ld c,6                  ; row of the first line
+        ld hl,ENDTXT
+        or a
+        jr z,.d
+.s:     ld a,(hl)               ; skip to line B
+        inc hl
+        or a
+        jr nz,.s
+        ld a,c
+        add a,8
+        ld c,a
+        djnz .s
+.d:     ld b,255
+        ld de,$55AA
         jp draw_text
+
+ENDTXT: db "THE RUST HEART",0
+        db "IS NO MORE",0
+        db "THE SOUTHERN CROSS",0
+        db "SHINES OVER A",0
+        db "CLEAN COUNTRY",0
+        db "THANK YOU FOR PLAYING",0
+        db "VIBED BY BPM 2026",0
 
 ; BA / C -> A (8-bit quotient; BA < 256*C)
 div8:   ld h,b
         ld l,a
-        ld b,8
+        ld b,16
         xor a
 .l:     add hl,hl
         rla
@@ -2445,11 +3106,11 @@ div8:   ld h,b
         ret
 
 STR_WARN:  db "WARNING!",0
-STR_WARN2: db "CROWN OF THORNS",0
 STR_CONT:  db "CONTINUE? "
-STR_CLEAR: db "CORAL SEA CLEAR!",0
+STR_CLEAR: db " CLEAR!",0
+STR_FINAL: db "AUSTRALIA IS SAVED!",0
 STR_STARS: db "STARS LEFT X 2000",0
-STR_NEXT:  db "NEXT: THE DAINTREE",0
+STR_NEXT:  db "NEXT: ",0
 
 CRUXTAB: dw SPR_CRUX_C0,SPR_CRUX_C1,SPR_CRUX_L0,SPR_CRUX_L1,SPR_CRUX_R0,SPR_CRUX_R1
 EXPLTAB: dw SPR_EXPL0,SPR_EXPL1,SPR_EXPL2,SPR_EXPL3

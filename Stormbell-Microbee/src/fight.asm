@@ -106,7 +106,11 @@ fighter_tick:
         and 3
         add a,FR_RUN1
         ld (ix+F_FR),a
-        ret
+        ld a,(ticks)
+        and 3
+        ret nz
+        ld a,SFX_FOOT           ; a foot comes down
+        jp sfx
 .upright:
         ld (ix+F_FR),FR_IDLE
         ret
@@ -370,6 +374,8 @@ st_fall:
         ld (ix+F_ST),ST_DOWN
         ld (ix+F_T),0
         ld b,FR_DOWN
+        ld a,1
+        ld (hitstop),a
         ld a,SFX_THUD
         call sfx
 .f:     ld (ix+F_FR),b
@@ -501,6 +507,7 @@ resolve:
         jr c,.np
 .pp:    ld (iy+F_X),a
 .np:    ld a,(ix+F_STRIKE)
+        ld (hitstop),a          ; a punch holds one tick, a kick two
         add a,SFX_HIT-1
         jp sfx
 .blocked:

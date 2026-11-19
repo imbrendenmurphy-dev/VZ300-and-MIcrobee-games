@@ -27,7 +27,7 @@ def main(disk=ROOT / 'build' / 'SPINDRIFT.DS8'):
     files = BD.read_dir(BD.unskew(img))
     print('disk directory:', ', '.join('%s %d' % (n, len(d)) for n, d in files.items()))
     B = ROOT / 'build'
-    for n in ('SPIN.COM', 'SPIN.BIN', 'TAB.BNK', 'ENM.BNK', 'PIC.BNK'):
+    for n in ('SPIN.COM', 'SPIN.BIN', 'TAB.BNK', 'ENM.BNK', 'PIC.BNK', 'MUS.BNK'):
         want = (B / n).read_bytes()
         got = files[n][:len(want)]
         assert got == want, n + ' differs on the disk'
@@ -101,6 +101,11 @@ def main(disk=ROOT / 'build' / 'SPINDRIFT.DS8'):
     prog = (B / 'SPIN.BIN').read_bytes()
     at = pp.cpu.pc if pp.cpu.pc == 0x8000 else pp.run_until(0x8000, 50)
     mbee.L.mb_set_bp(pp.h, 0x8000, 0)
+    # every block as loaded (the game rewrites part of block 4 at once:
+    # the screen shape)
+    for blk, n in ((4, 'TAB'), (5, 'ENM'), (6, 'PIC'), (7, 'MUS')):
+        d = (B / (n + '.BNK')).read_bytes()
+        print('block %d holds %s.BNK:' % (blk, n), bytes(pp.blocks[blk][:len(d)]) == d)
     mem = bytes(pp.blocks[0][:len(prog)])
     ok_prog = at == 0x8000 and mem == prog
     if not ok_prog:
@@ -110,9 +115,6 @@ def main(disk=ROOT / 'build' / 'SPINDRIFT.DS8'):
             0x8000 + diff[-1] if diff else 0, len(prog)))
     print('final stage jumped to 8000h with the program intact:', ok_prog)
     pp.run_frames(60)
-    for blk, n in ((4, 'TAB'), (5, 'ENM'), (6, 'PIC')):
-        d = (B / (n + '.BNK')).read_bytes()
-        print('block %d holds %s.BNK:' % (blk, n), bytes(pp.blocks[blk][:len(d)]) == d)
     pp.S = S
     import fronttest
     t = fronttest.screen_text(pp)

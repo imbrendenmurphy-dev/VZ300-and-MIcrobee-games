@@ -1,7 +1,7 @@
 ; =====================================================================
 ;  GHOST HUNTER '26
 ;  a maze chase for the Microbee Premium Plus (1MB RAM, 32K PCG),
-;  in the 40-column mode: 320 x 200, sixteen colours, every cell its own
+;  in the full-screen 40-column mode: 320 x 250 (40 x 25 cells of 8 x 10), sixteen colours, every cell its own
 ;  ink and paper. Four ghosts with minds of their own, six haunted mazes,
 ;  power-ups, treasures, bonus rounds and a hunter with three hearts.
 ;  VIBED BY BPM 2026
@@ -46,7 +46,11 @@ dmap:   ds 23*64                ; dots on the lattice of cell corners: 1 dot, 2 
 edges:  ds 91                   ; lanes out of each node: 1 R, 2 L, 4 U, 8 D
 home:   ds 91                   ; the way back to the pen door from each node
 maps_end:
-        ASSERT maps_end <= TABLES
+        ALIGN 256
+div10:  ds 256                  ; y / 10   (render: cell row of a pixel line)
+div10r: ds 256                  ; y % 10
+tabs_end:
+        ASSERT tabs_end <= TABLES
         SAVEBIN "../build/GH.BIN",$8000,code_end-$8000
         DISPLAY "code end: ",code_end
         DISPLAY "maps end: ",maps_end

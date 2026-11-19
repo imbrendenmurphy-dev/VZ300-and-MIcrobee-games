@@ -6,6 +6,7 @@ import art
 import fighters as F
 
 BAND_ROW = 10
+C = art.CELL
 
 
 def compose(pic, a, fa, xa, b, fb, xb):
@@ -17,19 +18,19 @@ def compose(pic, a, fa, xa, b, fb, xb):
         anchor = F.CW - 1 - F.AC if mir else F.AC
         for cy in range(F.CH):
             for cx in range(F.CW):
-                cell = fink[cy * 8:cy * 8 + 8, cx * 8:cx * 8 + 8]
+                cell = fink[cy * C:cy * C + C, cx * 8:cx * 8 + 8]
                 if not cell.any():
                     continue
                 X, Y = x - anchor + cx, BAND_ROW + cy
                 if not 0 <= X < 40:
                     continue
-                ink[Y * 8:Y * 8 + 8, X * 8:X * 8 + 8] = cell
+                ink[Y * C:Y * C + C, X * 8:X * 8 + 8] = cell
                 ci[Y, X] = cc[cy, cx]
                 if cp[Y, X] == ci[Y, X]:
                     cp[Y, X] = art.BLACK
     pal = np.array(art.PAL, np.uint8)
-    fg = pal[np.repeat(np.repeat(ci, 8, 0), 8, 1)]
-    bg = pal[np.repeat(np.repeat(cp, 8, 0), 8, 1)]
+    fg = pal[np.repeat(np.repeat(ci, C, 0), 8, 1)]
+    bg = pal[np.repeat(np.repeat(cp, C, 0), 8, 1)]
     return np.where(ink[:, :, None], fg, bg)
 
 
@@ -43,4 +44,4 @@ if __name__ == '__main__':
     ims.append(np.zeros_like(ims[0]))
     rows = [np.concatenate(ims[i:i + 2], 1) for i in range(0, 6, 2)]
     sh = np.concatenate(rows, 0)
-    Image.fromarray(sh).resize((int(sh.shape[1] * 1.25 * 1.4), int(sh.shape[0] * 1.4)), Image.NEAREST).save(sys.argv[1])
+    Image.fromarray(sh).resize((int(sh.shape[1] * 1.09 * 1.4), int(sh.shape[0] * 1.4)), Image.NEAREST).save(sys.argv[1])

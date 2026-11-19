@@ -11,7 +11,7 @@ def grab(n, every=4):
     for i in range(n // every):
         pp.run_frames(every)
         im = Image.fromarray(pp.screen_rgb())
-        frames.append(im.resize((320, 240), Image.NEAREST).quantize(colors=16, method=Image.Quantize.MEDIANCUT))
+        frames.append(im.resize((320, 240), Image.LANCZOS).quantize(colors=16, method=Image.Quantize.MEDIANCUT))
 pp.run_frames(60); grab(280)
 pp.run_frames(1120 - 340 + 1200 + 130)
 grab(700)

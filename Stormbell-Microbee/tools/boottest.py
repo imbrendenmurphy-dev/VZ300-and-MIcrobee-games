@@ -21,8 +21,17 @@ def boot(disk_path=ROOT / 'build' / 'STORM.DS8'):
 
 
 def launch(pp, frames=400):
+    """type STORM, wait for the game to set up its display, then run on
+    `frames` more frames past that point (the title)"""
     bootrom.type_text(pp, 'STORM\r')
-    pp.run_frames(frames)
+    for i in range(3000):
+        pp.run_frames(5)
+        if pp.crtc[1] == 0x28 and pp.crtc[9] == 9:
+            break
+    else:
+        raise RuntimeError('the game never set up its display')
+    pp.loaded_at = pp.frames
+    pp.run_frames(max(0, frames - 400))
     return pp
 
 

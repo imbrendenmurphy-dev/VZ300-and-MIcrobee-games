@@ -45,6 +45,14 @@ SF_MAG_DIVE equ 41
 SF_GOAN0 equ 42
 SF_GOAN1 equ 43
 SF_GOAN2 equ 44
+SF_BAT_UP equ 45
+SF_BAT_DOWN equ 46
+SF_BAT_DIVE equ 47
+SF_BUFO_SIT equ 48
+SF_BUFO_LEAP equ 49
+SF_BUFO_PUFF equ 50
+SF_BUFO_BACK0 equ 51
+SF_BUFO_BACK1 equ 52
 sprtab:
 	db 4,17,22,0
 	dw $0000,0
@@ -226,3 +234,35 @@ sprtab:
 	dw $0856,0
 	db 7,21,8,0
 	dw $0B66,0
+	db 7,10,8,0
+	dw $0E76,0
+	db 7,9,8,0
+	dw $105A,0
+	db 7,10,8,0
+	dw $1240,0
+	db 7,9,8,0
+	dw $140C,0
+	db 7,10,9,0
+	dw $15DA,0
+	db 7,9,9,0
+	dw $1768,0
+	db 7,17,25,0
+	dw $18FC,0
+	db 7,16,25,0
+	dw $2012,0
+	db 7,17,27,0
+	dw $2728,0
+	db 7,16,27,0
+	dw $2E28,0
+	db 7,17,25,0
+	dw $3528,0
+	db 7,16,25,0
+	dw $3C2C,0
+	db 7,17,18,0
+	dw $4330,0
+	db 7,16,18,0
+	dw $4906,0
+	db 7,17,18,0
+	dw $4EDC,0
+	db 7,16,18,0
+	dw $5472,0

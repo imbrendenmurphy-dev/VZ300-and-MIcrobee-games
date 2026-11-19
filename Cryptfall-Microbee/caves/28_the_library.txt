@@ -1,0 +1,42 @@
+name: THE LIBRARY
+hint: THE KEY IS ON A HIGH SHELF
+quota: 48
+time: 120
+gem: 10 20
+magic: 25
+slow: 40
+slmax: 80
+bonus: 0
+theme: block1=RED block2=BLUE block3=GREEN wall3=BROWN dirt1=BROWN door=YELLOW
+; solve: ! X
+map:
+##########################################################
+#......*.................................................#
+#.P..o...................................................#
+#..............*.........................................#
+#..B*......A........A....BN.oAH....*..A.N.H*.**A*.*..**..#
+#..B*..*B..AN..N*...A*.HBBN*.AH.*.H*.*A*NBH...BA.*H.y.H..#
+#..BH.BNBN.ANH.N.*HBAHHHBBNBBAHHB.HBBHA.NBHBN*BAHHHH..H..#
+#..BHNBNBNNANHNNBHHBAHHHBBNBBAHHBNHBBHANNBHBNHBAHHHHHHH.*#
+#..BHNBNBNNANHNNBHHBAHHHBBNBBAHHBNHBBHANNBHBNHBAHHHHHHH..#
+#*.BHNBNBNNANHNNBHHBAHHHBBNBBAHHBNHBBHANNBHBNHBAHHHHHHH..#
+#..AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA..#
+#..........*...............*............................*#
+#..B..N.*..A*B..**H.A*B.*....A.H*o....AN*N*H*..AB...N.H..#
+#..BN.NNN.BA.B.H..H.A*BBNN.B.A.H*...B*AN*N.H...AB.oNN.H..#
+#..BNNNNN.BA.BNH.NH*A*BBNN.B.AHHBH*NBBAN.NNH.BBAB*HNNNH..#
+#..BNNNNNBBAHBNHHNHNAHBBNNHBBAHHBHHNBBANNNNHHBBABNHNNNH.,#
+#,,BNNNNNBBAHBNHHNHNAHBBNNHBBAHHBHHNBBANNNNHHBBABNHNNNH,,#
+#,,BNNNNNBBAHBNHHNHNAHBBNNHBBAHHBHHNBBANNNNHHBBABNHNNNH,,#
+#,,AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,,#
+#,,,,o,,,,,*,,,,,,,,,,,,*,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,#
+#,,,,,,H,,,A,,,,N,,,A,,,,,H,,A*,,,,NNBA,**,,,,,A,,,,,N,,,#
+#,,NN,HHBBBA,,B,NN,,A,,,AAAAAAAAAA,NNBA,H,,,,H,A,B,,,NH,,#
+#,oNN,HHBBBAH,BHNNH,AB,oA********A,NNBAHHBN,,H,A,B,HNNH,,#
+#,,NNBHHBBBAHBBHNNHHABNNA********AHNNBAHHBNHHHNABBHHNNH,,#
+#,,NNBHHBBBAHBBHNNHHABNNA***C****AHNNBAHHBNHHHNABBHHNNH,,#
+#,,NNBHHBBBAHBBHNNHHABNNAAAADAAAAAHNNBAHHBNHHHNABBHHNNH,o#
+#,,AAAAAAAAAAAAAAAAAAAAAAAAA.AAAAAAAAAAAAAAAAAAAAAAAAAA,,#
+#,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,.#
+#,,,,,,,,,,o,,,,,,,,,,,,,,o,,,,,,,,,,,,,o,,,,,,,,,,,,,,,,X
+##########################################################

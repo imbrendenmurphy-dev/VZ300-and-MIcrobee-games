@@ -15,7 +15,7 @@ import jump
 import playtest
 from mbee import FRAME_T
 
-VBLANK_T = 113 * 216
+VBLANK_T = 62 * 216           # 62 blanked lines of 216 T (312 - 250)
 PH_PLAY, PH_BOSS, PH_BONUS = 1, 4, 7
 
 

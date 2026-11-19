@@ -67,6 +67,10 @@ static int disp_lines(void) { return crtc[6] * (crtc[9] + 1); }
 
 static u8 lowblk[32][0x8000];
 static int curblk = 2;        /* CP/M's lower block */
+static int garbage_regs = 0;
+static int rrdmode = 0;
+static int hibank = 0; static long hibank_hits = 0;
+static int strict_video = 0; static long strict_hits = 0;
 static int vidpos = 0;        /* 0 = F000, 1 = off, 2 = 8000 */
 static inline int vid_at(u16 a, u16 *o)
 {
@@ -81,6 +85,7 @@ static inline u8 mem_rd(u16 a)
     if (!vid_at(a, &vo)) return ram[a];
     a = 0xF000 + vo;
     if (!(a < 0xF800 && (port1c & 0x10))) wait_extra += vwait;
+    if (strict_video) return (u8)(rand() >> 5);   /* STRICT=1: no video memory reads back */
     if (a >= 0xF800) {
         u16 o = a - 0xF800;
         if (port08 & 0x40) return cram[o];
@@ -100,6 +105,14 @@ static inline void mem_wr(u16 a, u8 v)
     if (!vid_at(a, &vo)) { ram[a] = v; return; }
     a = 0xF000 + vo;
     if (!(a < 0xF800 && (port1c & 0x10))) wait_extra += vwait;
+    /* STRICT=1: a screen, attribute or colour write with a PCG bank still
+       selected in port 1C is treated as going astray */
+    if (strict_video && (port1c & 15) && (a < 0xF800 || (port08 & 0x40))) { v = (u8)(rand() >> 5); strict_hits++; }
+    /* HIBANK=1: writes to PCG RAM are lost while a RAM block with either of the
+       top two bank bits (blocks 8 up) is in the lower window - the theory for
+       the stale glyphs seen on the real Premium Plus.  HIBANK=2: every video
+       write is lost then. */
+    if (hibank && curblk >= 8 && (hibank == 2 || (a >= 0xF800 && !(port08 & 0x40)))) { hibank_hits++; return; }
     if (a >= 0xF800) {
         u16 o = a - 0xF800;
         if (port08 & 0x40) cram[o] = v;
@@ -403,7 +416,12 @@ static int exec_ed(void)
             case 1: Rr = A; return 9;
             case 2: A = I; F = (F & FC) | sz[A] | (IFF2 ? FP : 0); return 9;
             case 3: A = Rr; F = (F & FC) | sz[A] | (IFF2 ? FP : 0); return 9;
-            case 4: { u8 m = mem_rd(HL); mem_wr(HL, (A << 4) | (m >> 4)); A = (A & 0xf0) | (m & 15); F = (F & FC) | szp[A]; return 18; }
+            case 4: { u8 m = mem_rd(HL);
+                if (rrdmode == 1) { mem_wr(HL, (m << 4) | (A & 15)); A = (A & 0xf0) | (m >> 4); }
+                else if (rrdmode == 2) { mem_wr(HL, (A << 4) | (m >> 4)); }
+                else if (rrdmode == 3) { }
+                else { mem_wr(HL, (A << 4) | (m >> 4)); A = (A & 0xf0) | (m & 15); }
+                F = (F & FC) | szp[A]; return 18; }
             case 5: { u8 m = mem_rd(HL); mem_wr(HL, (m << 4) | (A & 15)); A = (A & 0xf0) | (m >> 4); F = (F & FC) | szp[A]; return 18; }
             default: return 8;
             }
@@ -704,6 +722,16 @@ int main(int argc, char **argv)
     static const u8 init_crtc[16] = {0x6b,0x40,0x51,0x37,0x12,0x09,0x10,0x12,0x48,0x0f,0x2f,0x0f,0,0,0,0};
     memcpy(crtc, init_crtc, 16);
     for (int b = 0; b < 32; b++) memset(lowblk[b], 0xE5, 0x8000);
+    if (getenv("STRICT")) strict_video = 1;
+    if (getenv("RRDMODE")) rrdmode = atoi(getenv("RRDMODE"));
+    if (getenv("HIBANK")) hibank = atoi(getenv("HIBANK"));
+    if (getenv("GARBAGE")) {     /* a real machine: nothing starts out tidy */
+        srand(atoi(getenv("GARBAGE")));
+        for (int b = 0; b < 32; b++) for (int i = 0; i < 0x8000; i++) lowblk[b][i] = rand() >> 4;
+        for (int i = 0; i < 0x10000; i++) ram[i] = rand() >> 4;
+        for (int i = 0x800; i < (int)sizeof pram; i++) pram[i] = rand() >> 4;
+        garbage_regs = 1;
+    }
     size_t n = 0;
     if (upf) {
         /* as the loader leaves the machine: program at 8000h, RAM blocks filled,
@@ -717,6 +745,12 @@ int main(int argc, char **argv)
         curblk = 1;
         for (int k = 0; k < npokes; k++) ram[pokes[k][0]] = pokes[k][1];
         PC = 0x8000; SP = 0xEFF0;
+        if (garbage_regs) {     /* nothing tidy in the registers or the ports either */
+            A = rand(); F = rand(); B = rand(); C = rand(); D = rand(); E = rand(); H = rand(); L = rand();
+            A_ = rand(); F_ = rand(); B_ = rand(); C_ = rand(); D_ = rand(); E_ = rand(); H_ = rand(); L_ = rand();
+            IX = rand(); IY = rand(); SP = 0x9000 + (rand() & 0xff) * 2;
+            port1c = 0x1f; port08 = 0x4e; crtc_idx = 7;
+        }
     } else {
     FILE *f = fopen(prog, "rb"); if (!f) { perror(prog); return 1; }
     n = fread(ram + 0x100, 1, 0xEF00, f); fclose(f);
@@ -768,6 +802,7 @@ int main(int argc, char **argv)
         fclose(hf);
     }
     if (wavf) write_wav(wavf, T);
+    if (hibank) fprintf(stderr, "video writes lost with a high block mapped: %ld\n", hibank_hits);
     fprintf(stderr, "stopped=%d frames=%d T=%llu PC=%04X true_vblanks=%ld\n", stopped, frame_no, (unsigned long long)T, PC, true_vb);
     if (vdumpf) {
         FILE *vf = fopen(vdumpf, "wb");

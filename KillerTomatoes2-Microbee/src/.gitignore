@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+outputs/
+work/premiumplus/build/
+work/premiumplus/assets/banks.bin
+work/premiumplus/assets/banks.json
+work/premiumplus/assets/KILLTOM2.PAK
+# third-party binaries and ROMs stay local
+work/pylibs/
+work/tools/
+work/ubee/
+*.rom
+*.zip

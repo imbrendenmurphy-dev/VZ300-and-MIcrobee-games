@@ -584,7 +584,7 @@ hud_hi:
         ret
 
 hud_stage:
-        ld a,1
+        ld a,(stage_no)
         ld de,HUDBUF+50*8+1
         call hud_digit
         ld a,1

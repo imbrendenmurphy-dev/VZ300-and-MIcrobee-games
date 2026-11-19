@@ -840,6 +840,6 @@ draw_boss_objs:
 warn1:      db "!!! DENIED !!!  ",0
 warn2:      db "! TIE UNDONE !  ",0
 ovl_end:
-        ASSERT ovl_end <= OVL_END
+        ASSERT ovl_end <= POOLRAM       ; (POOLRAM: the pool glyphs during play)
         SAVEBIN "../build/OVL5.BIN",OVL,ovl_end-OVL
         DISPLAY "stage 5 overlay end: ",ovl_end

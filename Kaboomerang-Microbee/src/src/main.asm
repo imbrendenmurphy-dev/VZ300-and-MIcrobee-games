@@ -39,16 +39,22 @@ entry:  di
         INCLUDE "sprtab.inc"
         INCLUDE "tiledata.inc"
 code_end:
-; the arena maps (11 rows of 32): kept in the program area, cleared per stage
+; the arena maps (13 rows of 32): kept in the program area, cleared per stage
         ALIGN 256
-amap:   ds 352                  ; 0 floor 1 border 2 pillar 3 mound 4 burrow
-imap:   ds 352                  ; item (1 fire 2 nut 3 heart 4 thongs 5 exit), b7 hidden
-bmap:   ds 352                  ; bomb number + 1
-fmap:   ds 352                  ; flame time left
-fkind:  ds 352                  ; flame kind
-cmap:   ds 352                  ; crumble time
-wmap:   ds 352                  ; blast preview: b0 shown, b1 wanted
+amap:   ds MAPSZ                  ; 0 floor 1 border 2 pillar 3 mound 4 burrow
+imap:   ds MAPSZ                  ; item (1 fire 2 nut 3 heart 4 thongs 5 exit), b7 hidden
+bmap:   ds MAPSZ                  ; bomb number + 1
+fmap:   ds MAPSZ                  ; flame time left
+fkind:  ds MAPSZ                  ; flame kind
+cmap:   ds MAPSZ                  ; crumble time
+wmap:   ds MAPSZ                  ; blast preview: b0 shown, b1 wanted
 maps_end:
+        ALIGN 256
+div10:  ds 256                  ; y / 10   (render: cell row of a pixel line)
+div10r: ds 256                  ; y % 10
+noisetab: ds 256                ; random bytes for the noise channel
+tabs_end:
+        ASSERT tabs_end <= TABLES
         ASSERT maps_end <= TABLES
         SAVEBIN "../build/KB.BIN",$8000,code_end-$8000
         DISPLAY "code end: ",code_end

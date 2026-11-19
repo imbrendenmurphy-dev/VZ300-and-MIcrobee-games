@@ -1,0 +1,3 @@
+#!/bin/sh
+# Windows: build.sh calls python3; the Python launcher there is "py"
+exec py "$@"

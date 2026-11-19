@@ -24,6 +24,7 @@ COLWIN      EQU $F800
 
 ; ---- RAM blocks (lower window 0000-7FFF). Block 0 is the upper 32K.
 BLK_RT      EQU 1           ; runtime: base maps (cur_*), scratch
+SPRTAB_AT   EQU $7C00       ; in BLK_SPR: the sprite frame table (dw address, db block) x 256
 BLK_SPR     EQU 3           ; pilots, bells, capsules, explosions (+ glyph store)
 ; the stage blocks come from build/blocks.inc (BLK_S1A ...)
 BLK_STRIP   EQU 29          ; 29, 30, 31: the current stage's expanded strips
@@ -41,7 +42,9 @@ BK_FAST     EQU 10          ; 10..11: ready-made bullet and shot glyphs
 BK_BOSS     EQU 12          ; 12 (page 0), 13 (page 1): the boss
 BK_POOL     EQU 14          ; 14 (page 0), 15 (page 1): sprite cells
 POOLN       EQU 120         ; glyphs per pool
-DLN         EQU 126         ; direct (ready-made glyph) cells per frame
+DLN         EQU 125         ; direct (ready-made glyph) cells per frame (80h..FCh in CELLMAP)
+CM_OLDBOSS  EQU $FD         ; CELLMAP: a cell the boss covered last time on this page
+CM_BOSS     EQU $FE         ; CELLMAP: one of this frame's boss cells
 STORE_TOP   EQU 12          ; banks 0..11 have an 8-byte copy at 0000h of every sprite block
 
 ; ---- the screen: 40 x 25. Row 0 score line, rows 1-23 playfield, row 24 upgrade bar
@@ -73,6 +76,8 @@ CELLMAP     EQU $D000       ; per cell: 0 free, 1..120 pool glyph+1, 80h+n direc
 PL_LO       EQU $D400       ; pool glyph k: its cell (lo, hi), ink
 PL_HI       EQU $D500
 PL_INK      EQU $D600
+PL_PAP      EQU $D480       ; pool glyph k: the paper under it (120)
+DL_PAP      EQU $D580       ; direct cell n: the paper under it (125)
 DL_LO       EQU $D700       ; direct cell n (n < 128): cell lo
 DL_HI       EQU $D780       ;   cell hi
 DL_CODE     EQU $D800       ;   glyph code (80h+n)
@@ -84,6 +89,9 @@ RL0         EQU $DA00       ; restore list of page 0: video addresses (dw), 256
 RL1         EQU $DC00       ; page 1
 BL0         EQU $DE00       ; boss cells drawn on page 0 (dw), 128
 BL1         EQU $DF00       ; page 1
+BLANKS      EQU $DE00       ; this frame: video addresses to put back to the base picture (dw), 192
+BCOL0       EQU $D680       ; page 0's boss cell colours (100)
+BCOL1       EQU $DF80       ; page 1's
 SCRATCH     EQU $E000       ; 1K scratch: bounce buffer, stage expansion
 BOUNCE      EQU $E000
 VARS        EQU $E400
@@ -93,6 +101,8 @@ STACK       EQU $EFFE
 ; here from its B block when the stage loads (tools/build.py, src/stageN.asm)
 OVL         EQU $C000
 OVL_END     EQU $D000
+MUSIC_AT    EQU $7000       ; the tunes: in block BLK_FRONT from here
+POOLRAM     EQU $CC00       ; during play: the pool glyphs composed in RAM (8 bytes each, 120)
 ovl_wave        EQU OVL+0       ; A = wave type, C = y
 ovl_boss_start  EQU OVL+3
 ovl_boss_update EQU OVL+6

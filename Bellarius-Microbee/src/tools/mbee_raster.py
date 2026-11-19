@@ -67,6 +67,10 @@ for fn in ('mb_fb', 'mb_fb_cur'):
     getattr(L, fn).argtypes = [C.c_void_p]
 L.mb_vwait_mode.argtypes = [C.c_int, C.c_int]
 L.mb_b5_lag.argtypes = [C.c_int]
+L.mb_vdhist.restype = C.POINTER(C.c_uint32)
+L.mb_vdhist.argtypes = [C.c_void_p]
+L.mb_vreads.restype = C.c_uint32
+L.mb_vreads.argtypes = [C.c_void_p, C.c_int]
 L.mb_vwait.restype = C.c_uint32
 L.mb_vwait.argtypes = [C.c_void_p]
 L.mb_frame_no.restype = C.c_uint64
@@ -220,6 +224,18 @@ class Mbee:
 
     def prof(self):
         return arr(L.mb_prof(self.h), 65536).copy()
+
+    def vdisp(self, reset=True):
+        """{pc: video accesses while the picture is displayed}"""
+        h = np.ctypeslib.as_array(L.mb_vdhist(self.h), shape=(65536,))
+        nz = np.nonzero(h)[0]
+        d = {int(pc): int(h[pc]) for pc in nz}
+        if reset:
+            h[:] = 0
+        return d
+
+    def vreads(self, reset=True):
+        return L.mb_vreads(self.h, 1 if reset else 0)
 
     def vram_display_writes(self, reset=True):
         return L.mb_vram_disp_writes(self.h, 1 if reset else 0)

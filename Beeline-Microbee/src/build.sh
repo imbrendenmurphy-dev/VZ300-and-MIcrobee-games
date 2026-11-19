@@ -11,6 +11,7 @@ python3 tools/mksound.py build
 python3 tools/mktunnel.py build
 python3 tools/zasm.py src/vidmap.asm -o build/vidmap.bin
 python3 tools/zasm.py src/race.asm -o build/BEELINE.COM -l build/beeline.lst -s build/beeline.sym --split 0x9000 build/BEELINE.DAT
+python3 tools/mkroadtest.py build && python3 tools/zasm.py src/roadtest.asm -o build/ROADTEST.COM -s build/roadtest.sym -l build/roadtest.lst
 python3 tools/zasm.py src/bench.asm -o build/BENCH.COM -s build/bench.sym
 python3 tools/mkcube.py build && python3 tools/zasm.py src/cube.asm -o build/CUBE.COM -s build/cube.sym
 python3 tools/build_disk.py

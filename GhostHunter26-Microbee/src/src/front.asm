@@ -224,13 +224,6 @@ chase:  ld a,(t_c)
         push hl
         ld a,(t_r)
         ld e,a
-        ld a,SF_HAT_R
-        ld c,BRED
-        call put_px
-        pop hl
-        push hl
-        ld a,(t_r)
-        ld e,a
         ld a,(t_c)
         rrca
         and 2
@@ -306,13 +299,6 @@ chase:  ld a,(t_c)
         ld a,(t_k)
         or a
         jr nz,.giant
-        push hl
-        ld a,(t_r)
-        ld e,a
-        ld a,SF_HAT_L
-        ld c,BRED
-        call put_px
-        pop hl
         ld a,(t_r)
         ld e,a
         ld a,(t_c)
@@ -321,15 +307,8 @@ chase:  ld a,(t_c)
         add a,SF_FACE_L0
         ld c,YELLOW
         jp put_px
-.giant: push hl
-        ld a,(t_r)
-        sub 16
-        ld e,a
-        ld a,SF_BIGHAT
-        ld c,BRED
-        call put_px
-        pop hl
-        ld a,(t_r)
+.giant: ld a,(t_r)
+        sub 18
         ld e,a
         ld a,(t_c)
         rrca
@@ -369,7 +348,7 @@ title_page:
         ld (t_k),a
         ld a,4
         ld (t_n),a
-        ld a,104
+        ld a,132
         ld (t_r),a
         ld hl,title_cb
         ld (att_cb),hl
@@ -472,9 +451,11 @@ meet_cb:
         add a,a
         add a,a
         add a,a
+        ld d,a
         add a,a
-        add a,a                 ; 32 pixels a row
-        add a,30
+        add a,a
+        add a,d                 ; 40 lines (4 rows) apart
+        add a,42
         ld e,a
         ld a,b
         ld hl,gcols
@@ -506,18 +487,13 @@ meet_cb:
         ld a,b
         cp 4
         jr nz,.g
-        ld hl,40
-        ld e,158
-        ld a,SF_HAT_R
-        ld c,BRED
-        call put_px
         ld a,(gtick)
         rrca
         rrca
         and 2
         add a,SF_FACE_R0
         ld hl,40
-        ld e,158
+        ld e,202
         ld c,YELLOW
         jp put_px
 s_meet: db "MEET THE GHOSTS",0
@@ -526,7 +502,7 @@ meet_txt:
         db BGREEN,"SNEAKY",0,"CUTS YOU OFF UP AHEAD.",0
         db BMAGENTA,"DIZZY",0,"WANDERS ABOUT... MOSTLY.",0
         db BCYAN,"PEEKABOO",0,"COMES ROUND THE OTHER SIDE.",0
-        db YELLOW,"THE HUNTER",0,"THAT'S YOU. HAT AND ALL.",0
+        db YELLOW,"THE HUNTER",0,"THAT'S YOU. CHOMP CHOMP!",0
 s_hearts: db "THREE HEARTS A LIFE - THREE LIVES",0
 
 ; ---------------------------------------------------------------------
@@ -662,7 +638,7 @@ fame_page:
         ld (t_k),a
         ld a,4
         ld (t_n),a
-        ld a,168
+        ld a,212
         ld (t_r),a
         ld hl,fame_cb
         ld (att_cb),hl
@@ -887,7 +863,7 @@ intermission:
         ld (t_c),a
         inc a
         ld (t_k),a
-        ld a,104
+        ld a,132
         ld (t_r),a
         ld hl,mus_inter_0
         ld de,mus_inter_1

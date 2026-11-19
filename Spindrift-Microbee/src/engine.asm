@@ -2,7 +2,7 @@
 ;  ENGINE: start-up, the two screen pages, the cell compositor, the
 ;  commit in the vertical blanking, the text queue.
 ;
-;  The screen is 40 x 25 cells of 8 x 8. Every cell can show any of the
+;  The screen is 40 x 25 cells of 8 x 10 (320 x 250, a PAL screen). Every cell can show any of the
 ;  2048 PCG glyphs. Two screen pages (0000h and 0400h of screen RAM) and
 ;  two glyph banks (14 and 15) take turns: while one page is on show,
 ;  the other is rebuilt, and the 6545's start address is switched in the
@@ -11,12 +11,16 @@
 ;  sprites move a pixel at a time, overlap freely and never flicker.
 ;
 ;  Only the commit touches video RAM, and it runs in the vertical
-;  blanking, where the 6545 does not hold the CPU.
+;  blanking, where the 6545 does not hold the CPU. A 250-line picture
+;  leaves 62 lines of blanking (13.4K T); at 25 frames a second there
+;  are two blankings a frame, so a commit too big for one finishes its
+;  last part (the new cells and the page flip) in the next.
 ; =====================================================================
 
 ; The 40-column mode: dot clock select (IN (09h) with A = 1) and the
-; 6545 table proven by BPM's MODES40 test on the real Premium Plus.
-crtc_game:  db $35,$28,$2C,$34,$26,$01,$19,$21,$48,$07,$20,$07,0,0,0,0
+; 6545 table from BPM's MODES40 test on the real Premium Plus: 40 x 25
+; cells of 8 x 10, 31 rows of 10 lines + 2 = 312 lines (PAL).
+crtc_game:  db $35,$28,$2C,$34,$1E,$02,$19,$1C,$48,$09,$20,$09,0,0,0,0
 DROWS       EQU 25
 
 hw_init:
@@ -77,18 +81,18 @@ hw_init:
         out (P_MEM),a
         ld hl,CORE_PAT
         ld a,BK_CORE
-        ld bc,60
-        call pcg_load
+        ld bc,48
+        call pcg_load10
         ld a,MP_TAB
         out (P_MEM),a
         ld hl,STARPAT
         ld a,BK_POOL0
         ld bc,17
-        call pcg_load
+        call pcg_load10
         ld hl,STARPAT
         ld a,BK_POOL1
         ld bc,17
-        call pcg_load
+        call pcg_load10
         ld a,LISTA >> 8
         ld (lnew),a
         ld a,LISTB >> 8
@@ -165,9 +169,16 @@ win_col:
         ret
 
 ; HL = patterns (8 bytes a glyph, in the mapped block), A = first PCG
-; bank, BC = glyphs
+; bank, BC = glyphs. A cell is 10 lines: the last two are left blank.
 pcg_load:
-        ld (pl_bank),a
+        ld e,8
+        jr pcg_ld
+; the same for patterns of 10 bytes a glyph
+pcg_load10:
+        ld e,10
+pcg_ld: ld (pl_bank),a
+        ld a,e
+        ld (pl_n),a
         xor a
         out (P_COLCTL),a
 .bank:  ld a,(pl_bank)
@@ -175,17 +186,20 @@ pcg_load:
         out (P_LV),a
         ld de,PCGWIN
 .g:     push bc
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        pop bc
-        ld a,e
-        add a,8
+        ld a,(pl_n)
+        ld c,a
+        ld b,0
+        ldir
+        cp 10
+        jr z,.t
+        xor a
+        ld (de),a
+        inc de
+        ld (de),a
+.t:     pop bc
+        ld a,e                  ; on to the next 16-byte glyph
+        and $F0
+        add a,16
         ld e,a
         jr nc,.nc
         inc d
@@ -240,10 +254,11 @@ screen_reset:
         call fill
         call win_screen
         ld hl,CELLHI            ; the cell tables and the glyph buffers
-        ld bc,POOLBUF+$400-CELLHI
+        ld bc,POOLBUF+$500-CELLHI  ; (to the end of TRASH's page)
         xor a
         call fill
         xor a
+        ld (cpend),a            ; no commit left waiting
         ld (nslots),a
         ld (lcount),a
         ld (flashcnt),a
@@ -314,6 +329,19 @@ setcol: push hl
 
 ; Count vertical blankings seen while working: the game is locked to
 ; 25 frames a second (a frame is shown at the second blanking).
+; vbpoll_q is for polls inside loops: it sees a blanking begin but does
+; not age it (vb_age counts the coarse polls since the blanking began).
+vbpoll_q:
+        push af
+        in a,(P_CRTCA)
+        and $20
+        push hl
+        ld hl,vlast
+        cp (hl)
+        jr nz,vbpoll.t
+        pop hl
+        pop af
+        ret
 vbpoll: push af
         in a,(P_CRTCA)
         and $20
@@ -321,13 +349,21 @@ vbpoll: push af
         ld hl,vlast
         cp (hl)
         jr z,.s
-        ld (hl),a
+.t:     ld (hl),a
         or a
         jr z,.s
         ld hl,fields
         inc (hl)
         xor a
         ld (vb_age),a           ; a blanking has just begun
+        ld a,(cpend)            ; the last frame's commit to finish?
+        or a
+        jr z,.x
+        push bc
+        push de
+        call commit_rest
+        pop de
+        pop bc
         jr .x
 .s:     ld hl,vb_age            ; polls since: how stale the blanking is
         inc (hl)
@@ -353,16 +389,21 @@ frame_end:
         jr nc,.late
         call snd_field
         jr .w
-.late:  ; a late frame commits now only if this blanking has just begun:
-        ; started late, the commit would run into the picture, where the
-        ; 6545 holds the CPU on every video access
+.late:  ; a late frame commits now if the blanking is still on: its new
+        ; cells and the flip then wait for the next blanking unless the
+        ; blanking has only just begun
         in a,(P_CRTCA)
         and $20
         jr z,.wt
         ld a,(vb_age)
         cp 3
-        jr c,.go
+        sbc a,a                 ; FFh: fresh, so after cpl 0
+        cpl
+        ld (c_late),a
+        jr .go
 .wt:    call snd_field          ; wait for the start of the next one
+        xor a
+        ld (c_late),a
 .go:
         xor a
         ld (fields),a
@@ -377,8 +418,21 @@ frame_end:
 
 ; ---------------------------------------------------------------------
 ; The commit, in the vertical blanking: the back page gets this frame.
+; Glyphs, old cells and text first; then the new cells and the flip, now
+; if the estimate says they fit the blanking, else at the next one
+; (commit_rest, from vbpoll or snd_field). Estimate in units of ~55 T
+; (measured), against 13.4K T less the start and a margin:
+; 9 + 3 a glyph + 1 per 2 old cells + 102 a flash + 4 a text cell + 2 a
+; new cell, against CBUDGET.
 ; ---------------------------------------------------------------------
+CBUDGET     EQU 228
+
 commit:
+        ld a,(cpend)            ; (only if a blanking was missed)
+        or a
+        call nz,commit_rest
+        ld hl,9
+        ld (cest),hl
         ; ---- the composed glyphs into the back page's PCG bank
         xor a
         out (P_COLCTL),a
@@ -390,15 +444,27 @@ commit:
         jr z,.nog
         ld l,a
         ld h,0
+        ld e,l
+        ld d,h
+        add hl,hl
+        add hl,de
+        call cadd               ; 3 a glyph
+        ld l,e
+        ld h,d
         add hl,hl
         add hl,hl
+        ld c,l
+        ld b,h
         add hl,hl
         add hl,hl
+        add hl,bc               ; 20 bytes of code a glyph
         ex de,hl
         ld hl,pcg_end
         or a
         sbc hl,de
+        push iy
         call .pcg
+        pop iy
 .nog:   ld a,LV_SCREEN
         out (P_LV),a
         ; ---- blank the cells this page showed last time
@@ -410,6 +476,10 @@ commit:
         or a
         jr z,.noclr
         ld b,a
+        srl a
+        ld l,a
+        ld h,0
+        call cadd
         ld a,(lback)
         ld h,a
         ld l,0
@@ -423,6 +493,12 @@ commit:
 .noclr:
         ; ---- a flash of the background, then text over it (a flash
         ; repaints every cell's colour: what follows keeps its own)
+        call tq_total
+        ld l,a
+        ld h,0
+        add hl,hl
+        add hl,hl
+        call cadd               ; 4 a text cell
         xor a
         ld (flashpaper),a
         ld a,(flashcnt)
@@ -431,15 +507,82 @@ commit:
         call tq_total           ; not on a frame already heavy with text:
         cp 40                   ; the flash waits a frame
         jr nc,.nofl
+        ld hl,102
+        call cadd
         ld a,(flashcnt)
         call flash_fill
 .nofl:  call tq_apply
-        ; ---- the new cells
+        ; ---- the new cells and the flip: this list, this page
+        ld a,(lnew)
+        ld (pend_list),a
+        ld a,(page)
+        ld (pend_page),a
+        xor 1
+        ld (page),a
+        ; ---- the lists move on: back <- front <- new <- (old back)
+        ld a,(lback)
+        ld b,a
+        ld a,(lfront)
+        ld (lback),a
+        ld a,(lnew)
+        ld (lfront),a
+        ld a,b
+        ld (lnew),a
+        ; ---- now, or in the next blanking?
+        ld a,(c_late)
+        or a
+        jr nz,.later            ; begun late in the blanking
         ld a,(lcount)
+        ld l,a
+        ld h,0
+        add hl,hl
+        call cadd
+        ld de,-CBUDGET-1
+        add hl,de
+        jr c,.later             ; over budget
+        in a,(P_CRTCA)
+        and $20
+        jr z,.later             ; (the blanking is over already)
+        call commit_rest
+        ; how long the commit took (for the measurements)
+        in a,(P_CRTCA)
+        and $20
+        ret nz
+        ld hl,commit_late
+        inc (hl)
+        ret
+.later: ld a,1
+        ld (cpend),a
+        ret
+.pcg:   ld (save_sp),sp
+        jp (hl)
+
+; HL += the commit estimate -> HL = the new total
+cadd:   push de
+        ld de,(cest)
+        add hl,de
+        ld (cest),hl
+        pop de
+        ret
+
+; the last part of a commit: the new cells of list (pend_list) on page
+; (pend_page), then that page is shown. Uses AF, BC, DE, HL.
+commit_rest:
+        xor a
+        ld (cpend),a
+        ld a,(pend_list)
+        inc a
+        ld h,a
+        ld l,$FE
+        ld a,(hl)
         or a
         jr z,.show
         ld b,a
-        ld a,(lnew)
+        xor a
+        out (P_COLCTL),a
+        ld a,LV_SCREEN
+        out (P_LV),a
+        ld a,(pend_list)
         ld h,a
         ld l,0
         add a,2
@@ -454,12 +597,15 @@ commit:
         djnz .cd
         ld a,COL_ON
         out (P_COLCTL),a
-        ld a,(lcount)
-        ld b,a
-        ld a,(lnew)
+        ld a,(pend_list)
+        inc a
+        ld h,a
+        ld l,$FE
+        ld b,(hl)               ; the count again
+        dec a
         ld h,a
         ld l,0
-        add a,3
+        add a,3                 ; the colours
         ld d,a
         ld e,l
         ld sp,hl
@@ -475,10 +621,9 @@ commit:
         ld sp,(save_sp)
         xor a
         out (P_COLCTL),a
-.show:  ; ---- and show it
-        ld a,12
+.show:  ld a,12
         out (P_CRTCA),a
-        ld a,(page)
+        ld a,(pend_page)
         add a,a
         add a,a
         out (P_CRTCD),a
@@ -486,27 +631,7 @@ commit:
         out (P_CRTCA),a
         xor a
         out (P_CRTCD),a
-        ld a,(page)
-        xor 1
-        ld (page),a
-        ; ---- the lists move on: back <- front <- new <- (old back)
-        ld a,(lback)
-        ld b,a
-        ld a,(lfront)
-        ld (lback),a
-        ld a,(lnew)
-        ld (lfront),a
-        ld a,b
-        ld (lnew),a
-        ; how long the commit took (for the measurements)
-        in a,(P_CRTCA)
-        and $20
-        jr nz,.inv
-        ld hl,commit_late
-        inc (hl)
-.inv:   ret
-.pcg:   ld (save_sp),sp
-        jp (hl)
+        ret
 
 ; the slots' cells back to "no glyph" (ordinary RAM: any time)
 cleanup:
@@ -523,10 +648,26 @@ cleanup:
         inc l
         ld (de),a
         djnz .l
-        ; and their glyph buffers cleared for the next frame
+        ; and their glyph buffers cleared for the next frame: POOLBUF up
+        ; to nextbuf (and a little past), 8 bytes a turn
         pop bc
+        ld hl,(nextbuf)
+        ld de,7-POOLBUF
+        add hl,de
+        srl h
+        rr l
+        srl h
+        rr l
+        srl h
+        rr l
+        ld b,l
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        ld de,POOLBUF
+        add hl,de
         ld (save_sp),sp
-        ld sp,(nextbuf)
+        ld sp,hl
         ld de,0
 .z:     push de
         push de
@@ -536,7 +677,7 @@ cleanup:
         ld sp,(save_sp)
         ret
 
-; the background of the playfield (rows 1-23) flashes: two frames of the
+; the background of the playfield (all but the HUD's corners) flashes: two frames of the
 ; flash colour (one on each page), then two of black to put it back
 flash_fill:
         dec a
@@ -551,20 +692,48 @@ flash_fill:
         ld b,c
         ld a,COL_ON
         out (P_COLCTL),a
-        ld a,(page)             ; rows 1-23 of the back page's colours,
-        add a,a                 ; filled from the end by the stack
+        ; the back page's colours, filled from the end by the stack: the
+        ; whole screen but the HUD's four corners (8 columns, rows 0-4
+        ; and 22-24)
+        ld a,(page)
+        add a,a
         add a,a
         add a,$F8+3
         ld h,a
-        ld l,$C0                ; cell 960
+        ld l,$E0                ; cell 992: row 24, column 32
         ld (save_sp),sp
         ld sp,hl
-        ld a,23
-.l:     REPT 20
+        ld a,3                  ; rows 24-22: the middle 24 columns
+.b:     REPT 12
         push bc
         ENDR
         dec a
-        jr nz,.l
+        jr z,.mid
+        ld hl,-16
+        add hl,sp
+        ld sp,hl
+        jr .b
+.mid:   ld hl,-8
+        add hl,sp
+        ld sp,hl
+        ld a,17                 ; rows 21-5: all of them
+.m:     REPT 20
+        push bc
+        ENDR
+        dec a
+        jr nz,.m
+        ld hl,-8
+        add hl,sp
+        ld sp,hl
+        ld a,5                  ; rows 4-0: the middle 24 columns
+.t:     REPT 12
+        push bc
+        ENDR
+        ld hl,-16
+        add hl,sp
+        ld sp,hl
+        dec a
+        jr nz,.t
         ld sp,(save_sp)
         xor a
         out (P_COLCTL),a
@@ -611,6 +780,9 @@ flash:  rlca
 ; ---------------------------------------------------------------------
 draw_spr:
         call vbpoll
+        ld a,c                  ; centre off the screen (or below its last
+        cp SCRH                 ; line): not drawn
+        ret nc
         ld a,(hl)
         inc hl
         ld b,(hl)
@@ -675,26 +847,23 @@ draw_spr:
         ld c,0
 .top:   ld (d_skip),a
         ld a,c
-        cp 200
+        cp SCRH
         ret nc
         add a,b
         jr c,.clip
-        cp 201
+        cp SCRH+1
         jr c,.vok
-.clip:  ld a,200
+.clip:  ld a,SCRH
         sub c
         ld b,a
 .vok:   ld a,b
         ld (d_vis),a
-        ld a,c
-        and 7
-        ld (d_sub),a
-        ld a,c
-        rrca
-        rrca
-        rrca
-        and 31
-        add a,a
+        ld h,ysub >> 8
+        ld l,c
+        ld a,(hl)
+        ld (d_sub),a            ; the line within its cell
+        inc h
+        ld a,(hl)               ; yrow2: the row * 2
         ld l,a
         ld h,0
         ld de,rowcell
@@ -761,7 +930,7 @@ col_draw:
         ld a,l
         add a,b
         ld l,a
-        ld a,8
+        ld a,CH
         sub b
         cp c
         jr c,.part
@@ -788,8 +957,8 @@ col_draw:
 ; Out: A = buffer high byte; the CELLLO entry = its low byte. Keeps HL.
 alloc:
         ld a,(nextcode)
-        or a
-        jr z,.full              ; past FFh: no glyphs left
+        cp $91+MAXSLOT
+        jr nc,.full             ; no glyphs left
         ld b,a
         inc a
         ld (nextcode),a
@@ -820,12 +989,18 @@ alloc:
         dec h
         inc l
         ld (lp_code),hl
-        ; the glyph buffer (already clear: see cleanup)
+        ; the glyph buffer (already clear: see cleanup): 25 of 10 bytes
+        ; in each page
         ld hl,(nextbuf)
         ld d,h
         ld e,l
-        ld bc,8
-        add hl,bc
+        ld a,l
+        add a,CH
+        cp 25*CH
+        jr c,.s
+        xor a
+        inc h
+.s:     ld l,a
         ld (nextbuf),hl
         pop hl
         ld (hl),d
@@ -846,15 +1021,17 @@ star_cell:
         cp 2
         ret nc
         ld a,c
-        cp 200
+        cp SCRH
         ret nc
         ld a,l
         rrca
         and 3
         ld e,a
-        ld a,c
-        and 6
-        add a,a
+        push hl
+        ld h,ystar >> 8
+        ld l,c
+        ld a,(hl)               ; the dot's line in the cell * 4
+        pop hl
         add a,e
         add a,$81
         ld (star_code),a
@@ -870,12 +1047,9 @@ star_cell:
         ret nc
         ld e,a
         ld d,0
-        ld a,c
-        rrca
-        rrca
-        rrca
-        and 31
-        add a,a
+        ld h,yrow2 >> 8
+        ld l,c
+        ld a,(hl)
         ld l,a
         ld h,0
         push de
@@ -960,7 +1134,9 @@ tq_put: ld (tq_cell),hl
         inc hl
         ld (hl),b
         inc hl
-        ld (hl),c
+        ld a,(tq_mark)          ; 80h: HUD text, never on a flash's paper
+        or c
+        ld (hl),a
 .full:  pop de
         pop hl
         ld a,(tq_code)
@@ -1031,27 +1207,12 @@ tq_apply:
         or a
         ret z
         ld b,a
+        ld a,(flashpaper)
+        ld c,a
         ld l,0
 .e:     ld e,(hl)
         inc hl
-        ; the flash's paper only in the playfield (cells 40-959): the
-        ; HUD rows are never flashed, so never given it
-        ld c,0
-        ld a,(hl)
-        or a
-        jr nz,.h1
-        ld a,e
-        cp 40
-        jr c,.nf
-        jr .pf
-.h1:    cp 3
-        jr c,.pf
-        ld a,e
-        cp 960-768
-        jr nc,.nf
-.pf:    ld a,(flashpaper)
-        ld c,a
-.nf:    ld a,(tq_page)
+        ld a,(tq_page)
         add a,(hl)
         ld d,a
         inc hl
@@ -1071,8 +1232,13 @@ tq_apply:
         ld a,COL_ON
         out (P_COLCTL),a
         set 3,d
-        ld a,c
-        or (hl)                 ; colour (on the flash's paper, in a flash)
+        ld a,(hl)               ; colour: on the flash's paper in a flash,
+        bit 7,a                 ; unless it is the HUD's
+        jr z,.fp
+        and $7F
+        jr .cw
+.fp:    or c
+.cw:
         inc hl
         ld (de),a
         xor a

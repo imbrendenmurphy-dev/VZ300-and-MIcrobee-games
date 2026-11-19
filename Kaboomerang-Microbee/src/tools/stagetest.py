@@ -27,7 +27,7 @@ for st in range(4):
         pass
     imap = S['imap']
     ex = None
-    for idx in range(352):
+    for idx in range(416):
         v = pp.peek(imap + idx)
         if v & 0x7F == 5:
             ex = idx

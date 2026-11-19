@@ -32,7 +32,7 @@ def boot():
     pp.blocks[0][:0x7000] = 0
     d = np.frombuffer((BUILD / 'SPIN.BIN').read_bytes(), np.uint8)
     pp.blocks[0][:len(d)] = d
-    for b, n in ((4, 'TAB'), (5, 'ENM'), (6, 'PIC')):
+    for b, n in ((4, 'TAB'), (5, 'ENM'), (6, 'PIC'), (7, 'MUS')):
         d = np.frombuffer((BUILD / (n + '.BNK')).read_bytes(), np.uint8)
         pp.blocks[b][:len(d)] = d
     pp.out(0x50, blk_port(1))
@@ -73,11 +73,11 @@ def start_game(mono=False):
 
 
 def view(pp, mono=False, current=False):
-    """the last complete picture off the model's tube: the 320 x 200
+    """the last complete picture off the model's tube: the 320 x 250
     picture (each pixel 2 wide in the model) with a little border"""
     from PIL import Image
     rgb = pp.frame_rgb(mono, current)
-    return Image.fromarray(rgb[36:244, 32:688])
+    return Image.fromarray(rgb[15:273, 32:688])
 
 
 def shot(pp, path, mono=False, scale=1.5):

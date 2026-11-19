@@ -84,23 +84,130 @@ SHOT = A('C', 'W', 'W', 'W', 'W', 'C', 'C')
 BULLET = A('.M.', 'MWM', 'MWM', 'MWM', '.M.')
 
 
+# ---- Dart: a fast red diver (facing down)
+DART = A(
+    '...R..R...',
+    '..RRRRRR..',
+    '.RRYYYYRR.',
+    'RR.RYYR.RR',
+    'R..RYYR..R',
+    '...RYYR...',
+    '....RR....',
+    '....WW....',
+)
+# ---- Pod: an armoured mine riding the scroll; fires aimed shots
+POD1 = A(
+    '...CCCC...',
+    '.CCwwwwCC.',
+    'CwwBBBBwwC',
+    'CwBBWWBBwC',
+    'CwBBWWBBwC',
+    'CwwBBBBwwC',
+    '.CCwwwwCC.',
+    '...CCCC...',
+)
+POD2 = A(
+    '...CCCC...',
+    '.CCwwwwCC.',
+    'CwwBBBBwwC',
+    'CwBBRRBBwC',
+    'CwBBRRBBwC',
+    'CwwBBBBwwC',
+    '.CCwwwwCC.',
+    '...CCCC...',
+)
+# ---- explosion, three frames
+EXPL1 = A(
+    '..........',
+    '...Y..Y...',
+    '....YY....',
+    '..YYWWYY..',
+    '...YWWY...',
+    '..YYWWYY..',
+    '....YY....',
+    '...Y..Y...',
+    '..........',
+)
+EXPL2 = A(
+    '.Y..R..Y..',
+    '..YRYYRY..',
+    'R.YYWWYY.R',
+    '.RYWWWWYR.',
+    'YYWWWWWWYY',
+    '.RYWWWWYR.',
+    'R.YYWWYY.R',
+    '..YRYYRY..',
+    '.Y..R..Y..',
+)
+EXPL3 = A(
+    'r...r...r.',
+    '..r..R..r.',
+    '.R..r..R..',
+    'r..R...r.r',
+    '..r..r....',
+    'r...R..r..',
+    '.R.r...R.r',
+    '..r..r....',
+    'r...R...r.',
+)
+# ---- the Hive Queen (level 1 boss), 40 x 24, facing down. Drawn in
+# colour bands to suit one colour per 8-pixel column: claws magenta at the
+# sides, wings green, the body red in the middle.
+def _queen():
+    h, w = 24, 40
+    q = np.full((h, w), -1, np.int16)
+    yy, xx = np.mgrid[0:h, 0:w]
+    cx = 19.5
+    band = np.where(np.abs(xx - cx) < 4.5, BRED, np.where(np.abs(xx - cx) < 12.5, BGREEN, BMAGENTA))
+    wings = ((xx - cx) / 17.0) ** 2 + ((yy - 7) / 5.5) ** 2 <= 1
+    body = ((xx - cx) / 6.0) ** 2 + ((yy - 12) / 10.5) ** 2 <= 1
+    q[wings | body] = band[wings | body]
+    # wing veins and the body's segments (holes)
+    q[(yy == 7) & (np.abs(xx - cx) > 7) & (np.abs(xx - cx) < 15) & ((xx % 3) == 0)] = -1
+    q[((yy == 11) | (yy == 15) | (yy == 19)) & body & (np.abs(xx - cx) < 4)] = -1
+    q[(yy == 5) & ((np.abs(xx - cx - 2.5) < 1) | (np.abs(xx - cx + 2.5) < 1))] = -1   # eyes
+    # claws: down and out from the wing tips, and up for antennae
+    for t in range(10):
+        for sx in (-1, 1):
+            x = int(round(cx + sx * (15 + t * 0.5)))
+            y = 9 + t
+            if 0 <= x < w and y < h:
+                q[y, x] = BMAGENTA
+                if 0 <= x - sx < w:
+                    q[y, x - sx] = BMAGENTA
+            x2 = int(round(cx + sx * (3 + t * 0.6)))
+            if t < 5:
+                q[4 - t, x2] = BMAGENTA if abs(x2 - cx) > 4.5 else BRED
+    return q
+
+
+QUEEN = _queen()
+
+
 SPRITES = [
     ('SP_HORNET1', HORNET1),
     ('SP_HORNET2', HORNET2),
     ('SP_DRONE1', DRONE1),
     ('SP_DRONE2', DRONE2),
-    ('SP_SHOT', SHOT),
-    ('SP_BULLET', BULLET),
+    ('SP_DART', 'even', DART),
+    ('SP_POD1', 'even', POD1),
+    ('SP_POD2', 'even', POD2),
+    ('SP_EXPL1', 'even', EXPL1),
+    ('SP_EXPL2', 'even', EXPL2),
+    ('SP_EXPL3', 'even', EXPL3),
+    ('SP_QUEEN', 'even', QUEEN),
 ]
 
 
 def sprite_lib(base=0x2800, limit=0x5800):
+    """frames 'even' are pre-shifted to even pixels only (4 copies)"""
     data = bytearray()
     labels = {}
-    for name, art in SPRITES:
+    for item in SPRITES:
+        name, art = item[0], item[-1]
         labels[name] = base + len(data)
-        data += gfx.sprite_frame(art)
-    assert base + len(data) <= limit, 'sprite library full'
+        data += gfx.sprite_frame(art, even=len(item) == 3)
+    assert base + len(data) <= limit, 'sprite library full: %d' % len(data)
     return bytes(data), labels
 
 

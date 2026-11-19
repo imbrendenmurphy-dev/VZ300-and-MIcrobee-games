@@ -47,9 +47,12 @@ def grow(bits):
     return g
 
 
+CH = 10         # lines in a cell (cells are 8 x 10)
+
+
 def pat8(bits):
-    """8 x 8 booleans -> 8 bytes"""
-    return bytes(sum((128 >> x) for x in range(8) if bits[y][x]) for y in range(8))
+    """8 x CH booleans -> CH bytes"""
+    return bytes(sum((128 >> x) for x in range(8) if bits[y][x]) for y in range(len(bits)))
 
 
 # ---------------------------------------------------------------- walls
@@ -61,27 +64,27 @@ STYLE_COL = [(GREY, DGREY), (BGREEN, GREEN), (BROWN, BLACK), (BLACK, RED), (BBLU
 WALL_FLASH = [WHITE, YELLOW, WHITE, YELLOW, WHITE, WHITE]
 
 
-def tube(mask, lo, hi):
-    """filled tube shape: a centre square lo..hi with arms to the joined sides"""
+def tube(mask, lo, hi, ylo, yhi):
+    """filled tube shape: a centre block with arms to the joined sides"""
     def inside(x, y):
-        if lo <= x <= hi and lo <= y <= hi:
+        if lo <= x <= hi and ylo <= y <= yhi:
             return True
-        if lo <= x <= hi and ((y < lo and mask & MU) or (y > hi and mask & MD)):
+        if lo <= x <= hi and ((y < ylo and mask & MU) or (y > yhi and mask & MD)):
             return True
-        if lo <= y <= hi and ((x < lo and mask & ML) or (x > hi and mask & MR)):
+        if ylo <= y <= yhi and ((x < lo and mask & ML) or (x > hi and mask & MR)):
             return True
         return False
     return inside
 
 
-def tube_ext(mask, lo, hi):
+def tube_ext(mask, lo, hi, ylo, yhi):
     """the tube, continued into the neighbouring cells (for outlines)"""
-    t = tube(mask, lo, hi)
+    t = tube(mask, lo, hi, ylo, yhi)
 
     def inside(x, y):
-        xx, yy = min(max(x, 0), 7), min(max(y, 0), 7)
+        xx, yy = min(max(x, 0), 7), min(max(y, 0), CH - 1)
         if (xx, yy) != (x, y):
-            if y < 0 and not mask & MU or y > 7 and not mask & MD or x < 0 and not mask & ML or x > 7 and not mask & MR:
+            if y < 0 and not mask & MU or y > CH - 1 and not mask & MD or x < 0 and not mask & ML or x > 7 and not mask & MR:
                 return False
         return t(xx, yy)
     return inside
@@ -89,6 +92,7 @@ def tube_ext(mask, lo, hi):
 
 def wall_bits(style, mask, c, r):
     v = (c + r) & 1
+    B = CH - 1
     if style == 0:          # crypt: bevelled stone blocks
         def fn(x, y):
             if y == 0 and not mask & MU:
@@ -97,18 +101,18 @@ def wall_bits(style, mask, c, r):
                 return True
             if y == 1 and not mask & MU and x % 2 == v:
                 return True
-            if (x, y) in (((2, 5), (5, 3)) if v else ((5, 5), (3, 3))):
+            if (x, y) in (((2, 7), (5, 4)) if v else ((5, 7), (3, 4))):
                 return True
             return False
     elif style == 1:        # hedge: leaves
         def fn(x, y):
             if y == 0 and not mask & MU:
                 return (x + v) % 2 == 0
-            if y == 7 and not mask & MD:
+            if y == B and not mask & MD:
                 return False
             return ((x + 2 * y + 3 * v) % 5 == 0) or ((2 * x - y + v) % 7 == 0)
     elif style == 2:        # boiler room: copper pipes
-        t = tube(mask, 1, 6)
+        t = tube(mask, 1, 6, 1, B - 1)
         n = bin(mask).count('1')
         straight = mask in (MU | MD, ML | MR)
 
@@ -117,21 +121,20 @@ def wall_bits(style, mask, c, r):
                 return False
             if straight:
                 if mask == ML | MR:
-                    return y != 2 and not (v and x == 3)
-                return x != 2 and not (v and y == 3)
-            if (x, y) in ((1, 1), (6, 1), (1, 6), (6, 6)):
+                    return y != 3 and not (v and x == 3)
+                return x != 2 and not (v and y == 4)
+            if (x, y) in ((1, 1), (6, 1), (1, B - 1), (6, B - 1)):
                 return False
-            if n != 2 and 3 <= x <= 4 and 3 <= y <= 4:
+            if n != 2 and 3 <= x <= 4 and 4 <= y <= 5:
                 return False
             return True
     elif style == 3:        # brick: mortar lines (ink black on red)
         def fn(x, y):
-            if y % 4 == 3:
+            if y % 5 == 4:
                 return True
-            row = (y // 4 + 2 * r) % 2
-            return x == (3 if row else 7)
+            return x == (3 if (y // 5) % 2 else 7)
     elif style == 4:        # neon: the arcade's double line
-        t = tube_ext(mask, 2, 5)
+        t = tube_ext(mask, 2, 5, 3, B - 3)
 
         def fn(x, y):
             if not t(x, y):
@@ -144,33 +147,33 @@ def wall_bits(style, mask, c, r):
         def fn(x, y):
             if y == 0 and not mask & MU:
                 return True
-            if y == 7 and not mask & MD:
+            if y == B and not mask & MD:
                 return True
             if x == 0 and not mask & ML:
                 return True
             if x == 7 and not mask & MR:
                 return True
-            return (x + y) % 8 == 3 or (x - y) % 8 == 4
-    return [[bool(fn(x, y)) for x in range(8)] for y in range(8)]
+            return (x + y) % 10 == 3 or (x - y) % 10 == 4
+    return [[bool(fn(x, y)) for x in range(8)] for y in range(CH)]
 
 
-DOOR = pat8([[3 <= y <= 4 for x in range(8)] for y in range(8)])
+DOOR = pat8([[4 <= y <= 5 for x in range(8)] for y in range(CH)])
 DOOR_COL = (BMAGENTA, BLACK)
 
 
 def dot_glyph(mask, ecorner):
     """corner dots: bit 0 TL, 1 TR, 2 BL, 3 BR; ecorner = corner holding an
     energiser quarter (or None)"""
-    b = [[False] * 8 for _ in range(8)]
+    b = [[False] * 8 for _ in range(CH)]
     for k in range(4):
         fx, fy = k & 1, k >> 1
         if ecorner == k:
             for y in range(3):
                 for x in range(3):
                     if (x, y) != (2, 2):
-                        b[7 - y if fy else y][7 - x if fx else x] = True
+                        b[CH - 1 - y if fy else y][7 - x if fx else x] = True
         elif mask & (1 << k):
-            b[7 if fy else 0][7 if fx else 0] = True
+            b[CH - 1 if fy else 0][7 if fx else 0] = True
     return pat8(b)
 
 
@@ -234,65 +237,50 @@ def ellipse(cx, cy, rx, ry):
     return lambda x, y: ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2 <= 1.0
 
 
-HAT = art([
-    "................",
-    "................",
-    ".....######.....",
-    "....########....",
-    "....########....",
-    "....#......#....",
-    "..############..",
-    ".##############.",
-])
-HAT_R = art([
-    "................",
-    "................",
-    "....######......",
-    "...########.....",
-    "...########.....",
-    "...#......#.....",
-    ".#############..",
-    ".###############",
-])
+SH = 18         # sprite height (lines): the characters are 16 x 18
+
+# The hunter: a round chomper filling the 16 x 18 box, no hat, no eye, with
+# a wedge mouth that opens towards where he is going (Pac-Man style).
+DIR_ANGLE = {'U': 0.0, 'R': 90.0, 'D': 180.0, 'L': -90.0}
+
+
+def chomper(open_deg, facing='R', scale=1.0):
+    """a disc with a wedge of open_deg degrees (each side of the facing
+    direction) cut out from the centre"""
+    cx, cy = 7.5, 8.5
+    e = ellipse(cx, cy, 7.6 * scale, 8.4 * scale)
+    phi = DIR_ANGLE[facing]
+
+    def fn(x, y):
+        if not e(x, y):
+            return False
+        if open_deg <= 0:
+            return True
+        th = math.degrees(math.atan2(x - cx, cy - y))      # 0 = up, 90 = right
+        d = abs((th - phi + 180.0) % 360.0 - 180.0)
+        return d >= open_deg
+    return mk(fn, 16, SH)
+
+
+MOUTH_DEG = (0, 28, 52)        # closed, half, wide
 
 
 def face(direction, mouth, scale=1.0):
-    """the hunter's head: rows 8..15 of the 16 x 16 box"""
-    e = ellipse(7.5, 11.6, 6.9 * scale, 4.3 * scale)
-    k = (0.0, 0.45, 0.95)[mouth]
-
-    def fn(x, y):
-        if y < 8 or not e(x, y):
-            return False
-        if direction == 'R':
-            if (x, y) in ((8, 9), (9, 9)):
-                return False
-            if mouth and x > 6.5 and abs(y - 12.0) < (x - 6.5) * k:
-                return False
-        elif direction == 'D':
-            if (x, y) in ((4, 10), (5, 10), (10, 10), (11, 10)):
-                return False
-            if mouth and y > 11.5 and abs(x - 7.5) < (y - 11.2) * (k + 0.3):
-                return False
-            if not mouth and y == 13 and 5 <= x <= 10:
-                return False
-        elif direction == 'U':
-            if mouth and y == 15:
-                return False
-        return True
-    return mk(fn)
+    return chomper(MOUTH_DEG[mouth], direction, scale)
 
 
-def split(full):
-    """16 x 16 -> (top bits, top mask), (bottom bits, bottom mask) with the
-    outline kept inside each half"""
-    m = grow(full)
-    t, tm, b, bm = full.copy(), m.copy(), full.copy(), m.copy()
-    t[8:] = False
-    tm[8:] = False
-    b[:8] = False
-    bm[:8] = False
-    return (t, tm), (b, bm)
+def death_frame(i):
+    """the classic exit: the mouth opens upward until he folds away, then a pop"""
+    if i < 5:
+        return chomper((60, 95, 130, 160, 176)[i], 'U')
+    star = np.zeros((SH, 16), bool)
+    for k in range(8):
+        a = math.radians(k * 45)
+        for r in range(3, 8):
+            x, y = 7.5 + r * math.sin(a), 8.5 - r * math.cos(a) * 1.05
+            if r % 2 == 1 or k % 2 == 0:
+                star[int(round(y)), int(round(x))] = True
+    return star
 
 
 GHOST_BODY = [
@@ -300,16 +288,7 @@ GHOST_BODY = [
     ".....######.....",
     "...##########...",
     "..############..",
-    ".##############.",
-    ".##############.",
-    ".##############.",
-    ".##############.",
-    ".##############.",
-    ".##############.",
-    ".##############.",
-    ".##############.",
-    ".##############.",
-]
+] + [".##############."] * 11
 GHOST_FEET = [
     [".##############.", ".###.####.####..", "..#...##...##..."],
     [".##############.", "..####.####.###.", "...##...##...#.."],
@@ -334,12 +313,12 @@ def ghost(kind, direction, anim):
         for ex in (4, 9):
             for y in range(3):
                 for x in range(3):
-                    b[5 + y + oy, ex + x + ox] = True
+                    b[6 + y + oy, ex + x + ox] = True
         return b
     eh = 4
-    ey = 4
+    ey = 5
     if kind == 1:
-        eh, ey = 2, 6
+        eh, ey = 2, 7
     for ex in (3, 9):
         for y in range(eh):
             for x in range(4):
@@ -350,19 +329,19 @@ def ghost(kind, direction, anim):
         for y in range(2):
             for x in range(2):
                 yy, xx = py + y, px + x
-                if 0 <= yy < 16 and 0 <= xx < 16:
+                if 0 <= yy < SH and 0 <= xx < 16:
                     b[yy, xx] = True
     if kind == 0:           # angry brows
-        for ex, s in ((3, 1), (9, -1)):
+        for ex, s_ in ((3, 1), (9, -1)):
             for x in range(4):
                 xx = ex + ox + x
-                d = x if s == 1 else 3 - x
+                d = x if s_ == 1 else 3 - x
                 if d < 2:
                     b[ey + oy, xx] = True
                 if d < 1:
                     b[ey + oy + 1, xx] = True
     if kind == 2:           # stripes
-        for y in range(9, 13):
+        for y in range(11, 15):
             for x in (4, 7, 10):
                 b[y, x] = False
     return b
@@ -371,25 +350,25 @@ def ghost(kind, direction, anim):
 def fright(anim):
     b = art(GHOST_BODY + GHOST_FEET[anim])
     for ex in (4, 10):
-        b[5:7, ex:ex + 2] = False
+        b[6:8, ex:ex + 2] = False
     for x in range(3, 13):
-        y = 10 if (x // 2) % 2 == 0 else 9
+        y = 12 if (x // 2) % 2 == 0 else 11
         b[y, x] = False
     return b
 
 
 def eyes(direction):
     ox, oy = {'R': (1, 0), 'L': (-1, 0), 'U': (0, -1), 'D': (0, 1)}[direction]
-    b = np.zeros((16, 16), bool)
+    b = np.zeros((SH, 16), bool)
     for ex in (3, 9):
         for y in range(5):
             for x in range(4):
                 if (x in (0, 3)) and (y in (0, 4)):
                     continue
-                b[4 + y, ex + x] = True
+                b[5 + y, ex + x] = True
         for y in range(2):
             for x in range(2):
-                b[5 + oy + y + (1 if oy == 0 else 0), ex + 1 + ox + x] = False
+                b[6 + oy + y + (1 if oy == 0 else 0), ex + 1 + ox + x] = False
     return b
 
 
@@ -398,13 +377,15 @@ DIG = {'0': "111 101 101 101 111", '1': "010 110 010 010 111", '2': "111 001 111
 
 
 def number(txt):
-    w = len(txt) * 4 - 1
+    w = len(txt) * 5 - 1
     b = np.zeros((5, w), bool)
     for i, ch in enumerate(txt):
         for y, row in enumerate(DIG[ch].split()):
             for x, c in enumerate(row):
-                b[y, i * 4 + x] = c == '1'
-    return b
+                b[y, i * 5 + x] = c == '1'
+    bold = b.copy()
+    bold[:, 1:] |= b[:, :-1]                # double-thick strokes
+    return bold
 
 
 def sprites():
@@ -414,23 +395,14 @@ def sprites():
     def add(name, b, outline=True):
         b = np.asarray(b, bool)
         S.append((name, b, grow(b) if outline else b.copy()))
-
-    def half(name, full, top):
-        (t, tm), (b, bm) = split(full)
-        S.append((name, t, tm) if top else (name, b, bm))
-    blank8 = np.zeros((8, 16), bool)
-    half('HAT_F', np.vstack([HAT, blank8]), True)
-    half('HAT_R', np.vstack([HAT_R, blank8]), True)
-    half('HAT_L', mirror(np.vstack([HAT_R, blank8])), True)
     for m in range(3):
-        f = face('R', m)
-        half('FACE_R%d' % m, f, False)
-        half('FACE_L%d' % m, mirror(f), False)
-    for m in range(2):
-        half('FACE_U%d' % m, face('U', m), False)
-        half('FACE_D%d' % m, face('D', m * 2), False)
-    for i, sc in enumerate((0.85, 0.65, 0.42, 0.2)):
-        half('DIE%d' % i, face('D', 0, sc), False)
+        add('FACE_R%d' % m, face('R', m))
+        add('FACE_L%d' % m, face('L', m))
+    for m in range(2):                      # (up and down: closed and half open)
+        add('FACE_U%d' % m, face('U', m))
+        add('FACE_D%d' % m, face('D', m))
+    for i in range(6):
+        add('DIE%d' % i, death_frame(i), i < 5)
     for k in range(4):
         for d in 'RLUD':
             for a in range(2):
@@ -445,31 +417,28 @@ def sprites():
     sp1 = mk(lambda x, y: abs(x - 3) == abs(y - 3) and abs(x - 3) < 3, 7, 7)
     add('SPARK0', sp0, False)
     add('SPARK1', sp1, False)
-    ring = mk(lambda x, y: 6.6 <= math.hypot(x - 7.5, (y - 7.5)) <= 7.9 and (x + y) % 2 == 0)
-    add('RING0', ring, False)
-    ring1 = mk(lambda x, y: 6.6 <= math.hypot(x - 7.5, (y - 7.5)) <= 7.9 and (x + y) % 2 == 1)
-    add('RING1', ring1, False)
-    # the giant hunter of the intermissions (32 x 32, facing left)
-    hat = np.kron(mirror(np.vstack([HAT_R, blank8])), np.ones((2, 2), bool))
-    S.append(('BIGHAT', hat[:16], hat[:16].copy()))
+    for i in range(2):
+        ring = mk(lambda x, y: 0.82 <= math.hypot((x - 7.5) / 7.9, (y - 8.5) / 8.9) <= 1.0 and (x + y) % 2 == i, 16, SH)
+        add('RING%d' % i, ring, False)
+    # the giant hunter of the intermissions (32 x 36, facing left)
     for m in (0, 2):
-        f = np.kron(mirror(face('R', m)), np.ones((2, 2), bool))
-        S.append(('BIGFACE%d' % (m // 2), f[16:], f[16:].copy()))
+        f = np.kron(face('L', m), np.ones((2, 2), bool))
+        add('BIGFACE%d' % (m // 2), f)
     return S
 
 
 # ---------------------------------------------------------------- HUD icons
 def g8(rows):
-    return bytes(int(r, 2) for r in rows)
+    return bytes([0] + [int(r, 2) for r in rows] + [0])
 
 
 ICONS = [
     ('heart', g8(["01101100", "11111110", "11111110", "11111110", "01111100", "00111000", "00010000", "00000000"])),
     ('heart_e', g8(["01101100", "10010010", "10000010", "10000010", "01000100", "00101000", "00010000", "00000000"])),
-    ('life', g8(["00111000", "01111100", "11111110", "00000000", "01111100", "11101110", "11111000", "01111100"])),
-    ('solid', bytes([255] * 8)),
+    ('life', g8(["00111100", "01111110", "11111000", "11100000", "11111000", "01111110", "00111100", "00000000"])),
+    ('solid', bytes([255] * CH)),
     ('ghost', g8(["00111100", "01111110", "11011011", "11011011", "11111111", "11111111", "11111111", "10110101"])),
-] + [('bar%d' % k, bytes([0, 0] + [(0xFF00 >> k) & 0xFF] * 4 + [0, 0])) for k in range(9)]
+] + [('bar%d' % k, bytes([0, 0, 0] + [(0xFF00 >> k) & 0xFF] * 4 + [0, 0, 0])) for k in range(9)]
 
 
 # ---------------------------------------------------------------- the title picture
@@ -487,7 +456,7 @@ def scale_text(text, sx, sy):
 
 
 def title_picture():
-    W, H = 320, 200
+    W, H = 320, 250
     bits = np.zeros((H, W), bool)
     ink = np.full((25, 40), WHITE, np.uint8)
     paper = np.zeros((25, 40), np.uint8)
@@ -501,9 +470,9 @@ def title_picture():
     # stars
     for i in range(46):
         x = int(hsh(i, 1, 5) * 320)
-        y = 96 + int(hsh(i, 2, 5) * 36)
+        y = 120 + int(hsh(i, 2, 5) * 44)
         bits[y, x] = True
-        ink[y // 8, x // 8] = (WHITE, BCYAN, GREY, YELLOW)[i % 4]
+        ink[y // CH, x // 8] = (WHITE, BCYAN, GREY, YELLOW)[i % 4]
     # the logo: fat wavy letters with an inline stripe and a hatched shadow
     def logo(text, x0, y0, sx, sy, fat, amp, phase, cols, c0, c1):
         raw = scale_text(text, sx, sy)[:, :-sx]
@@ -550,26 +519,26 @@ def title_picture():
         ys, xs = y0 - pad, x0 - pad
         for y in range(H2):
             for x in range(W2):
-                if out[y, x] and 0 <= ys + y < 200 and 0 <= xs + x < 320:
+                if out[y, x] and 0 <= ys + y < H and 0 <= xs + x < 320:
                     bits[ys + y, xs + x] = True
-        r0, r1 = max(0, (ys + pad - fat - amp) // 8), min(25, (ys + pad + h + fat + amp + 4) // 8 + 1)
+        r0, r1 = max(0, (ys + pad - fat - amp) // CH), min(25, (ys + pad + h + fat + amp + 4) // CH + 1)
         for i, r in enumerate(range(r0, r1)):
             colour(r, r + 1, c0, c1, cols[min(i * len(cols) // max(1, r1 - r0), len(cols) - 1)])
-    logo('GHOST', 10, 7, 6, 5, 1, 2, 0.0, (WHITE, BCYAN, BCYAN, CYAN, BBLUE, BBLUE), 0, 24)
-    logo("'26", 214, 7, 5, 5, 1, 2, 2.0, (WHITE, BGREEN, BGREEN, BGREEN, GREEN, GREEN), 24, 40)
-    logo('HUNTER', 54, 53, 6, 5, 1, 2, 1.6, (YELLOW, YELLOW, BRED, BRED, RED, RED), 0, 40)
+    logo('GHOST', 10, 8, 6, 6, 1, 2, 0.0, (WHITE, BCYAN, BCYAN, CYAN, BBLUE, BBLUE), 0, 24)
+    logo("'26", 214, 8, 5, 6, 1, 2, 2.0, (WHITE, BGREEN, BGREEN, BGREEN, GREEN, GREEN), 24, 40)
+    logo('HUNTER', 54, 66, 6, 6, 1, 2, 1.6, (YELLOW, YELLOW, BRED, BRED, RED, RED), 0, 40)
     # the moon
-    mx, my, mr = 30, 112, 12
+    mx, my, mr = 30, 138, 14
     for y in range(my - mr, my + mr + 1):
         for x in range(mx - mr - 3, mx + mr + 4):
-            d = math.hypot((x - mx) / 1.2, y - my)
+            d = math.hypot((x - mx) / 1.1, y - my)
             if d <= mr and not (math.hypot(x - mx + 5, y - my + 4) < 3 or math.hypot(x - mx - 6, y - my - 5) < 4 or math.hypot(x - mx - 3, y - my + 8) < 2):
                 bits[y, x] = True
-    colour(12, 16, 1, 7, YELLOW)
+    colour(12, 16, 0, 7, YELLOW)
     # the graveyard
     for x in range(W):
-        top = 166 + int(round(3 * math.sin(x / 31.0) + 2 * math.sin(x / 13.0 + 1)))
-        for y in range(top, 176):
+        top = 203 + int(round(2 * math.sin(x / 31.0) + math.sin(x / 13.0 + 1)))
+        for y in range(top, 220):
             bits[y, x] = ((x + y) % 2 == 0) or y == top or hsh(x, y, 3) < 0.3
     colour(20, 22, 0, 40, GREEN)
     stone = art([
@@ -578,14 +547,14 @@ def title_picture():
         ".#.############.", ".##########.###.", ".##############.", ".##############.", ".######.#######.", ".##############.",
         ".##############.", ".##############.", ".##############.", ".##############.", ".##############.", ".##############."])
     for sxp in (24, 88, 184, 240):
-        put(stone, sxp, 138)
-        colour(17, 20, sxp // 8, sxp // 8 + 2, GREY)
+        put(stone, sxp, 180)
+        colour(18, 20, sxp // 8, sxp // 8 + 2, GREY)
     cross = art([
         "......####......", "......####......", "......####......", "..############..", "..############..", "......####......",
         "......####......", "......####......", "......####......", "......####......", "......####......", "......####......",
         "......####......", "......####......", "......####......", "......####......"])
     for sxp in (56, 136):
-        put(cross, sxp, 144)
+        put(cross, sxp, 188)
         colour(18, 20, sxp // 8, sxp // 8 + 2, DGREY)
     # a dead tree
     tree = np.zeros((56, 32), bool)
@@ -599,6 +568,6 @@ def title_picture():
             if 0 <= xx < 32 and 0 <= yy < 56:
                 tree[yy, xx] = True
                 tree[yy + 1, xx] = True
-    put(tree, 280, 104)
-    colour(13, 20, 35, 39, BROWN)
+    put(tree, 280, 148)
+    colour(14, 20, 35, 39, BROWN)
     return bits, ink, paper

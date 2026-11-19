@@ -41,7 +41,7 @@ Everything fits in one `.VZ` file (about 28 KB), so nothing is loaded from the S
 ## Loading
 
 Copy `release/VZFLIGHT.VZ` to the SD card and run it.
-It loads at $8000 (to $EF6E) and makes no mapper writes. It doesn't call the DOS, and it uses the BennVenn SRAM at $4000-$4AFF for its maths tables, like the Cybernoid port, so it needs the BennVenn SD loader.
+It loads at $8000 (to about $E82A, plus working RAM up to $F600) and makes no mapper writes or DOS calls once running — everything lives in ordinary, unbanked RAM. It needs the BennVenn SD loader for the RAM to be there at those addresses and to load the file from the SD card. See `media/BLURB.md` for the full tech specs and RAM map.
 
 ## The attract sequence
 

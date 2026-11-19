@@ -25,3 +25,7 @@ impressed: jump them, climb, or run.
 Two regions, twelve rooms, 34 bugs. Lose your
 hearts and try again from the start of the
 region; ESC goes back to the title.
+
+Leave the title alone and the game shows itself off: the story,
+who's who, the moves, and Bluff playing each region by himself.
+SPACE starts a game at any time.

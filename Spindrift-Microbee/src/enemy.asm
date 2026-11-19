@@ -130,6 +130,7 @@ enemies_update:
         ret
 
 enemy_one:
+        call vbpoll_q
         ld a,(ix+E_WARN)
         or a
         jr z,.nw
@@ -1163,6 +1164,8 @@ shots_update:
         ld a,(ix+S_ST)
         or a
         jr z,.n
+        call vbpoll_q           ; (a shot's hit tests are long: the
+                                ; blanking is only 62 lines)
         ld a,(ix+S_R)
         ld (ix+S_OLD),a
         sub 10

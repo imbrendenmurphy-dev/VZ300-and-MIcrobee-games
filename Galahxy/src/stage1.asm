@@ -246,6 +246,7 @@ s1_tl:
             dw GATE_COL+30 : db TL_SPAWN, T_TINNIE, 132+XOFF, 30+YOFF
             dw ROUTE_COL  : db TL_IFROUTE, 0 : dw .garden
             ; ---- ROOF: coin trails, possums, magpies
+            dw ROUTE_COL+2 : db TL_MSG : dw m_roof : db 90
             dw 458 : db TL_FORM, T_COIN, 6, 18, 6, 0
             dw 470 : db TL_FORM, T_POSSUM, 3, 34, 20, 5
             dw 492 : db TL_FORM, T_SWOOPER, 4, 8, 16, 6
@@ -260,7 +261,8 @@ s1_tl:
             dw 660 : db TL_FORM, T_POSSUM, 4, 34, 18, 3
             dw 660 : db TL_GOTO : dw .patio
             ; ---- GARDEN: gnomes (three -> the golden one), sprinklers, an esky
-.garden:    dw 460 : db TL_SPAWN, T_GNOME, 132+XOFF, 48+GY
+.garden:    dw ROUTE_COL+2 : db TL_MSG : dw m_garden : db 90
+            dw 460 : db TL_SPAWN, T_GNOME, 132+XOFF, 48+GY
             dw 468 : db TL_FORM, T_SNAG, 5, 20, 12, 3
             dw 490 : db TL_SPAWN, T_SPRINK, 132+XOFF, 51+GY
             dw 496 : db TL_FORM, T_THONG, 4, 50, 14, 4
@@ -285,6 +287,8 @@ s1_tl:
 m_intro:    db 3,"WELCOME TO PARTY PLANET!",0
 m_wash:     db 3,"ALL ABOARD THE CAROUSEL!",0
 m_gate:     db 1,"UP: CLOUD TOPS  DOWN: LOLLIES",0
+m_roof:     db 6,"OVER THE CLOUD TOPS!",0
+m_garden:   db 4,"THROUGH THE LOLLY GARDEN!",0
 m_patio:    db 4,"SOMEONE SET THE TABLE...",0
 
 ; ---- tunes, scenery and sprites

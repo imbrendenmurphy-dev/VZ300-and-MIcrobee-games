@@ -69,6 +69,11 @@ acc2:    dw 0
 step1:   dw 0
 step2:   dw 0
 noiseon: db 0
+ndens:   db 0
+nrate:   dw 0
+nacc:    dw 0
+sfxrate: db 0
+burst:   db 0
 musicon: db 0
 sfxon:   db 0
 mptr0:  dw 0
@@ -146,6 +151,8 @@ t_sy:    db 0
 t_rng:   db 0
 t_dt:    db 0
 t_ph:    db 0
+t_c:     db 0
+t_r:     db 0
 preview: db 0
 msg_t:   db 0
 said_log: db 0
