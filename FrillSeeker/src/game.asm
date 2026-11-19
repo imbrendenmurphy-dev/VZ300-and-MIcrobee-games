@@ -619,14 +619,38 @@ tile_at:
         ret
 .none:  xor a
         ret
-.xout:  bit 7,d
+.xout:  push bc                  ; beyond the side: the next room's edge
+        bit 7,d
         ld a,(nb_left)
-        jr nz,.x1
+        ld bc,TMAP+TM_SIZE      ; (two words: the rows where the room to the
+        jr nz,.x1               ; left, and to the right, is solid at the edge)
         ld a,(nb_right)
+        ld bc,TMAP+TM_SIZE+2
 .x1:    inc a
-        jr z,.wall
-        xor a
+        jr z,.wall0
+        ld a,l                  ; its row
+        rrca
+        rrca
+        rrca
+        rrca
+        and 15
+        cp 8
+        jr c,.lo
+        inc bc
+        sub 8
+.lo:    ld h,a
+        ld a,(bc)
+        inc h
+.sh:    dec h
+        jr z,.got
+        rrca
+        jr .sh
+.got:   pop bc
+        and 1
+        ret z
+        ld a,T_SOLID
         ret
+.wall0: pop bc
 .wall:  ld a,T_SOLID
         ret
 
