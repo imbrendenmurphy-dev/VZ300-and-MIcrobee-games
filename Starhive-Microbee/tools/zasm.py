@@ -654,6 +654,8 @@ class Asm:
             self.define_label(label, self.pc)
         if not mn:
             return
+        if self.final:
+            self.lst.append((self.pc, self.where[2]))
         if mnl in self.macros:
             params, body = self.macros[mnl]
             vals = split_args(args) if args else []
@@ -794,6 +796,7 @@ class Asm:
                 break
             prev = snap
         self.final = True
+        self.lst = []
         self.defset = set()
         self.mem = bytearray(65536)
         self.written = bytearray(65536)
@@ -821,6 +824,10 @@ def main():
     for (name, st, ln, d) in asm.saves:
         with open(os.path.join(os.getcwd(), name), 'wb') as f:
             f.write(asm.mem[st:st + ln])
+    if 'lst' in opts:
+        with open(opts['lst'], 'w') as f:
+            for a, t in asm.lst:
+                f.write('%04X  %s\n' % (a & 0xFFFF, t.rstrip()))
     if 'sym' in opts:
         with open(opts['sym'], 'w') as f:
             for k in sorted(asm.syms, key=lambda k: asm.syms[k]):

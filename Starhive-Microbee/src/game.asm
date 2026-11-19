@@ -11,7 +11,8 @@ ST_OVER	equ 2
 ST_CLEAR equ 3
 ST_NAME	equ 4
 
-NENEMY	equ 12			; enemy slots, ESIZE bytes each
+NENEMY	equ 12
+MAXACT	equ 7			; waves wait while this many are about			; enemy slots, ESIZE bytes each
 ESIZE	equ 16
 E_TYPE	equ 0
 E_XL	equ 1
@@ -192,6 +193,7 @@ game_tick:
 	ld (state),a
 	jp restart
 .play:	call waves
+	call vschk
 	call player_move
 	call enemies_move
 	call bullets_move
@@ -300,6 +302,13 @@ waves:	ld hl,(top)
 	ld hl,sp_wait
 	dec (hl)
 	jr nz,.next
+	call alive		; already 7 about: wait a moment
+	cp MAXACT
+	jr c,.room
+	ld hl,sp_wait
+	ld (hl),4
+	jr .next
+.room:	ld hl,sp_wait
 	ld a,(sp_gap)
 	ld (hl),a
 	ld hl,sp_count
@@ -366,6 +375,21 @@ waves:	ld hl,(top)
 	ld (wave_ptr),hl
 	ld a,1
 	ld (sp_wait),a
+	ret
+
+; enemies alive (not explosions) -> A
+alive:	ld hl,enemies
+	ld de,ESIZE
+	ld bc,NENEMY<<8
+.c:	ld a,(hl)
+	or a
+	jr z,.n
+	cp T_EXPL
+	jr z,.n
+	inc c
+.n:	add hl,de
+	djnz .c
+	ld a,c
 	ret
 
 ; A = type, HL = x + 16: a new enemy at the top. IY = it (carry), or
@@ -1230,7 +1254,16 @@ shot_hits:
 	ld c,a
 	ld a,(b_h)
 	ld d,a
-.w:	ld l,(ix+E_XL)		; c_x - ex in 0 .. width
+.w:	ld a,(c_y)		; c_y - ey in -6 .. height (first: cheaper)
+	add a,6
+	sub (ix+E_Y)
+	jr c,.n
+	ld e,a
+	ld a,d
+	add a,6
+	cp e
+	jr c,.n
+	ld l,(ix+E_XL)		; c_x - ex in 0 .. width
 	ld h,(ix+E_XH)
 	push de
 	ld de,(c_x)
@@ -1244,15 +1277,6 @@ shot_hits:
 	ld a,l
 	cp c
 	jr nc,.n
-	ld a,(c_y)		; c_y - ey in -6 .. height
-	add a,6
-	sub (ix+E_Y)
-	jr c,.n
-	ld e,a
-	ld a,d
-	add a,6
-	cp e
-	jr c,.n
 	; hit
 	ld (ix+E_FLASH),4
 	dec (ix+E_HP)
@@ -1570,34 +1594,31 @@ sin8:	ld hl,sintab		; A = angle -> A = sin * 63 (signed)
 	ld a,(hl)
 	ret
 
-muls8:	ld b,a			; HL = A (signed) * E / 64
+muls8:	ld b,a			; HL = A (signed, -63..63) * E / 64
 	bit 7,a
 	jr z,.p
 	neg
 .p:	ld c,a
+	sla c
+	sla c			; the 6 bits to the top
 	ld d,0
 	ld hl,0
-	push bc
-	ld b,8
-.m:	add hl,hl
+	REPT 6
+	add hl,hl
 	sla c
-	jr nc,.s
+	jr nc,$+3
 	add hl,de
-.s:	djnz .m
-	ld b,6
-.d:	srl h
-	rr l
-	djnz .d
-	pop bc
+	ENDR
+	add hl,hl
+	add hl,hl
+	ld l,h			; / 64
+	ld h,0
 	bit 7,b
 	ret z
 	ld a,l
-	cpl
+	neg
 	ld l,a
-	ld a,h
-	cpl
-	ld h,a
-	inc hl
+	ld h,$FF
 	ret
 
 rnd:	ld hl,(seed)		; xorshift
@@ -1709,7 +1730,7 @@ tx_unpass:
 	and 31
 	or SEGS>>8
 	ld h,a
-	ld l,0
+	ld l,2			; (counts first)
 	ld a,d
 	or $F0
 	ld b,a
@@ -1841,12 +1862,8 @@ title_texts:	; row, column, colour, text
 ; ---------------------------------------------------------------------
 ;  monochrome: any ink white, any paper dark grey (A = colour)
 ; ---------------------------------------------------------------------
-fold:	push bc
+fold:	push bc			; (patched to RET while monochrome is off)
 	ld b,a
-	ld a,(mono)
-	or a
-	ld a,b
-	jr z,.e
 	and $0F
 	jr z,.p
 	ld a,$0F
@@ -1856,16 +1873,20 @@ fold:	push bc
 	jr z,.q
 	ld a,$80
 .q:	or c
-.e:	pop bc
+	pop bc
 	ret
 
-set_mono:			; the far stars' colour
+set_mono:			; the far stars' colour; fold on or off
 	ld a,(mono)
 	or a
 	ld a,STAR_COL
+	ld b,$C9		; RET
 	jr z,.s
 	ld a,GREY
+	ld b,$C5		; PUSH BC
 .s:	ld (star_col),a
+	ld a,b
+	ld (fold),a
 	ret
 
 ; ---------------------------------------------------------------------

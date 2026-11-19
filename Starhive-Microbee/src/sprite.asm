@@ -28,6 +28,11 @@ SB1	equ $0B00
 ;  start a frame: the bucket set of this page emptied
 ; ---------------------------------------------------------------------
 frame_begin:
+	ld hl,frame_id
+	inc (hl)
+	ld a,(hl)
+	ld (spr_row.cv+1),a
+	ld (ovl_draw.cv+1),a
 	xor a
 	ld (nslot),a
 	ld a,(page)
@@ -240,6 +245,22 @@ spr_row:
 	ld h,(hl)
 	ld l,a
 	ld (sr_bp),hl
+	ld a,(sd_wb)		; room for the whole row? (else it's clipped)
+	ld b,a
+	ld a,(nslot)
+	add a,b
+	cp NSLOT+1
+	ret nc
+	ld a,b
+	add a,a
+	add a,b
+	add a,a			; 6 wb bytes, + 2 for the end
+	ld b,a
+	ld a,l
+	and $7F
+	add a,b
+	cp 127
+	ret nc
 	ld hl,(sd_ring)		; ring offset of the row on the coming frame
 	ld a,l
 	ld (.rlo+1),a
@@ -291,13 +312,6 @@ spr_row:
 .i0:	ld a,0
 	cp (iy+1)
 	jp nc,.skip
-	ld a,(nslot)
-	cp NSLOT
-	jp nc,.skip		; pool full: clipped
-	ld a,(sr_bp)
-	and $7F
-	cp 128-8
-	jp nc,.skip		; row bucket full: clipped
 	push bc
 	ld a,c
 .rlo:	add a,0
@@ -307,6 +321,10 @@ spr_row:
 	and 7
 	ld d,a			; DE = ring offset of the cell
 	ld (sr_ring),de
+	or $60
+	ld h,a
+	ld l,e
+.cv:	ld (hl),0		; covered this frame (the frame's number)
 	or $78			; SHA
 	ld d,a
 	ld a,(de)
@@ -381,9 +399,8 @@ spr_row:
 	exx
 	ld de,(sd_sstr)
 	add ix,de
-	inc iy
-	inc iy
-	inc iy
+	ld de,3
+	add iy,de
 	inc c
 	dec b
 	jp nz,.col
@@ -405,40 +422,33 @@ spr_row:
 	ld c,a
 	ld hl,(sr_bp)
 	ld de,(sr_ring)
-	ld (hl),e
-	inc hl
+	ld (hl),e		; address
+	inc l
 	ld a,d
 	or $F0
 	ld (hl),a
-	inc hl
+	inc l
 	ld a,(nslot)
 	or $80
 	ld (hl),a		; code
-	inc hl
-	ld a,(sr_dbk)
-	and $0F
-	ld (hl),a		; attribute: the slot's bank
-	inc hl
+	inc l
+	ld a,(pgbank)
+	ld (hl),a		; attribute: the pool's bank
+	inc l
 	ld (hl),c		; colour
-	inc hl
-	ld (hl),0
-	inc hl
+	inc l
+	inc l
 	ld (sr_bp),hl
 	ld hl,nslot
 	inc (hl)
 	ld a,(sr_dbk)
 	out (P_LV),a
-	ld de,(sr_dst)
-	ld hl,16
-	add hl,de
-	ld a,h
-	or a
-	jr nz,.e1
-	ld h,$F8		; past this bank: on to the next
-	ld a,(sr_dbk)
-	inc a
-	ld (sr_dbk),a
-.e1:	ld (sr_dst),hl
+	ld hl,(sr_dst)
+	ld d,h
+	ld e,l
+	ld bc,16
+	add hl,bc
+	ld (sr_dst),hl
 	ret
 
 ; patch the merge code for this row (once)
@@ -620,6 +630,14 @@ ovl_draw:
 	ld (hl),a
 	inc l
 	inc l
+	push hl			; covered this frame
+	ld a,d
+	and 7
+	or $60
+	ld h,a
+	ld l,e
+.cv:	ld (hl),0
+	pop hl
 	push de
 	ex de,hl
 	ld hl,(ov_bpa)
@@ -661,14 +679,18 @@ rows_commit:
 	ld de,SB1+2
 	jr z,.p0
 	ex de,hl
-.p0:	ld (ps_bk16),hl
+.p0:	push hl
+	pop ix			; IX: this frame's bucket of the row
 	ld a,(step)		; (one row up before a step)
 	or a
 	jr z,.p1
 	ld hl,-128
 	add hl,de
 	ex de,hl
-.p1:	ld (ps_old16),de
+.p1:	push de
+	pop iy			; IY: last frame's
+	ld a,(frame_id)
+	ld (.cov+1),a
 	ld a,VROWS
 	ld (ps_n),a
 	ld a,(k)
@@ -676,21 +698,29 @@ rows_commit:
 	add a,COLT>>8
 	ld e,a
 	ld (ps_de),de
+	ld a,LV_ATTR		; (the put-backs and new cells end in it too)
+	out (P_LV),a
 .row:	ld a,(step)		; no old cells for the new top row
 	or a
 	jr z,.ok
 	ld a,(ps_n)
 	cp VROWS
 	jr z,.r2
-.ok:	ld sp,(ps_old16)
-.r1:	pop hl			; put back last frame's cells
-	bit 7,h
+.ok:	ld sp,iy
+.r1:	pop hl			; put back last frame's cells - unless
+	bit 7,h			; covered again this frame
 	jr z,.r2
 	pop bc
 	pop bc
-	ld d,h
+	ld a,h
+	and 7
+	or $60
+	ld d,a
 	ld e,l
-	res 7,d			; SHC (F0 -> 70)
+	ld a,(de)		; (the frame it was last covered)
+.cov:	cp 0
+	jr z,.r1
+	set 4,d			; SHC
 	ld a,LV_SCREEN
 	out (P_LV),a
 	ld a,(de)
@@ -705,33 +735,35 @@ rows_commit:
 	set 3,h
 	ld (hl),a
 	jp .r1
-.r2:	ld a,LV_ATTR
-	out (P_LV),a
+.r2:	ld a,(ps_page)		; the jumps at +54h (from seg_build)
+	ld h,a
+	ld l,$54
+	ld sp,hl
+	pop hl
+	ld (.j1+1),hl
+	pop hl			; SP = +58h: cells whose colour changes too
 	ld de,(ps_de)
-	ld a,(ps_page)
-	ld h,a
-	ld l,0
-	ld sp,hl
-.la:	pop hl			; scenery of one colour: the phase bank
-	bit 7,h
-	jr z,.lb
-	ld (hl),d
-	jp .la
-.lb:	ld a,(ps_page)
-	ld h,a
-	ld l,$58
-	ld sp,hl
-.l:	pop hl			; scenery whose colour changes too
-	bit 7,h
-	jr z,.r3
+	jp (hl)
+.q2:	REPT 40
+	pop hl
 	pop bc
 	ld (hl),d
 	ld b,e
 	ld a,(bc)
 	set 3,h
 	ld (hl),a
-	jp .l
-.r3:	ld sp,(ps_bk16)
+	ENDR
+.q2e:	ld a,(ps_page)		; then the cells of one colour (from +2)
+	ld h,a
+	ld l,2
+	ld sp,hl
+.j1:	jp 0
+.q1:	REPT 40
+	pop hl			; the phase bank
+	ld (hl),d
+	ENDR
+.q1e:
+.r3:	ld sp,ix
 .r4:	pop hl			; this frame's sprite cells
 	bit 7,h
 	jr z,.r5
@@ -746,18 +778,15 @@ rows_commit:
 	set 3,h
 	ld (hl),e
 	jp .r4
-.r5:	ld hl,(ps_bk16)
-	ld de,128
-	add hl,de
-	ld (ps_bk16),hl
-	ld hl,(ps_old16)
-	add hl,de
-	ld (ps_old16),hl
-	ld a,(ps_page)
+.r5:	ld de,128
+	add ix,de
+	add iy,de
+	ld hl,ps_page
+	ld a,(hl)
 	dec a
 	and 31
 	or SEGS>>8
-	ld (ps_page),a
+	ld (hl),a
 	ld hl,ps_n
 	dec (hl)
 	jp nz,.row
