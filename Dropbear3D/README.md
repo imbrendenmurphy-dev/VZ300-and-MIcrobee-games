@@ -2,7 +2,7 @@
 
 A first-person drop bear hunt for the Dick Smith **VZ300**: textured 3D walls, nine connected areas with their own colour schemes, ten kinds of creature, exploding enemies, furniture, keys, switches, secret walls, an automap and three bosses, all in Z80 machine code.
 
-Vibed by BPM, 2026. See [BLURB.md](BLURB.md) for the blurb and full tech specs.
+Vibed by BPM, 2026. See [BLURB.md](BLURB.md) for the blurb and full tech specs, or watch the [full AI playthrough](screenshots/dropbear3d_full_playthrough.mp4) (title, monster gallery, and all nine areas, with sound).
 
 ![Showcase](screenshots/showcase.gif)
 
