@@ -21,9 +21,9 @@ ZK = 54 * 256               # slot d is ZK / d (1/256 section) from the eye, whi
 ZOFF = 256                  # ... and one section behind the game camera (the craft lands on d = 27)
 YMIN = TOPROW + 4
 ZT = [0] + [ZK // d - ZOFF for d in range(1, ND + 1)]
-WT = [0] + [max(2, round(d * 2.1)) for d in range(1, ND + 1)]          # road half-width (px): 57 at the craft
-LAT_SOFT = 62                # craft offset where it starts to run onto the rumble strip (drag)
-LAT_HARD = 80                # the barrier, out on the grass
+WT = [0] + [max(2, round(d * 2.4)) for d in range(1, ND + 1)]          # road half-width (px): 65 at the craft, room for 2 abreast
+LAT_SOFT = 72                # craft offset where it starts to run onto the rumble strip (drag)
+LAT_HARD = 92                # the barrier, out on the grass
 RWT = [0] + [max(1, round(WT[d] / 6)) for d in range(1, ND + 1)]       # rumble strip width
 WSPR = [0] + [max(1, round(d * 15 / 16)) for d in range(1, ND + 1)]    # craft width at slot d
 DIDX = [max(1, min(ND, round(ZK / (i * 16 + 8 + ZOFF)))) for i in range(256)]     # slot of an object zo/16 ahead of the camera
@@ -43,11 +43,10 @@ def s8(v): return max(-127, min(127, int(round(v))))
 
 def build_track():
     T = R.build_track()
-    pieces = [
-        (24, 0.000, 0.00), (20, 0.050, 0.00), (14, 0.000, 0.14), (14, 0.000, -0.16),
-        (26, -0.055, 0.00), (16, 0.000, 0.00), (22, 0.035, -0.09), (18, -0.040, 0.11),
-        (20, 0.000, -0.10), (30, 0.060, 0.04), (16, 0.000, 0.00), (24, -0.045, -0.06),
-        (18, 0.000, 0.12), (14, 0.000, -0.12), (28, 0.050, 0.00), (20, -0.030, 0.05),
+    pieces = [                      # (sections, turn, pitch): long sweepers; a lap is 512 sections
+        (30, 0.000, 0.00), (60, 0.028, 0.00), (20, 0.000, 0.10), (20, 0.000, -0.10),
+        (70, -0.032, 0.03), (30, 0.000, 0.00), (60, 0.024, -0.06), (24, 0.000, 0.12),
+        (24, 0.000, -0.12), (80, -0.030, 0.00), (40, 0.020, 0.05), (54, 0.000, 0.00),
     ]
     turns, pit = [], []
     i = 0
@@ -57,18 +56,18 @@ def build_track():
     turns, pit = turns[:N], pit[:N]
     c = 0.0; p = 0.0; CURV, SLP = [], []
     for k in range(N):
-        c += (turns[k] - c) * 0.30          # ease into and out of bends
+        c += (turns[k] - c) * 0.10          # ease gently into and out of bends
         p += (pit[k] - p) * 0.12
-        CURV.append(s8(c * 420))
+        CURV.append(s8(c * 600))
         SLP.append(s8(p * 95))
     T['CURV'] = [v & 255 for v in CURV]; T['SLP'] = [v & 255 for v in SLP]
     # heading (skyline pan, bend drift, racing lines) and climb now follow the raster road itself
     HK = 50.0
-    tot = sum(v / 420 * HK for v in CURV)
+    tot = sum(v / 600 * HK for v in CURV)
     corr = (round(tot / 256) * 256 - tot) / N          # close the lap so the skyline doesn't jump
     h = 0.0; H = []
     for v in CURV:
-        H.append(round(h) & 255); h += v / 420 * HK + corr
+        H.append(round(h) & 255); h += v / 600 * HK + corr
     T['H'] = H
     T['DY'] = [v & 255 for v in SLP]
     return T
@@ -108,7 +107,6 @@ def road(T, cam_i, cam_f, lat):
 
 def road_id(k):
     if k & 126 == 40: return PAD_ID if k & 1 == 0 else PAD2_ID
-    if k & 254 == 228: return RAMP_ID if k & 1 == 0 else RAMP2_ID
     if k == 0: return LINE_ID
     return C_ID
 
@@ -119,8 +117,12 @@ def row_list(fr, r):
     b = [cx - w - rw, cx - w, cx + w, cx + w + rw]
     b = [max(64, min(192, v)) - 64 for v in b]
     cols = [G_ID, R_ID, road_id(k), R_ID, G_ID]
+    if k & 126 == 100:              # jump ramp on one half of the road: sections 100/101 (left), 228/229 (right)
+        ramp = RAMP_ID if k & 1 == 0 else RAMP2_ID
+        b.insert(2, max(64, min(192, cx)) - 64)
+        cols = [G_ID, R_ID] + ([C_ID, ramp] if k & 128 else [ramp, C_ID]) + [R_ID, G_ID]
     runs = [[0, cols[0]]]
-    for i in range(4):
+    for i in range(len(b)):
         if b[i] >= 128: break
         if b[i] == runs[-1][0]: runs[-1][1] = cols[i + 1]
         else: runs.append([b[i], cols[i + 1]])

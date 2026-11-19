@@ -31,7 +31,7 @@ RUNBUF 16 FRAMES 2 CRF 1 FLG 1 PKX 2 PKY 2 HALFON 1 HPREV 1 SKYD 1 HUDFG 1
 SKYDIRTY 1 HUDFORCE 1 TOPCHG 1 FACC 1 FCNT 1 FAVG 1
 SKYPTR 28 MKSH 1 SKYLN 1 SKY_Y 1 MSPLIT 1 CURMODE 1 ATIMER 2 RVANY 1"""
 for _n in 'RUNBUF 16 CPT 6 ZNL 2 ZNR 2 FARP 2 RUNS0 2 LBASE 2 RUNP 2'.split()[0::2]: pass
-VARS = VARS.replace('RUNBUF 16', 'RDX 2 RX 2 RDH 2 RH 2 RLX 2 RLS 2 RLP 2 RPGP 2').replace('CPT 6', 'RTOP 1 RD 1 RS0 1 RN 1 RBAND 1 RROW 1').replace('ZNL 2 ZNR 2', 'RB0 1 RB1 1 RB2 1 RB3 1')
+VARS = VARS.replace('RUNBUF 16', 'RDX 2 RX 2 RDH 2 RH 2 RLX 2 RLS 2 RLP 2 RPGP 2').replace('CPT 6', 'RTOP 1 RD 1 RS0 1 RN 1 RBAND 1 RROW 1').replace('ZNL 2 ZNR 2', 'RB0 1 RB1 1 RB2 1 RB3 1 RBC 1 RSEC 1')
 CVARS = """PHASE 1 CUPN 1 PTS 4 SCORES 8 TSC 2 ORDERP 4 WEAPON 1 AIRT 1 AIRTOT 1 VOLTCD 2 RAZECD 2 PHITT 1
 OBJCOL 2 LATBASE 1 FIREPREV 1 SHOTT 1 MINEOWN 1 OBJK 2"""
 GVARS = """GSTATE 1 STIMER 2 LAPN 1 RTIME 2 LAPT0 2 BESTLAP 2 SHIELD 1 BOOSTT 1 STALLT 1 BUMPT 1 POS 1
@@ -301,7 +301,7 @@ if __name__ == '__main__':
     if len(sys.argv) > 1 and sys.argv[1] == 'test':
         import random
         random.seed(3)
-        states = [dict(i=4, f=0, lat=0, theta=0), dict(i=40, f=128, lat=20, theta=2), dict(i=30, f=60, lat=-10, theta=0)]
+        states = [dict(i=4, f=0, lat=0, theta=0), dict(i=40, f=128, lat=20, theta=2), dict(i=30, f=60, lat=-10, theta=0), dict(i=222, f=40, lat=30, theta=0), dict(i=96, f=200, lat=-50, theta=0), dict(i=480, f=10, lat=88, theta=0)]
         for _ in range(int(sys.argv[2]) if len(sys.argv) > 2 else 10):
             states.append(dict(i=random.randrange(512), f=random.randrange(256),
                                lat=random.randrange(-56, 57), theta=random.randrange(-6, 7)))

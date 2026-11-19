@@ -237,20 +237,32 @@ render:
         and 1
         add a,PAD_ID
         jr .cid
-.n1:    ld a,c
-        and 254
-        cp 228
+.n1:    ld a,c                  ; jump ramp on half the road: 100/101 left, 228/229 right
+        and 126
+        cp 100
         jr nz,.n2
         ld a,c
         and 1
         add a,RAMP_ID
-        jr .cid
+        bit 7,c
+        jr nz,.rr2
+        ld (.rc+1),a            ; left: ramp, then plain road from the centre
+        ld a,C_ID
+        ld (RSEC),a
+        jr .cid2
+.rr2:   ld (RSEC),a             ; right: plain road, then ramp from the centre
+        ld a,C_ID
+        ld (.rc+1),a
+        jr .cid2
 .n2:    ld a,c
         or b
         ld a,LINE_ID
         jr z,.cid
         ld a,C_ID
 .cid:   ld (.rc+1),a
+        ld a,255
+        ld (RSEC),a
+.cid2:
         ld h,XCA/256
         ld a,(hl)               ; centre (screen x + 64)
         ld h,ZTL/256
@@ -271,6 +283,9 @@ render:
         ld a,b
         call .clmp
         ld (RB1),a
+        ld a,c
+        call .clmp
+        ld (RBC),a
         ld a,c
         add a,e
         jr nc,$+4
@@ -304,6 +319,14 @@ render:
 .rc:    ld c,0
         call .emit
         jr nc,.end
+        ld a,(RSEC)             ; ramp half: second colour from the centre line
+        cp 255
+        jr z,.nrc
+        ld c,a
+        ld a,(RBC)
+        call .emit
+        jr nc,.end
+.nrc:
         ld a,(RB2)
         ld c,R_ID
         call .emit

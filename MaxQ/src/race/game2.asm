@@ -362,12 +362,20 @@ obj_section:
         ld (ix+R_ACT),0
         ld hl,s_minehit
         call player_hit
-.ramp:  ld a,(OBJK)             ; jump ramp: sections (k & 255) == 228, 229
-        cp 228
+.ramp:  ld a,(OBJK)             ; jump ramp: section 100 (left half) or 228 (right half)
+        and 127
+        cp 100
         ret nz
         ld a,(AIRT)
         or a
         ret nz
+        ld a,(OBJK)             ; on the ramp's half of the road?
+        rla
+        ld a,(CAM_LAT)
+        jr c,.rgt
+        neg
+.rgt:   add a,4
+        ret m
         ld a,(SPEED)
         cp 70
         ret c
@@ -376,6 +384,14 @@ obj_section:
         add a,8
         ld (AIRT),a
         ld (AIRTOT),a
+        ld a,90                 ; the ramp kicks: boost now and for a while after landing
+        ld (BOOSTT),a
+        ld a,(SPEED)
+        add a,16
+        cp VBOOST
+        jr c,.rb
+        ld a,VBOOST
+.rb:    ld (SPEED),a
         ld hl,s_jump
         ld a,40
         call banner
@@ -692,10 +708,21 @@ rv_extra:
         or a
         ret z
         ld (ix+R_NEWS),0
-        ld a,(ix+R_I)
-        cp 228                  ; ramp
+        ld a,(ix+R_I)           ; ramp: only if it's on that half of the road
+        and 127
+        cp 100
         jr nz,.mn
+        ld a,(ix+R_I)
+        rla
+        ld a,(ix+R_LAT)
+        jr c,.rr
+        neg
+.rr:    add a,4
+        jp m,.mn
         ld (ix+R_AIR),30
+        ld a,(ix+R_SPD)
+        add a,8
+        ld (ix+R_SPD),a
 .mn:    ld iy,REC_MINE          ; one of our mines here?
         ld a,(iy+R_ACT)
         or a
@@ -1056,6 +1083,6 @@ s_minehit:  DB "MINE!",0
 s_voltfire: DB "VOLT FIRES!",0
 s_voltgot:  DB "HIT BY VOLT",0
 s_razemine: DB "RAZE DROPS A MINE",0
-s_jump:     DB "JUMP!",0
+s_jump:     DB "JUMP BOOST!",0
 s_msl:      DB "MISSILE",0
 s_mine:     DB "MINE",0

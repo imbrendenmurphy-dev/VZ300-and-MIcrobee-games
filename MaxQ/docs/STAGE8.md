@@ -56,3 +56,14 @@ more fps once the narrow far-rumble edge case is handled.
   160 ms late, never leaves the road; with 320 ms lag, 2.5% of the time on the rumble strip, no barrier hits.
   With no steering at all the bends carry you to the barrier, so the bends still matter.
 - Emulator: 20/20 frames byte-identical; 2-lap race completes; 16.6 fps.
+
+## v0.11c — room to race, sweeping bends, boost ramps
+- **Wider road:** half-width 65 px where the craft sits (was 57) — room to sit beside a rival.
+  Rumble-strip drag from offset 72, barrier at 92. Rival lanes spread to +-36, racing lines clamp at +-64.
+- **Long sweeping bends:** the lap is 12 long pieces (sweepers of 60-80 sections, eased in over ~10 sections),
+  with gentler curvature drawn a bit stronger, so bends arrive slowly and stay a while.
+- **Jump ramps cover half the road:** sections 100/101 on the left half, 228/229 on the right half (two of each
+  per lap). Hit the ramp side to jump; the other half is plain road. Taking off gives +16 speed (up to the boost
+  limit) and 90 fields of boost ("JUMP BOOST!"). Rivals jump only if they are on the ramp side, and gain speed too.
+- Checks: 23/23 frames byte-identical (new test frames on both ramps and at the barrier); autopilot race
+  completes; 16.5 fps.

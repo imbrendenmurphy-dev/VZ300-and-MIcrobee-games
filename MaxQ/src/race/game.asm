@@ -95,8 +95,8 @@ race_reset:
         djnz .r
         ret
 rv_grid: ; I lo, I hi, F, lap, lat, speed, base, lane
-        DB 4,0,0,0,-28,0,103,-28      ; VOLT
-        DB 4,0,0,0,28,0,106,26        ; NOVA
+        DB 4,0,0,0,-36,0,103,-36      ; VOLT
+        DB 4,0,0,0,36,0,106,34        ; NOVA
         DB 2,0,96,0,26,0,101,-4       ; RAZE
 
 ; ---------------------------------------------------------------------
@@ -602,14 +602,14 @@ rv_one: call rv_dist            ; rubber band: ease off far ahead, push on far b
         add a,a
         add a,b
         add a,(ix+R_OFF)
-        cp 50                   ; clamp +-50
+        cp 64                   ; clamp +-64
         jr c,.c1
-        cp -50
+        cp -64
         jr nc,.c1
         bit 7,a
-        ld a,50
+        ld a,64
         jr z,.c1
-        ld a,-50
+        ld a,-64
 .c1:    ld (ix+R_TGT),a
         ld b,a
 .mv:    ld a,(ix+R_LAT)
