@@ -44,7 +44,7 @@ I'll ask before changing `render`/`castray` for this.
 3. **Done (v0.3): exploding pieces, flashes, sound.** 32 pieces drawn per column, with gravity and bounce.
    There's a red bite flash and a white boss flash, a chained-part 8253 effects engine with per-column noise,
    DROPBEAR's in-game tune, and the death and win jingles.
-4. Automap, fog, death and respawn, win screen.
+4. **Done (v0.4): automap, fog, win text.** Death and respawn were already done in v0.2.
 5. Title (chunky logo from colour cells), title music, monster gallery, AI attract demo.
 6. Fit, pack and load-time check through UniCMT.
 

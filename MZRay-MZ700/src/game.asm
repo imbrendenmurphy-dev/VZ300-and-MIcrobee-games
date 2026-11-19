@@ -91,6 +91,22 @@ dd1:    ld (hl),150
 frame:
         call getinput
         call modekeys
+        ld a,(inp)              ; holding M: the map, if this area's is known
+        rlca
+        jr nc,fr1
+        call areaflag
+        bit 0,(hl)
+        jr z,fr0
+        call drawmap
+        call hud
+        jp timers
+fr0:    ld a,(msgt)
+        or a
+        jr nz,fr1
+        ld hl,MSG_NOMAP
+        call setmsg
+fr1:    xor a
+        ld (mapon),a
         call turnmove
         ld a,(goarea)
         or a
@@ -802,6 +818,7 @@ showname:
 settheme:
         add a,a
         add a,a
+        add a,a
         ld e,a
         ld d,0
         ld hl,THEMES
@@ -817,10 +834,13 @@ settheme:
         ld (d2_fl+1),a
         ld (d2_fl+4),a
         inc hl
-        ld a,(hl)
+        ld e,(hl)
         inc hl
-        ld h,(hl)
-        ld l,a                  ; HL -> library block: slot, row, 16 bytes
+        ld d,(hl)
+        inc hl
+        ld a,(hl)               ; fog: walls shorter than this fade into the murk (0 = none)
+        ld (fogh),a
+        ex de,hl                ; HL -> library block: slot, row, 16 bytes
         xor a
 st_s:   ld (tslot),a
         ld e,a
@@ -842,8 +862,22 @@ st_r:   push bc
         djnz st_r
         ld a,(tslot)
         inc a
-        cp 4
+        cp 5
         jr nz,st_s
+        ret
+
+; pre-draw hook (A = wall height, HL = screen): past the fog distance, draw the fog texture
+fogchk: ld c,a
+        ld a,(fogh)
+        cp c
+        ld a,c
+        ret c
+        ret z
+        ld a,(texl)
+        and 7
+        or FOGTEX
+        ld (texl),a
+        ld a,c
         ret
 
 spawn:  ld a,(entrycell)
@@ -865,6 +899,60 @@ spawn:  ld a,(entrycell)
         ld (pang),a
         xor a
         ld (pangf),a
+        ret
+
+; the automap: each map cell is two screen cells wide, centred in the view; you blink in white
+MAPTOP  equ CRAM+40+3*40+4
+drawmap:
+        ld a,(mapon)            ; clear the view only when the map first opens (no flicker)
+        or a
+        jr nz,dm0
+        inc a
+        ld (mapon),a
+        ld hl,CRAM+40
+        ld de,CRAM+41
+        ld bc,VIEWH*40-1
+        ld (hl),0
+        ldir
+dm0:    ld hl,MAP
+        ld de,MAPTOP
+        ld c,16
+dm_r:   ld b,16
+dm_c:   ld a,(hl)
+        push hl
+        ld l,a
+        ld h,MAPCOL>>8
+        ld a,(hl)
+        pop hl
+        ld (de),a
+        inc de
+        ld (de),a
+        inc de
+        inc hl
+        djnz dm_c
+        ex de,hl
+        ld a,c
+        ld bc,8
+        add hl,bc
+        ld c,a
+        ex de,hl
+        dec c
+        jr nz,dm_r
+        ld a,(animt)
+        and 8
+        ret z
+        ld a,(pyc)
+        call times40
+        ld a,(pxc)
+        add a,a
+        ld e,a
+        ld d,0
+        add hl,de
+        ld de,MAPTOP
+        add hl,de
+        ld (hl),0x77
+        inc hl
+        ld (hl),0x77
         ret
 
 changearea:
@@ -1197,6 +1285,8 @@ gtptr:     dw 0
 seed:      db 37
 flasht:    db 0
 skycol:    db 0x11
+fogh:      db 0
+mapon:     db 0
 pnext:     db 0
 pcx:       db 0
 pcy:       db 0

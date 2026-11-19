@@ -80,8 +80,21 @@ Credits line for anything user-facing: **VIBED BY BPM 2026** (the user's standin
   - Simulator fps, first room: 19.7 / 18.1 / 11.9 / 11.3. Busy view: 17.5 / 15.3 / 10.0 / 9.6.
     `gametest.py` runs 37 checks, all passing.
   - MZT 33,536 bytes, ~8.3K free.
-- **Next:** see `PORTING.md` step 4 (automap, fog, win screen polish), then step 5 (title, music, gallery,
-  attract demo). Real-hardware results are still outstanding.
+- **Game step 4 (automap, fog) done, v0.4.**
+  - `raycore.asm` `render` has a second placeholder, `;@@PREDRAW@@`, between `ld hl,(destp)` and `dc_smc`.
+    The game fills it with `call fogchk`; the benchmark leaves it empty (still byte-identical).
+  - **Fog:** THEMES records are now 8 bytes: sky, ground, dw TLIB, fogh, 3 spare. `fogh` = round(PROJ/fog
+    distance): mine 7, swamp 5, lair 6, and 0 for none. `fogchk` swaps texl to FOGTEX=240 (texture slot
+    "type 16", the fifth theme library slot) for columns with height < fogh. `proj` also drops sprites
+    with h < fogh.
+  - **Automap:** hold M (inp bit 7) in an area with aflags bit 0 set ('known', or after the map scroll).
+    `drawmap` draws the 16×16 map as 2×1 cells at view row 3, col 4, using MAPCOL (page-aligned,
+    before TYPET). It clears the view only when the map opens (`mapon`) to avoid flicker. Play pauses
+    while the map is up; the timers and sound keep running.
+  - `gametest.py` runs 48 checks, all passing. MZT 34,560 bytes, ~7.3K free.
+- **Next:** `PORTING.md` step 5: title (chunky logo from colour cells), title music (arpeggios on the
+  8253), monster gallery, AI attract demo. That needs ~7K. If it doesn't fit, pack the sprite pages,
+  which are mostly FFh, or compress the MZT. Real-hardware results are still outstanding.
 
 ## 1. Purpose and current status
 

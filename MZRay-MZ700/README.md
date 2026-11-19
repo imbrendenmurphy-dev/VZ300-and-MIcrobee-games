@@ -6,8 +6,18 @@ creatures and shooting.
 
 VIBED BY BPM 2026
 
-## DROPBEAR 3D test v0.3: splats and sounds
-Load `release/DROPBEAR.MZT` through UniCMT (load address 1200h, starts automatically, 33K).
+## DROPBEAR 3D test v0.4: maps and fog
+Load `release/DROPBEAR.MZT` through UniCMT (load address 1200h, starts automatically, 34K).
+
+New in v0.4:
+- **Hold M for the automap.** Walls are blue, doors cyan, ways out yellow, locked doors red, switches
+  green and gates magenta, and you blink in white. Cracked walls stay secret. In the maze areas
+  you have to find the map scroll first.
+- **Fog** in The Old Mine, The Billabong and Yowies Lair: far walls fade into murk, and creatures out
+  there can't be seen until they come closer.
+- DROPBEAR's own ending text on the win screen.
+
+![Automap](screenshots/v04_map_maze.png) ![Mine fog](screenshots/v04_fog_mine.png)
 
 New in v0.3:
 - Beaten creatures burst into chunky pieces in their own colours. The pieces fly, fall and bounce
@@ -37,7 +47,7 @@ own wall textures and sky and ground colours.
   that hide secrets. Each area remembers what you've opened and beaten.
 - It's forgiving: if you go down, you start again at the door you came in by, with full health.
 
-**Not yet:** the automap, fog, the title screen and music, and the attract mode.
+**Not yet:** the title screen and music, and the attract mode.
 
 | Key | Action |
 |---|---|
@@ -45,6 +55,7 @@ own wall textures and sky and ground colours.
 | A / D or cursor left / right | Turn |
 | Q / E | Strafe |
 | SPACE | Fire |
+| M (hold) | Map |
 | 1 2 3 4 | Render mode (20 rays direct, 20 buffered, 40 direct, 40 buffered) |
 
 The bottom line shows the live frame rate and the render mode. Sprites are drawn into each wall

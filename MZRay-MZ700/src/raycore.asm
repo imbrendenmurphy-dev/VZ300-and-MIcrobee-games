@@ -28,6 +28,7 @@ render:
 rn_l:
         call castray
         ld hl,(destp)
+;@@PREDRAW@@
 dc_smc: call drawcol1
         call poll
 ;@@SPRHOOK@@

@@ -55,9 +55,10 @@ def texrows(texs):
         rows.append(row)
     return rows
 
-def fill(src,mapvals,texs,sprhook=''):
+def fill(src,mapvals,texs,sprhook='',predraw=''):
     """Insert the raycaster core, tables, column tables and the unrolled copy into src.
-    sprhook: code run after each column is drawn (the game's per-column sprite drawer); empty for the benchmark."""
+    sprhook: code run after each column is drawn (the game's per-column sprite drawer); empty for the benchmark.
+    predraw: code run between castray and the column drawer (A = height, HL = dest; must keep both)."""
     tabs=[]
     def tpage(name,vals): tabs.append(' align 256\n%s:\n%s'%(name,page(vals)))
     tpage('SGN',SGN)
@@ -77,7 +78,7 @@ cosoff40: db %s
 colang20: db %s
 cosoff20: db %s
 '''%(','.join(map(str,CA40)),','.join(map(str,CO40)),','.join(map(str,CA20)),','.join(map(str,CO20)))
-    src=src.replace(';@@RAYCORE@@',open('raycore.asm').read().replace(';@@SPRHOOK@@',sprhook))
+    src=src.replace(';@@RAYCORE@@',open('raycore.asm').read().replace(';@@SPRHOOK@@',sprhook).replace(';@@PREDRAW@@',predraw))
     src=src.replace(';@@SMALLTABLES@@',small).replace(';@@TABLES@@','\n'.join(tabs))
     src=src.replace(';@@LDI40@@','\n'.join([' ldi']*40))
     return src

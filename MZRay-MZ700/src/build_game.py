@@ -1,4 +1,4 @@
-"""Builds DROPBEAR.MZT, the MZ-700 port of DROPBEAR 3D (step 1: world walkabout).
+﻿"""Builds DROPBEAR.MZT, the MZ-700 port of DROPBEAR 3D (step 1: world walkabout).
 The world layout is DROPBEAR 3D's (VZ300 build.py), unchanged apart from dropping apostrophes
 from area names (no safe display code for them yet)."""
 import sys
@@ -39,26 +39,35 @@ SHARED = {
  8: ["WWWWWWWW","WKKGGKKW","WKKGGKKW","WKKGGKKW","WKKKKKKW","WKKKKKKW","WKKKKKKW","WWWWWWWW"],
  9: ["WWWWWWWW","CKKCKKCK","CKKCKKCK","CKKCKKCK","CKKCKKCK","CKKCKKCK","CKKCKKCK","WWWWWWWW"],
 }
-# themes: sky, ground, walls A (1), B (2), C (5), cracked (10)
+# fog: walls farther than the fog distance (cells, as in DROPBEAR) are drawn in a murky pattern
+FOG = dict(mine=["RKRKRKRK", "KRKRKRKR"]*4, swamp=["MBMBMBMB", "BMBMBMBM"]*4, lair=["MKMKMKMK", "KMKMKMKM"]*4)
+# themes: sky, ground, walls A (1), B (2), C (5), cracked (10), fog distance, fog pattern
 THEMES = [
- ('STATION', 0x11, 0x44, 'brick', 'crate', 'iron'),
- ('BUSH',    0x11, 0x22, 'hedge', 'bark',  'cliff'),
- ('MINE',    0x00, 0x11, 'rock',  'timber','ore'),
- ('SWAMP',   0x33, 0x00, 'mud',   'reeds', 'bark'),
- ('RIDGE',   0x11, 0x22, 'sand',  'cliff', 'bones'),
- ('LAIR',    0x00, 0x11, 'cliff', 'bones', 'sand'),
+ ('STATION', 0x11, 0x44, 'brick', 'crate', 'iron',  0,   None),
+ ('BUSH',    0x11, 0x22, 'hedge', 'bark',  'cliff', 0,   None),
+ ('MINE',    0x00, 0x11, 'rock',  'timber','ore',   5.0, 'mine'),
+ ('SWAMP',   0x33, 0x00, 'mud',   'reeds', 'bark',  7.0, 'swamp'),
+ ('RIDGE',   0x11, 0x22, 'sand',  'cliff', 'bones', 0,   None),
+ ('LAIR',    0x00, 0x11, 'cliff', 'bones', 'sand',  5.5, 'lair'),
 ]
 TH = {t[0]: i for i, t in enumerate(THEMES)}
-SLOTS = [1, 2, 5, 10]               # cell types that change with the theme
+SLOTS = [1, 2, 5, 10, 16]           # cell types that change with the theme (16 = the fog texture)
+FOGTEX = (16-1)*16
 def theme_walls(i):
-    nm, sky, gr, a, b, c = THEMES[i]
-    return {1: T[a], 2: T[b], 5: T[c], 10: crack(T[a], 'W' if a in ('rock', 'cliff') else 'K')}
+    nm, sky, gr, a, b, c, fd, fp = THEMES[i]
+    return {1: T[a], 2: T[b], 5: T[c], 10: crack(T[a], 'W' if a in ('rock', 'cliff') else 'K'),
+            16: FOG[fp] if fp else T[a]}
+def fogh(i):
+    import raytables
+    fd = THEMES[i][6]
+    return round(raytables.PROJ/fd) if fd else 0
 
 def texlist(theme):
     walls = dict(SHARED); walls.update(theme_walls(theme))
     out = []
-    for typ in range(1, 11):
-        t = walls[typ]; out += [t, dark(t)]
+    for typ in range(1, 17):
+        t = walls.get(typ, T['brick'])
+        out += [t, t if typ == 16 else dark(t)]
     return out
 COL = {'K':0,'B':1,'R':2,'M':3,'G':4,'C':5,'Y':6,'W':7}
 def cb(ch): c = COL[ch]; return c << 4 | c
@@ -148,13 +157,15 @@ for ai, A in enumerate(AREAS):
 out.append('ATAB: dw ' + ','.join('AREA%d' % i for i in range(NAREA)))
 
 # theme table and wall library: per theme, slot (A, B, C, cracked) x row x (8 light + 8 dark)
-out.append('THEMES:\n' + '\n'.join(' db %d,%d\n dw TLIB%d' % (sky, gr, i) for i, (nm, sky, gr, a, b, c) in enumerate(THEMES)))
+out.append('THEMES:\n' + '\n'.join(' db %d,%d\n dw TLIB%d\n db %d,0,0,0' % (t[1], t[2], i, fogh(i))
+                                    for i, t in enumerate(THEMES)))
 out.append('TOFF: db ' + ','.join(str((t-1)*16) for t in SLOTS))
 for i in range(len(THEMES)):
     w = theme_walls(i); blk = []
     for t in SLOTS:
+        d = w[t] if t == 16 else dark(w[t])
         for k in range(8):
-            blk += [cb(ch) for ch in w[t][k]] + [cb(ch) for ch in dark(w[t])[k]]
+            blk += [cb(ch) for ch in w[t][k]] + [cb(ch) for ch in d[k]]
     out.append('TLIB%d:\n%s' % (i, dbl(blk)))
 out.append('SOLIDT: db ' + ','.join('1' if t in SOLIDDEC else '0' for t in range(24)))
 def msg(nm, s):
@@ -204,7 +215,9 @@ TYPES = [
 assert len(TYPES) == 23
 # burst size when beaten (DROPBEAR's piece counts)
 BURSTN = dict(BEAR=22, BAT=14, BIGF=32, BUNYIP=32, YOWIE=32, TOAD=14, MAGPIE=14, SNAKE=16, SPIDER=14, DINGO=20)
-tt = ['TYPET:', ' ds 16']
+# automap colours by cell: floor, walls (blue), door, way out, locked, switches, gate; cracked walls stay secret
+MAPCOL = [0x00, 0x11, 0x11, 0x55, 0x66, 0x11, 0x22, 0x44, 0x44, 0x33, 0x11] + [0x11]*5
+tt = [' align 256', 'MAPCOL: db ' + ','.join(map(str, MAPCOL)), 'TYPET:', ' ds 16']
 for nm, frames, p, ol, frac, asp, rs, hp, sp, bite, fl, kmsg in TYPES:
     pages = [sprpage('SPR_%s%d' % (nm, i), f, pal(p), ol) for i, f in enumerate(frames)]
     if len(pages) == 1: pages.append(pages[0])
@@ -288,7 +301,7 @@ out.append(' align 256\nQSL:\n%s\nQSH:\n%s' % (dbl([v & 255 for v in qs]), dbl([
 for nm, s in (('MSG_BLANK', ''), ('MSG_SECRET', 'SECRET FOUND'), ('MSG_DOOR', 'DOOR OPENS'),
               ('MSG_UNLOCK', 'UNLOCKED'), ('MSG_NEEDKEY', 'NEED A KEY'), ('MSG_GATE', 'A GATE OPENS'),
               ('MSG_MAP', 'GOT THE MAP'), ('MSG_KEY', 'GOT A KEY'), ('MSG_OPAL', 'OPAL. BEAUTY'),
-              ('MSG_HEALTH', 'VEGEMITE PLUS 25'), ('MSG_AMMO', 'AMMO PLUS 15'), ('MSG_OUCH', 'OUCH')):
+              ('MSG_HEALTH', 'VEGEMITE PLUS 25'), ('MSG_AMMO', 'AMMO PLUS 15'), ('MSG_OUCH', 'OUCH'), ('MSG_NOMAP', 'NO MAP HERE YET')):
     msg(nm, s)
 def page(nm, items):
     lines = [nm + ':']
@@ -299,7 +312,7 @@ def page(nm, items):
     out.append('\n'.join(lines))
 def centre(r, s): return (r, (40-len(s))//2, s)
 NOPALS = sum(1 for W in WORLD for o in W['objs'] if o[0] == 14)
-page('PG_TITLE', [centre(2, 'DROPBEAR 3D'), centre(4, 'FOR THE SHARP MZ 700'), centre(6, 'TEST V0.3  SPLATS AND SOUNDS'),
+page('PG_TITLE', [centre(2, 'DROPBEAR 3D'), centre(4, 'FOR THE SHARP MZ 700'), centre(6, 'TEST V0.4  MAPS AND FOG'),
                   (9, 4, 'W S  OR UP DOWN      WALK'), (10, 4, 'A D  OR LEFT RIGHT   TURN'),
                   (11, 4, 'Q E                  STRAFE'), (12, 4, 'SPACE                FIRE'),
                   (13, 4, '1 2 3 4              RENDER MODE'),
@@ -309,16 +322,16 @@ page('PG_DEAD', [centre(8, 'OUCH'), centre(11, 'THE DROP BEARS GOT YOU.'), centr
                  centre(20, 'PRESS SPACE')])
 page('PG_HUD', [(23, 0, 'HEALTH'), (23, 12, 'AMMO'), (23, 21, 'KEYS'), (23, 29, 'OPALS'),
                 (24, 0, 'FPS'), (24, 11, 'MODE'), (24, 19, 'KEYS 1 TO 4 SET MODE')])
-page('PG_WIN', [centre(6, 'YOU BEAUTY'), centre(9, 'YOU MADE IT BACK TO THE UTE.'),
-                (13, 10, 'OPALS FOUND    OF %d' % NOPALS), centre(18, 'VIBED BY BPM 2026'), centre(22, 'PRESS SPACE')])
+page('PG_WIN', [centre(5, 'YOU BEAUTY'), centre(8, 'THE YOWIE IS DOWN AND THE'), centre(10, 'UTE ROARS OFF HOME.'),
+                (14, 10, 'OPALS FOUND    OF %d' % NOPALS), centre(19, 'VIBED BY BPM 2026'), centre(22, 'PRESS SPACE')])
 (sx, sy), = [(x, y) for y, r in enumerate(AREAS[0]['rows']) for x, ch in enumerate(r) if ch == 'P']
 consts = dict(NAREA=NAREA, STARTCELL=sy*16+sx, STARTANG=0, T_HEALTH=11, T_AMMO=12, T_KEY=13, T_OPAL=14,
-              T_MAP=15, DECOR=16, NENEMY=10, WINNUM=0xD000+13*40+10+12,
-              GUNW=len(GUN[0]), GUNL=20-len(GUN[0])//2, GUNH=len(GUN), MUSP=14)
+              T_MAP=15, DECOR=16, NENEMY=10, WINNUM=0xD000+14*40+10+12,
+              GUNW=len(GUN[0]), GUNL=20-len(GUN[0])//2, GUNH=len(GUN), MUSP=14, FOGTEX=FOGTEX)
 gamedata = '\n'.join('%-10s equ %d' % kv for kv in consts.items()) + '\n' + '\n'.join(out)
 
 src = open('game.asm').read().replace(';@@GAMEDATA@@', gamedata).replace(';@@OBJECTS@@', open('objects.asm').read()).replace(';@@FX@@', open('fx.asm').read())
-src = fill(src, [0]*256, texlist(0), sprhook=' call sprcol')
+src = fill(src, [0]*256, texlist(0), sprhook=' call sprcol', predraw=' call fogchk')
 if '--preview' in sys.argv:                    # contact sheet of every sprite
     from PIL import Image
     RGB = {'K': (0, 0, 0), 'B': (0, 0, 255), 'R': (255, 0, 0), 'M': (255, 0, 255), 'G': (0, 255, 0),

@@ -467,6 +467,9 @@ pj2:    srl h
         ld hl,zminl             ; farther than every wall we saw: can't be seen
         cp (hl)
         ret c
+        ld hl,fogh              ; lost in the fog
+        cp (hl)
+        ret c
         ld hl,(olat)            ; centre column = 20 + lat*h
         ld c,0
         call smul

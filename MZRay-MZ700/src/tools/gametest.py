@@ -1,4 +1,4 @@
-# Tests the DROPBEAR MZ walkabout in the simulator: start, walking, doors, keys, switches, secrets,
+﻿# Tests the DROPBEAR MZ walkabout in the simulator: start, walking, doors, keys, switches, secrets,
 # furniture, pickups, area changes, frame rates. Run from src after build_game.py.
 import sys
 from mzemu import MZ
@@ -169,6 +169,40 @@ for mode, key in enumerate('1234'):
     print('  busy view, mode %d: %.1f fps (simulator)' % (mode+1, 16*3546895/(m.cpu.t-t0)))
 m.shot('g_busy.png', 2)
 m.held = {'3'}; frame(); m.held = set()
+# automap: known areas show it on M; the maze needs its map scroll first
+CRAM = 0xD800
+MAPTOP = CRAM + 40 + 3*40 + 4
+go(0); place(2.5, 2.5, 0); walk('M', 3)
+check('map shows in the Homestead', m.mem[MAPTOP] == 0x11 and m.mem[MAPTOP + 1*40 + 2] == 0x00)
+m.shot('g_map.png', 2)
+frame(2)
+check('view comes back after M', m.mem[sym['mapon']] == 0)
+go(2); clearobjs(); place(3.5, 3.5, 0)
+m.mem[sym['aflags']+2] = 0; walk('M', 2)
+check('no map in the maze yet', m.mem[sym['mapon']] == 0)
+putobj(0, 15, 3.5, 3.5); frame(2)
+check('map scroll picked up', m.mem[sym['aflags']+2] & 1 == 1)
+walk('M', 3)
+check('maze map shows after the scroll', m.mem[sym['mapon']] == 1)
+m.shot('g_map_maze.png', 2)
+frame(2)
+# fog in the mine: far walls in the murk, far creatures hidden
+go(3); clearobjs()
+check('mine has fog', m.mem[sym['fogh']] == 7)
+place(1.5, 3.5, 0); frame(2)
+fogc = 0x11; row = 11
+cells = [m.mem[CRAM + 40 + row*40 + c] for c in range(40)]
+check('far wall drawn in fog colours', any(v == 0x22 for v in cells) and any(v == 0x00 for v in cells))
+m.shot('g_fog_mine.png', 2)
+putobj(0, 1, 8.5, 3.5, flags=0, cool=250); frame(2)
+check('bear in the fog unseen', m.mem[sym['nvis']] == 1)
+putobj(0, 1, 4.5, 3.5, flags=0, cool=250); frame(2)
+check('bear near enough seen', m.mem[sym['nvis']] == 2)
+go(5); place(1.5, 2.5, 0); frame(2); m.shot('g_fog_swamp.png', 2)
+go(8); place(1.5, 2.5, 0); frame(2); m.shot('g_fog_lair.png', 2)
+go(0); frame(2)
+check('no fog at the homestead', m.mem[sym['fogh']] == 0)
+
 # dying puts you back at the door, full health
 GOD[0] = False; m.mem[sym['hp']] = 1
 putobj(0, 1, 9.1, 9.5, flags=0x80, cool=0); place(8.5, 9.5, 0)
