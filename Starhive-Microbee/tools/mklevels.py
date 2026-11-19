@@ -5,8 +5,8 @@ Per level (blocks assigned from 8 up):
               n, then n x (column, slot | 80h if its colour changes);
               the pair-load schedule from 6000h: dw offset[rows], then per
               coarse step: n, n x (slot, offset lo, offset hi, block)
-  LnPAIRx.BNK pair records, 132 bytes (11 phases x 11, then 11 colours),
-              248 to a block
+  LnPAIRx.BNK pair records, 134 bytes (11 phases x 11, 11 colours, then
+              2 bytes of merge flags), 244 to a block
   LnSPR.BNK   WORK block: buckets below 1600h, the sprites from 1600h
 Writes build/game.inc (constants, tables, the level table) and
 build/game_files.inc / .txt (the loader's list)."""
@@ -23,11 +23,24 @@ import levels
 ROOT = Path(__file__).resolve().parent.parent
 B = ROOT / 'build'
 CL, COLS = 11, 40
-PAIR_SZ = 132
-PAIRS_PER_BLK = 32768 // PAIR_SZ          # 248
+PAIR_SZ = 134
+PAIRS_PER_BLK = 32768 // PAIR_SZ          # 244
 SCHED_AT = 0x6000
 FIRST_BLK = 8
 STAR_BANK = 11
+
+
+def merge_flags(ph):
+    """bit k: at phase k the glyph's set pixels cover more of the cell than
+    its clear ones. A sprite or bullet merged into the cell then inverts
+    the glyph and takes the ink as its paper, so the main colour stays
+    and only the thinner detail turns the sprite's colour.
+    -> 2 bytes (phases 0-7, 8-10)"""
+    f = 0
+    for k, g in enumerate(ph):
+        if 2 * sum(bin(x).count('1') for x in g) > CL * 8:
+            f |= 1 << k
+    return bytes((f & 255, f >> 8))
 
 
 def level_data(n, f):
@@ -68,7 +81,7 @@ def level_data(n, f):
     pblk = [bytearray(0x8000) for _ in range(npb)]
     for i, (ph, cols) in enumerate(pairs):
         o = (i % PAIRS_PER_BLK) * PAIR_SZ
-        pblk[i // PAIRS_PER_BLK][o:o + PAIR_SZ] = bytes(x for g in ph for x in g) + bytes(cols)
+        pblk[i // PAIRS_PER_BLK][o:o + PAIR_SZ] = bytes(x for g in ph for x in g) + bytes(cols) + merge_flags(ph)
     lib, labels = art.level_lib(n)
     print('level %d %-15s rows %d pairs %d (%d blocks) peak %d, row data %d, sprites %d' % (
         n + 1, levels.LEVELS[n][1], R, len(pairs), npb, peak, at, len(lib)))
@@ -163,9 +176,10 @@ def main():
             boot.append(('%s_gl:' % tabname if i == 0 else '') + '\tdb ' + ','.join('$%02X' % x for x in flat[i:i + 22]))
     rt = [max(0, 2 + (t - 16) // CL) for t in range(256)]
     ot = [(t - 16) % CL for t in range(256)]
-    h.append('\tALIGN 256')
-    h.append('rowt:\tdb ' + ','.join(str(x) for x in rt))
-    h.append('offt:\tdb ' + ','.join(str(x) for x in ot))
+    for i in range(0, 256, 32):                  # (copied to rowt at boot)
+        boot.append(('rowt_gl:' if i == 0 else '') + '\tdb ' + ','.join(str(x) for x in rt[i:i + 32]))
+    for i in range(0, 256, 32):
+        boot.append('\tdb ' + ','.join(str(x) for x in ot[i:i + 32]))
     (B / 'game.inc').write_text('\n'.join(h) + '\n')
     (B / 'boot.inc').write_text('\n'.join(boot) + '\n')
     (B / 'game_files.inc').write_text(''.join('\tDB %d,"%s"\n' % (b_, nm) for b_, nm in files))

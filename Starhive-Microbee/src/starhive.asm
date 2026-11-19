@@ -10,6 +10,9 @@
 	INCLUDE "hw.inc"
 
 COLT	equ $B000		; colour of slot s at phase k: COLT + 256 k + s
+sr_bg	equ $EB00		; a background glyph (16-aligned)
+rowt	equ $BC00		; row of playfield line + 16, then (BD00) line in the row
+MFLG	equ $BB00		; merge flags of slot s: phases 0-7 at +s, 8-10 at +128+s
 SEGS	equ $C000		; per map row (row & 31, 256 bytes each): its pair
 				; cells on screen: address, colL, colU; 0 ends
 ROWBUF	equ $E0A0		; a row record's codes, attributes, colours
@@ -37,6 +40,10 @@ start:	di
 	cp 16
 	jr nz,.ci
 	call pcg_clear
+	ld hl,rowt_gl		; the row and line tables
+	ld de,rowt
+	ld bc,512
+	ldir
 	; font glyphs: bank 11, codes 81h..
 	ld a,LV_SCREEN|STAR_BANK
 	out (P_LV),a
@@ -106,7 +113,6 @@ restart:
 	ld hl,0
 	ld (scrS),hl
 	ld (page),a
-	ld (nslot),a
 	ld (scrolled),a
 	ld (sp_count),a
 	ld a,(lv_work)		; no sprite cells yet
@@ -846,6 +852,13 @@ load_one:			; next load: slot, offset (2), pairs block
 	inc hl
 	inc d
 	djnz .c
+	ld a,(ld_slot)		; then its merge flags -> MFLG + slot, + 128
+	ld e,a
+	ld d,MFLG>>8
+	ldi
+	dec e
+	set 7,e
+	ldi
 	ret
 
 ; ---------------------------------------------------------------------
@@ -1270,6 +1283,7 @@ ov_bank	ds 1
 ov_row	ds 1
 ov_col0	ds 1
 ov_code	ds 1
+ov_scol	ds 1
 ov_bpa	ds 2
 calm	ds 1
 spk	ds 1

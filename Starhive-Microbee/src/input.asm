@@ -109,7 +109,7 @@ readinp:
 	ret
 keymap:	db K_Q,$01, K_A,$02, K_O,$04, K_P,$08
 	db K_UP,$01, K_DOWN,$02, K_LEFT,$04, K_RIGHT,$08
-	db K_SPACE,$10, K_M,$20, K_Z,$20
+	db K_SPACE,$10
 	db $FF
 
 ; single key with the keyboard latch set: A = code -> NZ if held
