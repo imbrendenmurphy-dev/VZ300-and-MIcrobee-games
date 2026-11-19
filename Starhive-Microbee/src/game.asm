@@ -9,6 +9,7 @@ ST_TITLE equ 0
 ST_PLAY	equ 1
 ST_OVER	equ 2
 ST_CLEAR equ 3
+ST_NAME	equ 4
 
 NENEMY	equ 12			; enemy slots, ESIZE bytes each
 ESIZE	equ 16
@@ -39,7 +40,14 @@ NSHOT	equ 6			; player shots: y (0 = none), x (2)
 
 PFH2	equ VROWS*CL		; playfield height (242 lines)
 TX_SPARE equ $E1F8		; a spare byte (and E9F8) for unpassed cells
-BOSS_ROW equ NROWS-26		; the scroll stops here for the Queen
+T_SWEEP	equ 6
+T_SPIT	equ 7
+E_ATT	equ 14			; (bosses) which attack is next
+A_AIM	equ 1
+A_SPREAD3 equ 2
+A_SPREAD5 equ 4
+A_DRONES equ 8
+A_DARTS	equ 16
 
 ; ---------------------------------------------------------------------
 ;  a new game from the title
@@ -54,7 +62,9 @@ game_new:
 	ld (hl),a
 	ld a,3
 	ld (lives),a
-	ld a,1
+	xor a
+	ld (round),a
+	inc a
 	ld (level),a
 	ld a,ST_PLAY
 	ld (state),a
@@ -67,8 +77,38 @@ state_init:
 	ld bc,objects_end-objects-1
 	ld (hl),0
 	ldir
-	ld hl,wave_script
-	ld (wave_ptr),hl
+	ld a,(level)		; this level's waves and boss
+	dec a
+	ld c,a
+	add a,a
+	ld l,a
+	ld h,0
+	ld de,waves_tab
+	add hl,de
+	ld e,(hl)
+	inc hl
+	ld d,(hl)
+	ld (wave_ptr),de
+	ld a,c
+	ld b,BOSS_SZ		; bosstab entry -> b_hits .. b_name
+	ld hl,bosstab
+	or a
+	jr z,.bt
+	ld de,BOSS_SZ
+.bm:	add hl,de
+	dec a
+	jr nz,.bm
+.bt:	ld de,b_hits
+	ld bc,BOSS_SZ
+	ldir
+	ld a,(round)		; difficulty: level + 2 rounds
+	add a,a
+	ld hl,level
+	add a,(hl)
+	cp 9
+	jr c,.dc
+	ld a,8
+.dc:	ld (diff),a
 	ld hl,152+16
 	ld (px),hl
 	ld a,200+16
@@ -92,6 +132,9 @@ state_init:
 	jp hud_build
 .title:	xor a
 	ld (speed),a
+	ld a,20
+	ld (mus_wait),a
+	call hs_show
 	ld hl,title_texts
 .tt:	ld a,(hl)
 	or a
@@ -122,6 +165,8 @@ game_tick:
 	jp z,title_tick
 	cp ST_PLAY
 	jr z,.play
+	cp ST_NAME
+	jp z,name_tick
 	; game over / level clear: everything carries on, then a timer
 	call enemies_move
 	call bullets_move
@@ -135,9 +180,15 @@ game_tick:
 	ld a,ST_TITLE
 	ld (state),a
 	jp restart
-.next:	ld hl,level		; the next round: harder
+.next:	ld hl,level		; the next level; after the last, round again
 	inc (hl)
-	ld a,ST_PLAY
+	ld a,(hl)
+	cp NLEVELS+1
+	jr c,.nl
+	ld (hl),1
+	ld hl,round
+	inc (hl)
+.nl:	ld a,ST_PLAY
 	ld (state),a
 	jp restart
 .play:	call waves
@@ -150,9 +201,35 @@ game_tick:
 	ret
 
 title_tick:
-	ld a,(inpedge)
+	ld hl,mus_wait		; the tune now and then
+	dec (hl)
+	jr nz,.nm
+	ld (hl),250		; (then ten seconds of drones)
+	call title_music
+	cp 1
+	jp z,game_new
+	cp 2
+	jr z,.mono
+.nm:	ld a,(inpedge)
 	and $10
 	jp nz,game_new
+	ld a,13			; M: monochrome on / off
+	call key1
+	ld hl,mkey
+	jr z,.mu
+	ld a,(hl)
+	or a
+	jr nz,.dr
+	ld (hl),1
+.mono:	ld a,1
+	ld (mkey),a
+	ld a,(mono)
+	xor 1
+	ld (mono),a
+	call set_mono
+	jp restart
+.mu:	ld (hl),0
+.dr:
 	ld a,(frame)		; drones fly past now and then
 	and 127
 	ret nz
@@ -179,21 +256,44 @@ title_tick:
 ;  amplitude / step. Row FFFFh ends it.
 ; ---------------------------------------------------------------------
 waves:	ld hl,(top)
-	ld de,BOSS_ROW
+	ld de,(boss_row)
 	or a
 	sbc hl,de
-	jr c,.sp
-	ld a,(boss)		; the Queen
+	jp c,.sp
+	ld a,(boss)		; the boss (or two)
 	or a
-	jr nz,.sp
+	jp nz,.sp
 	inc a
 	ld (boss),a
 	xor a
 	ld (speed),a
-	ld hl,160+16-20
+	ld a,(b_cnt)
+	ld (bosses_left),a
+	ld a,(b_w)		; centred: x + 16 = 176 - w / 2
+	srl a
+	neg
+	add a,176
+	ld l,a
+	ld h,0
+	ld a,(b_cnt)
+	dec a
+	jr z,.one
+	ld de,-64		; two: either side
+	add hl,de
+	push hl
 	ld a,T_QUEEN
 	call spawn
-	call hud_build
+	pop hl
+	ld de,128
+	add hl,de
+	ld a,T_QUEEN
+	call spawn
+	jr nc,.bh
+	ld (iy+E_AMP),128	; (the other half of the sway)
+	jr .bh
+.one:	ld a,T_QUEEN
+	call spawn
+.bh:	call hud_build
 .sp:	ld a,(sp_count)		; a group in progress
 	or a
 	jr z,.next
@@ -329,17 +429,37 @@ spawn:	ld iy,enemies
 	ld (iy+E_FIRE),40
 	scf
 	ret
-.n3:	cp T_QUEEN
+.n3:	cp T_SWEEP
+	jr nz,.n4
+	ld (iy+E_VYL),$C0	; drifts down, crosses at 2 px a frame
+	ld (iy+E_HP),2
+	ld (iy+E_AMP),2
+	ld a,h
+	or a
+	jr nz,.sl
+	ld a,l
+	cp 160
+	jr c,.sr
+.sl:	ld (iy+E_AMP),-2
+.sr:	scf
+	ret
+.n4:	cp T_SPIT
+	jr nz,.n5
+	ld (iy+E_HP),3
+	ld (iy+E_FIRE),50
+	scf
+	ret
+.n5:	cp T_QUEEN
 	scf
 	ret nz
 	ld (iy+E_Y),0
 	ld (iy+E_VYH),1
-	ld a,(level)
+	ld a,(diff)		; hits: the boss's, + 4 a difficulty step
+	dec a
 	add a,a
 	add a,a
-	add a,a
-	add a,a
-	add a,40		; 56, 72, 88 ... hits
+	ld hl,b_hits
+	add a,(hl)
 	ld (iy+E_HP),a
 	ld (iy+E_FIRE),60
 	scf
@@ -374,7 +494,9 @@ player_move:
 	ld a,75
 	ld (inv),a
 	ret
-.over:	ld a,ST_OVER
+.over:	call hs_check		; a place in the table: initials first
+	ret c
+	ld a,ST_OVER
 	ld (state),a
 	ld a,150
 	ld (stimer),a
@@ -496,8 +618,12 @@ enemy_move:
 	ret
 .ne:	cp T_POD
 	jp z,ride_fire
+	cp T_SPIT
+	jp z,ride_fire
 	cp T_QUEEN
 	jp z,queen_move
+	cp T_SWEEP
+	jp z,sweep_move
 	; drones and darts: fall at their own speed
 	call fall
 	ld a,(ix+E_TYPE)
@@ -554,10 +680,10 @@ maybe_fire:
 	call rnd		; next time
 	and 63
 	ld b,a
-	ld a,(level)
+	ld a,(diff)
 	ld c,a
 	ld a,110
-.lv:	sub 10
+.lv:	sub 9
 	dec c
 	jr nz,.lv
 	add a,b
@@ -567,6 +693,9 @@ maybe_fire:
 	ret nc
 	cp 16+8
 	ret c
+	ld a,(ix+E_TYPE)
+	cp T_SPIT
+	jp z,spread3
 	jp aim
 
 ; pods and explosions move with the scenery
@@ -598,18 +727,29 @@ fall:	ld a,(ix+E_YF)
 .g:	pop hl			; (drop the caller)
 	jr gone
 
-queen_move:
-	ld a,(ix+E_Y)		; comes down to her place
-	cp 16+30
+queen_move:			; (any boss, by the level's settings)
+	ld a,(b_y)		; comes down to its place
+	add a,16
+	ld b,a
+	ld a,(ix+E_Y)
+	cp b
 	jr nc,.at
 	inc (ix+E_Y)
 	ret
-.at:	ld a,(ix+E_T)		; sways: x = 140 + sin(2t) * 1.75
-	add a,a
+.at:	ld a,(b_spd)		; sways: x = base + sin(t * speed + phase) * amp
+	ld b,a
+	ld a,(ix+E_T)
+.sp:	dec b
+	jr z,.sd
+	add a,(ix+E_T)
+	jr .sp
+.sd:	add a,(ix+E_AMP)
 	call sin8
-	ld e,112
+	ld hl,b_amp
+	ld e,(hl)
 	call muls8
-	ld de,140+16-20+16
+	ld e,(ix+E_BXL)
+	ld d,(ix+E_BXH)
 	add hl,de
 	ld (ix+E_XL),l
 	ld (ix+E_XH),h
@@ -618,21 +758,102 @@ queen_move:
 	ret nz
 	dec (ix+E_FIRE)
 	ret nz
-	ld a,(level)		; spread of three, then an aimed one
+	ld a,(diff)		; next attack sooner as it gets harder
+	add a,a
 	ld b,a
-	ld a,50
-.l:	sub 4
-	djnz .l
-	ld (ix+E_FIRE),a
-	ld a,(ix+E_T)
-	and 1
-	jp nz,aim
+	ld a,(b_gap)
+	sub b
+	cp 16
+	jr nc,.g
+	ld a,16
+.g:	ld (ix+E_FIRE),a
+.next:	ld a,(ix+E_ATT)		; the next attack the boss has
+	inc a
+	and 7
+	ld (ix+E_ATT),a
+	ld b,a
+	inc b
+	ld a,1
+.bit:	dec b
+	jr z,.got
+	rlca
+	jr .bit
+.got:	ld hl,b_att
+	and (hl)
+	jr z,.next
+	cp A_AIM
+	jp z,aim
+	cp A_SPREAD3
+	jp z,spread3
+	cp A_SPREAD5
+	jr z,spread5
+	cp A_DRONES
+	ld a,T_DRONE
+	jr z,.two
+	ld a,T_DART
+.two:	ld (bs_type),a		; two of them, from the boss's sides
+	ld l,(ix+E_XL)
+	ld h,(ix+E_XH)
+	push hl
+	call spawn
+	jr nc,.t2
+	ld a,(ix+E_Y)
+	ld (iy+E_Y),a
+.t2:	pop hl
+	ld a,(b_w)
+	ld e,a
+	ld d,0
+	add hl,de
+	ld a,(bs_type)
+	call spawn
+	ret nc
+	ld a,(ix+E_Y)
+	ld (iy+E_Y),a
+	ret
+
+spread5:
+	ld bc,$0AF8
+	call shoot
+	ld bc,$0BFC
+	call shoot
+	ld bc,$0C00
+	call shoot
+	ld bc,$0B04
+	call shoot
+	ld bc,$0A08
+	jp shoot
+spread3:
 	ld bc,$0BFC		; vy = 11/4, vx = -1
 	call shoot
 	ld bc,$0C00
 	call shoot
 	ld bc,$0B04
 	jp shoot
+
+; sweepers cross the screen, drifting down
+sweep_move:
+	call fall
+	ld a,(ix+E_AMP)
+	ld e,a
+	add a,a
+	sbc a,a
+	ld d,a
+	ld l,(ix+E_XL)
+	ld h,(ix+E_XH)
+	add hl,de
+	ld (ix+E_XL),l
+	ld (ix+E_XH),h
+	ld a,h			; off either side: gone
+	or a
+	jr nz,.r
+	ld a,l
+	cp 4
+	jp c,gone
+	jp maybe_fire
+.r:	ld a,l
+	cp 340-256
+	jp nc,gone
+	jp maybe_fire
 
 ; ---------------------------------------------------------------------
 ;  enemy bullets
@@ -711,7 +932,9 @@ shoot:	push bc
 	ld a,(ix+E_TYPE)
 	cp T_QUEEN
 	jr nz,.nq
-	ld e,18
+	ld a,(b_w)
+	srl a
+	ld e,a
 .nq:	add hl,de
 	add hl,hl
 	add hl,hl
@@ -932,7 +1155,36 @@ collide:
 	jr z,.en
 	cp T_EXPL
 	jr z,.en
-	ld l,(ix+E_XL)		; |ex - px| < 10
+	cp T_QUEEN
+	jr nz,.nb
+	push bc			; a boss: px + 12 - ex within 0 .. w + 12
+	ld l,(ix+E_XL)
+	ld h,(ix+E_XH)
+	ex de,hl
+	ld hl,(px)
+	ld bc,12
+	add hl,bc
+	or a
+	sbc hl,de
+	pop bc
+	ld a,h
+	or a
+	jr nz,.en
+	ld a,(b_w)
+	add a,12
+	cp l
+	jr c,.en
+	ld a,(b_h)		; and py + 12 - ey within 0 .. h + 12
+	add a,12
+	ld c,a
+	ld a,(py)
+	add a,12
+	sub (ix+E_Y)
+	jr c,.en
+	cp c
+	jr nc,.en
+	jp player_hit
+.nb:	ld l,(ix+E_XL)		; |ex - px| < 10
 	ld h,(ix+E_XH)
 	ld de,(px)
 	or a
@@ -974,8 +1226,10 @@ shot_hits:
 	ld d,10			; and height
 	cp T_QUEEN
 	jr nz,.w
-	ld c,38
-	ld d,20
+	ld a,(b_w)
+	ld c,a
+	ld a,(b_h)
+	ld d,a
 .w:	ld l,(ix+E_XL)		; c_x - ex in 0 .. width
 	ld h,(ix+E_XH)
 	push de
@@ -1010,11 +1264,17 @@ shot_hits:
 .kill:	ld a,(ix+E_TYPE)
 	cp T_QUEEN
 	jr z,.queen
-	ld de,$0001		; drone 100, dart 150, pod 250 (D tens, E hundreds)
-	cp T_DRONE
+	ld de,$0001		; drone 100, dart 150, pod 250, sweeper 200,
+	cp T_DRONE		; spitter 300 (D tens, E hundreds)
 	jr z,.p
 	ld de,$5001
 	cp T_DART
+	jr z,.p
+	ld de,$0002
+	cp T_SWEEP
+	jr z,.p
+	ld de,$0003
+	cp T_SPIT
 	jr z,.p
 	ld de,$5002
 .p:	push bc
@@ -1053,16 +1313,40 @@ shot_hits:
 	add a,(ix+E_Y)
 	ld (iy+E_Y),a
 .qn:	djnz .qe
-	ld a,ST_CLEAR
+	ld hl,bosses_left	; the other one still there?
+	dec (hl)
+	jr z,.clr
+	call hud_build
+	scf
+	ret
+.clr:	ld a,ST_CLEAR
 	ld (state),a
-	ld a,150
+	ld a,175
 	ld (stimer),a
-	call hiscore
+	ld a,(level)
+	cp NLEVELS
+	jr z,.fin
 	ld a,11
 	ld hl,t_clear
-	ld c,10
+	ld c,15
 	ld e,BGREEN
 	call text_at
+	jr .cd
+.fin:	ld de,$0050		; the hive destroyed: 10000 more
+	call add_pts
+	ld de,$0050
+	call add_pts
+	ld a,10
+	ld hl,t_final
+	ld c,9
+	ld e,YELLOW
+	call text_at
+	ld a,12
+	ld hl,t_bonus
+	ld c,14
+	ld e,BCYAN
+	call text_at
+.cd:	call hiscore
 	call hud_build
 	scf
 	ret
@@ -1262,7 +1546,18 @@ enemy_frame:
 	jr c,.y
 	ld hl,SP_EXPL3
 	jr .y
-.n4:	ld hl,SP_QUEEN
+.n4:	cp T_SWEEP
+	jr nz,.n5
+	ld a,(ix+E_T)
+	and 2
+	ld hl,SP_SWEEP1
+	jr z,.y
+	ld hl,SP_SWEEP2
+	jr .y
+.n5:	ld hl,SP_SPIT
+	cp T_SPIT
+	jr z,.y
+	ld hl,SP_BOSS
 	jr .y
 
 ; ---------------------------------------------------------------------
@@ -1338,7 +1633,10 @@ text_at:
 	jr nc,$+3
 	inc d
 	pop bc			; C = colour
-	ld a,BLK_W
+	ld a,c
+	call fold
+	ld c,a
+	ld a,(lv_work)
 	call blkport
 	out (P_MEM),a
 	pop hl
@@ -1528,73 +1826,346 @@ snd_step:
 ; ---------------------------------------------------------------------
 t_ready:	db "GET READY",0
 t_over:		db "GAME OVER",0
-t_clear:	db "HIVE QUEEN DESTROYED",0
+t_clear:	db "LEVEL CLEAR",0
+t_final:	db "THE HIVE IS DESTROYED",0
+t_bonus:	db "BONUS 10000",0
 title_texts:	; row, column, colour, text
 	db 5,12,YELLOW,"S T A R H I V E",0
 	db 8,10,WHITE,"PRESS FIRE TO START",0
-	db 12,9,BGREEN,"DESTROY THE HIVE QUEEN",0
-	db 16,4,BCYAN,"JOYSTICK OR CURSOR KEYS SPACE FIRE",0
-	db 20,11,BMAGENTA,"VIBED BY BPM 2026",0
+	db 10,14,BCYAN,"HIGH SCORES",0
+	db 17,3,BGREEN,"JOYSTICK OR CURSOR KEYS  SPACE FIRE",0
+	db 19,8,GREY,"M  MONOCHROME SCREEN ON/OFF",0
+	db 21,11,BMAGENTA,"VIBED BY BPM 2026",0
 	db 0
 
-; dw map row; db type, column, count, gap, amplitude
-wave_script:
-	dw 30
-	db T_DRONE,8,5,8,40
-	dw 50
-	db T_DRONE,28,5,8,40
-	dw 70
-	db T_DART,0,3,14,0
-	dw 90
-	db T_POD,18,1,1,0
-	dw 100
-	db T_DRONE,18,6,7,80
-	dw 125
-	db T_DART,0,4,12,0
-	dw 145
-	db T_POD,6,1,1,0
-	dw 148
-	db T_POD,30,1,1,0
-	dw 165
-	db T_DRONE,10,5,8,60
-	dw 185
-	db T_DRONE,26,5,8,60
-	dw 205
-	db T_DART,0,5,10,0
-	dw 230
-	db T_POD,12,1,1,0
-	dw 233
-	db T_POD,24,1,1,0
-	dw 250
-	db T_DRONE,18,8,6,100
-	dw 280
-	db T_DART,0,6,9,0
-	dw 305
-	db T_DRONE,6,5,8,30
-	dw 315
-	db T_DRONE,30,5,8,30
-	dw 335
-	db T_POD,18,1,1,0
-	dw 350
-	db T_DART,0,6,8,0
-	dw 375
-	db T_DRONE,18,8,6,120
-	dw 400
-	db T_POD,8,1,1,0
-	dw 403
-	db T_POD,28,1,1,0
-	dw 420
-	db T_DART,0,8,8,0
-	dw 450
-	db T_DRONE,10,6,7,60
-	dw 470
-	db T_DRONE,26,6,7,60
-	dw 490
-	db T_POD,14,1,1,0
-	dw 493
-	db T_POD,22,1,1,0
-	dw 510
-	db T_DART,0,8,7,0
-	dw 535
-	db T_DRONE,18,8,6,100
-	dw $FFFF
+; ---------------------------------------------------------------------
+;  monochrome: any ink white, any paper dark grey (A = colour)
+; ---------------------------------------------------------------------
+fold:	push bc
+	ld b,a
+	ld a,(mono)
+	or a
+	ld a,b
+	jr z,.e
+	and $0F
+	jr z,.p
+	ld a,$0F
+.p:	ld c,a
+	ld a,b
+	and $F0
+	jr z,.q
+	ld a,$80
+.q:	or c
+.e:	pop bc
+	ret
+
+set_mono:			; the far stars' colour
+	ld a,(mono)
+	or a
+	ld a,STAR_COL
+	jr z,.s
+	ld a,GREY
+.s:	ld (star_col),a
+	ret
+
+; ---------------------------------------------------------------------
+;  the high-score table: 5 x (score BCD 3, initials 3)
+; ---------------------------------------------------------------------
+hs_show:			; on the title screen, rows 11-15
+	ld hl,hs_tab
+	ld b,0
+.r:	push bc
+	push hl
+	ld de,hs_line		; "1  BPM  050000"
+	ld a,b
+	add a,'1'
+	ld (de),a
+	inc de
+	ld a,' '
+	ld (de),a
+	inc de
+	ld (de),a
+	inc de
+	push hl
+	inc hl
+	inc hl
+	inc hl
+	ld bc,3
+	ldir
+	pop hl
+	ld a,' '
+	ld (de),a
+	inc de
+	ld (de),a
+	inc de
+	ld b,3
+.d:	ld a,(hl)
+	rrca
+	rrca
+	rrca
+	rrca
+	and 15
+	add a,'0'
+	ld (de),a
+	inc de
+	ld a,(hl)
+	and 15
+	add a,'0'
+	ld (de),a
+	inc de
+	inc hl
+	djnz .d
+	xor a
+	ld (de),a
+	pop hl
+	pop bc
+	push bc
+	push hl
+	ld a,b
+	add a,11
+	ld hl,hs_line
+	ld c,13
+	ld e,WHITE
+	call text_at
+	pop hl
+	ld de,6
+	add hl,de
+	pop bc
+	inc b
+	ld a,b
+	cp 5
+	jr nz,.r
+	ret
+
+; at game over: does the score make the table? Carry: yes, and the
+; initials are being asked for (state ST_NAME)
+hs_check:
+	ld ix,hs_tab
+	ld b,0
+.f:	ld hl,score		; score > entry?
+	ld a,(ix+0)
+	cp (hl)
+	jr c,.in
+	jr nz,.n
+	inc hl
+	ld a,(ix+1)
+	cp (hl)
+	jr c,.in
+	jr nz,.n
+	inc hl
+	ld a,(ix+2)
+	cp (hl)
+	jr c,.in
+.n:	ld de,6
+	add ix,de
+	inc b
+	ld a,b
+	cp 5
+	jr nz,.f
+	or a
+	ret
+.in:	ld a,b			; place B: move the rest down
+	ld (hs_pos),a
+	ld a,4
+	sub b
+	jr z,.put
+	ld c,a			; (4 - B) entries of 6, from the end back
+	ld b,0
+	ld h,b
+	ld l,c
+	add hl,hl
+	add hl,bc
+	add hl,hl
+	ld b,h
+	ld c,l
+	ld hl,hs_tab+23
+	ld de,hs_tab+29
+	lddr
+.put:	ld hl,score
+	push ix
+	pop de
+	ld bc,3
+	ldir
+	ld a,'A'
+	ld (de),a
+	inc de
+	ld a,' '
+	ld (de),a
+	inc de
+	ld (de),a
+	xor a
+	ld (name_at),a
+	ld a,'A'
+	ld (name_ch),a
+	ld (name_de),ix
+	ld a,ST_NAME
+	ld (state),a
+	xor a			; (the scroll stops while the name goes in)
+	ld (speed),a
+	ld a,9
+	ld hl,t_newhs
+	ld c,13
+	ld e,YELLOW
+	call text_at
+	ld a,11
+	ld hl,t_name
+	ld c,8
+	ld e,WHITE
+	call text_at
+	call name_show
+	scf
+	ret
+
+name_tick:			; up / down: the letter; fire: the next one
+	call enemies_move
+	call bullets_move
+	call shots_move
+	ld a,(inpedge)
+	ld b,a
+	ld a,(name_ch)
+	bit 0,b
+	jr z,.nu
+	inc a
+	cp 'Z'+1
+	jr c,.nu
+	ld a,'A'
+.nu:	bit 1,b
+	jr z,.nd
+	dec a
+	cp 'A'
+	jr nc,.nd
+	ld a,'Z'
+.nd:	ld (name_ch),a
+	ld a,b
+	and 3
+	call nz,name_show
+	ld a,b
+	and $10
+	ret z
+	ld a,(name_at)		; this letter done
+	inc a
+	ld (name_at),a
+	cp 3
+	jr z,.done
+	ld a,'A'
+	ld (name_ch),a
+	jp name_show
+.done:	call hiscore
+	ld a,ST_OVER
+	ld (state),a
+	ld a,40
+	ld (stimer),a
+	ret
+
+name_show:			; the letter into the entry, and on screen
+	ld hl,(name_de)
+	ld de,3
+	add hl,de
+	ld a,(name_at)
+	ld e,a
+	add hl,de
+	ld a,(name_ch)
+	ld (hl),a
+	ld hl,(name_de)		; the three letters
+	ld de,3
+	add hl,de
+	ld de,hs_line
+	ld bc,3
+	ldir
+	xor a
+	ld (de),a
+	ld a,13
+	ld hl,hs_line
+	ld c,18
+	ld e,YELLOW
+	jp text_at
+
+t_newhs:	db "A NEW HIGH SCORE",0
+t_name:		db "UP DOWN AND FIRE: YOUR NAME",0
+hs_tab:		; the starting table
+	db $05,$00,$00,"BPM"
+	db $04,$00,$00,"VZB"
+	db $03,$00,$00,"MBE"
+	db $02,$00,$00,"HIV"
+	db $01,$00,$00,"STA"
+
+; ---------------------------------------------------------------------
+;  the title tune: two voices on the speaker bit, taking turns every
+;  sample (106 T). A = 0 played to the end, 1 fire pressed, 2 M pressed
+; ---------------------------------------------------------------------
+title_music:
+	ld hl,tune
+.n:	ld a,(hl)
+	cp 255
+	jr z,.end
+	push hl
+	call .stp
+	ld b,d
+	ld c,e			; BC = the lead's step
+	pop hl
+	inc hl
+	ld a,(hl)
+	inc hl
+	push hl
+	call .stp
+	push de
+	exx
+	pop de			; DE' = the bass's step
+	exx
+	ld de,TUNE_K
+	call .play
+	exx
+	ld de,0
+	exx
+	ld de,TUNE_R
+	call .play
+	call readinp
+	ld a,(inpedge)
+	and $10
+	ld a,1
+	jr nz,.key
+	ld a,13
+	call key1
+	ld a,2
+	jr nz,.key
+	pop hl
+	jr .n
+.key:	pop hl
+	jr .off
+.end:	xor a
+.off:	push af
+	xor a
+	out (P_PIOB),a
+	pop af
+	ret
+.stp:	add a,a			; A = note -> DE = its step
+	ld e,a
+	ld d,0
+	ld hl,tune_steps
+	add hl,de
+	ld e,(hl)
+	inc hl
+	ld d,(hl)
+	ret
+.play:	ld hl,(m_acc)		; DE samples
+.s:	add hl,bc
+	ld a,h
+	rra
+	and $40
+	out (P_PIOB),a
+	exx
+	add hl,de
+	ld a,h
+	rra
+	and $40
+	exx
+	out (P_PIOB),a
+	dec de
+	ld a,d
+	or e
+	jp nz,.s
+	ld (m_acc),hl
+	ret
+
+	INCLUDE "../build/music.inc"
+	INCLUDE "../build/waves.inc"

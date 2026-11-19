@@ -96,8 +96,7 @@ main:       di
             ldir
             jp $F000
 
-files:      INCLUDE "../build/soft_files.inc"
-            DB 19,        "SWORK   BNK"
+files:      INCLUDE "../build/game_files.inc"
             DB STG_PROG,  "STARHIVEBIN"
             DB 0
 

@@ -6,8 +6,10 @@ import numpy as np
 import run
 import softtest as st
 
-blocks = dict(st.blocks)
-blocks[19] = 'SWORK.BNK'
+blocks = {}
+for line in (run.BUILD / 'game_files.inc').read_text().splitlines():
+    blk, name = line.split('DB ')[1].split(',', 1)
+    blocks[int(blk)] = name.strip('"').replace(' ', '').replace('BNK', '.BNK')
 
 
 def boot():

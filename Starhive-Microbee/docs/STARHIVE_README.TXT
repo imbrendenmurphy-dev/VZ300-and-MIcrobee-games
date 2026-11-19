@@ -1,29 +1,39 @@
 S T A R H I V E          VIBED BY BPM 2026
 A vertical shoot-'em-up for the Microbee Premium Plus (1MB)
 
-Type STARHIVE at the A> prompt. Loading takes a little while.
+Type STARHIVE at the A> prompt. Loading takes a little while (all five
+levels, about 400K, go into memory at once).
 
-THE GAME (version 0.1: level 1 and its boss)
-You fly the Hornet up through the Outer Hive. Shoot the drone swarms,
-the diving darts and the armoured pods (they take four hits and fire
-aimed shots - their eye turns red just before). At the end the scroll
-stops and the Hive Queen comes down to fight: watch her strength bar
-on the top line. Beat her and the next round starts, a little harder.
+THE GAME (version 0.2: all five levels)
+Fly the Hornet up through the Hive and destroy it, level by level:
+  1  THE OUTER HIVE   stations and asteroids     boss: the Hive Queen
+  2  THE ROCK BELT    a field of asteroids       boss: the Rock Mite
+  3  THE HIVE WALL    honeycomb walls close in   boss: the Twin Wardens
+  4  THE DEAD FLEET   wrecked hulks              boss: the Fleet Hulk
+  5  THE HIVE CORE    a channel through the comb boss: the Hive Mind
+At the end of each level the scroll stops for the boss; its strength
+shows on the top line. Beat the Hive Mind and the Hive is destroyed
+(10000 bonus) - then it all starts again, harder.
 
-Controls: joystick, or the cursor keys and SPACE to fire (hold it
-down to keep firing). Fire starts a game from the title screen.
+Enemies: drones (they sweep in formation), darts (they dive at you),
+pods (armoured, ride the scenery, aimed shots - the eye turns red
+first), sweepers (cross the screen), spitters (wall turrets, three-way
+shots).
+Scores: drone 100, dart 150, sweeper 200, pod 250, spitter 300, boss 5000.
 
-You have 3 ships. After losing one you blink for a few seconds and
-can't be hit.
+Controls: joystick, or the cursor keys and SPACE to fire (hold it down
+to keep firing). Fire starts a game from the title screen.
+M on the title screen: monochrome screen (everything bright white on
+black, for green or amber monitors) on / off.
 
-Scores: drone 100, dart 150, pod 250, Hive Queen 5000.
+You have 3 ships, and a few seconds' protection after losing one.
+Top 5 scores go in the table: UP/DOWN pick a letter, FIRE takes it.
 
 ABOUT THIS VERSION
- - The screen scrolls smoothly a line at a time in software, with
-   the picture's timing never changed (so any monitor is happy).
- - It runs at 25 frames a second; in the busiest moments it drops to
-   a steady 16.7 for a few seconds rather than stuttering.
- - Sound effects play in the spare time between frames.
- - Still to come: levels 2-5 and their bosses, music on the title
-   screen, a high-score table, a monochrome-monitor option, and more
-   speed.
+ - Smooth software scrolling a line at a time; the picture's timing
+   never changes, so any monitor is happy.
+ - 25 frames a second; when it's very busy it holds a steady 16.7.
+ - Title music: a two-voice tune on the 1-bit speaker. Sound effects
+   in the game.
+ - Still to come: more speed in the busiest scenes, music in more
+   places, balancing from your play-testing.

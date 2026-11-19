@@ -398,7 +398,10 @@ spr_row:
 
 ; the new cell's bucket entry (A = paper) and its glyph: DE = the glyph,
 ; its bank in the window; the next slot's glyph moves on
-.entry:	or (iy+2)
+.entry:	ld c,a
+	ld a,(iy+2)
+	call fold
+	or c
 	ld c,a
 	ld hl,(sr_bp)
 	ld de,(sr_ring)
@@ -495,6 +498,7 @@ mrg_ntab:
 ; ---------------------------------------------------------------------
 ; DE = x + 16, C = y + 16, HL = table, A = colour, B = bank
 ovl_draw:
+	call fold
 	ld (ov_col),a
 	ld a,b
 	ld (ov_bank),a
@@ -641,7 +645,7 @@ sr_bg:	ds 16
 ;  coarse step), the scenery pass, then this frame's sprite cells
 ; ---------------------------------------------------------------------
 rows_commit:
-	ld a,BLK_W
+	ld a,(lv_work)
 	call blkport
 	out (P_MEM),a
 	ld a,COL_ON
