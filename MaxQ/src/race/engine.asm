@@ -2000,7 +2000,40 @@ compose:
         ld de,BUFFER
         add hl,de
         ex de,hl
-        ld b,PATTAB/256
+        push de                 ; speed stripes: pattern page for each row
+        ld a,(SPLIT)
+        add a,STRIPE_D0
+        ld c,a                  ; first striped row
+        ld a,(PHASE)
+        ld d,a
+        ld hl,ROWPG+TOPROW
+        ld b,TOPROW
+.rp:    ld a,b
+        sub c
+        jr c,.rn                ; above: plain
+        add a,STRIPE_D0         ; d = row - horizon
+        push hl
+        ld hl,ZBTAB
+        add a,l
+        ld l,a
+        jr nc,.rz
+        inc h
+.rz:    ld a,(hl)
+        pop hl
+        add a,d
+        and 128
+        ld a,PATTAB/256
+        jr z,.rs
+        ld a,PATTAB2/256
+        jr .rs
+.rn:    ld a,PATTAB/256
+.rs:    ld (hl),a
+        inc l
+        inc b
+        ld a,b
+        cp 64
+        jr nz,.rp
+        pop de
         ld iy,c2back
 c2row:  CHKEI
         ld a,(crow)             ; HL = LISTS + crow*32 + LP[crow]
@@ -2018,7 +2051,12 @@ c2row:  CHKEI
         and $1F
         add a,LISTS/256
         ld h,a
-        ld b,PATTAB/256
+        ld a,(crow)             ; this row's pattern page
+        add a,ROWPG & 255
+        ld c,a
+        ld b,ROWPG/256
+        ld a,(bc)
+        ld b,a
         ld a,e
         ld ixl,a                ; row start (low byte)
         inc l

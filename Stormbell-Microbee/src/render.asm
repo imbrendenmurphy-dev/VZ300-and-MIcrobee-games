@@ -604,7 +604,7 @@ draw_fighter:
         cp POOLN
         jr nc,.plain            ; pool full: the upper fighter simply wins
         ld (c_want),hl
-        ; the upper glyph's 16 bytes -> c_top
+        ; the upper glyph's 20 bytes -> c_top
         ld a,(de)
         and $7F
         ld c,a
@@ -619,7 +619,7 @@ draw_fighter:
         sub (ix+F_BANK)
         call .gaddr
         ld de,c_top
-        ld bc,16
+        ld bc,20
         ldir
         ; the under glyph's pattern -> c_bot
         ld hl,(c_want)
@@ -636,7 +636,7 @@ draw_fighter:
         pop af
         call .gaddr
         ld de,c_bot
-        ld bc,8
+        ld bc,10
         ldir
         ld a,(ix+F_BLK)
         call map_blk
@@ -666,14 +666,14 @@ draw_fighter:
         ld a,LV_SCREEN+BK_FONT
         out (P_LV),a
         ld hl,c_top
-        ld b,8
+        ld b,10
 .mix:   push bc
         push hl
-        ld bc,8
+        ld bc,10
         add hl,bc
         ld a,(hl)               ; mask
         cpl
-        ld bc,8
+        ld bc,10
         add hl,bc
         and (hl)                ; under pattern with the mask cut out
         pop hl
@@ -700,8 +700,8 @@ draw_fighter:
         jp .done
 
 ; A = bank number within the fighter (0..6), C = glyph in the bank
-; -> HL = its 16-byte record in the mapped block
-.gaddr: rrca                    ; A * 128 + C, times 16
+; -> HL = its 20-byte record in the mapped block
+.gaddr: rrca                    ; A * 128 + C, times 20
         ld h,a
         and $80
         or c
@@ -711,8 +711,11 @@ draw_fighter:
         ld h,a                  ; HL = glyph number (bank*128 + c)
         add hl,hl
         add hl,hl
+        ld b,h
+        ld c,l
         add hl,hl
         add hl,hl
+        add hl,bc               ; x 20
         ld bc,FB_GLYPHS
         add hl,bc
         ret

@@ -584,8 +584,8 @@ boss_draw:
         ret
 
 ; A = face << 4 | colour, or FFh to take the core away
-CORE_C  EQU 18                  ; its 4 x 5 cells start at column 18, row 10
-CORE_R  EQU 10
+CORE_C  EQU 18                  ; its 4 x 4 cells start at column 18, row 11
+CORE_R  EQU 11
 core_put:
         ld (core_shown),a
         cp $FF
@@ -604,15 +604,13 @@ core_put:
         rrca
         rrca
         and 15
-        ld b,a
         add a,a
         add a,a
-        add a,b
         add a,a
         add a,a
-        add a,$80               ; the face's first glyph: 80h + face * 20
+        add a,$80               ; the face's first glyph: 80h + face * 16
         ld hl,CORE_R*40+CORE_C
-        ld e,5
+        ld e,4
 .r:     ld d,4
 .c:     ld b,BK_CORE
         call tq_put
@@ -629,7 +627,7 @@ core_put:
         ret
 core_clear:
         ld hl,CORE_R*40+CORE_C
-        ld e,5
+        ld e,4
 .r:     ld b,4
         call clear_q
         push de
@@ -649,20 +647,17 @@ core_hide:
 
 ; the Guardian's health instead of the sector's name
 boss_bar:
-        ld hl,24*40+22
+        ld hl,22*40+32          ; bottom right, where the warps were
         ld de,t_core
         ld c,YELLOW
         call print_q
-        ; segments lit = hp * 10 / max
+        ; segments lit = hp * 8 / max
         ld a,(core_hp)
         ld l,a
         ld h,0
-        ld d,h
-        ld e,l
         add hl,hl
         add hl,hl
-        add hl,de
-        add hl,hl               ; hp * 10
+        add hl,hl               ; hp * 8
         ld a,(core_max)
         ld c,a
         call sdiv
@@ -674,8 +669,8 @@ boss_bar:
         or a
         jr nz,.z
         inc e
-.z:     ld hl,24*40+28
-        ld b,10
+.z:     ld hl,23*40+32
+        ld b,8
 .l:     ld a,e
         or a
         ld a,$80+67
@@ -692,6 +687,4 @@ boss_bar:
         dec e
 .n:     inc hl
         djnz .l
-        ld hl,24*40+38
-        ld b,2
-        jp clear_q
+        ret

@@ -8,7 +8,11 @@ Electronics, and several missions recreate moments from his record flights. It i
 
 ![attract](screenshots/v02_attract.png)
 
-## Status: v0.3 (speed-up)
+## Status: v0.3.1
+
+v0.3.1 fixes the wrong-coloured block on the right of the 3D view when banking (found on the real VZ300: the back buffer had lost its 32-byte alignment in v0.3).
+
+### v0.3 speed-up
 
 v0.3 is about 1.3 to 1.8 times faster than v0.2: **8 to 12 fields per frame (4 to 6 frames a second)**, down from 10 to 22.
 
@@ -37,7 +41,7 @@ Everything fits in one `.VZ` file (about 28 KB), so nothing is loaded from the S
 ## Loading
 
 Copy `release/VZFLIGHT.VZ` to the SD card and run it.
-It loads at $8000 (to $EF6E) and makes no mapper writes. It doesn't call the DOS, and it uses the BennVenn SRAM at $4000-$4AFF for its maths tables, like the Cybernoid port, so it needs the BennVenn SD loader.
+It loads at $8000 (to about $E82A, plus working RAM up to $F600) and makes no mapper writes or DOS calls once running — everything lives in ordinary, unbanked RAM. It needs the BennVenn SD loader for the RAM to be there at those addresses and to load the file from the SD card. See `media/BLURB.md` for the full tech specs and RAM map.
 
 ## The attract sequence
 

@@ -1,5 +1,5 @@
-"""FRILLSEEKER rooms. A room is a 20 x 11 map of 16 x 16 pixel tiles (320 x
-176, the 40-column playfield), but it is not drawn from a tile library:
+"""FRILLSEEKER rooms. A room is a 20 x 15 map of 16 x 16 pixel tiles (320 x
+240, the playfield of the full-height 40 x 32 screen), but it is not drawn from a tile library:
 each room is *painted* as one picture (every dirt tile, mound and branch
 gets its own random texture), then cut into 8 x 8 cells with their two
 colours and the patterns de-duplicated. The game loads a room's own glyph
@@ -13,24 +13,32 @@ import math
 import numpy as np
 from art import *
 
+MW_, MH_ = 20, 15
+
 TW, TH = 16, 16
-MW, MH = 20, 11
-PW, PH = 320, 176
-GROUND = 144             # the usual ground line (tile row 9)
+MW, MH = 20, 15
+PW, PH = 320, 240
+GROUND = 208             # the usual ground line (tile row 13)
 
 # tile flags
 T_EMPTY, T_SOLID, T_ONEWAY, T_WATER = 0, 1, 2, 3
 # object types
-O_BUG, O_TOAD, O_START, O_GOAL, O_MAGPIE, O_GOANNA = 1, 2, 3, 5, 6, 7
+O_BUG, O_TOAD, O_START, O_GOAL, O_MAGPIE, O_GOANNA, O_BAT, O_BUFO = 1, 2, 3, 5, 6, 7, 8, 9
+T_WIND = 4               # an updraught: under the frill, Bluff rises in it
 
-SKY_BANDS = [(5, BLACK), (4, BLUE), (4, MAGENTA), (3, RED), (6, BROWN)]   # cell rows, top to bottom
+SKY_BANDS = [(13, BLACK), (4, BLUE), (4, MAGENTA), (3, RED), (6, BROWN)]   # cell rows, top to bottom
 
 ROOMS = [
-    dict(name='THE RED DIRT', left=-1, right=1, sun=(246, 147, 34), moon=None,
-         mesa=[(0, 128), (40, 128), (48, 112), (96, 112), (104, 128), (160, 128), (168, 120), (200, 120), (208, 136), (320, 136)],
-         trees=[(52, 144, 84)], map=[
+    # ---- THE RED DIRT
+    dict(name='THE RED DIRT', left=-1, right=1, sun=(246, 211, 34), moon=None,
+         mesa=[(0, 192), (40, 192), (48, 176), (96, 176), (104, 192), (160, 192), (168, 184), (200, 184), (208, 200), (320, 200)],
+         trees=[(52, 208, 84)], map=[
              "....................",
              "....................",
+             "......B.............",
+             ".....---............",
+             "....................",
+             "...--...........B...",
              "..B............B....",
              ".---..........==....",
              "....................",
@@ -41,27 +49,35 @@ ROOMS = [
              "####################",
              "####################"]),
     dict(name='BILLABONG', left=0, right=2, sun=None, moon=(52, 26),
-         mesa=[(0, 136), (72, 136), (80, 120), (144, 120), (152, 128), (248, 128), (256, 112), (320, 112)],
-         trees=[(292, 144, 80)], map=[
+         mesa=[(0, 200), (72, 200), (80, 184), (144, 184), (152, 192), (248, 192), (256, 176), (320, 176)],
+         trees=[(292, 208, 80)], map=[
              "....................",
+             ".........B..........",
+             "........---.........",
+             "....................",
+             "...........--.......",
              "..............B.....",
              ".....B........--....",
              "....---.............",
              "....................",
              ".............B......",
              "....................",
-             "........=...........",
+             ".......==...........",
              "................T...",
              "##~~~oo~~~oo~~~#####",
              "####################"]),
     dict(name='MOUND CITY', left=1, right=3, sun=None, moon=(256, 22),
-         mesa=[(0, 112), (56, 112), (64, 128), (176, 128), (184, 120), (320, 120)],
-         trees=[(24, 144, 76)], map=[
+         mesa=[(0, 176), (56, 176), (64, 192), (176, 192), (184, 184), (320, 184)],
+         trees=[(24, 208, 76)], map=[
              "....................",
+             "....................",
+             "................B...",
+             "....................",
+             "...............::...",
              "................B...",
              ".......B.....M......",
              ".............M......",
-             "..........==.M...B..",
+             "..........::.M...B..",
              ".............M......",
              ".............M......",
              ".B...........M......",
@@ -69,9 +85,13 @@ ROOMS = [
              "####################",
              "####################"]),
     dict(name='THE OLD GUM', left=2, right=-1, up=4, moon=None,
-         bands=[(4, BLUE), (5, MAGENTA), (5, RED), (8, BROWN)],
-         mesa=[(0, 120), (60, 120), (68, 128), (320, 128)],
-         trees=[(200, 144, 250, 16)], map=[
+         bands=[(12, BLUE), (5, MAGENTA), (5, RED), (8, BROWN)],
+         mesa=[(0, 184), (60, 184), (68, 192), (320, 192)],
+         trees=[(200, 208, 392, 16)], map=[
+             "....................",
+             "........---.........",
+             "............B.......",
+             "...........---......",
              "....................",
              "........---.........",
              "..B.................",
@@ -84,9 +104,13 @@ ROOMS = [
              "####################",
              "####################"]),
     dict(name='THE CANOPY', left=-1, right=5, down=3, moon=(60, 30),
-         bands=[(12, BLACK), (10, BLUE)],
-         leaves=[(150, 124, 110, 40, 110), (50, 62, 44, 22, 70), (262, 58, 54, 26, 70)], map=[
+         bands=[(20, BLACK), (10, BLUE)],
+         leaves=[(150, 188, 110, 40, 110), (50, 126, 44, 22, 70), (262, 122, 54, 26, 70), (130, 40, 60, 20, 90)], map=[
              "....................",
+             ".........B..........",
+             "........---.........",
+             "....................",
+             "............---.....",
              "...............B....",
              "..........---.......",
              "....B...............",
@@ -98,9 +122,13 @@ ROOMS = [
              "................B...",
              ".......-----........"]),
     dict(name='LOOKOUT ROCK', left=4, right=-1, moon=None,
-         bands=[(12, BLACK), (10, BLUE)], map=[
+         bands=[(20, BLACK), (10, BLUE)], map=[
              "....................",
-             "..B..........B......",
+             "....................",
+             "....................",
+             "........B...........",
+             "....................",
+             "..B......::..B......",
              "......B.......T..J..",
              "............########",
              "............########",
@@ -110,12 +138,17 @@ ROOMS = [
              "####################",
              "####################",
              "####################"]),
-    dict(name='ESCARPMENT', left=-1, right=7, sun=(60, 100, 26),
-         mesa=[(0, 112), (120, 112), (128, 96), (220, 96), (228, 104), (320, 104)],
-         trees=[(40, 144, 70)], map=[
+    # ---- STONE COUNTRY
+    dict(name='ESCARPMENT', left=-1, right=7, sun=(60, 164, 26),
+         mesa=[(0, 176), (120, 176), (128, 160), (220, 160), (228, 168), (320, 168)],
+         trees=[(40, 208, 70)], map=[
              "....................",
              "....................",
-             "..B..P..........B...",
+             "....................",
+             "...............B....",
+             "...............::...",
+             "....................",
+             "..B..P..........B.::",
              "....................",
              "..............RRRRRR",
              "..........B.::RRRRRR",
@@ -125,11 +158,15 @@ ROOMS = [
              "####################",
              "####################"]),
     dict(name='THE GORGE', left=6, right=8, moon=(270, 24),
-         mesa=[(0, 104), (320, 104)],
-         falls=[(140, 172, 0, 148)], map=[
+         mesa=[(0, 168), (320, 168)],
+         falls=[(140, 172, 0, 212)], map=[
              "....................",
              "....................",
-             ".........B..........",
+             "....................",
+             "........B...........",
+             "......::............",
+             "....................",
+             "...::....B..........",
              ".......P.........B..",
              "RRRRR..........RRRRR",
              "RRRRR.::....::.RRRRR",
@@ -139,12 +176,16 @@ ROOMS = [
              "RRRRR~~~~~~~~~~RRRRR",
              "RRRRRRRRRRRRRRRRRRRR"]),
     dict(name='ROCK ART CAVE', left=7, right=9, cave=True,
-         art=[('hand', 120, 40), ('hand', 140, 52), ('lizard', 230, 64), ('hand', 280, 44), ('hand', 298, 58),
-              ('hand', 180, 100)], map=[
+         art=[('hand', 120, 104), ('hand', 140, 116), ('lizard', 230, 128), ('hand', 280, 108), ('hand', 298, 122),
+              ('hand', 180, 164), ('hand', 60, 60), ('lizard', 200, 52)], map=[
              "RRRRRRRRRRRRRRRRRRRR",
              "RRRRRRRRRRRRRRRRRRRR",
              "....................",
-             "..........B.........",
+             ".................B..",
+             "....................",
+             "..............B.::..",
+             "....................",
+             "..........B..::.....",
              "RRRR................",
              "RRRRR.....::........",
              "RRRRRR..........B...",
@@ -153,7 +194,11 @@ ROOMS = [
              "RRRRRRRRRRRRRRRRRRRR",
              "RRRRRRRRRRRRRRRRRRRR"]),
     dict(name='THE CHIMNEY', left=8, right=-1, up=10, cave=True,
-         art=[('hand', 130, 150), ('hand', 40, 150)], map=[
+         art=[('hand', 130, 214), ('hand', 40, 214), ('hand', 150, 60)], map=[
+             "RRRRRR........RRRRRR",
+             "RRRRRR....:::.RRRRRR",
+             "RRRRRR.....B..RRRRRR",
+             "RRRRRR.:::....RRRRRR",
              "RRRRRR........RRRRRR",
              "RRRRRR.:::....RRRRRR",
              "RRRRRR........RRRRRR",
@@ -166,35 +211,252 @@ ROOMS = [
              "RRRRRRRRRRRRRRRRRRRR",
              "RRRRRRRRRRRRRRRRRRRR"]),
     dict(name='STONE TOPS', left=-1, right=11, down=9, moon=(60, 30),
-         bands=[(12, BLACK), (10, BLUE)], map=[
+         bands=[(20, BLACK), (10, BLUE)], map=[
              "....................",
              "....................",
-             "..B...........P.....",
              "....................",
-             "...........B........",
-             "....::.........::...",
+             "..............P.....",
              "....................",
-             ".................G..",
+             ".........B..........",
+             ".........::.........",
+             "......B.............",
+             "......::....::......",
+             "....................",
+             "...::..........::...",
+             ".B...............G..",
              "RRRRRR........RRRRRR",
              "RRRRRR........RRRRRR",
              "RRRRRR.::::::.RRRRRR"]),
     dict(name='THE GREAT ROCK', left=10, right=-1, moon=(40, 28),
-         bands=[(12, BLACK), (10, BLUE)], map=[
+         bands=[(20, BLACK), (10, BLUE)], map=[
              "....................",
+             "....................",
+             "....................",
+             ".......B............",
+             "......::............",
              ".........P..........",
-             ".......B.......J....",
+             "...::..B.......J....",
              ".............RRRRRRR",
-             "......::.....RRRRRRR",
+             "......::..::.RRRRRRR",
              "...B.........RRRRRRR",
              "..::......::.RRRRRRR",
              "......G......RRRRRRR",
              "RRRRRRRRRRRRRRRRRRRR",
              "RRRRRRRRRRRRRRRRRRRR",
              "RRRRRRRRRRRRRRRRRRRR"]),
+    # ---- THE DIGGINGS: an opal field. Down the shaft, along the drive, up
+    # the winze on the air from the vents.
+    dict(name='SHAFT HEAD', left=-1, right=-1, down=13, moon=(250, 26),
+         bands=[(17, BLACK), (5, BLUE), (4, MAGENTA), (4, RED)],
+         mesa=[(0, 184), (90, 184), (100, 172), (200, 172), (212, 184), (320, 184)],
+         headframe=(192, 208), map=[
+             "....................",
+             "....................",
+             "....................",
+             "............B.......",
+             "....................",
+             "...........--.......",
+             "...P................",
+             "........--..........",
+             ".........B..........",
+             "......--............",
+             "....B...............",
+             "....M...............",
+             "S..MMM..T........B..",
+             "###########..#######",
+             "###########..#######"]),
+    dict(name='THE DROP', left=-1, right=14, up=12, mine=True, props=[100, 230], map=[
+             "DDDDDDDDDDD..DDDDDDD",
+             "DDDDDDDDDDD..DDDDDDD",
+             "D..................D",
+             "D^^B...............D",
+             "D^^.::.............D",
+             "D^^.......B........D",
+             "D^^B.....::.......BD",
+             "D^^..::........::..D",
+             "D^^...............BD",
+             "D^^......::........D",
+             "D^^..B.............D",
+             "D^^.....V....::....D",
+             "D^^.............T...",
+             "DDDDDDDDDDDDDDDDDDDD",
+             "DDDDDDDDDDDDDDDDDDDD"]),
+    dict(name='THE DRIVE', left=13, right=15, mine=True, props=[60, 260], map=[
+             "DDDDDDDDDDDDDDDDDDDD",
+             "DDDDDDDDDDDDDDDDDDDD",
+             "DDDDDD.........DDDDD",
+             "DDDDD..B...^^.B.DDDD",
+             "DDDDD......^^...DDDD",
+             "DDDDD.::...^^..::DDD",
+             "DDDDDDD..B.^^...DDDD",
+             "DDDD.......^^....DDD",
+             "DD...B.....^^..B..DD",
+             "D....::....^^......D",
+             "D..........^^......D",
+             "...V.......^^..::...",
+             "......T....^^....T..",
+             "DDDDDDDDDD.^^.DDDDDD",
+             "DDDDDDDDDD.^^.DDDDDD"]),
+    dict(name='OPAL GALLERY', left=14, right=16, mine=True, opal=True, props=[150], map=[
+             "DDDDDDDDDDDDDDDDDDDD",
+             "D..................D",
+             "D..................D",
+             "D....B......B......D",
+             "D..................D",
+             "D....::.....::.....D",
+             "D^^.B....B.......B.D",
+             "D^^::...::.....DDDDD",
+             "D^^.......V....DDDDD",
+             "D^^...::...........D",
+             "D^^.........::.....D",
+             ".^^.................",
+             ".^^..T.....T........",
+             "DDDDDDDDDDDDDDDDDDDD",
+             "DDDDDDDDDDDDDDDDDDDD"]),
+    dict(name='THE WINZE', left=15, right=-1, up=17, mine=True, props=[60, 250], map=[
+             "DDDDDDDDD^^DDDDDDDDD",
+             "DDDDDDDDD^^DDDDDDDDD",
+             "D........^^........D",
+             "D.....B..^^..B.....D",
+             "D........^^........D",
+             "D....::..^^..::....D",
+             "D...B....^^......B.D",
+             "D..::....^^...::...D",
+             "D........^^........D",
+             "D....V...^^........D",
+             "D.::.....^^....::..D",
+             ".........^^........D",
+             "...T.....^^.....T..D",
+             "DDDDDDDDDDDDDDDDDDDD",
+             "DDDDDDDDDDDDDDDDDDDD"]),
+    dict(name='DAYLIGHT', left=-1, right=-1, down=16, sun=(250, 160, 24),
+         mesa=[(0, 180), (130, 180), (140, 168), (320, 168)], map=[
+             "....................",
+             "....................",
+             "....................",
+             ".......B....B.......",
+             ".........^^.........",
+             "......B..^^..B......",
+             ".........^^.........",
+             ".........^^.........",
+             ".........^^.........",
+             ".........^^.........",
+             ".........^^.........",
+             ".........^^.........",
+             "..T......^^......J..",
+             "#########^^#########",
+             "#########^^#########"]),
+    # ---- THE WET: the monsoon has the floodplain under water
+    dict(name='THE FLOODPLAIN', left=-1, right=19, rain=True, moon=None,
+         bands=[(16, BLACK), (8, BLUE), (6, MAGENTA)], trees=[(52, 208, 84)], map=[
+             "....................",
+             "....................",
+             "....................",
+             "...B.........B......",
+             "..---.......---.....",
+             "....................",
+             ".......---..........",
+             "....................",
+             "....--......P.......",
+             "....................",
+             ".............B......",
+             "....................",
+             "S.....T.............",
+             "WWWWWWWWW~~~oo~~~WWW",
+             "WWWWWWWWW~~~~~~~~WWW"]),
+    dict(name='PAPERBARK SWAMP', left=18, right=20, rain=True, moon=None,
+         bands=[(16, BLACK), (8, BLUE), (6, MAGENTA)], trees=[(36, 208, 112), (288, 208, 112)], map=[
+             "....................",
+             "....................",
+             ".........B..........",
+             "........---.........",
+             ".....B.......B......",
+             "......--.....--.....",
+             "....................",
+             "...---.......---....",
+             "....................",
+             ".......---..........",
+             "..................B.",
+             "....................",
+             "..T.............G...",
+             "WWWW~~oo~~~oo~~WWWWW",
+             "WWWW~~~~~~~~~~~WWWWW"]),
+    dict(name='THE STORM', left=19, right=21, rain=True, moon=None,
+         bands=[(18, BLACK), (8, BLUE), (4, MAGENTA)], map=[
+             "....................",
+             ".....B.......B......",
+             "...^^.........^^....",
+             "..B^^.........^^B...",
+             "...^^.........^^....",
+             "...^^.........^^....",
+             "...^^....B....^^....",
+             "...^^.........^^....",
+             "...^^.........^^....",
+             "...^^....P....^^....",
+             "...^^.........^^....",
+             "...^^.........^^....",
+             "...^^.........^^....",
+             "WWW~~~~~oo~~~~~~~WWW",
+             "WWW~~~~~~~~~~~~~~WWW"]),
+    dict(name="BUFO'S GATE", left=20, right=-1, rain=True, moon=None,
+         bands=[(16, BLACK), (8, BLUE), (6, MAGENTA)], gate=True, map=[
+             "....................",
+             "....................",
+             "..........B.........",
+             "....................",
+             "..........::........",
+             "......B......B......",
+             ".......::...........",
+             "....................",
+             "..........::........",
+             "....................",
+             "......::......::....",
+             "....................",
+             "...T.....T....T..J..",
+             "WWWWWWWWWWWWWWWWWWWW",
+             "WWWWWWWWWWWWWWWWWWWW"]),
+    # ---- KING BUFO'S COURT
+    dict(name='THE LARDER', left=-1, right=23, court=True, jars=[60, 150, 240], map=[
+             "KKKKKKKKKKKKKKKKKKKK",
+             "K...................",
+             "K.......B......B....",
+             "K......::......::...",
+             "K...B........B......",
+             "K...::.......::.....",
+             "K.......B...........",
+             "K.......::......::..",
+             "K...B...............",
+             "K...::........::....",
+             "K.......B...........",
+             "K.......::......::..",
+             ".S..................",
+             "KKKKKKKKKKKKKKKKKKKK",
+             "KKKKKKKKKKKKKKKKKKKK"]),
+    dict(name='THE THRONE', left=22, right=-1, court=True, throne=True, map=[
+             "KKKKKKKKKKKKKKKKKKKK",
+             "...................K",
+             "...................K",
+             "...................K",
+             "...................K",
+             "...................K",
+             "...................K",
+             "...................K",
+             "...................K",
+             "...................K",
+             "...................K",
+             "...................K",
+             "..............F....K",
+             "KKKKKKKKKKKKKKKKKKKK",
+             "KKKKKKKKKKKKKKKKKKKK"]),
 ]
 
 REGIONS = [dict(name='THE RED DIRT', start=0, rooms=range(0, 6)),
-           dict(name='STONE COUNTRY', start=6, rooms=range(6, 12))]
+           dict(name='STONE COUNTRY', start=6, rooms=range(6, 12)),
+           dict(name='THE DIGGINGS', start=12, rooms=range(12, 18)),
+           dict(name='THE WET', start=18, rooms=range(18, 22)),
+           dict(name="KING BUFO'S COURT", start=22, rooms=range(22, 24))]
+for _r in ROOMS:
+    assert len(_r['map']) == MH_ and all(len(row) == MW_ for row in _r['map']), _r['name']
 
 
 class Paint:
@@ -223,15 +485,24 @@ class Paint:
         return mask & ~(np.roll(mask, 1, 0) & np.roll(mask, -1, 0) & np.roll(mask, 1, 1) & np.roll(mask, -1, 1))
 
 
+def _band_rows(bands):
+    y = 0
+    for rows, col in bands:
+        yield y, y + rows * CH, col
+        y += rows * CH
+
+
 def sky(p, room):
     y = 0
+    p.bands = room.get('bands', SKY_BANDS)
+    p.band_at = lambda yy: next((c for y0, y1, c in _band_rows(p.bands) if y0 <= yy < y1), p.bands[-1][1])
     for rows, col in room.get('bands', SKY_BANDS):
         p.put(p.rect(0, y, PW, y + rows * CH), col, 0)
         y += rows * CH
     # stars in the dark bands; every fourth one twinkles
-    for n in range(56):
-        x, yy = p.rng.randint(3, PW - 3), p.rng.randint(3, 70)
-        col = WHITE if yy < 40 else BCYAN
+    for n in range(0 if room.get('rain') else 80):
+        x, yy = p.rng.randint(3, PW - 3), p.rng.randint(3, 134)
+        col = WHITE if yy < 90 else BCYAN
         big = n % 4 == 0 and (p.ph + n // 4) % 4 == 0
         if big:
             for dx, dy in ((0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)):
@@ -241,15 +512,18 @@ def sky(p, room):
             p.c[yy, x] = col
             p.m[yy, x] = 15
     # thin cloud streaks low in the sky
-    for i in range(5):
+    for i in range(0 if room.get('rain') else 5):
         x0 = p.rng.randint(0, PW - 60)
-        yy = 76 + p.rng.randint(0, 6) * 8
+        yy = 140 + p.rng.randint(0, 6) * 8
         L = p.rng.randint(24, 60)
         band = p.c[yy, x0]
         lite = {BLUE: BBLUE, MAGENTA: BMAGENTA, RED: BRED, BROWN: YELLOW}.get(int(band), GREY)
         msk = p.rect(x0, yy, x0 + L, yy + 1)
         p.put(msk, lite, None)
         p.put(p.rect(x0, yy, x0 + L, yy + 1) & (p.xx % 2 == 0), lite, 1)
+    if room.get('rain'):
+        rain(p)
+        return
     if room.get('moon'):
         mx, my = room['moon']
         d = (p.xx - mx) ** 2 + ((p.yy - my) * 1.1) ** 2
@@ -368,14 +642,21 @@ def sandstone(p, mp, tx, ty):
         p.put(p.rect(x0 + TW - 1, y0, x0 + TW, y0 + TH), BLACK, 1)
 
 
+def speckle(p, seed, dens):
+    """a random speckle that repeats every 48 x 32 pixels (6 x 4 cells), so a
+    whole wall of it costs only 24 glyphs"""
+    t = np.random.RandomState(seed).rand(32, 48) < dens
+    return t[p.yy % 32, p.xx % 48]
+
+
 def cave(p):
     """the inside of the escarpment: dark rock, speckled, faint strata"""
     p.put(p.rect(0, 0, PW, PH), BLACK, 0)
-    sp = ((p.xx * 13 + p.yy * 7) % 23 == 0) | ((p.xx * 5 + p.yy * 11) % 37 == 0)
+    sp = speckle(p, 7, 0.022)
     p.put(sp, BROWN, None)
-    p.m[((p.xx * 13 + p.yy * 7) % 23 == 0)] = 15
+    p.m[sp & speckle(p, 8, 0.6)] = 15
     for y in range(12, PH, 24):
-        p.put(p.rect(0, y, PW, y + 1) & ((p.xx // 2 + y) % 5 == 0), RED, None)
+        p.put(p.rect(0, y, PW, y + 1) & ((p.xx // 2) % 4 == 0), RED, None)
 
 
 def rock_art(p, kind, x, y):
@@ -419,8 +700,8 @@ def solid_at(mp, tx, ty):
     if ty >= MH:
         return True
     if tx < 0 or tx >= MW:
-        return mp[ty][max(0, min(MW - 1, tx))] in '#R'
-    return mp[ty][tx] in '#M=R'
+        return mp[ty][max(0, min(MW - 1, tx))] in '#RDWK'
+    return mp[ty][tx] in '#M=RDWK'
 
 
 def dirt(p, mp, tx, ty):
@@ -617,6 +898,176 @@ def reeds(p, x, y, n):
         p.put(p.rect(top - 1, y - hgt - 4, top + 1, y - hgt), BROWN, 1)
 
 
+def rain(p):
+    """the monsoon: streaks that fall two pixels a phase, the same in every
+    cell of open sky, so the whole downpour is a handful of living glyphs"""
+    on = ((p.xx % 16 == 3) & ((p.yy - 2 * p.ph) % 8 < 3)) | ((p.xx % 16 == 11) & ((p.yy - 2 * p.ph + 4) % 8 < 3))
+    p.c[on] = GREY
+    p.m[on & ((p.yy - 2 * p.ph) % 4 != 1)] = 15
+
+
+def wind(p, mp, tx, ty, inside):
+    """an updraught: motes climbing two pixels a phase"""
+    x0, y0 = tx * TW, ty * TH
+    r = p.rect(x0, y0, x0 + TW, y0 + TH)
+    if inside:
+        p.put(r, BLACK, 0)
+    w = 1 if inside else 2
+    on = r & (((p.xx % 8 >= 1) & (p.xx % 8 < 1 + w) & ((p.yy + 2 * p.ph) % 8 < 2)) |
+              ((p.xx % 8 >= 5) & (p.xx % 8 < 5 + w) & ((p.yy + 2 * p.ph + 4) % 8 < 2)))
+    p.put(on, BCYAN if inside else WHITE, 1)
+
+
+def mine(p, room):
+    """underground at the diggings: dark, pick-marked, timbered"""
+    p.put(p.rect(0, 0, PW, PH), BLACK, 0)
+    sp = speckle(p, 9, 0.03)
+    p.put(sp, BLUE, None)
+    p.m[sp & speckle(p, 10, 0.5)] = 15
+    for x in room.get('props', []):
+        # a set of timber: two legs and a cap, and a lamp hung from it
+        for lx in (x - 14, x + 13):
+            leg = p.rect(lx, 40, lx + 3, GROUND)
+            p.put(leg, BROWN, 0)
+            p.put(p.rect(lx, 40, lx + 1, GROUND), YELLOW, 1)
+            p.put(leg & (p.yy % 11 == 5), BLACK, 0)
+        cap = p.rect(x - 18, 36, x + 20, 40)
+        p.put(cap, BROWN, 0)
+        p.put(p.rect(x - 18, 36, x + 20, 37), YELLOW, 1)
+        p.put(p.rect(x, 40, x + 1, 46), GREY, 1)
+        glow = (abs(p.xx - x) + abs(p.yy - 50) * 1.2) < (4 if p.ph % 2 else 3)
+        p.put(glow, YELLOW, 1)
+        p.put(p.rect(x - 1, 49, x + 2, 52), WHITE, 1)
+
+
+def court(p, room):
+    """King Bufo's hall: dark, with pillars and bug-jars on shelves"""
+    p.put(p.rect(0, 0, PW, PH), BLACK, 0)
+    sp = speckle(p, 11, 0.02)
+    p.put(sp, MAGENTA, None)
+    for x in (40, 120, 200, 280):
+        col = p.rect(x - 5, 16, x + 5, GROUND)
+        p.put(col, BLACK, 0)
+        p.put(p.rect(x - 5, 16, x - 4, GROUND) | p.rect(x + 4, 16, x + 5, GROUND), MAGENTA, 1)
+        p.put(col & (p.xx == x) & (p.yy % 4 < 2), BMAGENTA, None)
+        p.put(p.rect(x - 8, 16, x + 8, 19) | p.rect(x - 8, GROUND - 3, x + 8, GROUND), BMAGENTA, 1)
+    for x in room.get('jars', []):
+        _stamp(p, _cr.JAR, x, GROUND - 1, BCYAN)
+    if room.get('throne'):
+        # the royal lily pad: a dais and a banner with a crown
+        p.put(p.rect(196, GROUND - 8, 268, GROUND) & ((p.xx + p.yy) % 2 == 0), GREEN, 1)
+        p.put(p.rect(196, GROUND - 8, 268, GROUND - 7), BGREEN, 1)
+        ban = p.rect(222, 24, 242, 64) & ~((p.yy > 56) & (abs(p.xx - 232) < (p.yy - 56)))
+        p.put(ban, RED, 0)
+        p.put(p.outline(ban), YELLOW, 1)
+        crown = p.rect(226, 40, 238, 44) | (p.rect(226, 34, 238, 40) & ((p.xx - 226) % 5 < 2))
+        p.put(crown, YELLOW, 1)
+
+
+def _stamp(p, rows, cx, by, col):
+    for j, row in enumerate(rows):
+        for i, ch in enumerate(row):
+            x, y = cx - len(row) // 2 + i, by - len(rows) + j
+            if ch == '#' and 0 <= x < PW and 0 <= y < PH:
+                p.c[y, x] = col
+                p.m[y, x] = 15
+            elif ch == 'o' and 0 <= x < PW and 0 <= y < PH:
+                p.c[y, x] = BLACK
+                p.m[y, x] = 0
+
+
+def headframe(p, x, by):
+    """the poppet head over the shaft: a timber tripod and its wheel"""
+    for k in range(60):
+        for sx in (-1, 1):
+            xx = x + sx * (4 + k // 3)
+            y = by - 60 + k
+            p.put(p.rect(xx, y, xx + 2, y + 1), YELLOW if sx < 0 else BROWN, 1)
+    p.put(p.rect(x - 8, by - 34, x + 10, by - 32), BROWN, 1)
+    d = (p.xx - x) ** 2 + ((p.yy - (by - 62)) * 1.15) ** 2
+    p.put((d < 49) & (d > 25), WHITE, 1)
+    p.put(p.rect(x, by - 68, x + 1, by - 56) | p.rect(x - 6, by - 62, x + 7, by - 61), GREY, 1)
+    p.put(p.rect(x, by - 56, x + 1, by) & (p.yy % 2 == 0), GREY, 1)
+
+
+def digrock(p, mp, tx, ty, opal=False):
+    """the diggings' rock: blue-black, pick-marked; here and there a seam
+    of opal that glitters"""
+    x0, y0 = tx * TW, ty * TH
+    r = p.rect(x0, y0, x0 + TW, y0 + TH)
+    p.put(r, BLUE, 0)
+    p.m[r & ((p.xx + p.yy * 2) % 4 == 0)] = 15          # amber: rock is stippled, the dark is not
+    top = ty > 0 and not solid_at(mp, tx, ty - 1)
+    h = (tx * 7 + ty * 13 + tx * ty) % (5 if opal else 11)
+    for half in (0, 1):
+        ya = y0 + half * 8
+        seam = (h == 0 and half == 0) or (h == 1 and half == 1)
+        cell = p.rect(x0, ya, x0 + TW, ya + 8)
+        marks = cell & (((p.xx * 3 + p.yy * 5 + tx) % 13 == 0) | (((p.xx - p.yy + ty * 3) % 16 == 0) & (p.yy % 2 == 0)))
+        if seam and not (top and half == 0):
+            col = BCYAN if (tx + ty) % 2 else BMAGENTA
+            vein = cell & ((p.xx + p.yy * 2 + tx * 5) % 9 < 2) & ((p.yy + tx) % 4 != 0)
+            tw = cell & ((p.xx * 5 + p.yy * 3 + p.ph * 7) % 23 == 0)
+            p.put(vein | tw, col, 1)
+            p.m[cell & ~(vein | tw)] = 0
+        else:
+            p.put(marks, BLACK, 0)
+    if top:
+        p.put(p.rect(x0, y0, x0 + TW, y0 + 2), BCYAN, 1)
+        p.put(p.rect(x0, y0 + 2, x0 + TW, y0 + 3), BLACK, 0)
+    if tx > 0 and not solid_at(mp, tx - 1, ty):
+        p.put(p.rect(x0, y0, x0 + 1, y0 + TH), BLACK, 1)
+    if tx < MW - 1 and not solid_at(mp, tx + 1, ty):
+        p.put(p.rect(x0 + TW - 1, y0, x0 + TW, y0 + TH), BLACK, 1)
+    if ty < MH - 1 and not solid_at(mp, tx, ty + 1):
+        p.put(p.rect(x0, y0 + TH - 1, x0 + TW, y0 + TH), BLACK, 1)
+
+
+def wetbank(p, mp, tx, ty):
+    """the Wet: black soil under long green grass that bends in the rain"""
+    x0, y0 = tx * TW, ty * TH
+    r = p.rect(x0, y0, x0 + TW, y0 + TH)
+    top = ty > 0 and not solid_at(mp, tx, ty - 1)
+    p.put(r, GREEN, 0)
+    sp = r & (((p.xx * 5 + p.yy * 9 + tx) % 19 == 0) | ((p.xx * 3 - p.yy * 7 + ty) % 23 == 0))
+    p.put(sp, BGREEN, None)
+    p.m[sp & ((p.xx + p.yy) % 2 == 0)] = 15
+    if top:
+        p.put(p.rect(x0, y0, x0 + TW, y0 + 2), BGREEN, 1)
+        for i in range(p.rng.randint(3, 6)):
+            gx = x0 + p.rng.randint(1, TW - 1)
+            hgt = p.rng.randint(4, 10)
+            sway = 1 if (p.ph + gx) % 4 < 2 else 0
+            for k in range(hgt):
+                x = gx + (k // 3) + (sway if k >= hgt - 4 else 0)
+                y = y0 - 1 - k
+                if 0 <= x < PW and y >= 0:
+                    p.c[y, x] = BGREEN
+                    p.m[y, x] = 15
+    for sx, nb in ((x0, tx - 1), (x0 + TW - 1, tx + 1)):
+        if 0 <= nb < MW and not solid_at(mp, nb, ty):
+            p.put(p.rect(sx, y0, sx + 1, y0 + TH) & (p.yy % 3 != 0), BGREEN, 1)
+
+
+def brick(p, mp, tx, ty):
+    """the court: mud brick, a gold course along the top"""
+    x0, y0 = tx * TW, ty * TH
+    r = p.rect(x0, y0, x0 + TW, y0 + TH)
+    top = ty > 0 and not solid_at(mp, tx, ty - 1)
+    p.put(r, MAGENTA, 0)
+    mortar = r & ((p.yy % 8 == 7) | ((p.xx + (p.yy // 8) * 8) % 16 == 15))
+    p.put(mortar, BLACK, None)
+    p.m[r & (p.yy % 8 == 7) & (p.xx % 2 == 0)] = 15
+    p.m[r & ((p.xx + (p.yy // 8) * 8) % 16 == 15) & (p.yy % 2 == 0)] = 15
+    if top:
+        cell = p.rect(x0, y0, x0 + TW, y0 + 8)
+        p.put(cell, MAGENTA, 0)
+        p.put(p.rect(x0, y0, x0 + TW, y0 + 2), YELLOW, 1)
+        p.put(p.rect(x0, y0 + 3, x0 + TW, y0 + 4) & (p.xx % 4 < 2), YELLOW, None)
+    if ty < MH - 1 and not solid_at(mp, tx, ty + 1):
+        p.m[p.rect(x0, y0 + TH - 1, x0 + TW, y0 + TH)] = 15
+
+
 def paint_room(idx, ph=0):
     room = ROOMS[idx]
     mp = room['map']
@@ -630,6 +1081,12 @@ def paint_room(idx, ph=0):
         leaves(p, *lv)
     if room.get('cave'):
         cave(p)
+    if room.get('mine'):
+        mine(p, room)
+    if room.get('court'):
+        court(p, room)
+    if room.get('headframe'):
+        headframe(p, *room['headframe'])
     for kind, x, y in room.get('art', []):
         rock_art(p, kind, x, y)
     for f in room.get('falls', []):
@@ -643,8 +1100,14 @@ def paint_room(idx, ph=0):
                 tm[ty, tx] = T_SOLID
             elif ch == '=':
                 tm[ty, tx] = T_SOLID
-            elif ch in 'MR':
+            elif ch in 'MRDWK':
                 tm[ty, tx] = T_SOLID
+            elif ch == '^':
+                tm[ty, tx] = T_WIND
+            elif ch == 'V':
+                objs.append((O_BAT, tx * TW + 8, ty * TH + 16))
+            elif ch == 'F':
+                objs.append((O_BUFO, tx * TW + 8, ty * TH + 16))
             elif ch == ':':
                 tm[ty, tx] = T_ONEWAY
             elif ch == 'P':
@@ -673,10 +1136,13 @@ def paint_room(idx, ph=0):
                 water(p, mp, tx, ty)
             elif ch == 'o':
                 lily(p, mp, tx, ty)
+            elif ch == '^':
+                wind(p, mp, tx, ty, bool(room.get('mine') or room.get('court') or room.get('cave')
+                                         or solid_at(mp, tx - 1, ty) or solid_at(mp, tx + 2, ty)))
     if idx == 1:
-        reeds(p, 40, 150, 4)
-        reeds(p, 150, 150, 3)
-        reeds(p, 222, 150, 3)
+        reeds(p, 40, GROUND + 6, 4)
+        reeds(p, 150, GROUND + 6, 3)
+        reeds(p, 222, GROUND + 6, 3)
     for ty in range(MH):
         for tx in range(MW):
             ch = mp[ty][tx]
@@ -692,6 +1158,12 @@ def paint_room(idx, ph=0):
                 dirt(p, mp, tx, ty)
             elif mp[ty][tx] == 'R':
                 sandstone(p, mp, tx, ty)
+            elif mp[ty][tx] == 'D':
+                digrock(p, mp, tx, ty, bool(room.get('opal')))
+            elif mp[ty][tx] == 'W':
+                wetbank(p, mp, tx, ty)
+            elif mp[ty][tx] == 'K':
+                brick(p, mp, tx, ty)
     return p, tm, objs
 
 
@@ -827,7 +1299,7 @@ def compile_room(idx, mono):
                 anim=bytes(ab), rgb=rgb, room=ROOMS[idx])
 
 
-R_SCR, R_ATTR, R_COL, R_TMAP, R_OBJ, R_NPAT, R_NAME, R_PAT, R_ANIM = 0, 0x400, 0x800, 0xC00, 0xD00, 0xD40, 0xD50, 0xE00, 0x2600
+R_SCR, R_ATTR, R_COL, R_TMAP, R_OBJ, R_NPAT, R_NAME, R_PAT, R_ANIM = 0, 0x500, 0xA00, 0xF00, 0x1040, 0x1080, 0x1090, 0x1100, 0x2900
 R_SIZE = 0x4000
 NCELL = COLS * ROWS
 

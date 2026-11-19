@@ -13,10 +13,12 @@ import numpy as np
 
 SS = 4
 CW, CH = 14, 11                 # canvas in cells
-W, H = CW * 8, CH * 8
+CELL = 10                       # lines a cell
+W, H = CW * 8, CH * CELL
 AC = 6                          # the anchor cell (column of the body centre)
 AX = AC * 8 + 4
 XS = 0.8
+YS = 1.15                       # 10-line cells: drawn lines per world unit
 
 BLACK, RED, GREEN, BROWN, BLUE, MAGENTA, CYAN, GREY = range(8)
 DGREY, BRED, BGREEN, YELLOW, BBLUE, BMAGENTA, BCYAN, WHITE = range(8, 16)
@@ -40,7 +42,7 @@ class Cv:
         self.col = np.zeros((H, W), np.uint8)
         y, x = np.mgrid[0:H * SS, 0:W * SS]
         self.gx = ((x + 0.5) / SS - AX) / XS          # world x
-        self.gy = H - (y + 0.5) / SS                  # world y (up)
+        self.gy = (H - (y + 0.5) / SS) / YS           # world y (up)
 
     def _down(self, hi, th=0.45):
         return hi.reshape(H, SS, W, SS).mean(axis=(1, 3)) >= th
@@ -385,7 +387,7 @@ def sheet(path, scale=2):
     for j, f in enumerate(FIGHTERS):
         for i, (name, ink, col, jt) in enumerate(frames(f, mirror=j > 0)):
             cell = cellcol(ink, col)
-            rgb = np.array(PAL, np.uint8)[np.repeat(np.repeat(cell, 8, 0), 8, 1)]
+            rgb = np.array(PAL, np.uint8)[np.repeat(np.repeat(cell, CELL, 0), 8, 1)]
             sub = img[j * H:(j + 1) * H, i * W:(i + 1) * W]
             sub[ink] = rgb[ink]
     im = Image.fromarray(img).resize((int(n * W * scale * 1.25), len(FIGHTERS) * H * scale), Image.NEAREST)
@@ -397,9 +399,9 @@ def cellcol(ink, col):
     out = np.zeros((CH, CW), np.uint8)
     for cy in range(CH):
         for cx in range(CW):
-            m = ink[cy * 8:cy * 8 + 8, cx * 8:cx * 8 + 8]
+            m = ink[cy * CELL:cy * CELL + CELL, cx * 8:cx * 8 + 8]
             if m.any():
-                c = col[cy * 8:cy * 8 + 8, cx * 8:cx * 8 + 8][m]
+                c = col[cy * CELL:cy * CELL + CELL, cx * 8:cx * 8 + 8][m]
                 out[cy, cx] = np.bincount(c, minlength=16).argmax()
     return out
 

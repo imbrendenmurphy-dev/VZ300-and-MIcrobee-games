@@ -9,6 +9,15 @@ Four zones: SANDSTONE GALLERY, MANGROVE TUNNELS, OPAL MINES and
 THE BUNYIP'S DEEP. Find the keys, swing the lever gates, beat each
 zone's guardian, then reach the exit.
 
+The title plays its tune, then shows the story, the keys and the
+locals in turn. SPACE goes to the skill menu: SHE'LL BE RIGHT (half
+the bites), HURT ME PLENTY, or FLAMIN' NIGHTMARE (double).
+T on the title shows a test card of what the machine reads back
+from its video memory.
+
+Doors are the walls made of square panels. Gates are bars. Walls
+marked with arrows are levers and exits: walk up and press E.
+
   Cursor keys / W A S D   walk and turn
   Z  X                    sidestep
   SPACE                   zap

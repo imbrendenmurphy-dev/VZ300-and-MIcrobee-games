@@ -1,6 +1,7 @@
 """SPINDRIFT: build everything.   python3 tools/build.py
 
-1. data blocks and generated includes (tools/mkdata.py, tools/mkmusic.py)
+1. data blocks and generated includes (tools/mkdata.py, tools/mkmusic.py,
+   tools/song.py for the title music)
 2. the program (src/main.asm -> build/SPIN.BIN); a JR out of range is
    turned into a JP in the source and the build tried again
 3. the CP/M loader (src/loader.asm -> build/SPIN.COM)
@@ -20,7 +21,7 @@ BUILD = ROOT / 'build'
 BUILD.mkdir(exist_ok=True)
 sys.path.insert(0, str(HERE))
 
-FILES = [('STG_PROG', 'SPIN', 'BIN'), (4, 'TAB', 'BNK'), (5, 'ENM', 'BNK'), (6, 'PIC', 'BNK')]
+FILES = [('STG_PROG', 'SPIN', 'BIN'), (4, 'TAB', 'BNK'), (5, 'ENM', 'BNK'), (6, 'PIC', 'BNK'), (7, 'MUS', 'BNK')]
 
 
 def run(cmd, cwd):
@@ -56,6 +57,7 @@ def assemble_main():
 def main():
     subprocess.check_call([sys.executable, str(HERE / 'mkdata.py')])
     subprocess.check_call([sys.executable, str(HERE / 'mkmusic.py')])
+    subprocess.check_call([sys.executable, str(HERE / 'song.py')])
     (SRC / 'loadfiles.inc').write_text('\n'.join(
         '\tDB %s, $00, "%-8s%s"' % (b, n, e) for b, n, e in FILES) + '\n')
     assemble_main()

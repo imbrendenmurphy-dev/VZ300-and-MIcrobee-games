@@ -1071,6 +1071,6 @@ draw_boss_objs:
 warn1:      db "! CAKE KNIFE !  ",0
 warn2:      db "!! FLAMES OUT !!",0
 ovl_end:
-        ASSERT ovl_end <= OVL_END
+        ASSERT ovl_end <= POOLRAM       ; (POOLRAM: the pool glyphs during play)
         SAVEBIN "../build/OVL2.BIN",OVL,ovl_end-OVL
         DISPLAY "stage 2 overlay end: ",ovl_end

@@ -1,0 +1,2 @@
+flick: 22 frames, 4366 bytes packed, 9367 bytes in bank
+dusty: 22 frames, 5874 bytes packed, 12501 bytes in bank

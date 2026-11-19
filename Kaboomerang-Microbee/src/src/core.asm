@@ -11,6 +11,8 @@ hw_init:
         ld bc,vars_end-vars_start-1
         ld (hl),0
         ldir
+        call init_div10
+        call init_noise
         ld a,2
         ld (steps),a
         ; PIO A: input (joystick)
@@ -46,10 +48,10 @@ hw_init:
         call crtc_game
         ret
 
-; 40 x 25 characters of 8 lines (320 x 200). The values follow BPM's
-; MODES.COM 40-column test, proven on the Premium Plus (clock40 sets the
-; half dot clock first). Its 40 x 24 and 40 x 32 tables differ from this
-; only in R6 and R7.
+; 40 x 25 characters of 10 lines (320 x 250): the tallest picture the two
+; 1K pages allow, filling a PAL screen. The values are BPM's MODES.COM
+; 40 x 25 (8 x 10) table, proven on the Premium Plus (clock40 sets the half
+; dot clock first): 31 rows of 10 lines + 3 = 313 lines a field.
 crtc_game:
         call clock40
         ld a,(crtc_vpos)
@@ -74,9 +76,9 @@ crtc_game:
         ld a,(crtc_vpos)
         out (P_CRTCD),a
         ret
-CRTC_V  equ $21
+CRTC_V  equ $1C
 ;               R0  R1  R2  R3  R4  R5  R6  R7  R8  R9  R10 R11 R12 R13 R14 R15
-crtc_tab:       db $35,$28,$2C,$34,$26,$01,$19,CRTC_V,$48,$07,$20,$07,$00,$00,$00,$00
+crtc_tab:       db $35,$28,$2C,$34,$1E,$03,$19,CRTC_V,$48,$09,$20,$09,$00,$00,$00,$00
 
 ; clock40: select the half (40-column) dot clock. As BPM's MODES.COM does
 ; it: read port 09h with 01h on the upper address lines (IN A,(n) puts A
@@ -169,10 +171,13 @@ vschk:  in a,(P_CRTCA)
         ret
 
 ; ---------------------------------------------------------------------
-; frame_wait: the 2-channel pin-pulse beeper (from TENNIS II on the VZ)
-; plays until (vcount) reaches A fields since the last frame. Loop = 127 T
-; (26.6 kHz). Channel 1 = acc1/step1, channel 2 = acc2/step2.
-; Noise mode: channel 2 pulses when a byte of the program is below D'.
+; frame_wait: the 2-channel square-wave beeper: plays until (vcount)
+; reaches A fields since the last frame. Loop = 127 T (26.6 kHz).
+; Channel 1 = acc1/step1, channel 2 = acc2/step2 (frequency = step x 0.406).
+; Noise mode: channel 1 still plays (the kaboom's thump) and channel 2 is a
+; sample-and-hold noise: a random byte from noisetab, stepped (nrate)/256
+; bytes a sample, sets the pin when below (ndens). Slow steps rumble, fast
+; ones hiss; the density is the loudness.
 ; ---------------------------------------------------------------------
 frame_wait:
         ld (fw_need),a
@@ -192,20 +197,20 @@ frame_wait:
         ld a,(vblast)
         ld c,a                  ; C' = last vblank level
         exx
-.lp:    add hl,de               ; 11  channel 1
-        sbc a,a                 ; 4
+.lp:    add hl,de               ; 11  channel 1: a square wave (bit 15)
+        ld a,h                  ; 4
+        rrca                    ; 4
         and $40                 ; 7
         ld b,a                  ; 4
         exx                     ; 4
         add hl,de               ; 11  channel 2
-        sbc a,a                 ; 4
+        ld a,h                  ; 4
+        rrca                    ; 4
         and $40                 ; 7
         exx                     ; 4
         or b                    ; 4
         out (P_PIOB),a          ; 11
-        nop                     ; 4 x 4: the same 127 T as the noise loop
-        nop
-        nop
+        nop                     ; 4 x 2: 127 T a sample
         nop
         in a,(P_CRTCA)          ; 11
         and $20                 ; 7
@@ -249,41 +254,39 @@ frame_wait:
         ret
 
 fw_noise:
+        push ix
+        push iy
+        ld a,(vblast)
+        ld iyl,a                ; IYL = last vblank level
+        ld a,(ndens)
+        ld ixh,a                ; IXH = density
         ld hl,(acc1)
         ld de,(step1)
         exx
-        ld hl,(acc2)
-        ld a,h
-        and $3F
-        or $80
-        ld h,a                  ; walk the program bytes $8000-$BFFF
-        ld de,(step2)           ; D' = density
-        ld a,(vblast)
-        ld c,a
+        ld hl,(nacc)
+        ld bc,(nrate)
+        ld d,noisetab/256
         exx
-.lp:    add hl,de               ; channel 1
-        sbc a,a
-        and $40
-        ld b,a
-        exx
-        ld a,(hl)
-        inc hl
-        res 6,h
-        cp d
-        sbc a,a
-        and $40
-        exx
-        or b
-        out (P_PIOB),a
-        exx
-        in a,(P_CRTCA)
-        and $20
-        cp c
-        exx
-        jr z,.lp                ; = 127 T
-        exx
-        ld c,a
-        exx
+.lp:    add hl,de               ; 11  channel 1: square
+        ld a,h                  ; 4
+        rrca                    ; 4
+        and $40                 ; 7
+        ld b,a                  ; 4
+        exx                     ; 4
+        add hl,bc               ; 11  noise: step through the table
+        ld e,h                  ; 4
+        ld a,(de)               ; 7
+        cp ixh                  ; 8
+        sbc a,a                 ; 4
+        and $40                 ; 7
+        exx                     ; 4
+        or b                    ; 4
+        out (P_PIOB),a          ; 11
+        in a,(P_CRTCA)          ; 11
+        and $20                 ; 7
+        cp iyl                  ; 8
+        jp z,.lp                ; 10 = 130 T
+        ld iyl,a
         or a
         jr z,.lp
         ld a,(vcount)
@@ -294,18 +297,30 @@ fw_noise:
         cp (hl)
         pop hl
         jr c,.lp
-        exx
-        ld a,c
+        ld a,iyl
         ld (vblast),a
-        exx
         xor a
         out (P_PIOB),a
         ld (acc1),hl
         exx
-        set 7,h
-        ld (acc2),hl
+        ld (nacc),hl
         exx
+        pop iy
+        pop ix
         jp frame_wait.done
+
+; noisetab: 256 random bytes (and the divide tables)
+init_noise:
+        ld hl,$ACE1
+        ld (seed),hl            ; (the seed is still 0 at start-up)
+        ld hl,noisetab
+.l:     push hl
+        call random
+        pop hl
+        ld (hl),a
+        inc l
+        jr nz,.l
+        ret
 
 ; ---------------------------------------------------------------------
 random:

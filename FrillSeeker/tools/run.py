@@ -23,12 +23,14 @@ def symbols(path=BUILD / 'main.sym'):
     return S
 
 
-def boot():
+def boot(mono=False):
+    """the machine as the loader leaves it: every block in place (the rooms
+    for this monitor, unpacked), the monitor at 8003h"""
     S = symbols()
     pp = Mbee()
     for line in (ROOT / 'src' / 'loadfiles.inc').read_text().splitlines():
         blk, off, name = [x.strip() for x in line.replace('DB', '').split(',')]
-        name = name.strip('"')
+        name = name.strip('"').replace('?', 'M' if mono else 'C').replace('LZB', 'BNK')
         f = BUILD / ('%s.%s' % (name[:8].strip(), name[8:]))
         d = np.frombuffer(f.read_bytes(), np.uint8)
         b = 0 if blk == 'STG_PROG' else int(blk)
@@ -37,17 +39,14 @@ def boot():
     pp.cpu.pc = 0x8000
     pp.cpu.sp = 0xEFF0
     pp.S = S
+    pp.poke(0x8003, 1 if mono else 0)
     return pp
 
 
 def start(mono=False):
     """boot, choose the monitor, pass the title, into the first room"""
-    pp = boot()
-    pp.run_frames(30)
-    pp.keys = ['M' if mono else 'C']
-    pp.run_frames(6)
-    pp.keys = []
-    pp.run_frames(30)
+    pp = boot(mono)
+    pp.run_frames(60)
     pp.keys = ['SPACE']
     pp.run_frames(8)
     pp.keys = []
@@ -56,12 +55,8 @@ def start(mono=False):
 
 
 def title(mono=False):
-    pp = boot()
-    pp.run_frames(30)
-    pp.keys = ['M' if mono else 'C']
-    pp.run_frames(6)
-    pp.keys = []
-    pp.run_frames(60)
+    pp = boot(mono)
+    pp.run_frames(90)
     return pp
 
 
@@ -69,14 +64,14 @@ def view(pp, mono=False):
     """the last complete picture off the model's tube, cropped to the 40-column
     picture and a little border, as RGB with square-ish pixels"""
     from PIL import Image
-    rgb = pp.frame_rgb(mono)[28:28 + 224, 24:24 + 672]
+    rgb = pp.frame_rgb(mono)[16:16 + 272, 24:24 + 672]
     return Image.fromarray(rgb)
 
 
 def shot(pp, path, mono=False, scale=1.5):
     from PIL import Image
     im = view(pp, mono)
-    im = im.resize((int(im.width * scale), int(im.height * scale * 1.6)), Image.NEAREST)
+    im = im.resize((int(im.width * scale), int(im.height * scale * 1.6)), Image.NEAREST)  # 672 x 272 -> 4:3
     im.save(path)
     return im
 

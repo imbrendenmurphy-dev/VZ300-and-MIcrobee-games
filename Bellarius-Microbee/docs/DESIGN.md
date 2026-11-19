@@ -90,15 +90,21 @@ Colour / mono choice at start, title with the logo and a scroller, attract demo 
 | H | pause; ESC while paused quits |
 | S | sound: music + effects / effects / off |
 
-## 6. Engine plan
+## 6. Engine
 
-**Scrolling.** The playfield is rows 1–23 (row 0 is the score line, row 24 the upgrade bar). Terrain lives in up to 12 *strip rows* per stage; the rest is sky. The build tool pre-renders every strip row at four 2-pixel phases into runs of glyph codes, banks and colours. Each frame the renderer copies 40 bytes per row per plane (unrolled LDI) from banked RAM into the hidden page: about 20,000 T-states for 10 strip rows, at 2 pixels per frame (50 pixels a second) with no glyph rebuilding at all. Sky rows are only touched where sprites were.
+**The rule (found on BPM's machine).** In the 40-column mode the real Premium Plus garbles the picture if the CPU reads or writes video RAM (screen, attributes, colours or PCG) while a line is being drawn: test 2 showed columns of junk glyphs and broken score text. So nothing touches video RAM while the picture is displayed. A frame is made in two halves:
 
-**Sprites.** Pre-shifted, masked frames composited into a per-page pool of PCG glyphs, from Kaboomerang. Small objects (bullets, shots, beams) use ready-made glyphs: drawn into sky cells by writing a glyph number, and only composited when they overlap something.
+- **Prepare** (during the picture, RAM only): work out each terrain row's runs for this scroll position, build the boss's cell list, compose sprites into pool glyphs in RAM (`POOLRAM`, 8 bytes a glyph) over a base picture worked out from RAM (`base_at`: the terrain runs, the boss, or the sky), and list the cells to put back.
+- **Blast** (vertical blanking only): terrain rows, boss glyphs and cells, cells put back to the sky, pool glyphs, new cells, queued text. Every step works in batches with a measured worst-case cost, taken from a budget of 21,000 T-states per blanking (of 24,408); a frame takes as many blankings as it needs. The first three steps can also go in a blanking that comes while sprites are still being composed (14,000 T budget, since the blanking bit is polled at least every ~8,000 T).
+- Whole-screen redraws (stage set-up, title pictures, glyph loading, clearing) switch the picture off (6545 R6 = 0) first; R6 only takes effect at the next frame, so `display_off` waits for the blanking.
 
-**Bosses.** Each boss is a big bitmap pre-shifted four ways, copied straight into a per-page PCG bank (no masking, it sits over the sky); variants for its animation, colour changes for flashes and warnings.
+**Scrolling.** The playfield is rows 1–23 (row 0 is the score line, row 24 the upgrade bar). Terrain lives in up to 12 *strip rows* per stage; the rest is sky. The build tool pre-renders every strip row at four 2-pixel phases into runs of glyph codes, banks and colours; the blast copies 40 bytes per row per plane (unrolled LDI) from banked RAM. When the scroll hasn't moved, only rows that sprites left are copied again.
 
-**Budget.** 135,000 T-states per 25 fps frame. Target: 25 fps in ordinary play, no worse than 16.7 fps at peaks. Enemy count and bullet caps are tuned after stage 1 is measured.
+**Sprites.** Pre-shifted, masked frames composited into pool glyphs in RAM, then copied to the page's pool bank (14 or 15). Small objects (bullets, shots, beams) use ready-made glyphs: drawn into sky cells by pointing the cell at them, and only composited when they overlap something.
+
+**Bosses.** Each boss is a big bitmap pre-shifted four ways. Its cell list (cell, paper and logical colour, bitmap source) is rebuilt only when its variant or position changes on that page; glyphs are copied to the page's boss bank (12 or 13) then, cells only when they changed, colours when the palette flashes.
+
+**Measuring.** `tools/vidcheck.py N` (one stage) and `tools/vidcheck_all.py` (front end, every boss, pause, game over) report any video access made while the picture is displayed; the raster model (`RASTER=1`) holds the CPU on such accesses as the real machine does in the 80-column modes.
 
 ## 7. Build order
 1. Stage 1 complete with the Copytron, the upgrade bar, bells, all four pilots. **Measure**: frame rate in busy scenes, input-to-screen delay, audio.

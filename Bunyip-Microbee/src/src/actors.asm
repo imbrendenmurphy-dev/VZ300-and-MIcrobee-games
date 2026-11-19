@@ -463,7 +463,7 @@ smash:  ld a,(ix+E_ST)
         jr nz,boom
         ld de,10
         call addscore
-        ld a,SND_HIT
+        ld a,SND_URN
         jp snd_play
 
 ; boom: IX = TNT going off.  Hurts creatures and you within BOOMR, lights
@@ -471,7 +471,7 @@ smash:  ld a,(ix+E_ST)
 boom:   ld (ix+E_INK),CYELLOW
         ld (ix+E_F),120
         ld (ix+E_TM),PUFFT-1
-        ld a,SND_BOSS
+        ld a,SND_BOOM
         call snd_play
         ld de,50
         call addscore
@@ -1102,6 +1102,16 @@ boss_down:
 ; hurt_player: A = damage
 hurt_player:
         ld b,a
+        ld a,(skill)            ; she'll be right: half; nightmare: double
+        cp 1
+        jr z,.sk
+        jr nc,.hard
+        srl b
+        jr nz,.sk
+        inc b
+        jr .sk
+.hard   sla b
+.sk
         ld a,(health)
         sub b
         jr nc,.h

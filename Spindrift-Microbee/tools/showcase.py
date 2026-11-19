@@ -43,8 +43,13 @@ def busiest(pp, frames, path, mono=False):
 def main(out):
     out = Path(out)
     out.mkdir(parents=True, exist_ok=True)
-    pp = run.to_title()
-    pp.run_frames(120)
+    pp = run.boot()
+    pp.run_frames(60)
+    run.press(pp, ['C'])
+    pp.run_frames(40)
+    run.shot(pp, out / '00_screen_shape.png')
+    run.press(pp, ['SPACE'])
+    pp.run_frames(200)
     run.shot(pp, out / '01_title.png')
     for _ in range(400):
         pp.run_frames(10)

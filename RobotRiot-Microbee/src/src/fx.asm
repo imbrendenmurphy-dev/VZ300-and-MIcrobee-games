@@ -95,6 +95,7 @@ title_balls:
 .blank: ld (hl),a
         djnz .c
         ld sp,(sp_save)
+        call vschk
         ld a,COL_ON
         out (P_COLCTL),a
         ld a,(fxt)
@@ -119,6 +120,9 @@ title_balls:
 ; glow_border: a dithered border round the screen edge (page 0) in
 ; glowing ink-and-paper colour pairs that chase round it
 glow_border:
+        ld a,(monomode)
+        or a
+        jr nz,march_border
         ld a,(fxt)
         and 3
         jr nz,.cols
@@ -164,6 +168,123 @@ glow_border:
         out (P_COLCTL),a
         ret
 
+; march_border: the monochrome glow: dither with solid blocks marching
+; round it (no colours)
+march_border:
+        ld a,LV_SCREEN
+        out (P_LV),a
+        ld a,(fxt)
+        srl a
+        ld c,a
+        ld a,(fxt)
+        rrca
+        rrca
+        and 1
+        ld e,a
+        ld (sp_save),sp
+        ld sp,edgeperim
+        ld b,126
+.c:     pop hl
+        ld a,h
+        add a,$F0
+        ld h,a
+        ld a,b
+        add a,c
+        and 3
+        ld a,G_BLOCK
+        jr z,.s
+        ld a,b
+        add a,e
+        and 1
+        add a,G_DITH1
+.s:     ld (hl),a
+        djnz .c
+        ld sp,(sp_save)
+        ret
+
+; logo_shine: a glint sweeps across the title logo (page 0), turning its
+; cells to reverse video in a band that leans with the letters
+logo_shine:
+        ld a,(fxt)
+        and 127
+        cp 48
+        ret nc
+        ld (t_k2),a
+        or a
+        jr z,.in
+        dec a                   ; the column it has left goes back
+        ld b,0
+        call shine_col
+.in:    ld a,(t_k2)             ; the band: 3 columns in reverse video
+        ld b,1
+        call shine_col
+        ld a,(t_k2)
+        inc a
+        ld b,1
+        call shine_col
+        ld a,(t_k2)
+        add a,2
+        ld b,1
+; shine_col: glint column A (0-47) normal (B = 0) or reversed (B = 1)
+shine_col:
+        cp 48
+        ret nc
+        add a,a
+        ld l,a
+        ld h,0
+        ld de,logostart
+        add hl,de
+        ld e,(hl)
+        inc hl
+        ld d,(hl)
+        inc hl
+        ld a,(hl)
+        inc hl
+        ld h,(hl)
+        ld l,a                  ; DE = first entry, HL = past the last
+        or a
+        sbc hl,de
+        ret z
+        ld a,l                  ; bytes / 7 = entries (< 256 x 7)
+        ld c,0
+.dv:    sub 7
+        jr c,.n
+        inc c
+        jr .dv
+.n:     ex de,hl
+.l:     push bc
+        ld e,(hl)
+        inc hl
+        ld d,(hl)
+        inc hl
+        inc hl                  ; (glint column)
+        ld a,b
+        or a
+        jr z,.nm
+        inc hl
+        inc hl
+.nm:    ld a,LV_SCREEN
+        out (P_LV),a
+        ld a,(hl)
+        ld (de),a
+        inc hl
+        ld a,LV_ATTR
+        out (P_LV),a
+        ld a,(hl)
+        ld (de),a
+        ld a,LV_SCREEN
+        out (P_LV),a
+        inc hl
+        ld a,b
+        or a
+        jr nz,.nx
+        inc hl
+        inc hl
+.nx:    pop bc
+        dec c
+        jr nz,.l
+        ret
+
 ; rainbow_rows: colour rows D..E-1 of page 0 in moving diagonal rainbow
 ; bands (the title logo)
 rainbow_rows:
@@ -193,6 +314,7 @@ rainbow_rows:
         djnz .c
         pop de
         inc d
+        call vschk
         jr .r
 .x:     xor a
         out (P_COLCTL),a

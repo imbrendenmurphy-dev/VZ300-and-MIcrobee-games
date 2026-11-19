@@ -138,11 +138,39 @@ sd_error:
         jr z,.w2
         ret
 
+; the title: load the front pack (its code, art and tune) and run it
+title:
+        di
+        ld sp,STACKTOP
+        ld a,$28
+        ld (latch),a
+        ld (LATCH),a
+        call stop_music
+        ld hl,PK_FRONT
+        call must_load
+        jp title_main
+
 PK_FRONT:
         dw FRONT_START,FR_END-FRONT_START
-        db 0
+        db 1
         db '"SCROSS00"'
-PK_STAGE1:
-        dw $4000,STG_END-$4000
+PK_STAGES:
+        dw PK_S1,PK_S2,PK_S3,PK_S4,PK_S5,PK_S6
+PK_S1:  dw $4000,S1_END-$4000
         db 1
         db '"SCROSS01"'
+PK_S2:  dw $4000,S2_END-$4000
+        db 1
+        db '"SCROSS02"'
+PK_S3:  dw $4000,S3_END-$4000
+        db 1
+        db '"SCROSS03"'
+PK_S4:  dw $4000,S4_END-$4000
+        db 1
+        db '"SCROSS04"'
+PK_S5:  dw $4000,S5_END-$4000
+        db 1
+        db '"SCROSS05"'
+PK_S6:  dw $4000,S6_END-$4000
+        db 1
+        db '"SCROSS06"'

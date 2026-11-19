@@ -130,6 +130,8 @@ sd_load:
             ld (cur_map),a
             out (BANKPORT),a
             im 2
+            ld a,1                  ; interrupts are off: maybe_ei turns them on again
+            ld (intoff),a
             ret
 
 ; next byte of the file -> A

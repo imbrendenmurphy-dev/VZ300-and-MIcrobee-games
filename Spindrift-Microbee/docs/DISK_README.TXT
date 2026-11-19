@@ -4,6 +4,8 @@ An arcade shooter for the Microbee Premium Plus.  VIBED BY BPM 2026
 TO PLAY
   At the A> prompt type:   SPIN
   Press C for a colour monitor or M for a monochrome one.
+  Then the SCREEN SHAPE: Z and X squash or stretch the ring of ships
+  until it looks round on your screen; fire to go on.
   Needs a Premium Plus with 1MB RAM and 32K PCG RAM.
 
 THE IDEA
@@ -17,9 +19,11 @@ KEYS                              JOYSTICK
   arrows/QAOP  fly round to that side of the vortex
   SPACE        fire
   H  pause   S  sound (music+fx / fx / off)   R  restart   ESC  quit
+  C or M on the title: change the monitor, then the screen shape
 
 PLAYING
   An enemy that flashes is about to break away and attack you.
+  "3 WARPS TO CINDER GATE" counts the waves to the next Guardian.
   You have three ships, each with a three-hit shield.
   Shoot a whole group of eight for a formation bonus (it grows).
   Hits on attackers score double; point blank at the rim, double again.

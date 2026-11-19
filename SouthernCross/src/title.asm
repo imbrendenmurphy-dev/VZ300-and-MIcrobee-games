@@ -1,5 +1,6 @@
 ; ============================================================================
 ;  TITLE SCREEN and the three-voice music player
+;  (assembled into the front pack, SCROSS00.DAT: it runs from SRAM bank B)
 ;
 ;  The title runs with interrupts off and owns the CPU, as the Cybernoid
 ;  front end does.  Three pulse voices are mixed by interleaving in one
@@ -29,15 +30,8 @@ TC_STEP  equ 14
 TC_INSE  equ 16
 TCSIZE   equ 18
 
-title:
-        di
-        ld sp,STACKTOP
-        ld a,$28
-        ld (latch),a
-        ld (LATCH),a
-        call stop_music
-        ld hl,PK_FRONT          ; the front-end pack (title art and tune)
-        call must_load
+; (title, in the core, has loaded this pack and jumps here)
+title_main:
         ; unpack the art into the frame buffer
         ld hl,FR_ART
         ld de,FB
@@ -52,7 +46,8 @@ title:
         inc de
         djnz .ur
         jr .un
-.und:   ; voices and sequencer
+.und:   call hof_page
+        ; voices and sequencer
         ld hl,TITLEVARS
         ld de,TITLEVARS+1
         ld bc,TITLEVARS_END-TITLEVARS-1
@@ -224,7 +219,7 @@ t_screen:
         ; the art goes up 512 bytes a field
         ld a,(t_upload)
         or a
-        jr z,.anim
+        jr z,.pg
         dec a
         ld (t_upload),a
         ld hl,(t_upsrc)
@@ -235,7 +230,10 @@ t_screen:
         ld (t_updst),de
         or a
         ret nz
-        ; last chunk done: the high score
+        ld a,(t_page)
+        or a
+        ret nz
+        ; last chunk of the title done: the high score
         ld hl,hiscore
         ld de,FR_HI_VRAM
         ld b,4
@@ -254,6 +252,37 @@ t_screen:
         pop bc
         djnz .hi
         ret
+.pg:    ; the title, the hall of fame, then the demo
+        ld hl,(t_ptm)
+        inc hl
+        ld (t_ptm),hl
+        ld a,(t_page)
+        or a
+        ld de,1250              ; 25 s of the title
+        jr z,.pt
+        ld de,400               ; 8 s of the hall of fame, then the demo
+.pt:    or a
+        sbc hl,de
+        jr c,.same
+        ld hl,0
+        ld (t_ptm),hl
+        ld a,(t_page)
+        xor 1
+        ld (t_page),a
+        jr z,.demo
+        ld hl,HOFBUF
+.src:   ld (t_upsrc),hl
+        ld hl,VRAM
+        ld (t_updst),hl
+        ld a,4
+        ld (t_upload),a
+        ret
+.demo:  ld a,1
+        ld (demo),a
+        jp start_game
+.same:  ld a,(t_page)
+        or a
+        ret nz
 .anim:  ; PRESS FIRE: on for 24 fields, off for 8
         ld a,(t_cnt)
         and 31
@@ -510,3 +539,182 @@ tc_tick:
         ld a,(hl)
         ld (ix+TC_STEP+1),a
         ret
+
+; ---------------------------------------------------------------- hall of fame
+; the page is drawn once into the overlay (free on the title) and goes up to
+; video RAM like the art, 512 bytes a field
+HOFBUF  equ OVL
+
+hof_page:
+        ld hl,HOFBUF
+        ld de,HOFBUF+1
+        ld bc,2047
+        ld (hl),$AA
+        ldir
+        ld hl,STR_HOF
+        ld bc,$FF00+3           ; centred, row 3
+        ld de,$55FF             ; yellow on red
+        call p_text
+        ld ix,HOF
+        ld c,14
+        ld a,'1'
+.e:     push af
+        push bc
+        ld hl,txtbuf
+        ld (hl),a
+        inc hl
+        ld (hl),' '
+        inc hl
+        ld (hl),' '
+        inc hl
+        ld a,(ix+4)
+        ld (hl),a
+        inc hl
+        ld a,(ix+5)
+        ld (hl),a
+        inc hl
+        ld a,(ix+6)
+        ld (hl),a
+        inc hl
+        ld (hl),' '
+        inc hl
+        ld (hl),' '
+        inc hl
+        ld b,4
+        push ix
+.d:     ld a,(ix+0)
+        rrca
+        rrca
+        rrca
+        rrca
+        and 15
+        add a,'0'
+        ld (hl),a
+        inc hl
+        ld a,(ix+0)
+        and 15
+        add a,'0'
+        ld (hl),a
+        inc hl
+        inc ix
+        djnz .d
+        pop ix
+        ld (hl),0
+        pop bc
+        push bc
+        ld hl,txtbuf
+        ld b,255
+        ld de,$55AA             ; yellow on blue
+        call p_text
+        pop bc
+        ld a,c
+        add a,8
+        ld c,a
+        ld de,7
+        add ix,de
+        pop af
+        inc a
+        cp '6'
+        jr c,.e
+        ld hl,STR_FIRE
+        ld bc,$FF00+56
+        ld de,$00AA             ; green on blue
+        jp p_text
+
+; HL = text, B = byte column (255 = centred), C = row, D = ink, E = paper
+p_text:
+        ld a,b
+        inc a
+        jr nz,.at
+        push hl
+        ld b,0
+.ln:    ld a,(hl)
+        or a
+        jr z,.lnd
+        inc b
+        inc hl
+        jr .ln
+.lnd:   pop hl
+        ld a,32
+        sub b
+        srl a
+        ld b,a
+.at:    ld (dt_col),de          ; (paper, ink)
+        ld a,e
+        ld (dt_paper),a
+        ld a,d
+        ld (dt_ink),a
+        push hl
+        ld l,c
+        ld h,0
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        add hl,hl               ; row * 32
+        ld c,b
+        ld b,0
+        add hl,bc
+        ld bc,HOFBUF
+        add hl,bc
+        ex de,hl                ; DE = destination
+        pop hl
+.ch:    ld a,(hl)
+        or a
+        ret z
+        inc hl
+        push hl
+        push de
+        sub 32
+        ld l,a
+        ld h,0
+        ld b,h
+        ld c,l
+        add hl,hl
+        add hl,hl
+        add hl,bc
+        ld bc,FONT4
+        add hl,bc               ; glyph
+        ld a,(dt_paper)
+        ld (de),a
+        ld b,5
+.gr:    ex de,hl
+        ld a,l
+        add a,32
+        ld l,a
+        jr nc,$+3
+        inc h
+        ex de,hl
+        push hl
+        ld a,(hl)
+        ld hl,EXPAND
+        add a,l
+        ld l,a
+        jr nc,$+3
+        inc h
+        ld c,(hl)
+        ld a,(dt_ink)
+        and c
+        ld l,a
+        ld a,c
+        cpl
+        ld c,a
+        ld a,(dt_paper)
+        and c
+        or l
+        ld (de),a
+        pop hl
+        inc hl
+        djnz .gr
+        ex de,hl
+        ld bc,32
+        add hl,bc
+        ld a,(dt_paper)
+        ld (hl),a
+        pop de
+        inc de
+        pop hl
+        jr .ch
+
+STR_HOF:  db "HALL OF FAME",0
+STR_FIRE: db "PRESS FIRE",0

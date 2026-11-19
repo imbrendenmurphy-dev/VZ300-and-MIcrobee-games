@@ -30,6 +30,11 @@ KEYS
 The title screen shows the race on autopilot and the best scores.
 
 ALSO ON THIS DISK
+  ROADTEST  prototype of a new road: an OutRun-style "effect"
+          road with per-line curves and bands rolling down it.
+          Starts on autopilot.  M accelerate, N brake, Z X
+          steer (any of these takes over), A autopilot on/off.
+          The top line shows the frame rate (25 = 2 fields).
   BENCH   video RAM speed test (seven numbers after ~8 seconds)
   CUBE    solid polygon test (dither-shaded spinning cube)
 

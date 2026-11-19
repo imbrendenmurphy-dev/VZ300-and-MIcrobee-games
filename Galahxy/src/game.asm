@@ -2,7 +2,7 @@
 ;  game.asm - game flow: new game, stage start, the play loop, pause,
 ;  stage clear tally, game over + continue, the attract-mode pilot
 ; =====================================================================
-NSTAGES     equ 1              ; stages in this build (the vertical slice)
+            include "gen/nstages.inc"
 
 ; A = character -> play until the game ends, then back to the caller
 new_game:
@@ -27,21 +27,16 @@ new_game:
             ld (credits),a
             ld (chain),a
             ld (wallet),a
+            ld (game_won),a
             ld a,$01                ; first extra life at 100,000
             ld (extra_at),a
-            ld a,(diff)
-            ld e,a
-            ld d,0
-            ld hl,diff_lives
-            add hl,de
-            ld a,(hl)
-            ld (p_lives),a
-            ld a,1
+            call .lives
+            ld a,(start_stage)
             ld (stage_no),a
             ld (bar_dirty),a
 .stage:     call stage_begin
             ret c                   ; (load failed: back to the title)
-            call play_loop
+.again:     call play_loop
             ld a,(stg_phase)
             cp PH_OVER
             jr z,.over
@@ -54,23 +49,15 @@ new_game:
             ld a,(hl)
             cp NSTAGES+1
             jr c,.stage
-            ld (hl),1               ; all stages done: round two, a bit hotter
-            ld hl,round
-            inc (hl)
-            call round_card
-            jr .stage
+            ld a,1                  ; that was the last one: the game is won
+            ld (game_won),a
+            ret
 .over:      ld a,(demo_on)
             or a
             ret nz
             call game_over_seq      ; NC = continue, C = really over
             ret c
-            ld a,(diff)             ; carry on from the same spot
-            ld e,a
-            ld d,0
-            ld hl,diff_lives
-            add hl,de
-            ld a,(hl)
-            ld (p_lives),a
+            call .lives             ; carry on from the same spot
             xor a
             ld (score),a
             ld (score+1),a
@@ -79,47 +66,28 @@ new_game:
             ld hl,credits
             inc (hl)
             call player_reset
-            call play_loop
-            ld a,(stg_phase)
-            cp PH_OVER
-            jr z,.over
-            jr .cont
-.cont:      call stage_clear
-            ld hl,stage_no
-            inc (hl)
+            jr .again
+.lives:     ld a,(diff)
+            ld e,a
+            ld d,0
+            ld hl,diff_lives
+            add hl,de
             ld a,(hl)
-            cp NSTAGES+1
-            jp c,.stage
-            ld (hl),1
-            ld hl,round
-            inc (hl)
-            call round_card
-            jp .stage
+            ld (p_lives),a
+            ret
 diff_lives: db 5, 3, 3
 
 ; ---------------------------------------------------------------------
 ; load and set up the stage, show its card. C = load failed.
 ; ---------------------------------------------------------------------
 stage_begin:
-            ld a,(stage_ld)
-            ld b,a
             ld a,(stage_no)
-            cp b
-            jr z,.have
-            ld (stage_ld),a
-            call silence
-            call loading_card
-            ld a,(stage_no)
-            add a,'0'
-            ld (n_stage+5),a
-            ld hl,n_stage
-            call sd_load
-            jr nc,.have
-            xor a
-            ld (stage_ld),a
-            call load_error
-            scf
-            ret
+            call load_pack
+            ret c
+            ld a,(stage_no)         ; later stages shoot a little faster
+            dec a
+            srl a
+            ld (round),a
 .have:      xor a
             ld (stg_phase),a
             ld (tl_hold),a
@@ -163,6 +131,25 @@ stage_begin:
             jp stage_card
 
 n_stage:    db '"GLXS1"',0
+
+; A = pack number: load GLXSn.DAT unless it is the one in memory. C = failed
+load_pack:
+            ld hl,stage_ld
+            cp (hl)
+            ret z
+            ld (hl),a
+            add a,'0'
+            ld (n_stage+5),a
+            call silence
+            call loading_card
+            ld hl,n_stage
+            call sd_load
+            ret nc
+            ld a,$FF
+            ld (stage_ld),a
+            call load_error
+            scf
+            ret
 
 ; ---------------------------------------------------------------------
 ; the play loop: returns when the stage is cleared or the game is over
@@ -427,11 +414,7 @@ stage_card:
             ld e,a
             ld d,0
             add hl,de               ; then its premise line
-            ld a,(round)
-            or a
-            jr z,.r1
-            ld hl,str_round2
-.r1:        ld a,30+6+6
+            ld a,30+6+6
             call small_centre
             ld a,1
             ld (hud_dirty),a
@@ -441,24 +424,6 @@ stage_card:
             ld a,120
             jp show_hold
 str_stage:  db "STAGE  ",0
-str_round2: db "ROUND 2: THE PARTY NEVER ENDS!",0
-
-round_card:
-            ld a,$AA
-            call cls_bb
-            ld a,1
-            ld c,2
-            call text_col
-            ld hl,str_round
-            ld a,20
-            call big_centre
-            ld hl,str_round_b
-            ld a,36
-            call small_centre
-            ld a,100
-            jp show_hold
-str_round:  db "ROUND 2",0
-str_round_b: db "SECOND HELPINGS!",0
 
 loading_card:
             ld a,$AA
@@ -576,10 +541,10 @@ stage_clear:
             ld c,2
             call text_col
             ld hl,str_b_total
-            ld a,54
+            ld a,51
             call small_centre
             ld hl,score
-            ld de,54*32+19
+            ld de,51*32+19
             call bbde
             call print_score
             call draw_hud

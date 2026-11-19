@@ -7,7 +7,7 @@ def sub(t): return re.sub(r'\$(\w+)(\+\d+)?', lambda m: '%04X' % (S[m.group(1)] 
 HEAD = """mapper 1
 crash 1
 okpc 8000 $code_end
-okpc B800 $s1_end
+okpc B800 E3FF
 okpc E400 $com_hi_end
 okpc 0038 003A
 okpc 7D7D 7D7F

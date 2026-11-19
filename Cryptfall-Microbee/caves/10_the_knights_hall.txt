@@ -1,0 +1,40 @@
+name: THE KNIGHTS' HALL
+hint: KNIGHTS MARCH TO AND FRO. DROP STONES
+quota: 43
+time: 100
+gem: 10 20
+magic: 25
+slow: 40
+slmax: 80
+bonus: 0
+theme: block1=GREY wall3=WHITE dirt1=BROWN dirt2=BROWN
+; solve: ! X
+map:
+##########################################################
+#........................................................#
+#.P............................*...................*.....#
+#.....o...........o.....*.....o........*o.o...o.....o....#
+#.B.BB.BBBBBBBBBBB.BBBBBBBBBBB.BBBBBBBBBBB.BBBBBBBBBBB.B.#
+#.        k                             k               .#
+#.  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *   .#
+#.B.BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB.B.#
+#.....o..................................................#
+#............*.........................o.................#
+#........o.....o.....o...........o...........o..o........#
+#.B.BBBBB.BBBBBBBBBBB.BBBBBBBBBBB.BBBBBBBBBBB.BBBBBBBB.B.#
+#.                 k             k                      .#
+#.  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *   .#
+#.B.BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB.B.#
+#,,,,,,,,,,,,*,,,,.,,,,,,,,,,,,,,,,,,,,,,,,,,,,,*,,,,,*,,#
+#,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,#
+#,,,,,,,,,,,o,,,,,,,,,*,o*,,*,o,,,,,o,,,,,,,,,,,o,,,*,,,,#
+#,B.BBBBBBBB.BBBBBBBBBBB.BBBBBBBBBBB.BBBBBBBBBBB.BBBBB.B,#
+#,                        k k                           ,#
+#,  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *   ,#
+#,B.BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB.B,#
+#,,,,,,,A,,,,,,,,,A,,,,,,,,,A,o,,,,,,,A,,,,o,,,,A*,,,,,,,#
+#,,,,,,,A,,,,,,,,,A,,,,,,,,,A,,,,,,,,,A,,,,,,,,,A,,+,,,,,#
+#,,,,,,,A,,,,,,,,,A,,,,,,,,,Aoo,,,,,,,A,,,,,,,,,A,,,,,,,,#
+#,,,,,,,A,*,,,,,,,A,,,,,,,,,A,,,,,,,,,A,,,,,,,,,A,,,,,,,,#
+#,,,,,,,,,,,,,,,,*,,,,,,,,,,,,,*,,,,,,,,,,,,,,,,,,,,,,,,,X
+##########################################################

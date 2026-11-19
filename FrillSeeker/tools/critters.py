@@ -187,6 +187,78 @@ GOAN2 = [             # resting, tongue out
 ]
 
 
+BAT_UP = [            # a ghost bat, wings up
+    "#...............#.",
+    "##.....#.#.....##.",
+    "###....###....###.",
+    ".####.#o#o#.####..",
+    "..#############...",
+    "...###########....",
+    ".....#######......",
+    "......##.##.......",
+]
+BAT_DOWN = [
+    ".......#.#........",
+    ".......###........",
+    "..####.o#o#.####..",
+    ".###############..",
+    "###..#######..###.",
+    "##....#####....##.",
+    "#......#.#......#.",
+    "..................",
+]
+BAT_DIVE = [          # folded, dropping
+    "..#.........#.....",
+    "..##.......##.....",
+    "..###.#.#.###.....",
+    "...####o#o###.....",
+    "...#########......",
+    "....#######.......",
+    ".....#####........",
+    "......#.#.........",
+    "..................",
+]
+CROWN = [
+    "#...#...#...",
+    "##.###.###.#",
+    "############",
+    "#o##o##o##o#",
+    "############",
+]
+
+
+def _big(rows, crown=None, cx=6):
+    """King Bufo: a cane toad at twice the size, corners knocked off,
+    crowned"""
+    out = []
+    for r in rows:
+        line = ''.join(ch * 2 for ch in r)
+        out += [line, line]
+    g = [list(r) for r in out]
+    h, w = len(g), len(g[0])
+    src = [row[:] for row in g]
+    for y in range(h):
+        for x in range(w):
+            if src[y][x] != '#':
+                continue
+            n = sum(1 for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))
+                    if not (0 <= x + dx < w and 0 <= y + dy < h) or src[y + dy][x + dx] == '.')
+            if n >= 2:
+                g[y][x] = '.'           # an outside corner of a doubled pixel
+    out = [''.join(r) for r in g]
+    if crown:
+        top = [('.' * cx + c).ljust(w, '.') for c in crown]
+        out = top + out
+    return out
+
+
+BUFO_SIT = _big(TOAD_SIT, CROWN, 5)
+BUFO_LEAP = _big(TOAD_HOP, CROWN, 9)
+BUFO_PUFF = _big(TOAD_EEK, CROWN, 3)
+BUFO_BACK0 = _big(TOAD_BACK0)
+BUFO_BACK1 = _big(TOAD_BACK1)
+
+
 def pad(rows):
     """a one-pixel empty border, so the halo survives"""
     w = max(len(r) for r in rows)
@@ -203,7 +275,10 @@ def frames():
                            ('TOAD_BACK0', TOAD_BACK0, 8), ('TOAD_BACK1', TOAD_BACK1, 8),
                            ('BUG0', BUG0, 4), ('BUG1', BUG1, 4), ('SPARK0', SPARK0, 4), ('SPARK1', SPARK1, 4), ('JAR', JAR, 7),
                            ('MAG_UP', MAG_UP, 9), ('MAG_DOWN', MAG_DOWN, 9), ('MAG_DIVE', MAG_DIVE, 9),
-                           ('GOAN0', GOAN0, 18), ('GOAN1', GOAN1, 18), ('GOAN2', GOAN2, 18)):
+                           ('GOAN0', GOAN0, 18), ('GOAN1', GOAN1, 18), ('GOAN2', GOAN2, 18),
+                           ('BAT_UP', BAT_UP, 9), ('BAT_DOWN', BAT_DOWN, 9), ('BAT_DIVE', BAT_DIVE, 9),
+                           ('BUFO_SIT', BUFO_SIT, 16), ('BUFO_LEAP', BUFO_LEAP, 16), ('BUFO_PUFF', BUFO_PUFF, 16),
+                           ('BUFO_BACK0', BUFO_BACK0, 16), ('BUFO_BACK1', BUFO_BACK1, 16)):
         p = pad(rows)
         ink, cut = parse(p)
         F[name] = (ink, cut, ox + 1, len(p) - 1)

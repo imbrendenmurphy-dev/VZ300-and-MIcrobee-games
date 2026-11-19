@@ -18,7 +18,7 @@ P_MEM       EQU $50
 P_LV        EQU $1C
 
 ; blocks (must match src/hw.asm): TABLES.BIN -> 1, ZONES.BIN -> 2 (staged,
-; as either may be CP/M's own lower block while loading), ART.BIN -> 3,
+; as either may be CP/M's own lower block while loading), ART.BIN -> 3 (staged in the zones block, 5000h),
 ; PCG.BIN -> 4; the sprites are made in blocks 6.. at start-up
 STG_PROG    EQU 28          ; the program, staged (moved to 8000h at the end)
 STG_TAB     EQU 29
@@ -100,7 +100,7 @@ main:       di
 files:      DB STG_PROG, $00, "BN      BIN"
             DB STG_TAB, $00, "TABLES  BIN"
             DB STG_ZONES, $00, "ZONES   BIN"
-            DB 3, $00, "ART     BIN"
+            DB STG_ZONES, $50, "ART     BIN"   ; staged after the zones (5000h on)
             DB 4, $00, "PCG     BIN"
             DB 0
 
@@ -401,7 +401,30 @@ final_start:
             jr nz,.lp
             pop hl
             jr .mv
-.go:        ; lower window = WORK block, still no video window (this code
+.go:        ; ART.BIN: staged at 5000h of the zones' block -> block 3 from 0.
+            ; On the real machine block 3 was changed while CP/M was still
+            ; reading the disk, so it is only written now, with CP/M gone.
+            ld hl,$5000
+            ld de,0
+.ac:        push de
+            ld a,STG_ZONES
+            call blk_port_f
+            out (P_MEM),a
+            ld de,$F800
+            ld bc,256
+            ldir
+            ld a,3
+            call blk_port_f
+            out (P_MEM),a
+            pop de
+            push hl
+            ld hl,$F800
+            ld bc,256
+            ldir
+            pop hl
+            ld a,h
+            cp $70
+            jr nz,.ac        ; lower window = WORK block, still no video window (this code
             ; is at F000h, where the video RAM appears): the game's start-up
             ; switches the video window on
             ld a,1

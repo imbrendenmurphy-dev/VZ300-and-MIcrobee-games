@@ -1,0 +1,40 @@
+name: A RAIN OF URNS
+hint: EVERY URN THAT FALLS BECOMES A JEWEL
+quota: 138
+time: 160
+gem: 10 20
+magic: 25
+slow: 40
+slmax: 80
+bonus: 1
+theme: urn=YELLOW wall3=GREY dirt1=BROWN
+; solve: ! X
+map:
+########################################################
+#.. uuuu*uu*u* *r***u  ** uuu* *u* *r*  uuu*uu**uruu ..#
+#.. u*urrr * uu*u u *u**uuuu* uu uu**u   *uuuuu* **  ..#
+#..  u* uuuruur u ruuuu*** *u**uuuurr*  *u***r ur*uu ..#
+#.. uuu*uu****u uuuuuu   *uuuuu uru* uuuuuu u*u u*u  ..#
+#.. * uuuuuuu uuuu*u r *** uuu*u * uu uu*uuu uu*u uu ..#
+#.. **u***u uuuuuuru*u  *r u*uuru** u*uuu uu*uu*u u* ..#
+#..                                                  ..#
+#..                                                  ..#
+#..                                                  ..#
+#..  A     A     A     A     A     A     A     A     ..#
+#..                                                  ..#
+#..                                                  ..#
+#..                                                  ..#
+#P.     A     A     A     A     A     A     A     A  ..#
+#..                                                  ..#
+#..                                                  ..#
+#..                                                  ..#
+#..  A     A     A     A     A     A     A     A     ..#
+#..                                                  ..#
+#..                                                  ..#
+#..                                                  ..#
+#......................................................#
+#......................................................#
+#......................................................#
+#......................................................X
+#......................................................#
+########################################################

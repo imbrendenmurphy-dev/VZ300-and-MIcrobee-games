@@ -1,0 +1,9 @@
+FISTCUF1.DAT  FLICK    7863 bytes (16 sectors)  NEVER NEVER STATION   34 animated bytes
+FISTCUF2.DAT  DUSTY    9166 bytes (18 sectors)  MAIN STREET           95 animated bytes
+FISTCUF3.DAT  NIKOS    9769 bytes (20 sectors)  OIA CLIFFS            39 animated bytes
+FISTCUF4.DAT  HANA     8303 bytes (17 sectors)  SNOW TEMPLE           28 animated bytes
+FISTCUF5.DAT  AMUN     8915 bytes (18 sectors)  NILE BY NIGHT         54 animated bytes
+FISTCUF6.DAT  SIGRUN   9826 bytes (20 sectors)  HARBOUR LIGHTS        66 animated bytes
+FISTCUF7.DAT  LUPE     8553 bytes (17 sectors)  MERCADO               48 animated bytes
+FISTCUF8.DAT  RAVI     8993 bytes (18 sectors)  PALACE OF WINDS       29 animated bytes
+FISTCUF9.DAT  SABLE    9665 bytes (19 sectors)  SABLE'S BIG TOP      110 animated bytes

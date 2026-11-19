@@ -31,6 +31,7 @@ cup_start:
         inc hl
         djnz .z
 race_setup:
+        call dirty_all
         ld a,(CUPN)             ; races 2 and 4 are at dusk (colour set 1)
         and 1
         ld a,$08
@@ -182,12 +183,21 @@ obj_prep:
         ld iy,OBJTAB
         ld c,0                  ; object number (for the collected bits)
 .o:     push bc
-        call obj_taken
-        jr nz,.nx
         ld l,(iy+0)             ; sections ahead of the camera (object sits mid-section)
         ld h,(iy+1)
         call sec_ahead
-        jr c,.nx
+        jr c,.nx                ; (most are out of view: test that first)
+        pop de                  ; E = object number
+        push de
+        push af
+        push bc
+        ld c,e
+        call obj_taken
+        pop bc
+        jr z,.in
+        pop af
+        jr .nx
+.in:    pop af
         ld (ix+R_D),a
         ld (ix+R_FR),c
         ld a,(iy+2)
@@ -362,12 +372,20 @@ obj_section:
         ld (ix+R_ACT),0
         ld hl,s_minehit
         call player_hit
-.ramp:  ld a,(OBJK)             ; jump ramp: sections (k & 255) == 228, 229
-        cp 228
+.ramp:  ld a,(OBJK)             ; jump ramp: section 100 (left half) or 228 (right half)
+        and 127
+        cp 100
         ret nz
         ld a,(AIRT)
         or a
         ret nz
+        ld a,(OBJK)             ; on the ramp's half of the road?
+        rla
+        ld a,(CAM_LAT)
+        jr c,.rgt
+        neg
+.rgt:   add a,4
+        ret m
         ld a,(SPEED)
         cp 70
         ret c
@@ -376,6 +394,14 @@ obj_section:
         add a,8
         ld (AIRT),a
         ld (AIRTOT),a
+        ld a,90                 ; the ramp kicks: boost now and for a while after landing
+        ld (BOOSTT),a
+        ld a,(SPEED)
+        add a,16
+        cp VBOOST
+        jr c,.rb
+        ld a,VBOOST
+.rb:    ld (SPEED),a
         ld hl,s_jump
         ld a,40
         call banner
@@ -688,13 +714,25 @@ rv_extra:
         or a
         jr z,.m
         dec (ix+R_AIR)
-.m:     ld a,(ix+R_F)           ; only when entering a section
-        cp (ix+R_SPD)
-        ret nc
-        ld a,(ix+R_I)
-        cp 228                  ; ramp
+.m:     ld a,(ix+R_NEWS)        ; only when entering a section
+        or a
+        ret z
+        ld (ix+R_NEWS),0
+        ld a,(ix+R_I)           ; ramp: only if it's on that half of the road
+        and 127
+        cp 100
         jr nz,.mn
+        ld a,(ix+R_I)
+        rla
+        ld a,(ix+R_LAT)
+        jr c,.rr
+        neg
+.rr:    add a,4
+        jp m,.mn
         ld (ix+R_AIR),30
+        ld a,(ix+R_SPD)
+        add a,8
+        ld (ix+R_SPD),a
 .mn:    ld iy,REC_MINE          ; one of our mines here?
         ld a,(iy+R_ACT)
         or a
@@ -1055,6 +1093,6 @@ s_minehit:  DB "MINE!",0
 s_voltfire: DB "VOLT FIRES!",0
 s_voltgot:  DB "HIT BY VOLT",0
 s_razemine: DB "RAZE DROPS A MINE",0
-s_jump:     DB "JUMP!",0
+s_jump:     DB "JUMP BOOST!",0
 s_msl:      DB "MISSILE",0
 s_mine:     DB "MINE",0

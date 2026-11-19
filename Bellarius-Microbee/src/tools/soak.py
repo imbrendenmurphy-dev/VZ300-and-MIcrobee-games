@@ -11,7 +11,7 @@ ok = True
 for pilot in range(4):
     rnd = random.Random(pilot)
     pp = boot(); to_game(pp, pilot=pilot); S = pp.S
-    end = S['spr_tab']
+    end = S['code_end']
     ok_pc = lambda pc: 0x8000 <= pc < end or S['OVL'] <= pc < S['OVL_END']
     for t in range(N // 4):
         if t % 3:

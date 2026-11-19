@@ -6,7 +6,7 @@ GS_ATTRACT EQU 0
 GS_COUNT   EQU 1
 GS_RACE    EQU 2
 GS_FINISH  EQU 3
-NLAPS      EQU 3
+NLAPS      EQU 2
 VNORM      EQU 110
 VBOOST     EQU 150
 VSTALL     EQU 40
@@ -37,6 +37,7 @@ R_FR   EQU 14
 R_TGT  EQU 15
 R_PT   EQU 16   ; camera-space point x, y, z (6)
 R_VIEW EQU 22   ; 0..4 hard left .. hard right
+R_NEWS EQU 25   ; set when the rival entered a new section this field
 
 ; ---------------------------------------------------------------------
 ; RACE_RESET: grid positions, clock, shield
@@ -94,8 +95,8 @@ race_reset:
         djnz .r
         ret
 rv_grid: ; I lo, I hi, F, lap, lat, speed, base, lane
-        DB 4,0,0,0,-28,0,103,-28      ; VOLT
-        DB 4,0,0,0,28,0,106,26        ; NOVA
+        DB 4,0,0,0,-36,0,103,-36      ; VOLT
+        DB 4,0,0,0,36,0,106,34        ; NOVA
         DB 2,0,96,0,26,0,101,-4       ; RAZE
 
 ; ---------------------------------------------------------------------
@@ -142,6 +143,9 @@ start_race:
         jp sfx
 
 demo_reset:
+        call dirty_all
+        ld a,$08                ; day colours (the latch also holds mode(1): never write 0 here)
+        ld (LATBASE),a
         call race_reset
         ld a,GS_ATTRACT
         ld (GSTATE),a
@@ -469,6 +473,11 @@ draw_banner:
         ld hl,BUFFER+20*32
         add hl,de
         ex de,hl
+        ld hl,OVR+20            ; the banner covers rows 20..24
+        ld b,5
+.ov:    ld (hl),1
+        inc l
+        djnz .ov
         ld hl,(BANP)
         ld a,(HUDFG)
         push af
@@ -554,9 +563,11 @@ rv_one: call rv_dist            ; rubber band: ease off far ahead, push on far b
         jr .sp
 .up:    inc a
 .sp:    ld (ix+R_SPD),a
-        add a,(ix+R_F)          ; move along the track
+        srl a                   ; move along the track at half speed, like us
+        add a,(ix+R_F)
         ld (ix+R_F),a
         jr nc,.lat
+        ld (ix+R_NEWS),1
         inc (ix+R_I)
         ld a,(ix+R_I)           ; boost pads work for rivals too
         and 126
@@ -597,14 +608,14 @@ rv_one: call rv_dist            ; rubber band: ease off far ahead, push on far b
         add a,a
         add a,b
         add a,(ix+R_OFF)
-        cp 50                   ; clamp +-50
+        cp 64                   ; clamp +-64
         jr c,.c1
-        cp -50
+        cp -64
         jr nc,.c1
         bit 7,a
-        ld a,50
+        ld a,64
         jr z,.c1
-        ld a,-50
+        ld a,-64
 .c1:    ld (ix+R_TGT),a
         ld b,a
 .mv:    ld a,(ix+R_LAT)
@@ -734,235 +745,104 @@ rv_prep:
         djnz .r
         ret
 
-; transform hook: at each section step, place rivals that sit in it
-rv_hook:
-        push ix
-        ld a,(DEPTHV)
-        ld c,a
-        ld ix,RV
-        ld b,NREC
-.h:     ld a,(ix+R_D)
-        cp c
-        jr nz,.n
-        push bc
-        call rv_point
-        pop bc
-.n:     ld de,32
-        add ix,de
-        djnz .h
-        pop ix
-        ret
-
-; camera-space point of rival IX: section start (VX,VY,VZ) + fraction along + lateral across
-rv_point:
-        ld a,(DANG)             ; x += (sin*fr) >> 8 + (lat*cos) >> 6
-        ld l,a
-        ld h,SIN64/256
-        ld b,(hl)
-        ld a,(ix+R_FR)
-        srl a
-        ld c,a
-        call mul8
-        add hl,hl
-        ld a,h
-        call sext
-        ld de,(VX)
-        add hl,de
-        push hl
-        ld a,(DANG)
-        ld l,a
-        ld h,COS64/256
-        ld b,(hl)
-        ld c,(ix+R_LAT)
-        call mul8
-        add hl,hl
-        add hl,hl
-        ld a,h
-        call sext
-        pop de
-        add hl,de
-        ld (ix+R_PT),l
-        ld (ix+R_PT+1),h
-        ld a,(DANG)             ; z += (cos*fr) >> 8 - (lat*sin) >> 6
-        ld l,a
-        ld h,COS64/256
-        ld b,(hl)
-        ld a,(ix+R_FR)
-        srl a
-        ld c,a
-        call mul8
-        add hl,hl
-        ld a,h
-        call sext
-        ld de,(VZ)
-        add hl,de
-        push hl
-        ld a,(DANG)
-        ld l,a
-        ld h,SIN64/256
-        ld b,(hl)
-        ld c,(ix+R_LAT)
-        call mul8
-        add hl,hl
-        add hl,hl
-        ld a,h
-        call sext
-        ex de,hl
-        pop hl
-        or a
-        sbc hl,de
-        ld (ix+R_PT+4),l
-        ld (ix+R_PT+5),h
-        ld hl,(TIDX)            ; y += (dy*fr) >> 8 + (lat*hby) >> 6
-        ld de,TRK_DY
-        add hl,de
-        ld b,(hl)
-        ld a,(ix+R_FR)
-        srl a
-        ld c,a
-        call mul8
-        add hl,hl
-        ld a,h
-        call sext
-        ld de,(VY)
-        add hl,de
-        push hl
-        ld hl,(TIDX)
-        ld de,TRK_HBY
-        add hl,de
-        ld b,(hl)
-        ld c,(ix+R_LAT)
-        call mul8
-        add hl,hl
-        add hl,hl
-        ld a,h
-        call sext
-        pop de
-        add hl,de
-        ld (ix+R_PT+2),l
-        ld (ix+R_PT+3),h
-        ld a,(DANG)             ; view: how far its section is turned from ours
-        sra a
-        sra a
-        sra a
-        bit 7,a
-        jr nz,.vn
-        cp 3
-        jr c,.vk
-        ld a,2
-        jr .vk
-.vn:    cp -2
-        jr nc,.vk
-        ld a,-2
-.vk:    add a,2
-        ld (ix+R_VIEW),a
-        ld (ix+R_VIS),1
-        ret
-
-; after rendering: screen position, size and occlusion of each visible rival
-rv_project:
-        ld ix,RV
-        ld b,NREC
-.r:     push bc
-        ld a,(ix+R_VIS)
-        or a
-        jr z,.nx
-        ld (ix+R_VIS),0
-        ld a,(ix+R_PT+5)        ; in front of the near plane?
-        or a
-        jr nz,.zf
-        ld a,(ix+R_PT+4)
-        cp NEARZ
-        jr c,.nx
-.zf:    push ix
-        pop iy
-        ld de,R_PT
-        add iy,de
-        call proj
-        ld a,(PSX)
-        ld (ix+R_SX),a
-        ld a,(PSY)
-        ld (ix+R_SY),a
-        ld hl,(PKX)
-        ld de,LOG_RIVW
-        add hl,de
-        call expt_or
-        ld (ix+R_W),a
-        ; nearer track: YTOP before the strip that holds the rival
-        ld a,200
-        ld (ix+R_YCL),a
-        ld a,(CAM_I)
-        ld c,a
-        ld iy,SECS
-        ld a,(NSEC)
-        dec a
-        jr z,.vis
-        ld b,a
-.s:     ld a,(iy+0)
-        sub c
-        cp (ix+R_D)
-        jr z,.s1
-        jr nc,.vis
-.s1:    ld a,(iy+20)
-        ld (ix+R_YCL),a
-        ld de,32
-        add iy,de
-        djnz .s
-.vis:   ld (ix+R_VIS),1
-.nx:    ld de,32
-        add ix,de
-        pop bc
-        djnz .r
-        ret
-
-; far ones first
-; MARK[d] = 1 for every depth that holds a rival or an object this frame
-mark_build:
-        ld hl,MARK
-        ld b,32
-.c:     ld (hl),0
-        inc l
-        djnz .c
-        ld ix,RV
-        ld b,NREC
-        ld de,32
-.r:     ld a,(ix+R_D)
-        cp 32
-        jr nc,.n
-        ld l,a
-        ld (hl),1
-.n:     add ix,de
-        djnz .r
-        ret
-
+; rivals and track objects in view, far ones first (records in order within a depth)
 draw_rivals:
-        ld c,DEPTH-3
-.d:     ld l,c                  ; nothing at this depth: skip
-        ld h,MARK/256
-        ld a,(hl)
-        or a
-        jr z,.e
-        ld ix,RV
-        ld b,NREC
+        ld ix,RV                ; list the visible ones: (depth, record) pairs
+        ld hl,DLIST
+        ld bc,NREC*256
 .r:     ld a,(ix+R_VIS)
         or a
         jr z,.n
         ld a,(ix+R_D)
+        or a
+        jr z,.n
+        cp DEPTH-2
+        jr nc,.n
+        ld (hl),a
+        inc l
+        ld (hl),c
+        inc l
+.n:     ld de,32
+        add ix,de
+        inc c
+        djnz .r
+        ld a,l
+        sub DLIST & 255
+        ret z
+        rrca
+        ld c,a                  ; C = how many
+        ld e,2                  ; insertion sort, deepest first (stable)
+.i:     ld a,e
+        rrca
         cp c
-        jr nz,.n
-        push bc
-        ld a,b                  ; records 3.. are track objects
-        cp NREC-2
-        jr nc,.rv
+        jr nc,.srt
+        ld a,e
+        add a,DLIST & 255
+        ld l,a
+        ld h,DLIST/256
+        ld b,(hl)               ; B = depth, D = record of the entry being placed
+        inc l
+        ld d,(hl)
+        dec l
+.j:     ld a,l                  ; HL = the hole
+        cp DLIST & 255
+        jr z,.put
+        dec l
+        dec l
+        ld a,(hl)
+        cp b
+        jr nc,.put2             ; the one before is at least as far: stop
+        inc l
+        inc l
+        ld (hl),a
+        dec l
+        ld a,(hl)
+        inc l
+        inc l
+        ld (hl),a
+        dec l
+        dec l
+        dec l
+        jr .j
+.put2:  inc l
+        inc l
+.put:   ld (hl),b
+        inc l
+        ld (hl),d
+        inc e
+        inc e
+        jr .i
+.srt:   ld hl,DLIST
+        ld b,c
+.dr:    push bc
+        push hl
+        inc l
+        ld a,(hl)               ; record number -> IX
+        ld c,a
+        rrca
+        rrca
+        rrca
+        ld e,a
+        and $E0
+        ld l,a
+        ld a,e
+        and $1F
+        ld h,a
+        ld de,RV
+        add hl,de
+        push hl
+        pop ix
+        ld a,c
+        cp 3                    ; records 3.. are track objects
+        jr c,.rv
         call draw_object
         jr .dn
 .rv:    call draw_rival
-.dn:    pop bc
-.n:     ld de,32
-        add ix,de
-        djnz .r
-.e:     dec c
-        jr nz,.d
+.dn:    pop hl
+        pop bc
+        inc l
+        inc l
+        djnz .dr
         ret
 
 draw_rival:

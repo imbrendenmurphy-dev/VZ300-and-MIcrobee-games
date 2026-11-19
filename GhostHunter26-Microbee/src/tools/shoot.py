@@ -4,7 +4,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from run import boot, peek, BUILD
 out = BUILD / 'shots'; out.mkdir(exist_ok=True)
-A = 1.2
+A = 0.96
 mono = '--mono' in sys.argv
 pp = boot(mono=mono)
 S = pp.S
@@ -51,3 +51,13 @@ pp.run_frames(260); png('17_initials')
 tap('UP'); tap('SPACE'); tap('DOWN'); tap('SPACE'); tap('SPACE')
 pp.run_frames(60); png('18_fame_new')
 print('pc %04X sp %04X' % (pp.cpu.pc, pp.cpu.sp))
+
+# power-up states, colour and amber
+for m in (False, True):
+    pp = boot(test=True, mono=m); S = pp.S
+    pp.run_frames(150); pp.keys = ['LEFT']; pp.run_frames(40)
+    for name, pk in (('speed', {'t_speed': 90, 'shield': 1}), ('freeze', {'t_freeze': 60})):
+        for k, v in pk.items(): pp.poke(S[k], v)
+        pp.keys = ['RIGHT'] if name == 'speed' else ['UP']
+        pp.run_frames(50)
+        pp.png(out / ('p_%s%d.png' % (name, m)), aspect=A, mono=m)

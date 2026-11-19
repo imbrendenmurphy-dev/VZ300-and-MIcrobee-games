@@ -34,36 +34,39 @@ MEMV        MACRO blk
 BLK_WORK    EQU 1
 BLK_SPR     EQU 4           ; sprite frames, blocks 4..7
 BLK_GFX     EQU 8           ; font
-BLK_ROOMC   EQU 9           ; rooms, colour art: two rooms a block (9-14)
-BLK_ROOMM   EQU 15          ; rooms, monochrome art (15-20)
+BLK_ROOM    EQU 9           ; rooms, two to a block, for the monitor chosen at the loader: 9-20
 BLK_TITLE   EQU 21          ; the title picture: colour at 0000, mono at 4000
+BLK_FRONT   EQU 22          ; the front end: music, attract sequence, demonstrations (src/front.asm)
 
 ; ---- the title record (tools/title.py)
 T_SCR       EQU $0100
-T_ATTR      EQU $0500
-T_COL       EQU $0900
-T_PAT       EQU $0D00
+T_ATTR      EQU $0600
+T_COL       EQU $0B00
+T_PAT       EQU $1000
 
 ; ---- a room record (16K; see tools/rooms.py)
 R_SCR       EQU $0000
-R_ATTR      EQU $0400
-R_COL       EQU $0800
-R_TMAP      EQU $0C00
-R_OBJ       EQU $0D00       ; type, x (word), y ... 0
-R_NPAT      EQU $0D40       ; dw glyphs; rooms left, right, up, down ($FF = none)
-R_NAME      EQU $0D50
-R_PAT       EQU $0E00       ; up to 768 glyphs x 8
-R_ANIM      EQU $2600
+R_ATTR      EQU $0500
+R_COL       EQU $0A00
+R_TMAP      EQU $0F00       ; 20 x 15
+R_OBJ       EQU $1040       ; type, x (word), y ... 0
+R_NPAT      EQU $1080       ; dw glyphs; rooms left, right, up, down ($FF = none)
+R_NAME      EQU $1090
+R_PAT       EQU $1100       ; up to 768 glyphs x 8
+R_ANIM      EQU $2900
 
-NCELL       EQU 1000
+NCELL       EQU 1280        ; 40 x 32
 COLS        EQU 40
 
-; ---- upper memory (block 0). The four 1K cell tables are 400h apart:
+; ---- upper memory (block 0). The four cell tables are SHD pages apart:
 ; code relies on it.
+TMAP        EQU $AA00       ; the room's tile map, 20 x 15
+SCRATCH     EQU $AB40       ; where a sprite draws when the pool is full
 COLSH       EQU $AC00       ; the room's colours
-SCRSH       EQU $B000       ; the room's screen codes (background)
-ATTSH       EQU $B400       ; the room's glyph banks (b4: busy cell)
-CELLMAP     EQU $B800       ; this frame's pool slot for each cell (0 = none)
+SCRSH       EQU $B100       ; the room's screen codes (background)
+ATTSH       EQU $B600       ; the room's glyph banks (b4: busy cell)
+CELLMAP     EQU $BB00       ; this frame's pool slot for each cell (0 = none)
+SHD         EQU 5
 TILEPAT     EQU $C000       ; the room's glyph patterns, 1024 x 8
 POOLBUF     EQU $E000       ; this frame's composed glyphs, 8 bytes a slot
 LISTA       EQU $E400       ; cell lists (CELLMAP addresses), 2 bytes a slot
@@ -74,8 +77,10 @@ VARS        EQU $EE00
 STACK       EQU $EFF0
 
 MAXSLOT     EQU 120
-PF_ROW0     EQU 2           ; playfield = cell rows 2..23
-PF_ROW1     EQU 24
+PF_ROW0     EQU 2           ; playfield = cell rows 2..31
+PF_ROW1     EQU 32
+PF_H        EQU 240         ; its height in pixels (20 x 15 tiles of 16)
+TM_SIZE     EQU 300
 ROOM_W      EQU 320
 
 ; ---- PCG banks
@@ -104,6 +109,7 @@ WHITE       EQU 15
 ; ---- keys (6545 light pen scan codes)
 K_A         EQU 1
 K_C         EQU 3
+K_K         EQU 11
 K_M         EQU 13
 K_O         EQU 15
 K_P         EQU 16

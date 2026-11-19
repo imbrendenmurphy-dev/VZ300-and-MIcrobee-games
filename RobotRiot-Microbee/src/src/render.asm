@@ -45,7 +45,15 @@ dl_begin:
         ld (dlbase),hl
         or a
         jr z,.done
+        ld c,a                  ; in chunks of 32 cells, looking for the
+.ch:    ld a,c                  ; vertical blanking in between (it is only
+        cp 32                   ; 62 lines long in the 8 x 10 mode)
+        jr c,$+4
+        ld a,32
         ld b,a
+        ld a,c
+        sub b
+        ld c,a
         ld (sp_save),sp
         ld sp,hl
 .l:     pop de
@@ -59,7 +67,13 @@ dl_begin:
         ld a,(hl)
         ld (de),a
         djnz .l
+        ld hl,0
+        add hl,sp
         ld sp,(sp_save)
+        call vschk
+        ld a,c
+        or a
+        jr nz,.ch
 .done:  xor a
         ld (dln),a
         jp vschk
@@ -78,45 +92,75 @@ dl_flush:
 .p1:    ld (dln1),a
 .p:     or a
         ret z
+        ld (fl_n),a
+        ld hl,fl_char           ; characters
+        call fl_pass
+        ld a,LV_ATTR            ; PCG banks
+        out (P_LV),a
+        ld hl,fl_bank
+        call fl_pass
+        ld a,LV_SCREEN
+        out (P_LV),a
+        ld a,COL_ON             ; colours (F800h + the screen offset)
+        out (P_COLCTL),a
+        ld hl,fl_col
+        call fl_pass
+        xor a
+        out (P_COLCTL),a
+        jp vschk
+
+; fl_pass: run the pass at HL over the whole list, 32 cells at a time,
+; looking for the vertical blanking between chunks
+fl_pass:
+        ld (fl_fn),hl
+        ld a,(fl_n)
+        ld c,a
+        ld hl,(dlbase)
+fl_chunk:
+        ld a,c
+        cp 32
+        jr c,$+4
+        ld a,32
+        ld b,a
+        ld a,c
+        sub b
         ld c,a
         ld (sp_save),sp
-        ld sp,(dlbase)          ; characters
-.c:     pop de
+        ld sp,hl
+        ld hl,(fl_fn)
+        jp (hl)
+fl_back:
+        ld hl,0
+        add hl,sp
+        ld sp,(sp_save)
+        call vschk
+        ld a,c
+        or a
+        jr nz,fl_chunk
+        ret
+fl_char:
+        pop de
         pop hl
         pop af
         ld a,l
         ld (de),a
-        djnz .c
-        ld sp,(sp_save)
-        call vschk
-        ld a,LV_ATTR            ; PCG banks
-        out (P_LV),a
-        ld b,c
-        ld sp,(dlbase)
-.a:     pop de
+        djnz fl_char
+        jp fl_back
+fl_bank:
+        pop de
         pop hl
         pop af
         ld a,h
         ld (de),a
-        djnz .a
-        ld sp,(sp_save)
-        ld a,LV_SCREEN
-        out (P_LV),a
-        call vschk
-        ld a,COL_ON             ; colours (F800h + the screen offset)
-        out (P_COLCTL),a
-        ld b,c
-        ld sp,(dlbase)
-.k:     pop de
+        djnz fl_bank
+        jp fl_back
+fl_col: pop de
         pop hl
         pop af
         set 3,d
         ld (de),a
-        djnz .k
-        ld sp,(sp_save)
-        xor a
-        out (P_COLCTL),a
-        jp vschk
+        djnz fl_col
+        jp fl_back
 
 ; show_page: wait out the frame (the beeper plays), then show the page
 ; just drawn and draw the other one next
@@ -450,7 +494,7 @@ clear_both:
         ld (rpage),a
         ret
 
-; load_pcg: the 2048 glyphs (8 bytes each in GFX.BNK) into the 16 PCG banks
+; load_pcg: the 2048 glyphs (10 bytes each in GFX.BNK) into the 16 PCG banks
 load_pcg:
         ld a,BLK_GFX
         call map_blk
@@ -462,10 +506,10 @@ load_pcg:
         ld de,PCGWIN
         ld c,128
 .g:     push bc
-        ld bc,8
+        ld bc,10                ; 10 lines a glyph (8 x 10 cells)
         ldir
         xor a
-        REPT 8
+        REPT 6
         ld (de),a
         inc de
         ENDR

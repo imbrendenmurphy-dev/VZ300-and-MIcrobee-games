@@ -127,38 +127,25 @@ title:
         call load_picture
         ld a,BLK_RT
         call map_blk
-        ld hl,s_t1
-        ld de,21*256+7
-        ld a,BCYAN
+        ld hl,title_text
+.tx:    ld a,(hl)               ; col, row, colour, text, 0 ... FFh
+        cp $FF
+        jr z,.txd
+        ld d,a
+        inc hl
+        ld e,(hl)
+        inc hl
+        ld a,(hl)
+        inc hl
+        push hl
         call print_at
-        ld hl,s_t2
-        ld de,21*256+8
-        ld a,BCYAN
-        call print_at
-        ld hl,s_t3
-        ld de,21*256+10
-        ld a,WHITE
-        call print_at
-        ld hl,s_t4
-        ld de,21*256+11
-        ld a,WHITE
-        call print_at
-        ld hl,s_t5
-        ld de,9*256+14
-        ld a,YELLOW
-        call print_at
-        ld hl,s_t6
-        ld de,5*256+16
-        ld a,GREY
-        call print_at
-        ld hl,s_t7
-        ld de,5*256+17
-        ld a,GREY
-        call print_at
-        ld hl,s_credit
-        ld de,11*256+23
-        ld a,BRED
-        call print_at
+        pop hl
+.tz:    ld a,(hl)
+        inc hl
+        or a
+        jr nz,.tz
+        jr .tx
+.txd:
         ld hl,mus_title_0
         ld de,mus_title_1
         call play_music
@@ -189,17 +176,21 @@ title:
         ld a,SFX_MENU
         call play_sfx
         jp game_new
-s_t1:   db "WALLY THE",0
-s_t2:   db "DEMOLITION WOMBAT",0
-s_t3:   db "STOP BARON VON",0
-s_t4:   db "CROAK'S CAR PARKS!",0
-s_t5:   db "SPACE OR FIRE TO PLAY",0
-s_t6:   db "ARROWS OR QAOP MOVE   SPACE BOMB",0
-s_t7:   db "X BOOMERANG  H PAUSE  S SOUND",0
+title_text:
+        db 17,8,BCYAN,"WALLY THE",0
+        db 17,9,BCYAN,"DEMOLITION WOMBAT",0
+        db 17,11,WHITE,"STOP BARON VON",0
+        db 17,12,WHITE,"CROAK'S CAR PARKS!",0
+        db 9,14,YELLOW,"SPACE OR FIRE TO PLAY",0
+        db 4,16,GREY,"ARROWS OR QAOP MOVE   SPACE BOMB",0
+        db 5,17,GREY,"X BOOMERANG  H PAUSE  S SOUND",0
+        db 11,23,BRED,"VIBED BY BPM 2026",0
+        db $FF
+s_name: db "KABOOMERANG",0
 
 ; a cane toad hops across the title, Wally after it
 title_toad:
-        ld a,64
+        ld a,72                 ; on the ground, just above the tiles
         ld (t_ty),a
         ld a,(gtick)
         ld b,a
@@ -309,10 +300,7 @@ game_stage:
         jr nz,.common
         call hide_msg
         xor a
-        ld (gstate),a
-        ld hl,mus_game_0
-        ld de,mus_game_1
-        call play_music
+        ld (gstate),a           ; no music in play: the bombs do the talking
         jr .common
 .play:  call player_update
         ld a,(gstate)

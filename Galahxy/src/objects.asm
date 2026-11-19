@@ -36,6 +36,11 @@ BH_ARC      equ 7
 BH_PICK     equ 8
 BH_FX       equ 9
 BH_STAGE    equ 10
+BH_BOSS     equ 11
+BH_ARM      equ 12
+BH_RISE     equ 13
+BH_WALK     equ 14
+BH_TURRET   equ 15
 
 com_types:  ; 32 BOOM, 33 PAV, 34 COIN, 35 PIE, 36 SPARK
             db BH_FX,   SPR_BOOM, 0, 0,0,0,0, $00, (1<<F_FX), 3
@@ -47,6 +52,7 @@ com_types:  ; 32 BOOM, 33 PAV, 34 COIN, 35 PIE, 36 SPARK
 
 beh_tab:    dw beh_none, beh_sine, beh_line, beh_dart, beh_swoop, beh_bounce
             dw beh_ground, beh_arc, beh_pick, beh_fx, beh_stage
+            dw beh_boss, beh_arm, beh_rise, beh_walk, beh_turret
 
 ; A = type -> HL = type record
 type_rec:
@@ -959,7 +965,11 @@ obj_damage:
             add hl,de
             ld a,(hl)
             cp BH_STAGE
-            jp z,STG_HIT            ; bosses take damage their own way
+            jp z,STG_HIT            ; stage specials take damage their own way
+            cp BH_BOSS
+            jp z,boss_hit
+            cp BH_ARM
+            jp z,arm_hit
             ld a,(ix+O_HP)
             sub c
             jr c,kill_obj

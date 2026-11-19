@@ -397,65 +397,70 @@ ps_bytes:
         ret
 
 ;  ps_shift: row (ps_r) of size (ps_s): the shifted columns, 4 dots right of
-;   the plain ones: copy the row, then RRD the nibbles along it (clear,
-;   NOT mask F / data 0, comes in from the left; one more column at the end)
+;   the plain ones (clear - NOT mask F, data 0 - comes in from the left, and
+;   there is one more column at the end).  Plain loads, ANDs and rotates
+;   only: the RRD this used to be done with is the one instruction in the
+;   game that had never run on the real machine.
 ps_shift:
+        ld a,0Fh                ; the NOT mask bytes
+        ld (ps_pd),a
+        xor a
+        call .pass
+        xor a                   ; the data bytes
+        ld (ps_pd),a
+        inc a
+.pass   ld c,a                  ; C = 0 mask, 1 data
         ld a,(ps_r)
         add a,a
+        add a,c
         ld c,a
         ld a,(ix+D_B0)
         add a,c
         ld l,a
-        ld h,(ix+D_B0+1)
+        ld h,(ix+D_B0+1)        ; HL = the plain row
         ld a,(ix+D_B1)
         add a,c
         ld e,a
-        ld d,(ix+D_B1+1)
-        push de                 ; the shifted row
+        ld d,(ix+D_B1+1)        ; DE = the shifted row
         ld a,(ix+D_BW)
-        exx
-        ld b,a
-        exx
+        ld (ps_j),a
+        ld a,(ps_pd)            ; what comes in from the left, as a high nibble
+        rlca
+        rlca
+        rlca
+        rlca
+        ld (ps_pm),a
         ld bc,(ps_csz)
 .c      ld a,(hl)
-        ld (de),a
-        inc l
-        inc e
-        ld a,(hl)
-        ld (de),a
-        dec l
-        dec e
-        add hl,bc
-        ex de,hl
-        add hl,bc
-        ex de,hl
-        exx
-        dec b
-        exx
-        jr nz,.c
-        ld a,0FFh               ; the extra column starts clear
-        ld (de),a
-        inc e
-        xor a
-        ld (de),a
-        pop hl
-        ld de,(ps_csz)
-        ld a,(ix+D_BW)
-        inc a
-        ld c,a
-        ld b,a
+        and 0F0h
+        rrca
+        rrca
+        rrca
+        rrca
         push hl
-        ld a,0Fh
-.m      rrd
-        add hl,de
-        djnz .m
+        ld hl,ps_pm
+        or (hl)
         pop hl
-        inc l
-        ld b,c
-        xor a
-.d      rrd
-        add hl,de
-        djnz .d
+        ld (de),a
+        ld a,(hl)
+        and 0Fh
+        rlca
+        rlca
+        rlca
+        rlca
+        ld (ps_pm),a
+        add hl,bc
+        ex de,hl
+        add hl,bc
+        ex de,hl
+        ld a,(ps_j)
+        dec a
+        ld (ps_j),a
+        jr nz,.c
+        ld hl,ps_pd             ; the extra column: the last nibble, then clear
+        ld a,(ps_pm)
+        or (hl)
+        ld (de),a
         ret
 
 ; ps_progress: a bar on the loading screen, one block per image

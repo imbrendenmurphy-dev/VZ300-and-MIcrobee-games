@@ -8,9 +8,9 @@ tube. A cell carries one ink and one paper colour.
 import numpy as np
 
 CW, CH = 8, 8            # cell size, pixels
-COLS, ROWS = 40, 25
+COLS, ROWS = 40, 32
 PF_ROW0 = 2              # playfield starts at cell row 2
-PF_ROWS = 22
+PF_ROWS = 30
 
 PALETTE = [(0, 0, 0), (192, 0, 0), (0, 192, 0), (192, 96, 0), (0, 0, 192), (192, 0, 192), (0, 192, 192), (192, 192, 192),
            (96, 96, 96), (255, 64, 64), (64, 255, 64), (255, 255, 64), (64, 64, 255), (255, 64, 255), (64, 255, 255), (255, 255, 255)]

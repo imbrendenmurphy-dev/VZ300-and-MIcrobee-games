@@ -86,13 +86,19 @@ def asm():
     L.append('NOTE0 equ %d' % lo)
     L.append('note_steps:')
     for n in range(lo, hi): L.append('            dw %d' % step(midi(n)))
-    for name, (blip, beat, s) in TUNES.items():
+    L.append(tunes_asm({k: TUNES[k] for k in COMMON_TUNES}))
+    return '\n'.join(L).replace(' : ', '\n            ') + '\n'
+
+COMMON_TUNES = ('select', 'clear', 'over')
+def tunes_asm(tunes):
+    L = []
+    for name, (blip, beat, s) in tunes.items():
         L.append('tune_%s:' % name)
         L.append('            db %d' % blip)
         for t in s.split():
             L.append('            db %d,%d' % (beat, nm(t)))
         L.append('            db 0')
-    return '\n'.join(L).replace(' : ', '\n            ') + '\n'
+    return '\n'.join(L) + '\n'
 
 if __name__ == '__main__':
     print(asm()[:400])

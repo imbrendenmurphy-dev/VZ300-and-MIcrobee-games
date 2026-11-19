@@ -2,8 +2,8 @@
 ;  GAME: the maze, the hunter, dots, items, power-ups, the HUD and the
 ;  round's state machine. Logic runs once a frame (25 frames a second).
 ;
-;  The maze is a 13 x 7 grid of nodes, 12 units (24 pixels) apart; one
-;  unit is 2 pixels. Node i is at coordinate 12 * (i + 1), so 0 and 168
+;  The maze is a 13 x 7 grid of nodes, 12 units (3 cells) apart; one unit
+;  is 2 pixels across and 2.5 lines down (cells are 8 x 10). Node i is at coordinate 12 * (i + 1), so 0 and 168
 ;  are the two ends of a wrap-around tunnel, just off the screen.
 ;  Dots sit every 4 units, on the corners where four cells meet.
 ; =====================================================================
@@ -142,10 +142,15 @@ put_actor:
         ld b,a
         add hl,bc
         ld (spr_x),hl
-        ld l,e
+        ld l,e                  ; y: 12 units = 3 rows of 10 lines, so x 2.5
         ld h,0
         add hl,hl
-        ld bc,-8
+        ld a,e
+        srl a
+        ld c,a
+        ld b,0
+        add hl,bc
+        ld bc,-9                ; (18 lines high, in the middle of a 20-line lane)
         add hl,bc
         ld a,(a_oy)
         ld c,a
@@ -1605,7 +1610,6 @@ parts_draw:
 ;  drawing the hunter
 ; ---------------------------------------------------------------------
 mouth_seq: db 0,1,2,1
-hat_of:  db SF_HAT_R,SF_HAT_L,SF_HAT_F,SF_HAT_F
 hunt_col: db WHITE,YELLOW,BRED,YELLOW
 
 draw_player:
@@ -1648,17 +1652,10 @@ draw_player:
         add a,SF_RING0
         ld c,BCYAN
         call put_actor
-.ns:    ld a,(p_x)
+.ns:    ld a,(p_x)               ; (the hunter: one frame, one colour)
         ld d,a
         ld a,(p_y)
         ld e,a
-        ld a,(p_dir)
-        ld hl,hat_of
-        call tab_a
-        ld c,BRED
-        push de
-        call put_actor
-        pop de
         ld c,YELLOW
         ld a,(t_hunter)
         or a
@@ -1694,7 +1691,7 @@ draw_player:
 .u1:    add a,SF_FACE_U0
         jp put_actor
 
-; the last moments: the head shrinks away and the hat drops
+; the last moments: the mouth opens until he folds away, then a little pop
 draw_death:
         xor a
         ld (a_ox),a
@@ -1706,11 +1703,6 @@ draw_death:
         ld a,(gtimer)
         cp 44
         jr c,.an
-        push de
-        ld a,SF_HAT_F
-        ld c,BRED
-        call put_actor
-        pop de
         ld a,SF_FACE_D0
         ld c,YELLOW
         jp put_actor
@@ -1720,25 +1712,9 @@ draw_death:
         rrca
         rrca
         rrca
-        and 7                   ; 0..5
-        cp 4
-        jr c,.fr
-        ld a,8                  ; the hat alone, on the floor
-        ld (a_oy),a
-        ld a,SF_HAT_F
-        ld c,BRED
-        jp put_actor
-.fr:    push af
-        push de
+        and 7                   ; 0..5: the mouth opens up and he folds away, then a pop
         add a,SF_DIE0
         ld c,YELLOW
-        call put_actor
-        pop de
-        pop af
-        add a,a
-        ld (a_oy),a
-        ld a,SF_HAT_F
-        ld c,BRED
         jp put_actor
 
 draw_pop:

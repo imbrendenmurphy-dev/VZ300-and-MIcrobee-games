@@ -109,6 +109,7 @@ keyst:  ds NKEYS
 keyold: ds NKEYS
 NUMBUF: ds 8
 spk:    db 0
+sndp:   dw 0                    ; the effect's next grain (0 = none)
 sndfx:  db 0
 sndper: db 0
 sndcnt: db 0
@@ -192,8 +193,7 @@ WTAB:   ds 768                  ; image * 16 + size -> width in dots (48 images)
 PIX:    ds 256                  ; scaler: one master row as pixels
 POPC:   ds 256                  ; bits set in each byte
 ROW40:  ds 256                  ; screen row -> VRAM address (word)
-C10:    ds 512                  ; code * 10: low bytes, then high bytes
-LITC:   ds 2048                 ; lit pixels of each glyph of banks 0-12 (0-15)
+CMAP:   ds 1024                 ; cell -> glyph slot + 1 taken this frame (0 = not)
 STATE:  ds 1024                 ; per-column state, 2 pages x 512
 SHADOW: ds POOLN*16             ; private sprite glyphs (also scratch)
 RLIST0: ds 1+POOLN*5            ; count, then 5 bytes per cell

@@ -65,6 +65,7 @@ load_stage:
         ld hl,(stg_hdr+H_ROWS)
         ld de,row_dst
         ldir
+        call rows_init
         ld hl,(stg_hdr+H_SEND)
         add hl,hl
         add hl,hl
@@ -77,10 +78,13 @@ load_stage:
         ld bc,16
         ldir
         ; stage sprite frames (ids 192..255)
+        ld a,BLK_SPR
+        ld (cb_dst),a
         ld hl,(stg_hdr+H_SPRT)
-        ld de,spr_tab+192*3
+        ld de,SPRTAB_AT+192*3
         ld bc,64*3
-        ldir
+        ld a,(stg_b)
+        call blk_copy
         ; the stage's code overlay
         ld a,(stg_hdr+H_OVLB)
         call map_blk

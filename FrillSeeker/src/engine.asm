@@ -15,8 +15,8 @@
 ; the real Premium Plus needs both: the dot clock (IN (09h) with A = 1) and
 ; the 6545 table of BPM's MODES40 test. With the table alone the machine
 ; scans at twice the line rate and the monitor shows four small pictures.
-crtc_game:  db $35,$28,$2C,$34,$26,$01,$19,$21,$48,$07,$20,$07,0,0,0,0
-DROWS       EQU 25
+crtc_game:  db $35,$28,$2C,$34,$26,$00,$20,$23,$48,$07,$20,$07,0,0,0,0   ; 40 x 32 of 8 x 8: 320 x 256
+DROWS       EQU 32
 
 hw_init:
         di
@@ -302,7 +302,7 @@ room_load:
         ld hl,R_TMAP
         call room_ptr
         ld de,TMAP
-        ld bc,220
+        ld bc,TM_SIZE
         ldir
         ld hl,R_NPAT
         call room_ptr
@@ -342,7 +342,7 @@ room_load:
         ; no sprites on show
         ld hl,CELLMAP
         ld de,CELLMAP+1
-        ld bc,1023
+        ld bc,NCELL-1
         ld (hl),0
         ldir
         xor a
@@ -532,16 +532,16 @@ sprite:
         ld de,16+64             ; the status panel's 16 lines, and a bias
         add hl,de
         ld a,h
-        or a
-        jr nz,.off
+        cp 2
+        jr nc,.off
         ld a,l
         and 7
         ld (ds_ry),a
+        srl h                   ; (y + 80) / 8: 0..63
+        rr l
+        srl l
+        srl l
         ld a,l
-        rrca
-        rrca
-        rrca
-        and $1F
         sub 8
         ld (ds_cy),a
         pop hl
@@ -716,13 +716,13 @@ getbuf:
         ld h,d
         ld l,e
         ld a,h
-        sub 4
+        sub SHD
         ld h,a
         ld b,(hl)               ; glyph bank, b4 = busy cell: keep its ink
-        sub 4
+        sub SHD
         ld h,a
         ld e,(hl)               ; screen code
-        sub 4
+        sub SHD
         ld h,a
         ld a,(hl)               ; colours
         pop hl
@@ -772,9 +772,9 @@ getbuf:
         ld e,a
         ret
 .full:  ld a,e
-        add a,scratch & 255
+        add a,SCRATCH & 255
         ld e,a
-        ld d,scratch >> 8
+        ld d,SCRATCH >> 8
         ret
 
 ; ---------------------------------------------------------------------
@@ -812,7 +812,7 @@ restores:
         inc hl
         exx
         ld a,h
-        sub 8
+        sub 2*SHD
         ld h,a
         ld a,(hl)               ; screen code
         exx
@@ -820,7 +820,7 @@ restores:
         inc hl
         exx
         ld a,h
-        add a,4
+        add a,SHD
         ld h,a
         ld a,(hl)               ; glyph bank
         and 15
@@ -829,7 +829,7 @@ restores:
         inc hl
         exx
         ld a,h
-        sub 8
+        sub 2*SHD
         ld h,a
         ld a,(hl)               ; colours
         exx
@@ -1013,7 +1013,7 @@ keytest:
 ; SPACE (jump); a joystick too
 keymap: db K_RIGHT,1, K_LEFT,2, K_UP,4, K_SPACE,16, K_DOWN,8, K_P,1, K_O,2, K_Q,4, K_A,8, K_ESC,128
         db $FF
-keymenu: db K_M,32, K_C,64, K_SPACE,16, K_ESC,128
+keymenu: db K_K,32, K_C,64, K_SPACE,16, K_ESC,128
         db $FF
 
 read_menu:

@@ -32,6 +32,8 @@ dln1:    db 0
 ds_bk:   db 0
 ds_col2: db 0
 sp_save: dw 0
+fl_n:    db 0
+fl_fn:   dw 0
 ; ---- sound
 acc1:    dw 0
 acc2:    dw 0
@@ -62,6 +64,7 @@ sfxprio: db 0
 sfxpend: db 0
 ; ---- attract
 att:     db 0
+monomode: db 0
 fxt:     dw 0
 demo:    db 0
 demo_t:  dw 0

@@ -52,6 +52,12 @@ def pat_byte(c, parity):
     return (a << 6) | (b << 4) | (a << 2) | b
 PATE = [pat_byte(c, 0) for c in range(16)]
 PATO = [pat_byte(c, 1) for c in range(16)]
+# speed stripes: rows of track surface alternate solid / checker by depth, flowing with PHASE
+def _swap(P): Q = list(P); Q[0], Q[4] = P[4], P[0]; return Q
+PATE2, PATO2 = _swap(PATE), _swap(PATO)
+STRIPE_D0 = 4                                   # rows this close to the horizon never stripe
+ZB = [0] * 64
+for _d in range(1, 64): ZB[_d] = (round(28 * 70 / 1.5) // _d // 2) & 255   # depth of row (horizon + d): 32 per section, a band is 4 sections
 SKY_CSS0 = [2, 10, 3, 7, 1]     # sunset in colour set 0: blue, blue/red, red, red/yellow, yellow
 SKY_CSS1 = [1, 9, 2, 10, 3]     # colour set 1: cyan, cyan/magenta, magenta, magenta/orange, orange
 SKY_A = [2, 2, 2, 2, 2]          # open blue sky (in game)
@@ -79,7 +85,7 @@ def skyline(img, fr):
             js = list(range(nl)) + list(range(st, 32))
         for j in js:
             img[y * 32 + j] = sum(sky_pix(s + 4 * j + p, h) << (6 - 2 * p) for p in range(4))
-SU_A, SU_B, RL_A, RL_B, SK = 0, 4, 1, 7, 5
+SU_A, SU_B, RL_A, RL_B, SK = 0, 0, 1, 7, 5          # v0.10: bands come from the speed stripes
 BOOST_A, BOOST_B = 7, 1
 RAMP_A, RAMP_B = 3, 5
 VOID, HAZE = 2, 8
@@ -192,6 +198,7 @@ class Frame:
 
 def render(T, st, sky=SKY_A, sky_line=True):
     fr = Frame()
+    fr.phase = st.get('phase', 0) & 255
     fr.sky_line = sky_line
     fr.hc = (T['H'][st['i'] % N] + st['theta']) & 255
     hz = HORIZ + ((T['DY'][st['i'] % N] * 7) >> 4)
@@ -372,9 +379,11 @@ def compose(fr):
             if x == 128: break
             runs.append((x, L[i + 1])); i += 2
         pix = [0] * 128
+        d = r - fr.split
+        sw = d >= STRIPE_D0 and (ZB[d] + fr.phase) & 128
         for n, (x, c) in enumerate(runs):
             x1 = runs[n + 1][0] if n + 1 < len(runs) else 128
-            P = PATO if c >= 16 else PATE
+            P = (PATO2 if sw else PATO) if c >= 16 else (PATE2 if sw else PATE)
             for xx in range(x, max(x, x1)): pix[xx] = (c & 15, P)
         for j in range(32):
             b = 0

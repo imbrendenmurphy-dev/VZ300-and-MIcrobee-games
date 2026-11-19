@@ -21,38 +21,56 @@ Not everything falls for it. **Magpies** swoop on him from above (a bluff sends
 them off squawking), and a **goanna** is simply not impressed: it charges,
 faster than Bluff can walk, so he has to jump it, climb away or outrun it.
 
+The screen is the Premium Plus's full-height 40-column mode: 40 × 32 cells of
+8 × 8, 320 × 256, filling a 4:3 PAL screen. Every room is 20 × 15 tiles.
+
 | | |
 |---|---|
 | ![](screenshots/00-title.png) | ![](screenshots/00-title-amber.png) |
-| ![](screenshots/01-the-bluff.png) | ![](screenshots/02-sprinting-the-billabong.png) |
-| ![](screenshots/04-the-old-gum.png) | ![](screenshots/05-the-canopy.png) |
-| ![](screenshots/06-lookout-rock.png) | ![](screenshots/07-amber-canopy.png) |
-| ![](screenshots/10-magpie-swoop.png) | ![](screenshots/11-goanna-not-impressed.png) |
-| ![](screenshots/12-the-gorge.png) | ![](screenshots/13-rock-art-cave.png) |
-| ![](screenshots/14-stone-tops.png) | ![](screenshots/15-amber-cave.png) |
+| ![](screenshots/02-mound-city.png) | ![](screenshots/03-floating-down-the-old-gum.png) |
+| ![](screenshots/04-the-escarpment.png) | ![](screenshots/05-the-gorge.png) |
+| ![](screenshots/07-the-drop-riding-the-vent.png) | ![](screenshots/08-the-drive.png) |
+| ![](screenshots/10-the-floodplain-in-the-rain.png) | ![](screenshots/11-paperbark-swamp.png) |
+| ![](screenshots/12-the-larder-shelves.png) | ![](screenshots/13-king-bufo.png) |
+| ![](screenshots/15-attract-story.png) | ![](screenshots/14-king-bufo-amber.png) |
+
+All 24 rooms: [screenshots/rooms-all-24.png](screenshots/rooms-all-24.png)
 
 ## What is playable
 
-Two regions, twelve rooms, 34 bugs:
+The whole game, start to finish: five regions, 24 rooms, 98 bugs.
 
-* **The Red Dirt** — the savanna, the billabong, Mound City, up the Old Gum
+* **The Red Dirt**: the savanna, the billabong, Mound City, up the Old Gum
   into the Canopy, and Lookout Rock.
-* **Stone Country** — the escarpment, a gorge with a waterfall (glide across
+* **Stone Country**: the escarpment, a gorge with a waterfall (glide across
   it), a cave of ochre hand stencils, a chimney climbed ledge by ledge, the
   moonlit stone tops, and the Great Rock.
+* **The Diggings**: an opal field. Down the shaft, along the drive and up the
+  winze, riding the air from the vents with the frill open. Ghost bats.
+* **The Wet**: the monsoon floodplain in the rain. Sprint across the water,
+  ride the storm's gusts.
+* **King Bufo's Court**: the larder, then the King himself. He leaps at you;
+  when he lands he is winded, and a frill then puts him on his back. Bounce
+  on him three times.
 
-Each region ends at a jar of King Bufo's pinched bugs. A title screen with its
-own two-voice theme; lose your hearts and you try again from the start of the
-region, keeping every bug you found (ESC goes back to the title). Still to
-come: the other three regions, King Bufo himself, saving to disk and an
-ending (see [docs/DESIGN.md](docs/DESIGN.md)).
+Each region ends at a jar of King Bufo's pinched bugs. Lose your hearts and
+you try again from the start of the region, keeping every bug you found (ESC
+goes back to the title). Clearing a region writes your place to the disk;
+**C** at the title carries on from there. **K** at the title chooses your
+keys, and they are kept on the disk too. Beat the King for the ending.
+
+Leave the title alone and the game shows itself off: the logo and **The
+Frillseeker Strut** (a twelve-bar shuffle for three voices and drums), a page
+of the story, then a card for a region and Bluff playing it by himself; the
+title again, who's who, another region; the moves, and round again. SPACE
+starts a game from anywhere in it. Bluff demonstrates every region in turn.
 
 ## To run it
 
 `release/FRILL.DS8` is a double-sided 80-track Microbee disk image. Boot it,
-and at the `A>` prompt type **FRILL**. Press **C** for a colour monitor or
-**M** for a monochrome one (the art is drawn separately for each), then SPACE
-at the title.
+and at the `A>` prompt type **FRILL**. The loader asks **C** for a colour
+monitor or **M** for a monochrome one (the art is drawn separately for each,
+and only that set is loaded), then SPACE at the title.
 
 | | Keys | Joystick |
 |---|---|---|
@@ -83,7 +101,13 @@ Needs a Premium Plus: 1 MB RAM, 32K PCG RAM.
 * **Every room is a painting,** generated as one picture with its own
   textures, in colour and again for amber. The title picture is painted the
   same way, with Bluff drawn three times the size by the same puppet.
-* **Two-voice music** for the title and jingles, from a single speaker bit.
+* **Three voices and drums from one speaker bit:** phase-accumulator pulse
+  voices at 16.5 kHz whose pulse widths narrow as each note decays (a growl,
+  not a bleep), fast-arpeggio chord stabs, a kick that falls in pitch and a
+  noise snare. The player and the songs live in their own 32K RAM block.
+* **The demonstrations are recordings** of a pilot program playing the game
+  in the emulator. The game's logic runs in fixed ticks from a fixed start,
+  so 80 bytes of "hold this for that many ticks" replays 21 seconds exactly.
 * **A steady 25 frames a second**, with more than half of every frame left
   to make sound in (unlocked, the engine manages 50 with Bluff and a toad).
 

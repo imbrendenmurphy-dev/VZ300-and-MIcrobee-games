@@ -5,7 +5,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import jump, run, playtest
 from mbee import FRAME_T
 
-def log(pp, frames, god=True, limit=24408):
+def log(pp, frames, god=True, limit=62 * 216):
     S = pp.S
     slow = []
     f = 0

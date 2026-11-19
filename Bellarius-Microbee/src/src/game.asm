@@ -36,6 +36,7 @@ new_game:
 ; ---------------------------------------------------------------------
 play_stage:
         call stop_music
+        call display_off        ; the stage is set up with the picture off
         ld a,(stage)
         call load_stage
         call clear_objects
@@ -51,6 +52,7 @@ play_stage:
         ld (gstate),a
         ld (boss_on),a
         ld (ticks),a
+        call display_on
         call stage_intro
         call stage_music
 ; ---------------------------------------------------------------------
@@ -88,15 +90,23 @@ game_loop:
         call scroll_set
         call strips
         call boss_draw
+        call early_on
         call draw_enemies
+        call vschk
         call draw_capsules
+        call vschk
         call draw_bells
+        call vschk
         call draw_effects
+        call vschk
         call draw_player
+        call vschk
         ld a,BLK_SPR
         call map_blk
         call draw_shots
+        call vschk
         call draw_bullets
+        call vschk
         call ovl_boss_objs
         call frame_end
         call hud_update
@@ -217,8 +227,42 @@ pages_from_base:
         out (P_COLCTL),a
         ld (rlcnt),a
         ld (rlcnt+1),a
-        ld (blcnt),a
-        ld (blcnt+1),a
+        ld (bdn),a
+        ld (bdn+1),a
+        ld (bnew),a
+        ld (bnew+1),a
+        ld (tq_n),a
+        ld hl,bk_org
+        ld b,8
+.bz:    ld (hl),a
+        inc hl
+        djnz .bz
+        call strips_mark
+        call boss_sig_reset
+        ld hl,CELLMAP           ; (a demo or a quit can leave it marked)
+        ld de,CELLMAP+1
+        ld bc,1023
+        ld (hl),0
+        ldir
+        ld hl,sdirty
+        ld b,12
+.sz:    ld (hl),0
+        inc hl
+        djnz .sz
+        ld a,BLK_RT
+        call map_blk
+        ; the sky colour of each row (from column 0 of the base picture)
+        ld hl,RT_CURCOL
+        ld de,rowpaper
+        ld b,25
+.rp:    ld a,(hl)
+        ld (de),a
+        inc de
+        push de
+        ld de,40
+        add hl,de
+        pop de
+        djnz .rp
         ret
 
 ; ---------------------------------------------------------------------
