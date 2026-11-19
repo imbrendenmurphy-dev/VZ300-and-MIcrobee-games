@@ -16,6 +16,10 @@ It runs four timed tests (32 frames each), then shows fields per 32 frames and f
 | 4 | 40 | buffered | 102 | 15.6 |
 
 The simulator does not model MZ-700 VRAM wait states, so real figures will be slower.
+On MZ-700 Emulator For Win32 it measured 76 / 85 / 125 / 134 fields (21.0 / 18.8 / 12.8 / 11.9 fps).
+Not yet measured on a real MZ-700.
+
+Developer handover notes are in `CLAUDE.md`.
 
 Afterwards press 1-4 to walk about in that mode (cursor keys move/turn), B to rerun the benchmark.
 
