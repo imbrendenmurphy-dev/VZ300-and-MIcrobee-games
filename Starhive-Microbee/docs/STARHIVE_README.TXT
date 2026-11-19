@@ -4,7 +4,7 @@ A vertical shoot-'em-up for the Microbee Premium Plus (1MB)
 Type STARHIVE at the A> prompt. Loading takes a little while (all five
 levels, about 400K, go into memory at once).
 
-THE GAME (version 0.4: all five levels)
+THE GAME (version 0.5: all five levels)
 Fly the Hornet up through the Hive and destroy it, level by level:
   1  THE OUTER HIVE   stations and asteroids     boss: the Hive Queen
   2  THE ROCK BELT    a field of asteroids       boss: the Rock Mite

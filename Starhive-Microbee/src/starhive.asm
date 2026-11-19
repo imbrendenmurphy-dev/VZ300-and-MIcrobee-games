@@ -10,6 +10,8 @@
 	INCLUDE "hw.inc"
 
 COLT	equ $B000		; colour of slot s at phase k: COLT + 256 k + s
+ringt	equ $EC00		; this frame's ring offset of each row's column 0 (2 a row)
+bk_s	equ $ED04		; bucket write pointers of rows 2..23 (ED00 + 2 row)		
 sr_bg	equ $EB00		; a background glyph (16-aligned)
 rowt	equ $BC00		; row of playfield line + 16, then (BD00) line in the row
 MFLG	equ $BB00		; merge flags of slot s: phases 0-7 at +s, 8-10 at +128+s
@@ -1098,6 +1100,14 @@ blank_now:
 .no:	xor a
 	ret
 
+; vschk without keeping AF (a little quicker, for the busy loops)
+vsq:	in a,(P_CRTCA)
+	and $20
+	ld hl,vbprev+1
+	cp (hl)
+	ret z
+	jp vschk
+
 ; count rising edges of vertical blanking (call at least every ~8000 T)
 vschk:	push af
 	in a,(P_CRTCA)
@@ -1211,7 +1221,6 @@ ps_old	ds 1
 ps_bk16	ds 2
 ps_old16 ds 2
 sd_flag	ds 1
-bk_s	ds 2*VROWS
 pgbank	ds 1
 sr_bpa	ds 2
 sr_bp	ds 2
@@ -1244,6 +1253,9 @@ sd_j	ds 1
 sd_n	ds 1
 sd_i2	ds 1
 sd_rn	ds 1
+sd_s0	ds 1
+sd_src	ds 2
+sd_sp	ds 2
 sr_slot	ds 1
 sr_ent	ds 2
 sr_pap	ds 1

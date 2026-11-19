@@ -1890,8 +1890,8 @@ set_mono:			; the far stars' colour; fold on or off
 	ld hl,fold
 .s:	ld (star_col),a
 	ld a,c
-	ld (spr_row.fd),a
-	ld (spr_row.fd+1),hl
+	ld (spr_draw.fd),a
+	ld (spr_draw.fd+1),hl
 	ld a,b
 	ld (fold),a
 	ret
