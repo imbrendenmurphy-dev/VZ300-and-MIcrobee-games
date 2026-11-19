@@ -12,6 +12,9 @@ class MZ:
         s.mem=bytearray(65536)
         s.mem[load:load+len(data)]=data
         s.row=0; s.held=set(); s.snd=[]
+        # optional VRAM contention: extra T-states per write to D000-DFFF (MZ_VRAMWAIT env var).
+        # 72 reproduces the Win32 emulator's benchmark results (76/85/125/134 fields) closely.
+        import os; s.vwait=int(os.environ.get('MZ_VRAMWAIT','0'))
         s.cpu=Z80(s.rd,s.wr); s.cpu.pc=exe
     def rd(s,a):
         if 0xE000<=a<=0xE00F:
@@ -28,6 +31,7 @@ class MZ:
         return s.mem[a]
     def wr(s,a,v):
         if a<0x1000: return
+        if s.vwait and 0xD000<=a<0xE000: s.cpu.t+=s.vwait
         if 0xE000<=a<=0xE00F:
             if a==0xE000: s.row=v&0x0F
             if a in (0xE004,0xE007,0xE008): s.snd.append((s.cpu.t,a,v))

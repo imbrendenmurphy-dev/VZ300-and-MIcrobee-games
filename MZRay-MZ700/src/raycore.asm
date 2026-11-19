@@ -267,6 +267,7 @@ ucalc:
         ld a,(hgt)
         ret
 
+;@@MUL8BEGIN@@ (a build may swap this routine for a faster one with the same result)
 ; HL = (DE * A) >> 8
 mul8:
         ld hl,0
@@ -285,6 +286,7 @@ ml_n:
         ld l,h
         ld h,c
         ret
+;@@MUL8END@@
 
 ; draw a 1-cell column. In: A = height, HL = dest (top of view), (texl)
 drawcol1:

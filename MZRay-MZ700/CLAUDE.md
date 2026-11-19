@@ -113,6 +113,31 @@ Credits line for anything user-facing: **VIBED BY BPM 2026** (the user's standin
     and SPACE to the intro page, and writes `title_music.wav`. `gametest.py` (48 checks) now passes the
     attract sequence via `skip_attract()`.
   - MZT 37,888 bytes, **~4K free**.
+- **Speed pass and creature tweak (after v0.5).**
+  - `mzemu.py` can model VRAM contention: env `MZ_VRAMWAIT=72` adds 72 T per write to D000-DFFF. That gives
+    80/87/123/130 benchmark fields against the Win32 emulator's 76/85/125/134.
+    `tools/speedtest.py` gives fps for four fixed views in all modes.
+  - **Sky and ground skipping:** new `src/coldraw.asm` (`;@@COLDRAW@@`) has `gdraw1`/`gdraw2`, pointed to
+    from the game's modetab. They redraw only the sky and ground rows that changed (per ray in the PREVP
+    page: last top, last ground start, dirty).
+    - `dirtyray` marks a column when a sprite, piece or the gun draws in it.
+    - `invalall` marks every column; it's called from cls, settheme, flash, modekeys and drawmap.
+    - Sky and ground colours for these drawers are `gsky`/`gground`.
+  - **Fast mul8:** `raycore.asm` mul8 is now between `;@@MUL8BEGIN@@`/`;@@MUL8END@@`, and `fill(mul8=...)`
+    swaps in build_game's FASTMUL8 (two `qmul` products, verified exact). The benchmark keeps the original
+    and is still byte-identical.
+  - **Tried and dropped:** skipping unchanged wall cells via an 880-byte RAM shadow of the view. It gave
+    no gain, and its first version left a stale view.
+  - **Result (emulator-like, average of 4 views):** mode 1 12.5 → 13.3 fps, mode 3 8.7 → 8.9. Mode 1
+    frames are now ~half walls, ~half objects/projection. The next real gain would be culling objects
+    before any multiply (e.g. a bearing table), then sprite drawing.
+  - **Creatures:** chasers stop at CLOSE=0x90 (was 0x50), still inside the 0xB0 bite range. Creatures whose
+    feet would fall below the view are lifted to stand on its bottom edge (`pl0` in `proj`), so small
+    ones up close stay visible (the user's request).
+  - gametest checks incremental = full redraw in 3 areas × 2 modes, the toad at your feet, and the bear
+    hanging back. All pass.
+  - Note: the user's C: drive filled to 0 bytes during this work. Keep generated PNG/WAV files out of src
+    (delete them after the tests).
 - **Next:** real-hardware testing (load time via UniCMT, fps, keys, sound pitch and the 8253 clock).
   Then pack the sprite pages (mostly FFh) or compress the MZT if load time or memory needs it. Any
   remaining polish: difficulty names, an opal tally on the win screen, a real character chart for punctuation.
@@ -397,6 +422,9 @@ MZRay-MZ700/
   src/objects.asm          creatures, projection, per-column sprite drawer, shooting
   src/fx.asm               sound effects engine + tune, exploding pieces, screen flashes
   src/attract.asm          title + title music, monster gallery, autopilot demo
+  src/coldraw.asm          game column drawers that only redraw changed sky/ground
+  src/tools/speedtest.py   fps in fixed views (MZ_VRAMWAIT=72 for emulator-like timing)
+  src/tools/vramcount.py   colour-RAM writes per frame (diagnostic)
   src/tools/attracttest.py attract loop checks + title music WAV
   sounds/                  simulator renders of the sound effects and in-game tune (WAV)
   src/dbart.py             DROPBEAR shape functions + 16x16 sprite rasteriser

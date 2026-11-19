@@ -55,7 +55,7 @@ def texrows(texs):
         rows.append(row)
     return rows
 
-def fill(src,mapvals,texs,sprhook='',predraw=''):
+def fill(src,mapvals,texs,sprhook='',predraw='',mul8=None):
     """Insert the raycaster core, tables, column tables and the unrolled copy into src.
     sprhook: code run after each column is drawn (the game's per-column sprite drawer); empty for the benchmark.
     predraw: code run between castray and the column drawer (A = height, HL = dest; must keep both)."""
@@ -78,7 +78,11 @@ cosoff40: db %s
 colang20: db %s
 cosoff20: db %s
 '''%(','.join(map(str,CA40)),','.join(map(str,CO40)),','.join(map(str,CA20)),','.join(map(str,CO20)))
-    src=src.replace(';@@RAYCORE@@',open('raycore.asm').read().replace(';@@SPRHOOK@@',sprhook).replace(';@@PREDRAW@@',predraw))
+    core=open('raycore.asm').read().replace(';@@SPRHOOK@@',sprhook).replace(';@@PREDRAW@@',predraw)
+    if mul8 is not None:            # swap in a faster mul8 (same contract: HL = (DE*A)>>8)
+        import re
+        core=re.sub(r';@@MUL8BEGIN@@.*?;@@MUL8END@@',lambda m_:mul8,core,flags=re.S)
+    src=src.replace(';@@RAYCORE@@',core)
     src=src.replace(';@@SMALLTABLES@@',small).replace(';@@TABLES@@','\n'.join(tabs))
     src=src.replace(';@@LDI40@@','\n'.join([' ldi']*40))
     return src

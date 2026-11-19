@@ -171,12 +171,13 @@ rnd:    push bc
         ret
 
 ; ---- screen flashes: A = sky colour, C = frames
-flash:  ld (d1_cl+1),a
+flash:  ld (gsky),a
+        ld (d1_cl+1),a
         ld (d2_cl+1),a
         ld (d2_cl+4),a
         ld a,c
         ld (flasht),a
-        ret
+        jp invalall
 flashend:
         ld a,(flasht)
         or a
@@ -350,6 +351,9 @@ partcol:
         ld a,(hl)
         or a
         ret z
+        push af
+        call dirtyray
+        pop af
 pc_l:   dec a
         ld (pidx),a
         add a,a

@@ -8,6 +8,7 @@
 
 VISMAX  equ 12
 EMARG   equ 72
+CLOSE   equ 0x90                ; creatures stop chasing a bit over half a cell away (bite range is 0xB0)
 
 objects:
         ld a,(zminc)            ; farthest wall seen last frame; anything smaller is hidden
@@ -268,7 +269,7 @@ ac1:    add a,c
         or a
         jr nz,ac2
         ld a,l
-        cp 0x50
+        cp CLOSE
         jr c,ac6
 ac2:    ld l,(iy+1)
         ld h,(iy+2)
@@ -300,7 +301,7 @@ ac6:    ld hl,(ady)
         or a
         jr nz,ac7
         ld a,l
-        cp 0x50
+        cp CLOSE
         ret c
 ac7:    ld l,(iy+3)
         ld h,(iy+4)
@@ -617,7 +618,18 @@ pz2:
         pop hl
         or a
         sbc hl,de
-        ld (osb),hl             ; bottom row (exclusive)
+        ld a,(otype)            ; creatures up close stand on the bottom edge of the view, not below it,
+        cp NENEMY+1             ; so the little ones at your feet stay in sight
+        jr nc,pl0
+        bit 7,h
+        jr nz,pl0
+        ld de,VIEWH+1
+        or a
+        sbc hl,de
+        add hl,de
+        jr c,pl0
+        ld hl,VIEWH
+pl0:    ld (osb),hl             ; bottom row (exclusive)
         ld a,(ohs)
         ld e,a
         ld d,0
@@ -912,6 +924,7 @@ sc_l:   push hl
         ld a,(hgt)              ; hidden behind this column's wall?
         cp (ix+0)
         jr nc,sc_n
+        call dirtyray           ; drawn over: this column gets a full redraw next frame
         ld a,c
         add a,a
         add a,a

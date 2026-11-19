@@ -220,6 +220,7 @@ modekeys:
         cp (hl)
         ret z
         call setmode
+        call invalall
 showmode:
         ld a,(curmode)
         add a,0x21
@@ -836,13 +837,18 @@ settheme:
         ld d,0
         ld hl,THEMES
         add hl,de
+        push hl
+        call invalall
+        pop hl
         ld a,(hl)
         ld (skycol),a
+        ld (gsky),a
         ld (d1_cl+1),a
         ld (d2_cl+1),a
         ld (d2_cl+4),a
         inc hl
         ld a,(hl)
+        ld (gground),a
         ld (d1_fl+1),a
         ld (d2_fl+1),a
         ld (d2_fl+4),a
@@ -917,6 +923,7 @@ spawn:  ld a,(entrycell)
 ; the automap: each map cell is two screen cells wide, centred in the view; you blink in white
 MAPTOP  equ CRAM+40+3*40+4
 drawmap:
+        call invalall           ; the view must be redrawn in full when the map closes
         ld a,(mapon)            ; clear the view only when the map first opens (no flicker)
         or a
         jr nz,dm0
@@ -1111,6 +1118,8 @@ td1:    ld (hl),a
 
 ;@@ATTRACT@@
 
+;@@COLDRAW@@
+
 ;@@RAYCORE@@
 
 ; ---------------------------------------------------------------- helpers
@@ -1125,7 +1134,7 @@ cls:
         ld bc,999
         ld (hl),0x70
         ldir
-        ret
+        jp invalall
 
 ; HL -> list of (screen address, string) ending with a zero address
 showpage:
@@ -1216,13 +1225,13 @@ dv_n:
 ; ---------------------------------------------------------------- render modes
 modetab:
         db 20,2,0
-        dw CRAM+40,colang20,cosoff20,drawcol2
+        dw CRAM+40,colang20,cosoff20,gdraw2
         db 20,2,1
-        dw BUF,colang20,cosoff20,drawcol2
+        dw BUF,colang20,cosoff20,gdraw2
         db 40,1,0
-        dw CRAM+40,colang40,cosoff40,drawcol1
+        dw CRAM+40,colang40,cosoff40,gdraw1
         db 40,1,1
-        dw BUF,colang40,cosoff40,drawcol1
+        dw BUF,colang40,cosoff40,gdraw1
 ;@@SMALLTABLES@@
 
 ; ---------------------------------------------------------------- variables
@@ -1322,6 +1331,14 @@ tmv:       ds 6
 tmvi:      db 0
 tmlen:     db 0
 tmptr:     dw 0
+gdest:     dw 0
+gt0:       db 0
+gt1:       db 0
+gr1:       db 0
+gf0:       db 0
+gf1:       db 0
+gsky:      db 0x11
+gground:   db 0x44
 pnext:     db 0
 pcx:       db 0
 pcy:       db 0
@@ -1386,6 +1403,7 @@ MASKS   equ VIS+256             ; per column: which ORD positions cover it (40 w
 PHEAD   equ MASKS+0x50          ; per ray: first piece drawn there (index+1, 0 = none) (40)
 PNEXT   equ MASKS+0x80          ; per piece: the next one under the same ray (32)
 PART    equ MASKS+256           ; 32 pieces x 8 bytes
-LIVE    equ PART+256
+PREVP   equ PART+256            ; per ray: last wall top, last ground start, dirty (see coldraw.asm)
+LIVE    equ PREVP+256
 BUF     equ LIVE+512*NAREA
 BUFEND  equ BUF+880

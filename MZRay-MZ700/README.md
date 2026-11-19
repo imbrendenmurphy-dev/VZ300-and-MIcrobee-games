@@ -1,4 +1,4 @@
-# DROPBEAR 3D for the Sharp MZ-700 (MZRAY)
+﻿# DROPBEAR 3D for the Sharp MZ-700 (MZRAY)
 
 A WolfenDoom-style game for the Sharp MZ-700, converted from the VZ300 game DROPBEAR 3D.
 It's a work in progress: there's a raycaster benchmark, and a playable test of the game with
@@ -8,6 +8,8 @@ VIBED BY BPM 2026
 
 ## DROPBEAR 3D test v0.5: title, gallery and attract demo
 Load `release/DROPBEAR.MZT` through UniCMT (load address 1200h, starts automatically, 38K).
+
+Since v0.5: SPACE works (it was mapped to the 0 key), it's a little faster (only the sky and ground that changed are redrawn, and the ray maths uses a faster multiply), and small creatures hang back a little and stay in sight when they're at your feet.
 
 Left alone, it runs an arcade-style attract loop. Press SPACE at any point to play.
 
@@ -93,10 +95,10 @@ then shows the fields per 32 frames and the fps:
 The simulator doesn't model MZ-700 VRAM wait states, so real figures will be slower.
 On MZ-700 Emulator For Win32 it measured 76 / 85 / 125 / 134 fields (21.0 / 18.8 / 12.8 / 11.9 fps).
 It hasn't been measured on a real MZ-700 yet.
-Afterwards, press 1–4 to walk about in that mode (cursor keys move and turn), or B to run the benchmark again.
+Afterwards, press 1â€“4 to walk about in that mode (cursor keys move and turn), or B to run the benchmark again.
 
 ## Renderer
-Each 40×22 character cell is a "pixel" coloured by its background colour (colour RAM D800h), so the
+Each 40Ã—22 character cell is a "pixel" coloured by its background colour (colour RAM D800h), so the
 renderer doesn't depend on the character ROM (European or Japanese).
 
 ## Building

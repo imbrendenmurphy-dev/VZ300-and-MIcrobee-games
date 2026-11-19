@@ -92,6 +92,20 @@ views = [(0, 1.5, 1.5, 20), (1, 1.5, 2.5, 0), (2, 1.5, 7.5, 0), (3, 1.5, 2.5, 10
 for a, x, y, ang in views:
     go(a); place(x, y, ang); frame(2); m.shot('g_area%d.png' % a, 2)
 
+# ---- incremental drawing must leave exactly the picture a full redraw would
+def view(): return bytes(m.mem[0xD800+40:0xD800+40+880])
+PREVP = sym['PREVP']
+for area, x, y in ((0, 1.5, 1.5), (1, 8.5, 9.5), (3, 1.5, 3.5)):
+    go(area)
+    for key in '13':
+        m.held = {key}; frame(); m.held = set()
+        for step in range(6):
+            place(x + step*0.1, y, (step*9) & 255); frame()
+        frame(); a = view()
+        m.mem[PREVP+128:PREVP+168] = bytes([1]*40); frame(); b = view()
+        check('incremental view = full redraw (area %d, mode %s)' % (area, key), a == b)
+m.held = {'3'}; frame(); m.held = set()
+
 # ---- sprites, creatures, shooting
 OBJ = sym['OBJ']
 def putobj(i, typ, x, y, hp=2, flags=0, cool=0):
@@ -164,6 +178,19 @@ check('nothing targeted when facing away', (m.mem[sym['target']] | m.mem[sym['ta
 place(8.5, 9.5, 0); putobj(0, 1, 12.5, 9.5, hp=2, flags=0x80, cool=200)
 x0 = m.mem[OBJ+2] << 8 | m.mem[OBJ+1]; frame(10)
 check('awake bear walks towards you', (m.mem[OBJ+2] << 8 | m.mem[OBJ+1]) < x0)
+# little creatures up close stay in sight, and chasers hang back about half a cell
+go(1); clearobjs(); place(8.5, 9.5, 0)
+putobj(0, 6, 9.05, 9.5, hp=9, flags=0x80, cool=250)       # a cane toad right at your feet
+frame(2)
+VIS = sym['VIS']
+seen = [m.mem[VIS+i*16+8] for i in range(m.mem[sym['nvis']]-1)]
+check('toad at your feet is still drawn', len(seen) >= 1 and max(seen) >= 4)
+m.shot('g_toad_close.png', 2)
+clearobjs(); place(6.5, 11.5, 0)                          # open ground: row 11, cells 6-9
+putobj(0, 1, 9.5, 11.5, hp=9, flags=0x80, cool=250); frame(120)
+gap = (m.mem[OBJ+2] << 8 | m.mem[OBJ+1]) - W16('px')
+check('chasing bear stops about half a cell away (%.2f)' % (gap/256), 0x80 <= gap < 0xB0)
+
 # busy view: speed with sprites on screen
 go(1); clearobjs()
 for i, (x, y) in enumerate([(10.5, 8.5), (11.5, 9.5), (12.5, 10.5), (13.5, 9.5), (11, 11)]):

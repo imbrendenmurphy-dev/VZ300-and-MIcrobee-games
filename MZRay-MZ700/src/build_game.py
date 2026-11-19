@@ -442,8 +442,27 @@ consts = dict(NAREA=NAREA, STARTCELL=sy*16+sx, STARTANG=0, T_HEALTH=11, T_AMMO=1
               DEMOFLD=25*50)
 gamedata = '\n'.join('%-10s equ %d' % kv for kv in consts.items()) + '\n' + '\n'.join(out)
 
-src = open('game.asm').read().replace(';@@GAMEDATA@@', gamedata).replace(';@@OBJECTS@@', open('objects.asm').read()).replace(';@@FX@@', open('fx.asm').read()).replace(';@@ATTRACT@@', open('attract.asm').read())
-src = fill(src, [0]*256, texlist(0), sprhook=' call sprcol', predraw=' call fogchk')
+src = open('game.asm').read().replace(';@@GAMEDATA@@', gamedata).replace(';@@OBJECTS@@', open('objects.asm').read()).replace(';@@FX@@', open('fx.asm').read()).replace(';@@ATTRACT@@', open('attract.asm').read()).replace(';@@COLDRAW@@', open('coldraw.asm').read())
+FASTMUL8 = '''
+; HL = (DE * A) >> 8, exactly as raycore's mul8, but from two quarter-square 8x8 products
+; (about 250 T-states instead of about 400). Clobbers A, BC, DE.
+mul8:   ld b,a
+        ld c,e
+        push de
+        call qmul
+        ld a,h
+        pop de
+        ld c,d
+        push af
+        call qmul
+        pop af
+        add a,l
+        ld l,a
+        ret nc
+        inc h
+        ret
+'''
+src = fill(src, [0]*256, texlist(0), sprhook=' call sprcol', predraw=' call fogchk', mul8=FASTMUL8)
 if '--preview' in sys.argv:                    # contact sheet of every sprite
     from PIL import Image
     RGB = {'K': (0, 0, 0), 'B': (0, 0, 255), 'R': (255, 0, 0), 'M': (255, 0, 255), 'G': (0, 255, 0),
