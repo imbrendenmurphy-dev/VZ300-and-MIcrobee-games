@@ -1,6 +1,6 @@
 # VZ300 & Microbee Originals
 
-Original games and demos for the Dick Smith **VZ300** and the **Microbee Premium / Premium Plus**.
+Original games and demos for the Dick Smith **VZ300**, the **Microbee Premium / Premium Plus** and the **Sharp MZ-700**.
 
 Vibed by BPM, 2026.
 
@@ -17,6 +17,7 @@ Each folder has:
 
 - **VZ300 games** need a BennVenn SD loader with 128K RAM expansion. Copy the `.VZ` file (and any `.DAT` file next to it) to the SD card and run it from the loader.
 - **Microbee games** run on a Premium / Premium Plus with PCG RAM. Boot the `.DS8` disk image, then type the program name at the prompt.
+- **Sharp MZ-700 programs** load as `.MZT` files (for example from USB through a UniCMT).
 
 ROM images for the machines and emulators are not included.
 
