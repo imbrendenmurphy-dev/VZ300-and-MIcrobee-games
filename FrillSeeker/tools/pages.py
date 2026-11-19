@@ -7,6 +7,8 @@ import critters
 import rooms
 from art import *
 
+RO = 4                   # the pages were laid out for 25 rows: down 4 to sit in the middle of 32
+
 REG_LINES = ['TERMITE MOUNDS, A BILLABONG, ONE OLD GUM', 'GORGES, ROCK ART AND A GRUMPY GOANNA',
              'DOWN THE OPAL MINE, UP ON THE VENT AIR', 'THE MONSOON: RUN ON WATER, RIDE THE WIND',
              'HIS MAJESTY IS AT HOME']
@@ -77,10 +79,10 @@ def build():
 
     def text(row, s, col, at=0xFF):
         assert len(s) <= 40 and '"' not in s, s
-        return '\tdb 1,%d,%d,%d,"%s",0' % (row, at, col, s)
+        return '\tdb 1,%d,%d,%d,"%s",0' % (row + RO, at, col, s)
 
     def pic(name, row, colm):
-        return '\tdb 2,%d,%d,%d' % (idx[name], row, colm)
+        return '\tdb 2,%d,%d,%d' % (idx[name], row + RO, colm)
 
     def page(name, items):
         L.append(name + ':')
@@ -115,8 +117,8 @@ def build():
         text(22, 'A JOYSTICK WORKS TOO', BGREEN)])
     page('pg_card', [
         text(3, 'NOW SHOWING', GREY),
-        '\tdb 3,7,%d' % YELLOW,
-        '\tdb 4,11,%d' % WHITE,
+        '\tdb 3,%d,%d' % (7 + RO, YELLOW),
+        '\tdb 4,%d,%d' % (11 + RO, WHITE),
         pic('BUG0', 15, 12), pic('JAR', 14, 18), pic('BUG0', 15, 25),
         text(19, 'BLUFF PLAYS IT HIMSELF', BCYAN),
         text(22, 'PRESS SPACE TO PLAY', BGREEN)])

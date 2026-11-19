@@ -64,14 +64,14 @@ def view(pp, mono=False):
     """the last complete picture off the model's tube, cropped to the 40-column
     picture and a little border, as RGB with square-ish pixels"""
     from PIL import Image
-    rgb = pp.frame_rgb(mono)[28:28 + 224, 24:24 + 672]
+    rgb = pp.frame_rgb(mono)[16:16 + 272, 24:24 + 672]
     return Image.fromarray(rgb)
 
 
 def shot(pp, path, mono=False, scale=1.5):
     from PIL import Image
     im = view(pp, mono)
-    im = im.resize((int(im.width * scale), int(im.height * scale * 1.6)), Image.NEAREST)
+    im = im.resize((int(im.width * scale), int(im.height * scale * 1.6)), Image.NEAREST)  # 672 x 272 -> 4:3
     im.save(path)
     return im
 

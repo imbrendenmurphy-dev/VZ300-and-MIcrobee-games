@@ -40,30 +40,33 @@ BLK_FRONT   EQU 22          ; the front end: music, attract sequence, demonstrat
 
 ; ---- the title record (tools/title.py)
 T_SCR       EQU $0100
-T_ATTR      EQU $0500
-T_COL       EQU $0900
-T_PAT       EQU $0D00
+T_ATTR      EQU $0600
+T_COL       EQU $0B00
+T_PAT       EQU $1000
 
 ; ---- a room record (16K; see tools/rooms.py)
 R_SCR       EQU $0000
-R_ATTR      EQU $0400
-R_COL       EQU $0800
-R_TMAP      EQU $0C00
-R_OBJ       EQU $0D00       ; type, x (word), y ... 0
-R_NPAT      EQU $0D40       ; dw glyphs; rooms left, right, up, down ($FF = none)
-R_NAME      EQU $0D50
-R_PAT       EQU $0E00       ; up to 768 glyphs x 8
-R_ANIM      EQU $2600
+R_ATTR      EQU $0500
+R_COL       EQU $0A00
+R_TMAP      EQU $0F00       ; 20 x 15
+R_OBJ       EQU $1040       ; type, x (word), y ... 0
+R_NPAT      EQU $1080       ; dw glyphs; rooms left, right, up, down ($FF = none)
+R_NAME      EQU $1090
+R_PAT       EQU $1100       ; up to 768 glyphs x 8
+R_ANIM      EQU $2900
 
-NCELL       EQU 1000
+NCELL       EQU 1280        ; 40 x 32
 COLS        EQU 40
 
-; ---- upper memory (block 0). The four 1K cell tables are 400h apart:
+; ---- upper memory (block 0). The four cell tables are SHD pages apart:
 ; code relies on it.
+TMAP        EQU $AA00       ; the room's tile map, 20 x 15
+SCRATCH     EQU $AB40       ; where a sprite draws when the pool is full
 COLSH       EQU $AC00       ; the room's colours
-SCRSH       EQU $B000       ; the room's screen codes (background)
-ATTSH       EQU $B400       ; the room's glyph banks (b4: busy cell)
-CELLMAP     EQU $B800       ; this frame's pool slot for each cell (0 = none)
+SCRSH       EQU $B100       ; the room's screen codes (background)
+ATTSH       EQU $B600       ; the room's glyph banks (b4: busy cell)
+CELLMAP     EQU $BB00       ; this frame's pool slot for each cell (0 = none)
+SHD         EQU 5
 TILEPAT     EQU $C000       ; the room's glyph patterns, 1024 x 8
 POOLBUF     EQU $E000       ; this frame's composed glyphs, 8 bytes a slot
 LISTA       EQU $E400       ; cell lists (CELLMAP addresses), 2 bytes a slot
@@ -74,8 +77,10 @@ VARS        EQU $EE00
 STACK       EQU $EFF0
 
 MAXSLOT     EQU 120
-PF_ROW0     EQU 2           ; playfield = cell rows 2..23
-PF_ROW1     EQU 24
+PF_ROW0     EQU 2           ; playfield = cell rows 2..31
+PF_ROW1     EQU 32
+PF_H        EQU 240         ; its height in pixels (20 x 15 tiles of 16)
+TM_SIZE     EQU 300
 ROOM_W      EQU 320
 
 ; ---- PCG banks

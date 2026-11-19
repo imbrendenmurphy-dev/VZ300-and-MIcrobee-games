@@ -79,7 +79,7 @@ class Bot:
             self.frames += 1
             h = self.v('hearts')
             if h < getattr(self, 'h0', 3):
-                print('   OUCH at x %d y %d: magpies %s goannas %s toads %s' % (self.x, self.y, self.ents(6), self.ents(7), self.ents(2)))
+                print('   OUCH at x %d y %d: magpies %s bats %s goannas %s toads %s' % (self.x, self.y, self.ents(6), self.ents(8), self.ents(7), self.ents(2)))
             self.h0 = h
             if self.shots and self.frames % 3 == 0:
                 self.ims.append(emu.view(self.pp, self.mono).resize((336, 180), Image.NEAREST))
@@ -158,7 +158,24 @@ def bounce(b, t, way=1, glide=True, air=None):
     """hop on to the belly of the toad at t and off it; under the frill on the
     way down if glide; air(b) -> the pad while he flies"""
     pad = R if way > 0 else L
-    b.until(lambda: abs(t['x'] - b.x) <= 50, pad)
+
+    def near():
+        ts = [e for e in b.ents(2) if abs(e['y'] - b.y) < 40 and -8 < (e['x'] - b.x) * way < 120]
+        return min(ts, key=lambda e: abs(e['x'] - b.x)) if ts else None
+    for i in range(300):
+        n = near()
+        if n is None:
+            break
+        t = n
+        if t['state'] < 2:                      # it has righted itself: again
+            b.step(0, 2)
+            b.until(lambda: (near() or {'state': 3})['state'] >= 2, F, 60)
+            b.step(F, 10)
+            b.until(lambda: (near() or {'state': 3})['state'] != 2, 0, 80)
+            continue
+        if abs(t['x'] - b.x) <= 50:
+            break
+        b.step(pad)
     b.step(pad | J, 3)
     hit = False
     for i in range(120):
@@ -194,7 +211,7 @@ def run(b, to_x=None, way=1, limit=600, frill_toads=True, leave=False):
             return True
         p = pad
         if b.on:
-            if [m for m in magpie_near(b, 120) if m['state'] == 1]:
+            if [m for m in magpie_near(b, 70) if m['state'] in (0, 1, 2)]:
                 b.until(lambda: not [m for m in b.ents(6) + b.ents(8) if m['state'] == 1], F, 40)
                 b.step(F, 4)
                 continue
@@ -204,6 +221,11 @@ def run(b, to_x=None, way=1, limit=600, frill_toads=True, leave=False):
             under = tile(b, (b.x + 12 * way) // 16, row + 1)
             if ahead == 1 or (under in (0, 3) and not b.v('h_spr')):
                 b.step(p | J, 12)
+                if under in (0, 3):             # over a gap: under the frill on the way down
+                    for k in range(200):
+                        if b.on or b.room != room:
+                            break
+                        b.step(p | (F if b.vy > 60 else 0))
                 continue
             g = [e for e in b.ents(7) if 0 < (e['x'] - b.x) * way < 46 and abs(e['y'] - b.y) < 20]
             if g:                               # a goanna: over it
@@ -235,19 +257,27 @@ def red_dirt(b):
     t = bluff(b)
     b.note('mound city: the bluff')
     ok = bounce(b, t, glide=False, air=lambda b: (R if b.x < 170 else (L if b.x > 180 else 0)))
-    b.note('on the ledge' if ok and b.y == 64 else 'NOT on the ledge')
+    b.note('on the ledge' if ok and b.y == 128 else 'NOT on the ledge')
     b.step(0, 10)
     b.right_to(186)
     b.step(0, 6)
     b.step(J, 13)
     b.step(R | J, 4)
     b.until(lambda: b.on, R, 100)
-    b.note('on the tall mound' if b.y == 32 else 'NOT on the mound')
-    b.step(0, 20)
-    b.step(F, 16)
+    b.note('on the tall mound' if b.y == 96 else 'NOT on the mound')
+    b.step(0, 12)
+    b.step(F, 16)                    # a frill from the top of the world
     b.step(0, 6)
+    b.right_to(214)
+    hop(b, R, 26, until_x=252)       # up to the ledge, higher still
+    b.note('on the high ledge' if b.y == 64 else 'NOT on the high ledge')
+    b.right_to(262)
+    b.step(0, 4)
+    hop(b, 0, 26)                    # the bug over it
+    b.note('the high bug')
+    b.step(0, 8)
     b.step(R | J, 10)
-    b.until(lambda: b.on, R | F, 300)
+    b.until(lambda: b.on, R | F, 400)
     b.note('floated down')
     b.step(0, 30)
     return b
@@ -278,15 +308,15 @@ def stone_country(b):
     b.note('under the first ledge')
     b.step(0, 4)
     hop(b, 0, 14)                    # straight up through it
-    b.note('on ledge one' if b.y == 96 else 'NOT on ledge one')
+    b.note('on ledge one' if b.y == 160 else 'NOT on ledge one')
     if magpie_near(b, 90):
         b.step(F, 14)
     b.right_to(152)
     hop(b, R, 14, until_x=200)
-    b.note('on ledge two' if b.y == 80 else 'NOT on ledge two')
+    b.note('on ledge two' if b.y == 144 else 'NOT on ledge two')
     b.right_to(216)
     hop(b, R, 12, until_x=236)
-    b.note('on the tops' if b.y == 64 else 'NOT on the tops')
+    b.note('on the tops' if b.y == 128 else 'NOT on the tops')
     b.step(0, 10)
     b.step(F, 16)                    # a frill for the goanna underneath, who is not impressed
     b.step(0, 8)
@@ -295,16 +325,16 @@ def stone_country(b):
     b.right_to(66)
     b.step(0, 6)
     hop(b, R, 10, until_x=108)
-    b.note('gorge ledge one' if b.y == 80 else 'NOT gorge ledge one')
+    b.note('gorge ledge one' if b.y == 144 else 'NOT gorge ledge one')
     if magpie_near(b, 100):
         b.until(lambda: not magpie_near(b, 100), F, 40)
         b.step(F, 6)
     b.right_to(122)
     hop(b, R, 16, glide=True, until_x=204)
-    b.note('gorge ledge two' if b.y == 80 else 'NOT gorge ledge two')
+    b.note('gorge ledge two' if b.y == 144 else 'NOT gorge ledge two')
     b.right_to(216)
     hop(b, R, 14, until_x=250)
-    b.note('across' if b.y == 64 else 'NOT across')
+    b.note('across' if b.y == 128 else 'NOT across')
     run(b)
     b.note('the cave')
     b.right_to(118)                  # down the steps
@@ -328,64 +358,106 @@ def ride(b, pad=0, until=None, limit=400):
 
 def diggings(b):
     b.step(0, 24)
-    run(b, 150)                      # over the mullock heap, past the toad
+    run(b, 120)                      # over the mullock heap, past the toad
     b.note('at the shaft')
     b.step(0, 10)
     room = b.room
-    b.until(lambda: b.room != room, R, 200)      # and in
+    b.until(lambda: b.room != room, L if b.x > 192 else R, 200)      # and down the shaft
     b.land(0)
     b.note('down the drop')
     b.step(0, 16)
     run(b, 40, way=-1)               # to the vent
-    b.left_to(34)
-    b.step(J | L, 6)
-    ride(b, 0, lambda: b.y < 40)     # up on the air
+    b.left_to(30)
+    b.step(J | F, 4)
+    ride(b, 0, lambda: b.y < 52)     # up on the air
     b.note('up the vent')
-    ride(b, R, None, 500)            # and all the way across under the frill
-    b.note('landed')
-    run(b)
+    ride(b, R, lambda: b.x > 60, 300)
+    ride(b, 0, None, 200)            # down on to the ledge
+    b.note('on a ledge' if b.y == 64 else 'NOT on the ledge')
+    b.until(lambda: not b.on, R, 60)             # off the end, frill open,
+    ride(b, R, lambda: b.x > 150, 200)           # across to the far one
+    ride(b, 0, None, 100)
+    b.right_to(172)
+    b.note('far ledge' if b.y == 96 else 'NOT on the far ledge')
+    b.step(0, 10)
+    run(b)                           # off the end and out to the drive
     b.note('the drive')
-    run(b, 140)
-    b.step(R | J, 10)
-    ride(b, R, None, 300)            # over the pit on its updraught
-    b.note('over the pit')
-    run(b, 260)
+    run(b, 100)
+    b.right_to(150)
+    b.until(lambda: not b.on, R, 60)
+    b.until(lambda: b.x >= 186, R | F, 40)       # into the pit, over the vent, frill open: the air takes him up
+    ride(b, 0, lambda: b.y < 52, 300)
+    b.note('up the drive vent')
+    ride(b, R, lambda: b.x > 246, 300)
+    ride(b, 0, None, 200)
+    b.note('landed')
     b.step(0, 30)
     return b
+
+
+def climb(b, steps, glide=False):
+    """from one platform to the next: for each (take-off x, target x, target
+    y) walk to the take-off, jump with the button held, steer to the target"""
+    for x0, x1, y1 in steps:
+        if b.x < x0:
+            b.right_to(x0)
+        elif b.x > x0:
+            b.left_to(x0)
+        b.step(0, 3)
+        way = 1 if x1 > b.x else -1
+        pad = R if way > 0 else L
+        b.step(pad | J, 26)
+        for i in range(200):
+            if b.on:
+                break
+            p = pad if (x1 - b.x) * way > 2 else 0
+            if glide and b.vy > 40:
+                p |= F
+            b.step(p)
+        b.note('  climbed to y %d' % b.y if b.y == y1 else '  MISSED y %d' % y1)
 
 
 def the_wet(b):
     b.step(0, 24)
     t = bluff(b)
+    b.note('the bluff')
     if t:
-        bounce(b, t, air=lambda b: R if b.x < 120 else 0)
-    b.note('bounced')
-    b.left_to(40)                    # a run-up, and across the water flat out
-    b.step(0, 6)
-    run(b)
-    b.note('paperbark swamp')
-    run(b)
-    b.note('the storm')
-    b.right_to(30)
-    b.step(R | J, 8)
-    ride(b, R, lambda: b.x >= 60)
-    ride(b, 0, lambda: b.y < 30)     # up the first gust
-    b.note('up the gust')
+        bounce(b, t, glide=False, air=lambda b: L if b.x > 84 else (R if b.x < 72 else 0))
+    b.note('on the low branch' if b.y == 128 else 'NOT on the low branch')
+    climb(b, [(90, 128, 96), (152, 212, 64)])
+    b.right_to(222)
+    hop(b, 0, 26)                    # the bug over the high branch
+    b.note('up in the rain')
+    b.step(R | J, 26)
     room = b.room
-    ride(b, R, lambda: b.room != room, 600)      # and the whole room under the frill
-    b.note('across')
-    b.land(R | F)
+    ride(b, R, lambda: b.room != room, 600)      # off the top branch and away over the flood
+    ride(b, R, lambda: b.x >= 64, 300)
+    ride(b, 0, None, 300)
+    b.note('paperbark swamp' if b.y == 112 else 'paperbark swamp: NOT on the branch')
+    climb(b, [(84, 104, 80), (116, 144, 48)])
+    b.step(0, 10)
+    b.right_to(150)
+    hop(b, 0, 26)
+    b.note('the top of the swamp')
     b.step(0, 30)
     return b
 
 
 def court(b):
     b.step(0, 30)
-    b.right_to(60)
-    hop(b, R, 14, until_x=80)        # a bug or two from the larder shelves
-    b.right_to(136)
-    hop(b, R, 14, until_x=150)
-    run(b)
+    # up the larder shelves, zig and zag, a bug on each
+    climb(b, [(120, 144, 176), (130, 80, 144), (90, 144, 112), (130, 80, 80), (90, 128, 48)])
+    b.right_to(132)
+    hop(b, 0, 26)
+    b.note('the top shelf')
+    b.step(0, 10)
+    room = b.room
+    for k in range(6):                           # and float through to the King
+        b.until(lambda: not b.on or b.room != room, R, 100)
+        ride(b, R, lambda: b.room != room, 600)
+        if b.room != room:
+            break
+    b.land(R)
     b.note('the throne')
     hits = 0
     for i in range(1500):

@@ -1,6 +1,6 @@
 ; =====================================================================
-;  GAME: Bluff, the toads, the bugs. All motion is in pixels (320 x 176
-;  playfield of 20 x 11 tiles), 8.8 fixed point, one tick = one 50 Hz field.
+;  GAME: Bluff, the toads, the bugs. All motion is in pixels (320 x 240
+;  playfield of 20 x 15 tiles), 8.8 fixed point, one tick = one 50 Hz field.
 ; =====================================================================
 WALKV       EQU $0140       ; 1.25 px a tick
 ACC         EQU $0028
@@ -312,11 +312,13 @@ main_loop:
         ld a,(demo)
         or a
         jr z,.live
-        call read_menu          ; a demonstration: any key ends it
+        call read_menu          ; a demonstration: ESC back to the title, SPACE to play
         ld a,(pad)
         and $90
-        jp nz,title_screen
-        jr .go
+        jr z,.go
+        rla
+        jp c,title_screen
+        jp game_start
 .live:  call read_input
         ld a,(pad)
         rla                     ; ESC: back to the title
@@ -581,7 +583,7 @@ tile_at:
         or a
         jr nz,.none
         ld a,l
-        cp 176
+        cp PF_H
         jr nc,.none
         ld a,d
         or a
@@ -591,16 +593,18 @@ tile_at:
         ld a,e
         cp ROOM_W-256
         jr nc,.xout
-.xin:   ld a,l                  ; row * 20
+.xin:   ld a,l                  ; row * 20 (y < PF_H: row 0..14)
+        and $F0
         rrca
-        rrca
-        rrca
-        rrca
-        and 15
-        add a,row20tab & 255
+        rrca                    ; row * 4
+        ld h,a
+        add a,a
+        add a,a                 ; row * 16
+        add a,h
         ld l,a
-        ld h,row20tab >> 8
-        ld l,(hl)
+        ld a,TMAP >> 8
+        adc a,0
+        ld h,a
         srl d                   ; x / 16
         rr e
         srl e
@@ -609,8 +613,9 @@ tile_at:
         ld a,e
         add a,l
         ld l,a
-        ld h,TMAP >> 8
-        ld a,(hl)
+        jr nc,.t1
+        inc h
+.t1:    ld a,(hl)
         ret
 .none:  xor a
         ret
@@ -996,7 +1001,7 @@ hero_tick:
         ld a,(nb_up)
         cp $FF
         jp z,.anim
-        ld de,176
+        ld de,PF_H
         add hl,de
         ld (hy),hl
         ld (newroom),a
@@ -1005,7 +1010,7 @@ hero_tick:
         or a
         jr nz,.down
         ld a,l
-        cp 176
+        cp PF_H
         jr nc,.down
         ; water under the feet?
         ld de,-3
@@ -1023,7 +1028,7 @@ hero_tick:
 .down:  ld a,(nb_down)
         cp $FF
         jr z,.pit
-        ld de,-176
+        ld de,-PF_H
         add hl,de
         ld (hy),hl
         ld (newroom),a

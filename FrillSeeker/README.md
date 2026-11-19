@@ -21,19 +21,24 @@ Not everything falls for it. **Magpies** swoop on him from above (a bluff sends
 them off squawking), and a **goanna** is simply not impressed: it charges,
 faster than Bluff can walk, so he has to jump it, climb away or outrun it.
 
+The screen is the Premium Plus's full-height 40-column mode: 40 × 32 cells of
+8 × 8, 320 × 256, filling a 4:3 PAL screen. Every room is 20 × 15 tiles.
+
 | | |
 |---|---|
 | ![](screenshots/00-title.png) | ![](screenshots/00-title-amber.png) |
-| ![](screenshots/01-the-bluff.png) | ![](screenshots/02-sprinting-the-billabong.png) |
-| ![](screenshots/04-the-old-gum.png) | ![](screenshots/05-the-canopy.png) |
-| ![](screenshots/06-lookout-rock.png) | ![](screenshots/07-amber-canopy.png) |
-| ![](screenshots/10-magpie-swoop.png) | ![](screenshots/11-goanna-not-impressed.png) |
-| ![](screenshots/12-the-gorge.png) | ![](screenshots/13-rock-art-cave.png) |
-| ![](screenshots/14-stone-tops.png) | ![](screenshots/15-amber-cave.png) |
+| ![](screenshots/02-mound-city.png) | ![](screenshots/03-floating-down-the-old-gum.png) |
+| ![](screenshots/04-the-escarpment.png) | ![](screenshots/05-the-gorge.png) |
+| ![](screenshots/07-the-drop-riding-the-vent.png) | ![](screenshots/08-the-drive.png) |
+| ![](screenshots/10-the-floodplain-in-the-rain.png) | ![](screenshots/11-paperbark-swamp.png) |
+| ![](screenshots/12-the-larder-shelves.png) | ![](screenshots/13-king-bufo.png) |
+| ![](screenshots/15-attract-story.png) | ![](screenshots/14-king-bufo-amber.png) |
+
+All 24 rooms: [screenshots/rooms-all-24.png](screenshots/rooms-all-24.png)
 
 ## What is playable
 
-The whole game, start to finish: five regions, 24 rooms, 68 bugs.
+The whole game, start to finish: five regions, 24 rooms, 98 bugs.
 
 * **The Red Dirt**: the savanna, the billabong, Mound City, up the Old Gum
   into the Canopy, and Lookout Rock.
@@ -58,8 +63,7 @@ Leave the title alone and the game shows itself off: the logo and **The
 Frillseeker Strut** (a twelve-bar shuffle for three voices and drums), a page
 of the story, then a card for a region and Bluff playing it by himself; the
 title again, who's who, another region; the moves, and round again. SPACE
-starts a game from anywhere in it. (So far Bluff demonstrates the first two
-regions; the rest are still to be recorded.)
+starts a game from anywhere in it. Bluff demonstrates every region in turn.
 
 ## To run it
 

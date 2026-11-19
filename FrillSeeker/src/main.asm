@@ -29,7 +29,7 @@ start:  di
         INCLUDE "snd.inc"
         INCLUDE "sprtab.inc"
 prog_end:
-        ASSERT prog_end <= COLSH
+        ASSERT prog_end <= TMAP
         INCLUDE "vars.asm"
         SAVEBIN "../build/FRILL.BIN",$8000,prog_end-$8000
         INCLUDE "front.asm"

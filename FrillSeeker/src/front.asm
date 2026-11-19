@@ -390,34 +390,34 @@ f_end:  push af
         ld (fe_saved),a
         ld a,(region)
         call reg_name_a
-        ld d,3
+        ld d,7
         ld c,YELLOW
         call print_centred
         ld hl,t_isclear
-        ld d,5
+        ld d,9
         ld c,YELLOW
         call print_centred
-        ld de,$090A
+        ld de,$0D0A
         call tally
         ld hl,t_next
-        ld d,14
+        ld d,18
         ld c,WHITE
         call print_centred
         ld a,(region)
         inc a
         call reg_name_a
-        ld d,16
+        ld d,20
         ld c,BCYAN
         call print_centred
         ld a,(fe_saved)
         or a
         jr nz,.ns
         ld hl,t_kept
-        ld d,19
+        ld d,23
         ld c,GREY
         call print_centred
 .ns:    ld hl,t_again
-        ld d,22
+        ld d,26
         ld c,BGREEN
         call print_centred
         call display_on
@@ -475,13 +475,13 @@ ending: xor a
         call fa_wait
         ld hl,pg_end2
         call page
-        ld de,$0B0A
+        ld de,$0F0A
         call tally
         ld a,(bugs)
         cp TOTAL_BUGS
         jr c,.some
         ld hl,t_every
-        ld d,14
+        ld d,18
         ld c,BGREEN
         call print_centred
 .some:  ld bc,150
@@ -679,7 +679,7 @@ title_hook:
         inc hl
         ld h,(hl)
         ld l,a
-        ld de,$160A
+        ld de,$1E0A
         ld c,WHITE
         jp print
 
@@ -731,7 +731,7 @@ keys_page:
         or a
         jr z,.s
         ld hl,t_nosave
-.s:     ld d,21
+.s:     ld d,25
         ld c,BGREEN
         call print_centred
         ld bc,120
@@ -743,7 +743,7 @@ kp_put: push af
         ld b,a
         add a,a
         add a,b
-        add a,5
+        add a,9
         ld d,a
         ld e,24
         pop af
@@ -757,7 +757,7 @@ kp_name:
         ld b,a
         add a,a
         add a,b
-        add a,5
+        add a,9
         ld d,a
         ld e,24
         ld hl,t_space

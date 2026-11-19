@@ -1,8 +1,6 @@
 ; =====================================================================
-;  variables (EE00-EEFF), entities (EF00-EF7F), the tile map (ED00, 20 x 11)
+;  variables (EE00-EEFF), entities (EF00-EF7F); the tile map is at TMAP (hw.inc)
 ; =====================================================================
-TMAP        EQU $ED00
-scratch     EQU $EDF0
 ENTS        EQU $EF00       ; 8 x 16; the stack grows down from EFF0 to meet it
 
         ORG VARS

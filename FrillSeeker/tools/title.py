@@ -1,4 +1,4 @@
-"""The title picture: 320 x 176 (cell rows 0-21; rows 22-24 are left black
+"""The title picture: 320 x 240 (cell rows 0-29; rows 30-31 are left black
 for text), painted like a room - sky, sun, range, a gum, red dirt - with
 Bluff in full bluff, drawn three times the size by the same puppet, and
 two cane toads flung on to their backs. In colour and for amber.
@@ -12,10 +12,10 @@ import critters
 import font
 from art import *
 
-T_SCR, T_ATTR, T_COL, T_PAT, T_SIZE = 0x100, 0x500, 0x900, 0xD00, 0x4000
-SCENE = dict(name='TITLE', sun=(266, 100, 30),
-             mesa=[(0, 120), (40, 120), (48, 104), (110, 104), (118, 128), (200, 128), (208, 112), (320, 112)],
-             trees=[(28, 144, 90)])
+T_SCR, T_ATTR, T_COL, T_PAT, T_SIZE = 0x100, 0x600, 0xB00, 0x1000, 0x4000
+SCENE = dict(name='TITLE', sun=(266, 164, 30),
+             mesa=[(0, 184), (40, 184), (48, 168), (110, 168), (118, 192), (200, 192), (208, 176), (320, 176)],
+             trees=[(28, 208, 90)])
 
 
 def stamp(p, ink, cut, x0, y0, col):
@@ -137,8 +137,8 @@ def paint(ph=0):
     R.mesa(p, SCENE)
     for t in SCENE['trees']:
         R.gum_tree(p, *t)
-    mp = ['.' * 20] * 9 + ['#' * 20] * 2
-    for ty in (10, 9):
+    mp = ['.' * 20] * 13 + ['#' * 20] * 2
+    for ty in (14, 13):
         for tx in range(20):
             R.dirt(p, mp, tx, ty)
     logo(p)
@@ -148,11 +148,11 @@ def paint(ph=0):
                   arms=((8.2, -14.0), (8.6, -15.4)), legs=((3.0, 0), (-2.8, 0)))
     hero.K = 1
     ink, cut = c.ink, c.cut
-    stamp(p, ink, cut, 128 - hero.OX * 3, 145 - hero.OY * 3, YELLOW)
+    stamp(p, ink, cut, 128 - hero.OX * 3, 209 - hero.OY * 3, YELLOW)
     # the toads he has seen off
     F = critters.frames()
-    for name, x, y, col in (('TOAD_BACK0', 236, 144, BGREEN), ('TOAD_EEK', 204, 92, BGREEN), ('BUG0', 92, 60, WHITE),
-                            ('BUG1', 300, 70, WHITE), ('BUG0', 180, 50, WHITE)):
+    for name, x, y, col in (('TOAD_BACK0', 236, 208, BGREEN), ('TOAD_EEK', 204, 156, BGREEN), ('BUG0', 92, 100, WHITE),
+                            ('BUG1', 300, 120, WHITE), ('BUG0', 180, 84, WHITE), ('BUG1', 40, 70, WHITE)):
         ink, cut, ox, oy = F[name]
         stamp(p, ink, cut, x - ox, y - oy, col)
     return p
@@ -163,10 +163,10 @@ def compile_title(mono):
     img = p.m if mono else p.c
     pat, ink, pap = cells_from_image(img, solid=mono)
     glyphs = {bytes(8): 0}
-    scr = np.full(1000, 0x80, np.uint8)
-    att = np.zeros(1000, np.uint8)
-    col = np.full(1000, 0x0F, np.uint8)
-    for r in range(22):
+    scr = np.full(COLS * ROWS, 0x80, np.uint8)
+    att = np.zeros(COLS * ROWS, np.uint8)
+    col = np.full(COLS * ROWS, 0x0F, np.uint8)
+    for r in range(30):
         for c in range(40):
             k = bytes(pat[r, c])
             if k not in glyphs:
@@ -180,9 +180,9 @@ def compile_title(mono):
     assert n <= 1408, n
     d = bytearray(T_SIZE)
     d[0], d[1] = n & 255, n >> 8
-    d[T_SCR:T_SCR + 1000] = scr.tobytes()
-    d[T_ATTR:T_ATTR + 1000] = att.tobytes()
-    d[T_COL:T_COL + 1000] = col.tobytes()
+    d[T_SCR:T_SCR + COLS * ROWS] = scr.tobytes()
+    d[T_ATTR:T_ATTR + COLS * ROWS] = att.tobytes()
+    d[T_COL:T_COL + COLS * ROWS] = col.tobytes()
     for k, g in glyphs.items():
         d[T_PAT + g * 8:T_PAT + g * 8 + 8] = k
     return bytes(d), n, image_from_cells(pat, ink, pap, mono)
