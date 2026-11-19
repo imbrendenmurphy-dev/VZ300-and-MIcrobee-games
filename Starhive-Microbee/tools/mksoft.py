@@ -248,6 +248,18 @@ def main():
         if 32 <= ord(ch) < 96:
             fmap[ord(ch) - 32] = 0x80 + i
     h.append('font_map:\tdb ' + ','.join('$%02X' % x for x in fmap))
+    # SHIPTEST's WORK block: row buckets (2 sets) below, sprites from 2C00h
+    lib, labels = art.sprite_lib(base=0x2C00, limit=0x5800)
+    (B / 'SWORK.BNK').write_bytes(bytes(0x2C00) + lib)
+    for name, v in labels.items():
+        h.append('%s\tequ $%04X' % (name, v))
+    print('sprite library %d bytes' % len(lib))
+    # sprite row tables: t = y + 16 (y = 0 at the top of display row 2)
+    rt = [max(0, 2 + (t - 16) // CL) for t in range(256)]
+    ot = [(t - 16) % CL for t in range(256)]
+    h.append('\tALIGN 256')
+    h.append('rowt:\tdb ' + ','.join(str(x) for x in rt))
+    h.append('offt:\tdb ' + ','.join(str(x) for x in ot))
     (B / 'soft.inc').write_text('\n'.join(h) + '\n')
     (B / 'soft_files.inc').write_text(''.join('\tDB %d,"%s"\n' % (blk, name) for blk, name in files))
     (B / 'soft_files.txt').write_text('\n'.join(n.replace(' ', '').replace('BNK', '.BNK') for _, n in files))

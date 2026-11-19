@@ -111,7 +111,8 @@ def sprite_frame(art, outline=True):
     """art: colour-index array (-1 = transparent), h x w pixels.
     -> frame bytes: wb, h, flags, 0, block size (2), then 8 blocks (one
     per pixel shift): wb x (first line, end line, colour), then wb
-    columns x h lines x (mask, gfx). A column's colour is its most
+    columns x h lines x (mask, gfx), then wb strips of 11 + h + 11
+    graphic bytes (for cells over black). A column's colour is its most
     common ink."""
     h, w = art.shape
     solid = art >= 0
@@ -147,6 +148,11 @@ def sprite_frame(art, outline=True):
             if end == 0:
                 first = end = 0
             head += bytes([first, end, colour])
-        blocks.append(bytes(head + data))
+        # strips for cells over black space: per column 11 zero lines,
+        # the h graphic lines, 11 zero lines (a cell is 11 bytes from it)
+        strips = bytearray()
+        for c in range(wb):
+            strips += bytes(CL) + bytes(byte8(g[y, c * 8:(c + 1) * 8]) for y in range(h)) + bytes(CL)
+        blocks.append(bytes(head + data + strips))
     bsz = len(blocks[0])
     return bytes([wb, h, 0, 0, bsz & 0xFF, bsz >> 8]) + b''.join(blocks)
