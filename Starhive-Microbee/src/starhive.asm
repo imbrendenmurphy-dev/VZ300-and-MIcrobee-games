@@ -75,6 +75,7 @@ start:	di
 	ld (spk),a
 	ld (snd_len),a
 	ld (round),a
+	ld (ovt),a
 	inc a
 	ld (level),a
 	ld hl,vcol_tab		; far-star glyph per column: F0h + 4 v
@@ -150,13 +151,27 @@ restart:
 	jr nz,.dr
 	call star_off
 	call state_init
-main:	call vschk		; steady pacing: 2 fields a frame (25 fps),
-	ld a,(vbcount)		; or 3 for a while after a frame that
-	cp 2			; needed more than 2
+OV_WIN	equ 10		; two overruns within this many frames: 3 fields
+OV_CALM	equ 25		; for this many
+main:	call vschk		; pacing: 2 fields a frame (25 fps); after two
+	ld hl,ovt		; frames that needed more close together, a
+	ld a,(hl)		; steady 3 (16.7 fps) for a second
+	or a
+	jr z,.o0
+	dec (hl)
+.o0:	ld a,(vbcount)
+	cp 2
 	jr c,.fit
+	jr nz,.ovr
+	call blank_now		; just into the second blanking, and no
+	jr nz,.fit		; step: still fits (it commits at once)
+.ovr:	ld a,(hl)		; overran: the second time lately?
+	ld (hl),OV_WIN
+	or a
+	jr z,.pace
 	ld a,3
 	ld (fields),a
-	ld a,100
+	ld a,OV_CALM
 	ld (calm),a
 	jr .pace
 .fit:	ld hl,calm
@@ -171,7 +186,11 @@ main:	call vschk		; steady pacing: 2 fields a frame (25 fps),
 	ld a,(vbcount)
 	ld hl,fields
 	cp (hl)
-	jr nc,.late
+	jr c,.wt
+	jr nz,.late
+	call blank_now		; just: still in that blanking? then at once
+	jr nz,.ok
+	jr .late
 .wt:	call vblank_snd		; no: wait for them
 	ld hl,vbcount
 	inc (hl)
@@ -188,7 +207,7 @@ main:	call vschk		; steady pacing: 2 fields a frame (25 fps),
 	xor a
 	ld (vbcount),a
 	ld a,$20
-	ld (vbprev),a
+	ld (vbprev+1),a
 	call commit
 	call advance
 	call vschk
@@ -340,13 +359,13 @@ star_off:			; off = (s88 / 2 - k) mod 44
 ; ---------------------------------------------------------------------
 ;  HL = map row, DE = its ring offset: the row's segment (pair cells)
 ; ---------------------------------------------------------------------
-seg_build:			; two lists: cells of one colour (address),
-	ld (bl_base),de		; from +0; cells whose colour changes with the
-	ld a,l			; phase (address, slot, 0), from +58h
+seg_build:			; counts at +0, +1; cells of one colour
+	ld (bl_base),de		; (address) from +2; cells whose colour changes
+	ld a,l			; with the phase (address, slot, 0) from +58h
 	and 31
 	or SEGS>>8
 	ld d,a
-	ld e,0
+	ld e,2
 	ld (bl_dst),de
 	ld e,$58
 	ld (bl_dstb),de
@@ -395,13 +414,55 @@ seg_build:			; two lists: cells of one colour (address),
 .nx:	pop hl
 	djnz .c
 .e:	ld hl,(bl_dst)
+	ld a,l			; one-colour count
+	sub 2
+	rrca
+	ld c,a
 	ld (hl),0
 	inc hl
 	ld (hl),0
 	ld hl,(bl_dstb)
+	ld a,l			; changing-colour count
+	sub $58
+	rrca
+	rrca
 	ld (hl),0
 	inc hl
 	ld (hl),0
+	ld l,1
+	ld (hl),a
+	dec l
+	ld (hl),c
+	ld l,$54		; and the jumps into the unrolled passes:
+	push hl			; +54h .q1e - 2 n1, +56h .q2e - 8 n2
+	ld l,a
+	ld h,0
+	add hl,hl
+	add hl,hl
+	add hl,hl
+	ex de,hl
+	ld hl,rows_commit.q2e
+	or a
+	sbc hl,de
+	ex de,hl		; DE = .q2e - 8 n2
+	ld l,c
+	ld h,0
+	add hl,hl
+	ld b,h
+	ld c,l
+	ld hl,rows_commit.q1e
+	or a
+	sbc hl,bc
+	ld b,h
+	ld c,l			; BC = .q1e - 2 n1
+	pop hl
+	ld (hl),c
+	inc l
+	ld (hl),b
+	inc l
+	ld (hl),e
+	inc l
+	ld (hl),d
 	ret
 
 ; A = display row, uses (scrS) -> DE = ring offset (S + 40 A) & 7FFh
@@ -646,38 +707,61 @@ hud_write:
 
 ; far stars: glyph (v, q) at code F0h + 4v + q shows texture v from line
 ; 11q + off (the textures are stored twice over)
-stars:	ld a,LV_SCREEN|STAR_BANK
-	out (P_LV),a
+stars:	ld a,LV_SCREEN|STAR_BANK	; glyph q of texture v = 11 bytes from
+	out (P_LV),a		; tex_v + soff + 11 q (the textures are doubled)
 	ld de,PCGWIN+$700
-	ld ix,star_texs
-	ld c,4
-.v:	ld a,(soff)
-	ld b,4
-.q:	push bc
-	push af
-	ld l,(ix+0)
-	ld h,(ix+1)
-	add a,l
+	ld a,(soff)
 	ld l,a
-	jr nc,$+3
-	inc h
+	ld h,0
+	ld bc,star_tex0
+	add hl,bc
+	REPT 4
 	REPT 11
 	ldi
 	ENDR
 	ld a,e
 	add a,5
 	ld e,a
-	pop af
-	add a,11
-	cp 44
-	jr c,$+4
-	sub 44
-	pop bc
-	djnz .q
-	inc ix
-	inc ix
-	dec c
-	jr nz,.v
+	ENDR
+	ld a,(soff)
+	ld l,a
+	ld h,0
+	ld bc,star_tex1
+	add hl,bc
+	REPT 4
+	REPT 11
+	ldi
+	ENDR
+	ld a,e
+	add a,5
+	ld e,a
+	ENDR
+	ld a,(soff)
+	ld l,a
+	ld h,0
+	ld bc,star_tex2
+	add hl,bc
+	REPT 4
+	REPT 11
+	ldi
+	ENDR
+	ld a,e
+	add a,5
+	ld e,a
+	ENDR
+	ld a,(soff)
+	ld l,a
+	ld h,0
+	ld bc,star_tex3
+	add hl,bc
+	REPT 4
+	REPT 11
+	ldi
+	ENDR
+	ld a,e
+	add a,5
+	ld e,a
+	ENDR
 	ld a,LV_SCREEN
 	out (P_LV),a
 	ret
@@ -829,6 +913,7 @@ hud_build:
 	ld de,HUDC
 	ld b,40
 	call hud_text
+	call vschk
 	ld hl,score
 	ld de,HUDC+6
 	call hud_bcd
@@ -895,11 +980,12 @@ hud_build:
 .bar:	ld (hl),a
 	inc hl
 	djnz .bar
-.col:	ld hl,HUDK
+.col:	call vschk
+	ld hl,HUDK
 	ld b,40
-.k0:	ld a,YELLOW
+	ld a,YELLOW
 	call fold
-	ld (hl),a
+.k0:	ld (hl),a
 	inc hl
 	djnz .k0
 	ld b,40
@@ -986,21 +1072,33 @@ ovl_up:	ld de,PCGWIN		; B glyphs of 11 bytes from HL
 	djnz .u
 	ret
 
+; NZ if the beam is in vertical blanking and the next commit has no
+; coarse step (whose start address must be in before the frame starts):
+; such a commit may start late in the blanking, ahead of the beam
+blank_now:
+	ld a,(step)
+	or a
+	jr nz,.no
+	in a,(P_CRTCA)
+	and $20
+	ret
+.no:	xor a
+	ret
+
 ; count rising edges of vertical blanking (call at least every ~8000 T)
 vschk:	push af
 	in a,(P_CRTCA)
 	and $20
-	push hl
-	ld hl,vbprev
-	cp (hl)
+vbprev:	cp 0			; (the last state, kept in the instruction)
 	jr z,.s
-	ld (hl),a
+	ld (vbprev+1),a
 	or a
 	jr z,.s
+	push hl
 	ld hl,vbcount
 	inc (hl)
-.s:	pop hl
-	pop af
+	pop hl
+.s:	pop af
 	ret
 
 ; wait for a rising edge of the 6545 vertical blanking status
@@ -1093,7 +1191,6 @@ st_at	ds 2
 spdshow	ds 1
 vbcount	ds 1
 elapsed	ds 1
-vbprev	ds 1
 sr_ring	ds 2
 sr_flag	ds 1
 ps_bkt	ds 1
@@ -1183,6 +1280,9 @@ snd_nse	ds 1
 snd_slide ds 1
 snd_pri	ds 1
 mono	ds 1
+frame_id ds 1
+ovt	ds 1
+ps_n2	ds 1
 mus_wait ds 1
 m_acc	ds 2
 star_col ds 1

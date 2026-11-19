@@ -313,7 +313,7 @@ COMMON = [
 BOSSES = [QUEEN, ROCKMITE, WARDEN, HULK, HIVEMIND]
 
 
-def level_lib(n, base=0x1600, limit=0x6800):
+def level_lib(n, base=0x1600, limit=0x6000):
     """the sprite library of level n (0-4): common sprites, then its boss"""
     data = bytearray()
     labels = {}
