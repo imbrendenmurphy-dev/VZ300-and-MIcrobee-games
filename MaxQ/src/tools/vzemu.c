@@ -465,6 +465,11 @@ int main(int argc, char **argv) {
             (unsigned long long)pcount[k], (double)psum[k] / pcount[k], (unsigned long long)pmin[k], (unsigned long long)pmax[k]);
     if (vf) fclose(vf);
     if (memdump) { FILE *o = fopen(memdump, "wb"); fwrite(mem, 1, 65536, o); fclose(o); }
+    for (int i = 2; i < argc; i++) if (!strcmp(argv[i], "--latchlog") && i + 1 < argc) {
+        FILE *o = fopen(argv[i + 1], "w");
+        for (int k = 0; k < nlatch; k++) fprintf(o, "%llu %d\n", (unsigned long long)latchlog[k].t, latchlog[k].v);
+        fclose(o);
+    }
     printf("regs A=%02X F=%02X BC=%02X%02X DE=%02X%02X HL=%02X%02X IX=%04X IY=%04X SP=%04X\n", A, F, B, C, D, E, H, L, IX, IY, SP);
     printf("stopped at PC=$%04X T=%llu (%.2f fields) %s\n", PC, (unsigned long long)T, (double)T / FIELD_T, halted ? "HALT" : "maxT");
     if (dump) {

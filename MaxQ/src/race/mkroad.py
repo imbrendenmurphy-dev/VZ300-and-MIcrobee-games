@@ -14,9 +14,188 @@ k = next(n for n, l in enumerate(comp) if l.startswith('.s5:'))
 comp = comp[:i] + comp[j:]
 comp[k:k + 1] = ['.s5:    ld c,a', '        ld a,(SPLITMODE)        ; a sky gradient moves with the horizon: draw it all',
                  '        dec a', '        ld a,c', '        jr nz,.s6', '        ld a,TOPROW', '.s6:    ld (crow),a']
-out += comp[:-2]
+old = '''        ld a,(crow)             ; HL = LISTS + crow*32 + LP[crow]
+        ld l,a
+        ld h,ROWLP/256
+        ld c,(hl)
+        rrca
+        rrca
+        rrca
+        ld h,a
+        and $E0
+        add a,c
+        ld l,a
+        ld a,h
+        and $1F
+        add a,LISTS/256
+        ld h,a
+'''
+new = '''        ld a,(crow)             ; HL = this row's span list (per sky row, or shared by a road slot)
+        ld l,a
+        ld h,RLPL/256
+        ld c,(hl)
+        inc h
+        ld h,(hl)
+        ld l,c
+'''
+txt = '\n'.join(comp[:-2])
+assert old in txt + '\n', 'composer head not found'
+comp = (txt + '\n').replace(old, new).split('\n')
+out += comp
 out += between('; rect colour:', 'draw_gates:')
 out += between('; rect: biased coords', '; MAKE_SKY_TOP')[:-1]
 out += L[next(n for n, l in enumerate(L) if l.startswith('; MAKE_SKY_TOP')) - 1:]
 out += open('road_new.asm').read().split('\n')
-open('road.asm', 'w').write('\n'.join(out) + '\n')
+txt = '\n'.join(out) + '\n'
+old_end = '''.r2:    ld a,(crow)
+        inc a
+        ld (crow),a
+        cp 64
+        jp nz,c2row
+        jp draw_skyline
+'''
+new_end = '''.r2:    ld a,(crow)
+        inc a
+c2skp:  cp 255                  ; first row under the mountains? they cover it: skip to the road
+        jr nz,.r3
+        ld a,(SPLIT)
+        ld (crow),a
+        rrca
+        rrca
+        rrca
+        ld e,a
+        and $1F
+        add a,BUFFER/256
+        ld d,a
+        ld a,e
+        and $E0
+        ld e,a
+        jp c2row
+.r3:    ld (crow),a
+        cp 64
+        jp nz,c2row
+        jp draw_skyline
+'''
+assert old_end in txt
+txt = txt.replace(old_end, new_end)
+old_head = '''compose:
+'''
+new_head = '''compose:
+        ld a,255                ; mountain rows: drawn whole by draw_skyline, so not composed
+        ld (c2skp+1),a
+        ld a,(SKYLN)
+        or a
+        jr z,.nk
+        ld a,(SPLIT)
+        sub SKYL_H
+        jr c,.k0
+        cp TOPROW
+        jr nc,.k1
+.k0:    ld a,TOPROW
+.k1:    ld (c2skp+1),a
+.nk:
+'''
+assert txt.count(old_head) == 1
+txt = txt.replace(old_head, new_head)
+old_sky = '''        ld bc,32                ; no track on this row
+        ldir
+'''
+assert old_sky in txt
+txt = txt.replace(old_sky, '        ; no track on this row\n' + '        ldi\n' * 32)
+old_row = '''c2row:  CHKEI
+        ld a,(crow)             ; HL = this row's span list (per sky row, or shared by a road slot)
+'''
+new_row = '''c2row:  CHKEI
+        ld a,(crow)             ; a road row that is unchanged and was not drawn over: leave it
+        ld hl,SPLIT
+        cp (hl)
+        jr c,c2go
+        ld l,a
+        ld h,RDIRTY/256
+        ld c,(hl)
+        ld (hl),0
+        ld h,OVR/256
+        ld a,(hl)
+        ld (hl),0
+        or c
+        jr nz,c2go0
+        ld a,e                  ; skip: next row of the buffer
+        add a,32
+        ld e,a
+        jp nc,c2nx
+        inc d
+        jp c2nx
+c2go0:  ld a,(crow)
+c2go:   ld l,a                  ; (this row changes: copy it to the screen)
+        ld h,COPYD/256
+        ld (hl),1
+        ld a,l
+                                ; HL = this row's span list (per sky row, or shared by a road slot)
+'''
+assert old_row in txt
+txt = txt.replace(old_row, new_row)
+txt = txt.replace('''.r2:    ld a,(crow)
+        inc a
+c2skp:''', '''.r2:
+c2nx:   ld a,(crow)
+        inc a
+c2skp:''')
+old_rect = '''.row:   ld a,(RY)
+        ld l,a
+        ld h,0
+'''
+assert txt.count(old_rect) == 1
+txt = txt.replace(old_rect, '''.row:   ld a,(RY)
+        ld l,a
+        ld h,OVR/256            ; (rect rows drawn over: composed afresh next frame)
+        ld (hl),1
+        ld h,0
+''')
+old_sky2 = '''.y1:    ld (SKY_Y),a
+'''
+assert txt.count(old_sky2) == 1
+txt = txt.replace(old_sky2, '''.y1:    ld (SKY_Y),a
+        ld a,(SKVAL)            ; same heading and horizon, nothing drawn over: still there
+        or a
+        jr z,.drw
+        ld a,(HC)
+        ld hl,SKHC
+        cp (hl)
+        jr nz,.drw
+        inc hl
+        ld a,(SPLIT)
+        cp (hl)
+        jr nz,.drw
+        ld a,(SKY_Y)
+        ld l,a
+        ld h,OVR/256
+        ld a,(SPLIT)
+        sub l
+        ld b,a
+        xor a
+.ck:    or (hl)
+        inc l
+        djnz .ck
+        or a
+        ret z
+.drw:   ld a,(HC)
+        ld (SKHC),a
+        ld a,(SPLIT)
+        ld (SKHC+1),a
+        ld a,1
+        ld (SKVAL),a
+        ld a,(SKY_Y)            ; (these rows are drawn afresh now)
+        ld l,a
+        ld h,OVR/256
+        ld a,(SPLIT)
+        sub l
+        ld b,a
+.cl:    ld (hl),0
+        dec h
+        ld (hl),1               ; (and copy them to the screen)
+        inc h
+        inc l
+        djnz .cl
+        ld a,(SKY_Y)
+''')
+open('road.asm', 'w').write(txt)

@@ -49,7 +49,6 @@ main:   CHKEI
         call rv_prep
         call obj_prep
         call dyn_prep
-        call mark_build
         call render
         call rv_project
         ; wait until the interrupt has shown the previous frame
@@ -88,7 +87,23 @@ main:   CHKEI
         ld (CPYROW),a
         ld a,255
         ld (DMIN),a
-        ld a,(SPLITMODE)        ; HUD-strip split: switch back at the top of the 3D view
+        ld a,(TOPCHG)           ; the top strip changed: copy its rows
+        or a
+        jr z,.tc
+        ld hl,COPYD
+        ld b,TOPROW
+.tf:    ld (hl),1
+        inc l
+        djnz .tf
+.tc:    ld a,(SPLITMODE)        ; a colour split is timed from the copy: copy every row (fixed time)
+        or a
+        jr z,.fx
+        ld hl,COPYD+TOPROW
+        ld b,64-TOPROW
+.fl:    ld (hl),1
+        inc l
+        djnz .fl
+.fx:    ld a,(SPLITMODE)        ; HUD-strip split: switch back at the top of the 3D view
         cp 2
         ld a,TOPROW
         jr z,.fs
@@ -124,10 +139,13 @@ isr:    push af
         ld a,(READY)
         or a
         jr z,.nc
+        ld a,(SPLITMODE)        ; no colour split: copy just the changed rows, from the top
+        or a
+        jr z,.all
         ld a,(TOPCHG)
         or a
         jr z,.part
-        call copy_buffer        ; whole screen
+.all:   call copy_buffer        ; whole screen (rows flagged as changed)
         ld a,1
         jr .cd
 .part:  call copy_buffer16      ; sky rows unchanged: copy rows 16..63 only
@@ -696,7 +714,28 @@ draw_craft:
         ret
 
 ; masked sprite: HL = BUFFER address, DE -> (mask, data) pairs, B = rows, C = bytes per row
-blit:   push bc
+blit:   push hl                 ; mark the rows drawn over: the composer redraws them next frame
+        push bc
+        ld a,h
+        sub BUFFER/256
+        add a,a
+        add a,a
+        add a,a
+        ld c,a
+        ld a,l
+        rlca
+        rlca
+        rlca
+        and 7
+        or c
+        ld l,a
+        ld h,OVR/256
+.mk:    ld (hl),1
+        inc l
+        djnz .mk
+        pop bc
+        pop hl
+.bl:    push bc
         push hl
         ld b,c
 .by:    ld a,(de)
@@ -713,7 +752,7 @@ blit:   push bc
         ld bc,32
         add hl,bc
         pop bc
-        djnz blit
+        djnz .bl
         ret
 
 draw_hud:
@@ -856,55 +895,95 @@ draw_hud:
         ld hl,HUDBUF+32
         ld de,HUDPREV+32
         ld a,8
-.line:  push af                 ; A = first row, HL = text, DE = previous text
+.line:  ld (.lr+1),a            ; A = first row, HL = text, DE = previous text
+        ld c,1                  ; character i sits in byte column i+1
+        xor a
+        ld (.any+1),a
+.lc:    ld a,(hl)
+        or a
+        jr z,.le
+        ld b,a
+.frc:   ld a,0                  ; (forced: redraw everything)
+        or a
+        jr nz,.cg
+        ld a,(de)
+        cp b
+        jr z,.nx
+.cg:    ld a,b                  ; only this character changed: redraw its cell
+        ld (de),a
         push hl
         push de
-.frc:   ld a,0
-        or a
-        jr nz,.ch
-        ld b,32
-.cmp:   ld a,(de)
-        cp (hl)
-        jr nz,.ch
-        inc hl
-        inc de
-        djnz .cmp
-        pop de
-        pop hl
-        pop af
-        ret
-.ch:    pop de
-        pop hl
-        push hl
-        ld bc,32                ; remember it
-        ldir
-        pop hl
-        pop af
-        push hl
-        ld l,a                  ; clear the line's 5 rows back to sky
+        push bc
+.lr:    ld a,0
+        ld l,a
         ld h,0
         add hl,hl
         add hl,hl
         add hl,hl
         add hl,hl
         add hl,hl
+        ld a,l
+        or c
+        ld l,a
         push hl
-        ld de,SKYIMG
-        add hl,de
-        ex (sp),hl
         ld de,BUFFER
         add hl,de
-        ex de,hl
+        ex de,hl                ; DE = cell in the buffer
         pop hl
         push de
-        ld bc,5*32
-        ldir
+        ld bc,SKYIMG
+        add hl,bc               ; HL = the same cell of the clean sky
+        ld b,5
+.rs:    ld a,(hl)
+        ld (de),a
+        ld a,l
+        add a,32
+        ld l,a
+        jr nc,.r1
+        inc h
+.r1:    ld a,e
+        add a,32
+        ld e,a
+        jr nc,.r2
+        inc d
+.r2:    djnz .rs
         pop de
-        inc de                  ; text starts one column in
+        pop bc
+        push bc
+        ld a,b
+        cp ' '
+        jr z,.ns
+        ld (TCH),a
+        xor a
+        ld (TCH+1),a
+        ld hl,TCH
+        call text_t
+.ns:    ld a,1
+        ld (.any+1),a
+        pop bc
+        pop de
         pop hl
+.nx:    inc hl
+        inc de
+        inc c
+        jr .lc
+.le:
+.any:   ld a,0                  ; copy this line's rows to the screen
+        or a
+        ret z
+        ld a,(.lr+1)
+        ld l,a
+        ld h,COPYD/256
+        ld b,5
+.mk:    ld (hl),1
+        inc l
+        djnz .mk
+        ld a,(SPLITMODE)        ; (with a colour split the copy is all-or-top: ask for the top)
+        or a
+        ret z
         ld a,1
         ld (TOPCHG),a
-        jp text_t
+        ret
 .dig:   ld a,'0'
 .d1:    or a
         sbc hl,bc
@@ -960,58 +1039,46 @@ s_hud1: DB "SPEED 000  LAP 1/2  POS 1"
 s_speed: DB "SPEED "
 
 text_t: ; transparent text: only the glyph pixels are drawn, in HUDFG colour
+        ld a,(HUDFG)
+        ld c,a
 .ch:    ld a,(hl)
         or a
         ret z
-        cp ' '
-        jr nz,.gl
         inc hl
-        inc de
-        jr .ch
-.gl:
+        sub ' '
+        jr z,.sp
         push hl
         push de
-        sub 32
-        ld l,a
+        ld l,a                  ; HL = FONTM + 5*(char-32): masks of lit pixels, row by row
         ld h,0
         ld b,h
-        ld c,l
+        ld e,l
+        ld d,h
         add hl,hl
         add hl,hl
-        add hl,bc
-        ld bc,FONT
-        add hl,bc
+        add hl,de
+        ld de,FONTM
+        add hl,de
+        pop de
+        push de
         ld b,5
-.gr:    ld a,(hl)
-        push hl
-        add a,GLYPHM & 255
-        ld l,a
-        ld h,GLYPHM/256
-        ld c,(hl)               ; mask of lit pixels
-        ld a,(HUDFG)
-        and c
-        ld h,a
-        ld a,c
-        cpl
-        ex de,hl
+.gr:    ld a,(de)               ; new = old ^ ((old ^ colour) & mask)
+        xor c
         and (hl)
         ex de,hl
-        or h
-        ld (de),a
-        pop hl
-        inc hl
-        ex de,hl
+        xor (hl)
+        ld (hl),a
         ld a,l
         add a,32
         ld l,a
         jr nc,.nc
         inc h
 .nc:    ex de,hl
+        inc hl
         djnz .gr
         pop de
         pop hl
-        inc de
-        inc hl
+.sp:    inc de
         jr .ch
 
 ; display mode: 0 game (open sky, skyline), 1 attract (sunset sky in colour
@@ -1116,6 +1183,7 @@ title_card:                     ; HL = routine that draws the lower half
         ld a,$08
         ld (LATCH),a
         djnz .w
+        call dirty_all
         xor a                   ; the game screen must be rebuilt in full
         ld (CLEAN),a
         ld a,1
@@ -1138,7 +1206,24 @@ setup_banks:
 
 jp_hl:  jp (hl)
 
+; every road row must be composed afresh
+dirty_all:
+        xor a
+        ld (SKVAL),a
+        ld hl,RDIRTY+TOPROW
+        ld b,64-TOPROW
+.d:     ld (hl),1
+        inc l
+        djnz .d
+        ld hl,COPYD
+        ld b,64
+.e:     ld (hl),1
+        inc l
+        djnz .e
+        ret
+
 init_vars:
+        call dirty_all
         ld hl,VARS              ; clear variables
         ld b,0
 .c:     ld (hl),0

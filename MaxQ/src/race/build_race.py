@@ -31,7 +31,7 @@ RUNBUF 16 FRAMES 2 CRF 1 FLG 1 PKX 2 PKY 2 HALFON 1 HPREV 1 SKYD 1 HUDFG 1
 SKYDIRTY 1 HUDFORCE 1 TOPCHG 1 FACC 1 FCNT 1 FAVG 1
 SKYPTR 28 MKSH 1 SKYLN 1 SKY_Y 1 MSPLIT 1 CURMODE 1 ATIMER 2 RVANY 1"""
 for _n in 'RUNBUF 16 CPT 6 ZNL 2 ZNR 2 FARP 2 RUNS0 2 LBASE 2 RUNP 2'.split()[0::2]: pass
-VARS = VARS.replace('RUNBUF 16', 'RDX 2 RX 2 RDH 2 RH 2 RLX 2 RLS 2 RLP 2 RPGP 2').replace('CPT 6', 'RTOP 1 RD 1 RS0 1 RN 1 RBAND 1 RROW 1').replace('ZNL 2 ZNR 2', 'RB0 1 RB1 1 RB2 1 RB3 1 RBC 1 RSEC 1')
+VARS = VARS.replace('RUNBUF 16', 'RDX 2 RX 2 RDH 2 RH 2 RLX 2 RLS 2 RLP 2 RPGP 2').replace('CPT 6', 'RTOP 1 RD 1 RS0 1 RN 1 RBAND 1 RROW 1').replace('ZNL 2 ZNR 2', 'RB0 1 RB1 1 RB2 1 RB3 1 RBC 1 RSEC 1 RSPL 1 XCV 1 SKYKEY 3 SKVAL 1 SKHC 2 TCH 2')
 CVARS = """PHASE 1 CUPN 1 PTS 4 SCORES 8 TSC 2 ORDERP 4 WEAPON 1 AIRT 1 AIRTOT 1 VOLTCD 2 RAZECD 2 PHITT 1
 OBJCOL 2 LATBASE 1 FIREPREV 1 SHOTT 1 MINEOWN 1 OBJK 2"""
 GVARS = """GSTATE 1 STIMER 2 LAPN 1 RTIME 2 LAPT0 2 BESTLAP 2 SHIELD 1 BOOSTT 1 STALLT 1 BUMPT 1 POS 1
@@ -39,7 +39,7 @@ FINPOS 1 NEWBEST 1 SFXT 1 SFXK 1 BANT 1 BANP 2 SPREV 1 TMPT 1 TPOS 2 LOWERFN 2 T
 
 LAYOUT = dict(
     LATCH=0x6800, KEYROW=0x68EF, KEYH=0x687F, VRAM=0x7000,
-    SQPAGE=0xB0, RDP0=0xD200, ROWPG=0xD240, RDP1=0xE600, XCA=0xE000, SECL=0xE100, ROWMAP=0xE180, ZTL=0xE200, DIDX=0xE300, SIN64=0xB400, COS64=0xB500, PATTAB=0xB600, LMASK=0xB620, SKYA=0xB628, SKYH=0xB650, RIDGE=0xAF00, HUDBUF=0x7E20, HUDPREV=0x7E60, GVARS=0x7D80, RV=0x7EC0, CVARS=0x7DC0, MARK=0x7E00, TOPT=0x7EA0, LOGO=0xDE40, SKY0=0xB630, SKY1=0xB638,
+    SQPAGE=0xB0, RDP0=0xD200, ROWPG=0xD240, RDP1=0xE600, XCA=0xE000, SECL=0xE100, ROWMAP=0xE180, ZTL=0xE200, DIDX=0xE300, RLPL=0xB800, RLPH=0xB900, RDP0O=0xBA00, RDP1O=0xBB00, SL=0xBC00, CLT=0xBE00, SLC=0xBF00, SLPT=0xC000, RDIRTY=0xBA00, OVR=0xC700, COPYD=0xC600, FONTM=0xC300, SCC=0xC500, DLIST=0xC440, SIN64=0xB400, COS64=0xB500, PATTAB=0xB600, LMASK=0xB620, SKYA=0xB628, SKYH=0xB650, RIDGE=0xAF00, HUDBUF=0x7E20, HUDPREV=0x7E60, GVARS=0x7D80, RV=0x7EC0, CVARS=0x7DC0, MARK=0x7E00, TOPT=0x7EA0, LOGO=0xDE40, SKY0=0xB630, SKY1=0xB638,
     GLYPHT=0xB640, GLYPHM=0xB648, FONT=0xB660, SKYIMG=0xFA00, EXPTP=0xB800, EXP88L=0xBA00, LOGL=0xC200,
     IM2TAB=0xDC00, 
     XMIN=0xE000, XMAX=0xE100, TMIN=0xE200, TMAX=0xE300, ROWCL=0xE400, ROWLP=0xE500,
@@ -50,9 +50,12 @@ HALF_INIT = None
 ATTRACT_MODE = 0
 RACE_AUTOPILOT = 0
 VMAX = 110
-COPYT = 128 * 244 + 32 * 25 + 80
+# copy timing (unrolled stack copy, 204 T per 16 bytes; rows 16.. carry a 48 T changed-row test; in the
+# colour-split modes every row is flagged, so the copy always takes this long)
+COPYT = 30 + 64 * (48 + 2 * 204) + 30
+COPYT_P = 84 + 48 * (48 + 2 * 204) + 30
 DLY_COPY = max(1, ((56 + 64) * 226 - COPYT - 450) // 26)
-DLY_COPYP = DLY_COPY + (32 * 244 + 8 * 25) // 26
+DLY_COPYP = DLY_COPY + (COPYT - COPYT_P) // 26
 DLY_NOCOPY = (64 * 226 - 60) // 26
 
 CRAFT = [
@@ -136,21 +139,30 @@ def equates():
     return '\n'.join(lines)
 
 def copy_routine():
-    """BUFFER -> VRAM through the stack, 16 bytes per chunk, 4 chunks per loop pass."""
-    chunk = ['        ld sp,ix', '        pop af', '        pop bc', '        pop de', '        pop hl',
-             '        exx', '        pop bc', '        pop de', '        pop hl', "        ex af,af'", '        pop af',
-             '        ld sp,iy', '        push af', "        ex af,af'", '        push hl', '        push de',
-             '        push bc', '        exx', '        push hl', '        push de', '        push bc', '        push af',
-             '        ld de,16', '        add ix,de', '        add iy,de']
+    """BUFFER -> VRAM through the stack, fully unrolled: 16 bytes per chunk, absolute addresses."""
     L = ['copy_buffer16:                   ; from row CPYROW (even) to the bottom',
-         '        ld a,(CPYROW)', '        ld l,a', '        ld h,0', '        add hl,hl', '        add hl,hl',
-         '        add hl,hl', '        add hl,hl', '        add hl,hl', '        push hl', '        ld de,BUFFER',
-         '        add hl,de', '        push hl', '        pop ix', '        pop hl', '        ld de,VRAM+16',
-         '        add hl,de', '        push hl', '        pop iy', '        jr cb_go',
-         'copy_buffer:', '        ld ix,BUFFER', '        ld iy,VRAM+16',
-         '@cb_go:', '        ld (SPSV),sp', '@cb_lp:']
-    L += chunk * 4
-    L += ['        ld a,ixh', '        cp (BUFFER+2048)/256', '        jp nz,cb_lp', '        ld sp,(SPSV)', '        ret']
+         '        ld a,(CPYROW)', '        and $3E', '        add a,cb_tab & 255', '        ld l,a',
+         '        ld h,cb_tab/256', '        ld a,(hl)', '        inc l', '        ld h,(hl)', '        ld l,a',
+         '        ld (SPSV),sp', '        jp (hl)',
+         'copy_buffer:', '        ld (SPSV),sp', '        jp cb_0',
+         '        ALIGN 64',
+         '@cb_tab:'] + [f'        DW cb_{2 * r}' for r in range(0, 64, 2)]
+    import ref3 as _R
+    for i in range(128):
+        src = 0xF200 + 16 * i
+        r = i // 2
+        if i % 2 == 0:
+            L += [f'@cb_{i}:']
+            if True:                    # a row unchanged since the last copy: skip it
+                L += [f'        ld hl,COPYD+{r}', '        ld a,(hl)', '        ld (hl),0', '        inc h',
+                      '        or (hl)', f'        jp z,cb_{i + 2}' if i + 2 < 128 else '        jp z,cb_end']
+        L += [
+            '        ld sp,BUFFER+%d' % (16 * i), '        pop af', '        pop bc', '        pop de', '        pop hl',
+            '        exx', '        pop bc', '        pop de', '        pop hl', "        ex af,af'", '        pop af',
+            '        ld sp,VRAM+%d' % (16 * i + 16), '        push af', "        ex af,af'", '        push hl',
+            '        push de', '        push bc', '        exx', '        push hl', '        push de', '        push bc',
+            '        push af']
+    L += ['@cb_end:', '        ld sp,(SPSV)', '        ret']
     return '\n'.join(L)
 
 LOGO_RLE = logo.rle(logo.logo())
@@ -181,9 +193,10 @@ def data_section(T):
         ('SQPAGE*256', lo + hi), ('SIN64', R.SIN64), ('COS64', R.COS64),
         ('PATTAB', R.PATE + R.PATO), ('RDP0', RR.PAGE0), ('RDP1', RR.PAGE1),
         ('ZTL', [v & 255 for v in RR.ZT] + [0] * 31 + [v >> 8 for v in RR.ZT] + [0] * 31 + RR.WT + [0] * 31 + RR.RWT), ('DIDX', RR.DIDX), ('LMASK', [0xFF, 0x3F, 0x0F, 0x03, 0xC0, 0xF0, 0xFC, 0xFF]),
-        ('SKY0', R.SKY_CSS0), ('SKYA', R.SKY_A), ('SKYH', R.SKY_H), ('RIDGE', R.RIDGE), ('SKY1', R.SKY_CSS1), ('GLYPHT', glyph), ('FONT', font),
+        ('SKY0', R.SKY_CSS0), ('SKYA', R.SKY_A), ('SKYH', R.SKY_H), ('RIDGE', R.RIDGE), ('SKY1', R.SKY_CSS1), ('GLYPHT', glyph), ('FONT', font), ('FONTM', [sum(3 << (6 - 2 * q) for q in range(3) if (v >> (2 - q)) & 1) for v in font]),
         ('GLYPHM', [sum(3 << (6 - 2 * q) for q in range(3) if (bits >> (2 - q)) & 1) for bits in range(8)]),
-        ('EXPTP', R.EXPT), ('EXP88L', expl + exph), ('LOGL', logl + logh),
+        ('RDP0O', RR.PAGE0[16:]), ('RDP1O', RR.PAGE1[16:]), ('CLT', [min(128, max(0, v - 64)) for v in range(256)]),
+        ('SLPT', [((d - 1) * 16) & 255 if 1 <= d <= 32 else 0 for d in range(256)] + [0xBC + (d - 1) // 16 if 1 <= d <= 32 else 0 for d in range(256)]),
         ('STAGE', SPR_SRC + SPR_DESC + T['H'] + T['DY'] + T['CURV'] + T['SLP']),
         ('IM2TAB', [0xDD] * 257), ('LOGO', LOGO_RLE),
     ]
@@ -209,7 +222,19 @@ def source(test_state=None):
     chk = '' if test_state else '        ld a,(LATCH)\n        rla\n        jr nc,$+3\n        ei'
     if test_state:
         st = test_state
-        startup = f'''        ld hl,{st['i']}
+        pre = '        call dirty_all\n' + ''.join(f'''        ld hl,{p['i']}
+        ld (CAM_I),hl
+        ld a,{p['f']}
+        ld (CAM_F),a
+        ld hl,{p['lat'] & 0xFFFF}
+        ld (CAM_LAT),hl
+        xor a
+        ld (AUTO),a
+        call mode_upd
+        call render
+        call compose
+''' for p in st.get('pre', []))
+        startup = pre + f'''        ld hl,{st['i']}
         ld (CAM_I),hl
         ld a,{st['f']}
         ld (CAM_F),a
@@ -305,6 +330,19 @@ if __name__ == '__main__':
         for _ in range(int(sys.argv[2]) if len(sys.argv) > 2 else 10):
             states.append(dict(i=random.randrange(512), f=random.randrange(256),
                                lat=random.randrange(-56, 57), theta=random.randrange(-6, 7)))
-        run_test(states)
+        # sequences: earlier frames rendered first in the same run, so the slot/sky caches are exercised
+        seq = []
+        for _ in range(int(sys.argv[2]) if len(sys.argv) > 2 else 10):
+            i = random.randrange(512); f = random.randrange(256); lat = random.randrange(-56, 57)
+            pre = [dict(i=i, f=f, lat=lat)]
+            for _ in range(3):
+                f += random.randrange(0, 90); i = (i + f // 256) % 512; f %= 256
+                lat += random.choice((0, 0, 1, -1, 3, -3))
+                pre.append(dict(i=i, f=f, lat=lat))
+            last = pre.pop()
+            seq.append(dict(last, theta=0, pre=pre))
+        for i0 in (36, 96, 224, 508):          # driving onto pads, ramps and the start line
+            seq.append(dict(i=(i0 + 4) % 512, f=30, lat=5, theta=0, pre=[dict(i=i0, f=0, lat=5), dict(i=(i0 + 2) % 512, f=100, lat=5)]))
+        run_test(states + seq)
     else:
         build_game()

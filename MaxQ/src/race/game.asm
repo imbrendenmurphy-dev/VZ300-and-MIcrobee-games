@@ -143,6 +143,7 @@ start_race:
         jp sfx
 
 demo_reset:
+        call dirty_all
         ld a,$08                ; day colours (the latch also holds mode(1): never write 0 here)
         ld (LATBASE),a
         call race_reset
@@ -472,6 +473,11 @@ draw_banner:
         ld hl,BUFFER+20*32
         add hl,de
         ex de,hl
+        ld hl,OVR+20            ; the banner covers rows 20..24
+        ld b,5
+.ov:    ld (hl),1
+        inc l
+        djnz .ov
         ld hl,(BANP)
         ld a,(HUDFG)
         push af
@@ -739,54 +745,104 @@ rv_prep:
         djnz .r
         ret
 
-; far ones first
-; MARK[d] = 1 for every depth that holds a rival or an object this frame
-mark_build:
-        ld hl,MARK
-        ld b,32
-.c:     ld (hl),0
-        inc l
-        djnz .c
-        ld ix,RV
-        ld b,NREC
-        ld de,32
-.r:     ld a,(ix+R_D)
-        cp 32
-        jr nc,.n
-        ld l,a
-        ld (hl),1
-.n:     add ix,de
-        djnz .r
-        ret
-
+; rivals and track objects in view, far ones first (records in order within a depth)
 draw_rivals:
-        ld c,DEPTH-3
-.d:     ld l,c                  ; nothing at this depth: skip
-        ld h,MARK/256
-        ld a,(hl)
-        or a
-        jr z,.e
-        ld ix,RV
-        ld b,NREC
+        ld ix,RV                ; list the visible ones: (depth, record) pairs
+        ld hl,DLIST
+        ld bc,NREC*256
 .r:     ld a,(ix+R_VIS)
         or a
         jr z,.n
         ld a,(ix+R_D)
+        or a
+        jr z,.n
+        cp DEPTH-2
+        jr nc,.n
+        ld (hl),a
+        inc l
+        ld (hl),c
+        inc l
+.n:     ld de,32
+        add ix,de
+        inc c
+        djnz .r
+        ld a,l
+        sub DLIST & 255
+        ret z
+        rrca
+        ld c,a                  ; C = how many
+        ld e,2                  ; insertion sort, deepest first (stable)
+.i:     ld a,e
+        rrca
         cp c
-        jr nz,.n
-        push bc
-        ld a,b                  ; records 3.. are track objects
-        cp NREC-2
-        jr nc,.rv
+        jr nc,.srt
+        ld a,e
+        add a,DLIST & 255
+        ld l,a
+        ld h,DLIST/256
+        ld b,(hl)               ; B = depth, D = record of the entry being placed
+        inc l
+        ld d,(hl)
+        dec l
+.j:     ld a,l                  ; HL = the hole
+        cp DLIST & 255
+        jr z,.put
+        dec l
+        dec l
+        ld a,(hl)
+        cp b
+        jr nc,.put2             ; the one before is at least as far: stop
+        inc l
+        inc l
+        ld (hl),a
+        dec l
+        ld a,(hl)
+        inc l
+        inc l
+        ld (hl),a
+        dec l
+        dec l
+        dec l
+        jr .j
+.put2:  inc l
+        inc l
+.put:   ld (hl),b
+        inc l
+        ld (hl),d
+        inc e
+        inc e
+        jr .i
+.srt:   ld hl,DLIST
+        ld b,c
+.dr:    push bc
+        push hl
+        inc l
+        ld a,(hl)               ; record number -> IX
+        ld c,a
+        rrca
+        rrca
+        rrca
+        ld e,a
+        and $E0
+        ld l,a
+        ld a,e
+        and $1F
+        ld h,a
+        ld de,RV
+        add hl,de
+        push hl
+        pop ix
+        ld a,c
+        cp 3                    ; records 3.. are track objects
+        jr c,.rv
         call draw_object
         jr .dn
 .rv:    call draw_rival
-.dn:    pop bc
-.n:     ld de,32
-        add ix,de
-        djnz .r
-.e:     dec c
-        jr nz,.d
+.dn:    pop hl
+        pop bc
+        inc l
+        inc l
+        djnz .dr
         ret
 
 draw_rival:

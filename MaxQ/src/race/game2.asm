@@ -31,6 +31,7 @@ cup_start:
         inc hl
         djnz .z
 race_setup:
+        call dirty_all
         ld a,(CUPN)             ; races 2 and 4 are at dusk (colour set 1)
         and 1
         ld a,$08
@@ -182,12 +183,21 @@ obj_prep:
         ld iy,OBJTAB
         ld c,0                  ; object number (for the collected bits)
 .o:     push bc
-        call obj_taken
-        jr nz,.nx
         ld l,(iy+0)             ; sections ahead of the camera (object sits mid-section)
         ld h,(iy+1)
         call sec_ahead
-        jr c,.nx
+        jr c,.nx                ; (most are out of view: test that first)
+        pop de                  ; E = object number
+        push de
+        push af
+        push bc
+        ld c,e
+        call obj_taken
+        pop bc
+        jr z,.in
+        pop af
+        jr .nx
+.in:    pop af
         ld (ix+R_D),a
         ld (ix+R_FR),c
         ld a,(iy+2)
