@@ -1,0 +1,6 @@
+# build and test output (regenerate with build.py / build_game.py and the tools scripts)
+src/*.MZT
+src/*.sym
+src/*_full.asm
+src/*.png
+__pycache__/

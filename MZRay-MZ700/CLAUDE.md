@@ -7,6 +7,38 @@ Credits line for anything user-facing: **VIBED BY BPM 2026** (the user's standin
 
 ---
 
+## 0. Update, 19 Nov 2026 (Claude Code session 1) — read this first
+
+- **Locations:** the DROPBEAR 3D source is `C:\Users\Owner\Documents\Dropbear3D_VZ300` (v0.4; read only).
+  Work happens in the clone `C:\Users\Owner\Documents\Codex\vz300-and-microbee-games\MZRay-MZ700`
+  and is copied to `C:\Users\Owner\Documents\Codex\MZRay-MZ700-Claude` after each step. Commit as BPM.
+  On this PC use `py` (not `python`). Git is the copy bundled with GitHub Desktop:
+  `%LOCALAPPDATA%\GitHubDesktop\app-*\resources\app\git\cmd\git.exe`.
+- **Raycaster split, unchanged:** `setmode`/`render`/`copybuf`/`castray`/`mul8`/`drawcol1`/`drawcol2`/`poll`
+  moved verbatim from `mzray.asm` into `src/raycore.asm`, which is inserted at `;@@RAYCORE@@`.
+  The table generation moved to `src/raytables.py` (`fill()`, `mzt()`). The benchmark rebuild is still
+  **byte-identical** to `release/MZRAY.MZT`, and `runtest.py` still gives [51, 58, 94, 102].
+- **Game step 1 (world walkabout) done:** `src/game.asm` + `src/build_game.py` -> `release/DROPBEAR.MZT`
+  (15,360 bytes, load/exec 1200h). It has all 9 DROPBEAR areas (layouts copied from DROPBEAR's build.py),
+  6 themes with 8×8 MZ textures and their dark sides, sky and ground colours per theme, doors,
+  exits, locked doors and keys, switches and gates, secret walls, blocking furniture, invisible
+  pickups, saved area state, the HUD, messages, live FPS, and modes 1–4. There are no creatures,
+  sprites or sound yet.
+  - Sky and ground colours are set by poking the drawers' immediates at `d1_cl+1`, `d2_cl+1/+4`,
+    `d1_fl+1` and `d2_fl+1/+4` (existing labels, so the raycore bytes are unchanged).
+  - Blocking furniture lives in a separate `COLL` page, **not** in MAP bit 7 as on the VZ, so the DDA loop
+    stays as it is. MAP values 1–10 are wall types; the texl formula covers up to 16.
+  - On area entry, `settheme` copies 4 theme wall slots (types 1, 2, 5, 10) into the TEX pages.
+  - The work areas OBJ, COLL, LIVE (9×512) and BUF are `equ`s past the end of the file, so they aren't
+    stored in the MZT. ~27K is free up to CFFFh.
+  - Movement is per field (`lastf` = fields since the last frame, clamped 1–8), so speed doesn't depend on fps.
+  - Simulator fps in-game: 29.9 / 26.3 / 16.5 / 15.4 (modes 1–4). `tools/gametest.py` runs 17 checks,
+    which all pass.
+  - New keys use the same unverified MAME matrix: W r2b1, S r2b5, Q r2b7, A r4b7, D r4b4, E r4b3,
+    M r3b3, SPACE r6b3.
+- **Next:** see `PORTING.md`. Step 2 (sprites) needs the user's decision on per-column sprite
+  compositing, which changes `render`. Real-hardware results are still outstanding.
+
 ## 1. Purpose and current status
 
 **Goal:** a Wolfenstein/Doom-style first-person game ("WolfenDoom") for the **Sharp MZ-700**, made by
@@ -229,10 +261,7 @@ the MZT and `mzray.sym`. **Edit textures, map, FOV and VIEWH in `build.py`, not 
   (the current textures are mostly symmetric).
 - The map is fixed at 16×16 (index math assumes stride 16, and the map is page-aligned).
 - MZT includes 880 bytes of empty BUF.
-- **DROPBEAR 3D source location not confirmed.** Memory says it was saved to the user's PC and
-  GitHub as a "Dropbear3D" folder, but it is **not** in `vz300-and-microbee-games` and not in
-  `Documents\Codex`. It may be in the private repo `imbrendenmurphy-dev/retro-conversions-PRIVATE`
-  or elsewhere on the PC. **Ask the user before porting game content.**
+- DROPBEAR 3D source: `C:\Users\Owner\Documents\Dropbear3D_VZ300` (confirmed by the user, 19 Nov 2026).
   The sibling Microbee version BUNYIP is at `C:\Users\Owner\Documents\Codex\Bunyip-Microbee-Claude`
   (and `Bunyip-Microbee` in the repo). It's a useful reference for game structure.
 
@@ -278,9 +307,16 @@ the MZT and `mzray.sym`. **Edit textures, map, FOV and VIEWH in `build.py`, not 
 MZRay-MZ700/
   CLAUDE.md                this file
   README.md                user-facing description
-  release/MZRAY.MZT        current build (copy to UniCMT USB stick)
-  src/mzray.asm            Z80 source (with ;@@ placeholders filled by build.py)
-  src/build.py             table/texture generator + assembles + writes MZT/sym
+  PORTING.md               DROPBEAR 3D -> MZ-700 porting plan and steps
+  release/MZRAY.MZT        benchmark build (copy to UniCMT USB stick)
+  release/DROPBEAR.MZT     game build (step 1: world walkabout)
+  src/mzray.asm            benchmark source (with ;@@ placeholders filled by build.py)
+  src/raycore.asm          shared raycaster: setmode/render/copybuf/castray/mul8/drawcol1/2/poll
+  src/raytables.py         shared table generation + fill() + mzt()
+  src/build.py             benchmark build -> MZRAY.MZT, mzray.sym
+  src/game.asm             the game
+  src/build_game.py        areas, textures, themes, text -> DROPBEAR.MZT, game.sym
+  src/tools/gametest.py    game checks (walk, doors, keys, switches, exits, pickups) + screenshots
   src/tools/zasm.py        subset Z80 assembler (two-pass; DSC display-code strings)
   src/tools/z80.py         Python Z80 CPU core with approximate T-states
   src/tools/mzemu.py       minimal MZ-700 model: RAM, VRAM, 8255 keys, vblank, PNG screenshots
