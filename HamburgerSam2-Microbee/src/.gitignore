@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+outputs/
+work/port/build/
+# third-party binaries and ROMs stay local
+work/pylibs/
+work/tools/
+work/ubee/
+*.rom
+*.zip

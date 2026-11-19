@@ -1,0 +1,334 @@
+; HAMBURGER SAM II / Microbee Premium native PCG edition
+        DEVICE NOSLOT64K
+        org $0100
+STACKTOP equ $EF00
+NATIVE equ $9000
+BACK equ $1000
+BACKCOL equ $3800
+MAP equ $8C00
+DIRTY_LIST equ $D000
+OLD_LIST equ $D800
+drawlist equ $E800
+node equ $EA00
+dist equ $EAA0
+bfsq equ $E980
+MODE1 equ 0
+CSS1 equ 0
+SAM_TAG equ 7
+TITLE_MSG_Y equ 55
+TITLE_RUN_Y equ 43
+HIT_N equ 10
+REC_LEN equ 87
+start:
+        call load_assets
+game_entry:
+        di
+        ld sp,STACKTOP
+        ld hl,vars_start
+        ld de,vars_start+1
+        ld bc,vars_end-vars_start-1
+        ld (hl),0
+        ldir
+        ld hl,bankcopy_load
+        ld de,$EC00
+        ld bc,bankcopy_end-bankcopy_start
+        ldir
+        call hw_init
+        ld hl,OLD_LIST
+        ld (old_end),hl
+        ld a,2
+        ld (soundmode),a
+        ld a,1
+        ld (maxkit),a
+        ld hl,$5A37
+        ld (seed),hl
+        ld hl,hitab_init
+        ld de,hitab
+        ld bc,80
+        ldir
+        call cls_bg
+        call dl_reset
+        jp attract
+hitab_init:                     ; top ten: 3 BCD bytes + 5 letters (like the 1984 original)
+        db $02,$00,$00,"BPM  "
+        db $01,$50,$00,"SAM  "
+        db $01,$20,$00,"BEE++"
+        db $01,$00,$00,"PATTY"
+        db $00,$80,$00,"BUNS "
+        db $00,$60,$00,"EGGY "
+        db $00,$50,$00,"FRANK"
+        db $00,$40,$00,"DILL "
+        db $00,$30,$00,"CHILI"
+        db $00,$20,$00,"FRIES"
+
+; piece record (10 bytes)
+PC_X    equ 0                   ; left pixel (multiple of 4)
+PC_F    equ 1                   ; floor it rests on / falls from (5 = plate)
+PC_Y    equ 2                   ; top row now
+PC_PR   equ 3                   ; pressed segments (bits 0-3)
+PC_T    equ 4                   ; type 0-5
+PC_C    equ 5                   ; column
+PC_ST   equ 6                   ; 0 resting, 1 falling, 2 on the plate
+PC_TF   equ 7                   ; target floor (5 = plate)
+PC_N    equ 8                   ; extra floors still to fall (riders)
+PC_OY   equ 9                   ; row before this frame's move
+PSIZE   equ 10
+MAXPC   equ 20
+; enemy record (16 bytes)
+E_ST    equ 0                   ; 0 off, 1 walk, 2 stunned, 3 riding, 4 squashed
+E_T     equ 1                   ; type 0 hot dog, 1 egg, 2 pickle, 3 chilli
+E_X     equ 2
+E_Y     equ 3                   ; foot row
+E_F     equ 4                   ; floor, or $FF on a ladder
+E_DX    equ 5                   ; -1 / 0 / 1
+E_DY    equ 6
+E_ACC   equ 7
+E_SPD   equ 8
+E_TIM   equ 9
+E_PC    equ 10                  ; piece ridden
+E_LF    equ 11                  ; ladder top floor while climbing
+E_ANIM  equ 12
+E_FACE  equ 13                  ; 0 right, 1 left
+ESIZE   equ 16
+MAXEN   equ 6
+
+
+        include "loader.asm"
+        include "hardware.asm"
+        include "native.asm"
+        include "sound.asm"
+        include "kitchen.asm"
+        include "game.asm"
+        include "front.asm"
+        include "data.inc"
+        include "art.inc"
+        include "cache.inc"
+        include "pieces.inc"
+code_end:
+        ASSERT code_end < $8000
+        SAVEBIN "../build/HAMSAM2.COM",start,code_end-start
+        org $E000
+vars_start:
+latchbase: db 0
+latchcur: db 0
+palbase: db 0
+flashtim: db 0
+framecount: dw 0
+seed:   dw 0
+acc1:   dw 0
+acc2:   dw 0
+step1:  dw 0
+step2:  dw 0
+soundmode: db 0
+inp:    db 0
+inpnew: db 0
+keys:   db 0
+keysnew: db 0
+pad1:   db 0
+pad2:   db 0
+pad1new: db 0
+pad2new: db 0
+joyseen: db 0
+ink_fg: db 0
+ink_bg: db 0
+inktab: ds 8
+textdirect: db 0
+specks_on: db 0
+salt_off: db 0
+bgtmp:  ds 4
+pep_off: db 0
+texttrans: db 0
+dblm:   dw 0
+dbld:   dw 0
+popcol: db 0
+popbg:  db 0
+cbudget: db 0
+budget_: db 0
+cfirst: db 0
+q_head: db 0
+q_tail: db 0
+vbhook: dw 0
+mptr0:  dw 0
+mbase0: dw 0
+mleft0: db 0
+mstep0: dw 0
+mfin0:  db 0
+mptr1:  dw 0
+mbase1: dw 0
+mleft1: db 0
+mstep1: dw 0
+mfin1:  db 0
+mplaying: db 0
+sfxstep: dw 0
+sfxdelta: dw 0
+sfxleft: db 0
+sfxmode: db 0
+sfxprio: db 0
+; sprite engine
+sw_:    db 0
+pw_:    db 0
+h_:     db 0
+w_:     db 0
+col_:   db 0
+skip_:  db 0
+rowcnt: db 0
+shiftn: db 0
+srcptr: dw 0
+shiftend: dw 0
+rowd:   ds 6
+dlptr:  dw 0
+elptr:  dw 0
+dltag:  db 0
+kpass:  db 0
+movers: db 0
+kent:   db 0
+kcrend: dw 0
+cbexact: db 0
+kcol:   db 0
+krow:   db 0
+noq:    db 0
+prows:  db 0
+savesp: dw 0
+mapptr: dw 0
+sprend: dw 0
+bmap:   ds 4
+lastsh: db 0
+; game state
+mode:   db 0                    ; 0 attract, 1 game, 2 demo
+kitchen: db 0                   ; 0-7, 8 = classic
+lap:    db 0
+classic: db 0                   ; Classic 1984 unlocked
+playclassic: db 0
+maxkit: db 0                    ; highest kitchen reached (1-8)
+startkit: db 0
+menusel: db 0
+score:  ds 3                    ; BCD, high byte first
+nextlife: db 0                  ; next extra life at this many 10,000s (BCD)
+lives:  db 0
+peppers: db 0
+lvh:    ds LVHSIZE              ; current kitchen header
+npc:    db 0
+pieces: ds PSIZE*MAXPC
+ncolpc: ds 4                    ; pieces in each column
+colstk: ds 4                    ; pieces on each plate
+coldone: ds 4
+colfirst: ds 4                  ; (these four must stay together)
+pgfx:   dw 0
+rail0:  db 0
+rail1:  db 0
+rung0:  db 0
+rung1:  db 0
+girriv: db 0
+girshad: db 0
+ymin:   db 0
+ymax:   db 0
+cmoved: db 0
+cnt:    db 0
+pidx:   db 0
+trow:   db 0
+shiftold: db 0
+ai_tp:  db 0
+ai_wpad: db 0
+qhead:  dw 0
+qtail:  dw 0
+burgers: db 0
+drops:  db 0
+enemies: ds ESIZE*MAXEN
+spawnidx: db 0
+rosteri: db 0
+espeed: ds 4
+stuntime: db 0
+; Sam
+sx:     db 0
+sy:     db 0
+sf:     db 0                    ; floor or $FF
+slf:    db 0                    ; ladder top floor while climbing
+sface:  db 0                    ; 0 right, 1 left
+svert:  db 0                    ; last vertical dir (1 up, 2 down)
+sacc:   db 0
+sanim:  db 0
+sst:    db 0                    ; 0 alive, 1 dying, 2 cheering
+stim:   db 0
+smoved: db 0
+throwtim: db 0
+pad:    db 0
+padnew: db 0
+; pepper
+pep_tim: db 0
+pep_x:  db 0
+pep_y:  db 0
+; bonus item
+it_on:  db 0
+it_t:   db 0
+it_tim: dw 0
+it_seq: db 0
+; popups (score numbers) and sparkles
+pop_tim: db 0
+pop_x:  db 0
+pop_y:  db 0
+pop_idx: db 0
+bgobjs: ds 4*3
+rr_c0:  db 0
+rr_c1:  db 0
+rr_r0:  db 0
+rr_r1:  db 0
+pop_w:  db 0
+pop_str: dw 0
+spk_tim: db 0
+spk_x:  db 0
+spk_y:  db 0
+ride_n: db 0
+deadtim: db 0
+gtim:   dw 0
+hudflag: db 0
+pausef: db 0
+; demo / autoplay pathing
+ai_tf:  db 0
+ai_tc:  db 0
+ai_tim: db 0
+ai_lastx: db 0
+ai_lasty: db 0
+ai_stuck: db 0
+ai_tgt: db 0
+; front end
+attr_t: dw 0
+tmsg:   db 0
+infohook: dw 0
+hiptr:  dw 0
+nameb:  ds 8                  ; (7 used by print_bcd2)
+hitab:  ds HIT_N*8
+hpos:   db 0
+hrow:   db 0
+hi_y:     db 0
+ch_t:   db 0
+ch_x:   db 0
+ch_dir: db 0
+tmpa:   db 0
+tmpb:   db 0
+tmpc:   db 0
+tmpd:   db 0
+tmpx:   db 0
+tmpy:   db 0
+; Order Up! bonus round
+ou_n:   db 0                    ; pieces left to drop
+ou_want: db 0                   ; index of next layer wanted
+ou_fx:  db 0
+ou_fy:  db 0
+ou_ft:  db 0
+ou_on:  db 0
+ou_spd: db 0
+ou_orders: db 0
+ou_score: ds 2
+ou_delay: db 0
+; records
+srok:   db 0
+probe1: db 0
+probe3: db 0
+recbuf: ds REC_LEN+1
+; test hooks, only ever set from the emulator (-poke); always 0 on hardware
+autoplay: db 0
+godmode: db 0
+
+        include "native_vars.inc"
+vars_end:
+        ASSERT vars_end < $E800
