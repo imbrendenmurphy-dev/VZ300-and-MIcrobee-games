@@ -48,11 +48,22 @@ init:
         ld (seed),hl
         ld hl,$FFFF
         ld (spare_min),hl
-        ld a,$00
-        ld (hiscore+1),a
-        ld a,$50                ; HI 00005000
-        ld (hiscore+2),a
+        ld hl,HOF_DEF           ; the hall of fame (and HI, its top score)
+        ld de,HOF
+        ld bc,5*7
+        ldir
+        ld hl,HOF
+        ld de,hiscore
+        ld bc,4
+        ldir
         jp title
+
+HOF_DEF:
+        db $00,$05,$00,$00,"BPM"
+        db $00,$04,$00,$00,"DSE"
+        db $00,$03,$00,$00,"VZ3"
+        db $00,$02,$00,$00,"ROO"
+        db $00,$01,$00,$00,"EMU"
 
 ; ---------------------------------------------------------------- code builder
 ; The unrolled copy routines are built in the overlay when a game starts
@@ -701,7 +712,14 @@ read_input:
         bit 4,a
         jr nz,$+4
         set K_BURST,c
-        ld a,(keys)
+        ld a,(demo)             ; the attract demo: a real press ends it,
+        or a                    ; otherwise the autopilot has the stick
+        jr z,.real
+        ld a,c
+        and (1<<K_FIRE)|(1<<K_BURST)|(1<<K_PAUSE)
+        jp nz,demo_end
+        call autopilot
+.real:  ld a,(keys)
         ld (keys_old),a
         cpl
         and c

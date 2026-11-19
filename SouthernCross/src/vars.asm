@@ -70,6 +70,12 @@ bnext:          ds 1
 barms:          ds 1
 bdie_tm:        ds 1
 bvolley:        ds 1
+stage_no:       ds 1
+latch_base:     ds 1
+cfire_tm:       ds 1
+blaunch_tm:     ds 1
+bhist:          ds 1
+BD:             ds BDSIZE
 lb_cx:          ds 1
 lb_cy:          ds 1
 lb_dx:          ds 1
@@ -78,6 +84,12 @@ lb_x:           ds 4
 lb_y:           ds 4
 en_top:         ds 1
 txtbuf:         ds 24
+tl_flags:       ds 1            ; cached captions (the tally)
+tl_x:           ds 1
+tl_n:           ds 1
+end_lines:      ds 1
+demo:           ds 1            ; 1 = the attract demo is playing
+demo_tm:        ds 2
 dt_col:
 dt_paper:       ds 1
 dt_ink:         ds 1
@@ -95,6 +107,11 @@ anim:           ds 1
 stars_mask:     ds 1            ; attached stars (for the HUD)
 score:          ds 4            ; BCD, 8 digits, most significant first
 hiscore:        ds 4
+HOF:            ds 5*7          ; hall of fame: 4 BCD bytes, 3 initials
+ini_ptr:        ds 2            ; initials entry: the new entry
+ini_pos:        ds 1
+ini_idx:        ds 3
+ini_rep:        ds 1
 score_dirty:    ds 1
 game_song:      ds 1
 ; waves
@@ -117,23 +134,28 @@ EXTAB:          ds NEX*EXSIZE
 PUTAB:          ds NPU*PUSIZE
 STTAB:          ds 4*STSIZE
 VARS_END:
-; title player (cleared on the title)
-TITLEVARS:
-TCH1:           ds TCSIZE
-TCH2:           ds TCSIZE
-TCH3:           ds TCSIZE
-td_ptr:         ds 2
-td_dur:         ds 1
-t_acc1:         ds 2
-t_acc2:         ds 2
-t_acc3:         ds 2
-t_cnt:          ds 1
-t_nlen:         ds 1
-t_npos:         ds 2
-t_upload:       ds 1
-t_upsrc:        ds 2
-t_updst:        ds 2
-TITLEVARS_END:
+; play-only and title-only scratch in the DOS stack's spare room above the
+; overlay ($EC00-$EDFF): free except while a pack is loading
+BHIST           equ $EC00       ; boss trail history, 64 x (x, y)
+TITLEVARS       equ $EC80       ; title player (cleared on the title)
+TCH1            equ TITLEVARS+0
+TCH2            equ TCH1+TCSIZE
+TCH3            equ TCH2+TCSIZE
+td_ptr          equ TCH3+TCSIZE
+td_dur          equ td_ptr+2
+t_acc1          equ td_dur+1
+t_acc2          equ t_acc1+2
+t_acc3          equ t_acc2+2
+t_cnt           equ t_acc3+2
+t_nlen          equ t_cnt+1
+t_npos          equ t_nlen+1
+t_upload        equ t_npos+2
+t_upsrc         equ t_upload+1
+t_updst         equ t_upsrc+2
+t_page          equ t_updst+2     ; 0 the title, 1 the hall of fame
+t_ptm           equ t_page+1
+TITLEVARS_END   equ t_ptm+2
+        assert TITLEVARS_END <= $EE00
 ; SD loader
 DOSMAP:         ds 1
 ld_dest:        ds 2

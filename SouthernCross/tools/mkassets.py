@@ -519,6 +519,14 @@ def gen_tables():
             vx = int(round(math.cos(ang) * sp * 256))
             vy = int(round(math.sin(ang) * sp * 256 / 1.5 * 1.15))
             t.append('        dw %d,%d\n' % (vx, vy))
+    # ring of eight, two sets (the second turned half a step)
+    t.append('RING8:\n')
+    for off in (0, 22.5):
+        for k in range(8):
+            ang = math.radians(k * 45 + off + 22.5)
+            vx = int(round(math.cos(ang) * 1.0 * 256))
+            vy = int(round(math.sin(ang) * 1.0 * 256 / 1.5 * 1.15))
+            t.append('        dw %d,%d\n' % (vx, vy))
     # hornet three-way: straight down and +-25 degrees
     t.append('SPREAD3:\n')
     for k in (-1, 0, 1):
@@ -808,15 +816,21 @@ if __name__ == '__main__':
     emit('sprites.asm', gen_sprites())
     emit('hud.asm', gen_hud())
     emit('paths.asm', gen_paths() + gen_aim() + gen_font() + gen_tables())
-    import stage1, front
-    st, m, blks, bb = stage1.gen_stage1()
-    emit('stage1.asm', st)
+    import stages, front
+    built = {}
+    for n in range(1, 7):
+        st, m, blks, bb, W = stages.gen_stage(n)
+        emit('stage%d.asm' % n, st)
+        built[n] = (m, blks)
     fr, timg = front.gen_front()
     emit('front.asm', fr)
     try:
-        os.makedirs(os.path.join(OUT, '..', '..', 'build'), exist_ok=True)
-        stage1.preview(m, blks, os.path.join(OUT, '..', '..', 'build', 'stage1_map.png'), 48)
-        front.preview(timg, os.path.join(OUT, '..', '..', 'build', 'title_preview.png'))
+        bdir = os.path.join(OUT, '..', '..', 'build')
+        os.makedirs(bdir, exist_ok=True)
+        for n, (m, blks) in built.items():
+            stages.preview(n, m, blks, os.path.join(bdir, 'stage%d_map.png' % n), 40)
+            stages.preview_sprites(n, os.path.join(bdir, 'stage%d_sprites.png' % n))
+        front.preview(timg, os.path.join(bdir, 'title_preview.png'))
     except Exception as e:
         print('preview skipped', e)
     emit('music.asm', gen_notes() + gen_music() + gen_sfx())

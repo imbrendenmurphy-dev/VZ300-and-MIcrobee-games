@@ -1,1 +1,2 @@
 CHEAT equ 0
+START_STAGE equ 1
