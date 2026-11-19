@@ -35,11 +35,12 @@ I'll ask before changing `render`/`castray` for this.
 
 ## Steps
 
-1. **World walkabout:** all nine areas with themes, textures, sky/ground colours, doors, exits between
+1. **Done (v0.1): world walkabout.** All nine areas with themes, textures, sky/ground colours, doors, exits between
    areas, locked doors and keys, switches and gates, secret walls, blocking furniture, the HUD and messages.
-   The object list is loaded and pickups work, but there's no sprite drawing yet (pickups are invisible).
    Uses the MZRAY raycaster unchanged.
-2. Sprites + depth (needs the raycaster decision above), then creatures and AI, shooting and the gun.
+2. **Done (v0.2): sprites, creatures, shooting.** Per-column compositing (approved), with all 23 object types drawn
+   from DROPBEAR's shapes. AI is ported (sleep, wake, chase, bite, bursts, faster when hurt), along with the
+   blaster, flinch and kill, bosses opening gates, death and respawn, and placeholder 8253 beeps.
 3. Exploding pieces, bosses, 8253 sound effects and the in-game "dink" tune.
 4. Automap, fog, death and respawn, win screen.
 5. Title (chunky logo from colour cells), title music, monster gallery, AI attract demo.

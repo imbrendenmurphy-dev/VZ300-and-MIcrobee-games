@@ -36,8 +36,33 @@ Credits line for anything user-facing: **VIBED BY BPM 2026** (the user's standin
     which all pass.
   - New keys use the same unverified MAME matrix: W r2b1, S r2b5, Q r2b7, A r4b7, D r4b4, E r4b3,
     M r3b3, SPACE r6b3.
-- **Next:** see `PORTING.md`. Step 2 (sprites) needs the user's decision on per-column sprite
-  compositing, which changes `render`. Real-hardware results are still outstanding.
+- **Game step 2 (sprites, creatures, shooting) done, v0.2.** The user approved per-column sprite
+  compositing.
+  - `raycore.asm` `render` has a `;@@SPRHOOK@@` placeholder after `call poll`. `fill(..., sprhook=' call sprcol')`
+    fills it for the game; the benchmark leaves it empty, so it's still byte-identical.
+  - `src/objects.asm` (inserted at `;@@OBJECTS@@`) holds `objects` (per frame: AI, pickups, projection),
+    `proj`, `sprcol` (the per-column slice drawer), `fire`, `sound` and the gun.
+  - Sprites are 16×16 pages, byte index `u*16+v`, with FFh see-through, drawn from DROPBEAR's shape
+    functions (`src/dbart.py`) and per-type palettes in `build_game.py` TYPES. `--preview` writes `sprites.png`.
+  - Type record: TYPET + type×16 (pages, frac, aspect×64, raise, hp, speed, bite, flags, kill msg).
+  - Each sprite is sized frac×(wall height) and placed raise×h above the floor (flyers 0.35, lamp 0.66).
+    Its depth test compares its height with the column's wall height (same HGT table).
+  - Speed-ups:
+    - per-column bitmask `MASKS`, so columns without sprites return at once
+    - last frame's per-column wall heights `ZB`, used to cull hidden objects
+    - a distance cull against the farthest wall (`DFL/DFH`, `dthr`)
+    - a quarter-square multiply (`qmul`, tables QSL/QSH) instead of `mul8` for projection
+  - The gun is a fixed VIS entry with h=255 (12×5 cells, flash frame GUN1).
+  - Simulator fps, first room: 20.4 / 18.7 / 12.3 / 11.6. Busy view with 5 sprites: 18.0 / 15.7 / 10.3 / 9.8.
+    `tools/prof.py x y ang modekey` profiles a frame per routine.
+  - `gametest.py` runs 25 checks, all passing: sprites on screen, targeting, bite, two shots kill a bear,
+    nothing targeted facing away, chase, death and respawn.
+  - Sound is placeholder 8253 beeps (`sound`: DE = count for an 894.9 kHz clock, A = fields).
+    Creatures don't explode yet (step 3).
+  - The MZT is now 32,000 bytes (the sprites are ~9K, padded to pages), with ~10K free. Packing is still
+    to do, and the UniCMT load time is unknown.
+- **Next:** see `PORTING.md` step 3 (exploding pieces, gritty sounds, in-game tune). Real-hardware results
+  are still outstanding.
 
 ## 1. Purpose and current status
 
@@ -316,7 +341,10 @@ MZRay-MZ700/
   src/build.py             benchmark build -> MZRAY.MZT, mzray.sym
   src/game.asm             the game
   src/build_game.py        areas, textures, themes, text -> DROPBEAR.MZT, game.sym
-  src/tools/gametest.py    game checks (walk, doors, keys, switches, exits, pickups) + screenshots
+  src/objects.asm          creatures, projection, per-column sprite drawer, shooting, sound
+  src/dbart.py             DROPBEAR shape functions + 16x16 sprite rasteriser
+  src/tools/gametest.py    game checks (walk, doors, keys, switches, exits, pickups, creatures) + screenshots
+  src/tools/prof.py        per-routine T-state profile of a game frame
   src/tools/zasm.py        subset Z80 assembler (two-pass; DSC display-code strings)
   src/tools/z80.py         Python Z80 CPU core with approximate T-states
   src/tools/mzemu.py       minimal MZ-700 model: RAM, VRAM, 8255 keys, vblank, PNG screenshots

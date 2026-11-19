@@ -1,35 +1,45 @@
 # DROPBEAR 3D for the Sharp MZ-700 (MZRAY)
 
 A WolfenDoom-style game for the Sharp MZ-700, converted from the VZ300 game DROPBEAR 3D.
-It's at an early stage: there's a raycaster benchmark and a walkabout of the game world.
+It's a work in progress: there's a raycaster benchmark, and a playable test of the game with
+creatures and shooting.
 
 VIBED BY BPM 2026
 
-## DROPBEAR 3D world walkabout (v0.1)
-Load `release/DROPBEAR.MZT` through UniCMT (load address 1200h, starts automatically, 15K).
+## DROPBEAR 3D test v0.2: creatures and shooting
+Load `release/DROPBEAR.MZT` through UniCMT (load address 1200h, starts automatically, 32K).
 
 All nine areas of DROPBEAR 3D: The Homestead, The Bush Track, Gum Tree Maze, The Old Mine,
 Big Fellas Den, The Billabong, Bunyips Pool, The Ridge and Yowies Lair. Each area theme has its
 own wall textures and sky and ground colours.
 
 **What works:**
-- Doors, ways out between areas, locked doors and keys, lever switches and gates, cracked walls
-  that hide secrets, and furniture that blocks your way.
-- Each area remembers what you've opened.
+- All ten creatures, including the three bosses. They sleep until you get close, chase you,
+  bite, flinch when shot and drop when beaten. Bosses open their gates.
+- Pickups you can see: Vegemite, ammo, keys, opals and the map. Furniture too: drums, lamps,
+  shrubs, termite mounds, carts, stumps, reeds and bones.
+- A chunky blaster with a muzzle flash, and simple 8253 sounds.
+- Doors, ways out between areas, locked doors and keys, lever switches and gates, and cracked walls
+  that hide secrets. Each area remembers what you've opened and beaten.
+- It's forgiving: if you go down, you start again at the door you came in by, with full health.
 
-**Not yet:** there are no creatures or shooting, and pickups (keys, opals, Vegemite, ammo, map)
-work but can't be seen yet.
+**Not yet:** creatures don't explode into pieces, the sound is placeholder beeps, and there's no
+automap, title music or attract mode.
 
 | Key | Action |
 |---|---|
 | W / S or cursor up / down | Walk |
 | A / D or cursor left / right | Turn |
 | Q / E | Strafe |
+| SPACE | Fire |
 | 1 2 3 4 | Render mode (20 rays direct, 20 buffered, 40 direct, 40 buffered) |
 
-The bottom line shows the live frame rate and the render mode.
+The bottom line shows the live frame rate and the render mode. Sprites are drawn into each wall
+column as it's drawn, so they don't flicker in the fast direct modes.
 
-![Homestead](screenshots/walkabout_area0.png) ![Bush Track](screenshots/walkabout_area1_entry.png)
+![Bush Track](screenshots/v02_bear_far.png) ![Up close](screenshots/v02_bear_near.png)
+
+![Every sprite](screenshots/sprites.png)
 
 ## MZRAY BENCH v0.1: raycaster benchmark
 Load `release/MZRAY.MZT` (load address 1200h, 10K). It runs four timed tests of 32 frames each,

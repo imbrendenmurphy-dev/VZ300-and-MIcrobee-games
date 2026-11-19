@@ -35,6 +35,9 @@ title:
         ld (fields),hl
 gloop:
         call frame
+        ld a,(hp)
+        or a
+        jr z,dead
         ld a,(leveldone)
         or a
         jr z,gloop
@@ -48,6 +51,29 @@ gloop:
         call waitspace
         jp title
 
+; no instant death: back to the door you came in by, full health, everything you'd collected
+dead:   xor a
+        ld (0xE008),a
+        call cls
+        ld hl,PG_DEAD
+        call showpage
+        call waitspace
+        ld a,100
+        ld (hp),a
+        ld hl,OBJ+7             ; give the player a breather
+        ld b,NOBJ
+        ld de,8
+dd1:    ld (hl),150
+        add hl,de
+        djnz dd1
+        call spawn
+        call cls
+        call hudinit
+        call showname
+        ld hl,0
+        ld (fields),hl
+        jp gloop
+
 ; ---------------------------------------------------------------- one frame
 frame:
         call getinput
@@ -56,7 +82,8 @@ frame:
         ld a,(goarea)
         or a
         call nz,changearea
-        call pickups
+        call fire
+        call objects
         call render
         call hud
         jp timers
@@ -424,63 +451,6 @@ og2:    inc hl
         ret
 
 ; ---------------------------------------------------------------- pickups
-pickups:
-        ld hl,OBJ
-        ld b,NOBJ
-pu_l:   ld a,(hl)
-        cp T_HEALTH
-        jr c,pu_n
-        cp DECOR
-        jr nc,pu_n
-        push bc
-        push hl
-        call near
-        pop hl
-        pop bc
-        jr nc,pu_n
-        push bc
-        push hl
-        call pick
-        pop hl
-        pop bc
-pu_n:   ld de,8
-        add hl,de
-        djnz pu_l
-        ret
-
-; HL -> object. Carry set if the player is within 0.44 cell of it on both axes.
-near:   inc hl
-        ld e,(hl)
-        inc hl
-        ld d,(hl)
-        inc hl
-        push hl
-        ld hl,(px)
-        or a
-        sbc hl,de
-        call abshl
-        pop de
-        ld a,h
-        or a
-        ret nz
-        ld a,l
-        cp 0x70
-        ret nc
-        ex de,hl
-        ld e,(hl)
-        inc hl
-        ld d,(hl)
-        ld hl,(py)
-        or a
-        sbc hl,de
-        call abshl
-        ld a,h
-        or a
-        ret nz
-        ld a,l
-        cp 0x70
-        ret
-
 abshl:  bit 7,h
         ret z
         xor a
@@ -540,7 +510,10 @@ pk_d:   ld (hl),0               ; it's gone
         ld a,1
         ld (huddirty),a
         ex de,hl
-        jp setmsg
+        call setmsg
+        ld de,600               ; a cheerful ding
+        ld a,4
+        jp sound
 
 ; ---------------------------------------------------------------- the world
 ; area record: theme, known, name (16 + FF), exit count, exits (cell, to area, to cell, facing),
@@ -645,9 +618,37 @@ ex2:    ld a,(hl)               ; type
         ld (de),a
         inc de
         inc hl
-        inc de                  ; hp, flags, cooldown: filled in by the creature code later
+        push hl                 ; hp from the type table; asleep; no cooldown
+        dec de
+        dec de
+        dec de
+        dec de
+        dec de
+        ld a,(de)
         inc de
         inc de
+        inc de
+        inc de
+        inc de
+        ld l,a
+        ld h,0
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        push de
+        ld de,TYPET+5
+        add hl,de
+        pop de
+        ld a,(hl)
+        ld (de),a
+        inc de
+        xor a
+        ld (de),a
+        inc de
+        ld (de),a
+        inc de
+        pop hl
         djnz ex2
 ex4:    ld de,MAP
         ld b,128
@@ -748,16 +749,20 @@ loadarea:
         ld de,17
         add hl,de
         ld (aexits),hl
+        pop hl
+        xor a
+        ld (msgt),a
+showname:
         ld hl,VRAM              ; clear the top line, then the area name
         ld de,VRAM+1
         ld bc,39
         ld (hl),0
         ldir
-        pop hl
+        call areaptr
+        inc hl
+        inc hl
         ld de,VRAM
         call print
-        xor a
-        ld (msgt),a
         ld a,1
         ld (huddirty),a
         ret
@@ -909,7 +914,27 @@ ti_ok:  or a
         jr nz,ti_nz
         inc a
 ti_nz:  ld (lastf),a
-        ld de,(fields)
+        ld b,a
+        ld a,(animt)
+        add a,b
+        ld (animt),a
+        ld hl,firecd
+        call tdec
+        ld a,(sndt)             ; sound off when its time is up
+        or a
+        jr z,ti_s
+        ld hl,sndt
+        call tdec
+        ld a,(sndt)
+        or a
+        jr nz,ti_s
+        ld (0xE008),a
+ti_s:   ld a,(gunflash)
+        or a
+        jr z,ti_g
+        dec a
+        ld (gunflash),a
+ti_g:   ld de,(fields)
         ld hl,(fsum)
         add hl,de
         ld (fsum),hl
@@ -944,6 +969,17 @@ ti_m:   ld hl,fpsc
         call num5
         ld hl,VRAM+24*40+4
         jp pfps
+
+tdec:   ld a,(lastf)            ; (HL) -= fields since last frame, stopping at 0
+        ld b,a
+        ld a,(hl)
+        sub b
+        jr nc,td1
+        xor a
+td1:    ld (hl),a
+        ret
+
+;@@OBJECTS@@
 
 ;@@RAYCORE@@
 
@@ -1119,6 +1155,50 @@ ammo:      db 0
 leveldone: db 0
 huddirty:  db 0
 msgt:      db 0
+animt:     db 0
+firecd:    db 0
+gunflash:  db 0
+sndt:      db 0
+nvis:      db 0
+tgth:      db 0
+target:    dw 0
+cwall:     db 0
+scol:      db 0
+psgn:      db 0
+pcosm:     db 0
+psinm:     db 0
+otype:     db 0
+otp:       dw 0
+dx:        dw 0
+dy:        dw 0
+adx:       dw 0
+ady:       dw 0
+oframe:    db 0
+oflags:    db 0
+ocool:     db 0
+oflg:      db 0
+estep:     db 0
+oz:        dw 0
+olat:      dw 0
+oh:        db 0
+ocen:      dw 0
+ohs:       db 0
+ows:       db 0
+oleft:     dw 0
+oright:    db 0
+oleftc:    db 0
+oust:      dw 0
+ouacc:     dw 0
+osb:       dw 0
+ovs:       db 0
+ovi:       db 0
+otop:      db 0
+orows:     db 0
+oentry:    db 0
+zminc:     db 0
+zminl:     db 0
+smask:     dw 0
+dthr:      dw 0
 
 ;@@GAMEDATA@@
 
@@ -1127,6 +1207,10 @@ msgt:      db 0
 gend:
 OBJ     equ (gend+255)&0xFF00   ; work areas past the end of the file, so they aren't loaded
 COLL    equ OBJ+256
-LIVE    equ COLL+256
+VIS     equ COLL+256            ; visible sprite entries; their draw order at VIS+ORDLO
+ORDLO   equ 0xC0
+ZB      equ VIS+0xD0            ; last frame's wall height per column (40)
+MASKS   equ VIS+256             ; per column: which ORD positions cover it (40 words)
+LIVE    equ MASKS+80
 BUF     equ LIVE+512*NAREA
 BUFEND  equ BUF+880

@@ -30,6 +30,7 @@ rn_l:
         ld hl,(destp)
 dc_smc: call drawcol1
         call poll
+;@@SPRHOOK@@
         ld hl,(destp)
         ld a,(m_colstep)
         add a,l

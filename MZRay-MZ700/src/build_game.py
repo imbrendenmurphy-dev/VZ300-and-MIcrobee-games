@@ -6,7 +6,7 @@ from zasm import assemble, dispcode
 from raytables import fill, mzt
 
 # ---- textures: 8x8, colour letters K B R M G C Y W -------------------------------------------
-DARK = {'W': 'C', 'Y': 'R', 'C': 'B', 'G': 'B', 'M': 'R', 'R': 'M', 'B': 'K', 'K': 'K'}
+DARK = {'W': 'C', 'Y': 'R', 'C': 'B', 'G': 'G', 'M': 'R', 'R': 'M', 'B': 'K', 'K': 'K'}
 def dark(t): return [''.join(DARK[c] for c in r) for r in t]
 def crack(t, c='K'):
     t = [list(r) for r in t]
@@ -157,15 +157,97 @@ for i in range(len(THEMES)):
             blk += [cb(ch) for ch in w[t][k]] + [cb(ch) for ch in dark(w[t])[k]]
     out.append('TLIB%d:\n%s' % (i, dbl(blk)))
 out.append('SOLIDT: db ' + ','.join('1' if t in SOLIDDEC else '0' for t in range(24)))
-
-# text
 def msg(nm, s):
     assert len(s) <= 20, s
     out.append('%s: db %s' % (nm, ','.join(map(str, enc(s.ljust(20))))))
+
+# ---- sprites: 16x16 pages, byte index u*16+v, FF = see-through ---------------------------------
+import dbart as A_
+SPRPAGES = {}
+PREVIEW = {}
+def sprpage(name, fn, pal, outline='K'):
+    g = A_.raster(fn, pal, outline)
+    PREVIEW[name] = g
+    data = [0xFF]*256
+    for v in range(16):
+        for u in range(16):
+            if g[v][u] is not None: data[u*16+v] = cb(g[v][u])
+    out.append(' align 256\n%s:\n%s' % (name, dbl(data)))
+    return name
+def pal(s): return {i: c for i, c in enumerate(s)}      # shape colours 0,1,2,3 -> MZ letters
+# type: frames (fn0, fn1), palette, outline, frac, aspect, raise, hp, speed, bite, flags, kill message
+TYPES = [
+ ('BEAR',    (A_.bear_walk, A_.bear_bite),     'CWKR', 'B', .62, 1.125, 0,   2, 13,  8, 0, 'GOT ONE'),
+ ('BAT',     (A_.bat_up, A_.bat_dn),           'KYRM', 'K', .30, 1.6,  .35,  1, 17,  4, 8, 'BAT DOWN'),
+ ('BIGF',    (A_.bear_walk, A_.bear_bite),     'RYKW', 'K', .95, 1.125, 0,  18,  9, 15, 1, 'BIG FELLA DOWN'),
+ ('BUNYIP',  (A_.bunyip_walk, A_.bunyip_bite), 'KGRY', 'K', .70, 1.4,   0,  24, 24, 15, 3, 'BUNYIP BEATEN'),
+ ('YOWIE',   (A_.yowie_walk, A_.yowie_bite),   'RWKY', 'K', 1.0, 0.8,   0,  24,  7, 18, 5, 'YOWIE DOWN'),
+ ('TOAD',    (A_.toad_sit, A_.toad_hop),       'WGKY', 'K', .24, 1.3,   0,   1, 22,  4, 2, 'TOAD SQUASHED'),
+ ('MAGPIE',  (A_.mag_up, A_.mag_dn),           'YWKR', 'C', .26, 1.5,  .35,  1, 20,  5, 8, 'MAGPIE DOWN'),
+ ('SNAKE',   (A_.snake_up, A_.snake_hit),      'KYRG', 'K', .30, 1.35,  0,   2,  8,  9, 0, 'SNAKE GONE'),
+ ('SPIDER',  (A_.spider_a, A_.spider_b),       'KWYR', 'K', .26, 1.7,   0,   1, 18,  5, 0, 'SPIDER SPLAT'),
+ ('DINGO',   (A_.dingo_run, A_.dingo_bite),    'KWRY', 'K', .50, 0.9,   0,   3, 18,  8, 0, 'DINGO DOWN'),
+ ('HEALTH',  (A_.item_health,),                'KYWR', 'K', .28, 1.1,   0,   0,  0,  0, 0, ''),
+ ('AMMO',    (A_.item_ammo,),                  'KYGR', 'K', .28, 1.4,   0,   0,  0,  0, 0, ''),
+ ('KEY',     (A_.item_key,),                   'KYKK', 'K', .28, 1.8,   0,   0,  0,  0, 0, ''),
+ ('OPAL',    (A_.item_opal,),                  'WCKM', 'K', .28, 0.8,   0,   0,  0,  0, 0, ''),
+ ('MAPI',    (A_.item_map,),                   'WKKY', 'K', .28, 1.3,   0,   0,  0,  0, 0, ''),
+ ('DRUM',    (A_.d_drum,),                     'KYKR', 'K', .45, 0.7,   0,   0,  0,  0, 0, ''),
+ ('LAMP',    (A_.d_lamp,),                     'KWKY', 'K', .34, 0.55, .66,  0,  0,  0, 0, ''),
+ ('SHRUB',   (A_.d_shrub,),                    'GYKK', 'K', .45, 1.0,   0,   0,  0,  0, 0, ''),
+ ('TERMITE', (A_.d_termite,),                  'KKKR', 'K', .70, 0.55,  0,   0,  0,  0, 0, ''),
+ ('CART',    (A_.d_cart,),                     'KYKB', 'K', .42, 1.25,  0,   0,  0,  0, 0, ''),
+ ('STUMP',   (A_.d_stump,),                    'KRKY', 'K', .50, 0.75,  0,   0,  0,  0, 0, ''),
+ ('REEDS',   (A_.d_reeds,),                    'KYRG', 'K', .50, 0.9,   0,   0,  0,  0, 0, ''),
+ ('BONES',   (A_.d_bones,),                    'WKKK', 'K', .28, 1.2,   0,   0,  0,  0, 0, ''),
+]
+assert len(TYPES) == 23
+tt = ['TYPET:', ' ds 16']
+for nm, frames, p, ol, frac, asp, rs, hp, sp, bite, fl, kmsg in TYPES:
+    pages = [sprpage('SPR_%s%d' % (nm, i), f, pal(p), ol) for i, f in enumerate(frames)]
+    if len(pages) == 1: pages.append(pages[0])
+    if kmsg: msgname = 'MSG_K_' + nm; msg(msgname, kmsg)
+    else: msgname = 'MSG_BLANK'
+    tt.append(' db %s>>8,%s>>8,%d,%d,%d,%d,%d,%d,%d\n dw %s\n ds 5' %
+              (pages[0], pages[1], min(255, round(frac*256)), round(asp*64), round(rs*256), hp, sp, bite, fl, msgname))
+out.append('\n'.join(tt))
+
+# the gun: art at its final size, one texel per cell (u = column, v = row)
+GUN = ["....KWWK....",
+       "...KCCWWK...",
+       "..KBBCWBBK..",
+       ".KBBBBBBBBK.",
+       "KBBYYBBYYBBK"]
+GUNF = ["..YRYWWYRY..",
+        "...KYCWYK...",
+        "..KBBCWBBK..",
+        ".KBBBBBBBBK.",
+        "KBBYYBBYYBBK"]
+def gunpage(name, art):
+    data = [0xFF]*256
+    for v, r in enumerate(art):
+        for u, ch in enumerate(r):
+            if ch != '.': data[u*16+v] = cb(ch)
+    out.append(' align 256\n%s:\n%s' % (name, dbl(data)))
+gunpage('GUN0', GUN); gunpage('GUN1', GUNF)
+# u step per column for a sprite w columns wide (8.8 texels, 16 texels across), and v step per row
+ust = [0] + [16*256//w for w in range(1, 256)]
+out.append(' align 256\nUSTL:\n%s\nUSTH:\n%s' % (dbl([v & 255 for v in ust]), dbl([v >> 8 for v in ust])))
+out.append(' align 256\nSVSTEP:\n%s' % dbl([255] + [max(1, min(255, 256//h)) for h in range(1, 256)]))
+# cull distance for a farthest wall of height h: things farther than this (Chebyshev, 8.8 cells)
+# can't be in view. Wall height h means distance PROJ/h; on-screen things have z >= 0.85*distance,
+# and Chebyshev >= distance/1.42, so cull above 1.42*PROJ/h/0.85 plus half a cell.
+import raytables
+df = [0x7FFF if h < 2 else min(0x7FFF, int((raytables.PROJ/h*1.42/0.85 + 0.5)*256)) for h in range(256)]
+out.append(' align 256\nDFL:\n%s\nDFH:\n%s' % (dbl([v & 255 for v in df]), dbl([v >> 8 for v in df])))
+qs = [n*n//4 for n in range(512)]              # quarter squares for the fast 8x8 multiply
+out.append(' align 256\nQSL:\n%s\nQSH:\n%s' % (dbl([v & 255 for v in qs]), dbl([v >> 8 for v in qs])))
+
+# text
 for nm, s in (('MSG_BLANK', ''), ('MSG_SECRET', 'SECRET FOUND'), ('MSG_DOOR', 'DOOR OPENS'),
               ('MSG_UNLOCK', 'UNLOCKED'), ('MSG_NEEDKEY', 'NEED A KEY'), ('MSG_GATE', 'A GATE OPENS'),
               ('MSG_MAP', 'GOT THE MAP'), ('MSG_KEY', 'GOT A KEY'), ('MSG_OPAL', 'OPAL. BEAUTY'),
-              ('MSG_HEALTH', 'VEGEMITE PLUS 25'), ('MSG_AMMO', 'AMMO PLUS 15')):
+              ('MSG_HEALTH', 'VEGEMITE PLUS 25'), ('MSG_AMMO', 'AMMO PLUS 15'), ('MSG_OUCH', 'OUCH')):
     msg(nm, s)
 def page(nm, items):
     lines = [nm + ':']
@@ -176,23 +258,38 @@ def page(nm, items):
     out.append('\n'.join(lines))
 def centre(r, s): return (r, (40-len(s))//2, s)
 NOPALS = sum(1 for W in WORLD for o in W['objs'] if o[0] == 14)
-page('PG_TITLE', [centre(2, 'DROPBEAR 3D'), centre(4, 'FOR THE SHARP MZ 700'), centre(6, 'WORLD WALKABOUT TEST V0.1'),
-                  (10, 4, 'W S  OR UP DOWN      WALK'), (11, 4, 'A D  OR LEFT RIGHT   TURN'),
-                  (12, 4, 'Q E                  STRAFE'), (13, 4, '1 2 3 4              RENDER MODE'),
+page('PG_TITLE', [centre(2, 'DROPBEAR 3D'), centre(4, 'FOR THE SHARP MZ 700'), centre(6, 'TEST V0.2  CREATURES AND SHOOTING'),
+                  (9, 4, 'W S  OR UP DOWN      WALK'), (10, 4, 'A D  OR LEFT RIGHT   TURN'),
+                  (11, 4, 'Q E                  STRAFE'), (12, 4, 'SPACE                FIRE'),
+                  (13, 4, '1 2 3 4              RENDER MODE'),
                   centre(15, 'BUMP DOORS AND SWITCHES.'), centre(16, 'CRACKED WALLS HIDE SECRETS.'),
-                  centre(17, 'NO CREATURES YET. PICKUPS ARE INVISIBLE.'),
                   centre(21, 'VIBED BY BPM 2026'), centre(23, 'PRESS SPACE')])
+page('PG_DEAD', [centre(8, 'OUCH'), centre(11, 'THE DROP BEARS GOT YOU.'), centre(14, 'HAVE ANOTHER GO MATE.'),
+                 centre(20, 'PRESS SPACE')])
 page('PG_HUD', [(23, 0, 'HEALTH'), (23, 12, 'AMMO'), (23, 21, 'KEYS'), (23, 29, 'OPALS'),
                 (24, 0, 'FPS'), (24, 11, 'MODE'), (24, 19, 'KEYS 1 TO 4 SET MODE')])
 page('PG_WIN', [centre(6, 'YOU BEAUTY'), centre(9, 'YOU MADE IT BACK TO THE UTE.'),
                 (13, 10, 'OPALS FOUND    OF %d' % NOPALS), centre(18, 'VIBED BY BPM 2026'), centre(22, 'PRESS SPACE')])
 (sx, sy), = [(x, y) for y, r in enumerate(AREAS[0]['rows']) for x, ch in enumerate(r) if ch == 'P']
 consts = dict(NAREA=NAREA, STARTCELL=sy*16+sx, STARTANG=0, T_HEALTH=11, T_AMMO=12, T_KEY=13, T_OPAL=14,
-              T_MAP=15, DECOR=16, WINNUM=0xD000+13*40+10+12)
+              T_MAP=15, DECOR=16, NENEMY=10, WINNUM=0xD000+13*40+10+12,
+              GUNW=len(GUN[0]), GUNL=20-len(GUN[0])//2, GUNH=len(GUN))
 gamedata = '\n'.join('%-10s equ %d' % kv for kv in consts.items()) + '\n' + '\n'.join(out)
 
-src = open('game.asm').read().replace(';@@GAMEDATA@@', gamedata)
-src = fill(src, [0]*256, texlist(0))
+src = open('game.asm').read().replace(';@@GAMEDATA@@', gamedata).replace(';@@OBJECTS@@', open('objects.asm').read())
+src = fill(src, [0]*256, texlist(0), sprhook=' call sprcol')
+if '--preview' in sys.argv:                    # contact sheet of every sprite
+    from PIL import Image
+    RGB = {'K': (0, 0, 0), 'B': (0, 0, 255), 'R': (255, 0, 0), 'M': (255, 0, 255), 'G': (0, 255, 0),
+           'C': (0, 255, 255), 'Y': (255, 255, 0), 'W': (255, 255, 255)}
+    names = sorted(PREVIEW); cols = 8; S = 8
+    im = Image.new('RGB', (cols*17*S, ((len(names)+cols-1)//cols)*17*S), (40, 40, 60))
+    for i, nm in enumerate(names):
+        g = PREVIEW[nm]; ox = (i % cols)*17*S; oy = (i//cols)*17*S
+        for y in range(16):
+            for x in range(16):
+                if g[y][x]: im.paste(RGB[g[y][x]], (ox+x*S, oy+y*S, ox+x*S+S, oy+y*S+S))
+    im.save('sprites.png')
 open('game_full.asm', 'w').write(src)
 lo, data, sym = assemble(src)
 assert sym['BUFEND'] <= 0xD000, 'out of memory: %04X' % sym['BUFEND']
