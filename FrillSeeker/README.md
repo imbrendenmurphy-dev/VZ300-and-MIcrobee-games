@@ -1,9 +1,11 @@
 # FRILLSEEKER
 
-**An original mascot platform game for the Microbee Premium Plus — in development.**
+**An original mascot platform game for the Microbee Premium Plus.** The blurb, the specs and the RAM map: [BLURB.md](BLURB.md)
 *VIBED BY BPM 2026*
 
-![Bluff](screenshots/frillseeker.gif)
+![Bluff](showcase/showcase.gif)
+
+The attract sequence, with its music: [showcase/attract.mp4](showcase/attract.mp4)
 
 **Bluff** is a frilled-neck lizard: the smallest dragon in the Top End, with the
 biggest act. King Bufo's cane toads have pinched every bug in the bush and
@@ -26,15 +28,15 @@ The screen is the Premium Plus's full-height 40-column mode: 40 × 32 cells of
 
 | | |
 |---|---|
-| ![](screenshots/00-title.png) | ![](screenshots/00-title-amber.png) |
-| ![](screenshots/02-mound-city.png) | ![](screenshots/03-floating-down-the-old-gum.png) |
-| ![](screenshots/04-the-escarpment.png) | ![](screenshots/05-the-gorge.png) |
-| ![](screenshots/07-the-drop-riding-the-vent.png) | ![](screenshots/08-the-drive.png) |
-| ![](screenshots/10-the-floodplain-in-the-rain.png) | ![](screenshots/11-paperbark-swamp.png) |
-| ![](screenshots/12-the-larder-shelves.png) | ![](screenshots/13-king-bufo.png) |
-| ![](screenshots/15-attract-story.png) | ![](screenshots/14-king-bufo-amber.png) |
+| ![](screenshots/attract/attract_01_title.png) | ![](screenshots/attract/attract_15_title_amber.png) |
+| ![](screenshots/gameplay/game_03_mound_city.png) | ![](screenshots/gameplay/game_04_the_old_gum.png) |
+| ![](screenshots/gameplay/game_05_escarpment.png) | ![](screenshots/gameplay/game_06_the_gorge.png) |
+| ![](screenshots/gameplay/game_09_the_drop_riding_the_vent.png) | ![](screenshots/gameplay/game_12_up_the_drive_vent_amber.png) |
+| ![](screenshots/gameplay/game_13_the_floodplain_in_the_rain.png) | ![](screenshots/gameplay/game_14_paperbark_swamp.png) |
+| ![](screenshots/gameplay/game_15_the_larder_shelves.png) | ![](screenshots/gameplay/game_16_king_bufo.png) |
+| ![](screenshots/attract/attract_02_the_story_so_far.png) | ![](screenshots/attract/attract_05_whos_who.png) |
 
-All 24 rooms: [screenshots/rooms-all-24.png](screenshots/rooms-all-24.png)
+More: [screenshots/gameplay/](screenshots/gameplay/) and [screenshots/attract/](screenshots/attract/). All 24 rooms: [screenshots/rooms-all-24.png](screenshots/rooms-all-24.png). `python3 tools/media.py` makes all of these from the emulator.
 
 ## What is playable
 
