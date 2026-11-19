@@ -28,6 +28,7 @@ objects:
         xor a
         ld (nvis),a
         ld (tgth),a
+        ld (aimz),a
         ld hl,0
         ld (target),hl
         ld a,(pang)
@@ -664,6 +665,27 @@ pv3:    ld hl,otop
         ld a,(otype)
         cp NENEMY+1
         jr nc,pa1
+        ld a,(aimz)             ; (and for the demo autopilot: the nearest creature anywhere in view)
+        ld b,a
+        ld a,(oh)
+        cp b
+        jr c,pa3
+        ld (aimz),a
+        ld hl,(ocen)
+        ld a,h
+        or a
+        ld a,l
+        jr z,pa4
+        ld a,h                  ; off the edge: left (0) or right (39)
+        rlca
+        sbc a,a
+        cpl
+        and 39
+pa4:    cp 40
+        jr c,pa5
+        ld a,39
+pa5:    ld (aimcol),a
+pa3:
         ld a,(oleftc)
         cp 21
         jr nc,pa1

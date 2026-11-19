@@ -13,9 +13,15 @@ def check(what, ok):
     print(('ok   ' if ok else 'FAIL ') + what)
     if not ok: fails.append(what)
 
-assert m.run_until(sym['ws2'], 50_000_000)
+def skip_attract():
+    """SPACE during the title skips to the intro page; SPACE again starts the game."""
+    assert m.run_until(sym['tm1'], 50_000_000)
+    m.run_t(70938*10)
+    m.held = {'SPACE'}; assert m.run_until(sym['ws1'], 50_000_000); m.held = set()
+    assert m.run_until(sym['ws2'], 50_000_000)
+    m.held = {'SPACE'}; m.run_t(70938); m.held = set()
+skip_attract()
 m.shot('g_title.png', 2)
-m.held = {'SPACE'}; m.run_t(70938); m.held = set()
 check('game starts', m.run_until(sym['gloop'], 50_000_000))
 GOD = [True]                     # keep the tester alive unless a test wants to get bitten
 def frame(n=1):

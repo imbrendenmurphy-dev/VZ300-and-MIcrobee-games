@@ -6,8 +6,22 @@ creatures and shooting.
 
 VIBED BY BPM 2026
 
-## DROPBEAR 3D test v0.4: maps and fog
-Load `release/DROPBEAR.MZT` through UniCMT (load address 1200h, starts automatically, 34K).
+## DROPBEAR 3D test v0.5: title, gallery and attract demo
+Load `release/DROPBEAR.MZT` through UniCMT (load address 1200h, starts automatically, 38K).
+
+Left alone, it runs an arcade-style attract loop. Press SPACE at any point to play.
+
+1. **Title:** a chunky, arched DROPBEAR logo in hot-metal colours with green slime drips, and
+   DROPBEAR's slow, ominous three-voice tune with its heartbeat bass, tritone stinger and sad trombone.
+   The three voices are arpeggiated on the MZ-700's one sound channel (about 24 seconds).
+2. **Meet the locals:** each of the ten creatures appears big, with its own three-note fanfare, and
+   runs itself down: "I AM NOT FAT. I AM BIG BONED."
+3. **Demo:** an autopilot plays a different area each time round, with every creature awake and coming for it.
+
+Then there's a short intro page before the game starts. You can hear the title music in
+`sounds/title_music.wav`.
+
+![Title](screenshots/v05_title.png) ![Gallery](screenshots/v05_gallery7.png)
 
 New in v0.4:
 - **Hold M for the automap.** Walls are blue, doors cyan, ways out yellow, locked doors red, switches
@@ -47,7 +61,7 @@ own wall textures and sky and ground colours.
   that hide secrets. Each area remembers what you've opened and beaten.
 - It's forgiving: if you go down, you start again at the door you came in by, with full health.
 
-**Not yet:** the title screen and music, and the attract mode.
+**Not yet:** testing on a real MZ-700, and packing the file so it loads faster.
 
 | Key | Action |
 |---|---|

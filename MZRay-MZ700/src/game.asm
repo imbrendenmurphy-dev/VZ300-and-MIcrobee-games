@@ -22,10 +22,14 @@ start:
         ld a,2                  ; mode 3: 40 rays, direct
         call setmode
 title:
+        call attract            ; title, music, gallery, demo - until SPACE
+        call sndoff
         call cls
-        ld hl,PG_TITLE
+        ld hl,PG_INTRO
         call showpage
         call waitspace
+        ld a,1
+        ld (tuneon),a
         call newgame
         call cls
         call hudinit
@@ -169,6 +173,15 @@ gi11:   ld a,3                  ; row 3: M b3
         jr nz,gi12
         set 7,c
 gi12:   ld a,c
+        ld (inp),a
+        ld a,(demo_on)          ; in the demo, SPACE quits and the autopilot drives
+        or a
+        ret z
+        ld a,c
+        and 0x40
+        ld (dquit),a
+        call autopilot
+        ld a,c
         ld (inp),a
         ret
 
@@ -1096,6 +1109,8 @@ td1:    ld (hl),a
 
 ;@@FX@@
 
+;@@ATTRACT@@
+
 ;@@RAYCORE@@
 
 ; ---------------------------------------------------------------- helpers
@@ -1287,6 +1302,26 @@ flasht:    db 0
 skycol:    db 0x11
 fogh:      db 0
 mapon:     db 0
+tuneon:    db 0
+demo_on:   db 0
+dquit:     db 0
+dcycle:    db 0
+dsa:       db 0
+dtime:     dw 0
+aturn:     db 0
+awalk:     db 0
+adir:      db 0
+lastpx:    dw 0
+lastpy:    dw 0
+aimz:      db 0
+aimcol:    db 0
+gptr:      dw 0
+gframe:    db 0
+wcnt:      db 0
+tmv:       ds 6
+tmvi:      db 0
+tmlen:     db 0
+tmptr:     dw 0
 pnext:     db 0
 pcx:       db 0
 pcy:       db 0

@@ -312,12 +312,123 @@ def page(nm, items):
     out.append('\n'.join(lines))
 def centre(r, s): return (r, (40-len(s))//2, s)
 NOPALS = sum(1 for W in WORLD for o in W['objs'] if o[0] == 14)
-page('PG_TITLE', [centre(2, 'DROPBEAR 3D'), centre(4, 'FOR THE SHARP MZ 700'), centre(6, 'TEST V0.4  MAPS AND FOG'),
-                  (9, 4, 'W S  OR UP DOWN      WALK'), (10, 4, 'A D  OR LEFT RIGHT   TURN'),
-                  (11, 4, 'Q E                  STRAFE'), (12, 4, 'SPACE                FIRE'),
-                  (13, 4, '1 2 3 4              RENDER MODE'),
-                  centre(15, 'BUMP DOORS AND SWITCHES.'), centre(16, 'CRACKED WALLS HIDE SECRETS.'),
-                  centre(21, 'VIBED BY BPM 2026'), centre(23, 'PRESS SPACE')])
+# ---- title screen: a chunky arched logo in colour cells, Doom-parody style, with slime drips ----------
+LOGOFONT = {
+ 'D': ["###.", "##.#", "##.#", "##.#", "##.#", "##.#", "###."],
+ 'R': ["###.", "##.#", "##.#", "###.", "##.#", "##.#", "##.#"],
+ 'O': [".##.", "##.#", "##.#", "##.#", "##.#", "##.#", ".##."],
+ 'P': ["###.", "##.#", "##.#", "###.", "##..", "##..", "##.."],
+ 'B': ["###.", "##.#", "##.#", "###.", "##.#", "##.#", "###."],
+ 'E': ["####", "##..", "##..", "###.", "##..", "##..", "####"],
+ 'A': [".##.", "##.#", "##.#", "####", "##.#", "##.#", "##.#"]}
+SMALLFONT = {'3': ["###", "..#", ".##", "..#", "###"], 'D': ["##.", "#.#", "#.#", "#.#", "##."]}
+TROWS = 18
+def make_title():
+    L = [[0]*40 for _ in range(TROWS)]                 # 1 big letters, 2 the small "3D"
+    base = 10; heights = [9, 8, 7, 7, 7, 7, 8, 9]       # taller towards the ends: an arch
+    for k, ch in enumerate("DROPBEAR"):
+        x0 = k*5; h = heights[k]
+        for yy in range(h):
+            sy = min(6, int(yy*7/h)); y = base-h+1+yy
+            for x in range(4):
+                if LOGOFONT[ch][sy][x] == '#': L[y][x0+x] = 1
+    for k, ch in enumerate("3D"):
+        for y, r in enumerate(SMALLFONT[ch]):
+            for x, c in enumerate(r):
+                if c == '#': L[13+y][16+k*4+x] = 2
+    pic = [['K']*40 for _ in range(TROWS)]
+    for y in range(TROWS):                              # extrusion straight down (keeps the gaps between letters)
+        for x in range(40):
+            if L[y][x]:
+                for dx, dy in ((0, 1),):
+                    if y+dy < TROWS and x+dx < 40 and not L[y+dy][x+dx]: pic[y+dy][x+dx] = 'B'
+    for y in range(TROWS):                              # hot metal: yellow top edge, red body, magenta base
+        for x in range(40):
+            if L[y][x] == 1:
+                top = y == 0 or not L[y-1][x]
+                bot = y+1 >= TROWS or not L[y+1][x] or y == base
+                pic[y][x] = 'Y' if top else ('M' if bot else 'R')
+            elif L[y][x] == 2:
+                pic[y][x] = 'W' if (y == 0 or not L[y-1][x]) else 'C'
+    for k, ln in ((0, 3), (2, 2), (5, 4), (7, 3)):     # green slime dripping off D, O, E, R
+        x = k*5 + 1
+        for y in range(base+1, base+1+ln): pic[y][x] = 'G'
+    return pic
+TPIC = make_title()
+out.append('TSCR:\n%s\nTSCRLEN equ %d' % (dbl([cb(c) for r in TPIC for c in r]), TROWS*40))
+page('PG_TITLE', [centre(19, 'VIBED BY BPM 2026'), centre(21, 'W S A D Q E MOVE  SPACE FIRE  M MAP'),
+                  centre(23, 'PRESS SPACE TO PLAY')])
+page('PG_INTRO', [centre(2, 'GDAY RANGER.'), centre(5, 'DROP BEARS HAVE OVERRUN THE OUTBACK.'),
+                  centre(7, 'FIGHT THROUGH NINE AREAS. BEAT THE'), centre(9, 'BIG THREE AND GET BACK TO YOUR UTE.'),
+                  centre(12, 'KEYS OPEN LOCKED DOORS.'), centre(13, 'BUMP SWITCHES TO OPEN GATES.'),
+                  centre(14, 'CRACKED WALLS HIDE OPALS.'), centre(15, 'HOLD M FOR THE MAP.'),
+                  centre(17, 'KEYS 1 2 3 4 CHANGE THE RENDER MODE.'), centre(19, 'TEST V0.5'),
+                  centre(22, 'PRESS SPACE')])
+msg('MSG_DEMO', 'DEMO. PRESS SPACE')
+
+# ---- title music: DROPBEAR's three voices, slow and ominous, with a cheeky ending -----------------
+# one row per change: bass, mid, top counts and how many fields; the player arpeggiates them.
+TN = {'A1': 55.0, 'Bb1': 58.27, 'E2': 82.41, 'G#2': 103.83, 'A2': 110.0, 'Bb2': 116.54, 'B2': 123.47, 'C3': 130.81,
+      'Db3': 138.59, 'D#3': 155.56, 'E3': 164.81, 'F3': 174.61, 'F#3': 185.0, 'G3': 196.0, 'G#3': 207.65, 'A3': 220.0,
+      'Bb3': 233.08}
+v_bass = []; v_mid = []; v_top = []
+for bar in range(20):                                   # heartbeat: dum-dum ... dum-dum
+    t = bar*2; v_bass += [(t, .25, 'A1'), (t+.5, .25, 'A1')]
+for k in range(8): v_bass.append((40+k*.5, .25, 'A1' if k % 2 == 0 else 'Bb1'))
+for k, n in enumerate(['A2', 'Bb2', 'A2', 'G#2']): v_mid.append((8+k*4, 3.5, n))
+for k, n in enumerate(['C3', 'Db3', 'C3', 'B2']): v_mid.append((24+k*4, 3.5, n))
+for k, n in enumerate(['E3', 'F3', 'E3', 'D#3', 'A3', 'G#3', 'G3', 'F#3']): v_top.append((24+k*2, 1.75, n))
+v_mid.append((40, 3.8, 'E3')); v_top.append((40, 3.8, 'Bb3'))   # the stinger: a tritone
+v_top += [(45, .55, 'Bb2'), (45.7, .55, 'A2'), (46.4, 1.6, 'G#2')]   # ...and a sad trombone
+v_bass.append((46.4, 1.6, 'E2'))
+def at(voice, t):
+    for t0, d, n in voice:
+        if t0 <= t < t0+d: return n
+    return None
+FPB = 25                                                # fields per beat (half a second)
+rows = []
+for f in range(int(48.5*FPB)):
+    t = f/FPB
+    key = tuple(round(SCLK/TN[n]) if n else 0 for n in (at(v_bass, t), at(v_mid, t), at(v_top, t)))
+    if rows and rows[-1][0] == key and rows[-1][1] < 255: rows[-1][1] += 1
+    else: rows.append([key, 1])
+tm = []
+for (b, mm, tp), n in rows: tm += [b & 255, b >> 8, mm & 255, mm >> 8, tp & 255, tp >> 8, n]
+tm += [0]*7
+out.append('TMUS:\n' + dbl(tm))
+
+# ---- the gallery: the locals introduce themselves (no apostrophes: no safe display code yet) ---------
+GAL = [('BEAR', 'DROP BEAR', 'I DROP OUT OF TREES.', 'MOSTLY ON PURPOSE.', ('C5', 'E5', 'G5')),
+       ('BAT', 'FRUIT BAT', 'I ONLY CAME FOR THE MANGOES.', 'THE BITING JUST HAPPENS.', ('E5', 'G5', 'B5')),
+       ('TOAD', 'CANE TOAD', 'NOBODY INVITED ME.', 'I STAYED ANYWAY.', ('G4', 'C5', 'E5')),
+       ('MAGPIE', 'MAGPIE', 'I SWOOP. I MISS. I SWOOP AGAIN.', 'IT IS A SPRING THING.', ('A5', 'C6', 'E6')),
+       ('SNAKE', 'SNAKE', 'SLOW BUT GRUMPY ABOUT IT.', 'PLEASE DO NOT STEP ON ME.', ('D5', 'F5', 'A5')),
+       ('SPIDER', 'HUNTSMAN', 'I AM TOTALLY HARMLESS.', 'SO WHY IS EVERYONE SCREAMING.', ('F5', 'A5', 'C6')),
+       ('DINGO', 'DINGO', 'I ATE YOUR SANDWICH.', 'AND I WOULD DO IT AGAIN.', ('C5', 'D#5', 'G5')),
+       ('BIGF', 'BIG FELLA', 'I AM NOT FAT.', 'I AM BIG BONED.', ('C4', 'D#4', 'F#4')),
+       ('BUNYIP', 'THE BUNYIP', 'MOSTLY TEETH.', 'SOME FEELINGS.', ('D4', 'F4', 'G#4')),
+       ('YOWIE', 'THE YOWIE', 'BLURRY IN EVERY PHOTO.', 'THIS IS MY GOOD SIDE.', ('E4', 'G4', 'A#4'))]
+gt = ['GALT:']
+for i, (sp, name, l1, l2, notes) in enumerate(GAL):
+    page('PG_GAL%d' % i, [centre(19, name), centre(21, l1), centre(22, l2)])
+    lines = []
+    for j, n in enumerate(notes):                       # ta-da: three short notes
+        nxt = 'SFX_GAL%d_%d' % (i, j+1) if j < 2 else '0'
+        lines.append('SFX_GAL%d_%d: dw %d,0\n db 1,6\n dw %s' % (i, j, count(n), nxt))
+    out.append('\n'.join(lines))
+    gt.append(' dw SPR_%s0,SPR_%s1,PG_GAL%d,SFX_GAL%d_0' % (sp, sp, i, i))
+gt.append(' dw 0')
+out.append('\n'.join(gt))
+
+# ---- where the demo starts in each area: a way in, facing into the room ------------------------------
+dt = []
+for ai in range(NAREA):
+    if ai == 0: dt += [sy0*16+sx0 for sx0, sy0 in [(1, 1)]] + [0]; continue
+    src_ = [(a0, c) for a0, A0 in enumerate(AREAS) for c, t in zip(WORLD[a0]['xs'], A0['exits']) if t == ai][0]
+    back = [c for c, t in zip(WORLD[ai]['xs'], AREAS[ai]['exits']) if t == src_[0]][0]
+    (cx, cy), face = entry_for(ai, back)
+    dt += [cy*16+cx, face]
+out.append('DEMOTAB: db ' + ','.join(map(str, dt)))
 page('PG_DEAD', [centre(8, 'OUCH'), centre(11, 'THE DROP BEARS GOT YOU.'), centre(14, 'HAVE ANOTHER GO MATE.'),
                  centre(20, 'PRESS SPACE')])
 page('PG_HUD', [(23, 0, 'HEALTH'), (23, 12, 'AMMO'), (23, 21, 'KEYS'), (23, 29, 'OPALS'),
@@ -327,10 +438,11 @@ page('PG_WIN', [centre(5, 'YOU BEAUTY'), centre(8, 'THE YOWIE IS DOWN AND THE'),
 (sx, sy), = [(x, y) for y, r in enumerate(AREAS[0]['rows']) for x, ch in enumerate(r) if ch == 'P']
 consts = dict(NAREA=NAREA, STARTCELL=sy*16+sx, STARTANG=0, T_HEALTH=11, T_AMMO=12, T_KEY=13, T_OPAL=14,
               T_MAP=15, DECOR=16, NENEMY=10, WINNUM=0xD000+14*40+10+12,
-              GUNW=len(GUN[0]), GUNL=20-len(GUN[0])//2, GUNH=len(GUN), MUSP=14, FOGTEX=FOGTEX)
+              GUNW=len(GUN[0]), GUNL=20-len(GUN[0])//2, GUNH=len(GUN), MUSP=14, FOGTEX=FOGTEX,
+              DEMOFLD=25*50)
 gamedata = '\n'.join('%-10s equ %d' % kv for kv in consts.items()) + '\n' + '\n'.join(out)
 
-src = open('game.asm').read().replace(';@@GAMEDATA@@', gamedata).replace(';@@OBJECTS@@', open('objects.asm').read()).replace(';@@FX@@', open('fx.asm').read())
+src = open('game.asm').read().replace(';@@GAMEDATA@@', gamedata).replace(';@@OBJECTS@@', open('objects.asm').read()).replace(';@@FX@@', open('fx.asm').read()).replace(';@@ATTRACT@@', open('attract.asm').read())
 src = fill(src, [0]*256, texlist(0), sprhook=' call sprcol', predraw=' call fogchk')
 if '--preview' in sys.argv:                    # contact sheet of every sprite
     from PIL import Image

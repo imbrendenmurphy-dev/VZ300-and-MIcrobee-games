@@ -92,9 +92,30 @@ Credits line for anything user-facing: **VIBED BY BPM 2026** (the user's standin
     before TYPET). It clears the view only when the map opens (`mapon`) to avoid flicker. Play pauses
     while the map is up; the timers and sound keep running.
   - `gametest.py` runs 48 checks, all passing. MZT 34,560 bytes, ~7.3K free.
-- **Next:** `PORTING.md` step 5: title (chunky logo from colour cells), title music (arpeggios on the
-  8253), monster gallery, AI attract demo. That needs ~7K. If it doesn't fit, pack the sprite pages,
-  which are mostly FFh, or compress the MZT. Real-hardware results are still outstanding.
+- **Game step 5 (attract loop) done, v0.5.** New `src/attract.asm` (inserted at `;@@ATTRACT@@`).
+  - `title:` calls `attract` (title → gallery → demo, repeating; carry = SPACE), then shows PG_INTRO,
+    sets `tuneon`=1 and starts the game.
+  - **Title:** TSCR is a ready-made 18×40 colour screen built by `make_title()` (4×7 font arched to heights
+    9-8-7-7-7-7-8-9, yellow/red/magenta metal, blue drop shadow, green drips).
+  - **Title music:** TMUS rows are bass, mid and top counts plus fields, from DROPBEAR's voices.
+    `tmusic` plays the next sounding voice each field, so chords come out as an arpeggio. It runs ~27 s
+    including the pause.
+  - **Gallery:** GALT entries are page0, page1, text page and fanfare (3-note sfx chains). `gdrawf` draws the
+    16×16 sprite page as cells at rows 1–16, cols 12–27 on a blue backdrop. The texts avoid apostrophes,
+    commas and ?/!, because only A–Z, 0–9, space and '.' are known-safe display codes.
+  - **Demo:** `demo` runs newgame, loads area `dcycle` at DEMOTAB's entry, and wakes the creatures.
+    Setting `demo_on` makes `getinput` call `autopilot` (ported from DROPBEAR, using ZB column heights,
+    aimz/aimcol and `ahead`); real SPACE sets `dquit`. It lasts DEMOFLD=1250 fields, or until you die or
+    the level ends.
+  - `sndframe`'s in-game tune only plays when `tuneon` is set (play and demo).
+  - `waitf` A = fields: a wait that keeps the sound going and checks SPACE.
+  - `tools/attracttest.py` checks the title, music, ten gallery cards, demo movement, autopilot firing
+    and SPACE to the intro page, and writes `title_music.wav`. `gametest.py` (48 checks) now passes the
+    attract sequence via `skip_attract()`.
+  - MZT 37,888 bytes, **~4K free**.
+- **Next:** real-hardware testing (load time via UniCMT, fps, keys, sound pitch and the 8253 clock).
+  Then pack the sprite pages (mostly FFh) or compress the MZT if load time or memory needs it. Any
+  remaining polish: difficulty names, an opal tally on the win screen, a real character chart for punctuation.
 
 ## 1. Purpose and current status
 
@@ -375,6 +396,8 @@ MZRay-MZ700/
   src/build_game.py        areas, textures, themes, text -> DROPBEAR.MZT, game.sym
   src/objects.asm          creatures, projection, per-column sprite drawer, shooting
   src/fx.asm               sound effects engine + tune, exploding pieces, screen flashes
+  src/attract.asm          title + title music, monster gallery, autopilot demo
+  src/tools/attracttest.py attract loop checks + title music WAV
   sounds/                  simulator renders of the sound effects and in-game tune (WAV)
   src/dbart.py             DROPBEAR shape functions + 16x16 sprite rasteriser
   src/tools/gametest.py    game checks (walk, doors, keys, switches, exits, pickups, creatures) + screenshots

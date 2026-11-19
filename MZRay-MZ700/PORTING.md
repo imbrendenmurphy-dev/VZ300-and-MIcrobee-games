@@ -45,7 +45,9 @@ I'll ask before changing `render`/`castray` for this.
    There's a red bite flash and a white boss flash, a chained-part 8253 effects engine with per-column noise,
    DROPBEAR's in-game tune, and the death and win jingles.
 4. **Done (v0.4): automap, fog, win text.** Death and respawn were already done in v0.2.
-5. Title (chunky logo from colour cells), title music, monster gallery, AI attract demo.
+5. **Done (v0.5): attract loop.** Colour-cell arched logo with drips, DROPBEAR's three-voice title music arpeggiated
+   per field on the 8253, a ten-creature gallery with fanfares (punctuation-free text), the autopilot demo
+   cycling through the areas, and an intro page.
 6. Fit, pack and load-time check through UniCMT.
 
 ## Open questions for the user

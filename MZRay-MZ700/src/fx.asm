@@ -91,7 +91,10 @@ sndoff: xor a
         ld (0xE008),a
         ret
 
-tune:   ld a,(mdink)            ; end of a dink
+tune:   ld a,(tuneon)           ; only during play (and the demo)
+        or a
+        ret z
+        ld a,(mdink)            ; end of a dink
         or a
         jr z,tu1
         ld hl,lastf
