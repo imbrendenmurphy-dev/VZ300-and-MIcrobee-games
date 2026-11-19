@@ -184,6 +184,147 @@ def _queen():
 QUEEN = _queen()
 
 
+# ---- Sweeper: a wasp that crosses the screen (yellow and black)
+SWEEP1 = A(
+    '.ww......ww.',
+    '..ww....ww..',
+    '..YYYYYYYY..',
+    '.YYddYYddYY.',
+    'YYYYYYYYYYYY',
+    '.YYddYYddYY.',
+    '..YYYYYYYY..',
+    '....YddY....',
+    '.....YY.....',
+)
+SWEEP2 = A(
+    'ww........ww',
+    '.ww......ww.',
+    '..YYYYYYYY..',
+    '.YYddYYddYY.',
+    'YYYYYYYYYYYY',
+    '.YYddYYddYY.',
+    '..YYYYYYYY..',
+    '....YddY....',
+    '.....YY.....',
+)
+# ---- Spitter: a wall turret riding the scenery (three-way spread)
+SPIT = A(
+    '..rRRRRr..',
+    '.rRRYYRRr.',
+    'rRRYRRYRRr',
+    'RRYRWWRYRR',
+    'RRYRWWRYRR',
+    'rRRYRRYRRr',
+    '.rRRYYRRr.',
+    '..rRRRRr..',
+)
+
+
+def _banded(mask, bands, cx):
+    """colour a boss mask in vertical bands: bands = [(half-width, colour)]"""
+    h, w = mask.shape
+    q = np.full((h, w), -1, np.int16)
+    xx = np.mgrid[0:h, 0:w][1]
+    col = np.full((h, w), bands[-1][1], np.int16)
+    for hw_, c in reversed(bands):
+        col = np.where(np.abs(xx - cx) < hw_, c, col)
+    q[mask] = col[mask]
+    return q
+
+
+def _ell(h, w, cx, cy, rx, ry):
+    yy, xx = np.mgrid[0:h, 0:w]
+    return ((xx - cx) / rx) ** 2 + ((yy - cy) / ry) ** 2 <= 1
+
+
+def _rockmite():
+    """level 2: an armoured crab of rock, 40 x 22"""
+    h, w = 22, 40
+    cx = 19.5
+    m = _ell(h, w, cx, 9, 11, 9)                       # shell
+    yy, xx = np.mgrid[0:h, 0:w]
+    for sx in (-1, 1):                                 # claws
+        m |= _ell(h, w, cx + sx * 15, 16, 4.5, 5)
+        m &= ~_ell(h, w, cx + sx * 15, 19, 2, 3)
+        for t in range(8):                             # legs
+            m[3 + t * 2 // 2, int(cx + sx * (11 + t))] = True
+    m[(yy % 4 == 0) & _ell(h, w, cx, 9, 9, 7)] = False  # shell plates
+    m[_ell(h, w, cx - 4, 13, 1.2, 1.5) | _ell(h, w, cx + 4, 13, 1.2, 1.5)] = False
+    return _banded(m, [(4.5, BRED), (12.5, GREY), (99, BROWN)], cx)
+
+
+def _warden():
+    """level 3 (two of them): a hive guardian, 24 x 16"""
+    h, w = 16, 24
+    cx = 11.5
+    m = _ell(h, w, cx, 7, 5, 7)
+    m |= _ell(h, w, cx - 8, 5, 4, 4) | _ell(h, w, cx + 8, 5, 4, 4)
+    yy, xx = np.mgrid[0:h, 0:w]
+    m &= ~((yy == 7) & (np.abs(xx - cx) < 3))
+    m[13:16, int(cx) - 1:int(cx) + 2] = True
+    return _banded(m, [(4.5, BCYAN), (99, YELLOW)], cx)
+
+
+def _hulk():
+    """level 4: the wrecked dreadnought, 48 x 20"""
+    h, w = 20, 48
+    cx = 23.5
+    yy, xx = np.mgrid[0:h, 0:w]
+    m = (np.abs(xx - cx) < 22 - yy * 0.4) & (yy < 14)
+    m |= (np.abs(xx - cx) < 6) & (yy < 20)              # the prow, pointing down
+    m &= ~((yy % 5 == 2) & (np.abs(xx - cx) > 7))         # deck lines
+    m &= ~(_ell(h, w, cx + 12, 6, 3, 2.5))                # battle damage
+    return _banded(m, [(6.5, BRED), (14.5, WHITE), (99, GREY)], cx)
+
+
+def _hivemind():
+    """level 5: the Hive Mind, 40 x 26"""
+    h, w = 26, 40
+    cx = 19.5
+    yy, xx = np.mgrid[0:h, 0:w]
+    m = _ell(h, w, cx, 11, 13, 11)
+    m &= ~((np.sin(xx * 0.9 + yy * 0.4) > 0.75) & _ell(h, w, cx, 11, 11, 9))  # folds
+    for sx in (-1, 1):
+        for t in range(9):                                 # tendrils
+            x = int(cx + sx * (8 + t * 1.3))
+            y = 18 + t
+            if y < h and 0 <= x < w:
+                m[y, x] = True
+                if 0 <= x - sx < w:
+                    m[y, x - sx] = True
+    m[_ell(h, w, cx, 12, 3, 3)] = True                     # the eye
+    return _banded(m, [(4.5, BRED), (12.5, BMAGENTA), (99, MAGENTA)], cx)
+
+
+ROCKMITE = _rockmite()
+WARDEN = _warden()
+HULK = _hulk()
+HIVEMIND = _hivemind()
+
+# common to every level (same addresses in each level's library), then
+# the level's boss
+COMMON = [
+    ('SP_HORNET1', HORNET1), ('SP_HORNET2', HORNET2),
+    ('SP_DRONE1', DRONE1), ('SP_DRONE2', DRONE2),
+    ('SP_DART', 'even', DART), ('SP_POD1', 'even', POD1), ('SP_POD2', 'even', POD2),
+    ('SP_EXPL1', 'even', EXPL1), ('SP_EXPL2', 'even', EXPL2), ('SP_EXPL3', 'even', EXPL3),
+    ('SP_SWEEP1', 'even', SWEEP1), ('SP_SWEEP2', 'even', SWEEP2), ('SP_SPIT', 'even', SPIT),
+]
+BOSSES = [QUEEN, ROCKMITE, WARDEN, HULK, HIVEMIND]
+
+
+def level_lib(n, base=0x1600, limit=0x6800):
+    """the sprite library of level n (0-4): common sprites, then its boss"""
+    data = bytearray()
+    labels = {}
+    for item in COMMON + [('SP_BOSS', 'even', BOSSES[n])]:
+        name, a = item[0], item[-1]
+        labels[name] = base + len(data)
+        data += gfx.sprite_frame(a, even=len(item) == 3)
+    assert base + len(data) <= limit, 'level %d sprites: %d bytes' % (n + 1, len(data))
+    return bytes(data), labels
+
+
 SPRITES = [
     ('SP_HORNET1', HORNET1),
     ('SP_HORNET2', HORNET2),

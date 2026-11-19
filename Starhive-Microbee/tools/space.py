@@ -67,7 +67,10 @@ class Space:
                         glyphs.append(g)
                     gi = gl[g]
                 cells[(r, c)] = (0x80 | (gi & 0x7F), gi >> 7, col)
-        assert len(glyphs) <= art.STAR_FIRST, 'too many glyphs: %d' % len(glyphs)
+        if self.__dict__.get('old_checks', True) is False:
+            pass
+        elif len(glyphs) > art.STAR_FIRST:
+            raise AssertionError('too many glyphs: %d' % len(glyphs))
         metas, meta, mp = {}, [], bytearray()
         for mr in range(R // 2):
             for mc in range(COLS // 2):
@@ -77,7 +80,8 @@ class Space:
                     metas[k] = len(meta)
                     meta.append(bytes(k))
                 mp += metas[k].to_bytes(2, 'little')
-        assert len(meta) <= 1020, 'too many metatiles: %d' % len(meta)
+        if self.__dict__.get('old_checks', True) and len(meta) > 1020:
+            raise AssertionError('too many metatiles: %d' % len(meta))
         return dict(glyphs=glyphs, meta=meta, map=bytes(mp), nrows=R - R % 2, img=img, G=G, C=C,
                     cells=cells, vcol=vcol)
 

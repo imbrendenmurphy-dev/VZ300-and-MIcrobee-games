@@ -12,7 +12,6 @@
 COLT	equ $B000		; colour of slot s at phase k: COLT + 256 k + s
 SEGS	equ $C000		; per map row (row & 31, 256 bytes each): its pair
 				; cells on screen: address, colL, colU; 0 ends
-BLK_W	equ 19		; WORK: sprite library, lists, stream, shadows
 ROWBUF	equ $E0A0		; a row record's codes, attributes, colours
 HUDC	equ $E000		; HUD codes (80) and colours (80)
 HUDK	equ $E050
@@ -23,7 +22,7 @@ R5FIX	equ 4			; 28 rows x 11 + 4 = 312 lines
 start:	di
 	ld sp,$EFF0
 	call hw_init
-	MEMV BLK_ROWS		; (video RAM window on)
+	MEMV 8			; (video RAM window on)
 	ld a,1
 	in a,(P_CLK40)
 	ld hl,crtc_tab
@@ -61,23 +60,40 @@ start:	di
 	ld (fields),a
 	ld a,ST_TITLE
 	ld (state),a
-	ld hl,hisc		; HI 005000
-	ld (hl),0
-	inc hl
-	ld (hl),$50
+	ld hl,hisc		; HI 050000 (the table's best)
+	ld (hl),$05
 	inc hl
 	ld (hl),0
+	inc hl
+	ld (hl),0
+	xor a
+	ld (mono),a
+	call set_mono
 	ld hl,$ACE1
 	ld (seed),hl
 	xor a
 	ld (spk),a
 	ld (snd_len),a
+	ld (round),a
+	inc a
 	ld (level),a
+	ld hl,vcol_tab		; far-star glyph per column: F0h + 4 v
+	ld de,vcol4
+	ld b,SCOLS
+.vc:	ld a,(hl)
+	add a,a
+	add a,a
+	add a,$F0
+	ld (de),a
+	inc hl
+	inc de
+	djnz .vc
 	ld (calm),a
 
 ; ---------------------------------------------------------------------
 restart:
 	ld sp,$EFF0
+	call level_setup
 	call cls
 	ld hl,21
 	ld (top),hl
@@ -92,7 +108,7 @@ restart:
 	ld (nslot),a
 	ld (scrolled),a
 	ld (sp_count),a
-	ld a,BLK_W		; no sprite cells yet
+	ld a,(lv_work)		; no sprite cells yet
 	call blkport
 	out (P_MEM),a
 	call buckets_clear
@@ -117,14 +133,15 @@ restart:
 	call ring_of		; DE = ring offset of display row d
 	push hl
 	push de
+	call row_expand
+	pop de
+	push de
 	call write_row
 	pop de
 	pop hl
-	push hl
 	push de
 	call seg_build
 	pop de
-	pop hl
 	call shadow_row
 	pop bc
 	inc b
@@ -177,7 +194,7 @@ main:	call vschk		; steady pacing: 2 fields a frame (25 fps),
 	call vschk
 	call game_tick
 	call vschk
-	ld a,BLK_W
+	ld a,(lv_work)
 	call blkport
 	out (P_MEM),a
 	call frame_begin
@@ -215,8 +232,7 @@ commit:	ld a,(step)
 	ld a,l
 	out (P_CRTCD),a
 	call hud_write
-	ld hl,(top)		; the new top row
-	ld a,2
+	ld a,2			; the new top row (expanded by advance)
 	call ring_of
 	call write_row
 	jr .st
@@ -274,10 +290,12 @@ advance:
 	ld hl,(top)
 	inc hl
 	ld (top),hl
-	ld de,-(NROWS-1)
-	add hl,de
-	jp nc,.ok
-	jp restart		; end of the level: round again
+	ld de,(nrows)
+	dec de
+	or a
+	sbc hl,de
+	jp c,.ok
+	jp restart		; end of the map: round again
 .ok:	ld hl,(scrS)
 	ld de,-40
 	add hl,de
@@ -291,15 +309,15 @@ advance:
 	call load_one
 	call vschk
 	jr .fl
-.fd:	ld a,2			; the new top row's segment and shadows
+.fd:	ld hl,(top)		; the new top row: expanded, its segment
+	call row_expand		; and shadows
+	ld a,2
 	call ring_of
 	ld hl,(top)
-	push hl
 	push de
 	call seg_build
 	call vschk
 	pop de
-	pop hl
 	call shadow_row
 	call vschk
 	ld a,1
@@ -333,10 +351,7 @@ seg_build:			; two lists: cells of one colour (address),
 	ld e,$58
 	ld (bl_dstb),de
 	call row_rec
-	ld a,l
-	add a,120
-	ld l,a
-	ld b,(hl)
+	ld b,(hl)		; n, then n x (column, slot)
 	inc hl
 	ld a,b
 	or a
@@ -406,19 +421,77 @@ ring_of:
 	pop hl
 	ret
 
-; HL = map row -> its record mapped in the lower window, HL = address
+; HL = map row -> its record (n, n x (column, slot)), rows block mapped
 row_rec:
-	ld a,l
-	and $7F
-	push af
-	add hl,hl		; H = row / 128
-	ld a,h
-	add a,BLK_ROWS
+	ld a,(lv_rows)
 	call blkport
 	out (P_MEM),a
-	pop af
-	ld h,a
-	ld l,0
+	add hl,hl
+	ld a,(hl)
+	inc hl
+	ld h,(hl)
+	ld l,a
+	ret
+
+; HL = map row -> ROWBUF: codes, attributes, colours of its 40 cells
+; (far-star cells, and the pairs from its record)
+row_expand:
+	push hl
+	ld a,l
+	neg
+	and 3
+	ld c,a			; star glyph row: (-r) & 3
+	ld hl,vcol4
+	ld de,ROWBUF
+	ld b,SCOLS
+.d:	ld a,(hl)
+	add a,c
+	ld (de),a
+	inc hl
+	inc de
+	djnz .d
+	ld hl,ROWBUF+40
+	ld (hl),STAR_BANK
+	ld de,ROWBUF+41
+	ld bc,39
+	ldir
+	ld hl,ROWBUF+80
+	ld a,(star_col)
+	ld (hl),a
+	ld de,ROWBUF+81
+	ld bc,39
+	ldir
+	pop hl
+	call row_rec
+	ld b,(hl)
+	inc hl
+	ld a,b
+	or a
+	ret z
+.p:	ld e,(hl)		; column
+	inc hl
+	ld a,(hl)		; slot
+	inc hl
+	and $7F
+	ld c,a
+	push hl
+	ld d,0
+	ld hl,ROWBUF
+	add hl,de
+	or $80
+	ld (hl),a		; code 80h + slot
+	ld de,40
+	add hl,de
+	ld (hl),0		; bank 0 (the pass sets the phase)
+	add hl,de
+	push hl
+	ld l,c
+	ld h,COLT>>8
+	ld a,(hl)		; colour at phase 0
+	pop hl
+	ld (hl),a
+	pop hl
+	djnz .p
 	ret
 
 ; A = block -> A = port 50h value (ROMs off, video window on)
@@ -438,24 +511,19 @@ blkport:
 	pop bc
 	ret
 
-; HL = map row, DE = ring offset: codes, attributes, colours of the row
+; DE = ring offset: ROWBUF's codes, attributes, colours to the screen
 write_row:
 	push de
-	call row_rec
-	pop de
-	push hl
-	push de
+	ld hl,ROWBUF
 	ld a,$F0
 	ld bc,40
 	call rcopy		; codes
 	ld a,LV_ATTR
 	out (P_LV),a
 	pop de
-	pop hl
-	push hl
 	push de
+	ld hl,ROWBUF+40
 	ld bc,40
-	add hl,bc
 	ld a,$F0
 	call rcopy		; attributes (pair cells bank 0, stars bank 11)
 	ld a,LV_SCREEN
@@ -463,9 +531,7 @@ write_row:
 	ld a,COL_ON
 	out (P_COLCTL),a
 	pop de
-	pop hl
-	ld bc,80
-	add hl,bc
+	ld hl,ROWBUF+80
 	ld bc,40
 	ld a,$F8
 	call rcopy		; colours
@@ -473,18 +539,11 @@ write_row:
 	out (P_COLCTL),a
 	ret
 
-; HL = map row, DE = ring offset: the row's codes, attributes and
-; colours into the WORK shadows (for the sprites and the put-backs)
+; DE = ring offset: ROWBUF into the WORK shadows (sprites, put-backs)
 shadow_row:
-	push de
-	call row_rec
-	ld de,ROWBUF
-	ld bc,120
-	ldir
-	ld a,BLK_W
+	ld a,(lv_work)
 	call blkport
 	out (P_MEM),a
-	pop de
 	push de
 	ld hl,ROWBUF
 	ld bc,40
@@ -501,6 +560,25 @@ shadow_row:
 	ld bc,40
 	ld a,$68
 	jp rcopy		; colours
+
+; the level's blocks, length, boss row, from lvl_tab
+level_setup:
+	ld a,(level)
+	dec a
+	ld l,a
+	ld h,0
+	ld d,h
+	ld e,l
+	add hl,hl
+	add hl,hl
+	add hl,hl
+	add hl,de		; 9 bytes an entry
+	ld de,lvl_tab
+	add hl,de
+	ld de,lv_rows
+	ld bc,9
+	ldir
+	ret
 
 ; HL = source, DE = ring offset, BC = count, A = window (F0h / F8h)
 rcopy:	ld (rc_win),a
@@ -609,10 +687,12 @@ star_texs:	dw star_tex0,star_tex1,star_tex2,star_tex3
 ;  pair loads: the schedule (SCHED block) has a group per coarse step
 ; ---------------------------------------------------------------------
 group_ptr:			; HL = step -> load_ptr / load_left
-	ld a,BLK_SCHED
+	ld a,(lv_rows)
 	call blkport
 	out (P_MEM),a
 	add hl,hl
+	ld de,SCHED_AT
+	add hl,de
 	ld e,(hl)
 	inc hl
 	ld d,(hl)
@@ -622,33 +702,29 @@ group_ptr:			; HL = step -> load_ptr / load_left
 	ld (load_ptr),de
 	ret
 
-load_one:			; next load of the group: slot, pair id
-	ld a,BLK_SCHED
+load_one:			; next load: slot, offset (2), pairs block
+	ld a,(lv_rows)
 	call blkport
 	out (P_MEM),a
 	ld hl,(load_ptr)
 	ld c,(hl)		; slot
 	inc hl
-	ld e,(hl)		; id lo
+	ld e,(hl)
 	inc hl
-	ld d,(hl)		; id hi
+	ld d,(hl)		; offset
+	inc hl
+	ld a,(hl)		; block (of the level's pairs)
 	inc hl
 	ld (load_ptr),hl
 	ld hl,load_left
 	dec (hl)
-	ld a,c
-	ld (ld_slot),a
-	ld a,e			; block = BLK_PAIRS + id / 128
-	rla
-	ld a,d
-	rla
-	add a,BLK_PAIRS
+	ld hl,lv_pairs
+	add a,(hl)
 	call blkport
 	out (P_MEM),a
-	ld a,e			; source = (id & 7Fh) * 256
-	and $7F
-	ld h,a
-	ld l,0
+	ex de,hl		; HL = the pair's record
+	ld a,c
+	ld (ld_slot),a
 	ld a,c			; destination F800h + slot * 16
 	rrca
 	rrca
@@ -681,6 +757,7 @@ load_one:			; next load of the group: slot, pair id
 	ld d,COLT>>8
 	ld b,CL
 .c:	ld a,(hl)
+	call fold
 	ld (de),a
 	inc hl
 	inc d
@@ -776,16 +853,20 @@ hud_build:
 	cp ST_TITLE
 	jr z,.col
 	ld a,(level)
-.m10:	cp 10
-	jr c,.l
-	sub 10
-	jr .m10
-.l:	add a,$81
+	add a,$81
 	ld (HUDC+46),a
+	ld hl,(lv_name)		; the level's name
+	ld de,HUDC+40+10
+	ld b,24
+	call hud_text
 	jr .col
-.q:	ld hl,hud_tq		; HIVE QUEEN and a bar
+.q:	ld hl,hud_tq		; the boss's name and a bar
 	ld de,HUDC+40
 	ld b,40
+	call hud_text
+	ld hl,(b_name)
+	ld de,HUDC+40
+	ld b,16
 	call hud_text
 	ld ix,enemies
 	ld b,NENEMY
@@ -798,24 +879,27 @@ hud_build:
 	srl a
 	srl a
 	inc a
+	add a,c
 	ld c,a
 .fn:	add ix,de
 	djnz .f
 	ld a,c
-	cp 27
+	cp 23
 	jr c,.bl
-	ld a,27
+	ld a,23
 .bl:	or a
 	jr z,.col
 	ld b,a
-	ld hl,HUDC+40+12
+	ld hl,HUDC+40+17
 	ld a,FONT_BAR
 .bar:	ld (hl),a
 	inc hl
 	djnz .bar
 .col:	ld hl,HUDK
 	ld b,40
-.k0:	ld (hl),YELLOW
+.k0:	ld a,YELLOW
+	call fold
+	ld (hl),a
 	inc hl
 	djnz .k0
 	ld b,40
@@ -824,9 +908,10 @@ hud_build:
 	ld a,BCYAN
 	jr z,.k1
 	ld a,BRED
-.k1:	ld (hl),a
+.k1:	call fold
+.k2:	ld (hl),a
 	inc hl
-	djnz .k1
+	djnz .k2
 	ld a,1
 	ld (hudd),a
 	jp vschk
@@ -870,7 +955,7 @@ hud_bcd:			; 3 BCD bytes at HL -> 6 digit codes at DE
 
 ;            0123456789012345678901234567890123456789
 hud_t0:	db "SCORE 000000  HI 000000         SHIPS 3 "
-hud_t1:	db "LEVEL 1   THE OUTER HIVE                "
+hud_t1:	db "LEVEL 1                                 "
 hud_tt:	db "  STARHIVE        VIBED BY BPM 2026     "
 hud_tq:	db "HIVE QUEEN                              "
 hud_attr:	ds 80,STAR_BANK
@@ -960,11 +1045,24 @@ crtc_tab:	db $35,$28,$2C,$34, 27,R5FIX,DROWS,26, $48,CL-1,$20,CL-1, 0,0,0,0
 	INCLUDE "game.asm"
 sintab:
 	INCLUDE "../build/sin.inc"
-	INCLUDE "../build/soft.inc"
+	INCLUDE "../build/game.inc"
 code_end:
 	ASSERT code_end <= COLT
 
+	ORG $C000		; (the scroll segments go here once the game runs)
+	INCLUDE "../build/boot.inc"
+boot_end:
+	ASSERT boot_end <= $D000
+
 	ORG $E200
+lv_rows	ds 1		; (9 bytes from lvl_tab, in this order)
+lv_pairs ds 1
+lv_work	ds 1
+nrows	ds 2
+boss_row ds 2
+lv_name	ds 2
+vcol4	ds SCOLS
+round	ds 1
 top	ds 2
 scrS	ds 2
 k	ds 1
@@ -1084,6 +1182,30 @@ snd_cnt	ds 1
 snd_nse	ds 1
 snd_slide ds 1
 snd_pri	ds 1
+mono	ds 1
+mus_wait ds 1
+m_acc	ds 2
+star_col ds 1
+mkey	ds 1
+hs_pos	ds 1
+name_at	ds 1
+name_ch	ds 1
+name_de	ds 2
+hs_line	ds 16
+b_hits	ds 1			; the level's boss (12 bytes from bosstab)
+b_w	ds 1
+b_h	ds 1
+b_amp	ds 1
+b_spd	ds 1
+b_y	ds 1
+b_gap	ds 1
+b_att	ds 1
+b_cnt	ds 1
+b_col	ds 1
+b_name	ds 2
+diff	ds 1
+bosses_left ds 1
+bs_type	ds 1
 objects:
 enemies	ds NENEMY*ESIZE
 buls	ds NBUL*BSIZE
@@ -1091,4 +1213,4 @@ shots	ds NSHOT*3
 objects_end:
 	ASSERT $ < $E9F0	; (E9F8: the spare byte's colour twin)
 
-	SAVEBIN "../build/STARHIVE.BIN",$8000,code_end-$8000
+	SAVEBIN "../build/STARHIVE.BIN",$8000,boot_end-$8000
