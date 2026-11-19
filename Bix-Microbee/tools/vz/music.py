@@ -131,6 +131,48 @@ G4 B4 D5 G5 - F#5 D5 B4   E5 - D#5 - E5 - B4 r
 E4 G4 B4 E5 - G5 F#5 E5   D#5 - B4 - F#4 - B3 -
 G4 B4 D5 G5 - B5 A5 G5   E5 - - - E4 - r r"""
 
+# ---------------------------------------------------------------- Bix 2: the lost levels
+SONG_GULLY2 = """D4 - F#4 A4 - D5 - C#5   B4 - A4 - F#4 - A4 -
+G4 - B4 D5 - G5 F#5 E5   D5 - A4 - D5 - - r
+B4 - D5 F#5 - B5 A5 F#5   G5 - E5 - C#5 - A4 -
+D5 F#5 A5 D6 - C#6 A5 F#5   D5 - - - D4 - r r"""
+SONG_GULLY3 = """E4 E4 G4 B4 E4 E4 G4 B4   C5 B4 A4 G4 F#4 G4 A4 B4
+E4 E4 G4 B4 E5 D5 B4 G4   A4 - F#4 - E4 - - r
+G4 G4 B4 D5 G4 G4 B4 D5   E5 D5 C5 B4 A4 B4 C5 D5
+E5 - B4 - G4 - B4 -   E4 - - - E5 - r r"""
+SONG_CAVES2 = """D4 r D4 F4 r A4 r C5   D5 r C5 A4 r F4 r G4
+A4 r A4 C5 r E5 r D5   C5 A4 G4 E4 D4 - - r
+F4 r F4 A4 r C5 r E5   F5 r E5 C5 r A4 r C5
+D5 - A4 - F4 - A4 -   D5 - - - D4 - r r"""
+SONG_CAVES3 = """A3 - - E4 - - A4 -   G4 - - E4 - - C4 -
+D4 - - A4 - - D5 -   C5 - B4 - G4 - - r
+A3 - - E4 - - C5 -   B4 - - G4 - - E4 -
+F4 - A4 - C5 - E5 -   E5 - - - A4 - - r"""
+SONG_FACTORY2 = """C4 C5 G4 C5 C4 C5 G4 D#5   C4 C5 G4 C5 A#3 A#4 F4 D5
+G#3 G#4 D#4 C5 G#3 G#4 D#4 G#4   G3 G4 D4 B4 G3 G4 D4 G4
+C5 D#5 G5 C6 - A#5 G5 D#5   F5 - D5 - B4 - G4 -
+C5 D#5 G5 C6 - D6 B5 G5   C6 - - - C5 - r r"""
+SONG_FACTORY3 = """F3 - F3 G#3 - F3 C4 -   F3 - F3 G#3 - D#4 C#4 -
+F4 - D#4 - C4 - G#3 -   A#3 - C4 - G3 - F3 r
+F3 F3 G#3 F3 C4 F3 C#4 C4   F3 F3 G#3 F3 D#4 D4 C#4 C4
+F4 - G#4 - F4 - D#4 -   F4 - - - F3 - r r"""
+SONG_SKY2 = """C5 - E5 - G5 -   C6 - G5 - E5 -   D5 - F5 - A5 -   G5 - - - r -
+E5 - G5 - C6 -   B5 - A5 - G5 -   F5 - E5 - D5 -   C5 - - - r -
+A4 - C5 - F5 -   E5 - C5 - A4 -   G4 - B4 - D5 -   G5 - - - r -
+C5 - E5 - G5 -   C6 - B5 - G5 -   D5 - E5 - D5 -   C5 - - - - r"""
+SONG_SKY3 = """A4 C5 E5 A5 G5 E5 C5 E5   G4 B4 D5 G5 F5 D5 B4 D5
+F4 A4 C5 F5 E5 C5 A4 C5   E4 G#4 B4 E5 - B4 G#4 r
+A4 - A5 - G5 - E5 -   F5 - D5 - C5 - B4 -
+A4 C5 E5 A5 - - A4 -   A5 - - - A4 - r r"""
+SONG_PEAKS2 = """B3 B4 B3 B4 D4 D5 F#4 F#5   E4 E5 D4 D5 C#4 C#5 A#3 A#4
+B3 B4 B3 B4 D4 D5 F#4 F#5   G4 G5 F#4 F#5 E4 E5 F#4 r
+B4 - D5 F#5 - B5 A5 F#5   G5 - E5 - B4 - E5 -
+F#5 - A#5 C#6 - F#6 E6 C#6   B5 - - - B4 - r r"""
+SONG_PEAKS3 = """E4 G4 B4 E5 - D5 B4 G4   A4 - C5 - E5 - D5 -
+E4 G4 B4 E5 - G5 F#5 E5   D#5 - B4 - F#4 - B3 r
+C5 - E5 G5 - C6 B5 G5   A5 - F#5 - D#5 - B4 -
+E5 G5 B5 E6 - D6 B5 G5   E5 - - - E4 - r r"""
+
 def songs():
     return {'gully': game_song_bin(SONG_GULLY, 6),
             'caves': game_song_bin(SONG_CAVES, 7),
@@ -141,7 +183,12 @@ def songs():
             'robot': game_song_bin(SONG_ROBOT, 4),
             'peaks': game_song_bin(SONG_PEAKS, 4),
             'hawk': game_song_bin(SONG_HAWK, 4),
-            'dragon': game_song_bin(SONG_DRAGON, 4)}
+            'dragon': game_song_bin(SONG_DRAGON, 4),
+            'gully2': game_song_bin(SONG_GULLY2, 6), 'gully3': game_song_bin(SONG_GULLY3, 5),
+            'caves2': game_song_bin(SONG_CAVES2, 5), 'caves3': game_song_bin(SONG_CAVES3, 7),
+            'factory2': game_song_bin(SONG_FACTORY2, 4), 'factory3': game_song_bin(SONG_FACTORY3, 5),
+            'sky2': game_song_bin(SONG_SKY2, 4), 'sky3': game_song_bin(SONG_SKY3, 4),
+            'peaks2': game_song_bin(SONG_PEAKS2, 4), 'peaks3': game_song_bin(SONG_PEAKS3, 4)}
 
 
 def three_ch(name, mel, bass, loops8, drums=None, end=True, shift=0):

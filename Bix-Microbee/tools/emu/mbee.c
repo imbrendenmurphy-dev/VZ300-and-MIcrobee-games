@@ -47,6 +47,8 @@ typedef struct {
     uint64_t *ev_t; uint16_t *ev_pc; int ev_n, ev_cap;
     int profiling;
     uint32_t prof[65536];
+    uint32_t prof_map[32768];      /* the lower window while block prof_blk is mapped */
+    int prof_blk;
     /* disk */
     uint8_t *disk; int disk_len;
     uint8_t fdc_track, fdc_sector, fdc_side, fdc_data, fdc_cmd;
@@ -466,7 +468,9 @@ int mb_events(M *m, uint64_t **t, uint16_t **pc) { *t = m->ev_t; *pc = m->ev_pc;
 void mb_clear_events(M *m) { m->ev_n = 0; }
 int mb_spk(M *m, uint64_t **t, uint8_t **v) { *t = m->spk_t; *v = m->spk_v; return m->spk_n; }
 void mb_clear_spk(M *m) { m->spk_n = 0; }
-void mb_profile(M *m, int on) { m->profiling = on; if (on) memset(m->prof, 0, sizeof m->prof); }
+void mb_profile(M *m, int on) { m->profiling = on; if (on) { memset(m->prof, 0, sizeof m->prof); memset(m->prof_map, 0, sizeof m->prof_map); } }
+void mb_prof_blk(M *m, int b) { m->prof_blk = b; }
+uint32_t *mb_prof_map(M *m) { return m->prof_map; }
 uint32_t *mb_prof(M *m) { return m->prof; }
 uint32_t mb_vram_disp_writes(M *m, int reset) { uint32_t v = m->vram_writes_display; if (reset) m->vram_writes_display = 0; return v; }
 int mb_fdc_writes(M *m) { return m->fdc_writes; }
@@ -507,7 +511,7 @@ int mb_run(M *m, uint64_t target) {
             int ti = z80_irq(z, m->pb_vec);
             if (ti) { m->irq_pending = 0; m->m_dtr = 0; m->mouse_irqs++; m->tick += ti; crtc_sync(m, m->tick); }
         }
-        if (m->profiling) m->prof[pc] += t;
+        if (m->profiling) { if (pc < 0x8000 && m->lower == m->prof_blk) m->prof_map[pc] += t; else m->prof[pc] += t; }
         if (m->bp[z->pc]) return 1;
         if (m->ww_hit == 1) { m->ww_hit = 2; return 2; }
     }

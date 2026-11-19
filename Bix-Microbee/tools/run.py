@@ -54,20 +54,22 @@ def start(mono=False, stage=0):
     pp.keys = ['SPACE']
     pp.run_frames(6)
     pp.keys = []
-    pp.run_frames(150)          # the stage card, the stage loading
+    pp.run_frames(260)          # the stage card, the stage loading
     return pp
 
 
 def view(pp, mono=False):
+    """the picture as the monitor shows it: 320 x 250 (dots drawn 2 wide)"""
     from PIL import Image
-    rgb = pp.frame_rgb(mono)[28:28 + 224, 24:24 + 672]
+    rgb = pp.frame_rgb(mono)[23:23 + 250, 40:40 + 640]
     return Image.fromarray(rgb)
 
 
-def shot(pp, path, mono=False, scale=1.5):
+def shot(pp, path, mono=False, scale=1):
+    """a picture of the screen in the shape a 4:3 monitor gives it (640 x 500)"""
     from PIL import Image
     im = view(pp, mono)
-    im = im.resize((int(im.width * scale), int(im.height * scale * 1.6)), Image.NEAREST)
+    im = im.resize((int(im.width * scale), int(im.height * scale * 2)), Image.NEAREST)
     im.save(path)
     return im
 

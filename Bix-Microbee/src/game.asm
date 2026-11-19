@@ -2,8 +2,8 @@
 ;  game.asm - the game block: front end, the level, the camera, and
 ;  what joins the VZ game's logic (logic.asm) to the Microbee engine.
 ;  Positions are in VZ pixels (a tile is 8 x 8 of them, a Microbee cell
-;  4 x 4); the engine draws at twice that, so the sixteenths the game
-;  already keeps show as half-pixel steps.
+;  4 x 4); the engine draws a VZ pixel 2 pixels across and 2.5 lines down
+;  (a tile is 16 x 20).
 ; =====================================================================
 ; ---- the VZ game's constants
 ST_NORM   equ 0
@@ -83,14 +83,13 @@ g_start:
 .over:  call over_screen
         jr g_start
 
-; A = stage -> B = world (0..), A = its part (0..2)
+; A = stage -> B = world (0..), A = its act (0..3: the boss)
 stage_wp:
-        ld b,0
-.l:     cp 3
-        ret c
-        sub 3
-        inc b
-        jr .l
+        ld b,a
+        and 3
+        srl b
+        srl b
+        ret
 
 ; the card before a stage
 stage_card:
@@ -106,43 +105,46 @@ stage_card:
         add a,'1'
         ld (t_world+6),a
         ld hl,t_world
-        ld de,$090F
+        ld de,$0A0F
         ld c,YELLOW
         call e_print
-        pop bc
-        pop af
-        ld hl,t_back
-        cp 1
-        jr z,.pr
-        ld hl,t_names
-        or a
-        jr z,.nm
-        ld hl,t_bosses
-.nm:    ld a,b
+        ld a,(stage)
         add a,a
         ld e,a
         ld d,0
+        ld hl,t_names
         add hl,de
         ld a,(hl)
         inc hl
         ld h,(hl)
         ld l,a
-.pr:    ld de,$0C00
+        ld de,$0D00
         ld e,(hl)               ; its column, then the name
         inc hl
         ld c,BGREEN
         call e_print
+        pop bc
+        pop af
         ld a,40
         jp e_wait
 t_world: db "WORLD 1-1",0
-t_back: db 14,"THE WAY BACK",0
-t_names: dw t_n1,t_n2,t_n3,t_n4,t_n5
-t_bosses: dw t_b1,t_b2,t_b3,t_b4,t_b5
+t_names: dw t_n1,t_n2,t_n3,t_b1,t_n4,t_n5,t_n6,t_b2,t_n7,t_n8,t_n9,t_b3
+        dw t_n10,t_n11,t_n12,t_b4,t_n13,t_n14,t_n15,t_b5
 t_n1:   db 13,"GUMLEAF GULLY",0
-t_n2:   db 12,"CRYSTAL CAVERNS",0
-t_n3:   db 12,"CLOCKWORK WORKS",0
-t_n4:   db 13,"SKYWARD ISLES",0
-t_n5:   db 14,"MOLTEN PEAKS",0
+t_n2:   db 13,"BILLABONG BEND",0
+t_n3:   db 13,"TERMITE TOWERS",0
+t_n4:   db 12,"CRYSTAL CAVERNS",0
+t_n5:   db 13,"THE GLOW MINES",0
+t_n6:   db 13,"THE SUNLESS SEA",0
+t_n7:   db 12,"CLOCKWORK WORKS",0
+t_n8:   db 13,"CONVEYOR CHAOS",0
+t_n9:   db 14,"THE FURNACE",0
+t_n10:  db 13,"SKYWARD ISLES",0
+t_n11:  db 15,"CLOUD NINE",0
+t_n12:  db 15,"STORM FRONT",0
+t_n13:  db 14,"MOLTEN PEAKS",0
+t_n14:  db 13,"ASHFALL RIDGE",0
+t_n15:  db 14,"THE CALDERA",0
 t_b1:   db 15,"KING CANE",0
 t_b2:   db 12,"THE GEODE GOLEM",0
 t_b3:   db 14,"RUST-O-TRON",0
@@ -209,23 +211,12 @@ title:  xor a
         jr .mon
 .k2:    and K_J
         jr z,.k
-        ; the inks: colour, or three brightnesses for a monochrome monitor
-        ld a,(mono)
-        or a
-        ld a,M_PCOL >> 8
-        ld b,YELLOW
-        jr z,.c
-        ld a,(M_PCOL >> 8) + 6
-        ld b,WHITE
-.c:     ld (pcol_h),a
-        ld a,b
-        ld (hud_col),a
         ret
 
 t_1:    db "BIX THE BILBY",0
 t_2:    db "THE STAR DIGGER",0
 t_3:    db "MICROBEE PREMIUM PLUS VERSION",0
-t_4:    db "     FIVE WORLDS, FIFTEEN STAGES",0
+t_4:    db "  THE LOST LEVELS: 20 STAGES",0
 t_5:    db "O P OR ARROWS: RUN   SPACE: JUMP",0
 t_5b:   db "A OR DOWN: DIG IN, THEN TUNNEL",0
 t_5c:   db "HOLD SPACE UNDERGROUND: BURST OUT",0
@@ -580,15 +571,9 @@ level_start:
         ld (frame),a
         ld (nmapq),a
         ld (ndraw),a
-        ld a,(lv_world)         ; this world's tune, or its boss's
-        dec a
-        add a,a
+        ld a,(stage)            ; this act's tune
         ld e,a
-        ld a,(lv_bossid)
-        or a
-        jr z,.tn
-        inc e
-.tn:    ld d,0
+        ld d,0
         ld hl,tune_tab
         add hl,de
         add hl,de
@@ -626,7 +611,7 @@ respawn:
         ld (burstt),a
         ld (look),a
         ld (ndraw),a
-        ld a,(LVHDR+7)          ; the way back runs west
+        xor a
         ld (facing),a
         ld a,3
         ld (health),a
@@ -733,7 +718,23 @@ camera_snap:
         ld a,(ppy)
         ld (refy),a
         call cam_ytarget
-        ld (camy),a
+        ld (gcamy),a
+        jr cam_lines
+gcamy:  db 0
+
+; the engine's camera line: gcamy x 2.5
+cam_lines:
+        ld a,(gcamy)
+        ld l,a
+        ld h,0
+        ld d,h
+        ld e,l
+        add hl,hl
+        add hl,hl
+        add hl,de               ; x 5
+        srl h
+        rr l
+        ld (camy),hl
         ret
 
 ; -> A = where the camera wants to be down the level. It follows the
@@ -869,9 +870,11 @@ camera_update:
         sbc hl,de
         ld (camx),hl
 cam_y:  call cam_ytarget
-        ld hl,camy
+        ld hl,gcamy
         sub (hl)
-        ret z
+        jr nz,.mv
+        jp cam_lines
+.mv:
         jr c,.up
         srl a                   ; a quarter of the way, 1 to 4 a frame
         srl a
@@ -882,7 +885,7 @@ cam_y:  call cam_ytarget
         ld a,4
 .d2:    add a,(hl)
         ld (hl),a
-        ret
+        jp cam_lines
 .up:    neg
         srl a
         srl a
@@ -895,20 +898,25 @@ cam_y:  call cam_ytarget
         ld a,(hl)
         sub b
         ld (hl),a
-        ret
+        jp cam_lines
 
 ; ---------------------------------------------------------------- sprites
-; A = frame, B = facing, HL = x, E = y (VZ pixels; x in the world), C = ink
+; A = frame, B = facing, HL = x, E = y (VZ pixels; x in the world), C = ink.
+; The engine wants y as a line of the level: VZ y x 2.5
 q_ent:  push af
         ld d,0
         bit 7,e
         jr z,.yp
         dec d
 .yp:    ex de,hl                ; HL = y, DE = x
-        add hl,hl
         push bc
-        ld bc,16
-        add hl,bc
+        ld b,h
+        ld c,l
+        add hl,hl
+        add hl,hl
+        add hl,bc               ; x 5
+        sra h
+        rr l                    ; / 2
         pop bc
         push hl
         ex de,hl
@@ -955,15 +963,22 @@ player_draw:
         ld a,(invuln)
         and 2
         ret nz                  ; flicker while invulnerable
-        ld hl,(py16)            ; sixteenths -> Microbee pixels
-        sra h
-        rr l
-        sra h
-        rr l
-        sra h
-        rr l
-        ld de,16
+        ld hl,(py16)            ; sixteenths -> lines: x 5 / 32
+        ld d,h
+        ld e,l
+        add hl,hl
+        add hl,hl
         add hl,de
+        sra h
+        rr l
+        sra h
+        rr l
+        sra h
+        rr l
+        sra h
+        rr l
+        sra h
+        rr l
         push hl
         ld hl,(px16)
         srl h
@@ -1103,26 +1118,15 @@ ent_release:
         call plat_erase
         jp ent_release0
 
-; IX = entity: if it is a log or a lift, take its cells out of the map
+; IX = entity: if it is a log or a lift, take its six cell glyphs out of the map
 plat_erase:
         ld a,(ix+0)
         cp E_PLATH
-        jr z,.h
+        jr z,.e
         cp E_PLATV
         ret nz
-        call plat_cell
+.e:     call plat_cell
         ld c,6
-        ld hl,$0000
-        push de
-        push bc
-        call q_map
-        pop bc
-        pop de
-        inc b
-        ld hl,$0000
-        jp q_map
-.h:     call plat_cell
-        ld c,7
         ld hl,$0000
         jp q_map
 
@@ -1147,87 +1151,50 @@ plath_upd:
         ret nz
         call plat_cell
         ld (pl_x),de
-        call plat_erase
+        ld a,b
+        ld (pl_r),a
         call plath_move
-plath_show:
-        call plat_cell
-        ld a,(ix+2)
-        and 3
-        ld l,a
-        ld h,1
-        ld c,7
-        push de
-        push bc
-        call q_map              ; the log's cell glyphs at its new place
-        pop bc
-        pop de
-        ; show the cells from the leftmost it was or is in, less one
-        ld hl,(pl_x)
-        or a
-        sbc hl,de
-        jr nc,.o
-        add hl,de
-        ex de,hl
-.o:     dec de
-        ld c,10
-        ld hl,$0401
-        jp q_map
-pl_x:   dw 0
-pl_r:   db 0
-
+        jr plat_moved
 platv_upd:
         ld a,(frame)
         and 1
         ret z
         call plat_cell
+        ld (pl_x),de
         ld a,b
         ld (pl_r),a
-        call plat_erase
         call platv_move
-platv_show:
+; it moved: into other cells? then out of the old ones and into the new
+plat_moved:
         call plat_cell
-        ld a,(ix+4)
-        and 3
-        ld l,a
-        ld h,2
-        ld c,6
-        push de
-        push bc
-        push hl
-        call q_map
-        pop hl
-        pop bc
-        pop de
-        ld a,l
+        ld hl,(pl_x)
         or a
-        jr z,.one               ; it sits on a cell row: no second row
-        ld h,3
-        inc b
-        push de
+        sbc hl,de
+        jr nz,.mv
+        ld a,(pl_r)
+        cp b
+        ret z
+.mv:    push de
         push bc
+        ld de,(pl_x)
+        ld a,(pl_r)
+        ld b,a
+        ld c,6
+        ld hl,$0000
         call q_map
         pop bc
         pop de
-        dec b
-.one:   ld a,(pl_r)             ; show three rows from the higher of old and new
-        cp b
-        jr nc,.r
-        ld b,a
-.r:     dec de
-        ld c,8
-        ld hl,$0403
+plat_show:
+        ld c,6
+        ld hl,$0100
         jp q_map
+pl_x:   dw 0
+pl_r:   db 0
 
 ; a log or lift that has just appeared
 plat_new:
         call plat_cell
-        ld (pl_x),de
-        ld a,b
-        ld (pl_r),a
-        ld a,(ix+0)
-        cp E_PLATH
-        jp z,plath_show
-        jr platv_show
+        jr plat_show
 
 ; ---------------------------------------------------------------- the status line
 ; BIX n   hearts   star nn   SCORE nnnnnn0   1-1
@@ -1242,13 +1209,27 @@ hud_update:
         jr nz,.hd
         inc a
         ld (hud_dirty),a
-.hd:    ld a,1
-        ld (hud_rb),a
-        ld hl,HUDBUF
+.hd:    ld hl,HUDBUF
         ld b,COLS
 .c:     ld (hl),0
         inc l
         djnz .c
+        ld hl,HUDCOL            ; the colours: Bix, hearts, stars, score, stage
+        ld de,hud_cols
+        ld b,COLS
+.cc:    ld a,(de)
+        ld c,a
+        ld a,(mono)
+        or a
+        ld a,c
+        jr z,.cm
+        or a
+        jr z,.cm
+        ld a,WHITE
+.cm:    ld (hl),a
+        inc l
+        inc de
+        djnz .cc
         ld hl,HUDBUF+1
         ld (hl),14              ; Bix's head
         inc l
@@ -1329,3 +1310,6 @@ hud_update:
         ld (hl),a
         inc l
         ret
+hud_cols:
+        db 0,YELLOW,YELLOW,YELLOW,YELLOW,0,0,BRED,BRED,BRED,0,0,0,YELLOW,YELLOW,YELLOW,YELLOW,YELLOW,YELLOW,YELLOW
+        db 0,0,WHITE,WHITE,WHITE,WHITE,WHITE,WHITE,WHITE,0,0,0,0,0,0,BCYAN,BCYAN,BCYAN,BCYAN,0

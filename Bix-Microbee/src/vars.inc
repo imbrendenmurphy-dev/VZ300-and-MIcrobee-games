@@ -1,5 +1,5 @@
 ; =====================================================================
-;  the engine's variables (9800-98FF)
+;  the engine's variables (VARS, 256 bytes)
 ; =====================================================================
         ORG VARS
 cur_blk:    ds 1
@@ -12,30 +12,31 @@ lateblast:  ds 1
 curlist:    ds 2
 oldlist:    ds 2
 listptr:    ds 2
-entptr:     ds 2
+entptr:     ds 2            ; the flip list's next entry
 nflip:      ds 2
+centptr:    ds 2            ; the colour-flip list's next entry
+ncflip:     ds 1
 sprstart:   ds 2
-ncq:        ds 1            ; flip-list entries that are background cells
 nslots:     ds 1
 nold:       ds 1
 poolbank:   ds 1
 savesp:     ds 2
 ; the scroll
-org:        ds 2            ; ring offset of world column 0, screen row 0
+org:        ds 2            ; ring offset of world cell (0, 0)
 camcell:    ds 2            ; the world column at the left of the screen
+camrow:     ds 1            ; the world row at the top of the playfield
 oldphase:   ds 1
-phase:      ds 1            ; 0..3: the shift, in pairs of pixels
+phase:      ds 1            ; 0..11: shift (0..3) + 4 x vertical step (0..2)
 sstart:     ds 2            ; the 6545 start address
-sdirty:     ds 1            ; the picture has moved: blast the attributes
-hud_dirty:  ds 1
-hud_col:    ds 1
-pcol_h:     ds 1            ; high byte of the ink table in use
+sdirty:     ds 1            ; the phase changed: every playfield cell's bank
+hud_dirty:  ds 1            ; 1: the status line's codes and colours; 2: all of it
 nmapq:      ds 1
 ndraw:      ds 1
-bl_start:   ds 2
-bl_lo:      ds 2
-bl_hi:      ds 2
-bl_save:    ds 3
+nload:      ds 1            ; slots waiting for the PCG
+fq_head:    ds 1
+fq_tail:    ds 1
+ovf_count:  ds 1            ; times no slot was free
+miss_count: ds 1
 ; sprites
 sd_frame:   ds 1
 sd_face:    ds 1
@@ -67,27 +68,39 @@ tw_ptr:     ds 2
 tw_start:   ds 2
 tw_len:     ds 1
 tw_cnt:     ds 1
-; the camera, in VZ pixels (the game's unit): set by the game
+; the camera, set by the game: across in VZ pixels, down in lines
 camx:       ds 2
-camy:       ds 1            ; and down the level (VZ pixels)
-camrow:     ds 1            ; the world cell row at the top of the playfield
-slide:      ds 1            ; lines the 6545 holds the picture down (0, 2, 4, 6)
-smooth:     ds 1            ; 1: slide between rows; 0: step a row at a time
+camy:       ds 2            ; the line of the level at the top of the playfield
 colstep:    ds 1
-hf_v:       ds 1
 stg_blk:    ds 1
+stg_ofs:    ds 2
 fc_src:     ds 1
 fc_dst:     ds 1
 fc_w:       ds 2
-hud_rb:     ds 1            ; the band's codes need working out again
-m_x:        ds 2            ; map block scratch
+hud_col:    ds 1
+; the map block's scratch
+m_x:        ds 2
 m_r:        ds 1
 m_n:        ds 1
-m_ptr:      ds 2
 m_ring:     ds 2
-m_mask:     ds 4
+m_ent:      ds 2
+m_cnt:      ds 1
+m_force:    ds 1
+m_slot:     ds 1
+sb_k:       ds 4
+sb_dst:     ds 2
+sb_vi:      ds 1
+sb_y:       ds 1
+fl_save:    ds 2
+fl_end:     ds 2
+rl_src:     ds 2
+rl_left:    ds 2
+rl_dst:     ds 2
+q_id:       ds 2
+qd_tmp:     ds 14           ; a loaded quad's inks and flags
+rb_ink:     ds 1
         ALIGN 8
-scratch:    ds 8
+scratch:    ds 10
 perf_late:  ds 1
 vars_end:
         ASSERT vars_end <= ROWTAB

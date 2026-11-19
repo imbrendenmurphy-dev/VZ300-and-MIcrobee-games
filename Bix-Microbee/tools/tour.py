@@ -22,7 +22,7 @@ class Bot:
     def go(self, keys, n):
         pp = self.pp
         pp.keys = list(keys)
-        pp.watch(self.S['game_loop']); pp.events()
+        pp.watch(self.S['e_frame']); pp.events()
         pp.run_frames(n)
         ev = pp.events()
         d = [(ev[i + 1][0] - ev[i][0]) / FRAME_T for i in range(len(ev) - 1)]

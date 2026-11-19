@@ -40,12 +40,13 @@ def stage_run(st, out):
         return
     k = 0
     xs = [3, 40, 90, 150, 200, w - 30]
-    if b.g[b.S['LVHDR'] + 7] if 'LVHDR' in b.S else (st % 3 == 1):
+    left = b.v('ppx', 2) // 8 > w // 2     # it starts at the right: the way is left
+    if left:
         xs = [w - 4, w - 40, w - 90, 100, 50, 30]
     for tx in xs:
         b.warp(tx)
         b.go((), 50)
-        d = ('LEFT',) if st % 3 == 1 else ('RIGHT',)
+        d = ('LEFT',) if left else ('RIGHT',)
         b.go(d, 50)
         b.go(d + ('SPACE',), 20)
         b.go((), 10)
@@ -55,5 +56,5 @@ def stage_run(st, out):
 
 if __name__ == '__main__':
     out = sys.argv[1]
-    for st in ([int(a) for a in sys.argv[2:]] or range(15)):
+    for st in ([int(a) for a in sys.argv[2:]] or range(20)):
         stage_run(st, out)

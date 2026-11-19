@@ -18,6 +18,7 @@ import art as vz
 import level1
 
 import levels2
+import levels3
 
 TOP, DEEP = 2, 2                # the VZ levels are 12 tiles high: two more above, two more of earth
 H = level1.H + TOP + DEEP
@@ -43,7 +44,6 @@ def tall(g12, ents, world):
     g = []
     for x, col in enumerate(g12):
         col = list(col)
-        col = ['sky' if t.startswith('hill') else t for t in col]     # the far hills cost too many glyphs
         b = col[-1]
         if b in EARTH:
             deep = ['soil2' if (x * 7 + k * 3) % 5 == 0 else 'soil' for k in range(DEEP)]
@@ -131,15 +131,21 @@ def arena(world):
 
 
 def stages():
+    """the Lost Levels' twenty: each world's first act, its two new acts, its boss"""
     out = []
     for w in range(1, NWORLD + 1):
         if w == 1:
-            g, ents = tall(level1.g, level1.ents, 1)
+            acts = [(level1.g, level1.ents)]
         else:
             L = getattr(levels2, 'level_%d_1' % w)()
-            g, ents = tall(L.g, L.ents, w)
-        s0 = dict(g=g, W=len(g), ents=ents, boss=0, world=w)
-        out += [s0, mirrored(s0), arena(w)]
+            acts = [(L.g, L.ents)]
+        for a in (2, 3):
+            L = getattr(levels3, 'level_%d_%d' % (w, a))()
+            acts.append((L.g, L.ents))
+        for k, (g12, ents) in enumerate(acts):
+            g, e = tall(g12, ents, w)
+            out.append(dict(g=g, W=len(g), ents=e, boss=0, world=w, act=k + 1))
+        out.append(dict(arena(w), act=4))
     for L in out:
         L['start'] = [(x, y) for (x, y, t, p) in L['ents'] if t == E_START][0]
     return out

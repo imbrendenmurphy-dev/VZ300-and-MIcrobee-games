@@ -90,11 +90,5 @@ EF_FLY equ 30
 NEN equ 15
 BF_BOSS equ 91
 LEVH equ 16
-CAMYMAX equ 36
-NSTAGE equ 15
-BLK_STG equ 8
-S_PAT equ $0000
-S_TABLES equ $3000
-S_TMAP equ $5000
-S_ENTS equ $6400
-S_HDR equ $6600
+CAMYMAX equ 32
+NSTAGE equ 20

@@ -58,6 +58,7 @@ L.mb_clear_events.argtypes = [C.c_void_p]
 L.mb_clear_spk.argtypes = [C.c_void_p]
 L.mb_profile.argtypes = [C.c_void_p, C.c_int]
 L.mb_prof.restype = C.POINTER(C.c_uint32)
+L.mb_prof_map.restype = C.POINTER(C.c_uint32)
 L.mb_prof.argtypes = [C.c_void_p]
 L.mb_vram_disp_writes.restype = C.c_uint32
 L.mb_vram_disp_writes.argtypes = [C.c_void_p, C.c_int]
@@ -220,6 +221,13 @@ class Mbee:
 
     def prof(self):
         return arr(L.mb_prof(self.h), 65536).copy()
+
+    def prof_map(self, blk=5):
+        """T-states by PC in the lower window while block blk was mapped (set before profiling)"""
+        return arr(L.mb_prof_map(self.h), 32768).copy()
+
+    def prof_blk(self, blk):
+        L.mb_prof_blk(self.h, blk)
 
     def vram_display_writes(self, reset=True):
         return L.mb_vram_disp_writes(self.h, 1 if reset else 0)

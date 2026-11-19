@@ -79,3 +79,48 @@ def hud_glyphs():
                     a[:8 - s] = g[s:]
                 out += bytes(np.packbits(a, axis=1)[:, 0].tolist())
     return bytes(out)
+
+
+# ---------------------------------------------------------------- 8 x 10, bold
+ICON10 = {
+    '*': ["........", "...##...", "...##...", ".######.", "########", ".######.", "..####..", ".##..##.", ".#....#.", "........"],
+    '[': ["........", ".##.##..", "#######.", "#######.", "#######.", ".#####..", "..###...", "...#....", "........", "........"],
+    ']': ["........", ".##.##..", "#..#..#.", "#.....#.", "#.....#.", ".#...#..", "..#.#...", "...#....", "........", "........"],
+    '^': ["........", ".##..##.", ".##..##.", ".######.", "##.##.##", "########", ".######.", "..####..", "........", "........"],
+}
+
+
+def bold(ch):
+    """a chunky glyph: the 5 x 7 face with every stroke two pixels wide,
+    eight rows high (the middle row twice), in rows 1..8 of the cell"""
+    a = np.zeros((10, 8), bool)
+    if ch in ICON10:
+        for y, r in enumerate(ICON10[ch]):
+            for x, c in enumerate(r):
+                a[y, x] = c == '#'
+        return a
+    src = F57.get(ch)
+    if not src:
+        return a
+    rows = src.split(',')
+    rows = rows[:4] + rows[3:]             # 8 rows
+    for j, r in enumerate(rows):
+        for x, c in enumerate(r):
+            if c == '1':
+                a[1 + j, x] = True
+                a[1 + j, x + 1] = True
+    return a
+
+
+def build10():
+    out = bytearray()
+    for c in range(64):
+        out += bytes(np.packbits(bold(chr(32 + c)), axis=1)[:, 0].tolist())
+    return bytes(out)
+
+
+def hud10():
+    out = bytearray()
+    for ch in HUD:
+        out += bytes(np.packbits(bold(ch), axis=1)[:, 0].tolist())
+    return bytes(out)

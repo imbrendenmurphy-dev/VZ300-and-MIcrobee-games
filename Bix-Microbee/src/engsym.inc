@@ -1,0 +1,11 @@
+snd_tick equ $8997
+snd_wait equ $89F3
+vpoll equ $84FE
+blast equ $8836
+cg_col equ $816F
+cg_row equ $818F
+cg_put equ $81CE
+cg_quad equ $81DC
+list_reset equ $8535
+qdb_put equ $823D
+qdb_load equ $824C

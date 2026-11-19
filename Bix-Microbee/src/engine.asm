@@ -1,25 +1,15 @@
 ; =====================================================================
-;  ENGINE (8000h up, always in view): hardware, the scrolling cell
-;  screen, the sprite compositor, the frame.
+;  ENGINE (8000h up, always in view): hardware, blocks, the stage's data,
+;  text screens, the sprite compositor, the frame. The scroll itself and
+;  the work done in the blanking are in the map block (map.asm).
 ;
-;  THE SCROLL. The 6545's start address moves the picture a whole cell
-;  (the screen RAM is a ring of 2048 cells; a world cell keeps its ring
-;  address for as long as it is on the screen, so a cell scrolled on is
-;  written once). The two-pixel steps in between come from the PCG: a
-;  cell's four shifted pictures are at the same code in four banks, so
-;  shifting the picture means writing every cell's bank (attribute).
-;  That is done by a "ladder": 500 LD DE,nn / PUSH DE, with the stack
-;  pointer in the attribute RAM, entered and left at the edges of the
-;  picture - 10.5 T a cell, all inside one vertical blanking. There are
-;  four ladders, one a shift, and their operands are kept up to date as
-;  cells come on to the screen, so nothing is worked out when it runs.
-;
-;  THE SPRITES. As FRILLSEEKER: for each cell a sprite touches, a
-;  private glyph is composed in RAM (the background's own glyph at its
-;  present shift, with the sprite masked over it) in one of two pools
-;  of the PCG that take turns, and the cell is pointed at it.
+;  THE SPRITES. As FRILLSEEKER: for each cell a sprite touches, a private
+;  glyph is composed in RAM (the background quad's own picture at the
+;  present phase, from SLOTPAT, with the sprite masked over it) in one of
+;  two pools of the PCG that take turns, and the cell is pointed at it.
 ; =====================================================================
-crtc_game:  db $35,$28,$2C,$34,$26,$01,$19,$21,$48,$07,$20,$07,0,0,0,0
+; BPM's MODES40 table: 40 x 25 cells of 8 x 10, 31 rows + 2 = 312 lines
+crtc_game:  db $35,$28,$2C,$34,$1E,$02,$19,$1C,$48,$09,$20,$09,0,0,0,0
 DROWS       EQU 25
 
 hw_init:
@@ -68,57 +58,64 @@ hw_init:
         ld (poolbank),a
         ld hl,$5EED
         ld (rseed),hl
-        ld a,M_PCOL >> 8
-        ld (pcol_h),a
         ld a,YELLOW
         ld (hud_col),a
-        call lad_init
-        ; the font
+        ; the tables: n x 10, n / 10 and n mod 10, row x 40
+        ld hl,0
+        ld de,MUL10
+        ld b,128
+.m:     ld a,l
+        ld (de),a
+        set 7,e
+        ld a,h
+        ld (de),a
+        res 7,e
+        inc e
+        ld a,l
+        add a,10
+        ld l,a
+        jr nc,.m1
+        inc h
+.m1:    djnz .m
+        ld hl,DIV10
+        ld bc,0                 ; B = quotient, C = remainder
+.d:     ld (hl),b
+        inc h
+        ld (hl),c
+        dec h
+        inc c
+        ld a,c
+        cp 10
+        jr c,.d1
+        ld c,0
+        inc b
+.d1:    inc l
+        jr nz,.d
+        ld hl,0
+        ld de,ROW40
+        ld b,DROWS
+.r:     ld a,l
+        ld (de),a
+        inc e
+        ld a,h
+        ld (de),a
+        inc e
+        push de
+        ld de,COLS
+        add hl,de
+        pop de
+        djnz .r
+        ; the font and the status line's glyphs
         ld a,BLK_MAP
         call map_blk
         ld hl,M_FONT
         ld a,BK_FONT
-        ld bc,64
-        jp pcg_load
-
-; the ladders: LD DE,nn / PUSH DE for each pair of cells, from the top of
-; the ring down, then a jump back. Every cell starts as the empty pair.
-lad_init:
-        ld a,BLK_LAD
-        call map_blk
-        ld hl,0
-        ld c,0
-.k:     ld de,RING/2
-.i:     ld (hl),$11
-        inc hl
-        ld (hl),c
-        inc hl
-        ld (hl),c
-        inc hl
-        ld (hl),$D5
-        inc hl
-        dec de
-        ld a,d
-        or e
-        jr nz,.i
-        ld (hl),$C3
-        inc hl
-        ld (hl),blast_ret & 255
-        inc hl
-        ld (hl),blast_ret >> 8
-        inc c
-        ld a,c
-        add a,a
-        add a,a
-        add a,a
-        add a,a
-        add a,c
-        ld h,a
-        ld l,0
-        ld a,c
-        cp 4
-        jr nz,.k
-        ret
+        ld b,64
+        call pcg_load10
+        ld hl,M_HUDG
+        ld a,BK_HUD
+        ld b,16
+        jp pcg_load10
 
 display_off:
         ld a,6
@@ -156,6 +153,9 @@ blkport:
 map_game:
         ld a,BLK_GAME
         jr map_blk
+map_map:
+        ld a,BLK_MAP
+        jr map_blk
 
 win_screen:
         xor a
@@ -176,168 +176,467 @@ win_col:
         out (P_COLCTL),a
         ret
 
-; HL = patterns (8 bytes a glyph), A = first PCG bank, BC = glyphs
-pcg_load:
-        ld (pl_bank),a
-        xor a
-        out (P_COLCTL),a
-.bank:  ld a,(pl_bank)
+; HL = glyphs (10 bytes each), A = PCG bank, B = how many: codes 80h up
+pcg_load10:
         or LV_SCREEN
         out (P_LV),a
+        xor a
+        out (P_COLCTL),a
         ld de,PCGWIN
 .g:     push bc
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
-        ldi
+        ld bc,10
+        ldir
+        ex de,hl
+        ld bc,6
+        add hl,bc
+        ex de,hl
         pop bc
-        ld a,e
-        add a,8
-        ld e,a
-        jr nc,.nc
-        inc d
-.nc:    dec bc
-        ld a,b
-        or c
-        jr z,.done
-        ld a,d
-        or a
-        jr nz,.g
-        ld a,(pl_bank)
-        inc a
-        ld (pl_bank),a
-        jr .bank
-.done:  ld a,LV_SCREEN
+        djnz .g
+        ld a,LV_SCREEN
         out (P_LV),a
         ret
 
 ; ---------------------------------------------------------------------
-;  e_stage: A = stage (0..). Its glyphs go to TILEPAT and PCG banks 0-11,
-;  its cell-glyph map and tables to the map block, its tile map, spawn
-;  list and header to the game block. The display is left off.
+;  the cell-glyph map (block BLK_CGM: 32 a column). These are called from
+;  the map block, which is mapped again before they return.
+; ---------------------------------------------------------------------
+; CGBUF = column (m_x), then column (m_x) + 1 (33 each: the last empty)
+cg_col: ld a,BLK_CGM
+        call map_blk
+        ld hl,(m_x)
+        call cg_addr0
+        ld de,CGBUF
+        ld bc,CGROWS2
+        ldir
+        xor a
+        ld (de),a
+        inc de
+        ld bc,CGROWS2
+        ldir
+        xor a
+        ld (de),a
+        jp map_map
+CGROWS2 EQU 32
+
+; CGBUF = row (m_r), 41 columns from camcell, then row (m_r) + 1 (at +41)
+cg_row: ld a,BLK_CGM
+        call map_blk
+        ld hl,(camcell)
+        call cg_addr0
+        ld a,(m_r)
+        ld e,a
+        ld d,0
+        add hl,de
+        ld de,CGBUF
+        ld b,41
+.l:     ld a,(hl)
+        ld (de),a
+        ld a,(m_r)
+        cp CGROWS2-1
+        ld a,0
+        jr nc,.z
+        inc hl
+        ld a,(hl)
+        dec hl
+.z:     push hl
+        ld hl,41
+        add hl,de
+        ld (hl),a
+        pop hl
+        inc de
+        ld a,l
+        add a,CGROWS2
+        ld l,a
+        jr nc,.n
+        inc h
+.n:     djnz .l
+        jp map_map
+
+; HL = column -> HL = its address in BLK_CGM (the map is mapped)
+cg_addr0:
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        ret
+
+; A = cell glyph for (m_x, m_r)
+cg_put: push af
+        ld a,BLK_CGM
+        call map_blk
+        call cg_here
+        pop af
+        ld (hl),a
+        jp map_map
+
+; (m_x, m_r) -> B, C, D, E = the quad's four cell glyphs
+cg_quad:
+        ld a,BLK_CGM
+        call map_blk
+        call cg_here
+        ld b,(hl)
+        inc hl
+        ld a,(m_r)
+        cp CGROWS2-1
+        ld d,0
+        jr nc,.d
+        ld d,(hl)
+.d:     ld a,(m_r)
+        ld e,a
+        ld a,l
+        add a,CGROWS2-1
+        ld l,a
+        jr nc,.n
+        inc h
+.n:     ld c,(hl)
+        inc hl
+        ld a,e
+        cp CGROWS2-1
+        ld e,0
+        jr nc,.e
+        ld e,(hl)
+.e:     jp map_map
+
+cg_here:
+        ld hl,(m_x)
+        call cg_addr0
+        ld a,(m_r)
+        ld e,a
+        ld d,0
+        add hl,de
+        ret
+
+; ---------------------------------------------------------------------
+;  the quad blocks: record n is at block QDB_B0/1/2 (n / 240), (n mod 240) x 136
+; ---------------------------------------------------------------------
+; HL = record number -> its block mapped, HL = its address
+qdb_addr:
+        ld a,QDB_B0
+        ld de,QPERBLK
+.b:     or a
+        sbc hl,de
+        jr c,.f
+        cp QDB_B0
+        ld a,QDB_B1
+        jr z,.b
+        ld a,QDB_B2
+        jr .b
+.f:     add hl,de
+        call map_blk
+        ld d,h                  ; x 136 = x 128 + x 8
+        ld e,l
+        add hl,hl
+        add hl,hl
+        add hl,hl               ; x 8
+        ex de,hl
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        add hl,hl               ; x 128
+        add hl,de
+        ret
+
+; HL = record number: REC -> its record (called from the map block)
+qdb_put:
+        call qdb_addr
+        ex de,hl
+        ld hl,REC
+        ld bc,QREC
+        ldir
+        jp map_map
+
+; HL = record number, C = slot: its 12 pictures -> SLOTPAT (each phase's at
+; phase x 1280 + slot x 10), its inks and flags -> qd_tmp
+qdb_load:
+        push bc
+        call qdb_addr
+        pop bc
+        push hl
+        ld l,c                  ; DE = SLOTPAT + slot x 10
+        ld h,MUL10 >> 8
+        ld e,(hl)
+        set 7,l
+        ld d,(hl)
+        ld hl,SLOTPAT
+        add hl,de
+        ex de,hl
+        pop hl
+        ld a,NPH
+.p:     ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ldi
+        ex de,hl                ; on 1280 - 10
+        ld bc,1280-10
+        add hl,bc
+        ex de,hl
+        dec a
+        jr nz,.p
+        ld de,qd_tmp
+        ld bc,13
+        ldir
+        jp map_map
+
+; ---------------------------------------------------------------------
+;  e_stage: A = stage (0..). Its data from its block: the cell glyphs and
+;  the quad table to the map block, the cell map to BLK_CGM, the tile map,
+;  spawn list and header to the game block. The display is left off.
 ; ---------------------------------------------------------------------
 e_stage:
-        add a,BLK_STG
+        ld l,a
+        ld h,0
+        ld e,l
+        ld d,h
+        add hl,hl
+        add hl,de               ; x 3
+        ld de,stg_tab
+        add hl,de
+        ld a,(hl)
         ld (stg_blk),a
-        call display_off
-        ld a,(stg_blk)
-        call map_blk
-        ld hl,(S_HDR)           ; tiles wide
         inc hl
-        ld (fc_w),hl
-        ld hl,S_PAT
-        ld de,TILEPAT
-        ld bc,12*1024
+        ld e,(hl)
+        inc hl
+        ld d,(hl)
+        ld (stg_ofs),de
+        call display_off
+        ; the header
+        ld hl,0
+        ld bc,40
+        call stg_fetch
+        ld hl,SLOTPAT
+        ld de,stg_hdr
+        ld bc,40
         ldir
-        ld hl,TILEPAT
-        xor a
-        ld bc,12*128
-        call pcg_load
-        ld a,BLK_MAP
-        call map_blk
-        ld hl,M_HUDG
-        ld a,BK_HUD
-        ld bc,128
-        call pcg_load
-        ld a,(stg_blk)
+        ; the cell glyphs
+        ld hl,(stg_hdr+12)
+        ld a,(stg_hdr+8)
         ld c,a
+        ld b,0
         push bc
-        ld a,BLK_MAP            ; the pair table, the tile cells, the logs, the inks
-        ld hl,S_TABLES
-        ld de,M_HASH
-        ld b,(M_CGMAP - M_HASH) / 512
-        call fcopy
+        ld h,b
+        ld l,c
+        add hl,hl
+        ld d,h
+        ld e,l
+        add hl,hl
+        add hl,hl
+        add hl,de
+        ld b,h
+        ld c,l
+        ld hl,(stg_hdr+12)
+        call stg_fetch
+        call map_map
         pop bc
-        push bc
-        ld a,BLK_GAME           ; the tile map
-        ld hl,S_TMAP
-        ld de,MAP
-        ld b,10
-        call fcopy
-        pop bc
-        ld a,BLK_GAME           ; the spawn list and the header
-        ld hl,S_ENTS
-        ld de,ENTLIST
-        ld b,2
-        call fcopy
-        ; the cell-glyph map: each tile column is two columns of 32 cell glyphs
-        ld bc,(fc_w)
-        ld hl,S_TMAP
-        ld de,M_CGMAP
-.col:   push bc
-        ld a,(stg_blk)
-        call map_blk
-        push de
-        ld de,POOLBUF
-        ld bc,16
+        ld b,c
+        ld hl,SLOTPAT
+        call M_CGSCATTER
+        ; the tile cells
+        ld hl,(stg_hdr+14)
+        ld bc,256
+        call stg_fetch
+        call map_map
+        ld hl,SLOTPAT
+        ld de,M_TCELL
+        ld bc,256
         ldir
-        pop de
-        push hl
-        ld a,BLK_MAP
-        call map_blk
-        ld c,0
-.half:  ld b,16
-        ld hl,POOLBUF
-.t:     push hl
-        ld l,(hl)
+        ld hl,stg_hdr+32
+        ld de,M_LOGCG
+        ld bc,6
+        ldir
+        call M_TABINIT
+        ; the mixed inks
+        ld a,(stg_hdr+11)
+        ld l,a
         ld h,0
         add hl,hl
         add hl,hl
-        ld a,l
-        or c
-        ld l,a
+        ld d,h
+        ld e,l
+        add hl,hl
+        add hl,de               ; x 12
         ld a,h
-        add a,M_TCELL >> 8
-        ld h,a
-        ld a,(hl)
-        ld (de),a
-        inc de
-        inc hl
-        inc hl
-        ld a,(hl)
-        ld (de),a
-        inc de
-        pop hl
-        inc hl
-        djnz .t
-        inc c
-        ld a,c
-        cp 2
-        jr nz,.half
-        pop hl
+        or l
+        jr z,.nm0
+        ld b,h
+        ld c,l
+        push bc
+        ld hl,(stg_hdr+18)
+        call stg_fetch
+        call map_map
         pop bc
-        dec bc
-        ld a,b
-        or c
-        jr nz,.col
+        ld hl,SLOTPAT
+        ld de,M_MIXINK
+        ldir
+.nm0:   ; the quads: into the table, then each one's record
+        ld hl,(stg_hdr+9)       ; n x 6 bytes
+        add hl,hl
+        ld d,h
+        ld e,l
+        add hl,hl
+        add hl,de
+        ld b,h
+        ld c,l
+        ld hl,(stg_hdr+16)
+        call stg_fetch
+        call map_map
+        ld hl,0
+        ld (q_id),hl
+        ld de,M_QINSERT
+        call qloop
+        ld hl,0
+        ld (q_id),hl
+        ld de,M_QBUILD
+        call qloop
+        ; the cell map, unpacked into BLK_CGM
+        ld hl,(stg_hdr+22)
+        ld de,(stg_hdr+20)
+        or a
+        sbc hl,de
+        ld b,h
+        ld c,l
+        ld (rl_left),bc
+        ex de,hl
+        call stg_fetch
+        ld a,BLK_CGM
+        call map_blk
+        call unrle
+        ; the tile map
+        ld hl,(stg_hdr+24)
+        ld de,(stg_hdr+22)
+        or a
+        sbc hl,de
+        ld b,h
+        ld c,l
+        push bc
+        ex de,hl
+        call stg_fetch
+        call map_game
+        pop bc
+        ld hl,SLOTPAT
+        ld de,MAP
+        ldir
+        ; the spawn list and the header
+        ld hl,(stg_hdr+24)
+        ld bc,$200
+        call stg_fetch
+        call map_game
+        ld hl,SLOTPAT
+        ld de,ENTLIST
+        ld bc,$200
+        ldir
+        ld hl,stg_hdr
+        ld de,LVHDR
+        ld bc,32
+        ldir
+        call map_map
+        call M_PCGCLEAR
         jp map_game
+stg_hdr: ds 40
 
-; copy B x 512 bytes from block C at HL to block A at DE, through a buffer up here
-fcopy:  ld (fc_dst),a
-        ld a,c
-        ld (fc_src),a
-.l:     push bc
-        ld a,(fc_src)
+; DE = M_QINSERT or M_QBUILD: over the stage's quads (in SLOTPAT), 200 at a time
+qloop:  ld (.call+1),de
+        ld hl,(stg_hdr+9)
+        ld ix,SLOTPAT
+.q:     ld a,h
+        or l
+        ret z
+        ld de,200
+        or a
+        sbc hl,de
+        jr nc,.q200
+        add hl,de
+        ld b,l
+        ld hl,0
+        jr .qb
+.q200:  ld b,200
+.qb:    push hl
+        push ix
+        pop hl
+        push bc
+.call:  call 0
+        pop bc
+        ld c,b                  ; IX += 6 x B
+        ld b,0
+        ld h,b
+        ld l,c
+        add hl,hl
+        add hl,bc
+        add hl,hl
+        ex de,hl
+        add ix,de
+        pop hl
+        jr .q
+
+; HL = offset in the stage's data, BC = bytes: copy them to SLOTPAT
+stg_fetch:
+        ld a,(stg_blk)
         call map_blk
-        push de
-        ld de,POOLBUF
-        ld bc,512
+        ld de,(stg_ofs)
+        add hl,de
+        ld de,SLOTPAT
         ldir
-        pop de
-        ld a,(fc_dst)
-        call map_blk
+        ret
+
+; the cell map, from SLOTPAT ((rl_left) bytes) to 0000h of the mapped block:
+; 0xxxxxxx x+1 bytes follow; 10xxxxxx the next byte x+2 times; 11xxxxxx
+; x+2 bytes from 32 back
+unrle:  ld hl,SLOTPAT
+        ld de,0
+        ld bc,(rl_left)
+        add hl,bc
+        ld (rl_src),hl          ; the end
+        ld hl,SLOTPAT
+.t:     push hl
+        ld bc,(rl_src)
+        or a
+        sbc hl,bc
+        pop hl
+        ret nc
+        ld a,(hl)
+        inc hl
+        cp $80
+        jr nc,.rep
+        inc a                   ; literal
+        ld c,a
+        ld b,0
+        ldir
+        jr .t
+.rep:   cp $C0
+        jr nc,.cpy
+        and $3F
+        add a,2
+        ld b,a
+        ld a,(hl)
+        inc hl
+.r1:    ld (de),a
+        inc de
+        djnz .r1
+        jr .t
+.cpy:   and $3F
+        add a,2
+        ld c,a
+        ld b,0
         push hl
-        ld hl,POOLBUF
-        ld bc,512
+        ld h,d
+        ld l,e
+        push bc
+        ld bc,32
+        or a
+        sbc hl,bc
+        pop bc
         ldir
         pop hl
-        pop bc
-        djnz .l
-        ret
+        jr .t
 
 ; ---------------------------------------------------------------------
 ;  text screens: the picture at the start of the ring, every cell a
@@ -367,26 +666,15 @@ e_text: push af
         call win_screen
         ld hl,0
         ld (sstart),hl
-        xor a
-        ld (slide),a
-        call set_start
-        jp display_on
-
-set_start:
         ld a,12
         out (P_CRTCA),a
-        ld a,(sstart+1)
+        xor a
         out (P_CRTCD),a
         ld a,13
         out (P_CRTCA),a
-        ld a,(sstart)
+        xor a
         out (P_CRTCD),a
-        ld a,5                  ; the vertical total adjust: the fine slide
-        out (P_CRTCA),a
-        ld a,(slide)
-        inc a
-        out (P_CRTCD),a
-        ret
+        jp display_on
 
 ; HL = string (0 ends), D = row, E = column, C = colour (text screens)
 e_print:
@@ -449,508 +737,76 @@ vpoll:  in a,(P_CRTCA)
         inc (hl)
         ret
 
-; ---------------------------------------------------------------------
-;  e_snap: draw the whole picture at the camera (the display is off
-;  while it is done), and forget the sprites
-; ---------------------------------------------------------------------
+; e_snap: the whole picture at the camera (the display goes off while it
+; is drawn), the sprites forgotten
 e_snap: call display_off
-        ; the whole ring empty: screen, colours, the shadows, the ladders
-        call win_screen
-        ld a,$80
-        ld hl,VIDEO
-        call fill2k
-        call win_col
-        xor a
-        ld hl,PCGWIN
-        call fill2k
-        call win_screen
-        ld a,$80
-        ld hl,SCRSH
-        call fill2k
-        ld a,$80
-        ld hl,ATTSH
-        call fill2k
-        xor a
         ld hl,CELLMAP
-        call fill2k
-        call lad_init
-        ld hl,COLMIX
-        ld de,COLMIX+1
-        ld bc,255
+        ld de,CELLMAP+1
+        ld bc,1023
         ld (hl),0
         ldir
         xor a
         ld (nslots),a
         ld (nold),a
         ld (sdirty),a
-        ld hl,0
-        ld (org),hl
-        ld hl,$7000             ; requests still waiting change the map only
-        ld (camcell),hl
-        ld a,BLK_MAP
-        call map_blk
-        call list_reset
-        call M_QUEUE
-        call cam_cell
-        ld (camcell),hl
-        ld a,c
-        ld (phase),a
-        call v_target
-        ld a,c
-        ld (camrow),a
-        add a,a
-        add a,a
-        add a,a
-        sub b
-        ld (slide),a
-        call new_start
-        ld b,COLS
-        ld hl,(camcell)
-.c:     push bc
-        push hl
-        ld (m_x),hl
-        ld a,BLK_MAP
-        call map_blk
-        call list_reset
-        call M_COLUMN
-        call lad_apply
-        call do_flips
-        pop hl
-        inc hl
-        pop bc
-        djnz .c
-        call list_reset
-        ld hl,(sstart)
-        ld b,COLS*2
-        call hud_mark
-        call hud_build
-        ld a,4
-        ld (hud_dirty),a
-        call hud_put
-        call set_start
+        call map_map
+        call M_SNAP
         call display_on
-        ld a,1                  ; the first frame sets every cell's bank
-        ld (sdirty),a
         jp map_game
-
-; fill 2K at HL with A
-fill2k: ld d,h
-        ld e,l
-        inc de
-        ld bc,RING-1
-        ld (hl),a
-        ldir
-        ret
 
 list_reset:
         ld hl,FLIPL
         ld (entptr),hl
+        ld hl,CFLIPL
+        ld (centptr),hl
         ld hl,0
         ld (nflip),hl
         xor a
-        ld (ncq),a
-        ret
-
-; camx -> HL = world cell column, C = shift
-cam_cell:
-        ld hl,(camx)
-        ld a,l
-        and 3
-        ld c,a
-        srl h
-        rr l
-        srl h
-        rr l
-        ret
-
-; the start address and the row table from org, camcell and camrow
-new_start:
-        ld a,(camrow)
-        ld l,a
-        ld h,0
-        add hl,hl
-        add hl,hl
-        add hl,hl
-        ld d,h
-        ld e,l
-        add hl,hl
-        add hl,hl
-        add hl,de               ; x 40
-        ld de,(org)
-        add hl,de
-        ld de,(camcell)
-        add hl,de
-        ld de,-COLS*2           ; the status band is above the playfield
-        add hl,de
-        ld a,h
-        and 7
-        ld h,a
-        ld (sstart),hl
-        ex de,hl
-        ld hl,ROWTAB
-        ld b,DROWS
-.r:     ld (hl),e
-        inc l
-        ld (hl),d
-        inc l
-        ld a,e
-        add a,COLS
-        ld e,a
-        jr nc,.r1
-        inc d
-        res 3,d
-.r1:    djnz .r
-        ret
-
-; camy -> B = the camera's line, C = the cell row at the top of the playfield
-v_target:
-        ld a,(camy)
-        add a,a
-        ld b,a
-        ld a,(smooth)
-        or a
-        jr nz,.sm
-        ld a,b
-        add a,4
-        and $F8
-        ld b,a
-.sm:    ld a,b
-        add a,7
-        rrca
-        rrca
-        rrca
-        and $1F
-        ld c,a
+        ld (ncflip),a
         ret
 
 ; ---------------------------------------------------------------------
-;  THE STATUS BAND. The 6545's vertical total adjust (R5) holds the whole
-;  picture down 0, 2, 4 or 6 lines: that is the smooth vertical scroll,
-;  and a row step of the start address carries it on. The status line
-;  would slide with it, so it is two cell rows of glyphs drawn the same
-;  amount UP: it stays where it is on the monitor.
-;  A glyph's code: slide / 2 x 32 + (bottom row ? 16 : 0) + glyph (0-15).
-; ---------------------------------------------------------------------
-; HL = ring offset, B = cells: they are status cells now, not background
-hud_mark:
-        ld a,h
-        and 7
-        or ATTSH >> 8
-        ld h,a
-.l:     ld (hl),BK_HUD
-        inc l
-        jr nz,.n
-        inc h
-        ld a,h
-        and 7
-        or ATTSH >> 8
-        ld h,a
-.n:     djnz .l
-        ret
-
-; a column came on: the status band's new cell in each of its rows.
-; A = that column (0 or 39)
-hud_newcol:
-        ld e,a
-        ld d,0
-        ld hl,(sstart)
-        add hl,de
-        push hl
-        call .one
-        pop hl
-        ld de,COLS
-        add hl,de
-.one:   ld a,h
-        and 7
-        ld h,a
-        push hl
-        ld b,1
-        call hud_mark
-        pop de
-        ld hl,(entptr)
-        ld (hl),e
-        inc hl
-        ld a,d
-        or VIDEO >> 8
-        ld (hl),a
-        inc hl
-        ld (hl),$80
-        inc hl
-        ld (hl),BK_HUD
-        inc hl
-        ld a,(hud_col)
-        ld (hl),a
-        inc hl
-        ld (hl),BK_HUD
-        inc hl
-        ld (entptr),hl
-        ld hl,(nflip)
-        inc hl
-        ld (nflip),hl
-        ld hl,ncq
-        inc (hl)
-        ret
-
-; the band's 80 screen codes for the present slide
-hud_build:
-        xor a
-        ld (hud_rb),a
-        ld a,(slide)
-        rrca
-        rrca
-        rrca
-        rrca
-        and $60
-        or $80
-        ld c,a
-        ld hl,HUDBUF
-        ld de,HUDCODE
-        ld b,COLS
-.l:     ld a,(hl)
-        or c
-        ld (de),a
-        or $10
-        push de
-        push af
-        ld a,e
-        add a,COLS
-        ld e,a
-        pop af
-        ld (de),a
-        pop de
-        inc hl
-        inc e
-        djnz .l
-        ret
-
-; the band -> the screen, in the blanking. (hud_dirty): 1 the codes,
-; 2 / 3 and the bank and colour of row 0 / row 1 (new after a row step),
-; 4 and of both
-hud_put:
-        ld a,(hud_dirty)
-        ld c,a
-        xor a
-        ld (hud_dirty),a
-        push bc
-        call win_screen
-        ld hl,(sstart)
-        ld a,h
-        or VIDEO >> 8
-        ld d,a
-        ld e,l
-        ld hl,RING
-        ld bc,(sstart)
-        or a
-        sbc hl,bc               ; cells to the end of the ring
-        ld a,h
-        or a
-        jr nz,.one
-        ld a,l
-        cp COLS*2
-        jr nc,.one
-        ld c,a
-        ld b,0
-        ld a,COLS*2
-        sub c
-        push af
-        ld hl,HUDCODE
-        ldir
-        ld de,VIDEO
-        pop af
-        ld c,a
-        ld b,0
-        ldir
-        jr .attr
-.one:   ld hl,HUDCODE
-        ld bc,COLS*2
-        ldir
-.attr:  pop bc
-        ld a,c
-        cp 2
-        ret c
-        ld hl,(sstart)
-        ld b,COLS
-        jr z,.go
-        cp 3
-        jr nz,.all
-        ld de,COLS
-        add hl,de
-        jr .go
-.all:   ld b,COLS*2
-.go:    push hl
-        push bc
-        call win_attr
-        ld a,BK_HUD
-        ld c,VIDEO >> 8
-        call .fill
-        pop bc
-        pop hl
-        call win_col
-        ld a,(hud_col)
-        ld c,PCGWIN >> 8
-        call .fill
-        jp win_screen
-; HL = ring offset, B = cells, C = the window's high byte, A = the value
-.fill:  ld e,a
-        ld a,h
-        and 7
-        or c
-        ld h,a
-.f:     ld (hl),e
-        inc l
-        jr nz,.n
-        inc h
-        ld a,h
-        and 7
-        or c
-        ld h,a
-.n:     djnz .f
-        ret
-
-; ---------------------------------------------------------------------
-;  the vertical scroll: follow the camera's line. A row step brings a
-;  row of 40 cells on, and moves the status band a row along the ring.
-;  It waits a frame if a column came on in this one.
-; ---------------------------------------------------------------------
-vscroll:
-        call v_target           ; B = line, C = row
-        ld a,(camrow)
-        cp c
-        jr z,.fine
-        ld a,(colstep)
-        or a
-        ret nz
-        ld a,(camrow)
-        cp c
-        jr c,.down
-        dec a
-        ld (camrow),a
-        cp c
-        jr z,.u1
-        add a,a                 ; more than a row to go: as far as this row lets it
-        add a,a
-        add a,a
-        sub 6
-        ld b,a
-.u1:    push bc
-        call new_start
-        ld hl,(sstart)          ; the band's top row is new cells
-        ld b,COLS
-        call hud_mark
-        ld a,(camrow)
-        ld (m_r),a
-        call M_ROW
-        pop bc
-        ld a,2
-        jr .stepped
-.down:  inc a
-        ld (camrow),a
-        cp c
-        jr z,.d1
-        add a,a
-        add a,a
-        add a,a
-        ld b,a
-.d1:    push bc
-        call new_start
-        ld hl,(sstart)          ; the band's bottom row was the playfield's top
-        ld de,COLS
-        add hl,de
-        ld b,COLS
-        call hud_mark
-        ld a,(camrow)
-        add a,PFROWS-1
-        ld (m_r),a
-        call M_ROW
-        pop bc
-        ld a,3
-.stepped:
-        ld (hud_dirty),a
-.fine:  ld a,(camrow)
-        add a,a
-        add a,a
-        add a,a
-        sub b
-        ld hl,slide
-        cp (hl)
-        ret z
-        ld (hl),a
-        ld a,1
-        ld (hud_rb),a
-        ld a,(hud_dirty)
-        or a
-        ret nz
-        inc a
-        ld (hud_dirty),a
-        ret
-
-; ---------------------------------------------------------------------
-;  e_frame: one frame. The game has moved things, set camx, queued its
-;  sprites (DRAWQ) and its map requests (MAPQ).
+;  e_frame: one frame. The game has moved things, set camx / camy, queued
+;  its sprites (DRAWQ) and its map requests (MAPQ).
 ; ---------------------------------------------------------------------
 e_frame:
         call frame_begin
         call list_reset
         call vpoll
-        ld a,BLK_MAP
-        call map_blk
-        xor a
-        ld (colstep),a
-        ; ---- the scroll
-        call cam_cell           ; HL = cell, C = shift
-        ld a,(phase)
-        ld (oldphase),a
-        cp c
-        ld a,0
-        jr z,.ph
-        ld a,c
-        ld (phase),a
-        ld a,1
-        ld (sdirty),a
-        ld a,2
-.ph:    ld (scratch+7),a        ; 2: the shift changed
-        ld (scratch+4),hl       ; the cell wanted
-.step:  ld hl,(scratch+4)
-        ld de,(camcell)
-        or a
-        sbc hl,de
-        jr z,.steady
-        ld a,1
-        ld (sdirty),a
-        ld (hud_dirty),a
-        ld (colstep),a
-        jp m,.left
-        inc de
-        ld (camcell),de
-        call new_start
-        ld a,COLS-1
-        call hud_newcol
-        ld hl,(camcell)
-        ld de,COLS-1
-        add hl,de
-        jr .col
-.left:  dec de
-        ld (camcell),de
-        call new_start
-        xor a
-        call hud_newcol
-        ld hl,(camcell)
-.col:   ld (m_x),hl
-        call M_COLUMN
-        jr .step
-.steady:
-        call vscroll
-        ld a,(hud_rb)
-        or a
-        call nz,hud_build
-ef_queue:
+        call map_map
+        call M_SCROLL
         call M_QUEUE
-        ld a,(scratch+7)
-        or a
+        ld a,(phase)
+        ld hl,oldphase
+        cp (hl)
         call nz,M_MIXED
         call vpoll
-        call lad_apply
-        call vpoll
+        ; the line of the level at the top of the screen, for the sprites:
+        ; camrow x 10 + the vertical step's lines - 10 (the status line)
+        ld a,(camrow)
+        ld l,a
+        ld h,0
+        add hl,hl
+        ld d,h
+        ld e,l
+        add hl,hl
+        add hl,hl
+        add hl,de
+        ld a,(phase)
+        rrca
+        rrca
+        and 3
+        ld e,a
+        ld d,0
+        push hl
+        ld hl,voffs
+        add hl,de
+        ld e,(hl)
+        pop hl
+        add hl,de
+        ld de,-10
+        add hl,de
+        ld (dispy),hl
         ; ---- the sprites
 ef_sprites:
         ld hl,(entptr)
@@ -993,177 +849,12 @@ ef_sprites:
         djnz .spr
         xor a
         ld (ndraw),a
-.nospr: call restores
-        call present
+.nospr: call map_map
+        call M_RESTORES
+        call M_PRESENT
         jp map_game
-
-; ---------------------------------------------------------------------
-;  the ladders' operands for the background cells at the head of the
-;  flip list (the cells that came on to the screen or changed)
-; ---------------------------------------------------------------------
-lad_apply:
-        ld a,(ncq)
-        or a
-        ret z
-        ld b,a
-        ld a,BLK_LAD
-        call map_blk
-        ld ix,FLIPL
-.e:     ld l,(ix+0)
-        ld a,(ix+1)
-        and 7
-        ld h,a
-        ld a,l
-        and 1
-        ld c,a
-        add hl,hl
-        ex de,hl
-        ld hl,RING*2-3
-        or a
-        sbc hl,de
-        ld a,c
-        or a
-        jr z,.ev
-        inc hl
-        inc hl
-        inc hl
-.ev:    ld a,(ix+5)
-        ld de,LADSTEP
-        bit 7,a
-        jr z,.flat
-        and $0C
-        ld (hl),a
-        add hl,de
-        inc a
-        ld (hl),a
-        add hl,de
-        inc a
-        ld (hl),a
-        add hl,de
-        inc a
-        ld (hl),a
-        jr .n
-.flat:                          ; a status cell: the ladders never reach it
-.n:     ld de,6
-        add ix,de
-        djnz .e
-        ret
-
-; ---------------------------------------------------------------------
-;  shift the picture: run this shift's ladder over the cells on show
-; ---------------------------------------------------------------------
-blast_attr:
-        ld a,BLK_LAD
-        call map_blk
-        xor a
-        out (P_COLCTL),a
-        ld a,LV_ATTR
-        out (P_LV),a
-        ld hl,(sstart)          ; the playfield: below the status band
-        ld de,COLS*2
-        add hl,de
-        ld a,h
-        and 7
-        ld h,a
-        ld (bl_start),hl
-        ld de,COLS*PFROWS
-        add hl,de               ; its end in the ring
-        ld a,h
-        cp RING >> 8
-        jr c,.one
-        jr nz,.two
-        ld a,l
-        or a
-        jr z,.one
-.two:   ld de,1-RING            ; the part past the end of the ring
-        add hl,de
-        res 0,l
-        ld de,0
-        call blast_run
-        ld hl,RING-1
-.one:   inc hl
-        res 0,l
-        ld de,(bl_start)
-        res 0,e
-        call blast_run
-        ld hl,(bl_start)        ; the ladder works in pairs of cells: if it began
-        bit 0,l                 ; a cell early, that was the status band's last
-        jr z,.ev
-        dec hl
-        ld a,h
-        or VIDEO >> 8
-        ld h,a
-        ld (hl),BK_HUD
-.ev:    ld a,LV_SCREEN
-        out (P_LV),a
-        ret
-
-; DE = first ring cell (even), HL = the cell after the last (even)
-blast_run:
-        ld (bl_hi),hl
-        ld a,(phase)            ; this ladder's end: phase * LADSTEP + 4096
-        ld c,a
-        add a,a
-        add a,a
-        add a,a
-        add a,a
-        add a,c
-        add a,(RING*2) >> 8
-        ld b,a
-        ld c,0
-        ex de,hl
-        add hl,hl
-        ex de,hl
-        ld h,b
-        ld l,c
-        or a
-        sbc hl,de               ; where to leave it
-        ld (bl_lo),hl
-        ld de,bl_save
-        ld a,(hl)
-        ld (de),a
-        ld (hl),$C3
-        inc hl
-        inc de
-        ld a,(hl)
-        ld (de),a
-        ld (hl),blast_ret & 255
-        inc hl
-        inc de
-        ld a,(hl)
-        ld (de),a
-        ld (hl),blast_ret >> 8
-        ld hl,(bl_hi)
-        add hl,hl
-        ex de,hl
-        ld h,b
-        ld l,c
-        or a
-        sbc hl,de               ; where to enter it
-        ex de,hl
-        ld hl,(bl_hi)
-        ld a,h
-        or VIDEO >> 8
-        ld h,a
-        ld (savesp),sp
-        ld sp,hl
-        ex de,hl
-        jp (hl)
-blast_ret:
-        ld sp,(savesp)
-        ld hl,(bl_lo)
-        ld de,bl_save
-        ld a,(de)
-        ld (hl),a
-        inc hl
-        inc de
-        ld a,(de)
-        ld (hl),a
-        inc hl
-        inc de
-        ld a,(de)
-        ld (hl),a
-        ret
+voffs:  db 0,3,7,0
+dispy:  dw 0
 
 ; ---------------------------------------------------------------------
 ;  a frame of sprites
@@ -1175,12 +866,19 @@ frame_begin:
         jr z,.sw
         ld b,a
         ld hl,(curlist)
-.c:     ld e,(hl)
+.c:     ld e,(hl)               ; the CELLMAP index
         inc hl
         ld d,(hl)
         inc hl
-        xor a
-        ld (de),a
+        inc hl
+        inc hl
+        ex de,hl
+        push de
+        ld de,CELLMAP
+        add hl,de
+        ld (hl),0
+        pop de
+        ex de,hl
         djnz .c
 .sw:    ld hl,(curlist)
         ld de,(oldlist)
@@ -1195,7 +893,7 @@ frame_begin:
         ret
 
 ; sprite: frame (sd_frame), facing (sd_face: 0 right, 1 left), with its
-; top left at screen pixel (sd_x, sd_y), ink colour (ds_col)
+; top left at screen pixel sd_x and level line sd_y, ink (ds_col)
 sprite:
         ld a,(sd_frame)
         add a,a
@@ -1219,8 +917,8 @@ sprite:
         push hl
         ld hl,(sd_x)
         ld a,l
-        and 7
-        ld (ds_sh),a
+        and 6
+        ld (ds_sh),a            ; shift x 2 (0, 2, 4, 6)
         sra h
         rr l
         sra h
@@ -1237,37 +935,47 @@ sprite:
         ld a,l
         cp 56
         jr nc,.off
-        ld a,(camrow)           ; the game gives y in the level: the picture
-        add a,a                 ; starts camrow rows down it
-        add a,a
-        add a,a
-        ld e,a
-        ld d,0
-        ld hl,(sd_y)
+        ld hl,(sd_y)            ; level line -> screen line, + 60 (so a sprite
+        ld de,(dispy)           ; can hang off the top): t = 0..309
         or a
         sbc hl,de
-        ld de,64                ; a bias, so a sprite can hang off the top
+        ld de,60
         add hl,de
+        bit 7,h
+        jr nz,.off
+        ld b,0
         ld a,h
         or a
+        jr nz,.t256
+        ld a,l
+        cp 200
+        jr c,.div
+        sub 200
+        ld l,a
+        ld b,20
+        jr .div
+.t256:  dec a
         jr nz,.off
         ld a,l
-        and 7
-        ld (ds_ry),a
-        ld a,l
-        rrca
-        rrca
-        rrca
-        and $1F
-        sub 8
+        cp 54
+        jr nc,.off
+        add a,56                ; t - 200
+        ld l,a
+        ld b,20
+.div:   ld h,DIV10 >> 8
+        ld a,(hl)
+        add a,b
+        sub 6
         ld (ds_cy),a
+        inc h
+        ld a,(hl)
+        ld (ds_ry),a
         pop hl
-        ld a,(hl)               ; the frame's eight variants: a table in its block
+        ld a,(hl)               ; the frame's four variants: a table in its block
         inc hl
         ld h,(hl)
         ld l,a
         ld a,(ds_sh)
-        add a,a
         ld e,a
         ld d,0
         add hl,de
@@ -1298,18 +1006,17 @@ spr_draw:
         ld a,(ds_ry)
         add a,d
         ld e,a
-        rrca
-        rrca
-        rrca
-        and $1F
-        ld b,a
+        push hl
+        ld l,a
+        ld h,DIV10 >> 8
+        ld b,(hl)               ; rows down
+        inc h
+        ld e,(hl)               ; line in the cell
+        pop hl
         ld a,(ds_cy)
         add a,b
         ld (ds_cyc),a
-        ld a,e
-        and 7
-        ld e,a                  ; line in the cell
-.seg:   ld a,8
+.seg:   ld a,10
         sub e
         cp c
         jr c,.n1
@@ -1334,7 +1041,7 @@ spr_draw:
         or (hl)
         inc hl
         ld (de),a
-        inc e
+        inc de
         djnz .ln
         jr .next
 .skipseg:
@@ -1369,11 +1076,61 @@ spr_draw:
         jr nz,.col
         ret
 
-; A = cell row, E = line in the cell -> DE = the cell's glyph buffer + line.
-; A cell not yet in this frame gets the next pool slot: its buffer starts
-; as the background's glyph at the present shift, and its flip-list entry
-; is written here.
+; A = screen row (1..24), E = line in the cell -> DE = the cell's glyph
+; buffer + line. A cell not yet in this frame gets the next pool slot: its
+; buffer starts as the background quad's picture at the present phase,
+; and its flip-list entry is written here.
 getbuf:
+        ld (gb_row),a
+        add a,a
+        ld l,a
+        ld h,ROW40 >> 8
+        ld a,l
+        add a,ROW40 & 255
+        ld l,a
+        ld a,(hl)
+        inc l
+        ld h,(hl)
+        ld l,a
+        ld a,(ds_cx)
+        add a,l
+        ld l,a
+        jr nc,.g1
+        inc h
+.g1:    ld (gb_idx),hl
+        ld a,h
+        add a,CELLMAP >> 8
+        ld h,a
+        ld a,(hl)
+        or a
+        jr z,.alloc
+        ld l,a                  ; POOLBUF + slot x 10 + line
+        ld h,MUL10 >> 8
+        ld a,l
+        add a,MUL10 & 255
+        ld l,a
+        ld a,(hl)
+        set 7,l
+        ld h,(hl)
+        ld l,a
+        ld d,POOLBUF >> 8
+        ld a,e
+        add a,l
+        ld e,a
+        ld a,d
+        adc a,h
+        ld d,a
+        ret
+.alloc: ld a,(nslots)
+        cp MAXSLOT
+        jp nc,.full
+        inc a
+        ld (nslots),a
+        ld (hl),a
+        ld c,a                  ; slot
+        push de                 ; the line
+        ; the ring address
+        ld a,(gb_row)
         add a,a
         ld l,a
         ld h,ROWTAB >> 8
@@ -1384,47 +1141,30 @@ getbuf:
         ld a,(ds_cx)
         add a,l
         ld l,a
-        jr nc,.g1
+        jr nc,.g2
         inc h
-.g1:    ld a,h
+.g2:    ld a,h
         and 7
-        or CELLMAP >> 8
         ld h,a
-        ld a,(hl)
-        or a
-        jr z,.alloc
-        ld l,a
-        ld h,0
-        add hl,hl
-        add hl,hl
-        add hl,hl
-        ld a,l
-        or e
-        ld e,a
-        ld a,h
-        add a,POOLBUF >> 8
-        ld d,a
-        ret
-.alloc: ld a,(nslots)
-        cp MAXSLOT
-        jr nc,.full
-        inc a
-        ld (nslots),a
-        ld (hl),a
-        ld c,a                  ; slot
-        push de                 ; the line
-        ex de,hl                ; DE = CELLMAP address
+        ld (gb_ring),hl
+        ; the list: CELLMAP index, ring
         ld hl,(listptr)
+        ld de,(gb_idx)
+        ld (hl),e
+        inc hl
+        ld (hl),d
+        inc hl
+        ld de,(gb_ring)
         ld (hl),e
         inc hl
         ld (hl),d
         inc hl
         ld (listptr),hl
+        ; the flip: ring, code, pool bank, ink
         ld hl,(entptr)
         ld (hl),e
         inc hl
         ld a,d
-        and 7
         or VIDEO >> 8
         ld (hl),a
         inc hl
@@ -1443,45 +1183,48 @@ getbuf:
         ld hl,(nflip)
         inc hl
         ld (nflip),hl
-        ld a,d
-        add a,(SCRSH - CELLMAP) >> 8
-        ld h,a
-        ld l,e
-        ld b,(hl)               ; the background's code
-        add a,(ATTSH - SCRSH) >> 8
+        ; the background's picture: SLOTPAT + phase x 1280 + its slot x 10
+        ld hl,(gb_ring)
+        ld a,h
+        or SCRSH >> 8
         ld h,a
         ld a,(hl)
-        and $0F
+        and $7F
         ld l,a
+        ld h,MUL10 >> 8
+        ld a,l
+        add a,MUL10 & 255
+        ld l,a
+        ld e,(hl)
+        set 7,l
+        ld d,(hl)
         ld a,(phase)
-        or l                    ; its bank
-        ld h,a
-        ld a,b
+        ld b,a
         add a,a
-        ld l,a
-        ld a,h
-        or a
-        rra
-        ld h,a
-        rr l                    ; bank * 128 + code
-        add hl,hl
-        add hl,hl
-        add hl,hl
-        ld a,h
-        add a,TILEPAT >> 8
-        ld h,a
-        push hl
-        ld l,c
-        ld h,0
-        add hl,hl
-        add hl,hl
-        add hl,hl
-        ld a,h
+        add a,a
+        add a,b                 ; x 5 (x 256 = x 1280)
+        add a,SLOTPAT >> 8
+        add a,d
+        ld d,a
+        ex de,hl                ; HL = source
+        ld e,c                  ; DE = POOLBUF + slot x 10
+        ld d,MUL10 >> 8
+        ld a,e
+        add a,MUL10 & 255
+        ld e,a
+        ld a,(de)
+        push af
+        set 7,e
+        ld a,(de)
+        ld d,a
+        pop af
+        ld e,a
+        ld a,d
         add a,POOLBUF >> 8
         ld d,a
-        ld e,l
-        pop hl
         push de
+        ldi
+        ldi
         ldi
         ldi
         ldi
@@ -1493,241 +1236,19 @@ getbuf:
         pop de
         pop hl                  ; L = the line
         ld a,l
-        or e
+        add a,e
         ld e,a
+        ret nc
+        inc d
         ret
 .full:  ld a,e
         add a,scratch & 255
         ld e,a
         ld d,scratch >> 8
         ret
-
-; ---------------------------------------------------------------------
-;  cells the last frame's sprites covered and this frame's do not go
-;  back to the background: add them to the flip list
-; ---------------------------------------------------------------------
-restores:
-        ld a,BLK_MAP
-        call map_blk
-        ; a sprite's cell over solid ground keeps the ground's ink
-        ld a,(nslots)
-        or a
-        jr z,.r0
-        ld b,a
-        ld ix,(sprstart)
-.f:     ld l,(ix+0)
-        ld a,(ix+1)
-        and 7
-        or ATTSH >> 8
-        ld h,a
-        ld e,(hl)
-        bit 5,e
-        jr z,.fn
-        sub (ATTSH - SCRSH) >> 8
-        ld h,a
-        ld d,(hl)
-        ld a,e
-        and $0F
-        ld c,a
-        ld a,(phase)
-        or c
-        ld c,a
-        ld a,d
-        add a,a
-        ld l,a
-        ld a,c
-        or a
-        rra
-        ld h,a
-        rr l
-        ld a,(pcol_h)
-        add a,h
-        ld h,a
-        ld a,(hl)
-        ld (ix+4),a
-.fn:    ld de,6
-        add ix,de
-        djnz .f
-.r0:    ld a,(nold)
-        or a
-        ret z
-        ld b,a
-        ld de,(oldlist)
-.o:     ld a,(de)
-        ld l,a
-        inc de
-        ld a,(de)
-        ld h,a
-        inc de
-        ld a,(hl)
-        or a
-        jr nz,.on
-        push bc
-        push de
-        ld a,h
-        and 7
-        ld h,a                  ; the ring offset
-        push hl
-        ld de,(sstart)          ; in the status line now? leave it
-        or a
-        sbc hl,de
-        ld a,h
-        and 7
-        jr nz,.pf
-        ld a,l
-        cp COLS*2
-        jr nc,.pf
-        pop hl
-        jr .skip
-.pf:    pop hl
-        ld ix,(entptr)
-        ld (ix+0),l
-        ld a,h
-        or VIDEO >> 8
-        ld (ix+1),a
-        ld a,h
-        or SCRSH >> 8
-        ld h,a
-        ld d,(hl)
-        add a,(ATTSH - SCRSH) >> 8
-        ld h,a
-        ld e,(hl)
-        ld (ix+2),d
-        ld (ix+5),e
-        ld a,e
-        and $0F
-        ld c,a
-        ld a,(phase)
-        or c
-        ld (ix+3),a
-        ld c,a
-        ld a,d
-        add a,a
-        ld l,a
-        ld a,c
-        or a
-        rra
-        ld h,a
-        rr l
-        ld a,(pcol_h)
-        add a,h
-        ld h,a
-        ld a,(hl)
-        ld (ix+4),a
-        ld de,6
-        add ix,de
-        ld (entptr),ix
-        ld hl,(nflip)
-        inc hl
-        ld (nflip),hl
-.skip:  pop de
-        pop bc
-.on:    djnz .o
-        ret
-
-; ---------------------------------------------------------------------
-;  present. The sprites' new glyphs go into the pool that is not on
-;  show in the middle blanking of the frame's two fields, if they are
-;  ready by then; the frame itself is shown at the second blanking:
-;  the start address, the shift, the cells. 25 frames a second.
-; ---------------------------------------------------------------------
-present:
-        call snd_tick
-        xor a
-        ld (bl_edge),a
-        ld (lateblast),a
-        ld a,(nslots)
-        or a
-        jr z,.vis
-        call vpoll
-        ld a,(fields)
-        or a
-        jr nz,.f1
-        call snd_wait           ; to the middle blanking
-        call blast
-        jr .vis
-.f1:    dec a
-        jr nz,.late
-        in a,(P_CRTCA)
-        and $20
-        jr z,.late
-        call blast              ; it has begun: there is still time
-        jr .vis
-.late:  ld a,1
-        ld (lateblast),a
-.vis:   ld a,(fields)
-        cp 2
-        jr nc,.over
-.w:     call snd_wait
-        ld a,(fields)
-        cp 2
-        jr c,.w
-        jr .show
-.over:  ld hl,perf_late
-        inc (hl)
-        ld a,(bl_edge)
-        or a
-        jr nz,.show
-        call snd_wait
-.show:  ld a,(sdirty)
-        or a
-        push af
-        call set_start
-        pop af
-        jr z,.nb
-        call blast_attr
-        xor a
-        ld (sdirty),a
-.nb:    ld a,(lateblast)
-        or a
-        call nz,blast
-        call do_flips
-        ld a,(hud_dirty)
-        or a
-        call nz,hud_put
-        xor a
-        ld (fields),a
-        ld a,$20
-        ld (vlast),a
-        ret
-
-do_flips:
-        ld hl,(nflip)
-        ld a,h
-        or l
-        ret z
-        dec hl
-        ld a,h
-        inc hl
-        ld ixh,a
-        ld a,l
-        ld ixl,a
-        ld (savesp),sp
-        ld sp,FLIPL
-        ld a,COL_ON
-        out (P_COLCTL),a
-        ld c,P_LV
-        ld b,LV_SCREEN
-        ld a,LV_ATTR
-.lp:    pop hl
-        pop de
-        out (c),b
-        ld (hl),e
-        out (c),a
-        ld (hl),d
-        set 3,h
-        pop de
-        ld (hl),e
-        dec ixl
-        jp nz,.lp
-        dec ixh
-        jp p,.lp
-        ld sp,(savesp)
-        xor a
-        out (P_COLCTL),a
-        ld a,LV_SCREEN
-        out (P_LV),a
-        ret
+gb_row: db 0
+gb_idx: dw 0
+gb_ring: dw 0
 
 ; the composed glyphs -> the pool that is not on show
 blast:  ld a,(nslots)
@@ -1741,7 +1262,7 @@ blast:  ld a,(nslots)
         ld a,(poolbank)
         or LV_SCREEN
         out (P_LV),a
-        ld hl,POOLBUF+8
+        ld hl,POOLBUF+10
         ld de,PCGWIN+16
         ld bc,$7FFF
 .g:     ldi
@@ -1752,8 +1273,10 @@ blast:  ld a,(nslots)
         ldi
         ldi
         ldi
+        ldi
+        ldi
         ld a,e
-        add a,8
+        add a,6
         ld e,a
         jr nc,.nc
         inc d

@@ -1,7 +1,7 @@
 ; =====================================================================
 ;  BIX THE BILBY - THE STAR DIGGER          VIBED BY BPM 2026
 ;  for the Microbee Premium Plus (1MB RAM, 32K PCG)
-;  a native version of the VZ300 game: prototype, world 1-1
+;  a native version of the VZ300 game and its Lost Levels: 20 stages
 ; =====================================================================
         DEVICE NOSLOT64K
         INCLUDE "hw.inc"
@@ -20,6 +20,7 @@ entry:  di
         INCLUDE "sound.asm"
         INCLUDE "sprtab.inc"
         INCLUDE "snd.inc"
+        INCLUDE "stgtab.inc"
 prog_end:
         ASSERT prog_end <= VARS
         INCLUDE "vars.inc"
