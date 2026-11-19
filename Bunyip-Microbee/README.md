@@ -13,7 +13,7 @@ VIBED BY BPM 2026
 | Part | State |
 |---|---|
 | Wall engine (`release/BEECAST2.DS8`, program `RAY`) | Runs on a real Premium Plus |
-| Game (`release/BUNYIP.DS8`, program `BUNYIP`) | Loads and runs on a real Premium Plus: walls, HUD, title, music and controls work. Sprites were garbled on hardware through four builds; by the fourth the backgrounds behind them were right and the sprites themselves came out as thin vertical strips. The half-cell-shifted sprite copies were being built with the Z80's `RRD` instruction, the only use of it in the game, and the test emulator reproduces those strips when `RRD` is made to misbehave. This build makes the shifted copies with plain ANDs and rotates. **Not yet confirmed on hardware.** |
+| Game (`release/BUNYIP.DS8`, program `BUNYIP`) | Loads and runs on a real Premium Plus: walls, HUD, title, music and controls work. Sprites were garbled on hardware. The test card's sprite-data page found the cause: on the real machine the sprite masters in RAM block 3 (ART.BIN) were changed while CP/M was still reading the disk (checksum 98B7 instead of 9630), so every sprite was scaled from damaged art. The loader now stages ART.BIN in a block that stayed intact and copies it to block 3 after CP/M is gone. **Not yet confirmed on hardware**: the test card's second page should read ART SUM 9630. |
 
 The title screen's `T` key shows a test card: video memory read-back, `RRD` and `RLD`, whether RAM blocks 5-31 are each their own memory, and video writes with a high block mapped.
 
