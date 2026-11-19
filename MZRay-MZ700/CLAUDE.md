@@ -1,13 +1,13 @@
-# CLAUDE.md — MZRAY (Sharp MZ-700 WolfenDoom project)
+﻿# CLAUDE.md â€” MZRAY (Sharp MZ-700 WolfenDoom project)
 
 Handover from Claude chat to Claude Code, 19 Nov 2026. Read all of this before changing anything.
 
-Credits line for anything user-facing: **VIBED BY BPM 2026** (the user's standing preference — not
+Credits line for anything user-facing: **VIBED BY BPM 2026** (the user's standing preference â€” not
 "code by Claude" etc.).
 
 ---
 
-## 0. Update, 19 Nov 2026 (Claude Code session 1) — read this first
+## 0. Update, 19 Nov 2026 (Claude Code session 1) â€” read this first
 
 - **Locations:** the DROPBEAR 3D source is `C:\Users\Owner\Documents\Dropbear3D_VZ300` (v0.4; read only).
   Work happens in the clone `C:\Users\Owner\Documents\Codex\vz300-and-microbee-games\MZRay-MZ700`
@@ -20,39 +20,39 @@ Credits line for anything user-facing: **VIBED BY BPM 2026** (the user's standin
   **byte-identical** to `release/MZRAY.MZT`, and `runtest.py` still gives [51, 58, 94, 102].
 - **Game step 1 (world walkabout) done:** `src/game.asm` + `src/build_game.py` -> `release/DROPBEAR.MZT`
   (15,360 bytes, load/exec 1200h). It has all 9 DROPBEAR areas (layouts copied from DROPBEAR's build.py),
-  6 themes with 8×8 MZ textures and their dark sides, sky and ground colours per theme, doors,
+  6 themes with 8Ã—8 MZ textures and their dark sides, sky and ground colours per theme, doors,
   exits, locked doors and keys, switches and gates, secret walls, blocking furniture, invisible
-  pickups, saved area state, the HUD, messages, live FPS, and modes 1–4. There are no creatures,
+  pickups, saved area state, the HUD, messages, live FPS, and modes 1â€“4. There are no creatures,
   sprites or sound yet.
   - Sky and ground colours are set by poking the drawers' immediates at `d1_cl+1`, `d2_cl+1/+4`,
     `d1_fl+1` and `d2_fl+1/+4` (existing labels, so the raycore bytes are unchanged).
   - Blocking furniture lives in a separate `COLL` page, **not** in MAP bit 7 as on the VZ, so the DDA loop
-    stays as it is. MAP values 1–10 are wall types; the texl formula covers up to 16.
+    stays as it is. MAP values 1â€“10 are wall types; the texl formula covers up to 16.
   - On area entry, `settheme` copies 4 theme wall slots (types 1, 2, 5, 10) into the TEX pages.
-  - The work areas OBJ, COLL, LIVE (9×512) and BUF are `equ`s past the end of the file, so they aren't
+  - The work areas OBJ, COLL, LIVE (9Ã—512) and BUF are `equ`s past the end of the file, so they aren't
     stored in the MZT. ~27K is free up to CFFFh.
-  - Movement is per field (`lastf` = fields since the last frame, clamped 1–8), so speed doesn't depend on fps.
-  - Simulator fps in-game: 29.9 / 26.3 / 16.5 / 15.4 (modes 1–4). `tools/gametest.py` runs 17 checks,
+  - Movement is per field (`lastf` = fields since the last frame, clamped 1â€“8), so speed doesn't depend on fps.
+  - Simulator fps in-game: 29.9 / 26.3 / 16.5 / 15.4 (modes 1â€“4). `tools/gametest.py` runs 17 checks,
     which all pass.
   - New keys use the same unverified MAME matrix: W r2b1, S r2b5, Q r2b7, A r4b7, D r4b4, E r4b3,
-    M r3b3, SPACE r6b3.
+    M r3b3, SPACE r6b4 (r6b3 was wrong: that is the 0 key; fixed after the user found SPACE did nothing in the Win32 emulator). Matrix per the Sharp table: row6 = . , 9 0 SPACE - ^ \ from bit 0 up.
 - **Game step 2 (sprites, creatures, shooting) done, v0.2.** The user approved per-column sprite
   compositing.
   - `raycore.asm` `render` has a `;@@SPRHOOK@@` placeholder after `call poll`. `fill(..., sprhook=' call sprcol')`
     fills it for the game; the benchmark leaves it empty, so it's still byte-identical.
   - `src/objects.asm` (inserted at `;@@OBJECTS@@`) holds `objects` (per frame: AI, pickups, projection),
     `proj`, `sprcol` (the per-column slice drawer), `fire`, `sound` and the gun.
-  - Sprites are 16×16 pages, byte index `u*16+v`, with FFh see-through, drawn from DROPBEAR's shape
+  - Sprites are 16Ã—16 pages, byte index `u*16+v`, with FFh see-through, drawn from DROPBEAR's shape
     functions (`src/dbart.py`) and per-type palettes in `build_game.py` TYPES. `--preview` writes `sprites.png`.
-  - Type record: TYPET + type×16 (pages, frac, aspect×64, raise, hp, speed, bite, flags, kill msg).
-  - Each sprite is sized frac×(wall height) and placed raise×h above the floor (flyers 0.35, lamp 0.66).
+  - Type record: TYPET + typeÃ—16 (pages, frac, aspectÃ—64, raise, hp, speed, bite, flags, kill msg).
+  - Each sprite is sized fracÃ—(wall height) and placed raiseÃ—h above the floor (flyers 0.35, lamp 0.66).
     Its depth test compares its height with the column's wall height (same HGT table).
   - Speed-ups:
     - per-column bitmask `MASKS`, so columns without sprites return at once
     - last frame's per-column wall heights `ZB`, used to cull hidden objects
     - a distance cull against the farthest wall (`DFL/DFH`, `dthr`)
     - a quarter-square multiply (`qmul`, tables QSL/QSH) instead of `mul8` for projection
-  - The gun is a fixed VIS entry with h=255 (12×5 cells, flash frame GUN1).
+  - The gun is a fixed VIS entry with h=255 (12Ã—5 cells, flash frame GUN1).
   - Simulator fps, first room: 20.4 / 18.7 / 12.3 / 11.6. Busy view with 5 sprites: 18.0 / 15.7 / 10.3 / 9.8.
     `tools/prof.py x y ang modekey` profiles a frame per routine.
   - `gametest.py` runs 25 checks, all passing: sprites on screen, targeting, bite, two shots kill a bear,
@@ -62,7 +62,7 @@ Credits line for anything user-facing: **VIBED BY BPM 2026** (the user's standin
   - The MZT is now 32,000 bytes (the sprites are ~9K, padded to pages), with ~10K free. Packing is still
     to do, and the UniCMT load time is unknown.
 - **Game step 3 (pieces, flashes, sound) done, v0.3.** New `src/fx.asm` (inserted at `;@@FX@@`).
-  - **Pieces:** PART, 32×8 bytes, in screen space: x and y in 8.8 cells, vx and vy in 1/32 cell per field,
+  - **Pieces:** PART, 32Ã—8 bytes, in screen space: x and y in 8.8 cells, vx and vy in 1/32 cell per field,
     colour, life. `parts` (per frame, before render) moves them `lastf` fields with gravity (GRAV=3) and a
     floor bounce. It files each piece under its ray in PHEAD/PNEXT linked lists, and `partcol` draws them in
     the per-column hook (no flicker).
@@ -88,21 +88,21 @@ Credits line for anything user-facing: **VIBED BY BPM 2026** (the user's standin
     "type 16", the fifth theme library slot) for columns with height < fogh. `proj` also drops sprites
     with h < fogh.
   - **Automap:** hold M (inp bit 7) in an area with aflags bit 0 set ('known', or after the map scroll).
-    `drawmap` draws the 16×16 map as 2×1 cells at view row 3, col 4, using MAPCOL (page-aligned,
+    `drawmap` draws the 16Ã—16 map as 2Ã—1 cells at view row 3, col 4, using MAPCOL (page-aligned,
     before TYPET). It clears the view only when the map opens (`mapon`) to avoid flicker. Play pauses
     while the map is up; the timers and sound keep running.
   - `gametest.py` runs 48 checks, all passing. MZT 34,560 bytes, ~7.3K free.
 - **Game step 5 (attract loop) done, v0.5.** New `src/attract.asm` (inserted at `;@@ATTRACT@@`).
-  - `title:` calls `attract` (title → gallery → demo, repeating; carry = SPACE), then shows PG_INTRO,
+  - `title:` calls `attract` (title â†’ gallery â†’ demo, repeating; carry = SPACE), then shows PG_INTRO,
     sets `tuneon`=1 and starts the game.
-  - **Title:** TSCR is a ready-made 18×40 colour screen built by `make_title()` (4×7 font arched to heights
+  - **Title:** TSCR is a ready-made 18Ã—40 colour screen built by `make_title()` (4Ã—7 font arched to heights
     9-8-7-7-7-7-8-9, yellow/red/magenta metal, blue drop shadow, green drips).
   - **Title music:** TMUS rows are bass, mid and top counts plus fields, from DROPBEAR's voices.
     `tmusic` plays the next sounding voice each field, so chords come out as an arpeggio. It runs ~27 s
     including the pause.
   - **Gallery:** GALT entries are page0, page1, text page and fanfare (3-note sfx chains). `gdrawf` draws the
-    16×16 sprite page as cells at rows 1–16, cols 12–27 on a blue backdrop. The texts avoid apostrophes,
-    commas and ?/!, because only A–Z, 0–9, space and '.' are known-safe display codes.
+    16Ã—16 sprite page as cells at rows 1â€“16, cols 12â€“27 on a blue backdrop. The texts avoid apostrophes,
+    commas and ?/!, because only Aâ€“Z, 0â€“9, space and '.' are known-safe display codes.
   - **Demo:** `demo` runs newgame, loads area `dcycle` at DEMOTAB's entry, and wakes the creatures.
     Setting `demo_on` makes `getinput` call `autopilot` (ported from DROPBEAR, using ZB column heights,
     aimz/aimcol and `ahead`); real SPACE sets `dquit`. It lasts DEMOFLD=1250 fields, or until you die or
@@ -125,7 +125,7 @@ and artwork for MZ-700 equivalents.
 
 **Current stage:** benchmark only. `MZRAY BENCH v0.1` is a textured raycaster test program used to
 measure real speed before any game design is committed. This is the same benchmark-first process
-used for the sibling projects (RAYBENCH → DROPBEAR 3D on the VZ300, BEECAST → BUNYIP on the Microbee).
+used for the sibling projects (RAYBENCH â†’ DROPBEAR 3D on the VZ300, BEECAST â†’ BUNYIP on the Microbee).
 
 **No game code exists yet.** No enemies, objects, weapon, sound, title screen or level data.
 
@@ -137,30 +137,30 @@ used for the sibling projects (RAYBENCH → DROPBEAR 3D on the VZ300, BEECAST �
   3. 40 rays, 1-cell columns, direct
   4. 40 rays, buffered
 - Results screen: vblank fields per 32 frames and fps (to 0.1).
-- Walk mode: keys **1–4** select a render mode, cursor keys move/turn, live FPS + frame counter,
+- Walk mode: keys **1â€“4** select a render mode, cursor keys move/turn, live FPS + frame counter,
   **B** restarts the benchmark.
-- 16×16 test map, textured walls (6 wall types × 2 side shades = 12 textures, 8×8 each).
+- 16Ã—16 test map, textured walls (6 wall types Ã— 2 side shades = 12 textures, 8Ã—8 each).
 
 ---
 
-## 2. Verified vs unverified — read carefully
+## 2. Verified vs unverified â€” read carefully
 
 | Claim | Status |
 |---|---|
 | Source assembles with `src/tools/zasm.py` and output is reproducible (rebuilt binary byte-identical to release) | **Verified** (cloud build) |
-| Runs in Claude's Python simulator: 51 / 58 / 94 / 102 fields (31.3 / 27.5 / 17.0 / 15.6 fps) | **Verified in simulator only** — simulator has NO VRAM wait states, so these are optimistic |
+| Runs in Claude's Python simulator: 51 / 58 / 94 / 102 fields (31.3 / 27.5 / 17.0 / 15.6 fps) | **Verified in simulator only** â€” simulator has NO VRAM wait states, so these are optimistic |
 | Loads and renders correctly in **"MZ-700 Emulator For Win32"** on the user's PC (test 4 view correct, text correct, `V0.1` decimal point renders) | **Verified by user** (screenshots `screenshots/mz700win_test4.png`, `mz700win_results.png`) |
 | MZ-700 Win32 emulator results: **76 / 85 / 125 / 134 fields = 21.0 / 18.8 / 12.8 / 11.9 fps** | **Verified by user, in emulator** |
 | Runs on the **real MZ-700** via UniCMT | **NOT YET TESTED.** This is the next required step. |
-| Keyboard matrix (cursor keys, 1–4, B) correct on real hardware | **Unverified.** Key positions come from the MAME-style MZ-700 matrix (see §6). Worked in the simulator by construction; not confirmed in the Win32 emulator or on hardware. |
-| `E002h` bit 7 is the vblank signal | **Assumed** (8255 port C bit 7 /VBLK). Field counting works whichever polarity it is (see §5). The emulator figures look plausible, which suggests it works there. |
-| European character ROM compatibility | The renderer uses no glyphs (colour cells only), so it's ROM-independent. Text uses display codes for A–Z, 0–9, space and `.` only, and those rendered correctly in the emulator. Which ROM the emulator used is unknown. |
+| Keyboard matrix (cursor keys, 1â€“4, B) correct on real hardware | **Unverified.** Key positions come from the MAME-style MZ-700 matrix (see Â§6). Worked in the simulator by construction; not confirmed in the Win32 emulator or on hardware. |
+| `E002h` bit 7 is the vblank signal | **Assumed** (8255 port C bit 7 /VBLK). Field counting works whichever polarity it is (see Â§5). The emulator figures look plausible, which suggests it works there. |
+| European character ROM compatibility | The renderer uses no glyphs (colour cells only), so it's ROM-independent. Text uses display codes for Aâ€“Z, 0â€“9, space and `.` only, and those rendered correctly in the emulator. Which ROM the emulator used is unknown. |
 
-**Interpretation of the emulator numbers (my inference, not proven):** the emulator is ~1.3–1.5×
+**Interpretation of the emulator numbers (my inference, not proven):** the emulator is ~1.3â€“1.5Ã—
 slower than the simulator, consistent with it modelling the MZ-700 VRAM access waits (CPU is held
-during display when touching D000–DFFF). **Buffered is slower than direct in every case**, so the
+during display when touching D000â€“DFFF). **Buffered is slower than direct in every case**, so the
 copy pass costs more than it saves; direct drawing is currently the better choice. Real hardware
-may differ — get the real-machine photo before deciding.
+may differ â€” get the real-machine photo before deciding.
 
 ---
 
@@ -172,38 +172,38 @@ may differ — get the real-machine photo before deciding.
   (chain loading via UniCMT is **untested**).
 - User has the **European character ROM** (lowercase/symbols in place of katakana). A few
   characters differ from the Japanese ROM. Any future glyph-based graphics must be checked against
-  the European set — ask the user for a dump or character chart rather than relying on memory.
-- Video: 40×25 characters. Character VRAM at **D000h**, colour/attribute RAM at **D800h**.
+  the European set â€” ask the user for a dump or character chart rather than relying on memory.
+- Video: 40Ã—25 characters. Character VRAM at **D000h**, colour/attribute RAM at **D800h**.
   Attribute byte = `fg<<4 | bg` (bit 7 selects the alternate character set; it is always 0 here).
   8 colours: 0 black, 1 blue, 2 red, 3 magenta, 4 green, 5 cyan, 6 yellow, 7 white.
 - **No PCG** on a stock MZ-700. Sprites and art must be made from fixed ROM glyphs and/or colour cells.
-- **Sound:** one 8253 square-wave channel (E004–E007 timer, gate at E008). Multi-channel music
+- **Sound:** one 8253 square-wave channel (E004â€“E007 timer, gate at E008). Multi-channel music
   must be faked with fast arpeggios. v0.1 only writes 0 to E008 (silence).
-- **VRAM contention:** CPU access to D000–DFFF stalls during active display. This is the main
+- **VRAM contention:** CPU access to D000â€“DFFF stalls during active display. This is the main
   performance unknown on real hardware.
-- Usable RAM: the program owns 1200h–CFFFh (~48K). The monitor work area 1000h–11FFh is trampled
-  by our stack (see §4); we never return to or call the monitor.
+- Usable RAM: the program owns 1200hâ€“CFFFh (~48K). The monitor work area 1000hâ€“11FFh is trampled
+  by our stack (see Â§4); we never return to or call the monitor.
 
 ---
 
 ## 4. Memory map (v0.1, from `mzray.sym`)
 
 ```
-1000-11FF  monitor work area – used by our stack (SP=1200h, grows down). Monitor never called.
+1000-11FF  monitor work area â€“ used by our stack (SP=1200h, grows down). Monitor never called.
 1200       start (DI; SP=1200h; speaker gate off)
 1200-1B17  code, strings, mode table, per-column tables, variables
 1C00-2CFF  page-aligned lookup tables (one 256-byte page each):
            1C00 SGN   ray direction sign flags (bit0 = x negative, bit1 = y negative)
            1D00 DDXL  1E00 DDXH   |256/cos| (8.8), clamped 7FFFh
            1F00 DDYL  2000 DDYH   |256/sin|
-           2100 SINM  2200 COSM   |sin|,|cos| ×256 (texture-u calc)
-           2300 COS8  2400 SIN8   signed ×127 (movement)
-           2500 MAP   16×16 map, 1 byte/cell (0 empty, 1–6 wall type)
+           2100 SINM  2200 COSM   |sin|,|cos| Ã—256 (texture-u calc)
+           2300 COS8  2400 SIN8   signed Ã—127 (movement)
+           2500 MAP   16Ã—16 map, 1 byte/cell (0 empty, 1â€“6 wall type)
            2600 HGT   2700 HGT2   wall height by corrected distance>>3 (512 entries)
            2800 TOPS  2900 ROWS  2A00 FLRS  2B00 VINIT  2C00 VSTEP   per-height column tables
 2D00-34FF  TEX: 8 pages, one per texture ROW v; byte index = texture column (texl)
-3500       VTAB: v (0–255) -> TEX page (TEX>>8)+(v>>5)
-3600-396F  BUF: 880-byte (40×22) render buffer for the buffered modes
+3500       VTAB: v (0â€“255) -> TEX page (TEX>>8)+(v>>5)
+3600-396F  BUF: 880-byte (40Ã—22) render buffer for the buffered modes
 3970-CFFF  free (~38K) for the game
 D000/D800  VRAM / colour RAM
 E000-E008  8255 / 8253 / speaker gate
@@ -217,7 +217,7 @@ harmless, but it's easy to save if load size matters later.
 ## 5. Rendering architecture (preserve these techniques)
 
 ### Colour-cell framebuffer
-- The view is rows 1–22 (`VIEWH=22`) × 40 columns. **Each cell is one "pixel"**: character RAM is
+- The view is rows 1â€“22 (`VIEWH=22`) Ã— 40 columns. **Each cell is one "pixel"**: character RAM is
   cleared to 00h (space), and the colour shows as the cell **background** colour in D800h.
 - Texture bytes are stored as `c<<4 | c` (fg = bg) so a cell shows a solid colour whatever glyph
   is in it, which makes it ROM-independent.
@@ -228,29 +228,29 @@ harmless, but it's easy to save if load size matters later.
 - **256-unit angle system**, all trig from page-aligned tables. Indexing is `ld h,TABLE>>8 / ld l,angle`.
 - Player position `px`/`py` is **8.8 fixed point** (high byte = map cell, low byte = fraction).
   `pxf`/`pxc` and `pyf`/`pyc` are byte aliases.
-- **DDA with the map cell index held in A′** (`ex af,af'`). The map is 16 wide and page-aligned, so
+- **DDA with the map cell index held in Aâ€²** (`ex af,af'`). The map is 16 wide and page-aligned, so
   one byte addresses any cell (`y*16+x`). Steps are **self-modified** immediates:
-  `sx_smc` = +1/−1, `sy_smc` = +16/−16. Delta distances are self-modified into `dx_smc`/`dy_smc`.
+  `sx_smc` = +1/âˆ’1, `sy_smc` = +16/âˆ’16. Delta distances are self-modified into `dx_smc`/`dy_smc`.
 - sideDist X/Y live in **BC/DE** throughout the DDA loop. Comparison is `sbc hl,de` on a copy.
   No memory traffic inside the loop except the map read.
-- Initial side distance = `frac × delta` through `mul8` (HL = DE×A>>8). Exact-zero fraction uses
+- Initial side distance = `frac Ã— delta` through `mul8` (HL = DEÃ—A>>8). Exact-zero fraction uses
   the full delta.
 - **Fisheye correction:** the perpendicular distance is multiplied by a per-column cos factor
-  (`cosoff20/40`, ×256) instead of doing a projection division. Height then comes from the `HGT`
+  (`cosoff20/40`, Ã—256) instead of doing a projection division. Height then comes from the `HGT`
   table indexed by `distance>>3` (1/32-cell resolution, clamped at 0FFFh). **No division anywhere
   in the per-column path.**
-- Per-column ray angle offsets (`colang20/40`) are atan-correct, not linear, for a 60° FOV.
-- Texture u = fraction of the hit position along the wall (`perp × |sin|` or `|cos|` added to or
-  subtracted from the player fraction), top 3 bits → column 0–7.
-  `texl = ((walltype−1)*2 + side)*8 + u` gives each wall type a darker/alternate shade on Y-sides.
+- Per-column ray angle offsets (`colang20/40`) are atan-correct, not linear, for a 60Â° FOV.
+- Texture u = fraction of the hit position along the wall (`perp Ã— |sin|` or `|cos|` added to or
+  subtracted from the player fraction), top 3 bits â†’ column 0â€“7.
+  `texl = ((walltypeâˆ’1)*2 + side)*8 + u` gives each wall type a darker/alternate shade on Y-sides.
 
 ### Column drawers (`drawcol1` 1-wide, `drawcol2` 2-wide)
 - Called through a **self-modified CALL** (`dc_smc`), set by `setmode`. No per-column mode branch.
 - All per-height values are **precomputed tables indexed by height** (`ld b,TABLE>>8 / ld a,(bc)`
   with C = height): ceiling rows, wall rows, floor rows, initial v, v-step. Clipping of tall walls
   is folded into `VINIT`.
-- The wall loop uses the **alternate register set**: E′ = v accumulator, B′ = v step,
-  D′ = VTAB page, L′ = texl. Per row: `exx / v+=step / ld a,(de) (page lookup) / ld h,a / ld a,(hl) / exx / store`.
+- The wall loop uses the **alternate register set**: Eâ€² = v accumulator, Bâ€² = v step,
+  Dâ€² = VTAB page, Lâ€² = texl. Per row: `exx / v+=step / ld a,(de) (page lookup) / ld h,a / ld a,(hl) / exx / store`.
   The main set keeps HL = screen pointer, DE = 40 (row stride), B = counter.
 - 2-wide mode writes the cell pair with `inc hl / dec hl`, halving the ray count.
 
@@ -260,14 +260,14 @@ harmless, but it's easy to save if load size matters later.
 - Emulator results show this is **slower than direct**. Keep the code for real-hardware comparison,
   but don't assume buffering is needed.
 
-### Timing — vblank field counting (`poll`)
+### Timing â€” vblank field counting (`poll`)
 - No interrupts are used (DI throughout). `poll` reads `E002h` bit 7 and counts each transition of
   that bit to 0, storing the last state in the **self-modified `cp` operand** at `pl_cmp+1`.
   It counts one per field whatever the polarity.
 - `poll` is called after **every column** and **every copy row** so no vblank edge is missed. Any
   new long-running routine must also call `poll` often enough (well under one field, 20 ms),
   or the frame counts will be wrong. It only clobbers AF and preserves HL.
-- FPS maths: bench fps×10 = 16000/fields (32 frames × 50 Hz × 10); walk fps×10 = 8000/fields per
+- FPS maths: bench fpsÃ—10 = 16000/fields (32 frames Ã— 50 Hz Ã— 10); walk fpsÃ—10 = 8000/fields per
   16 frames. `div16` is a 16/16 restoring divide used only for this display.
 
 ### Build-time table generation
@@ -280,13 +280,13 @@ the MZT and `mzray.sym`. **Edit textures, map, FOV and VIEWH in `build.py`, not 
 ## 6. Input, text and other I/O details
 
 - Keyboard: write the row to **E000h** (`or 0F0h`, low nibble = row), read columns at **E001h**,
-  where 0 = pressed. Layout used (MAME mz700 matrix — **unverified on real hardware**):
+  where 0 = pressed. Layout used (MAME mz700 matrix â€” **unverified on real hardware**):
   row 7: bit5 up, bit4 down, bit3 right, bit2 left; row 5: bits 7/6/5/4 = keys 1/2/3/4; row 4 bit 6 = B.
   If the user reports wrong keys, this table is the first suspect.
 - Text strings use the `dsc "..."` assembler directive, which emits **MZ display codes**
-  (A–Z = 01–1Ah, 0–9 = 20–29h, space = 00h, `.` = 2Eh) terminated by FFh. Only those characters
+  (Aâ€“Z = 01â€“1Ah, 0â€“9 = 20â€“29h, space = 00h, `.` = 2Eh) terminated by FFh. Only those characters
   are supported by `dispcode()` in `zasm.py`.
-- MZT header: 128 bytes. Byte 0 = 01h (machine code); name at 1–17 terminated/padded with 0Dh;
+- MZT header: 128 bytes. Byte 0 = 01h (machine code); name at 1â€“17 terminated/padded with 0Dh;
   size at 18; load at 20; exec at 22 (little-endian).
 
 ---
@@ -296,12 +296,12 @@ the MZT and `mzray.sym`. **Edit textures, map, FOV and VIEWH in `build.py`, not 
 1. **Benchmark before game:** the user's established process. Real-machine numbers decide the
    resolution and design (RAYBENCH and BEECAST did the same).
 2. **Colour-cell rendering instead of glyph/block graphics:** ROM-independent (European ROM),
-   8 colours per "pixel", one byte written per pixel. 2×2 block glyphs (80×50) were considered as
+   8 colours per "pixel", one byte written per pixel. 2Ã—2 block glyphs (80Ã—50) were considered as
    a possible higher-resolution mode but are **not implemented or tested**. They would need
    char + attribute writes per cell and the European glyph codes.
-3. **40×22 view, 60° FOV:** fills the screen width and leaves 3 text rows for a HUD.
+3. **40Ã—22 view, 60Â° FOV:** fills the screen width and leaves 3 text rows for a HUD.
 4. **Everything table-driven and page-aligned:** the Z80 at 3.5 MHz can't afford divides or
-   multiplies per pixel. The only multiplies per ray are 2–3 `mul8` calls.
+   multiplies per pixel. The only multiplies per ray are 2â€“3 `mul8` calls.
 5. **Self-modifying code** for DDA steps, deltas, the column-drawer call and the poll state:
    it removes branches and memory loads from the inner loops. Code runs from RAM, so this is safe.
 6. **Polling vblank instead of interrupts:** simple, and accurate enough for benchmarking.
@@ -312,7 +312,7 @@ the MZT and `mzray.sym`. **Edit textures, map, FOV and VIEWH in `build.py`, not 
 
 ---
 
-## 8. Failed or rejected approaches — do not reintroduce
+## 8. Failed or rejected approaches â€” do not reintroduce
 
 - **Assuming buffered drawing is faster.** On the MZ-700 Win32 emulator it was slower in both ray
   counts (85 vs 76, 134 vs 125 fields). Don't make buffering the default unless real hardware disagrees.
@@ -321,7 +321,7 @@ the MZT and `mzray.sym`. **Edit textures, map, FOV and VIEWH in `build.py`, not 
 - **Doors that look like walls.** In BUNYIP the user couldn't see doors. Doors must have a clearly
   distinct texture. The v0.1 door texture (type 5, white/cyan panel with a yellow handle) is a start.
 - **"System-looking" fonts, bleepy/bloopy sounds and a weedy little gun** were all rejected in BUNYIP.
-  See §10.
+  See Â§10.
 - **Lessons from the simulator's own past bugs:** none recorded for this project yet.
 
 ---
@@ -333,11 +333,11 @@ the MZT and `mzray.sym`. **Edit textures, map, FOV and VIEWH in `build.py`, not 
   CPI/CPIR/INI/OUTI etc. (it raises "ED op not implemented"). Extend it before using new instructions.
 - `zasm.py` is a **subset assembler**: no macros, no IF/conditionals, no local labels,
   no IN/OUT, limited expressions (Python `eval` of symbols), and `DSC` supports only
-  A–Z 0–9 space and `.`. A string containing other characters raises an error.
+  Aâ€“Z 0â€“9 space and `.`. A string containing other characters raises an error.
 - Collision is a simple 0.16-cell probe per axis. There's no strafing.
 - Texture u isn't mirrored per facing, so asymmetric textures appear mirrored on some faces
   (the current textures are mostly symmetric).
-- The map is fixed at 16×16 (index math assumes stride 16, and the map is page-aligned).
+- The map is fixed at 16Ã—16 (index math assumes stride 16, and the map is page-aligned).
 - MZT includes 880 bytes of empty BUF.
 - DROPBEAR 3D source: `C:\Users\Owner\Documents\Dropbear3D_VZ300` (confirmed by the user, 19 Nov 2026).
   The sibling Microbee version BUNYIP is at `C:\Users\Owner\Documents\Codex\Bunyip-Microbee-Claude`
@@ -348,13 +348,13 @@ the MZT and `mzray.sym`. **Edit textures, map, FOV and VIEWH in `build.py`, not 
 ## 10. Outstanding work and priorities (in order)
 
 1. **Get real-MZ-700 results:** the user loads `release/MZRAY.MZT` through UniCMT and photographs the
-   results screen. Also confirm that the cursor keys, 1–4 and B work. Compare with the emulator figures.
+   results screen. Also confirm that the cursor keys, 1â€“4 and B work. Compare with the emulator figures.
 2. Decide the render mode from real figures. Likely candidates: 20 rays direct (~21 fps emulated)
    or 40 rays direct (~13 fps emulated).
    Possible optimisations to evaluate **only after measuring**:
    - write only changed cells / skip ceiling-floor writes when unchanged
    - draw during vblank / reduce VRAM touches
-   - try 2×2 block-glyph mode for resolution
+   - try 2Ã—2 block-glyph mode for resolution
 3. Design the game as a DROPBEAR 3D conversion. Features DROPBEAR 3D has (user-requested on VZ300):
    - nine connected areas with maze puzzles, colour schemes and room themes, and bosses
    - several enemy types per area, plus smaller varied ones
@@ -446,6 +446,6 @@ Expected simulator output for v0.1: `fields per 32 frames: [51, 58, 94, 102]`.
   clone). Recommended: clone the repo to e.g. `C:\Users\Owner\Documents\Codex\vz300-and-microbee-games`
   and work there, keeping `MZRay-MZ700-Claude` in sync, or ask the user which they prefer.
 - Commit author used so far: "BPM".
-- Related projects: VZ300 DROPBEAR 3D (source location TBC, see §9);
+- Related projects: VZ300 DROPBEAR 3D (source location TBC, see Â§9);
   Microbee BUNYIP (`Bunyip-Microbee` in repo, `Bunyip-Microbee-Claude` on PC).
   Measured BUNYIP speed on the real Premium Plus: ~25 fps at 80 rays, 31 fps at 40 rays.

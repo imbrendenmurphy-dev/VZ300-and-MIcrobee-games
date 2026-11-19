@@ -162,9 +162,9 @@ gi8:    bit 3,a
 gi9:    bit 2,a
         jr nz,gi10
         set 2,c
-gi10:   ld a,6                  ; row 6: SPACE b3
+gi10:   ld a,6                  ; row 6: SPACE b4 (b3 is the 0 key)
         call keyrow
-        bit 3,a
+        bit 4,a
         jr nz,gi11
         set 6,c
 gi11:   ld a,3                  ; row 3: M b3
