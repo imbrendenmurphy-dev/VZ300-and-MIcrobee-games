@@ -1,0 +1,1 @@
+py tools/build.py 2>&1 | ForEach-Object { "$_" } | Select-String -Pattern "^zasm.AsmError|^AssertionError|^Traceback|main code|upper bank|front end|OVCOM|ship files|OVERRIDE.VZ|Error" | Select-Object -First 4
