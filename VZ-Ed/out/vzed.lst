@@ -1,0 +1,3494 @@
+A000 C320A0       entry:  jp start
+A020 F3           start:  di
+A021 3100F8               ld sp,STACKTOP
+A024 AF                   xor a
+A025 320068               ld (LATCH),a
+A028 210098               ld hl,VARS
+A02B 110198               ld de,VARS+1
+A02E 01BF00               ld bc,VARS_END-VARS-1
+A031 3600                 ld (hl),0
+A033 EDB0                 ldir
+A035 2100F8               ld hl,SECBUF
+A038 2280FB               ld ($FB80),hl
+A03B 3EFF                 ld a,$FF
+A03D 327398               ld (fatcache),a
+A040 327498               ld (fatcache+1),a
+A043 327598               ld (fatcache+2),a
+A046 323E98               ld (lastidx),a
+A049 21FFFF               ld hl,$FFFF
+A04C 220A98               ld (goal),hl
+A04F 220C98               ld (curcell),hl
+A052 3E01                 ld a,1
+A054 320F98               ld (insmode),a
+A057 321198               ld (crlf),a
+A05A 324198               ld (waitrel),a
+A05D 32BF98               ld (cfg_ins),a
+A060 2A45FB               ld hl,($FB45)       ; the folder VZ-DECK / the DOS is in
+A063 227098               ld (cwd),hl
+A066 3A47FB               ld a,($FB47)
+A069 327298               ld (cwd+2),a
+A06C CD3DAB               call fs_init
+A06F CD27B5               call cfg_load
+A072 CD0CA1               call joy_detect
+A075 CD2BA8               call set_display
+A078 CD75A2               call buf_clear
+A07B 3A03A0               ld a,(plugin)
+A07E B7                   or a
+A07F 2837                 jr z,st_go
+A081 CDBBA0               call verify_ho      ; really opened from VZ-DECK with a file?
+A084 3832                 jr c,st_go
+A086 3E01                 ld a,1
+A088 32B898               ld (plugmode),a
+A08B 2AC37F               ld hl,(HO+3)
+A08E 22A998               ld (ldcl),hl
+A091 3AC57F               ld a,(HO+5)
+A094 32AB98               ld (ldcl+2),a
+A097 2AC77F               ld hl,(HO+7)
+A09A 22AC98               ld (ldsz),hl
+A09D 3AC97F               ld a,(HO+9)
+A0A0 32AE98               ld (ldsz+2),a
+A0A3 CDCFB2               call load_file
+A0A6 3810                 jr c,st_go
+A0A8 21CB7F               ld hl,HO+11
+A0AB 111398               ld de,fname
+A0AE 010B00               ld bc,11
+A0B1 EDB0                 ldir
+A0B3 3E01                 ld a,1
+A0B5 321298               ld (named),a
+A0B8 C31EA1       st_go:  jp edit
+A0BB 2AC07F               ld hl,(HO)
+A0BE 7C                   ld a,h
+A0BF B5                   or l
+A0C0 37                   scf
+A0C1 C0                   ret nz
+A0C2 3AC67F               ld a,(HO+6)
+A0C5 B7                   or a
+A0C6 37                   scf
+A0C7 C0                   ret nz
+A0C8 3A5198               ld a,(fs_ok)
+A0CB B7                   or a
+A0CC 37                   scf
+A0CD C8                   ret z
+A0CE 21CB7F               ld hl,HO+11
+A0D1 CD59B0               call cwd_find
+A0D4 D8                   ret c
+A0D5 2A8E98               ld hl,(dwptr)
+A0D8 111A00               ld de,26
+A0DB 19                   add hl,de
+A0DC ED5BC37F             ld de,(HO+3)
+A0E0 7E                   ld a,(hl)
+A0E1 BB                   cp e
+A0E2 37                   scf
+A0E3 C0                   ret nz
+A0E4 23                   inc hl
+A0E5 7E                   ld a,(hl)
+A0E6 BA                   cp d
+A0E7 37                   scf
+A0E8 C0                   ret nz
+A0E9 2A8E98               ld hl,(dwptr)
+A0EC 111400               ld de,20
+A0EF 19                   add hl,de
+A0F0 3AC57F               ld a,(HO+5)
+A0F3 BE                   cp (hl)
+A0F4 37                   scf
+A0F5 C0                   ret nz
+A0F6 2A8E98               ld hl,(dwptr)
+A0F9 111C00               ld de,28
+A0FC 19                   add hl,de
+A0FD 11C77F               ld de,HO+7
+A100 0603                 ld b,3
+A102 1A           vh_s:   ld a,(de)
+A103 BE                   cp (hl)
+A104 37                   scf
+A105 C0                   ret nz
+A106 23                   inc hl
+A107 13                   inc de
+A108 10F8                 djnz vh_s
+A10A B7                   or a
+A10B C9                   ret
+A10C DB2C                 in a,($2C)
+A10E E60F                 and $0F
+A110 FE0F                 cp $0F
+A112 C0                   ret nz
+A113 DB2E                 in a,($2E)
+A115 CB67                 bit 4,a
+A117 C8                   ret z
+A118 3E01                 ld a,1
+A11A 324298               ld (joyon),a
+A11D C9                   ret
+A11E 3E01         edit:   ld a,1
+A120 322C98               ld (edmode),a
+A123 CDACA5               call render
+A126 CDA6A9       ed_lp:  call frame
+A129 CD31AA               call getkey
+A12C B7                   or a
+A12D 28F7                 jr z,ed_lp
+A12F F5                   push af
+A130 AF                   xor a
+A131 322F98               ld (msgflag),a
+A134 322D98               ld (blinkc),a
+A137 3C                   inc a
+A138 322E98               ld (blinkon),a
+A13B F1                   pop af
+A13C CD49A1               call dispatch
+A13F 3E01                 ld a,1
+A141 322C98               ld (edmode),a
+A144 CDACA5               call render
+A147 18DD                 jr ed_lp
+A149 FE20                 cp 32
+A14B 3806                 jr c,ds_cmd
+A14D FE7F                 cp 127
+A14F D0                   ret nc
+A150 C33AA2               jp type_char
+A153 FE0D         ds_cmd: cp K_RET
+A155 CA58A2               jp z,type_newline
+A158 B7                   or a
+A159 C8                   ret z
+A15A FE18                 cp K_LAST+1
+A15C D0                   ret nc
+A15D 87                   add a,a
+A15E 6F                   ld l,a
+A15F 2600                 ld h,0
+A161 1168A1               ld de,cmdtab-2
+A164 19                   add hl,de
+A165 7E                   ld a,(hl)
+A166 23                   inc hl
+A167 66                   ld h,(hl)
+A168 6F                   ld l,a
+A169 E9                   jp (hl)
+A198 C9           c_none: ret
+A199 CD0DA3       c_left: call mv_left
+A19C C360A2               jp reset_goal
+A19F CD20A3       c_right: call mv_right
+A1A2 C360A2               jp reset_goal
+A1A5 CD67A2       c_up:   call setgoal
+A1A8 C358A4               jp mv_up
+A1AB CD67A2       c_down: call setgoal
+A1AE C377A4               jp mv_down
+A1B1 CD67A2       c_pgup: call setgoal
+A1B4 3A2098               ld a,(docrows)
+A1B7 3D                   dec a
+A1B8 47                   ld b,a
+A1B9 C5           cpu_l:  push bc
+A1BA CD58A4               call mv_up
+A1BD D492A4               call nc,top_up1
+A1C0 C1                   pop bc
+A1C1 10F6                 djnz cpu_l
+A1C3 C9                   ret
+A1C4 CD67A2       c_pgdn: call setgoal
+A1C7 3A2098               ld a,(docrows)
+A1CA 3D                   dec a
+A1CB 47                   ld b,a
+A1CC C5           cpd_l:  push bc
+A1CD CD77A4               call mv_down
+A1D0 D4C5A4               call nc,top_down1
+A1D3 C1                   pop bc
+A1D4 10F6                 djnz cpd_l
+A1D6 C9                   ret
+A1D7 CD83A3       c_top:  call gap_to_start
+A1DA 210000               ld hl,0
+A1DD 220498               ld (top),hl
+A1E0 220698               ld (hs),hl
+A1E3 C360A2               jp reset_goal
+A1E6 CDAEA3       c_bot:  call gap_to_end
+A1E9 C360A2               jp reset_goal
+A1EC CD3AA4       c_home: call goto_ls
+A1EF C360A2               jp reset_goal
+A1F2 CD42A4       c_end:  call goto_le
+A1F5 C360A2               jp reset_goal
+A1F8 CDC3A2       c_bs:   call del_left
+A1FB C360A2               jp reset_goal
+A1FE CDE5A2       c_del:  call del_right
+A201 C360A2               jp reset_goal
+A204 3A0F98       c_ins:  ld a,(insmode)
+A207 EE01                 xor 1
+A209 320F98               ld (insmode),a
+A20C C9                   ret
+A20D 3A1098       c_caps: ld a,(caps)
+A210 EE01                 xor 1
+A212 321098               ld (caps),a
+A215 C9                   ret
+A216 3A1E98       c_disp: ld a,(dstyle)
+A219 3C                   inc a
+A21A FE03                 cp 3
+A21C 3801                 jr c,cd_1
+A21E AF                   xor a
+A21F 321E98       cd_1:   ld (dstyle),a
+A222 CD2BA8               call set_display
+A225 3A1E98               ld a,(dstyle)
+A228 21E4BC               ld hl,m_disp0
+A22B B7                   or a
+A22C 2809                 jr z,cd_2
+A22E 2104BD               ld hl,m_disp1
+A231 3D                   dec a
+A232 2803                 jr z,cd_2
+A234 2121BD               ld hl,m_disp2
+A237 C319A8       cd_2:   jp set_msg
+A23A 47                   ld b,a
+A23B 3A0F98               ld a,(insmode)
+A23E B7                   or a
+A23F 2010                 jr nz,tc_ins
+A241 C5                   push bc
+A242 CDFCA2               call peek_r
+A245 C1                   pop bc
+A246 3809                 jr c,tc_ins
+A248 FE0A                 cp 10
+A24A 2805                 jr z,tc_ins
+A24C C5                   push bc
+A24D CDE5A2               call del_right
+A250 C1                   pop bc
+A251 78           tc_ins: ld a,b
+A252 CD97A2               call ins_char
+A255 C360A2               jp reset_goal
+A258 3E0A                 ld a,10
+A25A CD97A2               call ins_char
+A25D C360A2               jp reset_goal
+A260 21FFFF               ld hl,$FFFF
+A263 220A98               ld (goal),hl
+A266 C9                   ret
+A267 2A0A98       setgoal: ld hl,(goal)
+A26A 7C                   ld a,h
+A26B A5                   and l
+A26C 3C                   inc a
+A26D C0                   ret nz
+A26E CDFFA3               call curcol
+A271 220A98               ld (goal),hl
+A274 C9                   ret
+A275 2100C5               ld hl,BUFS
+A278 220098               ld (gs),hl
+A27B 2100F6               ld hl,BUFE
+A27E 220298               ld (ge),hl
+A281 210100               ld hl,1
+A284 220898               ld (curln),hl
+A287 210000               ld hl,0
+A28A 220498               ld (top),hl
+A28D 220698               ld (hs),hl
+A290 AF                   xor a
+A291 320E98               ld (modified),a
+A294 C360A2               jp reset_goal
+A297 4F                   ld c,a
+A298 2A0098               ld hl,(gs)
+A29B ED5B0298             ld de,(ge)
+A29F B7                   or a
+A2A0 ED52                 sbc hl,de
+A2A2 2819                 jr z,ic_full
+A2A4 2A0098               ld hl,(gs)
+A2A7 71                   ld (hl),c
+A2A8 23                   inc hl
+A2A9 220098               ld (gs),hl
+A2AC 3E01                 ld a,1
+A2AE 320E98               ld (modified),a
+A2B1 79                   ld a,c
+A2B2 FE0A                 cp 10
+A2B4 C0                   ret nz
+A2B5 2A0898               ld hl,(curln)
+A2B8 23                   inc hl
+A2B9 220898               ld (curln),hl
+A2BC C9                   ret
+A2BD 21E6BB       ic_full: ld hl,m_full
+A2C0 C319A8               jp set_msg
+A2C3 2A0098               ld hl,(gs)
+A2C6 1100C5               ld de,BUFS
+A2C9 B7                   or a
+A2CA ED52                 sbc hl,de
+A2CC C8                   ret z
+A2CD 2A0098               ld hl,(gs)
+A2D0 2B                   dec hl
+A2D1 220098               ld (gs),hl
+A2D4 3E01                 ld a,1
+A2D6 320E98               ld (modified),a
+A2D9 7E                   ld a,(hl)
+A2DA FE0A                 cp 10
+A2DC C0                   ret nz
+A2DD 2A0898               ld hl,(curln)
+A2E0 2B                   dec hl
+A2E1 220898               ld (curln),hl
+A2E4 C9                   ret
+A2E5 2A0298               ld hl,(ge)
+A2E8 1100F6               ld de,BUFE
+A2EB B7                   or a
+A2EC ED52                 sbc hl,de
+A2EE C8                   ret z
+A2EF 2A0298               ld hl,(ge)
+A2F2 23                   inc hl
+A2F3 220298               ld (ge),hl
+A2F6 3E01                 ld a,1
+A2F8 320E98               ld (modified),a
+A2FB C9                   ret
+A2FC 2A0298               ld hl,(ge)
+A2FF 1100F6               ld de,BUFE
+A302 B7                   or a
+A303 ED52                 sbc hl,de
+A305 37                   scf
+A306 C8                   ret z
+A307 2A0298               ld hl,(ge)
+A30A 7E                   ld a,(hl)
+A30B A7                   and a
+A30C C9                   ret
+A30D 2A0098               ld hl,(gs)
+A310 1100C5               ld de,BUFS
+A313 B7                   or a
+A314 ED52                 sbc hl,de
+A316 37                   scf
+A317 C8                   ret z
+A318 010100               ld bc,1
+A31B CD33A3               call gap_left
+A31E B7                   or a
+A31F C9                   ret
+A320 2A0298               ld hl,(ge)
+A323 1100F6               ld de,BUFE
+A326 B7                   or a
+A327 ED52                 sbc hl,de
+A329 37                   scf
+A32A C8                   ret z
+A32B 010100               ld bc,1
+A32E CD5BA3               call gap_right
+A331 B7                   or a
+A332 C9                   ret
+A333 78                   ld a,b
+A334 B1                   or c
+A335 C8                   ret z
+A336 2A0098               ld hl,(gs)
+A339 ED5B0298             ld de,(ge)
+A33D 2B           gl_l:   dec hl
+A33E 1B                   dec de
+A33F 7E                   ld a,(hl)
+A340 12                   ld (de),a
+A341 FE0A                 cp 10
+A343 2009                 jr nz,gl_n
+A345 E5                   push hl
+A346 2A0898               ld hl,(curln)
+A349 2B                   dec hl
+A34A 220898               ld (curln),hl
+A34D E1                   pop hl
+A34E 0B           gl_n:   dec bc
+A34F 78                   ld a,b
+A350 B1                   or c
+A351 20EA                 jr nz,gl_l
+A353 220098               ld (gs),hl
+A356 ED530298             ld (ge),de
+A35A C9                   ret
+A35B 78                   ld a,b
+A35C B1                   or c
+A35D C8                   ret z
+A35E 2A0298               ld hl,(ge)
+A361 ED5B0098             ld de,(gs)
+A365 7E           gr_l:   ld a,(hl)
+A366 12                   ld (de),a
+A367 23                   inc hl
+A368 13                   inc de
+A369 FE0A                 cp 10
+A36B 2009                 jr nz,gr_n
+A36D E5                   push hl
+A36E 2A0898               ld hl,(curln)
+A371 23                   inc hl
+A372 220898               ld (curln),hl
+A375 E1                   pop hl
+A376 0B           gr_n:   dec bc
+A377 78                   ld a,b
+A378 B1                   or c
+A379 20EA                 jr nz,gr_l
+A37B 220298               ld (ge),hl
+A37E ED530098             ld (gs),de
+A382 C9                   ret
+A383 2A0098               ld hl,(gs)
+A386 1100C5               ld de,BUFS
+A389 B7                   or a
+A38A ED52                 sbc hl,de
+A38C 44                   ld b,h
+A38D 4D                   ld c,l
+A38E 78                   ld a,b
+A38F B1                   or c
+A390 C8                   ret z
+A391 2A0098               ld hl,(gs)
+A394 2B                   dec hl
+A395 ED5B0298             ld de,(ge)
+A399 1B                   dec de
+A39A EDB8                 lddr
+A39C 13                   inc de
+A39D ED530298             ld (ge),de
+A3A1 2100C5               ld hl,BUFS
+A3A4 220098               ld (gs),hl
+A3A7 210100               ld hl,1
+A3AA 220898               ld (curln),hl
+A3AD C9                   ret
+A3AE 2100F6               ld hl,BUFE
+A3B1 ED5B0298             ld de,(ge)
+A3B5 B7                   or a
+A3B6 ED52                 sbc hl,de
+A3B8 44                   ld b,h
+A3B9 4D                   ld c,l
+A3BA 78                   ld a,b
+A3BB B1                   or c
+A3BC C8                   ret z
+A3BD C5                   push bc
+A3BE 2A0298               ld hl,(ge)
+A3C1 CDE9A4               call count_lf
+A3C4 2A0898               ld hl,(curln)
+A3C7 19                   add hl,de
+A3C8 220898               ld (curln),hl
+A3CB C1                   pop bc
+A3CC 2A0298               ld hl,(ge)
+A3CF ED5B0098             ld de,(gs)
+A3D3 EDB0                 ldir
+A3D5 ED530098             ld (gs),de
+A3D9 2100F6               ld hl,BUFE
+A3DC 220298               ld (ge),hl
+A3DF C9                   ret
+A3E0 2A0098               ld hl,(gs)
+A3E3 1100C5               ld de,BUFS
+A3E6 B7                   or a
+A3E7 ED52                 sbc hl,de
+A3E9 44                   ld b,h
+A3EA 4D                   ld c,l
+A3EB 2A0098               ld hl,(gs)
+A3EE 78                   ld a,b
+A3EF B1                   or c
+A3F0 C8                   ret z
+A3F1 2B                   dec hl
+A3F2 3E0A                 ld a,10
+A3F4 EDB9                 cpdr
+A3F6 2003                 jr nz,ls_none
+A3F8 23                   inc hl
+A3F9 23                   inc hl
+A3FA C9                   ret
+A3FB 2100C5       ls_none: ld hl,BUFS
+A3FE C9                   ret
+A3FF CDE0A3       curcol: call line_start     ; HL = cursor column (0 based)
+A402 EB                   ex de,hl
+A403 2A0098               ld hl,(gs)
+A406 B7                   or a
+A407 ED52                 sbc hl,de
+A409 C9                   ret
+A40A 2100F6               ld hl,BUFE
+A40D ED5B0298             ld de,(ge)
+A411 B7                   or a
+A412 ED52                 sbc hl,de
+A414 44                   ld b,h
+A415 4D                   ld c,l
+A416 78                   ld a,b
+A417 B1                   or c
+A418 C8                   ret z
+A419 2A0298               ld hl,(ge)
+A41C 3E0A                 ld a,10
+A41E EDB1                 cpir
+A420 200B                 jr nz,dl_all
+A422 2B                   dec hl
+A423 ED5B0298             ld de,(ge)
+A427 B7                   or a
+A428 ED52                 sbc hl,de
+A42A 44                   ld b,h
+A42B 4D                   ld c,l
+A42C C9                   ret
+A42D 2100F6       dl_all: ld hl,BUFE
+A430 ED5B0298             ld de,(ge)
+A434 B7                   or a
+A435 ED52                 sbc hl,de
+A437 44                   ld b,h
+A438 4D                   ld c,l
+A439 C9                   ret
+A43A CDFFA3       goto_ls: call curcol
+A43D 44                   ld b,h
+A43E 4D                   ld c,l
+A43F C333A3               jp gap_left
+A442 CD0AA4       goto_le: call dist_to_le
+A445 C35BA3               jp gap_right
+A448 E5                   push hl
+A449 CD0AA4               call dist_to_le
+A44C E1                   pop hl
+A44D B7                   or a
+A44E ED42                 sbc hl,bc
+A450 3003                 jr nc,gc_bc
+A452 09                   add hl,bc
+A453 44                   ld b,h
+A454 4D                   ld c,l
+A455 C35BA3       gc_bc:  jp gap_right
+A458 CDE0A3       mv_up:  call line_start     ; C if on the first line
+A45B 1100C5               ld de,BUFS
+A45E B7                   or a
+A45F ED52                 sbc hl,de
+A461 37                   scf
+A462 C8                   ret z
+A463 CD3AA4               call goto_ls
+A466 010100               ld bc,1
+A469 CD33A3               call gap_left
+A46C CD3AA4               call goto_ls
+A46F 2A0A98               ld hl,(goal)
+A472 CD48A4               call goto_col
+A475 B7                   or a
+A476 C9                   ret
+A477 CD0AA4               call dist_to_le
+A47A 2A0298               ld hl,(ge)
+A47D 09                   add hl,bc
+A47E 1100F6               ld de,BUFE
+A481 B7                   or a
+A482 ED52                 sbc hl,de
+A484 37                   scf
+A485 C8                   ret z
+A486 03                   inc bc
+A487 CD5BA3               call gap_right
+A48A 2A0A98               ld hl,(goal)
+A48D CD48A4               call goto_col
+A490 B7                   or a
+A491 C9                   ret
+A492 2A0498               ld hl,(top)
+A495 7C                   ld a,h
+A496 B5                   or l
+A497 C8                   ret z
+A498 1100C5               ld de,BUFS
+A49B 19                   add hl,de
+A49C 2B                   dec hl              ; HL -> LF ending the line above
+A49D E5                   push hl
+A49E 1100C5               ld de,BUFS
+A4A1 B7                   or a
+A4A2 ED52                 sbc hl,de
+A4A4 44                   ld b,h
+A4A5 4D                   ld c,l
+A4A6 E1                   pop hl
+A4A7 78                   ld a,b
+A4A8 B1                   or c
+A4A9 2813                 jr z,tu_zero
+A4AB 2B                   dec hl
+A4AC 3E0A                 ld a,10
+A4AE EDB9                 cpdr
+A4B0 200C                 jr nz,tu_zero
+A4B2 23                   inc hl
+A4B3 23                   inc hl
+A4B4 1100C5               ld de,BUFS
+A4B7 B7                   or a
+A4B8 ED52                 sbc hl,de
+A4BA 220498               ld (top),hl
+A4BD C9                   ret
+A4BE 210000       tu_zero: ld hl,0
+A4C1 220498               ld (top),hl
+A4C4 C9                   ret
+A4C5 2A0498               ld hl,(top)
+A4C8 1100C5               ld de,BUFS
+A4CB 19                   add hl,de
+A4CC E5                   push hl
+A4CD EB                   ex de,hl
+A4CE 2A0098               ld hl,(gs)
+A4D1 B7                   or a
+A4D2 ED52                 sbc hl,de
+A4D4 44                   ld b,h
+A4D5 4D                   ld c,l
+A4D6 E1                   pop hl
+A4D7 78                   ld a,b
+A4D8 B1                   or c
+A4D9 C8                   ret z
+A4DA 3E0A                 ld a,10
+A4DC EDB1                 cpir
+A4DE C0                   ret nz
+A4DF 1100C5               ld de,BUFS
+A4E2 B7                   or a
+A4E3 ED52                 sbc hl,de
+A4E5 220498               ld (top),hl
+A4E8 C9                   ret
+A4E9 110000               ld de,0
+A4EC 78                   ld a,b
+A4ED B1                   or c
+A4EE C8                   ret z
+A4EF 3E0A                 ld a,10
+A4F1 EDB1         cl_l:   cpir
+A4F3 C0                   ret nz
+A4F4 13                   inc de
+A4F5 EAF1A4               jp pe,cl_l
+A4F8 C9                   ret
+A4F9 CDE0A3               call line_start
+A4FC E5                   push hl
+A4FD 1100C5               ld de,BUFS
+A500 B7                   or a
+A501 ED52                 sbc hl,de           ; line start (logical)
+A503 ED5B0498             ld de,(top)
+A507 B7                   or a
+A508 ED52                 sbc hl,de
+A50A 3006                 jr nc,ev_below
+A50C 19                   add hl,de           ; above the top line: it becomes the top line
+A50D 220498               ld (top),hl
+A510 1847                 jr ev_hs
+A512 E1                   pop hl
+A513 E5                   push hl
+A514 3A2098               ld a,(docrows)
+A517 3D                   dec a
+A518 322A98               ld (evn),a
+A51B EB           ev_back: ex de,hl           ; DE = line start being looked at
+A51C 2A0498               ld hl,(top)
+A51F 0100C5               ld bc,BUFS
+A522 09                   add hl,bc
+A523 B7                   or a
+A524 ED52                 sbc hl,de
+A526 2831                 jr z,ev_hs          ; reached the top line: no scrolling needed
+A528 212A98               ld hl,evn
+A52B 7E                   ld a,(hl)
+A52C B7                   or a
+A52D 2820                 jr z,ev_set
+A52F 35                   dec (hl)
+A530 EB                   ex de,hl            ; HL = line start; find the line above
+A531 2B                   dec hl              ; the LF before it
+A532 E5                   push hl
+A533 0100C5               ld bc,BUFS
+A536 B7                   or a
+A537 ED42                 sbc hl,bc
+A539 44                   ld b,h
+A53A 4D                   ld c,l
+A53B E1                   pop hl
+A53C 78                   ld a,b
+A53D B1                   or c
+A53E 280B                 jr z,ev_set0
+A540 2B                   dec hl
+A541 3E0A                 ld a,10
+A543 EDB9                 cpdr
+A545 2004                 jr nz,ev_set0
+A547 23                   inc hl
+A548 23                   inc hl
+A549 18D0                 jr ev_back
+A54B 2100C5       ev_set0: ld hl,BUFS
+A54E EB                   ex de,hl
+A54F EB           ev_set: ex de,hl            ; HL = new top line start
+A550 1100C5               ld de,BUFS
+A553 B7                   or a
+A554 ED52                 sbc hl,de
+A556 220498               ld (top),hl
+A559 D1           ev_hs:  pop de              ; line start
+A55A 2A0098               ld hl,(gs)
+A55D B7                   or a
+A55E ED52                 sbc hl,de           ; column
+A560 ED5B0698             ld de,(hs)
+A564 B7                   or a
+A565 ED52                 sbc hl,de
+A567 3010                 jr nc,ev_r
+A569 19                   add hl,de
+A56A 110800               ld de,8
+A56D B7                   or a
+A56E ED52                 sbc hl,de
+A570 3003                 jr nc,ev_s
+A572 210000               ld hl,0
+A575 220698       ev_s:   ld (hs),hl
+A578 C9                   ret
+A579 112000       ev_r:   ld de,32
+A57C B7                   or a
+A57D ED52                 sbc hl,de
+A57F D8                   ret c
+A580 19                   add hl,de
+A581 ED5B0698             ld de,(hs)
+A585 19                   add hl,de
+A586 111800               ld de,24
+A589 B7                   or a
+A58A ED52                 sbc hl,de
+A58C 220698               ld (hs),hl
+A58F C9                   ret
+A590 D5           getc:   push de
+A591 ED5B0098             ld de,(gs)
+A595 B7                   or a
+A596 ED52                 sbc hl,de
+A598 19                   add hl,de
+A599 2003                 jr nz,gt_ng
+A59B 2A0298               ld hl,(ge)
+A59E 1100F6       gt_ng:  ld de,BUFE
+A5A1 B7                   or a
+A5A2 ED52                 sbc hl,de
+A5A4 19                   add hl,de
+A5A5 D1                   pop de
+A5A6 37                   scf
+A5A7 C8                   ret z
+A5A8 7E                   ld a,(hl)
+A5A9 23                   inc hl
+A5AA A7                   and a
+A5AB C9                   ret
+A5AC 3E02         render: ld a,2
+A5AE CDCEA5               call set_rows
+A5B1 CDEBA5               call render_doc
+A5B4 CDCAA6               call build_status
+A5B7 2A0C98               ld hl,(curcell)
+A5BA 7C                   ld a,h
+A5BB FEFF                 cp $FF
+A5BD 280C                 jr z,rn_f
+A5BF 3A2E98               ld a,(blinkon)
+A5C2 B7                   or a
+A5C3 2806                 jr z,rn_f
+A5C5 110080               ld de,SCR
+A5C8 19                   add hl,de
+A5C9 CBFE                 set 7,(hl)
+A5CB C394A8       rn_f:   jp flush
+A5CE CB3F                 srl a
+A5D0 210084               ld hl,ROWATTR
+A5D3 3602                 ld (hl),2
+A5D5 23                   inc hl
+A5D6 060F                 ld b,15
+A5D8 77           sr_l:   ld (hl),a
+A5D9 23                   inc hl
+A5DA 10FC                 djnz sr_l
+A5DC C9                   ret
+A5DD 210080       cls_scr: ld hl,SCR
+A5E0 110180               ld de,SCR+1
+A5E3 01FF01               ld bc,511
+A5E6 3620                 ld (hl),' '
+A5E8 EDB0                 ldir
+A5EA C9                   ret
+A5EB CDF9A4               call ensure_vis
+A5EE 21FFFF               ld hl,$FFFF
+A5F1 220C98               ld (curcell),hl
+A5F4 2A0098               ld hl,(gs)          ; boundary: first the gap (= cursor), then the end
+A5F7 222898               ld (bnd),hl
+A5FA AF                   xor a
+A5FB 322B98               ld (bphase),a
+A5FE 2A0498               ld hl,(top)
+A601 1100C5               ld de,BUFS
+A604 19                   add hl,de           ; HL = text pointer (top line)
+A605 112080               ld de,SCR+32        ; DE = screen row 1
+A608 3A2098               ld a,(docrows)
+A60B 322798               ld (rrows),a
+A60E 3A2898       rd_row: ld a,(bnd)
+A611 4F                   ld c,a              ; C = low byte of the boundary
+A612 D5                   push de             ; skip the columns scrolled off the left
+A613 ED5B0698             ld de,(hs)
+A617 7A           rd_sk:  ld a,d
+A618 B3                   or e
+A619 2816                 jr z,rd_skd
+A61B 7D                   ld a,l
+A61C B9                   cp c
+A61D CCA6A6               call z,rd_bnd
+A620 380C                 jr c,rd_skeot
+A622 7E                   ld a,(hl)
+A623 23                   inc hl
+A624 FE0A                 cp 10
+A626 2803                 jr z,rd_skeol
+A628 1B                   dec de
+A629 18EC                 jr rd_sk
+A62B D1           rd_skeol: pop de
+A62C 1843                 jr rd_eol
+A62E D1           rd_skeot: pop de
+A62F 1852                 jr rd_eot
+A631 D1           rd_skd: pop de
+A632 0620                 ld b,32
+A634 7D           rd_vl:  ld a,l              ; visible part of the line
+A635 B9                   cp c
+A636 281D                 jr z,rd_vb
+A638 7E           rd_vg:  ld a,(hl)
+A639 23                   inc hl
+A63A FE0A                 cp 10
+A63C 2835                 jr z,rd_eolp
+A63E 12                   ld (de),a
+A63F 13                   inc de
+A640 10F2                 djnz rd_vl
+A642 7D           rd_rest: ld a,l             ; rest of a long line is off screen
+A643 B9                   cp c
+A644 2808                 jr z,rd_rb
+A646 7E           rd_rg:  ld a,(hl)
+A647 23                   inc hl
+A648 FE0A                 cp 10
+A64A 20F6                 jr nz,rd_rest
+A64C 182B                 jr rd_next
+A64E CDA6A6       rd_rb:  call rd_bnd
+A651 3838                 jr c,rd_eot0
+A653 18F1                 jr rd_rg
+A655 3A2998       rd_vb:  ld a,(bnd+1)
+A658 BC                   cp h
+A659 20DD                 jr nz,rd_vg
+A65B 3A2B98               ld a,(bphase)
+A65E B7                   or a
+A65F 2024                 jr nz,rd_eotp
+A661 E5                   push hl             ; the cursor is here
+A662 210080               ld hl,-SCR
+A665 19                   add hl,de
+A666 220C98               ld (curcell),hl
+A669 E1                   pop hl
+A66A CDA6A6               call rd_bnd
+A66D 3816                 jr c,rd_eotp
+A66F 18C7                 jr rd_vg
+A671 0620         rd_eol: ld b,32             ; line ended inside the skipped part
+A673 3E20         rd_eolp: ld a,' '
+A675 12           rd_p1:  ld (de),a
+A676 13                   inc de
+A677 10FC                 djnz rd_p1
+A679 3A2798       rd_next: ld a,(rrows)
+A67C 3D                   dec a
+A67D 322798               ld (rrows),a
+A680 208C                 jr nz,rd_row
+A682 C9                   ret
+A683 0620         rd_eot: ld b,32
+A685 3E20         rd_eotp: ld a,' '           ; end of text: blank the rest
+A687 12           rd_p2:  ld (de),a
+A688 13                   inc de
+A689 10FC                 djnz rd_p2
+A68B 3A2798       rd_eot0: ld a,(rrows)
+A68E 3D                   dec a
+A68F C8                   ret z
+A690 6F                   ld l,a
+A691 2600                 ld h,0
+A693 29                   add hl,hl
+A694 29                   add hl,hl
+A695 29                   add hl,hl
+A696 29                   add hl,hl
+A697 29                   add hl,hl
+A698 44                   ld b,h
+A699 4D                   ld c,l
+A69A 62                   ld h,d
+A69B 6B                   ld l,e
+A69C 3620                 ld (hl),' '
+A69E 0B                   dec bc
+A69F 78                   ld a,b
+A6A0 B1                   or c
+A6A1 C8                   ret z
+A6A2 13                   inc de
+A6A3 EDB0                 ldir
+A6A5 C9                   ret
+A6A6 3A2998       rd_bnd: ld a,(bnd+1)
+A6A9 BC                   cp h
+A6AA C0                   ret nz              ; (NC) not really
+A6AB 3A2B98               ld a,(bphase)
+A6AE B7                   or a
+A6AF 37                   scf
+A6B0 C0                   ret nz              ; the end
+A6B1 3C                   inc a
+A6B2 322B98               ld (bphase),a
+A6B5 2100F6               ld hl,BUFE
+A6B8 222898               ld (bnd),hl
+A6BB 4D                   ld c,l
+A6BC 2A0298               ld hl,(ge)          ; over the gap
+A6BF 7D                   ld a,l
+A6C0 B9                   cp c
+A6C1 2005                 jr nz,rb_ok
+A6C3 7C                   ld a,h
+A6C4 FEF6                 cp BUFE/256
+A6C6 37                   scf
+A6C7 C8                   ret z               ; gap runs to the end: end of text
+A6C8 B7           rb_ok:  or a
+A6C9 C9                   ret
+A6CA 210080               ld hl,SCR
+A6CD 110180               ld de,SCR+1
+A6D0 011F00               ld bc,31
+A6D3 3620                 ld (hl),' '
+A6D5 EDB0                 ldir
+A6D7 3A2F98               ld a,(msgflag)
+A6DA B7                   or a
+A6DB 2809                 jr z,bs_n
+A6DD 2A3098               ld hl,(msgp)
+A6E0 110080               ld de,SCR
+A6E3 C35DA7               jp puts
+A6E6 110080       bs_n:   ld de,SCR
+A6E9 CD2DA7               call put_fname
+A6EC 3A0E98               ld a,(modified)
+A6EF B7                   or a
+A6F0 2803                 jr z,bs_1
+A6F2 3E2A                 ld a,'*'
+A6F4 12                   ld (de),a
+A6F5 110E80       bs_1:   ld de,SCR+14
+A6F8 3E4C                 ld a,'L'
+A6FA 12                   ld (de),a
+A6FB 13                   inc de
+A6FC 2A0898               ld hl,(curln)
+A6FF CD65A7               call putdec16
+A702 CDFFA3               call curcol
+A705 23                   inc hl
+A706 111580               ld de,SCR+21
+A709 3E43                 ld a,'C'
+A70B 12                   ld (de),a
+A70C 13                   inc de
+A70D CD65A7               call putdec16
+A710 111B80               ld de,SCR+27
+A713 215DBB               ld hl,s_ins
+A716 3A0F98               ld a,(insmode)
+A719 B7                   or a
+A71A 2003                 jr nz,bs_2
+A71C 2161BB               ld hl,s_ovr
+A71F CD5DA7       bs_2:   call puts
+A722 3A1098               ld a,(caps)
+A725 B7                   or a
+A726 C8                   ret z
+A727 3E5E                 ld a,'^'
+A729 321F80               ld (SCR+31),a
+A72C C9                   ret
+A72D 3A1298               ld a,(named)
+A730 B7                   or a
+A731 2006                 jr nz,pf_1
+A733 2154BB               ld hl,s_untitled
+A736 C35DA7               jp puts
+A739 211398       pf_1:   ld hl,fname
+A73C 0608         put83:  ld b,8              ; HL = 11 byte name -> "NAME.EXT" at DE
+A73E 7E           pf_n:   ld a,(hl)
+A73F FE20                 cp ' '
+A741 2802                 jr z,pf_ns
+A743 12                   ld (de),a
+A744 13                   inc de
+A745 23           pf_ns:  inc hl
+A746 10F6                 djnz pf_n
+A748 7E                   ld a,(hl)
+A749 FE20                 cp ' '
+A74B C8                   ret z
+A74C 3E2E                 ld a,'.'
+A74E 12                   ld (de),a
+A74F 13                   inc de
+A750 0603                 ld b,3
+A752 7E           pf_e:   ld a,(hl)
+A753 FE20                 cp ' '
+A755 2802                 jr z,pf_es
+A757 12                   ld (de),a
+A758 13                   inc de
+A759 23           pf_es:  inc hl
+A75A 10F6                 djnz pf_e
+A75C C9                   ret
+A75D 7E           puts:   ld a,(hl)           ; zero terminated HL -> DE
+A75E B7                   or a
+A75F C8                   ret z
+A760 12                   ld (de),a
+A761 23                   inc hl
+A762 13                   inc de
+A763 18F8                 jr puts
+A765 AF                   xor a
+A766 323298               ld (lz),a
+A769 011027               ld bc,10000
+A76C CD87A7               call pd_dig
+A76F 01E803               ld bc,1000
+A772 CD87A7               call pd_dig
+A775 016400               ld bc,100
+A778 CD87A7               call pd_dig
+A77B 010A00               ld bc,10
+A77E CD87A7               call pd_dig
+A781 7D                   ld a,l
+A782 C630                 add a,'0'
+A784 12                   ld (de),a
+A785 13                   inc de
+A786 C9                   ret
+A787 3E2F         pd_dig: ld a,'0'-1
+A789 3C           pd_l:   inc a
+A78A B7                   or a
+A78B ED42                 sbc hl,bc
+A78D 30FA                 jr nc,pd_l
+A78F 09                   add hl,bc
+A790 FE30                 cp '0'
+A792 2007                 jr nz,pd_put
+A794 4F                   ld c,a
+A795 3A3298               ld a,(lz)
+A798 B7                   or a
+A799 79                   ld a,c
+A79A C8                   ret z
+A79B 12           pd_put: ld (de),a
+A79C 13                   inc de
+A79D 3E01                 ld a,1
+A79F 323298               ld (lz),a
+A7A2 C9                   ret
+A7A3 AF                   xor a
+A7A4 323298               ld (lz),a
+A7A7 113698               ld de,NUMTMP
+A7AA 2104A8               ld hl,pow24
+A7AD 0607                 ld b,7
+A7AF 0E2F         p24_l:  ld c,'0'-1
+A7B1 0C           p24_s:  inc c
+A7B2 3A3398               ld a,(n24)
+A7B5 96                   sub (hl)
+A7B6 323398               ld (n24),a
+A7B9 23                   inc hl
+A7BA 3A3498               ld a,(n24+1)
+A7BD 9E                   sbc a,(hl)
+A7BE 323498               ld (n24+1),a
+A7C1 23                   inc hl
+A7C2 3A3598               ld a,(n24+2)
+A7C5 9E                   sbc a,(hl)
+A7C6 323598               ld (n24+2),a
+A7C9 2B                   dec hl
+A7CA 2B                   dec hl
+A7CB 30E4                 jr nc,p24_s
+A7CD 3A3398               ld a,(n24)
+A7D0 86                   add a,(hl)
+A7D1 323398               ld (n24),a
+A7D4 23                   inc hl
+A7D5 3A3498               ld a,(n24+1)
+A7D8 8E                   adc a,(hl)
+A7D9 323498               ld (n24+1),a
+A7DC 23                   inc hl
+A7DD 3A3598               ld a,(n24+2)
+A7E0 8E                   adc a,(hl)
+A7E1 323598               ld (n24+2),a
+A7E4 23                   inc hl
+A7E5 79                   ld a,c
+A7E6 FE30                 cp '0'
+A7E8 200B                 jr nz,p24_put
+A7EA 78                   ld a,b
+A7EB FE01                 cp 1
+A7ED 2806                 jr z,p24_put
+A7EF 3A3298               ld a,(lz)
+A7F2 B7                   or a
+A7F3 2808                 jr z,p24_skip
+A7F5 79           p24_put: ld a,c
+A7F6 12                   ld (de),a
+A7F7 13                   inc de
+A7F8 3E01                 ld a,1
+A7FA 323298               ld (lz),a
+A7FD 10B0         p24_skip: djnz p24_l
+A7FF 7B                   ld a,e
+A800 D636                 sub NUMTMP&255
+A802 47                   ld b,a
+A803 C9                   ret
+A819 223098       set_msg: ld (msgp),hl
+A81C 3E01                 ld a,1
+A81E 322F98               ld (msgflag),a
+A821 C9                   ret
+A822 CD19A8               call set_msg
+A825 CDCAA6               call build_status
+A828 C394A8               jp flush
+A82B 3A1E98               ld a,(dstyle)
+A82E FE02                 cp 2
+A830 282B                 jr z,sd_g
+A832 3E10                 ld a,16
+A834 321F98               ld (nrows),a
+A837 210200               ld hl,0*256+2       ; B=0 (256 cells), C=2 passes
+A83A 222198               ld (ncells),hl
+A83D 3A1E98               ld a,(dstyle)
+A840 B7                   or a
+A841 3E40                 ld a,$40
+A843 2802                 jr z,sd_t
+A845 3E80                 ld a,$80
+A847 322398       sd_t:   ld (tinvm),a
+A84A AF                   xor a
+A84B 320068               ld (LATCH),a
+A84E 210070               ld hl,VRAM
+A851 110170               ld de,VRAM+1
+A854 01FF01               ld bc,511
+A857 3620                 ld (hl),$20
+A859 EDB0                 ldir
+A85B 181D                 jr sd_c
+A85D 3E0A         sd_g:   ld a,10
+A85F 321F98               ld (nrows),a
+A862 210240               ld hl,64*256+2      ; 64 then 256 = 320 cells
+A865 222198               ld (ncells),hl
+A868 3E08                 ld a,$08
+A86A 320068               ld (LATCH),a
+A86D 210070               ld hl,VRAM
+A870 110170               ld de,VRAM+1
+A873 01FF07               ld bc,2047
+A876 3600                 ld (hl),0
+A878 EDB0                 ldir
+A87A 3A1F98       sd_c:   ld a,(nrows)
+A87D 3D                   dec a
+A87E 322098               ld (docrows),a
+A881 3E01                 ld a,1
+A883 324198               ld (waitrel),a
+A886 210082               ld hl,OLD
+A889 110182               ld de,OLD+1
+A88C 01FF01               ld bc,511
+A88F 36FE                 ld (hl),$FE
+A891 EDB0                 ldir
+A893 C9                   ret
+A894 210080               ld hl,SCR
+A897 110082               ld de,OLD
+A89A ED4B2198             ld bc,(ncells)      ; B = first pass count, C = passes
+A89E 1A           fl_l:   ld a,(de)
+A89F BE                   cp (hl)
+A8A0 2008                 jr nz,fl_d
+A8A2 23           fl_n:   inc hl
+A8A3 13                   inc de
+A8A4 10F8                 djnz fl_l
+A8A6 0D                   dec c
+A8A7 20F5                 jr nz,fl_l
+A8A9 C9                   ret
+A8AA 7E           fl_d:   ld a,(hl)
+A8AB 12                   ld (de),a
+A8AC E5                   push hl
+A8AD D5                   push de
+A8AE C5                   push bc
+A8AF 44                   ld b,h
+A8B0 CBB8                 res 7,b             ; index = HL - $8000
+A8B2 4D                   ld c,l
+A8B3 CDBBA8               call draw_cell
+A8B6 C1                   pop bc
+A8B7 D1                   pop de
+A8B8 E1                   pop hl
+A8B9 18E7                 jr fl_n
+A8BB 5F                   ld e,a
+A8BC 79                   ld a,c
+A8BD 07                   rlca
+A8BE 07                   rlca
+A8BF 07                   rlca
+A8C0 E607                 and 7
+A8C2 57                   ld d,a
+A8C3 78                   ld a,b
+A8C4 87                   add a,a
+A8C5 87                   add a,a
+A8C6 87                   add a,a
+A8C7 B2                   or d                ; A = row
+A8C8 322498               ld (crow),a
+A8CB 210084               ld hl,ROWATTR
+A8CE 85                   add a,l
+A8CF 6F                   ld l,a
+A8D0 56                   ld d,(hl)           ; D = row flags
+A8D1 3A1E98               ld a,(dstyle)
+A8D4 FE02                 cp 2
+A8D6 283C                 jr z,gcell
+A8D8 210070               ld hl,VRAM
+A8DB 09                   add hl,bc
+A8DC E5                   push hl
+A8DD 7B                   ld a,e
+A8DE E67F                 and $7F
+A8E0 6F                   ld l,a
+A8E1 26C2                 ld h,TTAB/256
+A8E3 4E                   ld c,(hl)           ; C = 6847 code + case flags
+A8E4 E1                   pop hl
+A8E5 79                   ld a,c
+A8E6 E63F                 and $3F
+A8E8 CB7B                 bit 7,e
+A8EA 2814                 jr z,tc_nh
+A8EC CB4A                 bit 1,d             ; on the title bar: a hole (prompt cursor)
+A8EE 2022                 jr nz,tc_st
+A8F0 CB42                 bit 0,d
+A8F2 281C                 jr z,tc_inv
+A8F4 3A0F98               ld a,(insmode)      ; cursor in the text: a coloured block
+A8F7 B7                   or a
+A8F8 3EAF                 ld a,$AF
+A8FA 2016                 jr nz,tc_st
+A8FC 3EBF                 ld a,$BF
+A8FE 1812                 jr tc_st
+A900 CB4A         tc_nh:  bit 1,d
+A902 200C                 jr nz,tc_inv
+A904 CB42                 bit 0,d
+A906 280A                 jr z,tc_st
+A908 47                   ld b,a
+A909 3A2398               ld a,(tinvm)
+A90C A1                   and c
+A90D 78                   ld a,b
+A90E 2802                 jr z,tc_st
+A910 F640         tc_inv: or $40
+A912 77           tc_st:  ld (hl),a
+A913 C9                   ret
+A914 CB7B                 bit 7,e
+A916 2812                 jr z,gc_nh
+A918 3E20                 ld a,32
+A91A CB42                 bit 0,d
+A91C 2813                 jr z,gc_p
+A91E 3A0F98               ld a,(insmode)
+A921 B7                   or a
+A922 3E20                 ld a,32
+A924 200B                 jr nz,gc_p
+A926 3E30                 ld a,48
+A928 1807                 jr gc_p
+A92A AF           gc_nh:  xor a
+A92B CB4A                 bit 1,d
+A92D 2802                 jr z,gc_p
+A92F 3E10                 ld a,16
+A931 322698       gc_p:   ld (gpair),a
+A934 79                   ld a,c
+A935 E61F                 and 31
+A937 322598               ld (ccol),a
+A93A 7B                   ld a,e
+A93B E67F                 and $7F
+A93D D620                 sub 32
+A93F 3804                 jr c,gc_blk
+A941 FE5F                 cp 95
+A943 3802                 jr c,gc_ok
+A945 3E5F         gc_blk: ld a,95
+A947 6F           gc_ok:  ld l,a
+A948 2600                 ld h,0
+A94A 29                   add hl,hl
+A94B 54                   ld d,h
+A94C 5D                   ld e,l
+A94D 29                   add hl,hl
+A94E 19                   add hl,de
+A94F 1180C2               ld de,FONT
+A952 19                   add hl,de
+A953 EB                   ex de,hl            ; DE = glyph
+A954 3A2498               ld a,(crow)
+A957 87                   add a,a
+A958 6F                   ld l,a
+A959 2600                 ld h,0
+A95B 0185A9               ld bc,ROWBASE
+A95E 09                   add hl,bc
+A95F 7E                   ld a,(hl)
+A960 23                   inc hl
+A961 66                   ld h,(hl)
+A962 6F                   ld l,a
+A963 3A2598               ld a,(ccol)
+A966 85                   add a,l
+A967 6F                   ld l,a
+A968 3001                 jr nc,gc_a
+A96A 24                   inc h
+A96B 0606         gc_a:   ld b,6
+A96D 3A2698               ld a,(gpair)
+A970 4F                   ld c,a
+A971 1A           gc_l:   ld a,(de)
+A972 13                   inc de
+A973 B1                   or c
+A974 E5                   push hl
+A975 6F                   ld l,a
+A976 26C1                 ld h,CTAB/256
+A978 7E                   ld a,(hl)
+A979 E1                   pop hl
+A97A 77                   ld (hl),a
+A97B 7D                   ld a,l
+A97C C620                 add a,32
+A97E 6F                   ld l,a
+A97F 3001                 jr nc,gc_n
+A981 24                   inc h
+A982 10ED         gc_n:   djnz gc_l
+A984 C9                   ret
+A999 3A0068       vsync:  ld a,(LATCH)        ; wait for the start of field sync
+A99C 17                   rla
+A99D 30FA                 jr nc,vsync
+A99F 3A0068       vs_w:   ld a,(LATCH)
+A9A2 17                   rla
+A9A3 38FA                 jr c,vs_w
+A9A5 C9                   ret
+A9A6 CD99A9       frame:  call vsync          ; one frame; blinks the cursor in the editor
+A9A9 3A2C98               ld a,(edmode)
+A9AC B7                   or a
+A9AD C8                   ret z
+A9AE 3A2D98               ld a,(blinkc)
+A9B1 3C                   inc a
+A9B2 E60F                 and 15
+A9B4 322D98               ld (blinkc),a
+A9B7 C0                   ret nz
+A9B8 3A2E98               ld a,(blinkon)
+A9BB EE01                 xor 1
+A9BD 322E98               ld (blinkon),a
+A9C0 2A0C98               ld hl,(curcell)
+A9C3 7C                   ld a,h
+A9C4 FEFF                 cp $FF
+A9C6 C8                   ret z
+A9C7 110080               ld de,SCR
+A9CA 19                   add hl,de
+A9CB 7E                   ld a,(hl)
+A9CC EE80                 xor $80
+A9CE 77                   ld (hl),a
+A9CF C394A8               jp flush
+A9D2 0E00                 ld c,0
+A9D4 3AFB68               ld a,($68FB)
+A9D7 CB57                 bit 2,a
+A9D9 2002                 jr nz,ks_1
+A9DB CBC1                 set 0,c
+A9DD 3AFD68       ks_1:   ld a,($68FD)
+A9E0 CB57                 bit 2,a
+A9E2 2002                 jr nz,ks_2
+A9E4 CBC9                 set 1,c
+A9E6 21FE68       ks_2:   ld hl,$68FE
+A9E9 0600                 ld b,0
+A9EB 7E           ks_row: ld a,(hl)
+A9EC 2F                   cpl
+A9ED E63F                 and $3F
+A9EF 5F                   ld e,a
+A9F0 7D                   ld a,l
+A9F1 FEFD                 cp $FD
+A9F3 2804                 jr z,ks_m
+A9F5 FEFB                 cp $FB
+A9F7 2004                 jr nz,ks_nm
+A9F9 7B           ks_m:   ld a,e
+A9FA E63B                 and $3B             ; not SHIFT/CTRL themselves
+A9FC 5F                   ld e,a
+A9FD 7B           ks_nm:  ld a,e
+A9FE B7                   or a
+A9FF 202B                 jr nz,ks_bit
+AA01 78                   ld a,b
+AA02 C608                 add a,8
+AA04 47                   ld b,a
+AA05 7D                   ld a,l
+AA06 07                   rlca
+AA07 6F                   ld l,a
+AA08 FEFE                 cp $FE
+AA0A 20DF                 jr nz,ks_row
+AA0C 3A4298               ld a,(joyon)
+AA0F B7                   or a
+AA10 2817                 jr z,ks_none
+AA12 DB2C                 in a,($2C)
+AA14 2F                   cpl
+AA15 E60F                 and $0F
+AA17 2807                 jr z,ks_fire
+AA19 0640                 ld b,64
+AA1B 0F           ks_jb:  rrca
+AA1C D8                   ret c
+AA1D 04                   inc b
+AA1E 18FB                 jr ks_jb
+AA20 DB2E         ks_fire: in a,($2E)
+AA22 CB67                 bit 4,a
+AA24 2003                 jr nz,ks_none
+AA26 0644                 ld b,68
+AA28 C9                   ret
+AA29 06FF         ks_none: ld b,$FF
+AA2B C9                   ret
+AA2C 0F           ks_bit: rrca
+AA2D D8                   ret c
+AA2E 04                   inc b
+AA2F 18FB                 jr ks_bit
+AA31 CDD2A9               call kscan
+AA34 78                   ld a,b
+AA35 FEFF                 cp $FF
+AA37 2008                 jr nz,gk_k
+AA39 323E98               ld (lastidx),a
+AA3C AF                   xor a
+AA3D 324198               ld (waitrel),a
+AA40 C9                   ret
+AA41 3A4198       gk_k:   ld a,(waitrel)      ; ignore keys held over from before
+AA44 B7                   or a
+AA45 2806                 jr z,gk_k2
+AA47 78                   ld a,b
+AA48 323E98               ld (lastidx),a
+AA4B AF                   xor a
+AA4C C9                   ret
+AA4D 3A3E98       gk_k2:  ld a,(lastidx)
+AA50 B8                   cp b
+AA51 2018                 jr nz,gk_new
+AA53 3A3F98               ld a,(lastmod)
+AA56 B9                   cp c
+AA57 2012                 jr nz,gk_new
+AA59 3A4098               ld a,(rpt)
+AA5C 3D                   dec a
+AA5D 324098               ld (rpt),a
+AA60 2802                 jr z,gk_rep
+AA62 AF                   xor a
+AA63 C9                   ret
+AA64 3E03         gk_rep: ld a,REP2
+AA66 324098               ld (rpt),a
+AA69 180D                 jr gk_ev
+AA6B 78           gk_new: ld a,b
+AA6C 323E98               ld (lastidx),a
+AA6F 79                   ld a,c
+AA70 323F98               ld (lastmod),a
+AA73 3E12                 ld a,REP1
+AA75 324098               ld (rpt),a
+AA78 78           gk_ev:  ld a,b
+AA79 FE40                 cp 64
+AA7B 3020                 jr nc,gk_joy
+AA7D 79                   ld a,c
+AA7E 0F                   rrca
+AA7F 0F                   rrca
+AA80 B0                   or b
+AA81 6F                   ld l,a
+AA82 26C0                 ld h,KTAB/256
+AA84 7E                   ld a,(hl)
+AA85 4F                   ld c,a
+AA86 3A1098               ld a,(caps)
+AA89 B7                   or a
+AA8A 79                   ld a,c
+AA8B C8                   ret z
+AA8C FE61                 cp 'a'
+AA8E 3804                 jr c,gk_cu
+AA90 FE7B                 cp 'z'+1
+AA92 3806                 jr c,gk_flip
+AA94 FE41         gk_cu:  cp 'A'
+AA96 D8                   ret c
+AA97 FE5B                 cp 'Z'+1
+AA99 D0                   ret nc
+AA9A EE20         gk_flip: xor $20
+AA9C C9                   ret
+AA9D D640         gk_joy: sub 64
+AA9F 6F                   ld l,a
+AAA0 2600                 ld h,0
+AAA2 11A8AA               ld de,JTAB
+AAA5 19                   add hl,de
+AAA6 7E                   ld a,(hl)
+AAA7 C9                   ret
+AAAD CDA6A9               call frame
+AAB0 CD31AA               call getkey
+AAB3 B7                   or a
+AAB4 28F7                 jr z,waitkey
+AAB6 C9                   ret
+AAB7 5E           ld24:   ld e,(hl)           ; (HL) -> E:HL
+AAB8 23                   inc hl
+AAB9 56                   ld d,(hl)
+AABA 23                   inc hl
+AABB 7E                   ld a,(hl)
+AABC EB                   ex de,hl
+AABD 5F                   ld e,a
+AABE C9                   ret
+AABF 7D           st24:   ld a,l              ; E:HL -> (BC)
+AAC0 02                   ld (bc),a
+AAC1 03                   inc bc
+AAC2 7C                   ld a,h
+AAC3 02                   ld (bc),a
+AAC4 03                   inc bc
+AAC5 7B                   ld a,e
+AAC6 02                   ld (bc),a
+AAC7 C9                   ret
+AAC8 0A           addm24: ld a,(bc)           ; E:HL += (BC)
+AAC9 85                   add a,l
+AACA 6F                   ld l,a
+AACB 03                   inc bc
+AACC 0A                   ld a,(bc)
+AACD 8C                   adc a,h
+AACE 67                   ld h,a
+AACF 03                   inc bc
+AAD0 0A                   ld a,(bc)
+AAD1 8B                   adc a,e
+AAD2 5F                   ld e,a
+AAD3 C9                   ret
+AAD4 0A           subm24: ld a,(bc)           ; E:HL -= (BC), C = borrow (uses D)
+AAD5 57                   ld d,a
+AAD6 7D                   ld a,l
+AAD7 92                   sub d
+AAD8 6F                   ld l,a
+AAD9 03                   inc bc
+AADA 0A                   ld a,(bc)
+AADB 57                   ld d,a
+AADC 7C                   ld a,h
+AADD 9A                   sbc a,d
+AADE 67                   ld h,a
+AADF 03                   inc bc
+AAE0 0A                   ld a,(bc)
+AAE1 57                   ld d,a
+AAE2 7B                   ld a,e
+AAE3 9A                   sbc a,d
+AAE4 5F                   ld e,a
+AAE5 C9                   ret
+AAE6 E5           cmpm24: push hl             ; C if E:HL < (BC)
+AAE7 D5                   push de
+AAE8 CDD4AA               call subm24
+AAEB D1                   pop de
+AAEC E1                   pop hl
+AAED C9                   ret
+AAEE 010100       inc24:  ld bc,1
+AAF1 09                   add hl,bc
+AAF2 7B                   ld a,e
+AAF3 CE00                 adc a,0
+AAF5 5F                   ld e,a
+AAF6 C9                   ret
+AAF7 7B                   ld a,e
+AAF8 B4                   or h
+AAF9 2004                 jr nz,cv_1
+AAFB 7D                   ld a,l
+AAFC FE02                 cp 2
+AAFE D8                   ret c
+AAFF 016A98       cv_1:   ld bc,clend
+AB02 CDE6AA               call cmpm24
+AB05 3F                   ccf
+AB06 C9                   ret
+AB07 C5           rd_sec: push bc             ; sector E:HL -> SECBUF
+AB08 D5                   push de
+AB09 E5                   push hl
+AB0A CD2EAB               call dos_nocache
+AB0D 0100F8               ld bc,SECBUF
+AB10 ED4380FB             ld ($FB80),bc
+AB14 1600                 ld d,0
+AB16 CD5D57               call DOS_RDSEC
+AB19 F3                   di
+AB1A E1                   pop hl
+AB1B D1                   pop de
+AB1C C1                   pop bc
+AB1D C9                   ret
+AB1E C5           wr_sec: push bc             ; SECBUF -> sector E:HL
+AB1F D5                   push de
+AB20 E5                   push hl
+AB21 1600                 ld d,0
+AB23 CD8C56               call DOS_WRSEC
+AB26 F3                   di
+AB27 CD2EAB               call dos_nocache
+AB2A E1                   pop hl
+AB2B D1                   pop de
+AB2C C1                   pop bc
+AB2D C9                   ret
+AB2E 3EFF                 ld a,$FF
+AB30 3206FB               ld ($FB06),a
+AB33 3207FB               ld ($FB07),a
+AB36 3208FB               ld ($FB08),a
+AB39 3209FB               ld ($FB09),a
+AB3C C9                   ret
+AB3D AF                   xor a
+AB3E 325198               ld (fs_ok),a
+AB41 3A0DFB               ld a,($FB0D)
+AB44 B7                   or a
+AB45 C0                   ret nz
+AB46 2A0AFB               ld hl,($FB0A)
+AB49 3A0CFB               ld a,($FB0C)
+AB4C 225298               ld (part),hl
+AB4F 325498               ld (part+2),a
+AB52 5F                   ld e,a
+AB53 CD07AB               call rd_sec
+AB56 2A0BF8               ld hl,(SECBUF+11)   ; 512 bytes a sector
+AB59 110002               ld de,512
+AB5C B7                   or a
+AB5D ED52                 sbc hl,de
+AB5F C0                   ret nz
+AB60 2A16F8               ld hl,(SECBUF+$16)  ; FAT16 sizes are zero on FAT32
+AB63 7C                   ld a,h
+AB64 B5                   or l
+AB65 C0                   ret nz
+AB66 3A27F8               ld a,(SECBUF+$27)
+AB69 B7                   or a
+AB6A C0                   ret nz
+AB6B 3A2FF8               ld a,(SECBUF+$2F)
+AB6E B7                   or a
+AB6F C0                   ret nz
+AB70 3A10F8               ld a,(SECBUF+$10)
+AB73 325798               ld (nfats),a
+AB76 3D                   dec a
+AB77 FE02                 cp 2
+AB79 D0                   ret nc
+AB7A 3A0DF8               ld a,(SECBUF+13)
+AB7D 325598               ld (spc),a
+AB80 B7                   or a
+AB81 C8                   ret z
+AB82 4F                   ld c,a
+AB83 0600                 ld b,0
+AB85 CB39         fi_sh:  srl c
+AB87 3803                 jr c,fi_shd
+AB89 04                   inc b
+AB8A 18F9                 jr fi_sh
+AB8C 79           fi_shd: ld a,c
+AB8D B7                   or a
+AB8E C0                   ret nz              ; not a power of two
+AB8F 78                   ld a,b
+AB90 325698               ld (sh),a
+AB93 210002               ld hl,512           ; bytes per cluster
+AB96 1E00                 ld e,0
+AB98 B7                   or a
+AB99 2805                 jr z,fi_b
+AB9B 29           fi_bl:  add hl,hl
+AB9C CB13                 rl e
+AB9E 10FB                 djnz fi_bl
+ABA0 015898       fi_b:   ld bc,bpc
+ABA3 CDBFAA               call st24
+ABA6 2A5298               ld hl,(part)
+ABA9 3A5498               ld a,(part+2)
+ABAC 5F                   ld e,a
+ABAD ED4B0EF8             ld bc,(SECBUF+14)   ; reserved sectors
+ABB1 09                   add hl,bc
+ABB2 7B                   ld a,e
+ABB3 CE00                 adc a,0
+ABB5 5F                   ld e,a
+ABB6 015B98               ld bc,fat1
+ABB9 CDBFAA               call st24
+ABBC 2A24F8               ld hl,(SECBUF+$24)
+ABBF 3A26F8               ld a,(SECBUF+$26)
+ABC2 225E98               ld (fatsz),hl
+ABC5 326098               ld (fatsz+2),a
+ABC8 215B98               ld hl,fat1
+ABCB CDB7AA               call ld24
+ABCE 3A5798               ld a,(nfats)
+ABD1 47                   ld b,a
+ABD2 C5           fi_df:  push bc
+ABD3 015E98               ld bc,fatsz
+ABD6 CDC8AA               call addm24
+ABD9 C1                   pop bc
+ABDA 10F6                 djnz fi_df
+ABDC 016198               ld bc,data
+ABDF CDBFAA               call st24
+ABE2 3A0DFA               ld a,($FA0D)        ; must agree with where the DOS reads files
+ABE5 B7                   or a
+ABE6 C0                   ret nz
+ABE7 3A0AFA               ld a,($FA0A)
+ABEA BD                   cp l
+ABEB C0                   ret nz
+ABEC 3A0BFA               ld a,($FA0B)
+ABEF BC                   cp h
+ABF0 C0                   ret nz
+ABF1 3A0CFA               ld a,($FA0C)
+ABF4 BB                   cp e
+ABF5 C0                   ret nz
+ABF6 2A2CF8               ld hl,(SECBUF+$2C)
+ABF9 3A2EF8               ld a,(SECBUF+$2E)
+ABFC 226498               ld (rootcl),hl
+ABFF 326698               ld (rootcl+2),a
+AC02 2A5298               ld hl,(part)
+AC05 3A5498               ld a,(part+2)
+AC08 5F                   ld e,a
+AC09 ED4B30F8             ld bc,(SECBUF+$30)
+AC0D 09                   add hl,bc
+AC0E 7B                   ld a,e
+AC0F CE00                 adc a,0
+AC11 5F                   ld e,a
+AC12 016798               ld bc,fsinfo
+AC15 CDBFAA               call st24
+AC18 2A20F8               ld hl,(SECBUF+$20)
+AC1B 3A22F8               ld a,(SECBUF+$22)
+AC1E 5F                   ld e,a
+AC1F 3A23F8               ld a,(SECBUF+$23)
+AC22 B7                   or a
+AC23 2804                 jr z,fi_t1
+AC25 21FFFF               ld hl,$FFFF
+AC28 5C                   ld e,h
+AC29 015298       fi_t1:  ld bc,part
+AC2C CDC8AA               call addm24
+AC2F 3004                 jr nc,fi_t2
+AC31 21FFFF               ld hl,$FFFF
+AC34 5C                   ld e,h
+AC35 016198       fi_t2:  ld bc,data
+AC38 CDD4AA               call subm24
+AC3B D8                   ret c
+AC3C 3A5698               ld a,(sh)
+AC3F B7                   or a
+AC40 2809                 jr z,fi_t3
+AC42 47                   ld b,a
+AC43 CB3B         fi_sr:  srl e
+AC45 CB1C                 rr h
+AC47 CB1D                 rr l
+AC49 10F8                 djnz fi_sr
+AC4B 010200       fi_t3:  ld bc,2
+AC4E 09                   add hl,bc
+AC4F 7B                   ld a,e
+AC50 CE00                 adc a,0
+AC52 5F                   ld e,a
+AC53 016A98               ld bc,clend
+AC56 CDBFAA               call st24
+AC59 3A6098               ld a,(fatsz+2)      ; and never past the end of the FAT
+AC5C FE02                 cp 2
+AC5E 301B                 jr nc,fi_nc
+AC60 215E98               ld hl,fatsz
+AC63 CDB7AA               call ld24
+AC66 0607                 ld b,7
+AC68 29           fi_c7:  add hl,hl
+AC69 CB13                 rl e
+AC6B 10FB                 djnz fi_c7
+AC6D 016A98               ld bc,clend
+AC70 CDE6AA               call cmpm24
+AC73 3006                 jr nc,fi_nc
+AC75 016A98               ld bc,clend
+AC78 CDBFAA               call st24
+AC7B 210200       fi_nc:  ld hl,2             ; where to start looking for free space
+AC7E 226D98               ld (hint),hl
+AC81 AF                   xor a
+AC82 326F98               ld (hint+2),a
+AC85 216798               ld hl,fsinfo
+AC88 CDB7AA               call ld24
+AC8B CD07AB               call rd_sec
+AC8E 2A00F8               ld hl,(SECBUF)
+AC91 115252               ld de,$5252
+AC94 B7                   or a
+AC95 ED52                 sbc hl,de
+AC97 2023                 jr nz,fi_ok
+AC99 2A02F8               ld hl,(SECBUF+2)
+AC9C 116141               ld de,$4161
+AC9F B7                   or a
+ACA0 ED52                 sbc hl,de
+ACA2 2018                 jr nz,fi_ok
+ACA4 3AEFF9               ld a,(SECBUF+$1EF)
+ACA7 B7                   or a
+ACA8 2012                 jr nz,fi_ok
+ACAA 2AECF9               ld hl,(SECBUF+$1EC)
+ACAD 3AEEF9               ld a,(SECBUF+$1EE)
+ACB0 5F                   ld e,a
+ACB1 CDF7AA               call clvalid
+ACB4 3806                 jr c,fi_ok
+ACB6 016D98               ld bc,hint
+ACB9 CDBFAA               call st24
+ACBC 3E01         fi_ok:  ld a,1
+ACBE 325198               ld (fs_ok),a
+ACC1 C9                   ret
+ACC2 015B98               ld bc,fat1
+ACC5 CDC8AA               call addm24
+ACC8 3A7398               ld a,(fatcache)
+ACCB BD                   cp l
+ACCC 200B                 jr nz,fa_rd
+ACCE 3A7498               ld a,(fatcache+1)
+ACD1 BC                   cp h
+ACD2 2005                 jr nz,fa_rd
+ACD4 3A7598               ld a,(fatcache+2)
+ACD7 BB                   cp e
+ACD8 C8                   ret z
+ACD9 CDE5AC       fa_rd:  call fat_flush
+ACDC CD07AB               call rd_sec
+ACDF 017398               ld bc,fatcache
+ACE2 C3BFAA               jp st24
+ACE5 3A7698               ld a,(fatdirty)
+ACE8 B7                   or a
+ACE9 C8                   ret z
+ACEA AF                   xor a
+ACEB 327698               ld (fatdirty),a
+ACEE E5                   push hl
+ACEF D5                   push de
+ACF0 217398               ld hl,fatcache
+ACF3 CDB7AA               call ld24
+ACF6 CD1EAB               call wr_sec
+ACF9 3A5798               ld a,(nfats)
+ACFC FE02                 cp 2
+ACFE 3809                 jr c,ff_1
+AD00 015E98               ld bc,fatsz
+AD03 CDC8AA               call addm24
+AD06 CD1EAB               call wr_sec
+AD09 D1           ff_1:   pop de
+AD0A E1                   pop hl
+AD0B C9                   ret
+AD0C CDE5AC               call fat_flush
+AD0F 3EFF                 ld a,$FF
+AD11 327398               ld (fatcache),a
+AD14 327498               ld (fatcache+1),a
+AD17 327598               ld (fatcache+2),a
+AD1A C9                   ret
+AD1B 7D                   ld a,l
+AD1C E67F                 and $7F
+AD1E F5                   push af
+AD1F 0607                 ld b,7
+AD21 CB3B         fe_s:   srl e
+AD23 CB1C                 rr h
+AD25 CB1D                 rr l
+AD27 10F8                 djnz fe_s
+AD29 CDC2AC               call fat_load
+AD2C F1                   pop af
+AD2D 6F                   ld l,a
+AD2E 2600                 ld h,0
+AD30 29                   add hl,hl
+AD31 29                   add hl,hl
+AD32 0100F8               ld bc,SECBUF
+AD35 09                   add hl,bc
+AD36 C9                   ret
+AD37 CD1BAD               call fat_entry
+AD3A 4E                   ld c,(hl)
+AD3B 23                   inc hl
+AD3C 46                   ld b,(hl)
+AD3D 23                   inc hl
+AD3E 5E                   ld e,(hl)
+AD3F 23                   inc hl
+AD40 7E                   ld a,(hl)
+AD41 E60F                 and $0F
+AD43 60                   ld h,b
+AD44 69                   ld l,c
+AD45 C9                   ret
+AD46 CD1BAD               call fat_entry
+AD49 3A7798               ld a,(setv)
+AD4C 77                   ld (hl),a
+AD4D 23                   inc hl
+AD4E 3A7898               ld a,(setv+1)
+AD51 77                   ld (hl),a
+AD52 23                   inc hl
+AD53 3A7998               ld a,(setv+2)
+AD56 77                   ld (hl),a
+AD57 23                   inc hl
+AD58 7E                   ld a,(hl)
+AD59 E6F0                 and $F0
+AD5B 47                   ld b,a
+AD5C 3A7A98               ld a,(setv3)
+AD5F B0                   or b
+AD60 77                   ld (hl),a
+AD61 3E01                 ld a,1
+AD63 327698               ld (fatdirty),a
+AD66 C9                   ret
+AD67 AF                   xor a
+AD68 327798               ld (setv),a
+AD6B 327898               ld (setv+1),a
+AD6E 327998               ld (setv+2),a
+AD71 327A98               ld (setv3),a
+AD74 C9                   ret
+AD75 3EFF                 ld a,$FF
+AD77 327798               ld (setv),a
+AD7A 327898               ld (setv+1),a
+AD7D 327998               ld (setv+2),a
+AD80 3E0F                 ld a,$0F
+AD82 327A98               ld (setv3),a
+AD85 C9                   ret
+AD86 F5                   push af
+AD87 010200               ld bc,2
+AD8A B7                   or a
+AD8B ED42                 sbc hl,bc
+AD8D 7B                   ld a,e
+AD8E DE00                 sbc a,0
+AD90 5F                   ld e,a
+AD91 3A5698               ld a,(sh)
+AD94 B7                   or a
+AD95 2806                 jr z,cb_1
+AD97 47                   ld b,a
+AD98 29           cb_s:   add hl,hl
+AD99 CB13                 rl e
+AD9B 10FB                 djnz cb_s
+AD9D 016198       cb_1:   ld bc,data
+ADA0 CDC8AA               call addm24
+ADA3 F1                   pop af
+ADA4 4F                   ld c,a
+ADA5 0600                 ld b,0
+ADA7 09                   add hl,bc
+ADA8 7B                   ld a,e
+ADA9 CE00                 adc a,0
+ADAB 5F                   ld e,a
+ADAC C9                   ret
+ADAD 327B98               ld (anum),a
+ADB0 B7                   or a
+ADB1 C8                   ret z
+ADB2 AF                   xor a
+ADB3 327C98               ld (afound),a
+ADB6 216D98               ld hl,hint
+ADB9 CDB7AA               call ld24
+ADBC CDF7AA               call clvalid
+ADBF 3005                 jr nc,ac_h
+ADC1 210200               ld hl,2
+ADC4 1E00                 ld e,0
+ADC6 017D98       ac_h:   ld bc,acur
+ADC9 CDBFAA               call st24
+ADCC 216A98               ld hl,clend         ; look at each cluster exactly once
+ADCF CDB7AA               call ld24
+ADD2 010200               ld bc,2
+ADD5 B7                   or a
+ADD6 ED42                 sbc hl,bc
+ADD8 7B                   ld a,e
+ADD9 DE00                 sbc a,0
+ADDB 5F                   ld e,a
+ADDC 018098               ld bc,aleft
+ADDF CDBFAA               call st24
+ADE2 217D98       ac_lp:  ld hl,acur
+ADE5 CDB7AA               call ld24
+ADE8 CD37AD               call fat_get
+ADEB B7                   or a
+ADEC 202B                 jr nz,ac_used
+ADEE 7D                   ld a,l
+ADEF B4                   or h
+ADF0 B3                   or e
+ADF1 2026                 jr nz,ac_used
+ADF3 3A7C98               ld a,(afound)       ; free: note it
+ADF6 4F                   ld c,a
+ADF7 87                   add a,a
+ADF8 81                   add a,c
+ADF9 4F                   ld c,a
+ADFA 0600                 ld b,0
+ADFC 211084               ld hl,CLIST
+ADFF 09                   add hl,bc
+AE00 E5                   push hl
+AE01 217D98               ld hl,acur
+AE04 CDB7AA               call ld24
+AE07 C1                   pop bc
+AE08 CDBFAA               call st24
+AE0B 3A7C98               ld a,(afound)
+AE0E 3C                   inc a
+AE0F 327C98               ld (afound),a
+AE12 47                   ld b,a
+AE13 3A7B98               ld a,(anum)
+AE16 B8                   cp b
+AE17 283F                 jr z,ac_link
+AE19 217D98       ac_used: ld hl,acur
+AE1C CDB7AA               call ld24
+AE1F CDEEAA               call inc24
+AE22 016A98               ld bc,clend
+AE25 CDE6AA               call cmpm24
+AE28 3805                 jr c,ac_nw
+AE2A 210200               ld hl,2
+AE2D 1E00                 ld e,0
+AE2F 017D98       ac_nw:  ld bc,acur
+AE32 CDBFAA               call st24
+AE35 218098               ld hl,aleft
+AE38 CDB7AA               call ld24
+AE3B 7D                   ld a,l
+AE3C D601                 sub 1
+AE3E 6F                   ld l,a
+AE3F 7C                   ld a,h
+AE40 DE00                 sbc a,0
+AE42 67                   ld h,a
+AE43 7B                   ld a,e
+AE44 DE00                 sbc a,0
+AE46 5F                   ld e,a
+AE47 018098               ld bc,aleft
+AE4A CDBFAA               call st24
+AE4D 7D                   ld a,l
+AE4E B4                   or h
+AE4F B3                   or e
+AE50 C2E2AD               jp nz,ac_lp
+AE53 CD0CAD       ac_full: call fat_sync
+AE56 37                   scf
+AE57 C9                   ret
+AE58 3A7B98       ac_link: ld a,(anum)
+AE5B 47                   ld b,a
+AE5C 211084               ld hl,CLIST
+AE5F C5           ac_lk:  push bc
+AE60 E5                   push hl
+AE61 78                   ld a,b
+AE62 FE01                 cp 1
+AE64 2817                 jr z,ac_eoc
+AE66 23                   inc hl
+AE67 23                   inc hl
+AE68 23                   inc hl
+AE69 7E                   ld a,(hl)
+AE6A 327798               ld (setv),a
+AE6D 23                   inc hl
+AE6E 7E                   ld a,(hl)
+AE6F 327898               ld (setv+1),a
+AE72 23                   inc hl
+AE73 7E                   ld a,(hl)
+AE74 327998               ld (setv+2),a
+AE77 AF                   xor a
+AE78 327A98               ld (setv3),a
+AE7B 1803                 jr ac_st
+AE7D CD75AD       ac_eoc: call set_eoc
+AE80 E1           ac_st:  pop hl
+AE81 E5                   push hl
+AE82 CDB7AA               call ld24
+AE85 CD46AD               call fat_set
+AE88 E1                   pop hl
+AE89 23                   inc hl
+AE8A 23                   inc hl
+AE8B 23                   inc hl
+AE8C C1                   pop bc
+AE8D 10D0                 djnz ac_lk
+AE8F CD0CAD               call fat_sync
+AE92 217D98               ld hl,acur
+AE95 CDB7AA               call ld24
+AE98 CDEEAA               call inc24
+AE9B 016D98               ld bc,hint
+AE9E CDBFAA               call st24
+AEA1 B7                   or a
+AEA2 C9                   ret
+AEA3 228398               ld (fccl),hl
+AEA6 7B                   ld a,e
+AEA7 328598               ld (fccl+2),a
+AEAA 218398       fc_lp:  ld hl,fccl
+AEAD CDB7AA               call ld24
+AEB0 CDF7AA               call clvalid
+AEB3 382D                 jr c,fc_done
+AEB5 CD37AD               call fat_get
+AEB8 328998               ld (fcflag),a
+AEBB 228698               ld (fcnext),hl
+AEBE 7B                   ld a,e
+AEBF 328898               ld (fcnext+2),a
+AEC2 CD67AD               call set_free
+AEC5 218398               ld hl,fccl
+AEC8 CDB7AA               call ld24
+AECB CD46AD               call fat_set
+AECE 3A8998               ld a,(fcflag)
+AED1 B7                   or a
+AED2 200E                 jr nz,fc_done
+AED4 2A8698               ld hl,(fcnext)
+AED7 228398               ld (fccl),hl
+AEDA 3A8898               ld a,(fcnext+2)
+AEDD 328598               ld (fccl+2),a
+AEE0 18C8                 jr fc_lp
+AEE2 C30CAD       fc_done: jp fat_sync
+AEE5 7B                   ld a,e
+AEE6 B4                   or h
+AEE7 B5                   or l
+AEE8 2006                 jr nz,dws_1
+AEEA 216498               ld hl,rootcl
+AEED CDB7AA               call ld24
+AEF0 018A98       dws_1:  ld bc,dwcl
+AEF3 CDBFAA               call st24
+AEF6 AF                   xor a
+AEF7 328D98               ld (dwsec),a
+AEFA CD0CAD       dw_load: call fat_sync
+AEFD 218A98               ld hl,dwcl
+AF00 CDB7AA               call ld24
+AF03 3A8D98               ld a,(dwsec)
+AF06 CD86AD               call clus_lba
+AF09 019098               ld bc,dwlba
+AF0C CDBFAA               call st24
+AF0F CD07AB               call rd_sec
+AF12 2100F8               ld hl,SECBUF
+AF15 228E98               ld (dwptr),hl
+AF18 B7                   or a
+AF19 C9                   ret
+AF1A 2A8E98               ld hl,(dwptr)
+AF1D 112000               ld de,32
+AF20 19                   add hl,de
+AF21 228E98               ld (dwptr),hl
+AF24 7C                   ld a,h
+AF25 FEFA                 cp (SECBUF+512)/256
+AF27 2802                 jr z,dwn_s
+AF29 B7                   or a
+AF2A C9                   ret
+AF2B 3A8D98       dwn_s:  ld a,(dwsec)
+AF2E 3C                   inc a
+AF2F 328D98               ld (dwsec),a
+AF32 47                   ld b,a
+AF33 3A5598               ld a,(spc)
+AF36 B8                   cp b
+AF37 20C1                 jr nz,dw_load
+AF39 218A98               ld hl,dwcl
+AF3C CDB7AA               call ld24
+AF3F CD37AD               call fat_get
+AF42 B7                   or a
+AF43 37                   scf
+AF44 C0                   ret nz
+AF45 CDF7AA               call clvalid
+AF48 D8                   ret c
+AF49 018A98               ld bc,dwcl
+AF4C CDBFAA               call st24
+AF4F AF                   xor a
+AF50 328D98               ld (dwsec),a
+AF53 18A5                 jr dw_load
+AF55 219098               ld hl,dwlba
+AF58 CDB7AA               call ld24
+AF5B C31EAB               jp wr_sec
+AF5E CDE5AE               call dw_start
+AF61 2A8E98       df_lp:  ld hl,(dwptr)
+AF64 7E                   ld a,(hl)
+AF65 B7                   or a
+AF66 37                   scf
+AF67 C8                   ret z
+AF68 FEE5                 cp $E5
+AF6A 281E                 jr z,df_n
+AF6C E5                   push hl
+AF6D 110B00               ld de,11
+AF70 19                   add hl,de
+AF71 7E                   ld a,(hl)
+AF72 E1                   pop hl
+AF73 FE0F                 cp $0F
+AF75 2813                 jr z,df_n
+AF77 CB5F                 bit 3,a
+AF79 200F                 jr nz,df_n
+AF7B 11D097               ld de,NAMEBUF
+AF7E 060B                 ld b,11
+AF80 1A           df_c:   ld a,(de)
+AF81 BE                   cp (hl)
+AF82 2006                 jr nz,df_n
+AF84 23                   inc hl
+AF85 13                   inc de
+AF86 10F8                 djnz df_c
+AF88 B7                   or a
+AF89 C9                   ret
+AF8A CD1AAF       df_n:   call dw_next
+AF8D D8                   ret c
+AF8E 18D1                 jr df_lp
+AF90 CDE5AE               call dw_start
+AF93 2A8E98       dsl_lp: ld hl,(dwptr)
+AF96 7E                   ld a,(hl)
+AF97 B7                   or a
+AF98 C8                   ret z
+AF99 FEE5                 cp $E5
+AF9B C8                   ret z
+AF9C CD1AAF               call dw_next
+AF9F 30F2                 jr nc,dsl_lp
+AFA1 3E01                 ld a,1
+AFA3 CDADAD               call alloc_chain
+AFA6 D8                   ret c
+AFA7 2A1084               ld hl,(CLIST)
+AFAA 227798               ld (setv),hl
+AFAD 3A1284               ld a,(CLIST+2)
+AFB0 327998               ld (setv+2),a
+AFB3 AF                   xor a
+AFB4 327A98               ld (setv3),a
+AFB7 218A98               ld hl,dwcl
+AFBA CDB7AA               call ld24
+AFBD CD46AD               call fat_set
+AFC0 CD0CAD               call fat_sync
+AFC3 211084               ld hl,CLIST
+AFC6 CDB7AA               call ld24
+AFC9 018A98               ld bc,dwcl
+AFCC CDBFAA               call st24
+AFCF 2100F8               ld hl,SECBUF
+AFD2 1101F8               ld de,SECBUF+1
+AFD5 01FF01               ld bc,511
+AFD8 3600                 ld (hl),0
+AFDA EDB0                 ldir
+AFDC AF                   xor a
+AFDD 328D98               ld (dwsec),a
+AFE0 218A98       dsl_z:  ld hl,dwcl
+AFE3 CDB7AA               call ld24
+AFE6 3A8D98               ld a,(dwsec)
+AFE9 CD86AD               call clus_lba
+AFEC CD1EAB               call wr_sec
+AFEF 3A8D98               ld a,(dwsec)
+AFF2 3C                   inc a
+AFF3 328D98               ld (dwsec),a
+AFF6 47                   ld b,a
+AFF7 3A5598               ld a,(spc)
+AFFA B8                   cp b
+AFFB 20E3                 jr nz,dsl_z
+AFFD AF                   xor a
+AFFE 328D98               ld (dwsec),a
+B001 218A98               ld hl,dwcl
+B004 CDB7AA               call ld24
+B007 AF                   xor a
+B008 CD86AD               call clus_lba
+B00B 019098               ld bc,dwlba
+B00E CDBFAA               call st24
+B011 2100F8               ld hl,SECBUF
+B014 228E98               ld (dwptr),hl
+B017 B7                   or a
+B018 C9                   ret
+B019 2A8E98               ld hl,(dwptr)
+B01C E5                   push hl
+B01D 111A00               ld de,26
+B020 19                   add hl,de
+B021 5E                   ld e,(hl)
+B022 23                   inc hl
+B023 56                   ld d,(hl)
+B024 E1                   pop hl
+B025 E5                   push hl
+B026 011400               ld bc,20
+B029 09                   add hl,bc
+B02A 7E                   ld a,(hl)
+B02B E1                   pop hl
+B02C ED538398             ld (fccl),de
+B030 328598               ld (fccl+2),a
+B033 36E5                 ld (hl),$E5
+B035 CD55AF               call dir_write
+B038 218398               ld hl,fccl
+B03B CDB7AA               call ld24
+B03E C3A3AE               jp free_chain
+B041 ED5B8E98             ld de,(dwptr)
+B045 21E097               ld hl,NEWNAME
+B048 010B00               ld bc,11
+B04B EDB0                 ldir
+B04D C355AF               jp dir_write
+B050 11D097               ld de,NAMEBUF
+B053 010B00               ld bc,11
+B056 EDB0                 ldir
+B058 C9                   ret
+B059 CD50B0               call setname
+B05C 217098               ld hl,cwd
+B05F CDB7AA               call ld24
+B062 C35EAF               jp dir_find
+B065 2A9398               ld hl,(seg1p)
+B068 ED4B9598             ld bc,(seg1l)
+B06C CDE9A4               call count_lf
+B06F D5                   push de
+B070 2A9798               ld hl,(seg2p)
+B073 ED4B9998             ld bc,(seg2l)
+B077 CDE9A4               call count_lf
+B07A E1                   pop hl
+B07B 19                   add hl,de
+B07C 3A9B98               ld a,(wcrlf)
+B07F B7                   or a
+B080 2003                 jr nz,wn_1
+B082 210000               ld hl,0
+B085 ED5B9598     wn_1:   ld de,(seg1l)
+B089 19                   add hl,de
+B08A ED5B9998             ld de,(seg2l)
+B08E 19                   add hl,de
+B08F 229F98               ld (outlen),hl
+B092 1E00                 ld e,0              ; clusters needed
+B094 0E00                 ld c,0
+B096 7C           wn_cl:  ld a,h
+B097 B5                   or l
+B098 B3                   or e
+B099 280B                 jr z,wn_cd
+B09B 0C                   inc c
+B09C C5                   push bc
+B09D 015898               ld bc,bpc
+B0A0 CDD4AA               call subm24
+B0A3 C1                   pop bc
+B0A4 30F0                 jr nc,wn_cl
+B0A6 79           wn_cd:  ld a,c
+B0A7 32A198               ld (wncl),a
+B0AA FE81                 cp 129
+B0AC 3F                   ccf
+B0AD D8                   ret c
+B0AE CDADAD               call alloc_chain
+B0B1 D8                   ret c
+B0B2 AF                   xor a
+B0B3 32A298               ld (wci),a
+B0B6 32A398               ld (wsec),a
+B0B9 2100F8               ld hl,SECBUF
+B0BC 22A498               ld (wpos),hl
+B0BF 2A9398               ld hl,(seg1p)
+B0C2 ED4B9598             ld bc,(seg1l)
+B0C6 CD7EB1               call wseg
+B0C9 2A9798               ld hl,(seg2p)
+B0CC ED4B9998             ld bc,(seg2l)
+B0D0 CD7EB1               call wseg
+B0D3 2AA498               ld hl,(wpos)
+B0D6 7D                   ld a,l
+B0D7 B7                   or a
+B0D8 2005                 jr nz,wn_z
+B0DA 7C                   ld a,h
+B0DB FEF8                 cp SECBUF/256
+B0DD 2813                 jr z,wn_ent
+B0DF 2AA498       wn_z:   ld hl,(wpos)        ; pad the last sector with zeros
+B0E2 7C                   ld a,h
+B0E3 FEFA                 cp (SECBUF+512)/256
+B0E5 2808                 jr z,wn_zf
+B0E7 3600                 ld (hl),0
+B0E9 23                   inc hl
+B0EA 22A498               ld (wpos),hl
+B0ED 18F0                 jr wn_z
+B0EF CDB0B1       wn_zf:  call wflush
+B0F2 3AA198       wn_ent: ld a,(wncl)
+B0F5 B7                   or a
+B0F6 210000               ld hl,0
+B0F9 5D                   ld e,l
+B0FA 2806                 jr z,wn_f
+B0FC 211084               ld hl,CLIST
+B0FF CDB7AA               call ld24
+B102 22A698       wn_f:   ld (wfirst),hl
+B105 7B                   ld a,e
+B106 32A898               ld (wfirst+2),a
+B109 219C98               ld hl,wdir
+B10C CDB7AA               call ld24
+B10F CD90AF               call dir_slot
+B112 300B                 jr nc,wn_fill
+B114 21A698               ld hl,wfirst        ; no room for the name: give the space back
+B117 CDB7AA               call ld24
+B11A CDA3AE               call free_chain
+B11D 37                   scf
+B11E C9                   ret
+B11F 2A8E98       wn_fill: ld hl,(dwptr)
+B122 E5                   push hl
+B123 54                   ld d,h
+B124 5D                   ld e,l
+B125 13                   inc de
+B126 3600                 ld (hl),0
+B128 011F00               ld bc,31
+B12B EDB0                 ldir
+B12D E1                   pop hl
+B12E E5                   push hl
+B12F EB                   ex de,hl
+B130 21D097               ld hl,NAMEBUF
+B133 010B00               ld bc,11
+B136 EDB0                 ldir
+B138 EB                   ex de,hl
+B139 3620                 ld (hl),$20         ; attribute: archive
+B13B E1                   pop hl
+B13C E5                   push hl
+B13D 010E00               ld bc,14
+B140 09                   add hl,bc
+B141 110060               ld de,FTIME
+B144 73                   ld (hl),e
+B145 23                   inc hl
+B146 72                   ld (hl),d
+B147 23                   inc hl
+B148 11745D               ld de,FDATE
+B14B 73                   ld (hl),e           ; created
+B14C 23                   inc hl
+B14D 72                   ld (hl),d
+B14E 23                   inc hl
+B14F 73                   ld (hl),e           ; accessed
+B150 23                   inc hl
+B151 72                   ld (hl),d
+B152 23                   inc hl
+B153 3AA898               ld a,(wfirst+2)     ; +20 cluster (high)
+B156 77                   ld (hl),a
+B157 23                   inc hl
+B158 3600                 ld (hl),0
+B15A 23                   inc hl
+B15B 110060               ld de,FTIME         ; +22 written
+B15E 73                   ld (hl),e
+B15F 23                   inc hl
+B160 72                   ld (hl),d
+B161 23                   inc hl
+B162 11745D               ld de,FDATE
+B165 73                   ld (hl),e
+B166 23                   inc hl
+B167 72                   ld (hl),d
+B168 23                   inc hl
+B169 ED5BA698             ld de,(wfirst)      ; +26 cluster (low)
+B16D 73                   ld (hl),e
+B16E 23                   inc hl
+B16F 72                   ld (hl),d
+B170 23                   inc hl
+B171 ED5B9F98             ld de,(outlen)      ; +28 size
+B175 73                   ld (hl),e
+B176 23                   inc hl
+B177 72                   ld (hl),d
+B178 E1                   pop hl
+B179 CD55AF               call dir_write
+B17C B7                   or a
+B17D C9                   ret
+B17E 78           wseg:   ld a,b              ; HL = text, BC = length -> file (LF -> CR LF)
+B17F B1                   or c
+B180 C8                   ret z
+B181 7E           ws_l:   ld a,(hl)
+B182 23                   inc hl
+B183 FE0A                 cp 10
+B185 200F                 jr nz,ws_p
+B187 57                   ld d,a
+B188 3A9B98               ld a,(wcrlf)
+B18B B7                   or a
+B18C 7A                   ld a,d
+B18D 2807                 jr z,ws_p
+B18F 3E0D                 ld a,13
+B191 CD9FB1               call wputb
+B194 3E0A                 ld a,10
+B196 CD9FB1       ws_p:   call wputb
+B199 0B                   dec bc
+B19A 78                   ld a,b
+B19B B1                   or c
+B19C 20E3                 jr nz,ws_l
+B19E C9                   ret
+B19F E5           wputb:  push hl
+B1A0 2AA498               ld hl,(wpos)
+B1A3 77                   ld (hl),a
+B1A4 23                   inc hl
+B1A5 22A498               ld (wpos),hl
+B1A8 7C                   ld a,h
+B1A9 FEFA                 cp (SECBUF+512)/256
+B1AB CCB0B1               call z,wflush
+B1AE E1                   pop hl
+B1AF C9                   ret
+B1B0 C5           wflush: push bc
+B1B1 D5                   push de
+B1B2 E5                   push hl
+B1B3 3AA298               ld a,(wci)
+B1B6 4F                   ld c,a
+B1B7 87                   add a,a
+B1B8 81                   add a,c
+B1B9 4F                   ld c,a
+B1BA 0600                 ld b,0
+B1BC 211084               ld hl,CLIST
+B1BF 09                   add hl,bc
+B1C0 CDB7AA               call ld24
+B1C3 3AA398               ld a,(wsec)
+B1C6 CD86AD               call clus_lba
+B1C9 CD1EAB               call wr_sec
+B1CC 3AA398               ld a,(wsec)
+B1CF 3C                   inc a
+B1D0 32A398               ld (wsec),a
+B1D3 47                   ld b,a
+B1D4 3A5598               ld a,(spc)
+B1D7 B8                   cp b
+B1D8 200B                 jr nz,wf_1
+B1DA AF                   xor a
+B1DB 32A398               ld (wsec),a
+B1DE 3AA298               ld a,(wci)
+B1E1 3C                   inc a
+B1E2 32A298               ld (wci),a
+B1E5 2100F8       wf_1:   ld hl,SECBUF
+B1E8 22A498               ld (wpos),hl
+B1EB E1                   pop hl
+B1EC D1                   pop de
+B1ED C1                   pop bc
+B1EE C9                   ret
+B1EF 3A5198               ld a,(fs_ok)
+B1F2 B7                   or a
+B1F3 2008                 jr nz,sv_ok
+B1F5 212ABC               ld hl,m_nofs
+B1F8 CD19A8               call set_msg
+B1FB 37                   scf
+B1FC C9                   ret
+B1FD 2144BC       sv_ok:  ld hl,m_saving
+B200 CD22A8               call show_status
+B203 216BBB               ld hl,s_tmpname     ; 1. clear away an old temp file
+B206 CD59B0               call cwd_find
+B209 D419B0               call nc,del_entry
+B20C 2100C5               ld hl,BUFS          ; 2. write the text as the temp file
+B20F 229398               ld (seg1p),hl
+B212 2A0098               ld hl,(gs)
+B215 1100C5               ld de,BUFS
+B218 B7                   or a
+B219 ED52                 sbc hl,de
+B21B 229598               ld (seg1l),hl
+B21E 2A0298               ld hl,(ge)
+B221 229798               ld (seg2p),hl
+B224 EB                   ex de,hl
+B225 2100F6               ld hl,BUFE
+B228 B7                   or a
+B229 ED52                 sbc hl,de
+B22B 229998               ld (seg2l),hl
+B22E 3A1198               ld a,(crlf)
+B231 329B98               ld (wcrlf),a
+B234 217098               ld hl,cwd
+B237 CDB7AA               call ld24
+B23A 019C98               ld bc,wdir
+B23D CDBFAA               call st24
+B240 216BBB               ld hl,s_tmpname
+B243 CD50B0               call setname
+B246 CD65B0               call write_new
+B249 3008                 jr nc,sv_3
+B24B 2170BC               ld hl,m_cardfull
+B24E CD19A8               call set_msg
+B251 37                   scf
+B252 C9                   ret
+B253 211398       sv_3:   ld hl,fname         ; 3. the old version becomes NAME.BAK
+B256 CD59B0               call cwd_find
+B259 384A                 jr c,sv_4
+B25B 3A1B98               ld a,(fname+8)
+B25E FE42                 cp 'B'
+B260 2013                 jr nz,sv_bk
+B262 3A1C98               ld a,(fname+9)
+B265 FE41                 cp 'A'
+B267 200C                 jr nz,sv_bk
+B269 3A1D98               ld a,(fname+10)
+B26C FE4B                 cp 'K'
+B26E 2005                 jr nz,sv_bk
+B270 CD19B0               call del_entry      ; editing a .BAK itself: just replace it
+B273 1830                 jr sv_4
+B275 211398       sv_bk:  ld hl,fname
+B278 11E097               ld de,NEWNAME
+B27B 010800               ld bc,8
+B27E EDB0                 ldir
+B280 2168BB               ld hl,s_bak
+B283 010300               ld bc,3
+B286 EDB0                 ldir
+B288 21E097               ld hl,NEWNAME
+B28B CD59B0               call cwd_find
+B28E D419B0               call nc,del_entry
+B291 21E097               ld hl,NEWNAME
+B294 11D097               ld de,NAMEBUF
+B297 010B00               ld bc,11
+B29A EDB0                 ldir                ; keep NEWNAME = NAME.BAK
+B29C 211398               ld hl,fname
+B29F CD59B0               call cwd_find
+B2A2 D441B0               call nc,rename_entry
+B2A5 216BBB       sv_4:   ld hl,s_tmpname     ; 4. the temp file takes the real name
+B2A8 CD59B0               call cwd_find
+B2AB 381A                 jr c,sv_err
+B2AD 211398               ld hl,fname
+B2B0 11E097               ld de,NEWNAME
+B2B3 010B00               ld bc,11
+B2B6 EDB0                 ldir
+B2B8 CD41B0               call rename_entry
+B2BB AF                   xor a
+B2BC 320E98               ld (modified),a
+B2BF 214EBC               ld hl,m_saved
+B2C2 CD19A8               call set_msg
+B2C5 B7                   or a
+B2C6 C9                   ret
+B2C7 2154BC       sv_err: ld hl,m_saveerr
+B2CA CD19A8               call set_msg
+B2CD 37                   scf
+B2CE C9                   ret
+B2CF 3A5198               ld a,(fs_ok)
+B2D2 B7                   or a
+B2D3 2008                 jr nz,lf_1
+B2D5 212ABC               ld hl,m_nofs
+B2D8 CD19A8               call set_msg
+B2DB 37                   scf
+B2DC C9                   ret
+B2DD 3AAE98       lf_1:   ld a,(ldsz+2)
+B2E0 B7                   or a
+B2E1 200C                 jr nz,lf_big
+B2E3 210031               ld hl,BUFE-BUFS
+B2E6 ED5BAC98             ld de,(ldsz)
+B2EA B7                   or a
+B2EB ED52                 sbc hl,de
+B2ED 3008                 jr nc,lf_2
+B2EF 21F2BB       lf_big: ld hl,m_toobig
+B2F2 CD19A8               call set_msg
+B2F5 37                   scf
+B2F6 C9                   ret
+B2F7 CD75A2       lf_2:   call buf_clear
+B2FA 2100C5               ld hl,BUFS
+B2FD 22AF98               ld (lddst),hl
+B300 AF                   xor a
+B301 321198               ld (crlf),a
+B304 32B798               ld (trunc),a
+B307 2AAC98               ld hl,(ldsz)
+B30A 22B198               ld (ldrem),hl
+B30D 2AA998               ld hl,(ldcl)
+B310 22B398               ld (ldcur),hl
+B313 3AAB98               ld a,(ldcl+2)
+B316 32B598               ld (ldcur+2),a
+B319 2AB198       lf_cl:  ld hl,(ldrem)
+B31C 7C                   ld a,h
+B31D B5                   or l
+B31E CAA4B3               jp z,lf_done
+B321 21B398               ld hl,ldcur
+B324 CDB7AA               call ld24
+B327 CDF7AA               call clvalid
+B32A 3873                 jr c,lf_trunc
+B32C AF                   xor a
+B32D 32B698               ld (lsec),a
+B330 CD0CAD       lf_sec: call fat_sync
+B333 21B398               ld hl,ldcur
+B336 CDB7AA               call ld24
+B339 3AB698               ld a,(lsec)
+B33C CD86AD               call clus_lba
+B33F CD07AB               call rd_sec
+B342 2AB198               ld hl,(ldrem)
+B345 010002               ld bc,512
+B348 B7                   or a
+B349 ED42                 sbc hl,bc
+B34B 3006                 jr nc,lf_st
+B34D 09                   add hl,bc
+B34E 44                   ld b,h
+B34F 4D                   ld c,l
+B350 210000               ld hl,0
+B353 22B198       lf_st:  ld (ldrem),hl
+B356 2100F8               ld hl,SECBUF
+B359 ED5BAF98             ld de,(lddst)
+B35D 7E           lf_cp:  ld a,(hl)
+B35E 23                   inc hl
+B35F FE0D                 cp 13
+B361 2804                 jr z,lf_cr
+B363 12                   ld (de),a
+B364 13                   inc de
+B365 1805                 jr lf_nx
+B367 3E01         lf_cr:  ld a,1
+B369 321198               ld (crlf),a
+B36C 0B           lf_nx:  dec bc
+B36D 78                   ld a,b
+B36E B1                   or c
+B36F 20EC                 jr nz,lf_cp
+B371 ED53AF98             ld (lddst),de
+B375 2AB198               ld hl,(ldrem)
+B378 7C                   ld a,h
+B379 B5                   or l
+B37A 2828                 jr z,lf_done
+B37C 3AB698               ld a,(lsec)
+B37F 3C                   inc a
+B380 32B698               ld (lsec),a
+B383 47                   ld b,a
+B384 3A5598               ld a,(spc)
+B387 B8                   cp b
+B388 20A6                 jr nz,lf_sec
+B38A 21B398               ld hl,ldcur
+B38D CDB7AA               call ld24
+B390 CD37AD               call fat_get
+B393 B7                   or a
+B394 2009                 jr nz,lf_trunc
+B396 01B398               ld bc,ldcur
+B399 CDBFAA               call st24
+B39C C319B3               jp lf_cl
+B39F 3E01         lf_trunc: ld a,1
+B3A1 32B798               ld (trunc),a
+B3A4 CD0CAD       lf_done: call fat_sync
+B3A7 2AAF98               ld hl,(lddst)       ; text to the end of the buffer, cursor at the top
+B3AA 1100C5               ld de,BUFS
+B3AD B7                   or a
+B3AE ED52                 sbc hl,de
+B3B0 44                   ld b,h
+B3B1 4D                   ld c,l
+B3B2 78                   ld a,b
+B3B3 B1                   or c
+B3B4 2827                 jr z,lf_e
+B3B6 C5                   push bc
+B3B7 2AAF98               ld hl,(lddst)
+B3BA 2B                   dec hl
+B3BB 11FFF5               ld de,BUFE-1
+B3BE EDB8                 lddr
+B3C0 13                   inc de
+B3C1 ED530298             ld (ge),de
+B3C5 C1                   pop bc
+B3C6 3A1198               ld a,(crlf)         ; no CR seen: LF-only file, unless it has no LFs at all
+B3C9 B7                   or a
+B3CA 2011                 jr nz,lf_e
+B3CC 2A0298               ld hl,(ge)
+B3CF CDE9A4               call count_lf
+B3D2 7A                   ld a,d
+B3D3 B3                   or e
+B3D4 2016                 jr nz,lf_e2
+B3D6 3E01                 ld a,1
+B3D8 321198               ld (crlf),a
+B3DB 180F                 jr lf_e2
+B3DD 3A1198       lf_e:   ld a,(crlf)
+B3E0 B7                   or a
+B3E1 2009                 jr nz,lf_e2
+B3E3 78                   ld a,b
+B3E4 B1                   or c
+B3E5 2005                 jr nz,lf_e2
+B3E7 3E01                 ld a,1
+B3E9 321198               ld (crlf),a
+B3EC 2100C5       lf_e2:  ld hl,BUFS
+B3EF 220098               ld (gs),hl
+B3F2 210100               ld hl,1
+B3F5 220898               ld (curln),hl
+B3F8 210000               ld hl,0
+B3FB 220498               ld (top),hl
+B3FE 220698               ld (hs),hl
+B401 AF                   xor a
+B402 320E98               ld (modified),a
+B405 CD60A2               call reset_goal
+B408 3AB798               ld a,(trunc)
+B40B B7                   or a
+B40C C8                   ret z
+B40D 210DBC               ld hl,m_trunc
+B410 CD19A8               call set_msg
+B413 B7                   or a
+B414 C9                   ret
+B415 AF                   xor a
+B416 324A98               ld (dcount),a
+B419 210086               ld hl,DIRBUF
+B41C 224B98               ld (dwr),hl
+B41F 3A5198               ld a,(fs_ok)
+B422 B7                   or a
+B423 C8                   ret z
+B424 217098               ld hl,cwd
+B427 CDB7AA               call ld24
+B42A CDE5AE               call dw_start
+B42D 2A8E98       rdr_l:  ld hl,(dwptr)
+B430 7E                   ld a,(hl)
+B431 B7                   or a
+B432 2878                 jr z,rdr_d
+B434 FEE5                 cp $E5
+B436 286F                 jr z,rdr_n
+B438 E5                   push hl
+B439 110B00               ld de,11
+B43C 19                   add hl,de
+B43D 7E                   ld a,(hl)
+B43E E1                   pop hl
+B43F 4F                   ld c,a
+B440 FE0F                 cp $0F
+B442 2863                 jr z,rdr_n
+B444 E60E                 and $0E             ; hidden, system, volume label
+B446 205F                 jr nz,rdr_n
+B448 7E                   ld a,(hl)
+B449 FE2E                 cp '.'
+B44B 200B                 jr nz,rdr_k
+B44D 23                   inc hl
+B44E 7E                   ld a,(hl)
+B44F 2B                   dec hl
+B450 FE2E                 cp '.'
+B452 2053                 jr nz,rdr_n         ; "." itself
+B454 0600                 ld b,0
+B456 1808                 jr rdr_r
+B458 0602         rdr_k:  ld b,2
+B45A CB61                 bit 4,c
+B45C 2802                 jr z,rdr_r
+B45E 0601                 ld b,1
+B460 ED5B4B98     rdr_r:  ld de,(dwr)
+B464 78                   ld a,b
+B465 12                   ld (de),a
+B466 13                   inc de
+B467 E5                   push hl
+B468 010B00               ld bc,11
+B46B EDB0                 ldir
+B46D E1                   pop hl
+B46E E5                   push hl
+B46F 011A00               ld bc,26
+B472 09                   add hl,bc
+B473 7E                   ld a,(hl)
+B474 12                   ld (de),a
+B475 13                   inc de
+B476 23                   inc hl
+B477 7E                   ld a,(hl)
+B478 12                   ld (de),a
+B479 13                   inc de
+B47A E1                   pop hl
+B47B E5                   push hl
+B47C 011400               ld bc,20
+B47F 09                   add hl,bc
+B480 7E                   ld a,(hl)
+B481 12                   ld (de),a
+B482 13                   inc de
+B483 E1                   pop hl
+B484 E5                   push hl
+B485 011C00               ld bc,28
+B488 09                   add hl,bc
+B489 010400               ld bc,4
+B48C EDB0                 ldir
+B48E E1                   pop hl
+B48F E5                   push hl
+B490 010B00               ld bc,11
+B493 09                   add hl,bc
+B494 7E                   ld a,(hl)
+B495 12                   ld (de),a
+B496 13                   inc de
+B497 E1                   pop hl
+B498 ED534B98             ld (dwr),de
+B49C 3A4A98               ld a,(dcount)
+B49F 3C                   inc a
+B4A0 324A98               ld (dcount),a
+B4A3 FEC8                 cp MAXENT
+B4A5 2805                 jr z,rdr_d
+B4A7 CD1AAF       rdr_n:  call dw_next
+B4AA 3081                 jr nc,rdr_l
+B4AC 3A4A98       rdr_d:  ld a,(dcount)
+B4AF B7                   or a
+B4B0 C8                   ret z
+B4B1 47                   ld b,a
+B4B2 210086               ld hl,DIRBUF
+B4B5 110096               ld de,DPTR
+B4B8 7D           rdr_p:  ld a,l
+B4B9 12                   ld (de),a
+B4BA 13                   inc de
+B4BB 7C                   ld a,h
+B4BC 12                   ld (de),a
+B4BD 13                   inc de
+B4BE C5                   push bc
+B4BF 011400               ld bc,20
+B4C2 09                   add hl,bc
+B4C3 C1                   pop bc
+B4C4 10F2                 djnz rdr_p
+B4C6 3A4A98               ld a,(dcount)       ; insertion sort by type then name
+B4C9 FE02                 cp 2
+B4CB D8                   ret c
+B4CC 0E01                 ld c,1
+B4CE 3A4A98       so_i:   ld a,(dcount)
+B4D1 B9                   cp c
+B4D2 C8                   ret z
+B4D3 69                   ld l,c
+B4D4 2600                 ld h,0
+B4D6 29                   add hl,hl
+B4D7 110096               ld de,DPTR
+B4DA 19                   add hl,de
+B4DB 5E                   ld e,(hl)
+B4DC 23                   inc hl
+B4DD 56                   ld d,(hl)
+B4DE ED534D98             ld (skey),de
+B4E2 41                   ld b,c
+B4E3 78           so_j:   ld a,b
+B4E4 B7                   or a
+B4E5 2824                 jr z,so_put
+B4E7 68                   ld l,b
+B4E8 2D                   dec l
+B4E9 2600                 ld h,0
+B4EB 29                   add hl,hl
+B4EC 110096               ld de,DPTR
+B4EF 19                   add hl,de
+B4F0 E5                   push hl
+B4F1 C5                   push bc
+B4F2 5E                   ld e,(hl)
+B4F3 23                   inc hl
+B4F4 56                   ld d,(hl)
+B4F5 EB                   ex de,hl
+B4F6 ED5B4D98             ld de,(skey)
+B4FA CD1DB5               call rec_gt
+B4FD C1                   pop bc
+B4FE E1                   pop hl
+B4FF 300A                 jr nc,so_put
+B501 5E                   ld e,(hl)
+B502 23                   inc hl
+B503 56                   ld d,(hl)
+B504 23                   inc hl
+B505 73                   ld (hl),e
+B506 23                   inc hl
+B507 72                   ld (hl),d
+B508 05                   dec b
+B509 18D8                 jr so_j
+B50B 68           so_put: ld l,b
+B50C 2600                 ld h,0
+B50E 29                   add hl,hl
+B50F 110096               ld de,DPTR
+B512 19                   add hl,de
+B513 ED5B4D98             ld de,(skey)
+B517 73                   ld (hl),e
+B518 23                   inc hl
+B519 72                   ld (hl),d
+B51A 0C                   inc c
+B51B 18B1                 jr so_i
+B51D 060C         rec_gt: ld b,12             ; C if record HL sorts after record DE
+B51F 1A           rg_l:   ld a,(de)
+B520 BE                   cp (hl)
+B521 C0                   ret nz
+B522 23                   inc hl
+B523 13                   inc de
+B524 10F9                 djnz rg_l
+B526 C9                   ret
+B527 3A5198               ld a,(fs_ok)
+B52A B7                   or a
+B52B C8                   ret z
+B52C 2176BB               ld hl,s_cfgname
+B52F CD50B0               call setname
+B532 210000               ld hl,0
+B535 5D                   ld e,l
+B536 CD5EAF               call dir_find
+B539 D8                   ret c
+B53A 2A8E98               ld hl,(dwptr)
+B53D 011A00               ld bc,26
+B540 09                   add hl,bc
+B541 5E                   ld e,(hl)
+B542 23                   inc hl
+B543 56                   ld d,(hl)
+B544 2A8E98               ld hl,(dwptr)
+B547 011400               ld bc,20
+B54A 09                   add hl,bc
+B54B 7E                   ld a,(hl)
+B54C EB                   ex de,hl
+B54D 5F                   ld e,a
+B54E 01B998               ld bc,cfgcl
+B551 CDBFAA               call st24
+B554 21B998               ld hl,cfgcl
+B557 CDB7AA               call ld24
+B55A CDF7AA               call clvalid
+B55D D8                   ret c
+B55E AF                   xor a
+B55F CD86AD               call clus_lba
+B562 CD07AB               call rd_sec
+B565 2A00F8               ld hl,(SECBUF)
+B568 11565A               ld de,'V'+256*'Z'
+B56B B7                   or a
+B56C ED52                 sbc hl,de
+B56E C0                   ret nz
+B56F 2A02F8               ld hl,(SECBUF+2)
+B572 114544               ld de,'E'+256*'D'
+B575 B7                   or a
+B576 ED52                 sbc hl,de
+B578 C0                   ret nz
+B579 3E01                 ld a,1
+B57B 32BC98               ld (cfghave),a
+B57E 3A05F8               ld a,(SECBUF+5)
+B581 FE03                 cp 3
+B583 3006                 jr nc,cl_1
+B585 321E98               ld (dstyle),a
+B588 32BD98               ld (cfg_ds),a
+B58B 3A06F8       cl_1:   ld a,(SECBUF+6)
+B58E E601                 and 1
+B590 321098               ld (caps),a
+B593 32BE98               ld (cfg_caps),a
+B596 3A07F8               ld a,(SECBUF+7)
+B599 E601                 and 1
+B59B 320F98               ld (insmode),a
+B59E 32BF98               ld (cfg_ins),a
+B5A1 C9                   ret
+B5A2 3A5198               ld a,(fs_ok)
+B5A5 B7                   or a
+B5A6 C8                   ret z
+B5A7 3A1E98               ld a,(dstyle)
+B5AA 21BD98               ld hl,cfg_ds
+B5AD BE                   cp (hl)
+B5AE 2011                 jr nz,cs_1
+B5B0 3A1098               ld a,(caps)
+B5B3 21BE98               ld hl,cfg_caps
+B5B6 BE                   cp (hl)
+B5B7 2008                 jr nz,cs_1
+B5B9 3A0F98               ld a,(insmode)
+B5BC 21BF98               ld hl,cfg_ins
+B5BF BE                   cp (hl)
+B5C0 C8                   ret z
+B5C1 21C097       cs_1:   ld hl,CFGBUF
+B5C4 3656                 ld (hl),'V'
+B5C6 23                   inc hl
+B5C7 365A                 ld (hl),'Z'
+B5C9 23                   inc hl
+B5CA 3645                 ld (hl),'E'
+B5CC 23                   inc hl
+B5CD 3644                 ld (hl),'D'
+B5CF 23                   inc hl
+B5D0 3601                 ld (hl),1
+B5D2 23                   inc hl
+B5D3 3A1E98               ld a,(dstyle)
+B5D6 77                   ld (hl),a
+B5D7 23                   inc hl
+B5D8 3A1098               ld a,(caps)
+B5DB 77                   ld (hl),a
+B5DC 23                   inc hl
+B5DD 3A0F98               ld a,(insmode)
+B5E0 77                   ld (hl),a
+B5E1 3ABC98               ld a,(cfghave)
+B5E4 B7                   or a
+B5E5 2826                 jr z,cs_new
+B5E7 21B998               ld hl,cfgcl         ; rewrite its one sector in place
+B5EA CDB7AA               call ld24
+B5ED CDF7AA               call clvalid
+B5F0 D8                   ret c
+B5F1 CD0CAD               call fat_sync
+B5F4 AF                   xor a
+B5F5 CD86AD               call clus_lba
+B5F8 E5                   push hl
+B5F9 D5                   push de
+B5FA CD07AB               call rd_sec
+B5FD 21C097               ld hl,CFGBUF
+B600 1100F8               ld de,SECBUF
+B603 010800               ld bc,8
+B606 EDB0                 ldir
+B608 D1                   pop de
+B609 E1                   pop hl
+B60A C31EAB               jp wr_sec
+B60D 21C097       cs_new: ld hl,CFGBUF
+B610 229398               ld (seg1p),hl
+B613 210800               ld hl,8
+B616 229598               ld (seg1l),hl
+B619 210000               ld hl,0
+B61C 229998               ld (seg2l),hl
+B61F 229798               ld (seg2p),hl
+B622 AF                   xor a
+B623 329B98               ld (wcrlf),a
+B626 210000               ld hl,0
+B629 229C98               ld (wdir),hl
+B62C 329E98               ld (wdir+2),a
+B62F 2176BB               ld hl,s_cfgname
+B632 CD50B0               call setname
+B635 C365B0               jp write_new
+B638 3A0E98               ld a,(modified)
+B63B B7                   or a
+B63C C8                   ret z
+B63D 2186BC               ld hl,m_savechg
+B640 CDAEB9               call ask_yn
+B643 B7                   or a
+B644 37                   scf
+B645 C8                   ret z               ; cancelled
+B646 FE4E                 cp 'N'
+B648 C8                   ret z               ; (NC) discard
+B649 C34CB6               jp c_save           ; NC if it saved
+B64C 3A1298       c_save: ld a,(named)
+B64F B7                   or a
+B650 C2EFB1               jp nz,save_doc
+B653 CD97B6               call prefill
+B656 CDE9B9               call input_name
+B659 D8                   ret c
+B65A 21B097               ld hl,PNAME
+B65D CD59B0               call cwd_find
+B660 3822                 jr c,csa_new        ; no such file yet
+B662 3A1298               ld a,(named)
+B665 B7                   or a
+B666 2812                 jr z,csa_ask
+B668 21B097               ld hl,PNAME         ; the same file we are editing: just save
+B66B 111398               ld de,fname
+B66E 060B                 ld b,11
+B670 1A           csa_c:  ld a,(de)
+B671 BE                   cp (hl)
+B672 2006                 jr nz,csa_ask
+B674 23                   inc hl
+B675 13                   inc de
+B676 10F8                 djnz csa_c
+B678 180A                 jr csa_new
+B67A 21A1BC       csa_ask: ld hl,m_replace
+B67D CDAEB9               call ask_yn
+B680 FE59                 cp 'Y'
+B682 37                   scf
+B683 C0                   ret nz
+B684 21B097       csa_new: ld hl,PNAME
+B687 111398               ld de,fname
+B68A 010B00               ld bc,11
+B68D EDB0                 ldir
+B68F 3E01                 ld a,1
+B691 321298               ld (named),a
+B694 C3EFB1               jp save_doc
+B697 AF                   xor a
+B698 324498               ld (inlen),a
+B69B 3A1298               ld a,(named)
+B69E B7                   or a
+B69F C8                   ret z
+B6A0 211398               ld hl,fname
+B6A3 11A097               ld de,INBUF
+B6A6 CD3CA7               call put83
+B6A9 7B                   ld a,e
+B6AA D6A0                 sub INBUF&255
+B6AC 324498               ld (inlen),a
+B6AF C9                   ret
+B6B0 CD38B6       c_new:  call check_modified
+B6B3 D8                   ret c
+B6B4 CD75A2               call buf_clear
+B6B7 AF                   xor a
+B6B8 321298               ld (named),a
+B6BB 3C                   inc a
+B6BC 321198               ld (crlf),a
+B6BF 21CBBC               ld hl,m_new
+B6C2 C319A8               jp set_msg
+B6C5 CD38B6       c_open: call check_modified
+B6C8 D8                   ret c
+B6C9 CD9DB7               call filelist
+B6CC 3E01                 ld a,1
+B6CE 324198               ld (waitrel),a
+B6D1 C9                   ret
+B6D2 CD38B6       c_quit: call check_modified
+B6D5 D8                   ret c
+B6D6 CDA2B5               call cfg_save
+B6D9 AF           exit:   xor a               ; back to text mode, clear the screen
+B6DA 320068               ld (LATCH),a
+B6DD 210070               ld hl,VRAM
+B6E0 110170               ld de,VRAM+1
+B6E3 01FF01               ld bc,511
+B6E6 3620                 ld (hl),$20
+B6E8 EDB0                 ldir
+B6EA 3AB898               ld a,(plugmode)
+B6ED B7                   or a
+B6EE 2852                 jr z,ex_rst
+B6F0 2181BB               ld hl,s_shellnm     ; plug-in: find SHELL.VZ and reload it like the players do
+B6F3 CD50B0               call setname
+B6F6 210000               ld hl,0
+B6F9 5D                   ld e,l
+B6FA CD5EAF               call dir_find
+B6FD 3843                 jr c,ex_rst
+B6FF 2A8E98               ld hl,(dwptr)
+B702 111A00               ld de,26
+B705 19                   add hl,de
+B706 7E                   ld a,(hl)
+B707 32D67F               ld (HO+22),a
+B70A 23                   inc hl
+B70B 7E                   ld a,(hl)
+B70C 32D77F               ld (HO+23),a
+B70F 2A8E98               ld hl,(dwptr)
+B712 111400               ld de,20
+B715 19                   add hl,de
+B716 7E                   ld a,(hl)
+B717 32D87F               ld (HO+24),a
+B71A AF                   xor a
+B71B 32D97F               ld (HO+25),a
+B71E 2A8E98               ld hl,(dwptr)
+B721 111C00               ld de,28
+B724 19                   add hl,de
+B725 7E                   ld a,(hl)
+B726 32DA7F               ld (HO+26),a
+B729 23                   inc hl
+B72A 7E                   ld a,(hl)
+B72B 32DB7F               ld (HO+27),a
+B72E CD0CAD               call fat_sync
+B731 CD2EAB               call dos_nocache
+B734 2153B7               ld hl,rl_src
+B737 110076               ld de,$7600
+B73A 014A00               ld bc,rl_end-rl_src
+B73D EDB0                 ldir
+B73F C30076               jp $7600
+B742 AF           ex_rst: xor a               ; restart: VZ-DECK comes back up
+B743 D337                 out ($37),a
+B745 C30000               jp 0
+B748 110076               ld de,$7600
+B74B 014A00               ld bc,rl_end-rl_src
+B74E EDB0                 ldir
+B750 C30076               jp $7600
+B753 215644       rl_src: ld hl,$4456         ; "VD": tells VZ-DECK it is coming back
+B756 22C07F               ld (HO),hl
+B759 21D67F               ld hl,HO+22
+B75C 1112FA               ld de,$FA12
+B75F 010400               ld bc,4
+B762 EDB0                 ldir
+B764 21E87F               ld hl,$7FE8
+B767 2280FB               ld ($FB80),hl
+B76A 2ADA7F               ld hl,(HO+26)
+B76D 11FF01               ld de,511
+B770 19                   add hl,de
+B771 7C                   ld a,h
+B772 CB3F                 srl a
+B774 32DC7F               ld (HO+28),a
+B777 CD0D48               call D_C2S
+B77A CD8E57               call D_READ
+B77D F3                   di
+B77E 21DC7F       rl_l:   ld hl,HO+28
+B781 35                   dec (hl)
+B782 2810                 jr z,rl_x
+B784 2A80FB               ld hl,($FB80)
+B787 110002               ld de,512
+B78A 19                   add hl,de
+B78B 2280FB               ld ($FB80),hl
+B78E CDBF48               call D_NEXT
+B791 F3                   di
+B792 18EA                 jr rl_l
+B794 2100F8       rl_x:   ld hl,$F800
+B797 2280FB               ld ($FB80),hl
+B79A C30080               jp $8000
+B79D AF                   xor a
+B79E 322C98               ld (edmode),a
+B7A1 324598               ld (lcur),a
+B7A4 324698               ld (ltop),a
+B7A7 CD15B4               call read_dir
+B7AA CDC7B8       fl_draw: call list_draw
+B7AD CD94A8               call flush
+B7B0 CDADAA       fl_key: call waitkey
+B7B3 FE03                 cp K_UP
+B7B5 282C                 jr z,fl_up
+B7B7 FE2E                 cp '.'
+B7B9 2828                 jr z,fl_up
+B7BB FE04                 cp K_DOWN
+B7BD 2830                 jr z,fl_dn
+B7BF FE20                 cp ' '
+B7C1 282C                 jr z,fl_dn
+B7C3 FE05                 cp K_PGUP
+B7C5 2837                 jr z,fl_pu
+B7C7 FE06                 cp K_PGDN
+B7C9 2844                 jr z,fl_pd
+B7CB FE0D                 cp K_RET
+B7CD 287D                 jr z,fl_sel
+B7CF FE17                 cp K_FIRE
+B7D1 2879                 jr z,fl_sel
+B7D3 FE14                 cp K_QUIT
+B7D5 280A                 jr z,fl_esc
+B7D7 FE71                 cp 'q'
+B7D9 2806                 jr z,fl_esc
+B7DB FE51                 cp 'Q'
+B7DD 2802                 jr z,fl_esc
+B7DF 18CF                 jr fl_key
+B7E1 37           fl_esc: scf
+B7E2 C9                   ret
+B7E3 3A4598       fl_up:  ld a,(lcur)
+B7E6 B7                   or a
+B7E7 28C7                 jr z,fl_key
+B7E9 3D                   dec a
+B7EA 324598               ld (lcur),a
+B7ED 1834                 jr fl_fix
+B7EF 3A4598       fl_dn:  ld a,(lcur)
+B7F2 3C                   inc a
+B7F3 214A98               ld hl,dcount
+B7F6 BE                   cp (hl)
+B7F7 30B7                 jr nc,fl_key
+B7F9 324598               ld (lcur),a
+B7FC 1825                 jr fl_fix
+B7FE 3A2098       fl_pu:  ld a,(docrows)
+B801 3D                   dec a
+B802 47                   ld b,a
+B803 3A4598               ld a,(lcur)
+B806 90                   sub b
+B807 3001                 jr nc,fl_pu1
+B809 AF                   xor a
+B80A 324598       fl_pu1: ld (lcur),a
+B80D 1814                 jr fl_fix
+B80F 3A2098       fl_pd:  ld a,(docrows)
+B812 3D                   dec a
+B813 47                   ld b,a
+B814 3A4598               ld a,(lcur)
+B817 80                   add a,b
+B818 214A98               ld hl,dcount
+B81B BE                   cp (hl)
+B81C 3802                 jr c,fl_pd1
+B81E 7E                   ld a,(hl)
+B81F 3D                   dec a
+B820 324598       fl_pd1: ld (lcur),a
+B823 3A4A98       fl_fix: ld a,(dcount)       ; keep the cursor in view
+B826 B7                   or a
+B827 CAAAB7               jp z,fl_draw
+B82A 3A4598               ld a,(lcur)
+B82D 214698               ld hl,ltop
+B830 BE                   cp (hl)
+B831 3004                 jr nc,fl_f1
+B833 77                   ld (hl),a
+B834 C3AAB7               jp fl_draw
+B837 47           fl_f1:  ld b,a
+B838 3A2098               ld a,(docrows)
+B83B 86                   add a,(hl)
+B83C 3D                   dec a               ; last visible index
+B83D B8                   cp b
+B83E D2AAB7               jp nc,fl_draw
+B841 3A2098               ld a,(docrows)
+B844 4F                   ld c,a
+B845 78                   ld a,b
+B846 91                   sub c
+B847 3C                   inc a
+B848 77                   ld (hl),a
+B849 C3AAB7               jp fl_draw
+B84C 3A4A98       fl_sel: ld a,(dcount)
+B84F B7                   or a
+B850 CAB0B7               jp z,fl_key
+B853 CDB7B8               call cur_rec        ; HL = record
+B856 7E                   ld a,(hl)
+B857 FE02                 cp 2
+B859 281A                 jr z,fl_file
+B85B 010C00               ld bc,12            ; a folder (or ..): go into it
+B85E 09                   add hl,bc
+B85F CDB7AA               call ld24
+B862 017098               ld bc,cwd
+B865 CDBFAA               call st24
+B868 AF                   xor a
+B869 324598               ld (lcur),a
+B86C 324698               ld (ltop),a
+B86F CD15B4               call read_dir
+B872 C3AAB7               jp fl_draw
+B875 E5           fl_file: push hl
+B876 010C00               ld bc,12
+B879 09                   add hl,bc
+B87A CDB7AA               call ld24
+B87D 22A998               ld (ldcl),hl
+B880 7B                   ld a,e
+B881 32AB98               ld (ldcl+2),a
+B884 E1                   pop hl
+B885 E5                   push hl
+B886 010F00               ld bc,15
+B889 09                   add hl,bc
+B88A 7E                   ld a,(hl)
+B88B 32AC98               ld (ldsz),a
+B88E 23                   inc hl
+B88F 7E                   ld a,(hl)
+B890 32AD98               ld (ldsz+1),a
+B893 23                   inc hl
+B894 7E                   ld a,(hl)
+B895 32AE98               ld (ldsz+2),a
+B898 23                   inc hl
+B899 7E                   ld a,(hl)           ; over 16MB: certainly too big
+B89A B7                   or a
+B89B 2805                 jr z,fl_f2
+B89D 3EFF                 ld a,$FF
+B89F 32AE98               ld (ldsz+2),a
+B8A2 CDCFB2       fl_f2:  call load_file
+B8A5 E1                   pop hl
+B8A6 D8                   ret c
+B8A7 23                   inc hl
+B8A8 111398               ld de,fname
+B8AB 010B00               ld bc,11
+B8AE EDB0                 ldir
+B8B0 3E01                 ld a,1
+B8B2 321298               ld (named),a
+B8B5 B7                   or a
+B8B6 C9                   ret
+B8B7 3A4598       cur_rec: ld a,(lcur)        ; HL = record under the cursor
+B8BA 6F           idx_rec: ld l,a             ; A = index -> HL = record
+B8BB 2600                 ld h,0
+B8BD 29                   add hl,hl
+B8BE 110096               ld de,DPTR
+B8C1 19                   add hl,de
+B8C2 7E                   ld a,(hl)
+B8C3 23                   inc hl
+B8C4 66                   ld h,(hl)
+B8C5 6F                   ld l,a
+B8C6 C9                   ret
+B8C7 CDDDA5               call cls_scr
+B8CA AF                   xor a
+B8CB CDCEA5               call set_rows
+B8CE 219DBB               ld hl,s_listhdr
+B8D1 110080               ld de,SCR
+B8D4 CD5DA7               call puts
+B8D7 3A5198               ld a,(fs_ok)
+B8DA B7                   or a
+B8DB 2009                 jr nz,ld_1
+B8DD 212ABC               ld hl,m_nofs
+B8E0 114180               ld de,SCR+64+1
+B8E3 C35DA7               jp puts
+B8E6 3A4A98       ld_1:   ld a,(dcount)
+B8E9 B7                   or a
+B8EA 2009                 jr nz,ld_2
+B8EC 21D4BC               ld hl,m_empty
+B8EF 114180               ld de,SCR+64+1
+B8F2 C35DA7               jp puts
+B8F5 3A4698       ld_2:   ld a,(ltop)
+B8F8 324798               ld (lidx),a
+B8FB 212080               ld hl,SCR+32
+B8FE 224898               ld (lrow),hl
+B901 3A2098               ld a,(docrows)
+B904 47                   ld b,a
+B905 C5           ld_row: push bc
+B906 3A4798               ld a,(lidx)
+B909 214A98               ld hl,dcount
+B90C BE                   cp (hl)
+B90D D2ACB9               jp nc,ld_done
+B910 CDBAB8               call idx_rec
+B913 ED5B4898             ld de,(lrow)
+B917 13                   inc de
+B918 7E                   ld a,(hl)
+B919 B7                   or a
+B91A 200B                 jr nz,ld_nf
+B91C 3E2E                 ld a,'.'            ; ..
+B91E 12                   ld (de),a
+B91F 13                   inc de
+B920 12                   ld (de),a
+B921 13                   inc de
+B922 3E2F                 ld a,'/'
+B924 12                   ld (de),a
+B925 185E                 jr ld_sel
+B927 E5           ld_nf:  push hl
+B928 23                   inc hl
+B929 CD3CA7               call put83
+B92C E1                   pop hl
+B92D 7E                   ld a,(hl)
+B92E FE01                 cp 1
+B930 2015                 jr nz,ld_fsz
+B932 3E2F                 ld a,'/'
+B934 12                   ld (de),a
+B935 21B9BB               ld hl,s_dir
+B938 ED5B4898             ld de,(lrow)
+B93C 011A00               ld bc,26
+B93F EB                   ex de,hl
+B940 09                   add hl,bc
+B941 EB                   ex de,hl
+B942 CD5DA7               call puts
+B945 183E                 jr ld_sel
+B947 011200       ld_fsz: ld bc,18            ; size: 4th byte set = huge
+B94A 09                   add hl,bc
+B94B 7E                   ld a,(hl)
+B94C 2B                   dec hl
+B94D 2B                   dec hl
+B94E 2B                   dec hl
+B94F B7                   or a
+B950 2812                 jr z,ld_s1
+B952 21BFBB               ld hl,s_big
+B955 ED5B4898             ld de,(lrow)
+B959 011C00               ld bc,28
+B95C EB                   ex de,hl
+B95D 09                   add hl,bc
+B95E EB                   ex de,hl
+B95F CD5DA7               call puts
+B962 1821                 jr ld_sel
+B964 113398       ld_s1:  ld de,n24
+B967 010300               ld bc,3
+B96A EDB0                 ldir
+B96C CDA3A7               call putdec24       ; B = digits
+B96F 2A4898               ld hl,(lrow)        ; right align, ending at column 30
+B972 111F00               ld de,31
+B975 19                   add hl,de
+B976 7D                   ld a,l
+B977 90                   sub b
+B978 6F                   ld l,a
+B979 3001                 jr nc,ld_s2
+B97B 25                   dec h
+B97C EB           ld_s2:  ex de,hl
+B97D 213698               ld hl,NUMTMP
+B980 48                   ld c,b
+B981 0600                 ld b,0
+B983 EDB0                 ldir
+B985 3A4798       ld_sel: ld a,(lidx)         ; highlight the cursor row
+B988 214598               ld hl,lcur
+B98B BE                   cp (hl)
+B98C 200A                 jr nz,ld_nx
+B98E 2A4898               ld hl,(lrow)
+B991 0620                 ld b,32
+B993 CBFE         ld_h:   set 7,(hl)
+B995 23                   inc hl
+B996 10FB                 djnz ld_h
+B998 2A4898       ld_nx:  ld hl,(lrow)
+B99B 112000               ld de,32
+B99E 19                   add hl,de
+B99F 224898               ld (lrow),hl
+B9A2 214798               ld hl,lidx
+B9A5 34                   inc (hl)
+B9A6 C1                   pop bc
+B9A7 05                   dec b
+B9A8 C205B9               jp nz,ld_row
+B9AB C9                   ret
+B9AC C1           ld_done: pop bc
+B9AD C9                   ret
+B9AE E5           ask_yn: push hl
+B9AF 3A2C98               ld a,(edmode)
+B9B2 324398               ld (askmode),a
+B9B5 AF                   xor a
+B9B6 322C98               ld (edmode),a
+B9B9 E1                   pop hl
+B9BA CD22A8               call show_status
+B9BD CDADAA       ay_k:   call waitkey
+B9C0 FE61                 cp 'a'
+B9C2 3802                 jr c,ay_u
+B9C4 D620                 sub 32
+B9C6 FE59         ay_u:   cp 'Y'
+B9C8 280D                 jr z,ay_r
+B9CA FE4E                 cp 'N'
+B9CC 2809                 jr z,ay_r
+B9CE FE14                 cp K_QUIT
+B9D0 2804                 jr z,ay_c
+B9D2 FE43                 cp 'C'
+B9D4 20E7                 jr nz,ay_k
+B9D6 AF           ay_c:   xor a
+B9D7 F5           ay_r:   push af
+B9D8 AF                   xor a
+B9D9 322F98               ld (msgflag),a
+B9DC 3A4398               ld a,(askmode)
+B9DF 322C98               ld (edmode),a
+B9E2 3E01                 ld a,1
+B9E4 324198               ld (waitrel),a
+B9E7 F1                   pop af
+B9E8 C9                   ret
+B9E9 AF                   xor a
+B9EA 322C98               ld (edmode),a
+B9ED 210080       in_drw: ld hl,SCR
+B9F0 110180               ld de,SCR+1
+B9F3 011F00               ld bc,31
+B9F6 3620                 ld (hl),' '
+B9F8 EDB0                 ldir
+B9FA 21C4BB               ld hl,s_saveas
+B9FD 110080               ld de,SCR
+BA00 CD5DA7               call puts
+BA03 21A097               ld hl,INBUF
+BA06 3A4498               ld a,(inlen)
+BA09 B7                   or a
+BA0A 2805                 jr z,in_cur
+BA0C 4F                   ld c,a
+BA0D 0600                 ld b,0
+BA0F EDB0                 ldir
+BA11 3EA0         in_cur: ld a,' '+128
+BA13 12                   ld (de),a
+BA14 CD94A8               call flush
+BA17 CDADAA       in_k:   call waitkey
+BA1A FE14                 cp K_QUIT
+BA1C 2841                 jr z,in_esc
+BA1E FE0D                 cp K_RET
+BA20 2844                 jr z,in_ok
+BA22 FE0B                 cp K_BS
+BA24 282D                 jr z,in_bs
+BA26 FE20                 cp 32
+BA28 38ED                 jr c,in_k
+BA2A FE7F                 cp 127
+BA2C 30E9                 jr nc,in_k
+BA2E FE61                 cp 'a'
+BA30 3806                 jr c,in_u
+BA32 FE7B                 cp 'z'+1
+BA34 3002                 jr nc,in_u
+BA36 D620                 sub 32
+BA38 CD77BA       in_u:   call validch
+BA3B 38DA                 jr c,in_k
+BA3D 4F                   ld c,a
+BA3E 3A4498               ld a,(inlen)
+BA41 FE0C                 cp 12
+BA43 30D2                 jr nc,in_k
+BA45 5F                   ld e,a
+BA46 1600                 ld d,0
+BA48 21A097               ld hl,INBUF
+BA4B 19                   add hl,de
+BA4C 71                   ld (hl),c
+BA4D 3C                   inc a
+BA4E 324498               ld (inlen),a
+BA51 189A                 jr in_drw
+BA53 3A4498       in_bs:  ld a,(inlen)
+BA56 B7                   or a
+BA57 28BE                 jr z,in_k
+BA59 3D                   dec a
+BA5A 324498               ld (inlen),a
+BA5D 188E                 jr in_drw
+BA5F 3E01         in_esc: ld a,1
+BA61 324198               ld (waitrel),a
+BA64 37                   scf
+BA65 C9                   ret
+BA66 3E01         in_ok:  ld a,1
+BA68 324198               ld (waitrel),a
+BA6B CD98BA               call parse_name
+BA6E D0                   ret nc
+BA6F 21B3BC               ld hl,m_badname
+BA72 CD19A8               call set_msg
+BA75 37                   scf
+BA76 C9                   ret
+BA77 FE41                 cp 'A'
+BA79 3804                 jr c,vc_1
+BA7B FE5B                 cp 'Z'+1
+BA7D 3F                   ccf
+BA7E D0                   ret nc
+BA7F FE30         vc_1:   cp '0'
+BA81 3804                 jr c,vc_2
+BA83 FE3A                 cp '9'+1
+BA85 3F                   ccf
+BA86 D0                   ret nc
+BA87 218CBB       vc_2:   ld hl,s_namechr
+BA8A 47                   ld b,a
+BA8B 7E           vc_l:   ld a,(hl)
+BA8C B7                   or a
+BA8D 2806                 jr z,vc_no
+BA8F B8                   cp b
+BA90 78                   ld a,b
+BA91 C8                   ret z
+BA92 23                   inc hl
+BA93 18F6                 jr vc_l
+BA95 78           vc_no:  ld a,b
+BA96 37                   scf
+BA97 C9                   ret
+BA98 21B097               ld hl,PNAME
+BA9B 11B197               ld de,PNAME+1
+BA9E 010A00               ld bc,10
+BAA1 3620                 ld (hl),' '
+BAA3 EDB0                 ldir
+BAA5 3A4498               ld a,(inlen)
+BAA8 4F                   ld c,a
+BAA9 B7                   or a
+BAAA 2852                 jr z,pn_bad
+BAAC 21A097               ld hl,INBUF
+BAAF 11B097               ld de,PNAME
+BAB2 0600                 ld b,0
+BAB4 79           pn_n:   ld a,c
+BAB5 B7                   or a
+BAB6 2835                 jr z,pn_noext
+BAB8 7E                   ld a,(hl)
+BAB9 23                   inc hl
+BABA 0D                   dec c
+BABB FE2E                 cp '.'
+BABD 280A                 jr z,pn_dot
+BABF 12                   ld (de),a
+BAC0 13                   inc de
+BAC1 04                   inc b
+BAC2 78                   ld a,b
+BAC3 FE09                 cp 9
+BAC5 3037                 jr nc,pn_bad
+BAC7 18EB                 jr pn_n
+BAC9 78           pn_dot: ld a,b
+BACA B7                   or a
+BACB 2831                 jr z,pn_bad
+BACD 11B897               ld de,PNAME+8
+BAD0 0600                 ld b,0
+BAD2 79           pn_e:   ld a,c
+BAD3 B7                   or a
+BAD4 2811                 jr z,pn_ende
+BAD6 7E                   ld a,(hl)
+BAD7 23                   inc hl
+BAD8 0D                   dec c
+BAD9 FE2E                 cp '.'
+BADB 2821                 jr z,pn_bad
+BADD 12                   ld (de),a
+BADE 13                   inc de
+BADF 04                   inc b
+BAE0 78                   ld a,b
+BAE1 FE04                 cp 4
+BAE3 3019                 jr nc,pn_bad
+BAE5 18EB                 jr pn_e
+BAE7 78           pn_ende: ld a,b
+BAE8 B7                   or a
+BAE9 2011                 jr nz,pn_ok
+BAEB 1804                 jr pn_def
+BAED 78           pn_noext: ld a,b
+BAEE B7                   or a
+BAEF 280D                 jr z,pn_bad
+BAF1 2165BB       pn_def: ld hl,s_txt
+BAF4 11B897               ld de,PNAME+8
+BAF7 010300               ld bc,3
+BAFA EDB0                 ldir
+BAFC B7           pn_ok:  or a
+BAFD C9                   ret
+BAFE 37           pn_bad: scf
+BAFF C9                   ret
+BB00 AF           c_help: xor a
+BB01 322C98               ld (edmode),a
+BB04 213DBD               ld hl,helptext
+BB07 224F98               ld (hptr),hl
+BB0A CDDDA5       hp_pg:  call cls_scr
+BB0D AF                   xor a
+BB0E CDCEA5               call set_rows
+BB11 21CEBB               ld hl,s_helphdr
+BB14 110080               ld de,SCR
+BB17 CD5DA7               call puts
+BB1A 3A2098               ld a,(docrows)
+BB1D 47                   ld b,a
+BB1E 112080               ld de,SCR+32
+BB21 2A4F98               ld hl,(hptr)
+BB24 7E           hp_ln:  ld a,(hl)
+BB25 FEFF                 cp $FF
+BB27 2810                 jr z,hp_end
+BB29 D5                   push de
+BB2A CD5DA7               call puts
+BB2D D1                   pop de
+BB2E 23                   inc hl
+BB2F EB                   ex de,hl
+BB30 78                   ld a,b
+BB31 012000               ld bc,32
+BB34 09                   add hl,bc
+BB35 47                   ld b,a
+BB36 EB                   ex de,hl
+BB37 10EB                 djnz hp_ln
+BB39 224F98       hp_end: ld (hptr),hl
+BB3C CD94A8               call flush
+BB3F CDADAA               call waitkey
+BB42 FE14                 cp K_QUIT
+BB44 2808                 jr z,hp_x
+BB46 2A4F98               ld hl,(hptr)
+BB49 7E                   ld a,(hl)
+BB4A FEFF                 cp $FF
+BB4C 20BC                 jr nz,hp_pg
+BB4E 3E01         hp_x:   ld a,1
+BB50 324198               ld (waitrel),a
+BB53 C9                   ret

@@ -1,0 +1,28 @@
+import sys; sys.path.insert(0,'.')
+from harness import *
+import shot
+S='/tmp/claude-0/-home-claude/adf4e5cf-05f8-5588-870b-3eb47f98e014/scratchpad/'
+dos=open('VZDOS.VZ','rb').read(); shell=open('SHELL.VZ','rb').read()
+plug=open('../out/PLAYTXT.VZ','rb').read(); ed=open('../out/VZED.VZ','rb').read()
+readme=b'VZ-ED test file\r\nSecond line\r\n'
+c=Card(spc=8)
+c.addfile(2,'VZDOS.VZ',dos); c.addfile(2,'SHELL.VZ',shell); c.addfile(2,'PLAYTXT.VZ',plug); c.addfile(2,'VZED.VZ',ed)
+d=c.mkdir(2,'DOCS'); c.addfile(d,'LETTER.TXT',b'Dear Ben,\r\nThanks!\r\n')
+c.addfile(2,'README.TXT',readme)
+c.finish()
+m=VZ(dos[24:],c,maxlba=max(c.sec)+5000)
+print(m.run(0x4004,frames=200)); print(m.text())
+def show(t=''): print('----',t); print(m.text())
+m.type_keys(['SPACE']); m.run_script(extra=10)
+m.type_keys(['RET']); m.run_script(extra=60); show('PLAYTXT run directly -> new file')
+m.type_keys([('CTRL','Q')]); m.run_script(extra=250); show('quit -> back to VZ-DECK (restart)')
+m.type_keys(['SPACE','SPACE']); m.run_script(extra=10); show('on README')
+m.type_keys(['RET']); m.run_script(extra=80); show('opened via plug-in'); shot.save(m,S+'p1.png')
+m.type_keys([('CTRL','B')]+text_for('Hello from VZ-ED!\n')+[('CTRL','S')]); m.run_script(extra=80); show('saved')
+p,f=FS(c.sec).check(); print('FS',p or 'clean'); fs=FS(c.sec); print(fs.readfile(*f['/README.TXT'],fs.fat()))
+m.type_keys([('CTRL','Q')]); m.run_script(extra=250); show('quit -> VZ-DECK'); print('resets',getattr(m,'resets',0), m.stop)
+m.type_keys(['.','.','.','.','RET']); m.run_script(extra=40); show('into DOCS')
+m.type_keys(['SPACE','SPACE','RET']); m.run_script(extra=80); show('LETTER.TXT via plug-in in a folder')
+m.type_keys([('CTRL','B')]+text_for('Brenden')+[('CTRL','Q'),'Y']); m.run_script(extra=300); show('quit with save -> VZ-DECK in DOCS')
+p,f=FS(c.sec).check(); print('FS',p or 'clean', sorted(k for k in f if k[0]=='/'))
+fs=FS(c.sec); print(fs.readfile(*f['/DOCS/LETTER.TXT'],fs.fat()))

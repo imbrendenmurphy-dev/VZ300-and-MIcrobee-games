@@ -1,0 +1,13 @@
+import sys; sys.path.insert(0,'.')
+from harness import *
+dos=open('VZDOS.VZ','rb').read(); ed=open('../out/VZED.VZ','rb').read()
+c=Card(spc=8); c.addfile(2,'VZDOS.VZ',dos); c.addfile(2,'SHELL.VZ',ed)
+c.addfile(2,'AUNIX.TXT',b'one\ntwo\nthree\n'); c.addfile(2,'BLANK.TXT',b''); c.addfile(2,'CNOLF.TXT',b'single line no newline')
+c.finish()
+m=VZ(dos[24:],c,maxlba=max(c.sec)+5000); m.run(0x4004,frames=120)
+m.type_keys([('CTRL','O'),('WAIT',20),'RET',('WAIT',30),('CTRL','B')]+text_for('four\n')+[('CTRL','S'),('WAIT',40)]); m.run_script(extra=20)
+m.type_keys([('CTRL','O'),('WAIT',20),'SPACE','RET',('WAIT',30)]+text_for('was empty\nnow two lines')+[('CTRL','S'),('WAIT',40)]); m.run_script(extra=20)
+m.type_keys([('CTRL','O'),('WAIT',20),'SPACE','SPACE','RET',('WAIT',30),('CTRL','X')]+text_for('\nadded')+[('CTRL','S'),('WAIT',40)]); m.run_script(extra=20)
+m.type_keys([('CTRL','N'),('WAIT',10),('CTRL','S'),('WAIT',10)]+text_for('empty')+['RET',('WAIT',40)]); m.run_script(extra=20)
+p,f=FS(c.sec).check(); fs=FS(c.sec); F=fs.fat(); print('FS',p or 'clean')
+for n in ('/AUNIX.TXT','/BLANK.TXT','/CNOLF.TXT','/EMPTY.TXT'): print(n, f.get(n), fs.readfile(*f[n],F) if n in f else None)
