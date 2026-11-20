@@ -454,8 +454,9 @@ few known ones; `JP 0` is treated as a restart. VZ-ED never calls the ROM.
   the user's choice; original projects only. The repo `.gitignore` excludes `__pycache__`, ROMs and
   tape images.
 - User's PC (Windows): working clone `C:\Users\Owner\Documents\Codex\vz300-and-microbee-games`
-  (pull to get `VZ-Ed/`); standalone copy saved at `C:\Users\Owner\Documents\VZEd_VZ300` at handover
-  (if the save to the PC succeeded — see the chat). VZ-DECK lives in the repo at `VZ-Deck/` and on the
+  (pull to get `VZ-Ed/`). At handover the chat session could not write to the PC, so the user puts
+  the project there himself (pull, or unzip `VZ-Ed-project.zip`); a standalone copy at
+  `C:\Users\Owner\Documents\VZEd_VZ300` would follow the VZ-DECK convention. VZ-DECK lives in the repo at `VZ-Deck/` and on the
   PC at `C:\Users\Owner\Documents\VZDeck_VZ300`.
 - On that PC use `py` (not `python`). Git is the copy bundled with GitHub Desktop:
   `%LOCALAPPDATA%\GitHubDesktop\app-*\resources\app\git\cmd\git.exe`. Commit as BPM.
