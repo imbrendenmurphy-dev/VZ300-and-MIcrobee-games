@@ -142,6 +142,7 @@ Other details:
 
 * Files up to 12,032 bytes (larger files will be paged from the card in 0.6). This is 512 bytes less
   than 0.1 because of the new features.
+* Fixed in 0.2: in 0.1 the screen went blank when a long line scrolled sideways.
 * No undo yet: cut, delete and replace can't be taken back (save often; the `.BAK` keeps the last
   saved version).
 * Text files only (BASIC programs and a hex view come in 0.5).
@@ -152,7 +153,7 @@ Other details:
 | | |
 |---|---|
 | Needs | VZ300 / VZ200, BennVenn SD loader with 128K, VZDOS 2.31 or 2.32 |
-| Program | `$A000`-`$C6ED` (9,966 bytes), plus tables, font and messages copied at start-up to `$97FE`-`$9FFB` |
+| Program | `$A000`-`$C6EF` (9,968 bytes), plus tables, font and messages copied at start-up to `$97FE`-`$9FFB` |
 | Text buffer | `$C700`-`$F5FF` (12,032 bytes, gap buffer) |
 | Work RAM | `$8000`-`$9FFF`: screen shadow, folder list (200 entries), variables |
 | Clipboard | spare 10K SRAM bank at `$4000`-`$67FF` (`OUT ($37),3`), or 3,328 bytes at `$8900` |

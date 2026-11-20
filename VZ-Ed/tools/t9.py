@@ -175,12 +175,12 @@ PARA = ('The VZ300 was sold by Dick Smith in Australia and New Zealand, a colour
         'abcdefghijklmnopqrstuvwxyz012345\nexactly 31 characters on a line\n'
         'exactly 32 characters on a line!\n\n\nshort\n' + 'word ' * 40 + '\nlast line without a line feed')
 
-def run_wrap(seed, style=0, steps=10, per=12):
+def run_wrap(seed, style=0, steps=10, per=12, wrap=True):
     random.seed(seed)
     m = machine([('T.TXT', PARA.encode())]); open_t(m)
     for i in range(style): keys(m, [('CTRL', 'D'), ('WAIT', 5)])
-    keys(m, [('CTRL', 'W'), ('WAIT', 5)])
-    md = Model(PARA, m.z.mem[sym['docrows']])
+    if wrap: keys(m, [('CTRL', 'W'), ('WAIT', 5)])
+    md = Model(PARA, m.z.mem[sym['docrows']], wrap)
     err = screen_check(m, md, 'start')
     if err: return 'after CTRL+W: ' + err
     pool = ['a', 'b', ' ', ' ', 'Q', '.', '\n', 'LT', 'RT', 'UP', 'DN', 'UP', 'DN', 'UP', 'DN', 'HOME', 'END',
@@ -350,7 +350,13 @@ def part_sel_wrap():
             if err: bad = 'after %d keys: %s' % (i + 1, err); break
         check(bad is None, 'wrap %s: %s' % ('on' if wrap else 'off', bad or '25 moves'))
 
-parts = dict(wrap=part_wrap, blocks=part_blocks, find=part_find, cfg=part_cfg, sel=part_sel_wrap)
+def part_hscroll():
+    print('== wrap off: sideways scrolling, every screen row checked (0.1 bug: blank screen)')
+    for seed, style in ((21, 0), (22, 2), (23, 1)):
+        err = run_wrap(seed, style, wrap=False)
+        check(err is None, 'seed %d style %d%s' % (seed, style, '' if err is None else ': ' + err))
+
+parts = dict(hscroll=part_hscroll, wrap=part_wrap, blocks=part_blocks, find=part_find, cfg=part_cfg, sel=part_sel_wrap)
 if len(sys.argv) > 2 and sys.argv[1] == 'wrap':
     err = run_wrap(int(sys.argv[2]), int(sys.argv[3]) if len(sys.argv) > 3 else 0, steps=20)
     print('seed', sys.argv[2], 'ok' if err is None else err)

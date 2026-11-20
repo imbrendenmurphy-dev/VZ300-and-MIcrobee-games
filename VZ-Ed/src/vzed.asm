@@ -949,9 +949,10 @@ rd_sk:  ld a,d
         jr z,rd_skd
         ld a,l
         cp c
-        call z,rd_bnd
+        jr nz,rd_skg        ; (0.2 fix: the carry from "cp c" used to reach the jr c
+        call rd_bnd         ;  below and blank the screen when scrolled sideways)
         jr c,rd_skeot
-        ld a,(hl)
+rd_skg: ld a,(hl)
         inc hl
         cp 10
         jr z,rd_skeol
