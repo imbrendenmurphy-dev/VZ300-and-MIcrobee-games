@@ -2,7 +2,7 @@
 
 An original vertically scrolling shoot-'em-up for the Microbee Premium Plus (1MB). You fly the **Hornet** up through the Hive across five levels, and each level ends with a boss. VIBED BY BPM 2026.
 
-## Status: version 0.5
+## Status: version 0.6
 
 The disk is `release/STARHIVE.DS8`. Boot it, then type `STARHIVE` at the `A>` prompt. `docs/STARHIVE_README.TXT` has the controls and scoring.
 
@@ -11,6 +11,8 @@ The disk is `release/STARHIVE.DS8`. Boot it, then type `STARHIVE` at the `A>` pr
 - **Frame rate:** 25 fps. In the heaviest scenes it drops to a steady 16.7 fps rather than stuttering.
 - **Sound:** a two-voice 1-bit title tune and in-game sound effects.
 - **Extras:** high-score table and a monochrome option.
+
+Version 0.6 allows at most six enemies at once on levels 3–5, one fewer than before, to ease the load where the scenery is busiest.
 
 Version 0.5 reworks the sprite drawer. It now goes column by column, visiting only the cells a sprite's pixels touch. Each sprite draws about 12% faster.
 

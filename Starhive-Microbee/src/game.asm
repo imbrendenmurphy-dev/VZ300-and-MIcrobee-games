@@ -302,8 +302,14 @@ waves:	ld hl,(top)
 	ld hl,sp_wait
 	dec (hl)
 	jr nz,.next
-	call alive		; already 7 about: wait a moment
-	cp MAXACT
+	call alive		; already 7 about (6 on the busy levels
+	ld b,a			; 3 to 5): wait a moment
+	ld a,(level)
+	cp 3
+	ld a,b
+	jr c,.ma
+	inc a
+.ma:	cp MAXACT
 	jr c,.room
 	ld hl,sp_wait
 	ld (hl),4
