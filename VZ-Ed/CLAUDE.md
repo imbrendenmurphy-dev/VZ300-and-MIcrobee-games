@@ -1,6 +1,7 @@
 # CLAUDE.md — VZ-ED (text editor / word processor for the VZ300)
 
-Handover from Claude chat to Claude Code, 20 Nov 2026. Read all of this before changing anything.
+Handover from Claude chat to Claude Code, 20 Nov 2026; 0.2 written in Claude Code the same day.
+Read all of this before changing anything.
 
 Credits line for anything user-facing: **VIBED BY BPM 2026** (the user's standing preference — never
 "code by Claude" or similar).
@@ -15,13 +16,13 @@ anything that writes to his SD card.
 
 | | |
 |---|---|
-| Version | **0.1** (first build, released 20 Nov 2026) |
-| Real hardware status | **NOT YET TESTED ON A REAL VZ.** Everything below marked "verified" was verified in the emulator only. |
+| Version | **0.2** (20 Nov 2026): 0.1 + word wrap on screen, blocks + clipboard, find / replace. 0.1 is kept in `release/0.1/`. |
+| Real hardware status | **NEITHER 0.1 NOR 0.2 HAS BEEN TESTED ON A REAL VZ.** Everything below marked "verified" was verified in the emulators only. The user asked for 0.2 before reporting on 0.1. |
 | Outputs | `out/VZED.VZ` (standalone) and `out/PLAYTXT.VZ` (VZ-DECK plug-in). Same code; byte `$A003` = 0 / 1. |
-| Release copies | `release/` (identical to `out/` at handover) and `dist/VZ-ED-0.1.zip` |
+| Release copies | `release/` (0.2, identical to `out/`), `release/0.1/` (the 0.1 files), `dist/VZ-ED-0.2.zip` (`py tools\package.py`) |
 | Build | `py src\build.py` (Windows) / `python3 src/build.py`. Python 3 only, no packages. |
-| Code size | `$A000`-`$C4BF` (9,408 bytes); text buffer `$C500`-`$F5FF` (12,544 bytes) |
-| Handover check | `py src\build.py` must reproduce `release/VZED.VZ` MD5 `b245d89f2b2a311b3940654a2f884b93` and `release/PLAYTXT.VZ` MD5 `f17ac5c142eac6e91eaddfb49afff4c0` |
+| Code size | code `$A000`-`$C6ED`; "tail" (tables, font, messages, help) `$97FE`-`$9FFB`, stored after the code in the file and copied down at start-up; text buffer `$C700`-`$F5FF` (**12,032 bytes**, 0.1 had 12,544). Only **18 bytes** of code room are left before the buffer would drop below 12,000 (see 12.6). |
+| Handover check | `py src\build.py` must reproduce `release/VZED.VZ` MD5 `76831c160c635ec579c9d442f0027076` and `release/PLAYTXT.VZ` MD5 `e52239b13fb7774ac6c15806400a0fc4` (0.1: `b245d89f...` / `f17ac5c1...`, in `release/0.1/`) |
 | Sister project | VZ-DECK (`../VZ-Deck`), the user's SD boot shell / file browser / music player. VZ-ED is its text plug-in. |
 
 ---
@@ -31,7 +32,8 @@ anything that writes to his SD card.
 The user wanted a "full-featured" general-purpose word processor for the VZ that reads and edits
 files on the BennVenn SD card, returns to VZ-DECK, has display options, output options (printer
 port / PDF), a "sheet view", and quality-of-life features. He picked the name **VZ-ED** and agreed a
-staged plan. **0.1 (the core) is done**; the rest is the roadmap in section 9.
+staged plan. **0.1 (the core) and 0.2 (wrap, blocks, find/replace) are done**; the rest is the
+roadmap in section 9. 0.2 is described in section 12.
 
 ### Done in 0.1 (verified in emulator unless stated)
 
@@ -58,6 +60,18 @@ staged plan. **0.1 (the core) is done**; the rest is the roadmap in section 9.
   reloads `SHELL.VZ` and VZ-DECK comes back in the same folder with the cursor restored.
   `VZED.VZ` quits by restarting (`OUT ($37),0 : JP 0`), which reboots into VZ-DECK at the root.
 
+### Done in 0.2 (verified in the Python emulator; details in section 12)
+
+- Word wrap on screen (CTRL+W, `W` on the title bar); the file keeps one line per paragraph (the user
+  chose this over hard wrap). Up/down/page move by screen row; CTRL+Z/X stay start/end of the
+  whole line. Saved in `VZED.CFG` (bit 1 of byte 7; 0.1 reads only bit 0, so the file stays compatible).
+- Blocks: CTRL+K mark (again = off), CTRL+J copy, CTRL+Y cut, CTRL+P paste, CTRL+: / CTRL+; delete
+  the block. Shown inverse (text styles) / blue on yellow (graphics). Typing ends marking.
+- Clipboard 10,240 bytes in the spare 10K SRAM bank (`OUT ($37),3`) if a careful start-up test finds
+  it; otherwise 3,328 bytes in DIRBUF, emptied by CTRL+O.
+- CTRL+F find (either case, wraps to the top), CTRL+G again, CTRL+E replace cursor to end with
+  Y/N/A/^Q and "n REPLACED".
+
 ### Not done (planned): see section 9.
 
 ---
@@ -78,7 +92,7 @@ staged plan. **0.1 (the core) is done**; the rest is the roadmap in section 9.
 
 | Range | Use |
 |---|---|
-| `$4000`-`$5FFF` | VZDOS in card SRAM (mapper `$37` = 1). Never write. |
+| `$4000`-`$67FF` | the DOS's view (port `$37` = "home", worked out at start-up, see 12.3). Never write. With `$37` = 3: the spare 10K SRAM bank = clipboard (0.2). |
 | `$6800` | latch: write bit 3 = graphics mode, bit 4 = CSS (kept 0); read = keyboard rows + bit 7 field sync |
 | `$7000`-`$71FF` / `$77FF` | video RAM (text 512 bytes / mode 1 2048 bytes) |
 | `$7600`-`$76xx` | the SHELL.VZ reloader is copied here at exit (plug-in mode only; screen is in text mode then) |
@@ -87,19 +101,25 @@ staged plan. **0.1 (the core) is done**; the rest is the roadmap in section 9.
 | `$8000`-`$81FF` | `SCR` shadow screen, 16x32 |
 | `$8200`-`$83FF` | `OLD` = what is on the display now (must stay exactly `SCR+$200`) |
 | `$8400` | `ROWATTR`, 16 bytes (bit 0 document row, bit 1 title bar) — must be page-aligned |
-| `$8410` | `CLIST`, up to 128 clusters x 3 bytes for a file being written |
-| `$8600` | `DIRBUF`, folder records 20 bytes each, 200 max |
-| `$9600` | `DPTR`, sorted pointers to the records |
-| `$97A0`-`$97EF` | `INBUF`, `PNAME`, `CFGBUF`, `NAMEBUF`, `NEWNAME` |
-| `$9800`-... | variables (`src/vars.inc`, generated by `gen.py`; zeroed at start) |
-| `$A000`-`$C4BF` | code + tables (KTAB, CTAB, TTAB page-aligned) |
-| `$C500`-`$F5FF` | text gap buffer (`BUFS` = code end rounded up to a page; `BUFE` = `$F600`) |
+| `$8410`-`$858F` | `CLIST`, up to 128 clusters x 3 bytes for a file being written |
+| `$8590`-`$85DA` | `INBUF`, `PNAME`, `CFGBUF`, `NAMEBUF`, `NEWNAME` (moved here in 0.2) |
+| `$85DB`-`$85F1` | `fbuf` find text (length + 22), kept; emptied at start-up |
+| `$8600`-`$959F` | `DIRBUF`, folder records 20 bytes each, 200 max. **Outside the file list it is 0.2 scratch:** `LIN` `$8600` (wrap layout, 481 bytes), `RING` `$8800`, `WRS` `$8820`, `SRS` `$8850`, `SRP` `$8870`, `FFOLD` `$8880`, scratch variables `$88A0`-`$88D7`, `rbuf` `$88D8` (replace text, emptied by CTRL+O), fallback clipboard `CLIPF` `$8900`-`$95FF` |
+| `$95A0`-`$972F` | `DPTR`, sorted pointers to the records (moved in 0.2) |
+| `$9730`-`$97FD` | variables (`src/vars.inc`, generated by `gen.py`; zeroed at start) |
+| `$97FE`-`$9FFB` | the "tail": messages, KTAB `$9900`, TTAB `$9A00` + CTAB `$9A80`, FONT, more messages, help text. Copied from the end of the file at start-up (the first thing `start` does). |
+| `$A000`-`$C6ED` | code (+ the messages that didn't fit in the tail, `strmain.asm`) |
+| `$C700`-`$F5FF` | text gap buffer (`BUFS` = code end rounded up to a page; `BUFE` = `$F600`) |
 | `$F600`-`$F7FF` | stack (`SP` = `$F800`) |
 | `$F800`-`$F9FF` | DOS sector buffer `SECBUF` — all card I/O goes through it |
 | `$FA00`-`$FFFF` | **the DOS's own RAM — never write**, except `$FB06`-`$FB09` (cache tag) and `$FB80` (read buffer pointer). Confirmed on the user's VZ in earlier projects that scrambling `$FA00`+ hangs the DOS. |
 
 Plug-in constraint: VZ-DECK loads plug-ins at `$9FE8` (24-byte header) so code lands at `$A000`, and
 it loads them into `$A000`-`$F7FF`. That is why the code is at `$A000` and the buffer is above it.
+The header bytes at `$9FE8` are only needed while loading, so the tail may overwrite them afterwards.
+
+`$7800`-`$7AE8` is BASIC's system-variable area and VZ-DECK relies on it (it writes `$783B` and
+launches BASIC programs), so it is **not** free RAM, even though nothing in VZ-ED uses it.
 
 ### Keyboard (VZ matrix, bits 0..5 per row; verified layout from the user's earlier reports)
 
@@ -136,28 +156,35 @@ VZ-Ed/
   README.md          user manual (keys, safety, limits, specs)
   src/
     vzed.asm         main: start-up, editor loop, gap buffer, rendering, display, keyboard
+    edit2.asm        0.2: word wrap, blocks + clipboard (incl. the bank test), find / replace
     files.asm        FAT32 layer: sectors, FAT, folders, allocation, safe save, load, folder list, config
-    ui.asm           file list, prompts, help, open/save/new/quit, exit/reload, all strings + help text
-    gen.py           generates vars.inc (variable addresses) and tables.inc (KTAB, CTAB, TTAB, FONT)
+    ui.asm           file list, prompts, help, open/save/new/quit, exit/reload
+    strings.asm      the tail: messages, include tables.inc, more messages, help text (runs at $97FE+)
+    strmain.asm      the messages that didn't fit in the tail (stay with the code)
+    gen.py           generates vars.inc (variable addresses) and tables.inc (KTAB, TTAB+CTAB, FONT)
     build.py         runs gen.py, assembles with tools/zasm.py, writes out/VZED.VZ and out/PLAYTXT.VZ
+                     (file = code $A000..code_end, then the tail bytes)
     vars.inc, tables.inc   GENERATED — edit gen.py, not these
   tools/
     zasm.py          the assembler (from the user's Galahxy project): local labels, include, align, assert
     z80.py, vz.py    Z80 core and BennVenn SD/SPI model (from VZ-DECK's tools)
     dz.py            disassembler (used to read the VZDOS ROM)
     harness.py       VZ-ED test machine: multi-key keyboard, joystick, FAT32 image builder (optional MBR),
-                     FAT32 checker
+                     FAT32 checker; port $37 bank model: VZ(..., bank=True/False) (0.2)
     shot.py, vzrender.py   PNG screenshots (text and graphics mode)
-    t1..t8.py, prof.py      tests (section 10)
-    package.py       makes dist/VZ-ED-0.1 and the zip
+    t1..t10.py, prof.py     tests (section 10; t9/t10 are 0.2)
+    package.py       makes dist/VZ-ED-0.2 and the zip
     VZDOS.VZ, SHELL.VZ      VZ-DECK 0.9 release files, needed by the tests
   out/               build output (VZED.VZ, PLAYTXT.VZ, vzed.bin/.sym/.lst)
-  release/           the released 0.1 files
-  screenshots/       emulator screenshots of 0.1
+  release/           the 0.2 files (release/0.1/ = the 0.1 files)
+  screenshots/       emulator screenshots (0.1, plus 0.2 ones named 2x-*)
+  testout/           test scratch output (git-ignored)
 ```
 
 Build: `py src\build.py` from the project folder (or `cd src` then `py build.py`). It prints the code
-range and buffer size. `assert BUFS+12000 <= BUFE` at the end of vzed.asm guards the buffer size.
+range, tail range and buffer size. `assert BUFS+12000 <= BUFE` and `assert tail_end <= $A000` at the
+end of vzed.asm guard the sizes. If the tail overflows you get "overlapping output at A000": move a
+message from `strings.asm` to `strmain.asm` (see 12.6).
 
 `.VZ` header: `VZF0` + 17-byte name ("VZ-ED") + type `$F1` + load address `$A000`.
 
@@ -346,7 +373,8 @@ VZ-DECK re-reads the DOS's folder when it comes back.
 - **Config written on quit only, and only if changed** — minimises card writes.
 - **Interrupts stay disabled** (`DI` after every DOS call — the DOS can enable them). Timing comes
   from polling field sync in `vsync`.
-- Stack at `$F600`-`$F7FF`, not in the DOS area.
+- Stack at `$F600`-`$F7FF`, not in the DOS area. (Considered and rejected for 0.2: shrinking it to
+  win buffer space. Real stack use with DOS calls and the ROM interrupt handler isn't measured.)
 
 ---
 
@@ -363,13 +391,21 @@ VZ-DECK re-reads the DOS's folder when it comes back.
 | Relying on the DOS sector cache | Stale data after writes / other buffers. Always `dos_nocache`. |
 | Calling `curcol` after setting DE in `build_status` | `curcol` clobbers DE (column number vanished from the title bar). Compute first, then set DE. |
 | Using a variable name twice (`lcur` for both list cursor and load cluster) | Renamed load cluster to `ldcur`. Variables are all in gen.py's list — check before adding. |
+| (0.2) Assuming port `$37` = 1 when VZ-ED starts | In the test harness VZ-ED starts with `$37` = 0 (DOS in flash). A bank test that "restored" 1 switched the DOS away: crash on the first card read. Never write `$37` without going back to `clhome` (12.3). |
+| (0.2) Gap-aware row scanner one character at a time for every row | ~89 T per character, walked several times per key: 2.7 frames per letter at the end of a 600-character paragraph. Now CPIR/CPDR when the 32 characters are on one side of the gap (12.1). |
+| (0.2) Using `$7800`-`$7BFF` as free RAM | It's BASIC's / VZ-DECK's area (see the memory map). |
 
 ---
 
 ## 8. Known issues, limitations, and what is NOT verified
 
 ### Not verified on real hardware (everything in this list is an assumption until the user reports)
-- **Nothing has run on a real VZ yet.** The user was asked to back up his card before the first save.
+- **Nothing has run on a real VZ yet** (0.1 or 0.2). The user was asked to back up his card before the first save.
+- (0.2) The spare SRAM bank: the port `$37` behaviour comes from MAME's sdloader (via VZonPC), not
+  from the user's machine. The start-up test (12.3) is designed so that if the guess is wrong VZ-ED
+  just uses the small clipboard; the one test write is put back at once. Which "home" setting the
+  real loader leaves (VZonPC says 1, the Python harness 0) is also unverified; the code works it out.
+- (0.2) The CTRL key choices (K J Y P F G E W) were picked by Claude, not by the user.
 - Writing sectors through `$568C` on the real BennVenn card (the emulator's SD model accepts CMD24;
   no program has written to the card outside the DOS before).
 - The SHIFT and CTRL+SHIFT symbol legends; CTRL+: as rubout. The user was asked to report mismatches.
@@ -380,26 +416,28 @@ VZ-DECK re-reads the DOS's folder when it comes back.
 - That `VZED.VZ`'s restart (`OUT ($37),0 : JP 0`) returns to VZ-DECK — this is the documented VZ-DECK
   way and the "Q quit test" in VZ-DECK's history worked on his machine, so it is likely fine.
 
-### Limitations in 0.1 (by design / not yet built)
-- Max file 12,544 bytes (raw size checked before loading).
-- No word wrap, no blocks, no find/replace, no undo, no printing, no PDF, no sheet view, no menus,
-  no BASIC or hex view, no big-file paging.
+### Limitations in 0.2 (by design / not yet built)
+- Max file 12,032 bytes (raw size checked before loading). 0.1 took 12,544.
+- No undo (cut / block delete / replace can't be taken back), no printing, no PDF, no sheet view,
+  no menus, no BASIC or hex view, no big-file paging.
+- Wrap edge case: a 32-character word (no spaces) right before a line end leaves an empty screen
+  row holding just the line end. Matches the model; harmless.
+- Replace only runs from the cursor to the end of the file (no wrap-around); find does wrap.
+- The fallback clipboard (no spare bank) is emptied by CTRL+O; so is the replace text.
 - 8.3 names only; dates fixed; folder list shows at most 200 entries.
 - Cards: FAT32 only, sectors below 8 GB only (same as the DOS).
 
 ### Code notes
-- `getc` and `peek_r` remain; `getc` is now dead code (kept to avoid unnecessary changes).
+- `getc` (dead since 0.1) was removed in 0.2 to make room.
 - Lists use raw `.`/SPACE as well as CTRL versions for up/down; `Q`/`q` also backs out of the list.
 
 ---
 
 ## 9. Outstanding work and priorities (agreed staged plan)
 
-0. **First: wait for the user's real-hardware report on 0.1** and fix what he finds (keyboard
-   legends, font glyphs, anything about saving). Don't start 0.2 features before that unless he says so.
-1. **0.2**: word wrap (display wrap and/or hard wrap — ask him), block mark/copy/move/delete (the
-   10K free SRAM bank 3 at `$4000`-`$67FF` via mapper `$37`=3 could hold a clipboard, but the DOS needs
-   `$37`=1 for every card call — switch back before any DOS call), find and replace.
+0. **First: the user's real-hardware report on 0.1 / 0.2**, and fixing what he finds (keyboard
+   legends, font glyphs, anything about saving, and whether the clipboard holds 10K or 3K, see 12.3).
+1. 0.2 is done (section 12). **Before 0.3, make code room** (18 bytes left); ideas in 12.6.
 2. **0.3**: "sheet view" — a whole page as a 1-pixel-per-character thumbnail in mode 1 with a box to
    jump around (the user liked this idea a lot); menu bar alongside the CTRL keys.
 3. **0.4**: output — printer port (Centronics, port `$0E` data / strobe; plain text and Epson
@@ -412,7 +450,7 @@ VZ-DECK re-reads the DOS's folder when it comes back.
 6. Later: spell check with a dictionary file on the card.
 
 When adding features: keep the editor hot path (typing → render → flush) under ~2 frames; measure
-with `tools/t7.py` and `tools/prof.py` before and after.
+with `tools/t7.py`, `tools/t10.py` (wrap) and `tools/prof.py` before and after.
 
 ---
 
@@ -434,6 +472,8 @@ from `tools/`: `py t2.py` etc. They read `../out/VZED.VZ` / `PLAYTXT.VZ`, so bui
 | `t7.py` | T-states per keystroke for each style (section 4.3 figures) | as listed |
 | `t8.py` | LF-only file stays LF-only, empty file gets CR LF, saving an empty new file | pass |
 | `prof.py` | per-routine time profile of typing | — |
+| `t9.py` (0.2) | **wrap**: 6 seeds x 120 random keys (typing incl. spaces, all moves, page, top/bottom, delete) in all 3 styles against a Python model of the wrap rule: text, cursor, line, *every screen row*, top is a real row start, cursor cell. **Blocks** with and without the spare bank, wrap on/off: copy, paste, cut marked backwards, delete, typing ends marking, CTRL+O keeps/empties the clipboard, a 9,280-byte block, too big for the fallback. **Highlighting** checked cell by cell while moving. **Find / again / not found / replace Y-N-A, with nothing, stop**, save, card clean. **VZED.CFG** wrap bit written and read, 0.1 file compatible. `py t9.py wrap <seed> [style]` = one long random run | all pass (20 Nov 2026); extra seeds 7, 8, 9, 10, 12, 13 x 240 keys (styles 0, 2, 1, 0, 2, 0) all pass |
+| `t10.py` (0.2) | T-states per key in wrap mode, 600-character paragraphs | see 12.5 |
 
 **Re-run on the PC by Claude Code, 20 Nov 2026** (after moving test scratch output from the chat
 sandbox's `/tmp/...` path to `testout/`): build matches both MD5s; t1, t2, t3, t4b, t4c, t6, t8, t5
@@ -441,6 +481,8 @@ seeds 7 and 21 pass; t7 timings match the table. **t4.py** passes its first thre
 fragmented 512 B, folder extension) but then stops: its last cases are an older copy of the
 t4b/t4c cases, still passing `nf=` to `Card()`, which the harness no longer takes, and its "card
 nearly full" case doesn't save. Use t4b/t4c for those cases; t4.py still needs tidying.
+**0.2 build, same day:** t2, t3, t4 (first three cases), t4b, t4c, t6 (0 guard hits), t8, t5 seeds
+7, 11, 21, 25 all pass as before; t7 in 12.5.
 
 `harness.FS(card.sec).check()` verifies a card image: FAT copies identical, every chain valid, cluster
 counts match sizes, no cross-links, **no lost clusters**, nothing past the end of the volume.
@@ -450,7 +492,10 @@ Test-script gotchas: keys pressed while the editor is busy are lost (as on the r
 (e.g. `SHELL.VZ` sorts before `T.TXT`; after a save a `.BAK` appears and shifts positions).
 
 **VZonPC (`C:\Users\Owner\Documents\VZonPC\vzemu.exe`), the user's shared emulator:** VZ-ED boots,
-types, and all three display styles work there (checked 20 Nov 2026). But VZonPC's DOS is a
+types, and all three display styles work there (checked 20 Nov 2026). 0.2 checked there too: wrap,
+mark, copy, paste. VZ-ED found home = 1 and chose the *fallback* clipboard, correctly: VZonPC's
+stand-in DOS leaves both 10K banks empty, so they look the same. Put `sym out/vzed.sym` in a vzemu
+script to `peek` VZ-ED variables by name (plain addresses need a `$`). But VZonPC's DOS is a
 high-level stand-in: it doesn't run the real VZDOS ROM and doesn't emulate raw sector reads/writes
 (`$575D`/`$568C`), so **file list, load and save can only be tested with the Python suite above**.
 Use VZonPC for screen/keyboard checks; extending VZonPC with a sector-level SD model would let it run
@@ -479,3 +524,93 @@ few known ones; `JP 0` is treated as a restart. VZ-ED never calls the ROM.
 - After each step: rebuild, run the relevant tests, update `release/`, README and this file, commit
   and push, and copy to the PC folder. The user likes releases as: blurb with tech specs, separate
   screenshots, a zip, and a plain-text blurb for Facebook/YouTube.
+
+---
+
+## 12. 0.2 architecture (edit2.asm) — read before touching wrap, blocks or the clipboard
+
+Positions are **logical** offsets (0 = start of the text, the gap ignored); the cursor is
+`c = gs - BUFS`. Helpers: `curpos`, `textlen`, `log2phys` (a position at or after the cursor maps
+after the gap), `phys2log`, `ls_of` (line start of a position <= c), `prevls`, `next_line`, and
+`gap_to` (move the cursor anywhere with LDIR/LDDR, keeping `curln` right with `count_lf`).
+
+### 12.1 Word wrap (`wrap` = 1)
+**The rule** (must be identical in `wrow`, `wlay` and the Python model in t9): a screen row holds at
+most 32 positions. From the row start, look at up to 32 characters: a line feed among them ends the
+row (the line end is its last position); the end of the text ends the last row; 32 characters with
+no line end: break after the last space among them, or straight after the 32nd if there is none.
+Rows never look past a line feed, so editing one paragraph never changes the rows of another.
+
+- `wrow` (gap-aware, used for moving around): fast path when the 32 characters are all before the
+  gap (limit `gs`) or all after it (limit `BUFE`): **CPIR** for a line feed, then **CPDR** back from
+  the 32nd for a space. Otherwise `wrow_s`, one character at a time with the boundary-byte checks.
+  Returns HL = next row start, A = 1 if it ended with LF, C = last row (HL = BUFE). Pointer `gs`
+  means "the character at `ge`" (`phys2log(gs)` = c).
+- `wline` walks a line's rows keeping the last 16 starts in `RING` (`rpush`/`rget`), stopping at the
+  row containing `wlim`; `wcur` = the cursor's line, giving `wcrs` (cursor row start), `wnext`, `wlast`.
+- `wmv_up`/`wmv_down` (hooked into `mv_up`/`mv_down`): target row + `min(goal, positions-1)`;
+  `setgoal` in wrap mode = column on the screen row. `top_up1`/`top_down1` do nothing in wrap mode.
+- Drawing (`render_doc` jumps to `render_wrap`): `wvis` keeps `top` a real row start and not below
+  the cursor (it re-snaps `top` to a `RING` entry when `top` is in the cursor's line, because editing
+  can pull a word back onto an earlier row of the same paragraph); `wlin` copies up to `WIN` = 480
+  characters from `top` into `LIN` with two LDIRs (the gap jumped) plus an LF end mark; `wlay` lays
+  `LIN` out into `SCR` (fast: no gap), storing each row's start in `WRS`, then finds the cursor
+  cell. If the cursor isn't on screen, `wback` sets `top` docrows-1 rows above the cursor's row
+  (rows from `RING`, then from the lines above) and it is laid out again. 15 rows x 32 = 480, so the
+  window always covers the screen.
+- CTRL+W restarts `top` at its line start and sets `hs` = 0.
+
+### 12.2 Blocks
+`selon`: 0 none, 1 marking (anchor in `anchor`), 2 a find match shown until the next key
+(`dispatch` clears 2 first). `sel_range` = (min, max) of anchor and cursor; the cursor is always at
+one end, so the block is contiguous on one side of the gap: copy reads it from `BUFS+s0` or from
+`ge` without moving the gap; cut/delete (`blk_rm`) moves the gap to the end of the block and drops
+it from `gs` (counting its LFs off `curln`). Paste LDIRs from the clipboard to `gs`.
+**Highlighting:** `sel_show` (called by `render` after `render_doc`) sets bit 7 in `SCR` for block
+cells, using per-row logical start `SRS` and positions `SRP` from `srows_w` (from `WRS`) or
+`srows_nw` (lines from `top`, scrolled by `hs`). `draw_cell` tells the cursor from selected text by
+comparing the cell index with `curcell` (`dsel`): selected text = the opposite inverse of normal
+(text styles) or colour pair `$C0` = blue on yellow (graphics).
+
+### 12.3 The clipboard bank: safety rules, keep them
+Port `$37` (BennVenn, MAME sdloader semantics): bit 0 ROM/RAM at `$4000`-`$67FF`, bit 1 which 10K
+RAM bank, bit 2 which 18K bank at `$B800` (**never set bit 2**: VZ-ED's code and text are there).
+It can't be read back. `clip_init` (start-up, before any DOS call): copy `$4000`-`$67FF` to the empty
+text buffer, find which of 1 / 0 shows *exactly* the same (`ci_cmp`, CPI over all 10K) = `clhome`;
+then compare setting 3 with that copy: identical = no spare bank (fallback); otherwise write one
+complemented byte at `$4040` with setting 3, check the home view is unchanged (if not: put it back
+and use the fallback), restore the bank byte, and check it read back. `clip_on` = `OUT ($37),3` only
+if `clipbank`; `clip_off` = `OUT ($37),(clhome)`. No DOS call ever happens between them.
+
+### 12.4 Find / replace
+`input_line` (prompt on the title bar, 22 characters, kept for next time), `fold_pat` makes
+`FFOLD` lower case, `search` (HL from, DE end, physical, no gap inside): letters compare either case.
+Find searches `[ge (+1 for CTRL+G), BUFE)`; if nothing, `gap_to_end` and search the whole text,
+putting the cursor back if still nothing. Replace searches from `ge` only (cursor to end). Neither
+text can hold a line feed, so `curln` never changes while replacing.
+
+### 12.5 Speed (Python emulator, frames of 70,630 T-states)
+| | text style 0 | graphics |
+|---|---|---|
+| no wrap, type a letter (t7) | ~1.4 (0.1: ~1.2) | 1.80 (0.1: 1.66; the packed font) |
+| wrap, type at the start / end of a 600-char paragraph (t10) | 1.50 / 2.09 | 1.44 / 1.75 |
+| wrap, cursor up / down inside a paragraph | 2.2-3.5 / 2.2 | 2.8-3.2 / 1.9 |
+| wrap, page down / up | 10.7 / 8.8 | 8.2 / 6.4 |
+| wrap, end / top of a 9.6K file | 9.5 / 5.3 | 9.8 / 6.3 |
+
+Profile of wrap typing at the end of a long paragraph: `wlay` ~24%, two backward scans to the line
+start (`line_start`, one of them from `curcol` for the title bar) ~17%, the row walk ~13%, flush ~16%.
+The VZ has no key buffer and the repeat counts loop passes, so slower keys repeat more slowly but
+none is lost.
+
+### 12.6 Making room (where the 0.2 bytes came from, and what's left)
+Done for 0.2: tables + font + most messages + help text moved to the tail below `$A000`
+(`build.py` appends it to the file; `start` copies it first thing), so the code no longer needs
+page-alignment padding; **CTAB merged into the upper half of TTAB's page** (colour pair index
+`$80`+16p, same speed); **font packed two rows per byte** (288 bytes; `gc_row`); INBUF..NEWNAME and
+`fbuf` moved into the gap after `CLIST`; DPTR moved down to right after DIRBUF; scratch variables
+moved into DIRBUF; `getc` and 11 unreachable bytes after `jp 0` in `exit` removed; one `clr_title`
+shared by three callers.
+Ideas for 0.3: move more code (not only data) into the tail and shrink the tail (e.g. shorter help
+text); simplify `srows_nw`/`next_line`; ask the user before trading buffer size (each 256 bytes of
+code past `$C700` costs 256 bytes of maximum file size).

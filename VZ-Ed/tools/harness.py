@@ -160,11 +160,16 @@ class FS:
 
 # ------------------------------------------------------------------ the machine
 class VZ:
-    def __init__(s, dos, card, maxlba=None):
-        z = s.z = Z80(); s.flash = dos; s.sd = SD(card, maxlba); s.ramsel = 0
+    def __init__(s, dos, card, maxlba=None, bank=True):
+        z = s.z = Z80(); s.flash = dos; s.sd = SD(card, maxlba); s.ramsel = 0; s.mapper = 0
+        # port $37 bit 1 = the second 10K SRAM bank at $4000-$67FF (MAME sdloader);
+        # bank=False: a machine without it (OUT ($37),3 changes nothing)
+        s.bank1 = bytearray((i * 37 + 11) & 0xFF for i in range(0x2800)) if bank else None
         s.keys = set(); s.joy = set(); s.script = []; s.frame = 0; s.stop = None; s.con = ''
         s.writes_low = []; s.guard = None
         def rd(a):
+            if s.bank1 is not None and (s.mapper & 3) == 3 and 0x4000 <= a < 0x6800:
+                return s.bank1[a-0x4000]
             if 0x4000 <= a < 0x6000 and not s.ramsel:
                 return s.flash[a-0x4000] if a-0x4000 < len(s.flash) else 0xFF
             if 0x6800 <= a < 0x7000:
@@ -179,6 +184,8 @@ class VZ:
             return z.mem[a]
         def wr(a, v):
             if a < 0x4000: return
+            if s.bank1 is not None and (s.mapper & 3) == 3 and 0x4000 <= a < 0x6800:
+                s.bank1[a-0x4000] = v; return
             if 0x4000 <= a < 0x6000 and not s.ramsel: return
             if 0x6800 <= a < 0x7000: s.latch = v; return
             if s.guard and s.guard(a, v): s.writes_low.append((z.pc, a, v))
@@ -187,7 +194,9 @@ class VZ:
         def outp(p, v):
             p &= 0xFF
             if p == 0x39: s.sd.out(v)
-            elif p == 0x37: s.ramsel = v & 1
+            elif p == 0x37:
+                if s.bank1 is None and (v & 3) == 3: return   # no spare bank: setting 3 does nothing
+                s.ramsel = v & 1; s.mapper = v
         def inp(p):
             p &= 0xFF
             if p == 0x39: return s.sd.inp()
@@ -224,7 +233,7 @@ class VZ:
         elif pc == 0x2EF4: z.r[7] = 0
         elif pc == 0x06A0: s.stop = 'BASIC'; return
         elif pc == 0x0000:
-            s.con += '[RESET]'; s.resets = getattr(s, 'resets', 0) + 1; z.pc = 0x4004; s.ramsel = 0; return
+            s.con += '[RESET]'; s.resets = getattr(s, 'resets', 0) + 1; z.pc = 0x4004; s.ramsel = 0; s.mapper = 0; return
         elif pc in (0x3450, 0x1A19): pass
         else: s.stop = 'ROM %04X' % pc; return
         z.pc = z.pop()

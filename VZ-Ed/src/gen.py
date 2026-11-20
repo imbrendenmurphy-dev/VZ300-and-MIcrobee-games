@@ -15,13 +15,17 @@ VARS = [('gs',2),('ge',2),('top',2),('hs',2),('curln',2),('goal',2),('curcell',2
  ('fcflag',1),('dwcl',3),('dwsec',1),('dwptr',2),('dwlba',3),('seg1p',2),('seg1l',2),('seg2p',2),
  ('seg2l',2),('wcrlf',1),('wdir',3),('outlen',2),('wncl',1),('wci',1),('wsec',1),('wpos',2),
  ('wfirst',3),('ldcl',3),('ldsz',3),('lddst',2),('ldrem',2),('ldcur',3),('lsec',1),('trunc',1),
- ('plugmode',1),('cfgcl',3),('cfghave',1),('cfg_ds',1),('cfg_caps',1),('cfg_ins',1)]
+ ('plugmode',1),('cfgcl',3),('cfghave',1),('cfg_ds',1),('cfg_caps',1),('cfg_ins',1),
+ # 0.2
+ ('wrap',1),('selon',1),('anchor',2),('dsel',1),('clipbank',1),('clipbase',2),('clipmax',2),('cliplen',2),
+ ('askall',1),('clhome',1)]
 def gen_vars():
-    a = 0x9800; out = ['VARS equ $%04X' % a]
+    a = 0x9730; out = ['VARS equ $%04X' % a]          # right after DPTR
     for n, s in VARS:
+        if n == 'NUMTMP': assert (a & 0xFF) + s <= 0x100, n   # used with "sub X&255"
         out.append('%s equ $%04X' % (n, a)); a += s
     out.append('VARS_END equ $%04X' % a)
-    assert a <= 0x9FE0
+    assert a <= 0x9C00
     open(os.path.join(HERE, 'vars.inc'), 'w').write('\n'.join(out) + '\n')
 
 # ---------------------------------------------------------------- keyboard
@@ -35,12 +39,14 @@ ROWS = [['T','W',None,'E','Q','R'],
         ['Y','O','RET','I','P','U'],
         ['H','L',':','K',';','J']]
 K = dict(LEFT=1,RIGHT=2,UP=3,DOWN=4,PGUP=5,PGDN=6,TOP=7,BOT=8,HOME=9,END=10,BS=11,DEL=12,RET=13,
-         INS=14,CAPS=15,OPEN=16,SAVE=17,SAVEAS=18,NEW=19,QUIT=20,DISP=21,HELP=22)
+         INS=14,CAPS=15,OPEN=16,SAVE=17,SAVEAS=18,NEW=19,QUIT=20,DISP=21,HELP=22,
+         MARK=24,COPY=25,CUT=26,PASTE=27,FIND=28,NEXT=29,REPL=30,WRAP=31)
 SHIFT = {'1':'!','2':'"','3':'#','4':'$','5':'%','6':'&','7':"'",'8':'(','9':')','0':'@',
          '-':'=',';':'+',':':'*',',':'<','.':'>',' ':' '}
 CTRL = {'M':'LEFT',',':'RIGHT','.':'UP',' ':'DOWN','R':'PGUP','C':'PGDN','T':'TOP','B':'BOT',
         'Z':'HOME','X':'END',':':'BS',';':'DEL','L':'INS','U':'CAPS','O':'OPEN','S':'SAVE',
-        'A':'SAVEAS','N':'NEW','Q':'QUIT','D':'DISP','H':'HELP'}
+        'A':'SAVEAS','N':'NEW','Q':'QUIT','D':'DISP','H':'HELP',
+        'K':'MARK','J':'COPY','Y':'CUT','P':'PASTE','F':'FIND','G':'NEXT','E':'REPL','W':'WRAP'}
 CSHIFT = {'L':'?','K':'/','O':'[','P':']','I':'{','U':'}','M':'\\','N':'^','J':'|','H':'~',
           '-':'_','7':'`'}
 def ktab():
@@ -181,11 +187,11 @@ def font():
         assert len(rows) == 6 and all(len(r) == 3 for r in rows), chr(c)
         for r in rows: out.append(sum(8 >> i for i, p in enumerate(r) if p == 'X'))
     out += [14]*5 + [0]           # glyph 95: block for anything unprintable
-    return out
+    return [out[i] << 4 | out[i+1] for i in range(0, len(out), 2)]   # two rows per byte
 
 # ---------------------------------------------------------------- 4-colour expansion (CSS 0)
-# 0 green, 1 yellow, 2 blue, 3 red.  pairs: text, title bar, cursor/selection, overtype cursor
-PAIRS = [(2,0),(1,3),(0,2),(1,3)]
+# 0 green, 1 yellow, 2 blue, 3 red.  pairs: text, title bar, cursor, overtype cursor, selected text
+PAIRS = [(2,0),(1,3),(0,2),(1,3),(2,1)]
 def ctab():
     out = []
     for fg, bg in PAIRS:
@@ -203,10 +209,11 @@ def db(name, data, per=16):
     return '\n'.join(s)
 
 def gen_tables():
+    # CTAB lives in the upper half of TTAB's page: colour pair p is $80+16*p
     parts = ['        align 256', db('KTAB', ktab()),
-             '        align 256', db('CTAB', ctab()),
-             '        align 256', db('TTAB', ttab()),
-             db('FONT', font(), 6)]
+             '        align 256', db('TTAB', ttab()), db('CTAB', ctab()),
+             '        assert (CTAB&255) == $80',
+             db('FONT', font(), 3)]
     open(os.path.join(HERE, 'tables.inc'), 'w').write('\n'.join(parts) + '\n')
 
 if __name__ == '__main__':

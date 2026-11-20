@@ -1,5 +1,5 @@
 ; ===========================================================================
-;  VZ-ED 0.1 - full-screen text editor for the VZ300 / VZ200
+;  VZ-ED 0.2 - full-screen text editor for the VZ300 / VZ200
 ;  BennVenn SD loader + 128K.  VIBED BY BPM 2026
 ;
 ;  One binary, two names on the card:
@@ -22,13 +22,15 @@ SCR     equ $8000           ; 16 x 32 shadow screen (what we want shown)
 OLD     equ $8200           ; what is on the display now
 ROWATTR equ $8400           ; per row: bit0 document row, bit1 title bar
 CLIST   equ $8410           ; clusters for a file being written (128 x 3)
+INBUF   equ $8590           ; name typed at a prompt
+PNAME   equ $85A0           ; parsed 8.3 name
+CFGBUF  equ $85B0
+NAMEBUF equ $85C0           ; name to search for
+NEWNAME equ $85D0           ; name to rename to
+fbuf    equ $85DB           ; find text: length + 22 characters (kept)
+        assert fbuf+23 <= $8600
 DIRBUF  equ $8600           ; folder list records, 20 bytes each
-DPTR    equ $9600           ; pointers to the records (sorted)
-INBUF   equ $97A0           ; name typed at a prompt
-PNAME   equ $97B0           ; parsed 8.3 name
-CFGBUF  equ $97C0
-NAMEBUF equ $97D0           ; name to search for
-NEWNAME equ $97E0           ; name to rename to
+DPTR    equ $95A0           ; pointers to the records (sorted), right after DIRBUF
 SECBUF  equ $F800           ; DOS sector buffer (all card I/O goes through here)
 STACKTOP equ $F800
 BUFE    equ $F600           ; end of the text buffer
@@ -40,6 +42,8 @@ D_READ  equ $578E
 D_NEXT  equ $48BF
 
 MAXENT  equ 200
+        assert CLIST+128*3 <= INBUF
+        assert DIRBUF+MAXENT*20 <= DPTR
 REP1    equ 18              ; frames before a held key repeats
 REP2    equ 3               ; frames between repeats
 
@@ -70,18 +74,30 @@ K_QUIT  equ 20
 K_DISP  equ 21
 K_HELP  equ 22
 K_FIRE  equ 23
-K_LAST  equ 23
+K_MARK  equ 24
+K_COPY  equ 25
+K_CUT   equ 26
+K_PASTE equ 27
+K_FIND  equ 28
+K_NEXT  equ 29
+K_REPL  equ 30
+K_WRAP  equ 31
+K_LAST  equ 31
 
         include "vars.inc"
 
         org $A000
 entry:  jp start
 plugin: db 0                ; 1 = PLAYTXT.VZ (VZ-DECK plug-in), 0 = VZED.VZ
-        db "VZ-ED 0.1 VIBED BY BPM 2026",0
+        db "VZ-ED 0.2 VIBED BY BPM 2026",0
 
 ; ===========================================================================
 start:  di
         ld sp,STACKTOP
+        ld hl,code_end      ; messages and help text: to the spare RAM below $A000
+        ld de,tail
+        ld bc,tail_end-tail
+        ldir
         xor a
         ld (LATCH),a
         ld hl,VARS
@@ -104,6 +120,7 @@ start:  di
         ld (crlf),a
         ld (waitrel),a
         ld (cfg_ins),a
+        call clip_init
         ld hl,($FB45)       ; the folder VZ-DECK / the DOS is in
         ld (cwd),hl
         ld a,($FB47)
@@ -228,6 +245,13 @@ ed_lp:  call frame
         jr ed_lp
 
 dispatch:
+        ld b,a
+        ld a,(selon)        ; a find match is only shown until the next key
+        cp 2
+        jr nz,ds_0
+        xor a
+        ld (selon),a
+ds_0:   ld a,b
         cp 32
         jr c,ds_cmd
         cp 127
@@ -251,7 +275,8 @@ ds_cmd: cp K_RET
         jp (hl)
 cmdtab: dw c_left,c_right,c_up,c_down,c_pgup,c_pgdn,c_top,c_bot,c_home,c_end
         dw c_bs,c_del,c_none,c_ins,c_caps,c_open,c_save,c_saveas,c_new,c_quit
-        dw c_disp,c_help,c_none
+        dw c_disp,c_help,c_none,c_mark,c_copy,c_cut,c_paste,c_find,c_next,c_repl
+        dw c_wrap
 c_none: ret
 
 c_left: call mv_left
@@ -293,9 +318,15 @@ c_home: call goto_ls
         jp reset_goal
 c_end:  call goto_le
         jp reset_goal
-c_bs:   call del_left
+c_bs:   ld a,(selon)
+        or a
+        jp nz,blk_del
+        call del_left
         jp reset_goal
-c_del:  call del_right
+c_del:  ld a,(selon)
+        or a
+        jp nz,blk_del
+        call del_right
         jp reset_goal
 c_ins:  ld a,(insmode)
         xor 1
@@ -325,6 +356,8 @@ cd_2:   jp set_msg
 ; ---- typing
 type_char:
         ld b,a
+        xor a               ; typing ends marking (the block stays in the text)
+        ld (selon),a
         ld a,(insmode)
         or a
         jr nz,tc_ins
@@ -341,6 +374,8 @@ tc_ins: ld a,b
         call ins_char
         jp reset_goal
 type_newline:
+        xor a
+        ld (selon),a
         ld a,10
         call ins_char
         jp reset_goal
@@ -354,7 +389,17 @@ setgoal: ld hl,(goal)
         and l
         inc a
         ret nz
-        call curcol
+        ld a,(wrap)
+        or a
+        jr z,sg_n
+        call wcur           ; wrap: the column on the screen row
+        call curpos
+        ld de,(wcrs)
+        or a
+        sbc hl,de
+        ld (goal),hl
+        ret
+sg_n:   call curcol
         ld (goal),hl
         ret
 
@@ -373,6 +418,7 @@ buf_clear:
         ld (hs),hl
         xor a
         ld (modified),a
+        ld (selon),a
         jp reset_goal
 
 ins_char:                   ; A = char
@@ -641,7 +687,10 @@ goto_col:                   ; HL = column wanted, move right up to it on this li
         ld c,l
 gc_bc:  jp gap_right
 
-mv_up:  call line_start     ; C if on the first line
+mv_up:  ld a,(wrap)         ; C if on the first line
+        or a
+        jp nz,wmv_up
+        call line_start
         ld de,BUFS
         or a
         sbc hl,de
@@ -657,6 +706,9 @@ mv_up:  call line_start     ; C if on the first line
         ret
 
 mv_down:                    ; C if on the last line
+        ld a,(wrap)
+        or a
+        jp nz,wmv_down
         call dist_to_le
         ld hl,(ge)
         add hl,bc
@@ -673,6 +725,9 @@ mv_down:                    ; C if on the last line
         ret
 
 top_up1:                    ; scroll the view up a line
+        ld a,(wrap)
+        or a
+        ret nz
         ld hl,(top)
         ld a,h
         or l
@@ -706,6 +761,9 @@ tu_zero: ld hl,0
         ret
 
 top_down1:                  ; scroll the view down a line (never past the cursor)
+        ld a,(wrap)
+        or a
+        ret nz
         ld hl,(top)
         ld de,BUFS
         add hl,de
@@ -827,32 +885,13 @@ ev_r:   ld de,32
         ld (hs),hl
         ret
 
-; getc: HL = text pointer; jumps the gap; C at the end, else A = char, HL+1
-getc:   push de
-        ld de,(gs)
-        or a
-        sbc hl,de
-        add hl,de
-        jr nz,gt_ng
-        ld hl,(ge)
-gt_ng:  ld de,BUFE
-        or a
-        sbc hl,de
-        add hl,de
-        pop de
-        scf
-        ret z
-        ld a,(hl)
-        inc hl
-        and a
-        ret
-
 ; ===========================================================================
 ;  drawing the editor
 ; ===========================================================================
 render: ld a,2
         call set_rows
         call render_doc
+        call sel_show
         call build_status
         ld hl,(curcell)
         ld a,h
@@ -885,6 +924,9 @@ cls_scr: ld hl,SCR
         ret
 
 render_doc:
+        ld a,(wrap)
+        or a
+        jp nz,render_wrap
         call ensure_vis
         ld hl,$FFFF
         ld (curcell),hl
@@ -1020,11 +1062,7 @@ rb_ok:  or a
         ret
 
 build_status:
-        ld hl,SCR
-        ld de,SCR+1
-        ld bc,31
-        ld (hl),' '
-        ldir
+        call clr_title
         ld a,(msgflag)
         or a
         jr z,bs_n
@@ -1032,7 +1070,13 @@ build_status:
         ld de,SCR
         jp puts
 bs_n:   ld de,SCR
-        call put_fname
+        ld a,(selon)
+        dec a
+        jr nz,bs_nm
+        ld hl,s_mark
+        call puts
+        jr bs_1
+bs_nm:  call put_fname
         ld a,(modified)
         or a
         jr z,bs_1
@@ -1058,11 +1102,24 @@ bs_1:   ld de,SCR+14
         jr nz,bs_2
         ld hl,s_ovr
 bs_2:   call puts
-        ld a,(caps)
+        ld a,(wrap)
+        or a
+        jr z,bs_3
+        ld a,'W'
+        ld (SCR+30),a
+bs_3:   ld a,(caps)
         or a
         ret z
         ld a,'^'
         ld (SCR+31),a
+        ret
+
+clr_title:                  ; blank the title bar row of SCR
+        ld hl,SCR
+        ld de,SCR+1
+        ld bc,31
+        ld (hl),' '
+        ldir
         ret
 
 put_fname:                  ; name.ext (or UNTITLED) at DE
@@ -1289,7 +1346,17 @@ fl_d:   ld a,(hl)
 
 draw_cell:                  ; BC = cell index, A = shadow byte
         ld e,a
-        ld a,c
+        xor a
+        ld (dsel),a
+        bit 7,e
+        jr z,dc_go
+        ld hl,(curcell)
+        or a
+        sbc hl,bc
+        jr z,dc_go
+        ld a,1              ; highlighted but not the cursor: selected text
+        ld (dsel),a
+dc_go:  ld a,c
         rlca
         rlca
         rlca
@@ -1322,7 +1389,19 @@ draw_cell:                  ; BC = cell index, A = shadow byte
         and $3F
         bit 7,e
         jr z,tc_nh
-        bit 1,d             ; on the title bar: a hole (prompt cursor)
+        ld b,a
+        ld a,(dsel)
+        or a
+        ld a,b
+        jr z,tc_hl
+        bit 0,d
+        jr z,tc_hl
+        ld a,(tinvm)        ; selected text: the opposite of how it normally shows
+        and c
+        ld a,b
+        jr nz,tc_st
+        jr tc_inv
+tc_hl:  bit 1,d             ; on the title bar: a hole (prompt cursor)
         jr nz,tc_st
         bit 0,d
         jr z,tc_inv
@@ -1344,22 +1423,26 @@ tc_nh:  bit 1,d
 tc_inv: or $40
 tc_st:  ld (hl),a
         ret
-gcell:  ; ---- graphics mode: colour pair
+gcell:  ; ---- graphics mode: colour pair (CTAB sits in the upper half of TTAB's page)
         bit 7,e
         jr z,gc_nh
-        ld a,32
+        ld a,$A0
         bit 0,d
         jr z,gc_p
+        ld a,(dsel)
+        or a
+        ld a,$C0            ; selected text
+        jr nz,gc_p
         ld a,(insmode)
         or a
-        ld a,32
+        ld a,$A0
         jr nz,gc_p
-        ld a,48
+        ld a,$B0
         jr gc_p
-gc_nh:  xor a
+gc_nh:  ld a,$80
         bit 1,d
         jr z,gc_p
-        ld a,16
+        ld a,$90
 gc_p:   ld (gpair),a
         ld a,c
         and 31
@@ -1371,9 +1454,8 @@ gc_p:   ld (gpair),a
         cp 95
         jr c,gc_ok
 gc_blk: ld a,95
-gc_ok:  ld l,a
+gc_ok:  ld l,a               ; 3 bytes per glyph (two rows per byte)
         ld h,0
-        add hl,hl
         ld d,h
         ld e,l
         add hl,hl
@@ -1396,11 +1478,21 @@ gc_ok:  ld l,a
         ld l,a
         jr nc,gc_a
         inc h
-gc_a:   ld b,6
+gc_a:   ld b,3
         ld a,(gpair)
         ld c,a
 gc_l:   ld a,(de)
+        rrca
+        rrca
+        rrca
+        rrca
+        call gc_row
+        ld a,(de)
         inc de
+        call gc_row
+        djnz gc_l
+        ret
+gc_row: and $0F             ; one pixel row: nibble + colour pair -> 2bpp byte
         or c
         push hl
         ld l,a
@@ -1411,9 +1503,8 @@ gc_l:   ld a,(de)
         ld a,l
         add a,32
         ld l,a
-        jr nc,gc_n
+        ret nc
         inc h
-gc_n:   djnz gc_l
         ret
 ROWBASE: dw VRAM,VRAM+192,VRAM+384,VRAM+576,VRAM+768
         dw VRAM+960,VRAM+1152,VRAM+1344,VRAM+1536,VRAM+1728
@@ -1589,10 +1680,22 @@ waitkey:                    ; A = next event (no blink)
         jr z,waitkey
         ret
 
+        include "edit2.asm"
         include "files.asm"
         include "ui.asm"
-        include "tables.inc"
+        include "strmain.asm"
 
 code_end:
 BUFS    equ (code_end+255)&$FF00
         assert BUFS+12000 <= BUFE
+
+; tables, font, messages and help text: stored after the code in the file and
+; copied at start-up to the free RAM between the variables and $A000 (VZ-DECK's
+; plug-in header at $9FE8 is only needed while loading), so they don't take
+; room from the text buffer
+        org VARS_END
+tail:
+
+        include "strings.asm"
+tail_end:
+        assert tail_end <= $A000

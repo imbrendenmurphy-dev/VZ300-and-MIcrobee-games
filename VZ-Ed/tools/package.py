@@ -1,8 +1,8 @@
-"""Make the VZ-ED 0.1 release folder and zip."""
+"""Make the VZ-ED 0.2 release folder and zip."""
 import os, shutil, zipfile
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 S = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),'testout','')
-D = os.path.join(ROOT, 'dist', 'VZ-ED-0.1')
+D = os.path.join(ROOT, 'dist', 'VZ-ED-0.2')
 shutil.rmtree(os.path.join(ROOT, 'dist'), ignore_errors=True)
 os.makedirs(os.path.join(D, 'SD')); os.makedirs(os.path.join(D, 'screenshots'))
 for f in ('VZED.VZ', 'PLAYTXT.VZ'): shutil.copy(os.path.join(ROOT, 'out', f), os.path.join(D, 'SD', f))
@@ -16,7 +16,7 @@ src = os.path.join(D, 'source'); os.makedirs(os.path.join(src, 'src')); os.maked
 for f in ('vzed.asm', 'files.asm', 'ui.asm', 'gen.py', 'build.py'): shutil.copy(os.path.join(ROOT, 'src', f), os.path.join(src, 'src', f))
 for f in os.listdir(os.path.join(ROOT, 'tools')):
     if f.endswith('.py') and f != 'package.py': shutil.copy(os.path.join(ROOT, 'tools', f), os.path.join(src, 'tools', f))
-z = os.path.join(ROOT, 'dist', 'VZ-ED-0.1.zip')
+z = os.path.join(ROOT, 'dist', 'VZ-ED-0.2.zip')
 with zipfile.ZipFile(z, 'w', zipfile.ZIP_DEFLATED) as zf:
     for base, _, files in os.walk(D):
         for f in files:

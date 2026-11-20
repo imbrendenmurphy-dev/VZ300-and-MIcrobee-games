@@ -1465,10 +1465,16 @@ cl_1:   ld a,(SECBUF+6)
         and 1
         ld (caps),a
         ld (cfg_caps),a
-        ld a,(SECBUF+7)
+        ld a,(SECBUF+7)     ; bit 0 insert mode, bit 1 word wrap (0.2)
+        and 3
+        ld (cfg_ins),a
+        ld b,a
         and 1
         ld (insmode),a
-        ld (cfg_ins),a
+        ld a,b
+        rrca
+        and 1
+        ld (wrap),a
         ret
 
 cfg_save:                   ; only when a setting changed
@@ -1483,7 +1489,7 @@ cfg_save:                   ; only when a setting changed
         ld hl,cfg_caps
         cp (hl)
         jr nz,cs_1
-        ld a,(insmode)
+        call ins_byte
         ld hl,cfg_ins
         cp (hl)
         ret z
@@ -1504,7 +1510,7 @@ cs_1:   ld hl,CFGBUF
         ld a,(caps)
         ld (hl),a
         inc hl
-        ld a,(insmode)
+        call ins_byte
         ld (hl),a
         ld a,(cfghave)
         or a
@@ -1541,3 +1547,11 @@ cs_new: ld hl,CFGBUF
         ld hl,s_cfgname
         call setname
         jp write_new
+
+ins_byte:                   ; A = insert mode + 2 * word wrap
+        ld a,(wrap)
+        add a,a
+        ld b,a
+        ld a,(insmode)
+        or b
+        ret

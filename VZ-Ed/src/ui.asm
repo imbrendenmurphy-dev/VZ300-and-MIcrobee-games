@@ -78,7 +78,16 @@ c_new:  call check_modified
 
 c_open: call check_modified
         ret c
-        call filelist
+        xor a
+        ld (selon),a
+        ld (rbuf),a         ; so do the replacement text
+        ld a,(clipbank)     ; the fallback clipboard shares RAM with the file list
+        or a
+        jr nz,co_1
+        ld h,a
+        ld l,a
+        ld (cliplen),hl
+co_1:   call filelist
         ld a,1
         ld (waitrel),a
         ret
@@ -135,10 +144,6 @@ exit:   xor a               ; back to text mode, clear the screen
 ex_rst: xor a               ; restart: VZ-DECK comes back up
         out ($37),a
         jp 0
-        ld de,$7600
-        ld bc,rl_end-rl_src
-        ldir
-        jp $7600
 rl_src: ld hl,$4456         ; "VD": tells VZ-DECK it is coming back
         ld (HO),hl
         ld hl,HO+22
@@ -459,7 +464,14 @@ ay_u:   cp 'Y'
         jr z,ay_r
         cp 'N'
         jr z,ay_r
-        cp K_QUIT
+        cp 'A'              ; 'A' (all) only where asked for
+        jr nz,ay_q
+        ld b,a
+        ld a,(askall)
+        or a
+        ld a,b
+        jr nz,ay_r
+ay_q:   cp K_QUIT
         jr z,ay_c
         cp 'C'
         jr nz,ay_k
@@ -478,11 +490,7 @@ ay_r:   push af
 input_name:
         xor a
         ld (edmode),a
-in_drw: ld hl,SCR
-        ld de,SCR+1
-        ld bc,31
-        ld (hl),' '
-        ldir
+in_drw: call clr_title
         ld hl,s_saveas
         ld de,SCR
         call puts
@@ -676,65 +684,3 @@ hp_x:   ld a,1
         ld (waitrel),a
         ret
 
-; ---- strings
-s_untitled: db "UNTITLED",0
-s_ins:  db "INS",0
-s_ovr:  db "OVR",0
-s_txt:  db "TXT"
-s_bak:  db "BAK"
-s_tmpname: db "VZEDTEMP$$$"
-s_cfgname: db "VZED    CFG"
-s_shellnm: db "SHELL   VZ "
-s_namechr: db "$%'-_@~`!(){}^#&",0
-s_listhdr: db "OPEN  RET=OPEN  CTRL+Q=BACK",0
-s_dir:  db "<DIR>",0
-s_big:  db ">16M",0
-s_saveas: db "SAVE AS: ",0
-s_helphdr: db "VZ-ED 0.1 HELP  ^Q=DONE",0
-m_full: db "MEMORY FULL",0
-m_toobig: db "FILE TOO BIG FOR VZ-ED 0.1",0
-m_trunc: db "FILE ENDED EARLY ON THE CARD",0
-m_nofs: db "CARD FORMAT NOT SUPPORTED",0
-m_saving: db "SAVING...",0
-m_saved: db "SAVED",0
-m_saveerr: db "SAVE FAILED (SEE .BAK/.$$$)",0
-m_cardfull: db "CARD FULL - NOT SAVED",0
-m_savechg: db "SAVE CHANGES? Y/N  ^Q=STAY",0
-m_replace: db "REPLACE FILE? Y/N",0
-m_badname: db "BAD NAME - USE NAME.EXT",0
-m_new:  db "NEW FILE",0
-m_empty: db "(NO FILES HERE)",0
-m_disp0: db "DISPLAY: TEXT, CAPITALS INVERSE",0
-m_disp1: db "DISPLAY: TEXT, LOWER INVERSE",0
-m_disp2: db "DISPLAY: GRAPHICS, 4X6 FONT",0
-
-helptext:
-        db "CTRL + KEY:",0
-        db " M , . SPC  CURSOR",0
-        db "   (LEFT RIGHT UP DOWN)",0
-        db " R C   PAGE UP / DOWN",0
-        db " T B   TOP / END OF FILE",0
-        db " Z X   START / END OF LINE",0
-        db " :     DELETE LEFT",0
-        db " ;     DELETE RIGHT",0
-        db " L     INSERT / OVERTYPE",0
-        db " U     CAPS LOCK",0
-        db " O     OPEN FILE",0
-        db " S     SAVE",0
-        db " A     SAVE AS",0
-        db " N     NEW FILE",0
-        db " D     DISPLAY STYLE",0
-        db " H     HELP   Q  QUIT",0
-        db "TYPING:",0
-        db " LETTERS ARE LOWER CASE,",0
-        db " SHIFT+LETTER = CAPITAL",0
-        db " SHIFT: 1! 2",34," 3# 4$ 5% 6&",0
-        db "   7' 8( 9) 0@ -= ;+ :* ,< .>",0
-        db " CTRL+SHIFT: L? K/ O[ P]",0
-        db "   I{ U} M\ N^ J| H~ -_ 7`",0
-        db "JOYSTICK MOVES THE CURSOR",0
-        db "SAVING KEEPS THE OLD FILE",0
-        db "AS NAME.BAK",0
-        db " ",0
-        db "VZ-ED 0.1  VIBED BY BPM 2026",0
-        db $FF
