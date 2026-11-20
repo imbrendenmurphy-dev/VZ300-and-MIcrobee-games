@@ -1,7 +1,7 @@
 import sys; sys.path.insert(0,'.')
 from harness import *
 import shot
-S='/tmp/claude-0/-home-claude/adf4e5cf-05f8-5588-870b-3eb47f98e014/scratchpad/'
+S= os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),'testout','')
 dos=open('VZDOS.VZ','rb').read(); shell=open('SHELL.VZ','rb').read()
 plug=open('../out/PLAYTXT.VZ','rb').read(); ed=open('../out/VZED.VZ','rb').read()
 readme=b'VZ-ED test file\r\nSecond line\r\n'

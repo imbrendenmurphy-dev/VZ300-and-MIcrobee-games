@@ -37,7 +37,7 @@ m.type_keys([('CTRL','O'),'SPACE','SPACE','SPACE',('CTRL','.'),('CTRL','.'),('CT
 m.type_keys([('CTRL','SPACE'),'RET']); m.run_script(extra=40); show('opened notes')
 m.type_keys([('CTRL','D')]); m.run_script(extra=10); show('display style 1 (lower inverse)')
 m.type_keys([('CTRL','D')]); m.run_script(extra=10); print('latch %02X'%m.latch)
-import pickle; pickle.dump(bytes(m.z.mem[0x7000:0x7800]),open('/tmp/claude-0/-home-claude/adf4e5cf-05f8-5588-870b-3eb47f98e014/scratchpad/g1.vram','wb'))
+import pickle; pickle.dump(bytes(m.z.mem[0x7000:0x7800]),open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),'testout','g1.vram'),'wb'))
 m.type_keys(text_for('x')+[('CTRL','Q')]); m.run_script(extra=20); show('quit asks')
 m.type_keys(['N']); m.run_script(extra=200); print('resets',getattr(m,'resets',0)); show('after quit (rebooted)')
 f=check('final'); print([k for k in f if k!='_dirclusters'])

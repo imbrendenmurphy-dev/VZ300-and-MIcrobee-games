@@ -1,7 +1,7 @@
 """Make the VZ-ED 0.1 release folder and zip."""
 import os, shutil, zipfile
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-S = '/tmp/claude-0/-home-claude/adf4e5cf-05f8-5588-870b-3eb47f98e014/scratchpad/'
+S = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),'testout','')
 D = os.path.join(ROOT, 'dist', 'VZ-ED-0.1')
 shutil.rmtree(os.path.join(ROOT, 'dist'), ignore_errors=True)
 os.makedirs(os.path.join(D, 'SD')); os.makedirs(os.path.join(D, 'screenshots'))

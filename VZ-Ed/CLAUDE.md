@@ -435,12 +435,26 @@ from `tools/`: `py t2.py` etc. They read `../out/VZED.VZ` / `PLAYTXT.VZ`, so bui
 | `t8.py` | LF-only file stays LF-only, empty file gets CR LF, saving an empty new file | pass |
 | `prof.py` | per-routine time profile of typing | — |
 
+**Re-run on the PC by Claude Code, 20 Nov 2026** (after moving test scratch output from the chat
+sandbox's `/tmp/...` path to `testout/`): build matches both MD5s; t1, t2, t3, t4b, t4c, t6, t8, t5
+seeds 7 and 21 pass; t7 timings match the table. **t4.py** passes its first three cases (MBR/32K,
+fragmented 512 B, folder extension) but then stops: its last cases are an older copy of the
+t4b/t4c cases, still passing `nf=` to `Card()`, which the harness no longer takes, and its "card
+nearly full" case doesn't save. Use t4b/t4c for those cases; t4.py still needs tidying.
+
 `harness.FS(card.sec).check()` verifies a card image: FAT copies identical, every chain valid, cluster
 counts match sizes, no cross-links, **no lost clusters**, nothing past the end of the volume.
 
 Test-script gotchas: keys pressed while the editor is busy are lost (as on the real VZ) — add
 `('WAIT', n)` after open/save; the file list is sorted folders-first then by name, so count entries
 (e.g. `SHELL.VZ` sorts before `T.TXT`; after a save a `.BAK` appears and shifts positions).
+
+**VZonPC (`C:\Users\Owner\Documents\VZonPC\vzemu.exe`), the user's shared emulator:** VZ-ED boots,
+types, and all three display styles work there (checked 20 Nov 2026). But VZonPC's DOS is a
+high-level stand-in: it doesn't run the real VZDOS ROM and doesn't emulate raw sector reads/writes
+(`$575D`/`$568C`), so **file list, load and save can only be tested with the Python suite above**.
+Use VZonPC for screen/keyboard checks; extending VZonPC with a sector-level SD model would let it run
+everything (see its README, "Not emulated").
 
 The emulator traps any call into the BASIC ROM (`$0000`-`$3FFF`) and stops with "ROM xxxx", except a
 few known ones; `JP 0` is treated as a restart. VZ-ED never calls the ROM.
@@ -453,11 +467,13 @@ few known ones; `JP 0` is treated as a restart. VZ-ED never calls the ROM.
   **`VZ-Ed/`**. Account `imbrendenmurphy-dev`. Copyrighted conversions are kept out of this repo by
   the user's choice; original projects only. The repo `.gitignore` excludes `__pycache__`, ROMs and
   tape images.
-- User's PC (Windows): working clone `C:\Users\Owner\Documents\Codex\vz300-and-microbee-games`
-  (pull to get `VZ-Ed/`). At handover the chat session could not write to the PC, so the user puts
-  the project there himself (pull, or unzip `VZ-Ed-project.zip`); a standalone copy at
-  `C:\Users\Owner\Documents\VZEd_VZ300` would follow the VZ-DECK convention. VZ-DECK lives in the repo at `VZ-Deck/` and on the
-  PC at `C:\Users\Owner\Documents\VZDeck_VZ300`.
+- User's PC (Windows), set up by Claude Code on 20 Nov 2026:
+  - **Working copy: `C:\Users\Owner\Documents\VZEd_VZ300`** (standalone, VZ-DECK convention). Develop here.
+  - Git clone: `C:\Users\Owner\Documents\Codex\vz300-and-microbee-games\VZ-Ed` — copy changed files
+    there, then commit and push from that clone. (The other clone at `Documents\GitHub\VZ300 and
+    MIcrobee games` has the user's own uncommitted Microbee work in it — don't commit or pull there.)
+  - VZ-DECK lives in the repo at `VZ-Deck/` and on the PC at `C:\Users\Owner\Documents\VZDeck_VZ300`.
+- Test scratch output (screenshots, `g1.vram`) goes to `testout/` (git-ignored).
 - On that PC use `py` (not `python`). Git is the copy bundled with GitHub Desktop:
   `%LOCALAPPDATA%\GitHubDesktop\app-*\resources\app\git\cmd\git.exe`. Commit as BPM.
 - After each step: rebuild, run the relevant tests, update `release/`, README and this file, commit

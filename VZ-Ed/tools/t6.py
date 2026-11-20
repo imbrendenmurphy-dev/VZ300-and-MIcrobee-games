@@ -1,7 +1,7 @@
 import sys; sys.path.insert(0,'.')
 from harness import *
 import shot
-S='/tmp/claude-0/-home-claude/adf4e5cf-05f8-5588-870b-3eb47f98e014/scratchpad/'
+S= os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),'testout','')
 dos=open('VZDOS.VZ','rb').read(); ed=open('../out/VZED.VZ','rb').read()
 sym={l.split()[1]:int(l.split()[0],16) for l in open('../out/vzed.sym')}
 doc=b"Dear VZ friends,\r\n\r\nThis letter was written on a Dick Smith\r\nVZ300 with VZ-ED 0.1 and saved\r\nstraight to the SD card.\r\n\r\nThe quick brown fox jumps over the\r\nlazy dog: 0123456789 !?@#$%&*()\r\n<tags> [brackets] {braces} a_b ~x\r\n\r\nCheers,\r\nBPM\r\n"
