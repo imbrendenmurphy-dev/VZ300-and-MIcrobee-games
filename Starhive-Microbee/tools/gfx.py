@@ -155,4 +155,5 @@ def sprite_frame(art, outline=True, even=False):
             strips += bytes(CL) + bytes(byte8(g[y, c * 8:(c + 1) * 8]) for y in range(h)) + bytes(CL)
         blocks.append(bytes(head + data + strips))
     bsz = len(blocks[0])
-    return bytes([wb, h, 1 if even else 0, 0, bsz & 0xFF, bsz >> 8]) + b''.join(blocks)
+    maxc = min(255, wb * ((h + 20) // CL))      # cells it can touch
+    return bytes([wb, h, 1 if even else 0, maxc, bsz & 0xFF, bsz >> 8]) + b''.join(blocks)

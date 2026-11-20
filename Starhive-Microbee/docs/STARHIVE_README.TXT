@@ -4,7 +4,7 @@ A vertical shoot-'em-up for the Microbee Premium Plus (1MB)
 Type STARHIVE at the A> prompt. Loading takes a little while (all five
 levels, about 400K, go into memory at once).
 
-THE GAME (version 0.4: all five levels)
+THE GAME (version 0.6: all five levels)
 Fly the Hornet up through the Hive and destroy it, level by level:
   1  THE OUTER HIVE   stations and asteroids     boss: the Hive Queen
   2  THE ROCK BELT    a field of asteroids       boss: the Rock Mite
@@ -38,6 +38,8 @@ ABOUT THIS VERSION
  - Bullets and shots are drawn properly over the scenery, and ships
    over the scenery keep its main colour (only the fine lines take on
    the ship's colour, Spectrum style) instead of turning into blocks.
+ - On levels 3 to 5 (the busiest scenery) at most six enemies are about
+   at once, one fewer than on levels 1 and 2, to keep the speed up.
  - Title music: a two-voice tune on the 1-bit speaker. Sound effects
    in the game.
  - Still to come: more speed in levels 3-5, music in more

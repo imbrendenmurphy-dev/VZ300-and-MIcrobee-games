@@ -31,19 +31,19 @@ frame_begin:
 	ld hl,frame_id
 	inc (hl)
 	ld a,(hl)
-	ld (spr_row.cv+1),a
+	ld (spr_draw.cv+1),a
 	ld (ovl_draw.cv+1),a
 	ld a,$80
-	ld (spr_row.ns+1),a	; no pool slots used yet
+	ld (spr_draw.ns+1),a	; no pool slots used yet
 	ld a,(page)
 	add a,a
 	add a,BK_POOL
 	ld (pgbank),a
-	ld (spr_row.pb+1),a
+	ld (spr_draw.pb+1),a
 	or LV_SCREEN
 	ld (sr_dbk),a
 	ld hl,PCGWIN
-	ld (spr_row.dst+1),hl
+	ld (spr_draw.dst+1),hl
 	ld a,(k)		; this frame's merge flag: byte and bit
 	ld b,0
 	cp 8
@@ -59,6 +59,22 @@ frame_begin:
 .f1:	rlca
 	djnz .f1
 	ld (bg_get.mm+1),a
+	ld hl,(scrS)		; ring offsets of rows 2..23 (column 0) this
+	ld bc,80		; frame
+	add hl,bc
+	ld c,40
+	ld de,ringt+4
+.rt:	ld a,l
+	ld (de),a
+	inc e
+	ld a,h
+	and 7
+	ld (de),a
+	inc e
+	add hl,bc
+	ld a,e
+	cp low(ringt)+48
+	jr nz,.rt
 	ld a,(k)
 	add a,COLT>>8
 	ld (bg_get.ch+1),a
@@ -115,23 +131,33 @@ buckets_clear:
 	ret
 
 ; ---------------------------------------------------------------------
-;  draw a sprite: DE = x + 16 (pixels), C = y + 16 (playfield lines),
+;  draw a sprite: DE = x + 16 (pixels), C = y + 16 (playfield lines, t),
 ;  HL = frame in the sprite library. WORK must be mapped.
+;  Column by column: a column's cells run from the row of its first line
+;  to the row of its last (from the frame's bounds), so no empty cell is
+;  visited and nothing is set up per row.
 ; ---------------------------------------------------------------------
 spr_draw:
 	ld a,c
 	ld (sd_y),a
 	ld a,(hl)
 	ld (sd_wb),a
+	ld (sd_n),a		; columns to go
 	inc hl
 	ld a,(hl)
 	ld (sd_h),a
 	add a,a
-	ld (sd_h2),a
+	ld (.h2+1),a		; column stride of the (mask, gfx) lines
 	inc hl
 	ld a,(hl)
 	ld (sd_flag),a
 	inc hl
+	ld a,(.ns+1)		; room in the pool for its cells at most?
+	sub $80			; (slots used; 80h when all are)
+	add a,(hl)
+	ret c
+	cp NSLOT+1
+	ret nc
 	inc hl
 	ld c,(hl)
 	inc hl
@@ -152,32 +178,31 @@ spr_draw:
 .sh:	add hl,bc
 	dec a
 	jr nz,.sh
-.s0:	ld (sd_bnd),hl
+.s0:	push hl
+	pop iy			; IY: the columns' (first line, end, colour)
 	ld a,(sd_wb)
 	ld b,a
 	add a,a
-	add a,b			; 3 * wb
+	add a,b			; 3 wb
 	add a,l
 	ld l,a
 	jr nc,$+3
 	inc h
-	ld (sd_data),hl
-	push de
-	ld a,(sd_wb)		; strips = data + wb * 2h; stride h + 22
-	ld b,a
-	ld a,(sd_h2)
-	ld e,a
-	ld d,0
-.st:	add hl,de
-	djnz .st
-	ld (sd_strip),hl
+	ld (sd_data),hl		; column 0's (mask, gfx) lines
+	ld a,(sd_h)
+	add a,a
+	ld c,a
+	ld b,0
+	ld a,(sd_wb)
+.st:	add hl,bc		; strips after wb x 2h
+	dec a
+	jr nz,.st
+	ld bc,CL
+	add hl,bc
+	ld (sd_strip),hl	; column 0's strip, + 11
 	ld a,(sd_h)
 	add a,2*CL
-	ld l,a
-	ld h,0
-	ld (sd_sstr),hl
-	ld (spr_row.ss+1),hl
-	pop de			; x
+	ld (.ss+1),a		; strip stride h + 22
 	srl d			; first column = x / 8 - 2 (signed)
 	rr e
 	srl d
@@ -187,244 +212,100 @@ spr_draw:
 	ld a,e
 	sub 2
 	ld (sd_cx),a
+	ld (.cx0+1),a
+	ld a,(sr_dbk)		; the pool's bank in the window
+	out (P_LV),a
+
+.col:	ld a,(iy+1)		; end line (0: an empty column)
+	or a
+	jp z,.cn
+	ld a,(sd_cx)
+	cp SCOLS
+	jp nc,.cn		; off the playfield (signed)
+	ld (.cx+1),a
+	ld a,(iy+2)
+	call fold
+	ld (.ccol+1),a		; the column's colour
+	ld (.cb+1),a
 	ld a,(sd_y)
+	ld c,a
+	add a,(iy+0)
 	ld l,a
 	ld h,rowt>>8
-	ld a,(hl)
-	ld (sd_row),a
-	inc h			; offt = rowt + 256
-	ld a,(hl)
-	ld (sd_j),a
-	ld a,(sd_row)		; first row: ring offset and bucket pointer
+	ld b,(hl)		; row of the first line
+	ld a,c
+	add a,(iy+1)
+	dec a
+	ld l,a
+	ld a,(hl)		; row of the last
+	cp EROW1+1
+	jr c,.r1
+	ld a,EROW1
+.r1:	ld d,a
+	ld a,b
+	cp EROW0
+	jr nc,.r0
+	ld a,EROW0
+.r0:	ld b,a			; B = first row on the playfield
+	ld a,d
+	sub b
+	jp c,.cn
+	inc a
+	ld (sd_rn),a		; rows to do
+	ld a,b			; s0: the sprite line at the cell's top
+	add a,a			; = 11 row - 6 - t (signed)
+	add a,a
+	add a,a
+	add a,b
+	add a,b
+	add a,b
+	sub 6
+	sub c
+	ld e,a			; the strip line for a cell over black
+	add a,a
+	sbc a,a
+	ld d,a
+	ld hl,(sd_strip)
+	add hl,de
+	ld (sd_src),hl
+	ld a,b			; the row's bucket pointer's address
 	add a,a
 	ld l,a
-	ld h,0
-	ld de,mul40
-	add hl,de
-	ld e,(hl)
-	inc hl
-	ld d,(hl)
-	ld hl,(scrS)
-	add hl,de
-	ld (sd_ring),hl
-	ld a,(sd_row)
-	add a,a
-	ld e,a
-	ld d,0
-	ld hl,bk_s-4
-	add hl,de
+	ld h,(bk_s-4)>>8
 	ld (sd_bpa),hl
-	ld a,(sd_h)
-	ld (sd_n),a
-	xor a
-	ld (sd_i2),a
-.row:	ld a,(sd_j)
-	ld c,a
-	ld a,CL
-	sub c
-	ld b,a
-	ld a,(sd_n)
-	cp b
-	jr nc,.f
-	ld b,a			; lines in this row
-.f:	ld a,b
-	ld (sd_rn),a
-	ld a,(sd_row)
-	cp EROW1+1
-	ret nc			; below the playfield
-	cp EROW0
-	call nc,spr_row
-	call vschk
-	ld a,(sd_rn)
-	ld b,a
-	add a,a
-	ld hl,sd_i2
-	add a,(hl)
-	ld (hl),a
-	xor a
-	ld (sd_j),a
-	ld hl,sd_row
-	inc (hl)
-	ld hl,(sd_ring)
-	ld de,40
+	dec h			; ring offset of the cell (ringt: this
+	ld a,(hl)		; frame's, by row)
+	inc l
+	ld h,(hl)
+	ld l,a
+.cx:	ld de,0			; (the column)
 	add hl,de
-	ld (sd_ring),hl
-	ld hl,(sd_bpa)
-	inc hl
-	inc hl
-	ld (sd_bpa),hl
-	ld a,(sd_n)
-	sub b
-	ld (sd_n),a
-	jr nz,.row
-	ret
+	ld a,h
+	and 7
+	ld d,a
+	ld e,l			; DE = ring offset
 
-; the sprite's columns in one cell row
-spr_row:
-	ld hl,(sd_bpa)
-	ld (sr_bpa),hl		; this row's bucket pointer
+.cell:	ld hl,(sd_bpa)		; room in the row's bucket?
 	ld a,(hl)
 	inc hl
 	ld h,(hl)
 	ld l,a
-	ld (.bp+1),hl
-	ld a,(sd_wb)		; room for the whole row? (else it's clipped)
-	ld b,a
-	ld a,(.ns+1)
-	sub $80			; slots used
-	add a,b
-	cp NSLOT+1
-	ret nc
-	ld a,b
-	add a,a
-	add a,b
-	add a,a			; 6 wb bytes, + 2 for the end
-	ld b,a
-	ld a,l
 	and $7F
-	add a,b
-	cp 127
-	ret nc
-	ld hl,(sd_ring)		; ring offset of the row on the coming frame
-	ld a,l
-	ld (.rlo+1),a
-	ld a,h
-	ld (.rhi+1),a
-	ld a,(sd_i2)
-	rrca
-	ld (.i0+1),a
-	ld b,a			; i0
-	ld a,(sd_rn)
-	add a,b
-	ld (.i1+1),a
-	ld a,(sd_j)		; strips from line 11 + i0 - j
-	ld c,a
-	ld a,CL
-	add a,b
-	sub c
-	ld e,a
-	ld d,0
-	ld ix,(sd_strip)
-	add ix,de		; IX = strip of column 0
-	xor a
-	ld (sr_mset),a
-	ld hl,(sd_data)		; merge source in HL' (column 0, this row's
-	ld a,(sd_i2)		; first line), 2h in DE'
-	add a,l
-	ld l,a
-	jr nc,$+3
-	inc h
-	ld a,(sd_h2)
-	ld e,a
-	ld d,0
-	exx
-	ld hl,-2		; the stack pointer during a merge (after the
-	add hl,sp		; column loop's PUSH BC), to restore after it
-	ld (.spv+1),hl
-	ld a,(sr_dbk)		; the pool's bank in the window
-	out (P_LV),a
-	ld iy,(sd_bnd)
-	ld a,(sd_cx)
-	ld c,a
-	ld a,(sd_wb)
-	ld b,a
-.col:	ld a,c
-	cp SCOLS
-	jp nc,.skip		; off the playfield (signed)
-.i1:	ld a,0
-	cp (iy+0)
-	jp z,.skip
-	jp c,.skip
-.i0:	ld a,0
-	cp (iy+1)
-	jp nc,.skip
-	push bc
-	ld a,c
-.rlo:	add a,0
-	ld e,a
-.rhi:	ld a,0
-	adc a,0
-	and 7
-	ld d,a			; DE = ring offset of the cell
+	cp 128-8
+	jp nc,.nx
+	ld c,e
+	ld a,d
 	or $60
-	ld h,a
-	ld l,e
-.cv:	ld (hl),0		; covered this frame (the frame's number)
-	or $78			; SHA
-	ld h,a
-	ld a,(hl)
+	ld b,a
+.cv:	ld a,0			; covered this frame (the frame's number)
+	ld (bc),a
+	set 3,b
+	set 4,b			; SHA: over black space or scenery?
+	ld a,(bc)
 	cp STAR_BANK
 	jp nz,.pair
-	; over black space (or a far star, which the sprite hides)
-	xor a
-	call .entry
-	push ix
-	pop hl
-	REPT CL
-	ldi
-	ENDR
-	jp .done
-	; over scenery: the pair glyph at phase k, masked and merged
-.pair:	res 3,h			; SHC
-	ld a,(hl)
-	and $7F
-	ld c,a
-	push de
-	call .mset
-	call bg_get		; the background, A = paper
-	pop de
-	call .entry
-	ld hl,sr_bg
-.j0:	ld a,0
-	or a
-	jr z,.nohead
-	ld c,a
-	ld b,0
-	ldir			; lines above the sprite
-.nohead:
-	exx
-	ld sp,hl
-	exx
-.jn:	jp 0
-.newdone:
-.spv:	ld sp,0
-.tail:	ld a,0
-	or a
-	jr z,.done
-	ld c,a
-	ld b,0
-	ldir			; lines below
-.done:	pop bc
-.skip:	exx			; next column
-	add hl,de
-	exx
-.ss:	ld de,0
-	add ix,de
-	ld de,3
-	add iy,de
-	inc c
-	dec b
-	jp nz,.col
-	ld hl,(sr_bpa)		; the row's bucket pointer
-	ld de,(.bp+1)
-	ld (hl),e
-	inc hl
-	ld (hl),d
-	ld a,LV_SCREEN
-	out (P_LV),a
-	ret
-
-; the new cell's bucket entry (A = paper, DE = its ring offset) and its
-; glyph: DE = the glyph, its bank in the window; the next slot's glyph
-; moves on
-.entry:	ld c,a
-	ld a,(iy+2)
-	or c
-.fd:	call fold		; (patched to CP 0 / NOP while monochrome is off)
-	ld c,a
-.bp:	ld hl,0			; this row's bucket
-	ld (hl),e		; address
-	inc l
+	ld (hl),e		; black (or a far star the sprite hides):
+	inc l			; its entry ...
 	ld a,d
 	or $F0
 	ld (hl),a
@@ -436,54 +317,139 @@ spr_row:
 	inc l
 .pb:	ld (hl),0		; attribute: the pool's bank
 	inc l
-	ld (hl),c		; colour
+.cb:	ld (hl),0		; colour: the column's
 	inc l
 	inc l
-	ld (.bp+1),hl
-.dst:	ld hl,0			; DE = the slot's glyph; the next one moves on
-	ld d,h
+	push de
+	ex de,hl
+	ld hl,(sd_bpa)
+	ld (hl),e
+	inc hl
+	ld (hl),d
+.dst:	ld de,0			; ... and 11 lines of the column's strip
+	ld hl,(sd_src)		; into the slot's glyph
+	REPT CL
+	ldi
+	ENDR
+	ld (sd_src),hl
+	ld a,e
+	add a,16-CL
+	ld e,a
+	jr nc,$+3
+	inc d
+	ld (.dst+1),de
+	pop de
+.nx:	ld hl,40		; the next row
+	add hl,de
+	ld a,h
+	and 7
+	ld d,a
 	ld e,l
-	ld bc,16
+	ld hl,(sd_bpa)
+	inc hl
+	inc hl
+	ld (sd_bpa),hl
+	ld hl,sd_rn
+	dec (hl)
+	jp nz,.cell
+.cn:	call vsq		; the next column
+	ld bc,3
+	add iy,bc
+	ld hl,(sd_strip)
+.ss:	ld bc,0
 	add hl,bc
-	ld (.dst+1),hl
+	ld (sd_strip),hl
+	ld hl,sd_cx
+	inc (hl)
+	ld hl,sd_n
+	dec (hl)
+	jp nz,.col
+	ld a,LV_SCREEN
+	out (P_LV),a
 	ret
 
-; patch the merge code for this row (once)
-.mset:	ld a,(sr_mset)
-	or a
-	ret nz
-	inc a
-	ld (sr_mset),a
-	push bc
-	push de
-	push hl
-	ld a,(sd_j)
-	ld (.j0+1),a
-	ld b,a
-	ld a,(sd_rn)
+	; over scenery: the background (bg_get), the sprite's lines masked
+	; and ORed in where the column has them
+.pair:	ld (.bp+1),hl		; (the bucket)
+	res 3,b			; SHC: the pair's slot
+	ld a,(bc)
+	and $7F
 	ld c,a
+	push de
+	call bg_get		; the background, A = paper
+	pop de
+	push de
+	call .entry		; DE = the glyph
+	ld hl,(sd_src)		; s0 = the sprite line at the cell's top
+	ld bc,(sd_strip)
+	or a
+	sbc hl,bc
+	ld a,l
+	ld c,a			; lines a..b of the sprite are in this cell:
+				; a = max(s0, first), b = min(s0 + 11, end)
+	ld b,(iy+0)
+	bit 7,a
+	jr nz,.pa
+	cp b
+	jr nc,.pb0
+.pa:	ld a,b
+.pb0:	ld (.al+1),a
+	sub c
+	ld (.hd+1),a		; lines above (the background)
+	ld a,c
+	add a,CL
+	cp (iy+1)
+	jr c,.pbm
+	ld a,(iy+1)
+.pbm:	ld b,a
+.al:	ld a,0
+	ld c,a
+	ld a,b
+	sub c			; n = b - a
+	ld b,a
+	add a,a			; jump into the merges: 7 bytes a line
+	add a,a
+	add a,a
+	sub b
+	ld c,a
+	ld a,low(.me)
+	sub c
+	ld (.jn+1),a
+	ld a,high(.me)
+	sbc a,0
+	ld (.jn+2),a
+	ld a,(.hd+1)		; lines below
 	add a,b
 	neg
 	add a,CL
-	ld (.tail+1),a		; lines below the sprite in the cell
-	ld a,c
+	ld (.tl+1),a
+	ld a,(sd_cx)		; the column's (mask, gfx) lines from line a:
+.cx0:	sub 0			; data + column x 2h + 2a
+	ld hl,(sd_data)
+	jr z,.dc
+.h2:	ld bc,0
+.dm:	add hl,bc
+	dec a
+	jr nz,.dm
+.dc:	ld a,(.al+1)
 	add a,a
+	add a,l
 	ld l,a
-	ld h,0
-	ld de,mrg_ntab-2
-	add hl,de
-	ld e,(hl)
-	inc hl
-	ld d,(hl)
-	ld (.jn+1),de
-	pop hl
-	pop de
-	pop bc
-	ret
-
-; unrolled merges, entered (11 - n) blocks in: SP -> (mask, gfx) pairs
-mrg_new:
-	REPT CL
+	jr nc,$+3
+	inc h
+	push hl
+	pop ix
+	ld hl,sr_bg
+.hd:	ld a,0
+	or a
+	jr z,.nh
+	ld c,a
+	ld b,0
+	ldir
+.nh:	ld (sd_sp),sp
+	ld sp,ix
+.jn:	jp 0
+	REPT CL			; (mask, gfx) by POP
 	pop bc
 	ld a,(hl)
 	and c
@@ -492,12 +458,58 @@ mrg_new:
 	inc hl
 	inc de
 	ENDR
-mrg_new_end:
-	jp spr_row.newdone
-mrg_ntab:
-	dw mrg_new_end-7,mrg_new_end-14,mrg_new_end-21,mrg_new_end-28
-	dw mrg_new_end-35,mrg_new_end-42,mrg_new_end-49,mrg_new_end-56
-	dw mrg_new_end-63,mrg_new_end-70,mrg_new_end-77
+.me:	ld sp,(sd_sp)
+.tl:	ld a,0
+	or a
+	jr z,.nt
+	ld c,a
+	ld b,0
+	ldir
+.nt:	ld hl,(sd_src)		; (keep the black cells' line in step)
+	ld bc,CL
+	add hl,bc
+	ld (sd_src),hl
+	pop de
+	jp .nx
+
+; the new cell's bucket entry (A = paper, DE = its ring offset) and its
+; glyph: -> DE = the glyph, the pool's bank in the window; the next
+; slot's glyph moves on
+.entry:	ld c,a
+.ccol:	ld a,0			; (the column's colour)
+	or c
+.fd:	call fold		; (patched to CP 0 / NOP while monochrome is off)
+	ld c,a
+.bp:	ld hl,0			; this row's bucket
+	ld (hl),e		; address
+	inc l
+	ld a,d
+	or $F0
+	ld (hl),a
+	inc l
+	ld a,(.ns+1)		; code
+	ld (hl),a
+	inc a
+	ld (.ns+1),a
+	inc l
+	ld a,(.pb+1)		; attribute
+	ld (hl),a
+	inc l
+	ld (hl),c		; colour
+	inc l
+	inc l
+	ex de,hl
+	ld hl,(sd_bpa)
+	ld (hl),e
+	inc hl
+	ld (hl),d
+	ld hl,(.dst+1)		; DE = the slot's glyph; the next one moves on
+	ld d,h
+	ld e,l
+	ld bc,16
+	add hl,bc
+	ld (.dst+1),hl
+	ret
 
 ; ---------------------------------------------------------------------
 ;  an overlay (bullet or shot): ready-drawn cells, no composing.
@@ -678,7 +690,7 @@ ovl_draw:
 ; overlay's ink on the scenery's paper. DE = the cell's SHA address.
 ; -> A = code, C = colour; carry if the pool is full. HL kept.
 ovl_merge:
-	ld a,(spr_row.ns+1)	; (wraps to 0 when all 128 are used)
+	ld a,(spr_draw.ns+1)	; (wraps to 0 when all 128 are used)
 	cp $80
 	ret c
 	push hl
@@ -721,23 +733,23 @@ ovl_merge:
 	jr nz,.or
 	ld a,(sr_dbk)		; into the pool
 	out (P_LV),a
-	ld hl,(spr_row.dst+1)
+	ld hl,(spr_draw.dst+1)
 	ex de,hl
 	ld hl,sr_bg
 	REPT CL
 	ldi
 	ENDR
-	ld hl,(spr_row.dst+1)
+	ld hl,(spr_draw.dst+1)
 	ld bc,16
 	add hl,bc
-	ld (spr_row.dst+1),hl
+	ld (spr_draw.dst+1),hl
 	ld a,LV_SCREEN
 	out (P_LV),a
 	ld a,(ov_scol)
 	ld c,a
-	ld a,(spr_row.ns+1)
+	ld a,(spr_draw.ns+1)
 	inc a
-	ld (spr_row.ns+1),a
+	ld (spr_draw.ns+1),a
 	dec a
 	pop hl
 	or a
