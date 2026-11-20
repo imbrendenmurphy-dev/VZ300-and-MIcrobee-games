@@ -34,6 +34,7 @@ out_div:
 out_noise:
         ld (noise_band),a
         ld a,1
+        ld (noise_div),a            ; new divisor on the next poll
         ld (noise_on),a
         ld (SNDGATE),a
         ld hl,0
@@ -46,11 +47,41 @@ out_off:
         ld (SNDGATE),a
         ret
 
+; New random divisor every 16th poll (roughly every 900 T in a wait
+; loop).  Divisors are short (16..303 counts) so the counter finishes
+; several half-cycles between reloads: hiss on a real 8253 (which loads
+; at the end of a half-cycle) and on emulators that reload at once.
 noise_step:
-        ld a,r
+        ld a,(noise_div)
+        dec a
+        ld (noise_div),a
+        ret nz
+        ld a,16
+        ld (noise_div),a
+        push hl
+        ld a,(nseed)                ; 8-bit Galois LFSR
+        srl a
+        jr nc,.n
+        xor 0B8h
+.n:     ld (nseed),a
+        and 63
+        add a,16
+        ld l,a
+        ld a,(noise_band)           ; + band * 32
+        and 7
+        rrca
+        rrca
+        rrca                        ; band * 32 in A, over 256 for 8+
+        ld h,0
+        add a,l
+        ld l,a
+        jr nc,$+3
+        inc h
+        ld a,l
         ld (CTR0),a
-        ld a,(noise_band)
+        ld a,h
         ld (CTR0),a
+        pop hl
         ret
 
 ; ---------------------------------------------------------------------

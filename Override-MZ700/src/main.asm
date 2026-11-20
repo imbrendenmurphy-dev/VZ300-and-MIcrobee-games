@@ -88,6 +88,8 @@ attract:
 init_once:
         ld hl,1234h
         ld (seed),hl
+        ld a,5Ah
+        ld (nseed),a
         call hiscore_init
         ret
 

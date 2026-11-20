@@ -104,14 +104,7 @@ droid_step:
         ret
 .blocked:
         ; ran into the player?
-        push iy
-        pop hl
-        ld de,DROIDS
-        or a
-        sbc hl,de
-        jr nz,.notpl
-        call bump_player
-.notpl: call rand
+        call rand
         and 15
         add a,6
         ld (ix+D_WAIT),a
@@ -313,6 +306,9 @@ droid_blocker:
 ; in range, with a clear line
 ; ---------------------------------------------------------------------
 droid_shoot:
+        ld a,(invuln)               ; nobody fires while we arrive
+        or a
+        ret nz
         ; chance per frame by aggression
         ld a,(iy+R_AGG)
         or a
@@ -453,7 +449,7 @@ droid_shoot:
         jp sfx
 
 shoot_chance:
-        db 10,24,48
+        db 5,12,24
 
 abs_a:
         or a
@@ -565,6 +561,13 @@ shot_tick:
         ; a shot hits what is in its cell, then moves on
         call shot_hit
         ret c
+        ld a,(ix+S_OWN)             ; enemy shots move every other frame
+        or a
+        jr z,.mv
+        ld a,(frame)
+        and 1
+        ret nz
+.mv:
         dec (ix+S_LIFE)
         ret z
         ld a,(ix+S_X)
@@ -796,7 +799,7 @@ expl_hurt:
         ld a,(pl_dead)
         or a
         jr nz,.n
-        ld a,6
+        ld a,4
         push ix
         call damage_player
         pop ix

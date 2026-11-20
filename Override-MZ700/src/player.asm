@@ -251,7 +251,7 @@ touch_enemy:
         push ix
         call damage_enemy
         pop ix
-        ld a,2
+        ld a,1
         jp damage_player
 
 ; FIRE + direction with an armed host

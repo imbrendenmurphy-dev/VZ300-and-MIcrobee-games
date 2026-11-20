@@ -84,7 +84,7 @@ check(wait_deck(), 'game reaches the deck')
 g.shot('t_01_start')
 check(mem[S['deck']] == 0 and mem[S['ship']] == 0, 'ship 1 deck 1')
 n0 = len(enemies())
-check(n0 == 4, '4 droids on the bridge (%d)' % n0)
+check(n0 == 3, '3 droids on the bridge (%d)' % n0)
 
 print('shooting')
 set_host(8)                       # 461 SENTRY, laser

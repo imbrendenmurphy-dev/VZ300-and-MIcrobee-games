@@ -161,7 +161,7 @@ enter_deck:
         xor a
         ld (xmode),a
         ld (fire_hold),a
-        ld a,30
+        ld a,75
         ld (invuln),a
         ld a,0FFh
         ld (ai_target),a

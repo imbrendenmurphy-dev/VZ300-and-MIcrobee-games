@@ -460,7 +460,7 @@ def place_droids(d, droids, rng):
 
     def near_lift(i):
         x, y = d.nodes[i]
-        return any(abs(x - lx) < 12 and abs(y - ly) < 6 for lx, ly in d.lifts)
+        return any(abs(x - lx) < 18 and abs(y - ly) < 8 for lx, ly in d.lifts)
 
     pool = [i for i in spots + others if not near_lift(i)] + [i for i in spots + others if near_lift(i)]
     out = []
@@ -479,29 +479,29 @@ def place_droids(d, droids, rng):
 # side view: off = deck's x offset in the ship (cells)
 SHIPS = [
     dict(name='SV CORMORANT', seed=1101, decks=[
-        dict(name='BRIDGE', w=46, h=22, off=18, droids=[104, 152, 218, 355]),
-        dict(name='QUARTERS', w=64, h=24, off=8, droids=[104, 104, 152, 218, 218, 263]),
-        dict(name='GALLEY', w=72, h=24, off=4, droids=[104, 152, 218, 263, 307, 355, 104]),
-        dict(name='CARGO HOLD', w=78, h=26, off=1, droids=[307, 307, 104, 263, 355, 408, 152]),
-        dict(name='MACHINE SHOP', w=68, h=24, off=6, droids=[263, 263, 355, 307, 461, 218]),
-        dict(name='ENGINES', w=52, h=22, off=14, droids=[263, 355, 408, 461]),
+        dict(name='BRIDGE', w=46, h=22, off=18, droids=[104, 152, 218]),
+        dict(name='QUARTERS', w=64, h=24, off=8, droids=[104, 152, 218, 263]),
+        dict(name='GALLEY', w=72, h=24, off=4, droids=[104, 218, 307, 355]),
+        dict(name='CARGO HOLD', w=78, h=26, off=1, droids=[307, 104, 263, 355, 408]),
+        dict(name='MACHINE SHOP', w=68, h=24, off=6, droids=[263, 355, 307, 461]),
+        dict(name='ENGINES', w=52, h=22, off=14, droids=[263, 408, 461]),
     ], shafts=[24, 40, 58]),
     dict(name='MV HALCYON', seed=2202, decks=[
-        dict(name='OBSERVATORY', w=40, h=22, off=20, droids=[355, 408, 461]),
-        dict(name='BRIDGE', w=56, h=24, off=12, droids=[218, 461, 524, 355, 152]),
-        dict(name='SICKBAY', w=68, h=24, off=6, droids=[408, 408, 218, 152, 524, 104]),
-        dict(name='LABS', w=78, h=26, off=1, droids=[355, 355, 461, 524, 587, 263, 408]),
-        dict(name='BRIG', w=74, h=24, off=3, droids=[587, 587, 461, 632, 307, 218]),
-        dict(name='STORES', w=64, h=24, off=8, droids=[307, 307, 668, 263, 104, 355]),
-        dict(name='REACTOR', w=46, h=22, off=17, droids=[632, 461, 408, 668]),
+        dict(name='OBSERVATORY', w=40, h=22, off=20, droids=[355, 461]),
+        dict(name='BRIDGE', w=56, h=24, off=12, droids=[218, 461, 524]),
+        dict(name='SICKBAY', w=68, h=24, off=6, droids=[408, 218, 152, 524]),
+        dict(name='LABS', w=78, h=26, off=1, droids=[355, 461, 524, 587, 408]),
+        dict(name='BRIG', w=74, h=24, off=3, droids=[587, 461, 632, 307]),
+        dict(name='STORES', w=64, h=24, off=8, droids=[307, 668, 263, 355]),
+        dict(name='REACTOR', w=46, h=22, off=17, droids=[632, 408, 668]),
     ], shafts=[26, 40, 56]),
     dict(name='CV LEVIATHAN', seed=3303, decks=[
-        dict(name='COMMAND', w=42, h=22, off=20, droids=[908, 817, 632]),
-        dict(name='ARMOURY', w=60, h=24, off=11, droids=[705, 705, 632, 587, 461]),
-        dict(name='BARRACKS', w=72, h=24, off=5, droids=[705, 773, 632, 524, 218, 104, 461]),
-        dict(name='HANGAR', w=80, h=28, off=1, droids=[856, 773, 705, 668, 307, 307, 152, 524]),
-        dict(name='FOUNDRY', w=74, h=26, off=4, droids=[817, 668, 632, 587, 263, 263, 461]),
-        dict(name='CORE', w=60, h=24, off=11, droids=[960, 908, 856, 773]),
+        dict(name='COMMAND', w=42, h=22, off=20, droids=[908, 632]),
+        dict(name='ARMOURY', w=60, h=24, off=11, droids=[705, 632, 587, 461]),
+        dict(name='BARRACKS', w=72, h=24, off=5, droids=[705, 773, 524, 218, 461]),
+        dict(name='HANGAR', w=80, h=28, off=1, droids=[856, 773, 668, 307, 152, 524]),
+        dict(name='FOUNDRY', w=74, h=26, off=4, droids=[817, 668, 587, 263, 461]),
+        dict(name='CORE', w=60, h=24, off=11, droids=[960, 908, 773]),
     ], shafts=[28, 44, 60]),
 ]
 

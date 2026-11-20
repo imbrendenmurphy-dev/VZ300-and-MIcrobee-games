@@ -69,6 +69,8 @@ lastframe       ds 1
 drops           ds 1
 noise_on        ds 1
 noise_band      ds 1
+noise_div       ds 1
+nseed           ds 1
 cur_div         ds 2
 snd_mute        ds 1
 sfxptr          ds 2
