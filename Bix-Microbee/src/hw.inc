@@ -80,16 +80,16 @@ NDRAW       EQU 14
 MAPQ        EQU $9680       ; requests for the map block, 6 bytes each
 NMAPQ       EQU 12
 STACK       EQU $9800       ; (9700-97FF)
-POOLBUF     EQU $9800       ; this frame's composed glyphs, 10 bytes a slot (1..80)
-REC         EQU POOLBUF     ; (while a stage loads) a quad's record being built
-LISTA       EQU $9C00       ; cell lists: CELLMAP index (2), ring (2) a slot
+REC         EQU $9800       ; (while a stage loads) a quad's record being built
+POOLBUF     EQU $C000       ; this frame's composed glyphs, 16 bytes a slot (1..80)
+LISTA       EQU $9C00       ; cell lists: ring (2) a slot
 LISTB       EQU $9D40
 ROW40       EQU $9E80       ; screen row -> row x 40 (2 bytes)
 MUL10       EQU $9F00       ; n -> n * 10: low bytes, high at +128 (n < 128)
 FLIPL       EQU $A000       ; flips: address, code, attribute, colour, flags (6)
 FLIPEND     EQU $A3F0
 NFLIPMAX    EQU 168
-CELLMAP     EQU $A400       ; screen cell (row * 40 + column) -> this frame's pool slot
+CELLMAP     EQU $D000       ; ring offset (0-7FFh) -> this frame's pool slot there
 SCRSH       EQU $A800       ; ring: the code of the background quad shown there
 CFLIPL      EQU $B000       ; colour flips: address, colour, - (4)
 NCFLIPMAX   EQU 126

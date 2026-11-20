@@ -953,7 +953,7 @@ vpoll:  in a,(P_CRTCA)
 e_snap: call display_off
         ld hl,CELLMAP
         ld de,CELLMAP+1
-        ld bc,1023
+        ld bc,RING-1
         ld (hl),0
         ldir
         xor a
@@ -1018,7 +1018,7 @@ e_frame:
         ld de,-10
         add hl,de
         ld (dispy),hl
-        ld hl,POOLBUF+10        ; the pool buffers, from slot 1
+        ld hl,POOLBUF+16        ; the pool buffers, from slot 1
         ld (gb_dst),hl
         ld a,(phase)            ; the backgrounds' pictures at this phase:
         add a,a                 ; phase x 10 into a record
@@ -1092,19 +1092,15 @@ frame_begin:
         jr z,.sw
         ld b,a
         ld hl,(curlist)
-.c:     ld e,(hl)               ; the CELLMAP index
+        ld c,CELLMAP >> 8
+.c:     ld e,(hl)               ; its ring offset -> CELLMAP: none
         inc hl
-        ld d,(hl)
+        ld a,(hl)
         inc hl
-        inc hl
-        inc hl
-        ex de,hl
-        push de
-        ld de,CELLMAP
-        add hl,de
-        ld (hl),0
-        pop de
-        ex de,hl
+        or c
+        ld d,a
+        xor a
+        ld (de),a
         djnz .c
 .sw:    ld hl,(curlist)
         ld de,(oldlist)
@@ -1261,13 +1257,13 @@ spr_draw:
         call getbuf
         pop hl
         pop bc
-.ln:    ld a,(de)
+.ln:    ld a,(de)               ; (a buffer is 16 bytes, aligned)
         and (hl)
         inc hl
         or (hl)
         inc hl
         ld (de),a
-        inc de
+        inc e
         djnz .ln
         jr .next
 .skipseg:
@@ -1310,13 +1306,9 @@ spr_draw:
 ; buffer starts as the background quad's picture at the present phase,
 ; and its flip-list entry is written here.
 getbuf:
-        ld (gb_row),a
-        add a,a
+        add a,a                 ; the cell's ring offset: ROWTAB + column
         ld l,a
-        ld h,ROW40 >> 8
-        ld a,l
-        add a,ROW40 & 255
-        ld l,a
+        ld h,ROWTAB >> 8
         ld a,(hl)
         inc l
         ld h,(hl)
@@ -1324,30 +1316,27 @@ getbuf:
         ld a,(ds_cx)
         add a,l
         ld l,a
-        jr nc,.g1
-        inc h
-.g1:    ld (gb_idx),hl
         ld a,h
-        add a,CELLMAP >> 8
+        adc a,0
+        and 7
+        ld h,a
+        ld (gb_ring),hl
+        or CELLMAP >> 8
         ld h,a
         ld a,(hl)
         or a
         jr z,.alloc
-        ld l,a                  ; POOLBUF + slot x 10 + line
-        ld h,MUL10 >> 8
-        ld a,l
-        add a,MUL10 & 255
-        ld l,a
-        ld a,(hl)
-        set 7,l
-        ld h,(hl)
-        ld l,a
-        ld d,POOLBUF >> 8
-        ld a,e
-        add a,l
+        rlca                    ; POOLBUF + slot x 16 + line
+        rlca
+        rlca
+        rlca
+        ld d,a
+        and $F0
+        or e
         ld e,a
         ld a,d
-        adc a,h
+        and $0F
+        or POOLBUF >> 8
         ld d,a
         ret
 .alloc: ld a,(nslots)
@@ -1358,32 +1347,8 @@ getbuf:
         ld (hl),a
         ld c,a                  ; slot
         push de                 ; the line
-        ; the ring address
-        ld a,(gb_row)
-        add a,a
-        ld l,a
-        ld h,ROWTAB >> 8
-        ld a,(hl)
-        inc l
-        ld h,(hl)
-        ld l,a
-        ld a,(ds_cx)
-        add a,l
-        ld l,a
-        jr nc,.g2
-        inc h
-.g2:    ld a,h
-        and 7
-        ld h,a
-        ld (gb_ring),hl
-        ; the list: CELLMAP index, ring
+        ld de,(gb_ring)         ; the list: its ring offset
         ld hl,(listptr)
-        ld de,(gb_idx)
-        ld (hl),e
-        inc hl
-        ld (hl),d
-        inc hl
-        ld de,(gb_ring)
         ld (hl),e
         inc hl
         ld (hl),d
@@ -1412,22 +1377,20 @@ getbuf:
         ld hl,nflip
         inc (hl)
         ; the background's picture at this phase, from its slot's record,
-        ; to the next pool buffer (gb_dst)
-        ld hl,(gb_ring)
-        ld a,h
+        ; to the slot's buffer (gb_dst)
+        ld a,d
         or SCRSH >> 8
         ld h,a
+        ld l,e
         ld a,(hl)
         and $7F
         jr z,.empty
         ld l,a
         ld h,SLRB >> 8
         ld a,(cur_blk)          ; (the sprite's block, back after)
-        ld (gb_blk),a
         cp (hl)
         jr z,.inb
         ld a,(hl)               ; its record's block into the lower window
-        ld (cur_blk),a
         add a,blkport & 255
         ld e,a
         ld d,blkport >> 8
@@ -1453,34 +1416,43 @@ getbuf:
         ldi
         ldi
         ldi
-        ld (gb_dst),de
-        ld a,(gb_blk)
-        ld hl,cur_blk
-        cp (hl)
-        jr z,.outb
-        ld (hl),a
+        ld a,(cur_blk)          ; the sprite's block back (cur_blk unchanged)
         add a,blkport & 255
         ld l,a
         ld h,blkport >> 8
         ld a,(hl)
         out (P_MEM),a
-.outb:  pop de
         jr .bgd
 .empty: ld hl,(gb_dst)
         push hl
-        ld b,10
-.ez:    ld (hl),a
-        inc hl
-        djnz .ez
+        ld (hl),a
+        inc l
+        ld (hl),a
+        inc l
+        ld (hl),a
+        inc l
+        ld (hl),a
+        inc l
+        ld (hl),a
+        inc l
+        ld (hl),a
+        inc l
+        ld (hl),a
+        inc l
+        ld (hl),a
+        inc l
+        ld (hl),a
+        inc l
+        ld (hl),a
+.bgd:   ld hl,(gb_dst)          ; the next slot's buffer
+        ld de,16
+        add hl,de
         ld (gb_dst),hl
         pop de
-.bgd:
         pop hl                  ; L = the line
         ld a,l
-        add a,e
+        or e
         ld e,a
-        ret nc
-        inc d
         ret
 .full:  ld a,e
         add a,scratch & 255
@@ -1491,7 +1463,6 @@ gb_row: db 0
 gb_dst: dw 0
 gb_ph:  db 0
 gb_blk: db 0
-gb_idx: dw 0
 gb_ring: dw 0
 
 ; the composed glyphs -> the pool that is not on show
@@ -1506,7 +1477,7 @@ blast:  ld a,(nslots)
         ld a,(poolbank)
         or LV_SCREEN
         out (P_LV),a
-        ld hl,POOLBUF+10
+        ld hl,POOLBUF+16
         ld de,PCGWIN+16
         ld bc,$7FFF
 .g:     ldi
@@ -1524,7 +1495,12 @@ blast:  ld a,(nslots)
         ld e,a
         jr nc,.nc
         inc d
-.nc:    in a,(P_CRTCA)
+.nc:    ld a,l
+        add a,6
+        ld l,a
+        jr nc,.nc2
+        inc h
+.nc2:   in a,(P_CRTCA)
         and $20
         cp ixh
         call nz,.chg

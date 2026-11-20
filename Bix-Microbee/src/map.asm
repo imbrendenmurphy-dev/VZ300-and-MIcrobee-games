@@ -1613,44 +1613,40 @@ m_restores:
 .fn:    ld de,6
         add ix,de
         djnz .f
-.r0:    ld a,(nold)
-        or a
+.r0:    ld a,(nold)             ; last frame's sprite cells: the background
+        or a                    ; back, where no sprite is now (and on show)
         ret z
         ld b,a
         ld hl,(oldlist)
-.o:     push bc
+.o:     ld e,(hl)               ; its ring offset
         inc hl
-        inc hl
-        ld e,(hl)               ; its ring offset
-        inc hl
-        ld d,(hl)
+        ld a,(hl)
         inc hl
         push hl
-        ld (m_ring),de
-        ld hl,(sstart)          ; its place on the screen now
-        ex de,hl
+        push bc
+        ld d,a
+        or CELLMAP >> 8
+        ld h,a
+        ld l,e
+        ld a,(hl)
+        or a
+        jr nz,.skip             ; a sprite is on it this frame
+        ld hl,(sstart)
+        ex de,hl                ; HL = ring, DE = sstart
+        ld (m_ring),hl
         or a
         sbc hl,de
-        call ringw
+        ld a,h
+        and 7
+        ld h,a
         ld de,COLS
-        or a
         sbc hl,de
         jr c,.skip              ; in the status line
         ld de,COLS*PFROWS
         sbc hl,de
         jr nc,.skip             ; off the screen
-        add hl,de               ; (undo): + 40 = the screen index
-        ld de,COLS
-        add hl,de
-        ld de,CELLMAP
-        add hl,de
-        ld a,(hl)
-        or a
-        jr nz,.skip             ; a sprite is on it this frame
-        ld hl,(nflip)
-        ld de,NFLIPMAX
-        or a
-        sbc hl,de
+        ld a,(nflip)
+        cp NFLIPMAX
         jr nc,.skip
         ld hl,(m_ring)
         ld a,h
@@ -1678,14 +1674,13 @@ m_restores:
         inc hl
         inc hl
         ld (entptr),hl
-        ld hl,(nflip)
-        inc hl
-        ld (nflip),hl
-.skip:  pop hl
-        pop bc
-        dec b
-        jp nz, .o
+        ld hl,nflip
+        inc (hl)
+.skip:  pop bc
+        pop hl
+        djnz .o
         ret
+
 
 ; ---------------------------------------------------------------------
 ;  M_PRESENT. The new quads' pictures and the sprites' glyphs go to the
