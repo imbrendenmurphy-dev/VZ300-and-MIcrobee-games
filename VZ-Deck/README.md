@@ -1,7 +1,7 @@
 # VZ-DECK
 
 A boot-time game launcher and music player for the Dick Smith **VZ300 / VZ200** with the
-**BennVenn SD loader + 128K**. VIBED BY BPM 2026. Version 0.9.
+**BennVenn SD loader + 128K**. VIBED BY BPM 2026. Version 1.0.
 
 Switch the VZ on and VZ-DECK comes up instead of BASIC. It shows the folders and files on
 the SD card, so games that need DAT files can live in folders of their own, and it runs any
@@ -9,7 +9,7 @@ the SD card, so games that need DAT files can live in folders of their own, and 
 are built in, and PT3, PSG, S3M, XM and VGM files play through plug-in players.
 
 ```
-VZ-DECK 0.9    VIBED BY BPM 2026
+VZ-DECK 1.0    VIBED BY BPM 2026
 /GAMES/                    5/ 12
 ■ ..            <DIR> 06-11-26
 ■ ARCADE        <DIR> 06-11-26
@@ -117,9 +117,9 @@ all, so the sound loop gets all of the VZ's time. The plug-ins remember the view
 
 ### Colour themes (T)
 
-**T** steps through light green, dark green, light red and dark red, in the browser and
-in every player. The dark themes show light text on a dark background; the red ones use
-the VZ's orange screen colour. The theme lasts until power-off, and the screen goes back
+**T** steps through dark green (the VZ's own screen), light green, dark red and light red, in
+the browser and every player. The light themes show dark text on a light background; the red
+ones use the VZ's orange screen colour. The theme lasts until power-off, and the screen goes back
 to the VZ's normal green when you leave for BASIC, the command line or a game.
 
 ### Sound output (O in the browser)
@@ -171,6 +171,14 @@ sh build.sh
 used during development (`test*.py`, `mt*.py`, `pt3test.py`, `psgtest.py`, `outtest.py`...).
 They run the real VZDOS code, so they need your own `VZDOS.VZ` in a `testfiles/` folder next
 to `src/` (or set `VZDECK_FILES`). Some also use a MIDI and a MOD file from there.
+
+## What's new in 1.0
+
+- **B** in the browser now drops to a clean BASIC. Before, VZDOS left BASIC's program start
+  pointing at VZ-DECK itself ($8000), so the first program line you typed overwrote VZ-DECK
+  and crashed the VZ. Holding B at power-on was never affected.
+- The source now matches the 0.9 release exactly (the corrected sound-output table and the
+  piano roll fix were in the release but not in the source).
 
 ## Credits
 

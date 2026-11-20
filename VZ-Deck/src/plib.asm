@@ -1081,7 +1081,7 @@ kscan:  LD A,(0x68BF)         ; 1 stop, 2 pause, 3 view
 
 barcol: DB 0x9F,0xDF,0xBF
 nnames: DB "C-C#D-D#E-F-F#G-G#A-A#B-"
-s_top:  DB "VZ-DECK 0.9  ",0
+s_top:  DB "VZ-DECK 1.0  ",0
 s_help: DB "V:VIEW T:THEME SPC:PAUSE RET:END",0
 s_ruler: DB "C2    C3    C4    C5    C6    C7",0
 s_ca:   DB "A",0

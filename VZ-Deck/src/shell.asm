@@ -1,4 +1,4 @@
-; VZ-DECK 0.9.  VIBED BY BPM 2026
+; VZ-DECK 1.0.  VIBED BY BPM 2026
 VRAM    EQU 0x7000
 ENT     EQU 0x9A00
 RECSZ   EQU 24
@@ -169,6 +169,16 @@ godown: LD A,(count)
         RET
 
 k_basic: CALL tplain
+        LD HL,0x7AE9      ; an empty BASIC program: the DOS left the program start (78A4)
+        LD (0x78A4),HL    ; pointing at VZ-DECK ($8000), so the first line typed overwrote it
+        XOR A
+        LD (HL),A         ; end-of-program marker
+        INC HL
+        LD (HL),A
+        INC HL
+        LD (0x78F9),HL    ; end of program = start of variables and arrays
+        LD (0x78FB),HL
+        LD (0x78FD),HL
         JP D_BASIC
 k_cli:  CALL tplain
         JP D_CLI
@@ -565,7 +575,7 @@ outset: AND 3             ; A = output mode: set the values and patch the code
         INC HL
         LD A,(HL)
         LD (xorm),A
-        ; colour theme: bit 0 dark (inverse text), bit 1 red (latch bit 4)
+        ; colour theme: bit 0 light (inverse text), bit 1 red (latch bit 4)
         LD A,(HO+31)
         AND 3
         LD (HO+31),A
@@ -995,7 +1005,7 @@ iv_x:   POP BC
         RET
 
 ; ---------------------------------------------------------------- colour themes
-; light green, dark green, light red, dark red: HO+31 survives trips to the plug-ins
+; dark green, light green, dark red, light red: HO+31 survives trips to the plug-ins
 k_theme: CALL tnext
         JP keys
 ptheme: CALL tnext        ; from the MIDI / MOD player's keys
@@ -1506,7 +1516,7 @@ di_t:   CALL puts
         LD A,(0xF816)
         JP prhex
 
-s_title: DB "VZ-DECK 0.9    VIBED BY BPM 2026",0
+s_title: DB "VZ-DECK 1.0    VIBED BY BPM 2026",0
 s_help:  DB "RET B:BASIC C:CLI O:OUT T:THEME ",0
 s_dir:   DB " <DIR>",0
 s_huge:  DB "  HUGE",0

@@ -30,7 +30,7 @@ def render(vram,css=0,scale=3,border=16):
                         for x in range(4): px[x0+qx+x,y0+qy+y]=col if on else (0,0,0)
             else:
                 ch=b&0x3F; chr_=chr(ch+0x40) if ch<0x20 else chr(ch)
-                inv=b&0x40; bg,fg=(dark,bright) if inv else (bright,dark)
+                inv=b&0x40; bg,fg=(bright,dark) if inv else (dark,bright)   # normal VZ text: bright on dark green
                 g=G.get(chr_,G['?'])
                 for y in range(12):
                     row=g[y-3] if 3<=y<10 else 0

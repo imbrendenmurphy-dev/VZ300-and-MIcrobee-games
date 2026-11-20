@@ -1,4 +1,4 @@
-VZ-DECK 0.9
+VZ-DECK 1.0
 A boot-time file browser, launcher and music player
 for the Dick Smith VZ300 / VZ200 with the BennVenn SD loader + 128K
 
@@ -59,7 +59,7 @@ Sound outputs (O in the browser, with a test beep)
  - Printer port: OUT (14),A, data bits 0 and 5   ** not yet tested on real hardware **
 
 Colour themes (T)
- - Light green, dark green, light red (the VZ's orange screen) and dark red
+ - Dark green (the VZ's own screen), light green, dark red and light red (the VZ's orange screen)
  - Works in the browser and every player, and lasts until power-off
  - The screen goes back to the normal green when you leave for BASIC, the DOS or a game
 
@@ -105,6 +105,12 @@ Plug-in memory (code + variables + file buffer, all inside $A000-$F7FF):
   VGM  $A000-$B7A2, 16K streaming buffer
 Streamed formats (S3M, XM, VGM) can read files up to 255 card clusters long
 (about 1 MB on a card with 4K clusters).
+
+
+WHAT'S NEW IN 1.0
+-----------------
+ - B in the browser now drops to a clean BASIC. In 0.9 the first program line you typed
+   overwrote VZ-DECK and crashed the VZ (holding B at power-on was fine).
 
 
 INSTALLING
