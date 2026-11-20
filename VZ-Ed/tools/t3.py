@@ -2,7 +2,7 @@ import sys; sys.path.insert(0,'.')
 from harness import *
 import shot
 S= os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),'testout','')
-dos=open('VZDOS.VZ','rb').read(); shell=open('SHELL.VZ','rb').read()
+dos=open('VZDOS.VZ','rb').read(); shell=open(os.environ.get('VZSHELL','SHELL.VZ'),'rb').read()
 plug=open('../out/PLAYTXT.VZ','rb').read(); ed=open('../out/VZED.VZ','rb').read()
 readme=b'VZ-ED test file\r\nSecond line\r\n'
 c=Card(spc=8)

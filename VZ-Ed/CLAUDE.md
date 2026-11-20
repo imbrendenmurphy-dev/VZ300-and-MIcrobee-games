@@ -174,7 +174,7 @@ VZ-Ed/
     shot.py, vzrender.py   PNG screenshots (text and graphics mode)
     t1..t10.py, prof.py     tests (section 10; t9/t10 are 0.2)
     package.py       makes dist/VZ-ED-0.2 and the zip
-    VZDOS.VZ, SHELL.VZ      VZ-DECK 0.9 release files, needed by the tests
+    VZDOS.VZ, SHELL.VZ      VZ-DECK 1.0 release files (VZSHELL=path runs t3 with another SHELL.VZ), needed by the tests
   out/               build output (VZED.VZ, PLAYTXT.VZ, vzed.bin/.sym/.lst)
   release/           the 0.2 files (release/0.1/ = the 0.1 files)
   screenshots/       emulator screenshots (0.1, plus 0.2 ones named 2x-*)
@@ -485,6 +485,8 @@ t4b/t4c cases, still passing `nf=` to `Card()`, which the harness no longer take
 nearly full" case doesn't save. Use t4b/t4c for those cases; t4.py still needs tidying.
 **0.2 build, same day:** t2, t3, t4 (first three cases), t4b, t4c, t6 (0 guard hits), t8, t5 seeds
 7, 11, 21, 25 all pass as before; t7 in 12.5.
+**VZ-DECK 1.0 (2026-11-21):** t3 passes with VZ-DECK 1.0's SHELL.VZ (now in tools/; VZDOS.VZ
+unchanged): output identical to 0.9 apart from the version line and SHELL.VZ's size, card clean.
 
 `harness.FS(card.sec).check()` verifies a card image: FAT copies identical, every chain valid, cluster
 counts match sizes, no cross-links, **no lost clusters**, nothing past the end of the volume.
