@@ -21,6 +21,10 @@ Each folder has:
 
 ROM images for the machines and emulators are not included.
 
+## VZonPC
+
+[`VZonPC/`](VZonPC/) is a VZ200 / VZ300 emulator for Windows that runs all the VZ games here. It emulates the BennVenn 128K SD loader and boots the real VZDOS and VZ-DECK from a PC folder. Saves go back to that folder. In fullscreen it has a live visualiser. It also comes with `vzemu.exe`, a headless test runner. See [`VZonPC/BLURB.md`](VZonPC/BLURB.md) for the specs and screenshots.
+
 ## Third-party code
 
 The test emulator in some `src/tools/` and `tools/` folders (Forgotten Depths, Megademo, Ghost Hunter 2, Asteroids II (VZ300 and Microbee), Circus 2, Killer Tomatoes, Penguin 2, Tennis II, Microbee Australian Open Tennis, Star Blaster II, Panik 2, Kamikaze Invaders 2, Duel II, Hamburger Sam II, Robogeddon, Zephyr Zone, Kaboomerang, Starhive, REDBACK, FrillSeeker, Robot Riot 2086, Southern Cross, Stormbell, Spindrift, Ghost Hunter '26) uses a Z80 CPU core that looks like superzazu/z80 (MIT licence, https://github.com/superzazu/z80). It's used only for testing and isn't part of the games.
