@@ -280,6 +280,9 @@ public sealed class Headless
                     else Console.WriteLine("drive {0}: {1}", n + 1, string.Join("  ", d.Directory()));
                 }
                 break;
+            case "disktrack":   // disktrack N TRACK FILE: the track's raw bit cells, for working out a format
+                File.WriteAllText(a.Length > 3 ? a[3] : "track.txt", m.Fdc.Drive[int.Parse(a1) - 1].TrackBits(int.Parse(a2)));
+                break;
             case "diskstat":
                 Console.WriteLine("disk: track {0} drive {1} latch {2:X2} reads {3} writes {4} steps {5}", m.Fdc.Track, m.Fdc.Selected + 1, m.Fdc.Latch, m.Fdc.Reads, m.Fdc.Writes, m.Fdc.Steps);
                 break;

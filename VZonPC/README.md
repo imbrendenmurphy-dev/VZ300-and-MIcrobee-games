@@ -5,7 +5,7 @@ An emulator for the Dick Smith **VZ200** and **VZ300** (VTech Laser 210/310) for
 - **Machines:** VZ200 (8K, 3.58 MHz) or VZ300 (18K, 3.55 MHz).
 - **Memory:** no expansion, the 16K RAM pack, or the **BennVenn SD loader with 128K**.
 - **Cartridges:** the **disk drive** (DD20 controller, two drives, `.dsk` images), the **RTTY terminal pack**, the
-  **RS-232 interface** (to a telnet host or COM port) and **WordPro**.
+  **RS-232 interface** (to a telnet host or COM port) and **WordPro** (in the disk controller's slot).
 - **Tape:** WAV, FLAC or MP3 audio into the cassette socket, and `CSAVE` to a WAV.
 - **Printer and light pen:** `LPRINT`, `LLIST` and `COPY` go to a text file; the mouse is the light pen.
 - **SD card:** a folder on the PC stands in for the card.
@@ -43,7 +43,7 @@ one of these names:
 | Disk drive cartridge | `vzdos.rom` (8K, DOS BASIC V1.2) |
 | RTTY cartridge | `vzrtty.ic3` (4K) |
 | RS-232 cartridge | `rs232_v15.ic2` or `rs232_v16.ic2` (2K) |
-| WordPro cartridge | `wordpro.u3`, `wordpro.u4`, `wordpro.u5` (4K each) |
+| WordPro cartridge | `wordpro.u3`, `wordpro.u4`, `wordpro.u5` (4K each), with `vzdos.rom` |
 
 The two are BASIC V2.0, so either machine falls back to the other's ROM. These are the
 MAME `vz200` / `laser310` ROM files. With a ROM, the emulator boots to `READY` and BASIC
@@ -212,16 +212,24 @@ bits, parity, and adding LF to CR.
 
 ## WordPro cartridge
 
-**Machine → Cartridge → WordPro** plugs in DSE's word processor cartridge for the VZ300. It needs its three 4K
-EPROMs as `roms\wordpro.u3`, `wordpro.u4` and `wordpro.u5`. They sit at `$D000`, `$E000` and `$F000`, and the
-first 2K of U3 also appears at `$6000`, where BASIC finds the cartridge's signature (its 74LS138 decodes A12, A13
-and A15 with A14 high; the schematic is on vz200.org). It uses that address space, so it runs with no memory
-expansion.
+**Machine → Cartridge → Disk drive controller + WordPro** fits DSE's word processor cartridge for the VZ300 in the
+disk drive controller's own cartridge slot, as it was used, so the drives are there too. It needs its three 4K
+EPROMs as `roms\wordpro.u3`, `wordpro.u4` and `wordpro.u5`, and the controller's `vzdos.rom`. The EPROMs sit at
+`$D000`, `$E000` and `$F000`, and the first 2K of U3 also appears at `$6000`, where BASIC finds the cartridge's
+signature (its 74LS138 decodes A12, A13 and A15 with A14 high; the schematic is on vz200.org). The DOS ROM stays at
+`$4000`–`$5FFF`. It uses the space above `$D000`, so it runs with no memory expansion.
 
 At power-on WordPro shows its command menu: **E** edit, **P** print, **C** clear, **D** disk and **T** tape.
 **BREAK** (Esc, or CTRL and `-`) goes back to the menu from the editor. **P**, then **M**, prints the text in memory
-as formatted pages on the printer (below). Its disk commands need the disk controller as well, and only one
-cartridge fits at a time here, so they don't work.
+as formatted pages on the printer (below).
+
+- **Disk commands** (**D**): initiate a disk, directory, save, load, merge and kill. WordPro formats and files disks
+  its own way: its directory names are in screen codes, and it counts free tracks. Tested here: initiate a disk,
+  save, list, clear the text and load it back, and the same after saving the `.dsk` and starting a fresh machine.
+- **WordPro writes its own sector checksum,** one more in the high byte than the sum of the bytes, and reads it
+  back the same way. The disk images keep every sector's checksum exactly as written, so WordPro files survive
+  being saved to a `.dsk` and loaded again. (The DOS would report these sectors as bad, but only WordPro reads
+  them.) It also leaves an erased gap straight after each sector's checksum, which the flux decoder handles.
 
 ## Printer
 
@@ -393,6 +401,7 @@ Paths in a script are relative to the current directory. Screenshots are PNG, 25
 | `cart disk\|rtty\|rs232\|wordpro\|none` | plug in a cartridge (before the first run command; needs `rom auto` for the BASIC ROM) |
 | `disk N FILE`, `disk N blank`, `diskeject N` | put an image (or a fresh formatted disk) in drive 1 or 2; eject saves it |
 | `diskdir [N]`, `diskstat`, `disksave N FILE` | list the directory, show the head and counters, write the image out |
+| `disktrack N TRACK FILE` | write a track's raw bit cells (`0`, `1`, and `\|` for an erased gap) to FILE; `DISKDEBUG=1` logs each write |
 | `rttyrx FILE`, `rttyloop [off]`, `rttyinvert rx\|tx`, `rttystat` | receive AFSK audio, loop TX into RX, flip polarity, show state |
 | `rttytx FILE` … `rttytxend` | record the transmitted tones to a WAV |
 | `taperec FILE` … `taperecend` | record the cassette output (`CSAVE`) to a WAV |
@@ -448,7 +457,7 @@ winmm joysticks, GDI display). Run `build.bat` after changes. C# 5 only: no stri
 
 - The BennVenn's own flash BIOS and its built-in DOS. A small stand-in loads `VZDOS.VZ` instead, so without a
   `VZDOS.VZ` the loader goes straight to BASIC.
-- Two cartridges at once (an expansion box), so WordPro's disk commands can't reach the disk drive.
+- Two cartridges at once, other than WordPro in the disk controller's slot.
 - The printer's graphics: `COPY` of a graphics screen sends bit-image codes, which are kept in `printout.prn` but
   not drawn.
 - The RS-232 link to a real COM port is written but hasn't been tried with serial hardware.

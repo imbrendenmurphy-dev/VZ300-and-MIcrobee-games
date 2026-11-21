@@ -779,7 +779,7 @@ public sealed class VzVis
     {
         var f = m.Fdc;
         int h = Math.Min(avail, 15 + 104);
-        int y = Panel(y0, h, "DISK DRIVE  DD20", f.Rom != null ? "VZ DOS ROM AT 4000" : "NO VZDOS.ROM");
+        int y = Panel(y0, h, m.WordProOn ? "DISK DRIVE + WORDPRO" : "DISK DRIVE  DD20", f.Rom != null ? "VZ DOS ROM AT 4000" : "NO VZDOS.ROM");
         int led = T.DosLed;
         Fill(5, y - 1, 9, 9, f.Active ? Lerp(0x401000, 0xFF3030, Math.Max(0.35, led / 255.0)) : 0x301010);
         int x = Text(20, y, f.Active ? "DRIVE " + (f.Selected + 1) : "MOTOR OFF", f.Active ? HI : DIM);

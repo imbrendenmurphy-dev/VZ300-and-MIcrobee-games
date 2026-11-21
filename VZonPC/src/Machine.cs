@@ -9,7 +9,9 @@ using System.Text;
 public enum Model { VZ200, VZ300 }
 public enum MemExp { None, Ram16K, BennVenn }
 public enum GfxMod { None, Australian, German }
-public enum Cart { None, Disk, Rtty, Rs232, WordPro }   // what sits in the cartridge slot when there is no BennVenn
+// what sits in the cartridge slot when there is no BennVenn. WordPro = the WordPro cartridge plugged into the disk
+// controller's own cartridge slot, so the disk drive is there too.
+public enum Cart { None, Disk, Rtty, Rs232, WordPro }
 
 public sealed class VzMachine
 {
@@ -23,7 +25,7 @@ public sealed class VzMachine
     public readonly VzLightPen Pen = new VzLightPen();
     public readonly VzCassRecorder CassOut = new VzCassRecorder();
     public byte[] WordProRom; public string WordProName;
-    public bool DiskOn { get { return Cartridge == Cart.Disk && Exp != MemExp.BennVenn; } }
+    public bool DiskOn { get { return (Cartridge == Cart.Disk || Cartridge == Cart.WordPro) && Exp != MemExp.BennVenn; } }
     public bool RttyOn { get { return Cartridge == Cart.Rtty && Exp != MemExp.BennVenn; } }
     public bool Rs232On { get { return Cartridge == Cart.Rs232 && Exp != MemExp.BennVenn; } }
     public bool WordProOn { get { return Cartridge == Cart.WordPro && Exp != MemExp.BennVenn; } }
@@ -331,7 +333,8 @@ public sealed class VzMachine
                 if (Cartridge == Cart.Disk) return Fdc.Rom != null && a < 0x6000 ? Fdc.Rom[a - 0x4000] : 0xFF;
                 if (Cartridge == Cart.Rtty) return peek && a >= 0x5000 ? 0xFF : Rtty.Read(a, Cpu.Cyc - 2);
                 if (Cartridge == Cart.Rs232) return peek && a >= 0x5000 ? 0xFF : Ser.Read(a, Cpu.Cyc - 2);
-                if (Cartridge == Cart.WordPro) return WordProRom != null && a >= 0x6000 ? WordProRom[a - 0x6000] : 0xFF;
+                if (Cartridge == Cart.WordPro)   // piggybacked on the disk controller: DOS ROM below $6000, WordPro above
+                    return a < 0x6000 ? (Fdc.Rom != null ? Fdc.Rom[a - 0x4000] : 0xFF) : (WordProRom != null ? WordProRom[a - 0x6000] : 0xFF);
                 return 0xFF;
             }
             if ((Mapper & 1) != 0) return Bv[DosOff(a)];

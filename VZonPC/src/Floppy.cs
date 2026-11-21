@@ -24,6 +24,10 @@ public sealed class VzDisk
     public bool Dirty;                   // written since it was last saved
     public long DirtyFrame;
     public readonly byte[] Data = new byte[SIZE];       // the logical disk, 40 x 16 x 128
+    // Each sector's checksum as it was written, -1 = the sum of its bytes. Kept as is: WordPro's save routine stores
+    // one more in the high byte than the sum (and reads it back the same way), so recomputing it would lose its files.
+    readonly int[] chkStored = NewChk();
+    static int[] NewChk() { var c = new int[TRACKS * SECTORS]; for (int i = 0; i < c.Length; i++) c[i] = -1; return c; }
     readonly int[][] flux = new int[TRACKS][];           // sorted transition positions per track
     readonly int[] fluxEnd = new int[TRACKS];            // where the formatted part of each track ends
 
@@ -64,7 +68,17 @@ public sealed class VzDisk
                 case 4: if (win == DAT) { state = 5; n = 0; } else if (win == HDR) state = 1; break;
                 case 5:
                     Data[(trk * SECTORS + sec) * SECSIZE + n] = b;
-                    if (++n == SECSIZE) { state = 0; found++; }
+                    if (++n == SECSIZE) { state = 6; found++; }
+                    break;
+                case 6: chkStored[trk * SECTORS + sec] = b; state = 7; break;
+                case 7:
+                    {
+                        int i0 = trk * SECTORS + sec, sum = 0;
+                        for (int j = 0; j < SECSIZE; j++) sum += Data[i0 * SECSIZE + j];
+                        int c = chkStored[i0] | (b << 8);
+                        chkStored[i0] = c == (sum & 0xFFFF) ? -1 : c;
+                        state = 0;
+                    }
                     break;
             }
         }
@@ -90,6 +104,7 @@ public sealed class VzDisk
         o.Add(0); o.Add(0xC3); o.Add(0x18); o.Add(0xE7); o.Add(0xFE);
         int chk = 0, b0 = (t * SECTORS + s) * SECSIZE;
         for (int i = 0; i < SECSIZE; i++) { o.Add(Data[b0 + i]); chk += Data[b0 + i]; }
+        if (chkStored[t * SECTORS + s] >= 0) chk = chkStored[t * SECTORS + s];
         o.Add((byte)chk); o.Add((byte)(chk >> 8));
         return o;
     }
@@ -153,8 +168,22 @@ public sealed class VzDisk
         keep.Sort();
         flux[t] = keep.ToArray();
         fluxEnd[t] = REV;
-        Decode(t);
+        int nf = Decode(t); if (Environment.GetEnvironmentVariable("DISKDEBUG") != null) Console.Error.WriteLine("splice track {0}: {1} transitions written, {2} sectors decode", t, written.Count, nf);
         Dirty = true;
+    }
+
+    /// <summary>A track's bit cells once round, from the index: '0', '1', and '|' for an unformatted gap (vzemu disktrack).</summary>
+    public string TrackBits(int t)
+    {
+        var f = flux[t]; int n = f.Length; var sb = new System.Text.StringBuilder();
+        for (int i = 0; i < n - 1; )
+        {
+            long d = f[i + 1] - f[i];
+            if (d < CELL / 2) { sb.Append('1'); i += 2; }
+            else if (d < CELL * 3 / 2) { sb.Append('0'); i += 1; }
+            else { sb.Append("0|"); i += 1; }
+        }
+        return sb.ToString();
     }
 
     /// <summary>Turns a track's flux back into bits and finds its sectors (twice round, so a sector over the
@@ -170,18 +199,20 @@ public sealed class VzDisk
         while (i < 2 * n - 1)
         {
             long d = Pos(i + 1) - Pos(i);
-            int bit;
+            int bit; bool gap = false;
             if (d < CELL / 2) { bit = 1; i += 2; }
             else if (d < CELL * 3 / 2) { bit = 0; i += 1; }
-            else { i += 1; win = 0; bits = 0; state = 0; continue; }   // unformatted gap
+            // an erased gap follows: the transition still starts one last cell, a 0 (WordPro leaves a gap right
+            // after each sector's checksum, so its last bit is that cell)
+            else { bit = 0; i += 1; gap = true; }
             win = (win << 1) | (uint)bit; cur = (cur << 1) | bit; bits++;
             if (state == 0 || state == 4)
             {
                 if (win == HDR) { state = 1; bits = 0; cur = 0; }
                 else if (state == 4 && win == DAT) { state = 5; bits = 0; cur = 0; k = 0; }
-                continue;
+                goto next;
             }
-            if (bits < 8) continue;
+            if (bits < 8) goto next;
             byte b = (byte)cur; bits = 0; cur = 0;
             switch (state)
             {
@@ -192,13 +223,18 @@ public sealed class VzDisk
                     buf[k++] = b;
                     if (k == SECSIZE + 2)
                     {
+                        // every complete sector counts, checksum and all: the DOS checks it when it reads, but
+                        // WordPro writes its own (see chkStored)
                         int chk = 0; for (int j = 0; j < SECSIZE; j++) chk += buf[j];
-                        if ((chk & 0xFFFF) == (buf[SECSIZE] | (buf[SECSIZE + 1] << 8)))
-                        { Array.Copy(buf, 0, Data, (trk * SECTORS + sec) * SECSIZE, SECSIZE); found++; }
+                        int st = buf[SECSIZE] | (buf[SECSIZE + 1] << 8);
+                        Array.Copy(buf, 0, Data, (trk * SECTORS + sec) * SECSIZE, SECSIZE); found++;
+                        chkStored[trk * SECTORS + sec] = (chk & 0xFFFF) == st ? -1 : st;
                         state = 0; win = 0;
                     }
                     break;
             }
+        next:
+            if (gap) { win = 0; bits = 0; state = 0; }
         }
         return found;
     }

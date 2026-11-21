@@ -188,7 +188,7 @@ public sealed class MainForm : Form
             }
             else if (a == "--lpen") m.Pen.Enabled = true;
             else if (a == "--serial") { startSerial = v; m.Cartridge = Cart.Rs232; i++; }
-            else if (a == "--disk" || a == "--disk1") { startDisk[0] = Path.GetFullPath(v); if (m.Cartridge != Cart.Rtty) m.Cartridge = Cart.Disk; i++; }
+            else if (a == "--disk" || a == "--disk1") { startDisk[0] = Path.GetFullPath(v); if (m.Cartridge != Cart.Rtty && m.Cartridge != Cart.WordPro) m.Cartridge = Cart.Disk; i++; }
             else if (a == "--disk2") { startDisk[1] = Path.GetFullPath(v); i++; }
             else if (a == "--rtty") { startRtty = Path.GetFullPath(v); m.Cartridge = Cart.Rtty; i++; }
             else if (a == "--border") { showBorder = v != "0"; i++; }
@@ -284,7 +284,7 @@ public sealed class MainForm : Form
         miCartDisk = Item("Disk drive controller (DD20, roms\\vzdos.rom)", Keys.None, (s, e) => Reconfigure(() => { m.Cartridge = Cart.Disk; if (m.Exp == MemExp.BennVenn) m.Exp = MemExp.Ram16K; }));
         miCartRtty = Item("RTTY terminal pack (K-6318, roms\\vzrtty.ic3)", Keys.None, (s, e) => Reconfigure(() => { m.Cartridge = Cart.Rtty; if (m.Exp == MemExp.BennVenn) m.Exp = MemExp.Ram16K; }));
         miCartRs232 = Item("RS-232 interface (K-6317, roms\\rs232_v15.ic2)", Keys.None, (s, e) => Reconfigure(() => { m.Cartridge = Cart.Rs232; if (m.Exp == MemExp.BennVenn) m.Exp = MemExp.Ram16K; }));
-        miCartWordPro = Item("WordPro word processor (VZ300, no expansion, roms\\wordpro.u3-u5)", Keys.None, (s, e) => Reconfigure(() => { m.Cartridge = Cart.WordPro; m.Exp = MemExp.None; }));
+        miCartWordPro = Item("Disk drive controller + WordPro in its cartridge slot (VZ300, no expansion)", Keys.None, (s, e) => Reconfigure(() => { m.Cartridge = Cart.WordPro; m.Exp = MemExp.None; }));
         cart.DropDownItems.AddRange(new ToolStripItem[] { miCartNone, miCartDisk, miCartRtty, miCartRs232, miCartWordPro });
         miPrinterIf = Item("Printer interface (X-7320)", Keys.None, (s, e) => cmds.Enqueue(() => m.Printer.Enabled = !m.Printer.Enabled));
         miLightPen = Item("Light pen (the mouse: hold the left button to press it to the screen)", Keys.None, (s, e) => cmds.Enqueue(() => { m.Pen.Enabled = !m.Pen.Enabled; ShowMessage(m.Pen.Enabled ? "Light pen on: point with the mouse, hold the left button" : "Light pen off"); }));
@@ -350,7 +350,7 @@ public sealed class MainForm : Form
     void SyncMenu()
     {
         miVz200.Checked = m.Model == Model.VZ200; miVz300.Checked = m.Model == Model.VZ300;
-        miCartNone.Checked = m.Cartridge == Cart.None || m.Exp == MemExp.BennVenn; miCartDisk.Checked = m.DiskOn; miCartRtty.Checked = m.RttyOn;
+        miCartNone.Checked = m.Cartridge == Cart.None || m.Exp == MemExp.BennVenn; miCartDisk.Checked = m.DiskOn && m.Cartridge == Cart.Disk; miCartRtty.Checked = m.RttyOn;
         miCartRs232.Checked = m.Rs232On; miCartWordPro.Checked = m.WordProOn;
         miPrinterIf.Checked = m.Printer.Enabled; miLightPen.Checked = m.Pen.Enabled;
         miSer.Enabled = m.Rs232On; miSerLoop.Checked = m.Ser.Loopback;

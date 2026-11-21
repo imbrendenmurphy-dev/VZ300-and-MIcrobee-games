@@ -22,7 +22,8 @@ small `.exe` with nothing to install.
 - **RTTY terminal pack** (DSE K-6318, 1984): receives AFSK RTTY from an audio file and transmits through the speakers
 - **RS-232 interface** (DSE K-6317): its terminal ROM talks bit by bit at 300 baud to a telnet BBS, a PC COM port or
   a text file, following its own data bits, stop bits and parity settings
-- **WordPro** word processor cartridge: edit, then print formatted pages
+- **WordPro** word processor cartridge, in the disk controller's slot as it was used: edit, print formatted pages,
+  and save and load documents on disk in WordPro's own format
 - **Printer interface:** `LPRINT`, `LLIST`, `COPY` and WordPro's printing go to a text file
 - **Light pen**, timed to the beam: the mouse is the pen, and it sees the pixel the beam is drawing at that T-state,
   so the original pen driver, which flips video mode mid-frame to find the column, finds it to within a pixel
@@ -85,10 +86,10 @@ small `.exe` with nothing to install.
 
 **Size and requirements**
 - Windows 10 or 11 (it uses the .NET Framework 4 built into Windows). Nothing to install
-- `VZonPC.exe` is 209 KB, and `vzemu.exe` is 143 KB
+- `VZonPC.exe` is 210 KB, and `vzemu.exe` is 144 KB
 - Bring your own VZ ROM for BASIC, and the cartridge ROMs for the disk drive, RTTY, RS-232 and WordPro. Machine-code games run without one
 
-**Not emulated:** two cartridges at once, and drawing the printer's graphics.
+**Not emulated:** other cartridge combinations, and drawing the printer's graphics.
 
 ## Screenshots
 
