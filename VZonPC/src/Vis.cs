@@ -855,17 +855,96 @@ public sealed class VzVis
         return y0 + h;
     }
 
+    // ---------------------------------------------------------------- RS-232
+    int PSerial(int y0, int avail)
+    {
+        var r = m.Ser;
+        int h = Math.Min(avail, 15 + 104);
+        int y = Panel(y0, h, "RS-232  K-6317", r.Rom == null ? "NO RS232_V15.IC2" : r.Baud + " BAUD " + r.DataBits + r.Parity + r.StopBits);
+        int x = Text(5, y, "LINK ", DIM);
+        x = Text(x, y, r.LinkName != null ? r.LinkName.ToUpperInvariant() : r.Loopback ? "LOOPBACK" : "NOT CONNECTED", r.LinkName != null || r.Loopback ? HI : DIM);
+        int y2 = y + 10;
+        x = Text(5, y2, "TXD ", DIM); x = Text(x, y2, r.TxMark ? "MARK" : "SPACE", r.TxMark ? TXT : AMBER);
+        x = Text(x + 8, y2, "SENT ", DIM); x = Text(x, y2, r.TxBytes.ToString(), AMBER);
+        x = Text(x + 8, y2, "RECEIVED ", DIM); x = Text(x, y2, r.RxBytes.ToString(), CYAN);
+        int q = r.RxQueued; if (q > 0) { x = Text(x + 8, y2, "QUEUED ", DIM); Text(x, y2, q.ToString(), TXT); }
+        // the last lines of the session: sent in amber, received in cyan
+        int y3 = y2 + 14, rows = Math.Max(0, (y0 + h - y3 - 2) / 10), cols = (W - 10) / 6;
+        string s; int[] dir;
+        lock (r.Session) { s = r.Session.ToString(); dir = r.SessionDir.ToArray(); }
+        var lines = new List<KeyValuePair<int, int>>();   // start, length
+        int st = 0;
+        for (int i = 0; i <= s.Length; i++)
+            if (i == s.Length || s[i] == '\n' || i - st >= cols) { lines.Add(new KeyValuePair<int, int>(st, i - st)); st = i < s.Length && s[i] == '\n' ? i + 1 : i; }
+        for (int k = Math.Max(0, lines.Count - rows), row = 0; k < lines.Count; k++, row++)
+            for (int i = 0; i < lines[k].Value; i++)
+            {
+                int ci = lines[k].Key + i;
+                Text(5 + i * 6, y3 + row * 10, s[ci].ToString().ToUpperInvariant(), dir[ci] != 0 ? AMBER : CYAN);
+            }
+        return y0 + h;
+    }
+
+    // ---------------------------------------------------------------- printer, light pen and tape recorder
+    int PIo(int y0, int avail)
+    {
+        int h = Math.Min(avail, 15 + 104);
+        string info = m.WordProOn ? "WORDPRO CARTRIDGE" : m.Exp == MemExp.Ram16K ? "16K RAM PACK" : "NO MEMORY EXPANSION";
+        int y = Panel(y0, h, "PRINTER  PEN  TAPE", info);
+        var pr = m.Printer;
+        bool busy = m.Frames - pr.LastFrame < 25;
+        Fill(5, y - 1, 9, 9, !pr.Enabled ? 0x202020 : busy ? 0x40FF40 : 0x104010);
+        int x = Text(20, y, pr.Enabled ? "PRINTER" : "NO PRINTER INTERFACE", pr.Enabled ? TXT : DIM);
+        if (pr.Enabled)
+        {
+            x = Text(x + 8, y, "BYTES ", DIM); x = Text(x, y, pr.Bytes.ToString(), TXT);
+            x = Text(x + 8, y, "LINES ", DIM); x = Text(x, y, pr.Lines.ToString(), TXT);
+            x = Text(x + 8, y, "LATCH $", DIM); Text(x, y, H2(pr.Data), TXT);
+        }
+        // the paper: the last few lines printed
+        int py = y + 12, rows = 5;
+        Fill(5, py - 2, W - 10, rows * 10 + 2, 0xE8E4D8);
+        var rec = pr.Recent; int n = rec.Count;
+        for (int i = 0; i < rows - 1; i++)
+        {
+            int k = n - (rows - 1) + i; if (k < 0) continue;
+            string l = rec[k]; if (l.Length > 50) l = l.Substring(0, 50);
+            Text(8, py + i * 10, l.ToUpperInvariant(), 0x202020);
+        }
+        string part = pr.Partial; if (part.Length > 50) part = part.Substring(part.Length - 50);
+        Text(8, py + (rows - 1) * 10, part.ToUpperInvariant(), 0x202020);
+        int y3 = py + rows * 10 + 4;
+        var pen = m.Pen;
+        x = Text(5, y3, "LIGHT PEN ", DIM);
+        if (!pen.Enabled) Text(x, y3, "OFF", DIM);
+        else
+        {
+            x = Text(x, y3, pen.OnScreen ? pen.X + "," + pen.Y : "AWAY", pen.OnScreen ? TXT : DIM);
+            if (pen.Down) x = Text(x + 8, y3, "PRESSED", AMBER);
+            x = Text(x + 8, y3, "READS ", DIM); x = Text(x, y3, pen.Reads.ToString(), TXT);
+            x = Text(x + 8, y3, "LIT ", DIM); Text(x, y3, pen.Hits.ToString(), pen.Hits > 0 ? HI : TXT);
+        }
+        y3 += 10;
+        var co = m.CassOut;
+        x = Text(5, y3, "TAPE OUT ", DIM);
+        if (co.Recording)
+        {
+            Fill(x, y3 - 1, 7, 7, (m.Frames / 25) % 2 == 0 ? RED : 0x401010);
+            x = Text(x + 10, y3, "RECORDING " + ((m.Cpu.Cyc - co.StartCycle) / m.Clock) + " S", RED);
+            Text(x + 8, y3, co.Edges + " EDGES", TXT);
+        }
+        else Text(x, y3, "LATCH BITS 1+2  " + (((m.Latch >> 1) & 3) != 0 ? "HIGH" : "LOW"), TXT);
+        return y0 + h;
+    }
+
     int PBennVenn(int y0, int avail)
     {
         if (m.DiskOn) return PDisk(y0, avail);
         if (m.RttyOn) return PRtty(y0, avail);
+        if (m.Rs232On) return PSerial(y0, avail);
+        if (m.Exp != MemExp.BennVenn) return PIo(y0, avail);
         int h = Math.Min(avail, 15 + 3 * 10 + 8 * 10);
-        int y = Panel(y0, h, "BENNVENN SD", m.Exp == MemExp.BennVenn ? "128K + SD CARD" : "NOT FITTED");
-        if (m.Exp != MemExp.BennVenn)
-        {
-            Text(5, y, m.Exp == MemExp.Ram16K ? "16K RAM PACK FITTED" : "NO MEMORY EXPANSION", TXT);
-            return y0 + h;
-        }
+        int y = Panel(y0, h, "BENNVENN SD", "128K + SD CARD");
         int led = T.DosLed;
         Fill(5, y - 1, 9, 9, Lerp(0x301000, 0xFF8A00, led / 255.0));
         int mp = m.Mapper;

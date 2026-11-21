@@ -4,8 +4,10 @@ An emulator for the Dick Smith **VZ200** and **VZ300** (VTech Laser 210/310) for
 
 - **Machines:** VZ200 (8K, 3.58 MHz) or VZ300 (18K, 3.55 MHz).
 - **Memory:** no expansion, the 16K RAM pack, or the **BennVenn SD loader with 128K**.
-- **Cartridges:** the **disk drive** (DD20 controller, two drives, `.dsk` images) and the **RTTY terminal pack**.
-- **Tape:** WAV, FLAC or MP3 audio into the cassette socket.
+- **Cartridges:** the **disk drive** (DD20 controller, two drives, `.dsk` images), the **RTTY terminal pack**, the
+  **RS-232 interface** (to a telnet host or COM port) and **WordPro**.
+- **Tape:** WAV, FLAC or MP3 audio into the cassette socket, and `CSAVE` to a WAV.
+- **Printer and light pen:** `LPRINT`, `LLIST` and `COPY` go to a text file; the mouse is the light pen.
 - **SD card:** a folder on the PC stands in for the card.
 - **Graphics:** the standard MC6847, the **Australian super hi-res mod**, or the **German hi-res mod**. Both mods give 6K of video RAM and 256×192.
 - **Display:** 1:1 pixels, scaled ×2–×5, any window size, or fullscreen.
@@ -40,6 +42,8 @@ one of these names:
 | VZ200 | `vz200.rom` (16K), or `vtechv20.u09` + `vtechv20.u10` (8K each) |
 | Disk drive cartridge | `vzdos.rom` (8K, DOS BASIC V1.2) |
 | RTTY cartridge | `vzrtty.ic3` (4K) |
+| RS-232 cartridge | `rs232_v15.ic2` or `rs232_v16.ic2` (2K) |
+| WordPro cartridge | `wordpro.u3`, `wordpro.u4`, `wordpro.u5` (4K each) |
 
 The two are BASIC V2.0, so either machine falls back to the other's ROM. These are the
 MAME `vz200` / `laser310` ROM files. With a ROM, the emulator boots to `READY` and BASIC
@@ -123,13 +127,23 @@ fast loaders that time the signal themselves. The status bar shows the tape posi
 - With a stereo file, the left channel goes to the VZ, and the right channel plays through your speakers.
   **Tape: use the right channel** swaps them.
 - Ogg files can't be opened: Windows only decodes Ogg for Store apps. Convert them to WAV first.
-- Saving to tape (`CSAVE`) isn't emulated.
 
 **2018 A.D. by Five Finger Punch** (Edison 2018) runs this way, from its original CD audio. Its left channel is a
 ROM-speed boot, then 25 speedloaded parts at about 4,000 bits per second. Its right channel is the music. Set up a
 VZ200 with no memory expansion, type `CRUN`, then play the audio (`combined.ogg` from scene.org, converted to WAV).
 From the command line:
 `VZonPC.exe --no-settings --machine vz200 --exp none --type "CRUN\r" --tape 2018AD_combined.wav`
+
+## Saving to tape
+
+**File → Record to tape (CSAVE to a WAV file)...** starts the tape recorder. Type `CSAVE "NAME"` and press RETURN,
+and when `READY` comes back, **File → Stop recording** writes the WAV (44.1 kHz, trimmed to the recording). The
+status bar shows `REC` while it runs. The recording loads back with **Play tape** and `CLOAD`, on a VZ200 or a
+VZ300, and it should load on a real VZ the same way.
+
+- `CSAVE` writes `$26` and `$20` to the latch: bits 1 and 2 drive the cassette output together. Their polarity
+  matches the tape input, which loads real VZ tapes (2018 A.D.'s CD audio) without inverting.
+- A level held for more than 5 ms fades to silence, as it would through a real recorder's AC-coupled input.
 
 ## Disk drive (DD20)
 
@@ -175,6 +189,71 @@ the ROM shows its title, asks for your callsign, and then offers receive, transm
   same registers, but stubs the signals out.
 - The visualiser's bottom-right panel scopes the last second of the receive and transmit lines, with dots where the
   ROM samples the received bit.
+
+## RS-232 interface (K-6317)
+
+**Machine → Cartridge → RS-232 interface** plugs in Dick Smith's serial cartridge. It needs its 2K ROM as
+`roms\rs232_v15.ic2` (or `rs232_v16.ic2`). At power-on the ROM shows its terminal menu: **0** enters the terminal
+(**SHIFT X** leaves it), and **1**–**6** set full or half duplex, echo to the printer, 7 or 8 data bits, 1 or 2 stop
+bits, parity, and adding LF to CR.
+
+- **File → RS-232 → Connect to a host (telnet) or COM port...** links the VZ to a telnet host (`host:port`, such as
+  a BBS) or to a real serial port on the PC (`COM1`...). `--serial host:port` does the same from the command line.
+- **Send a text file...** types a file into the VZ's receive line, and **Loopback** makes the VZ receive what it sends.
+- **It runs at 300 baud, bit by bit.** The ROM does the serial timing itself, so a software UART here turns its
+  transmit line back into bytes and turns incoming bytes into a receive waveform at the same speed. The ROM keeps
+  its settings as characters in its menu text in RAM (`$8031` data bits, `$8049` stop bits, `$8061` parity), and
+  the UART reads them from there, so the menu settings apply. Sending `U` and timing its bits shows the speed: one
+  bit lasts 11,494 T-states, which is 300 baud nominal (309 on a VZ300).
+- The registers are as in MAME: reading `$5000`–`$57FF` gives the received bit in bit 7 (1 = mark), and writing
+  `$5800`–`$5FFF` sets the transmitted bit in bit 7, inverted (0 sends mark). The ROM's own code confirms both.
+- The visualiser's bottom-right panel shows the link, the counts and the session: sent text in amber and received
+  text in cyan.
+
+## WordPro cartridge
+
+**Machine → Cartridge → WordPro** plugs in DSE's word processor cartridge for the VZ300. It needs its three 4K
+EPROMs as `roms\wordpro.u3`, `wordpro.u4` and `wordpro.u5`. They sit at `$D000`, `$E000` and `$F000`, and the
+first 2K of U3 also appears at `$6000`, where BASIC finds the cartridge's signature (its 74LS138 decodes A12, A13
+and A15 with A14 high; the schematic is on vz200.org). It uses that address space, so it runs with no memory
+expansion.
+
+At power-on WordPro shows its command menu: **E** edit, **P** print, **C** clear, **D** disk and **T** tape.
+**BREAK** (Esc, or CTRL and `-`) goes back to the menu from the editor. **P**, then **M**, prints the text in memory
+as formatted pages on the printer (below). Its disk commands need the disk controller as well, and only one
+cartridge fits at a time here, so they don't work.
+
+## Printer
+
+The printer interface (DSE X-7320) is plugged in by default (**Machine → Printer interface**). BASIC's `LPRINT`,
+`LLIST` and `COPY` (the screen dump), and WordPro's printing, go to `printer\printout.txt` next to `VZonPC.exe`.
+**File → Open the printout** shows it. Each run's printing is added at the end, after a dated line. The bytes exactly
+as sent, control codes included, go to `printer\printout.prn`. The printer is always ready.
+
+- **Ports:** reading any port from `$00` to `$0F` gives BUSY in bit 0 (0 = ready). Writing an even port sets the
+  data latch, and writing an odd port strobes the byte to the printer. BASIC uses `$0E` and `$0D` (as MAME has it),
+  and WordPro uses `$00` and `$01`, so the interface can only decode the lowest address bit. VZEM also takes data on
+  both `$0E` and `$00`.
+- Programs that drive the latch's outputs directly, such as the robot control program on vz200.org (`OUT 14,64`),
+  see the value in the visualiser's printer panel.
+
+## Light pen
+
+**Machine → Light pen** plugs in the VTech light pen interface (ports `$40`–`$4F`). The mouse is the pen: point at
+the screen, and **hold the left button** to press the pen against it. The cursor becomes a cross while it's on.
+
+- **Bit 6** reads 0 while the pen is pressed, and **bit 7** drops to 0 when the pen sees the beam go past.
+- **It is timed to the beam.** The pen sees light for about 13 µs after the beam draws a bright pixel under its tip
+  (green, yellow, buff, cyan, orange and text count, but blue, red, magenta and the dark text background don't). The
+  pixel is the one the beam is drawing at that T-state, so a program can change the screen during the frame and
+  find the pen with it.
+- This was worked out from the light pen driver's own source code (`LPEN.VZ` on vz200.org). It finds the row by
+  timing the beam down a screen of bright blocks. It finds the column by switching to MODE(1) at the pen's row,
+  part-way down the frame, and lighting halves of a line until the pen sees one. Assembled unchanged and run here,
+  it reports the pen to within one pixel across the whole screen (X = column ÷ 2 + 1, Y = line ÷ 3). MAME only
+  documents the ports.
+- The light pen disk on vz200.org (`Ligthpen.dsk`) is damaged: sector 12 of tracks 1 to 5 is bad, and its pen
+  routine (`LPEN 2.0`) starts in one of them. The other programs load, but they need that routine.
 
 ## The visualiser (F10)
 
@@ -311,11 +390,17 @@ Paths in a script are relative to the current directory. Screenshots are PNG, 25
 | `reset`, `poke A V`, `out PORT V` | |
 | `tape FILE [left\|right\|mix] [invert]` | play a WAV/FLAC/MP3 into the cassette input from now |
 | `tapestop`, `tapeinvert [on\|off]`, `tapepos` | stop, flip the polarity, print the tape position |
-| `cart disk\|rtty\|none` | plug in a cartridge (before the first run command; needs `rom auto` for the BASIC ROM) |
+| `cart disk\|rtty\|rs232\|wordpro\|none` | plug in a cartridge (before the first run command; needs `rom auto` for the BASIC ROM) |
 | `disk N FILE`, `disk N blank`, `diskeject N` | put an image (or a fresh formatted disk) in drive 1 or 2; eject saves it |
 | `diskdir [N]`, `diskstat`, `disksave N FILE` | list the directory, show the head and counters, write the image out |
 | `rttyrx FILE`, `rttyloop [off]`, `rttyinvert rx\|tx`, `rttystat` | receive AFSK audio, loop TX into RX, flip polarity, show state |
 | `rttytx FILE` … `rttytxend` | record the transmitted tones to a WAV |
+| `taperec FILE` … `taperecend` | record the cassette output (`CSAVE`) to a WAV |
+| `printer FILE`, `printer off`, `printstat` | print to FILE (text) and FILE.prn (raw bytes); show the last lines |
+| `lpen X Y`, `lpen hover X Y`, `lpen up`, `lpen off`, `lpenstat` | the light pen pressed (or not) at picture pixel X,Y (0–255, 0–191) |
+| `serial connect HOST:PORT\|COMn`, `serial send TEXT`, `serial file FILE` | RS-232: link it, or queue bytes for the VZ to receive (`\r`, `\n`) |
+| `serial loop [off]`, `serial capture FILE`, `serial baud N`, `serialstat` | loopback, save what the VZ sends, set the speed, show the session |
+| `bin FILE ADDR` | copy a raw binary into memory without running it |
 
 **Inspection**
 
@@ -351,18 +436,19 @@ To build test programs, assemble with `py tools\zasm.py src.asm -o out.bin --sym
 
 The GUI can also check itself: `VZonPC.exe GAME.VZ --quit-after 8 --shot win.png [--scale 2] [--gfx aus] [--fullscreen]`
 runs the real window for 8 seconds (add `--vis` for the visualiser; its window is saved as `win_vis.png`), captures it from the screen and exits without touching the settings.
-Other options: `--sd DIR`, `--machine`, `--exp`, `--type "RUN\r"`, `--tape FILE` (starts once the typing has finished), `--cart disk|rtty|none`, `--disk FILE`, `--disk2 FILE`, `--rtty FILE`, `--border 0|1`, `--integer 0|1`, `--no-settings`.
+Other options: `--sd DIR`, `--machine`, `--exp`, `--type "RUN\r"`, `--tape FILE` (starts once the typing has finished), `--cart disk|rtty|rs232|wordpro|none`, `--disk FILE`, `--disk2 FILE`, `--rtty FILE`, `--serial HOST:PORT`, `--lpen`, `--border 0|1`, `--integer 0|1`, `--no-settings`.
 
 ## Source
 
 `src\Z80.cs` (CPU), `src\Z80Dis.cs` (disassembler), `src\Trace.cs` + `src\Vis.cs` (visualiser), `src\Machine.cs` (memory map, BennVenn, 6847 video, speaker, DOS, loader),
-`src\Floppy.cs` (disk drive), `src\Rtty.cs` (RTTY cartridge), `src\Tape.cs` + `src\MfAudio.cs` (tape input), `src\Headless.cs` (`vzemu`), `src\MainForm.cs` / `src\WinIO.cs` / `src\SdBrowser.cs` (the window, waveOut audio,
+`src\Floppy.cs` (disk drive), `src\Rtty.cs` (RTTY cartridge), `src\Rs232.cs` (RS-232 cartridge), `src\Peripherals.cs` (printer, light pen, cassette recorder), `src\Tape.cs` + `src\MfAudio.cs` (tape input), `src\Headless.cs` (`vzemu`), `src\MainForm.cs` / `src\WinIO.cs` / `src\SdBrowser.cs` (the window, waveOut audio,
 winmm joysticks, GDI display). Run `build.bat` after changes. C# 5 only: no string interpolation or `?.`.
 
 ## Not emulated (yet)
 
-- Saving to cassette (`CSAVE`). Loading from tape audio works (see Tape input).
-- The printer, and the RS-232 and WordPro cartridges.
 - The BennVenn's own flash BIOS and its built-in DOS. A small stand-in loads `VZDOS.VZ` instead, so without a
   `VZDOS.VZ` the loader goes straight to BASIC.
-- Light pen.
+- Two cartridges at once (an expansion box), so WordPro's disk commands can't reach the disk drive.
+- The printer's graphics: `COPY` of a graphics screen sends bit-image codes, which are kept in `printout.prn` but
+  not drawn.
+- The RS-232 link to a real COM port is written but hasn't been tried with serial hardware.

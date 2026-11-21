@@ -9,7 +9,7 @@ using System.Text;
 public enum Model { VZ200, VZ300 }
 public enum MemExp { None, Ram16K, BennVenn }
 public enum GfxMod { None, Australian, German }
-public enum Cart { None, Disk, Rtty }   // what sits at $4000 when there is no BennVenn
+public enum Cart { None, Disk, Rtty, Rs232, WordPro }   // what sits in the cartridge slot when there is no BennVenn
 
 public sealed class VzMachine
 {
@@ -18,9 +18,15 @@ public sealed class VzMachine
     public MemExp Exp = MemExp.BennVenn;
     public GfxMod Gfx = GfxMod.None;
     public Cart Cartridge = Cart.None;  // the DD20 disk controller or the RTTY interface (not with the BennVenn)
-    public VzFloppy Fdc; public VzRtty Rtty;
+    public VzFloppy Fdc; public VzRtty Rtty; public VzRs232 Ser;
+    public readonly VzPrinter Printer = new VzPrinter();
+    public readonly VzLightPen Pen = new VzLightPen();
+    public readonly VzCassRecorder CassOut = new VzCassRecorder();
+    public byte[] WordProRom; public string WordProName;
     public bool DiskOn { get { return Cartridge == Cart.Disk && Exp != MemExp.BennVenn; } }
     public bool RttyOn { get { return Cartridge == Cart.Rtty && Exp != MemExp.BennVenn; } }
+    public bool Rs232On { get { return Cartridge == Cart.Rs232 && Exp != MemExp.BennVenn; } }
+    public bool WordProOn { get { return Cartridge == Cart.WordPro && Exp != MemExp.BennVenn; } }
     public bool JoyInterface = true;
     public bool ShowSnow = false;
     public bool UseRom = true;          // false = always use the built-in stub ROM
@@ -108,11 +114,34 @@ public sealed class VzMachine
         for (int i = 0; i < 8; i++) Keys[i] = 0x3F;
         BuildStubRom();
         BuildDosRom();
-        Fdc = new VzFloppy(this); Rtty = new VzRtty(this);
+        Fdc = new VzFloppy(this); Rtty = new VzRtty(this); Ser = new VzRs232(this);
     }
 
     // ---------------------------------------------------------------- ROMs
     public static string RomDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "roms");
+
+    /// <summary>The WordPro cartridge: three 4K EPROMs (U3, U4, U5) at $D000, $E000 and $F000, and the first 2K
+    /// of U3 also at $6000, where the BASIC ROM finds its AA 55 E7 18 signature (its 74LS138 decodes A12, A13,
+    /// A15 with A14 high; the schematic is on vz200.org).</summary>
+    void LoadWordPro()
+    {
+        WordProRom = null; WordProName = null;
+        var parts = new[] { new[] { "wordpro.u3", "wordpro_rom_1.bin", "wordpro rom 1.bin" }, new[] { "wordpro.u4", "wordpro_rom_2.bin", "wordpro rom 2.bin" }, new[] { "wordpro.u5", "wordpro_rom_3.bin", "wordpro rom 3.bin" } };
+        var r = new byte[0x3000];
+        for (int i = 0; i < 3; i++)
+        {
+            string f = null;
+            foreach (var n in parts[i]) { string q = Path.Combine(RomDir, n); if (File.Exists(q) && new FileInfo(q).Length == 0x1000) { f = q; break; } }
+            if (f == null)
+            {
+                string whole = Path.Combine(RomDir, "wordpro.bin");
+                if (File.Exists(whole) && new FileInfo(whole).Length == 0x3000) { WordProRom = File.ReadAllBytes(whole); WordProName = "wordpro.bin"; }
+                return;
+            }
+            Array.Copy(File.ReadAllBytes(f), 0, r, i * 0x1000, 0x1000);
+        }
+        WordProRom = r; WordProName = "wordpro.u3-u5";
+    }
 
     void BuildStubRom()
     {
@@ -244,7 +273,7 @@ public sealed class VzMachine
         }
         else { Array.Clear(Ram, 0, Ram.Length); Array.Clear(Bv, 0, Bv.Length); Array.Clear(Vram, 0, Vram.Length); }
         LoadRom();
-        Fdc.LoadRom(RomDir); Rtty.LoadRom(RomDir);
+        Fdc.LoadRom(RomDir); Rtty.LoadRom(RomDir); Ser.LoadRom(RomDir); LoadWordPro();
         Mapper = 0; Latch = 0; ShrgPort = 0x08; GerBank = 0; Vz300Mode = false;
         if (sdf != null) { sdf.Close(); sdf = null; }
         DosLog.Clear(); DosSectors = DosOpens = 0;
@@ -261,7 +290,7 @@ public sealed class VzMachine
         Cpu.Cyc = 0; FrameStart = 0; lastLine = -1;
         vevHead = vevN = vevVram = 0; nPend = 0; vLatch = vBorder = Latch; rowAddr = lineCtr = 0; snowN = 0;
         Mapper = 0; Vz300Mode = false;
-        Fdc.Reset(); Rtty.Reset();
+        Fdc.Reset(); Rtty.Reset(); Ser.Reset();
         tps = 0;   // restart the sample clock
         if (Tr != null) Tr.ResetTimes();
     }
@@ -301,6 +330,8 @@ public sealed class VzMachine
             {
                 if (Cartridge == Cart.Disk) return Fdc.Rom != null && a < 0x6000 ? Fdc.Rom[a - 0x4000] : 0xFF;
                 if (Cartridge == Cart.Rtty) return peek && a >= 0x5000 ? 0xFF : Rtty.Read(a, Cpu.Cyc - 2);
+                if (Cartridge == Cart.Rs232) return peek && a >= 0x5000 ? 0xFF : Ser.Read(a, Cpu.Cyc - 2);
+                if (Cartridge == Cart.WordPro) return WordProRom != null && a >= 0x6000 ? WordProRom[a - 0x6000] : 0xFF;
                 return 0xFF;
             }
             if ((Mapper & 1) != 0) return Bv[DosOff(a)];
@@ -316,6 +347,7 @@ public sealed class VzMachine
         }
         if (a < 0x7800) { if (!peek) VideoAccess(a, -1); return Vram[(VBank << 11) + (a - 0x7000)]; }
         if (a < ramTop) return Ram[a];
+        if (a >= 0xD000 && WordProRom != null && WordProOn) return WordProRom[a - 0xD000];
         if (Exp == MemExp.Ram16K) return (a >= packLo && a < packHi) ? Ram[a] : 0xFF;
         if (Exp == MemExp.BennVenn && a >= 0x9000 && (!Vz300Mode || a >= 0xB800)) return Bv[ExpOff(a)];
         return 0xFF;
@@ -326,8 +358,14 @@ public sealed class VzMachine
         if (WriteHook != null) WriteHook(a, v);
         if (Tr != null) Tr.W(a, v);
         if (a < 0x4000) return;
-        if (a < 0x6800) { if (Exp == MemExp.BennVenn) Bv[DosOff(a)] = (byte)v; else if (Cartridge == Cart.Rtty) Rtty.Write(a, v); return; }
-        if (a < 0x7000) { SpeakerTo(v); Pend(-1, Latch, v); Latch = v; return; }
+        if (a < 0x6800)
+        {
+            if (Exp == MemExp.BennVenn) Bv[DosOff(a)] = (byte)v;
+            else if (Cartridge == Cart.Rtty) Rtty.Write(a, v);
+            else if (Cartridge == Cart.Rs232) Ser.Write(a, v, Cpu.Cyc - 2);
+            return;
+        }
+        if (a < 0x7000) { SpeakerTo(v); if (CassOut.Recording) CassOut.Latch(Cpu.Cyc - 2, v); Pend(-1, Latch, v); Latch = v; return; }
         if (a < 0x7800) { VideoAccess(a, v); int vi = (VBank << 11) + (a - 0x7000); Pend(vi, Vram[vi], v); Vram[vi] = (byte)v; return; }
         if (a < ramTop) { Ram[a] = (byte)v; return; }
         if (Exp == MemExp.Ram16K) { if (a >= packLo && a < packHi) Ram[a] = (byte)v; return; }
@@ -347,6 +385,15 @@ public sealed class VzMachine
             if (Tr != null) Tr.Port(lo, r, false);
             return r;
         }
+        if (Printer.Enabled && lo <= 0x0F) { int r = Printer.In(lo); if (Tr != null) Tr.Port(lo, r, false); return r; }
+        if (Pen.Enabled && lo >= 0x40 && lo <= 0x4F)
+        {
+            int r = 0xFF; Pen.Reads++;
+            if (Pen.Down && Pen.OnScreen) r &= ~0x40;
+            if (PenSees(Cpu.Cyc - 2)) { r &= ~0x80; Pen.Hits++; }
+            if (Tr != null) Tr.Port(lo, r, false);
+            return r;
+        }
         if (DiskOn && lo >= 0x10 && lo <= 0x13) { int r = Fdc.In(lo, Cpu.Cyc - 1); if (Tr != null) { Tr.Port(lo, r, false); Tr.DosLed = 255; } return r; }
         if (Exp == MemExp.BennVenn && lo == 0x39) { int r = GetCard().In(); if (Tr != null) { Tr.Port(lo, r, false); Tr.DosLed = 255; } return r; }
         if (Tr != null) Tr.Port(lo, 0xFF, false);
@@ -358,6 +405,7 @@ public sealed class VzMachine
         int lo = port & 0xFF;
         if (Tr != null) Tr.Port(lo, v, true);
         if (DiskOn && lo == 0x10) { Fdc.Out(lo, v, Cpu.Cyc - 1); if (Tr != null) Tr.DosLed = 255; }
+        if (Printer.Enabled && lo <= 0x0F) Printer.Out(lo, v, Frames);
         if (Exp == MemExp.BennVenn)
         {
             if (lo == 0x37) Mapper = v;
@@ -537,7 +585,7 @@ public sealed class VzMachine
             return false;
         }
         int line = (int)(rel / LINET);
-        if (line - 1 != lastLine) { RenderTo(line); if (RttyOn) Rtty.SampleLine(Cpu.Cyc); }   // draw the lines that have finished
+        if (line - 1 != lastLine) { RenderTo(line); if (RttyOn) Rtty.SampleLine(Cpu.Cyc); if (Rs232On) Ser.TxPoll(Cpu.Cyc); }   // draw the lines that have finished
         FsLow = line < FSLINES;
         Cpu.IntLine = FsLow;
         CurPc = Cpu.PC;
@@ -702,6 +750,57 @@ public sealed class VzMachine
             }
             Fb[o + x] = c;
         }
+    }
+
+    // ---------------------------------------------------------------- light pen
+    /// <summary>True if the pen's photocell is lit at absolute time now: the beam drew a bright pixel within the
+    /// pen's spot (3 lines by 5 pixels) less than Pen.Window T-states ago.</summary>
+    bool PenSees(long now)
+    {
+        if (!Pen.OnScreen) return false;
+        FlushPend(Cpu.Cyc);
+        long rel = now - FrameStart;
+        for (int dy = -1; dy <= 1; dy++)
+        {
+            int py = Pen.Y + dy; if (py < 0 || py >= 192) continue;
+            int ln = PicStart + py;
+            for (int dx = -2; dx <= 2; dx += 2)
+            {
+                int px = Pen.X + dx; if (px < 0 || px >= 256) continue;
+                long tp = (long)ln * LINET + H0 + (px >> 1);
+                long d = rel - tp;
+                if (d < 0 || d >= Pen.Window) continue;
+                int c = PixelAt(ln, px, FrameStart + tp);
+                int luma = (((c >> 16) & 255) * 299 + ((c >> 8) & 255) * 587 + (c & 255) * 114) / 1000;
+                if (luma >= Pen.Threshold) return true;
+            }
+        }
+        return false;
+    }
+
+    /// <summary>The colour the beam drew (or is drawing) at picture pixel px of frame line ln, at absolute time t.
+    /// Finished lines come from the frame buffer; the line being drawn now is worked out the way DrawLine does it.</summary>
+    int PixelAt(int ln, int px, long t)
+    {
+        int oy = ln - (PicStart - BY);
+        if (ln <= lastLine || Gfx != GfxMod.None) return oy >= 0 && oy < FBH ? Fb[oy * FBW + BX + px] : 0;
+        int L = vLatch;
+        for (int i = vevHead; i < vevN && vev[i].T <= t; i++) if (vev[i].Addr < 0) L = vev[i].New;
+        int py = ln - PicStart;
+        int ra = py == 0 ? 0 : rowAddr, lc = py == 0 ? 0 : lineCtr;
+        int col = px >> 3, b = VramAt((ra + col) & 0x7FF, FrameStart + (long)ln * LINET + H0 + col * 4);
+        int k = px & 7;
+        bool ag = (L & 8) != 0, css = (L & 16) != 0;
+        if (ag) return Pal[((b >> (6 - (k >> 1) * 2)) & 3) + (css ? 4 : 0)];
+        if ((b & 0x80) != 0)
+        {
+            int top = lc < 6 ? 3 : 1;
+            return ((b >> (k < 4 ? top : top - 1)) & 1) != 0 ? Pal[(b >> 4) & 7] : BLACK;
+        }
+        int bits = (lc >= 3 && lc < 10) ? Font6847.F[b & 63, lc - 3] : 0;
+        bool on = k >= 1 && k < 6 && ((bits >> (5 - k)) & 1) != 0;
+        if ((b & 0x40) != 0) on = !on;
+        return on ? (css ? BRORANGE : Pal[0]) : (css ? DKORANGE : DKGREEN);
     }
 
     static int BorderColour(int latch) { return (latch & 8) != 0 ? ((latch & 16) != 0 ? Pal[4] : Pal[0]) : BLACK; }

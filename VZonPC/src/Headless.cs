@@ -229,7 +229,7 @@ public sealed class Headless
         foreach (var kv in sym) if (!vis.Sym.ContainsKey(kv.Value & 0xFFFF)) vis.Sym[kv.Value & 0xFFFF] = kv.Key.ToUpperInvariant();
     }
 
-    static readonly HashSet<string> configCmds = new HashSet<string> { "machine", "exp", "gfx", "rom", "joyif", "sd", "sym", "quiet", "topborder", "crash", "spok", "stack", "print", "romtrap", "watch", "linelog", "cart" };
+    static readonly HashSet<string> configCmds = new HashSet<string> { "machine", "exp", "gfx", "rom", "joyif", "sd", "sym", "quiet", "topborder", "crash", "spok", "stack", "print", "romtrap", "watch", "linelog", "cart", "printer", "lpen" };
 
     bool Exec(string ln)
     {
@@ -256,7 +256,8 @@ public sealed class Headless
             case "cart":
                 {
                     string c = a1.ToLowerInvariant();
-                    m.Cartridge = c.StartsWith("d") || c.StartsWith("f") ? Cart.Disk : c.StartsWith("r") ? Cart.Rtty : Cart.None;
+                    m.Cartridge = c.StartsWith("d") || c.StartsWith("f") ? Cart.Disk : c.StartsWith("rs") || c.StartsWith("se") ? Cart.Rs232
+                        : c.StartsWith("r") ? Cart.Rtty : c.StartsWith("w") ? Cart.WordPro : Cart.None;
                     booted = false;
                 }
                 break;
@@ -295,6 +296,62 @@ public sealed class Headless
             case "rttytxend": m.Rtty.EndRecordTx(); break;
             case "rttyloop": m.Rtty.Loopback = a1 != "off"; break;
             case "rttyinvert": if (a1.Contains("rx")) m.Rtty.RxInvert = !m.Rtty.RxInvert; if (a1.Contains("tx")) m.Rtty.TxInvert = !m.Rtty.TxInvert; break;
+            // ---- cassette output
+            case "taperec":
+                {
+                    string f = ln.Trim().Substring(cmd.Length).Trim().Trim('"');
+                    m.CassOut.Start(f, m.Cpu.Cyc, m.Clock, m.Latch);
+                }
+                break;
+            case "taperecend": { double s = m.CassOut.Stop(m.Cpu.Cyc); Console.WriteLine("tape: recorded {0:F1} s to {1}", s, m.CassOut.File); } break;
+            // ---- printer: printer off | printer FILE (text; the raw bytes go to FILE.prn)
+            case "printer":
+                {
+                    string f = ln.Trim().Substring(cmd.Length).Trim().Trim('"');
+                    if (f == "off") m.Printer.Enabled = false;
+                    else if (f != "" && f != "on") { m.Printer.Enabled = true; m.Printer.TextPath = f; m.Printer.RawPath = Path.ChangeExtension(f, ".prn"); if (File.Exists(f)) File.Delete(f); if (File.Exists(m.Printer.RawPath)) File.Delete(m.Printer.RawPath); }
+                    else m.Printer.Enabled = true;
+                }
+                break;
+            case "bin":
+                {
+                    // bin FILE ADDR: copy a raw binary into memory without running it (call it with USR, or `until`)
+                    var b = File.ReadAllBytes(a1); int ad = Num(a2);
+                    for (int i = 0; i < b.Length; i++) m.Wr((ad + i) & 0xFFFF, b[i]);
+                    Console.WriteLine("bin: {0} bytes at {1:X4}", b.Length, ad);
+                }
+                break;
+            case "printstat": m.Printer.Close(); Console.WriteLine("printer: {0} bytes, {1} lines", m.Printer.Bytes, m.Printer.Lines); foreach (var l in m.Printer.Recent) Console.WriteLine("  | " + l); break;
+            // ---- light pen: lpen on | lpen X Y (pressed at picture pixel X,Y) | lpen hover X Y | lpen up | lpen off
+            case "lpen":
+                {
+                    m.Pen.Enabled = a1 != "off";
+                    if (a1 == "up") m.Pen.Down = false;
+                    else if (a1 == "hover") { m.Pen.X = Num(a2); m.Pen.Y = Num(a.Length > 3 ? a[3] : "0"); m.Pen.Down = false; }
+                    else if (a1 != "" && a1 != "on" && a1 != "off") { m.Pen.X = Num(a1); m.Pen.Y = Num(a2); m.Pen.Down = true; }
+                }
+                break;
+            case "lpenstat": Console.WriteLine("lpen: at {0},{1} {2} reads {3} lit {4}", m.Pen.X, m.Pen.Y, m.Pen.Down ? "pressed" : "up", m.Pen.Reads, m.Pen.Hits); break;
+            // ---- RS-232 cartridge
+            case "serial":
+                {
+                    // serial loop | serial send TEXT | serial file FILE | serial connect HOST:PORT|COMn | serial capture FILE | serial baud N
+                    string rest = ln.Trim().Substring(cmd.Length).Trim(); int sp = rest.IndexOf(' ');
+                    string sub = (sp < 0 ? rest : rest.Substring(0, sp)).ToLowerInvariant(), arg = sp < 0 ? "" : rest.Substring(sp + 1);
+                    if (sub == "loop") m.Ser.Loopback = arg != "off";
+                    else if (sub == "send") m.Ser.Send(System.Text.Encoding.ASCII.GetBytes(arg.Replace("\\r", "\r").Replace("\\n", "\n")));
+                    else if (sub == "file") m.Ser.Send(File.ReadAllBytes(arg.Trim('"')));
+                    else if (sub == "connect") m.Ser.Connect(arg);
+                    else if (sub == "capture") m.Ser.Capture(arg.Trim('"'));
+                    else if (sub == "baud") m.Ser.Baud = Num(arg);
+                    else if (sub == "format") { m.Ser.DataBits = arg[0] - '0'; m.Ser.Parity = char.ToUpperInvariant(arg[1]); m.Ser.StopBits = arg[2] - '0'; }
+                }
+                break;
+            case "serialstat":
+                Console.WriteLine("serial: {0} baud {1}{2}{3}, tx {4} bytes ({5} changes), rx {6} bytes ({7} queued, {8} reads){9}", m.Ser.Baud, m.Ser.DataBits, m.Ser.Parity, m.Ser.StopBits,
+                    m.Ser.TxBytes, m.Ser.TxChanges, m.Ser.RxBytes, m.Ser.RxQueued, m.Ser.RxReads, m.Ser.LinkName != null ? ", linked to " + m.Ser.LinkName : "");
+                lock (m.Ser.Session) Console.WriteLine("  session: " + m.Ser.Session.ToString().Replace("\n", "|"));
+                break;
             case "rttystat": Console.WriteLine("rtty: tx {0} ptt {1} tx changes {2} rx reads {3}", m.Rtty.TxMark ? "mark" : "space", m.Rtty.Ptt ? "on" : "off", m.Rtty.TxChanges, m.Rtty.RxReads); break;
             case "gfx":
                 {

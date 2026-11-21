@@ -20,6 +20,12 @@ small `.exe` with nothing to install.
 - **Disk drive:** the DD20 controller with two 5.25" drives and the real DOS BASIC V1.2 ROM, emulated at the flux
   level (stepper phases, the flux flip-flop, the shift register, 85 RPM). `.dsk` images; `SAVE`, `LOAD` and `INIT` write back to the file
 - **RTTY terminal pack** (DSE K-6318, 1984): receives AFSK RTTY from an audio file and transmits through the speakers
+- **RS-232 interface** (DSE K-6317): its terminal ROM talks bit by bit at 300 baud to a telnet BBS, a PC COM port or
+  a text file, following its own data bits, stop bits and parity settings
+- **WordPro** word processor cartridge: edit, then print formatted pages
+- **Printer interface:** `LPRINT`, `LLIST`, `COPY` and WordPro's printing go to a text file
+- **Light pen**, timed to the beam: the mouse is the pen, and it sees the pixel the beam is drawing at that T-state,
+  so the original pen driver, which flips video mode mid-frame to find the column, finds it to within a pixel
 
 **CPU**
 - Cycle-counted Z80 core, including the undocumented instructions and flags
@@ -55,6 +61,7 @@ small `.exe` with nothing to install.
 
 **Tape**
 - Play a WAV, FLAC or MP3 into the cassette socket: `CLOAD`, `CRUN` and fast loaders work
+- Record `CSAVE` to a WAV that loads back on a VZ200 or VZ300
 - A stereo tape's other channel plays through the speakers. 2018 A.D. by Five Finger Punch runs from its
   original CD audio, with the data on the left channel into the VZ and the music on the right
 
@@ -65,7 +72,8 @@ small `.exe` with nothing to install.
   (busy / interrupt / DOS / waiting), an opcode heatmap and the stack
 - Right: a 64K memory map glowing with reads, writes and fetches; a T-state view of the whole field
   showing VRAM access, speaker clicks and port I/O against the beam; 6847 mode; a speaker scope and spectrum;
-  the keyboard matrix and joysticks; I/O ports; and BennVenn SD, disk drive (head, sectors, spinning disk) or RTTY activity
+  the keyboard matrix and joysticks; I/O ports; and BennVenn SD, disk drive (head, sectors, spinning disk), RTTY or
+  RS-232 activity, or the printer's paper, the light pen and the tape recorder
 - Costs about 1.5 ms per frame, so games keep running at full speed
 
 **For developers**
@@ -77,10 +85,10 @@ small `.exe` with nothing to install.
 
 **Size and requirements**
 - Windows 10 or 11 (it uses the .NET Framework 4 built into Windows). Nothing to install
-- `VZonPC.exe` is 182 KB, and `vzemu.exe` is 126 KB
-- Bring your own VZ ROM for BASIC, and the disk or RTTY ROM for those cartridges. Machine-code games run without one
+- `VZonPC.exe` is 209 KB, and `vzemu.exe` is 143 KB
+- Bring your own VZ ROM for BASIC, and the cartridge ROMs for the disk drive, RTTY, RS-232 and WordPro. Machine-code games run without one
 
-**Not emulated:** saving to cassette, the printer, the RS-232 and WordPro cartridges, and the light pen.
+**Not emulated:** two cartridges at once, and drawing the printer's graphics.
 
 ## Screenshots
 

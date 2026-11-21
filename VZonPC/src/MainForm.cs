@@ -71,13 +71,19 @@ public sealed class MainForm : Form
         AllowDrop = true;
         vis = new VzVis(m);
         m.SdDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "SD");
+        string prDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "printer");
+        m.Printer.TextPath = Path.Combine(prDir, "printout.txt"); m.Printer.RawPath = Path.Combine(prDir, "printout.prn");
         if (!Array.Exists(args, x => x == "--no-settings" || x == "--quit-after")) LoadSettings();
         ParseArgs(args);
 
         display.Dock = DockStyle.Fill;
         display.Repaint = BlitLatest;
         display.Resize += (s, e) => { dispW = display.ClientSize.Width; dispH = display.ClientSize.Height; BlitLatest(); };
-        display.MouseDoubleClick += (s, e) => ToggleFullscreen();
+        display.MouseDoubleClick += (s, e) => { if (!m.Pen.Enabled) ToggleFullscreen(); };
+        display.MouseMove += (s, e) => PenTo(e.X, e.Y);
+        display.MouseDown += (s, e) => { if (m.Pen.Enabled && e.Button == MouseButtons.Left) { PenTo(e.X, e.Y); m.Pen.Down = true; } };
+        display.MouseUp += (s, e) => { if (e.Button == MouseButtons.Left) m.Pen.Down = false; };
+        display.MouseLeave += (s, e) => { m.Pen.X = m.Pen.Y = -1; m.Pen.Down = false; };
         status.Items.Add(stLeft); stLeft.Spring = true; stLeft.TextAlign = ContentAlignment.MiddleLeft;
         status.Items.Add(stRight);
         BuildMenu();
@@ -132,7 +138,7 @@ public sealed class MainForm : Form
                 q.Start();
             }
         };
-        FormClosing += (s, e) => { running = false; if (emuThread != null) emuThread.Join(1000); m.FlushCard(); m.Fdc.SaveAll(); if (!noSettings) SaveSettings(); };
+        FormClosing += (s, e) => { running = false; if (emuThread != null) emuThread.Join(1000); m.FlushCard(); m.Fdc.SaveAll(); StopRecordingNow(); m.Printer.Close(); m.Ser.Disconnect(); if (!noSettings) SaveSettings(); };
 
         m.Log = s => ShowMessage(s);
         cmds.Enqueue(() =>
@@ -142,6 +148,7 @@ public sealed class MainForm : Form
             if (autoType != null) { if (startProgram == null && m.HasRom) typeHold = 150; TypeString(autoType); }   // let BASIC reach READY first
             for (int d = 0; d < 2; d++) if (startDisk[d] != null) InsertDiskNow(d, startDisk[d]);
             if (startRtty != null) { try { m.Rtty.PlayRx(startRtty, m.Cpu.Cyc); } catch (Exception ex) { ShowMessage("RTTY: " + ex.Message); } }
+            if (startSerial != null) SerialConnectNow(startSerial);
             if (startTape != null)
             {
                 // --tape FILE: start it once --type has finished, half a second later (as if pressing PLAY)
@@ -152,7 +159,7 @@ public sealed class MainForm : Form
     }
 
     VzTape pendingTape; int pendingTapeDelay, typeHold;
-    string startProgram, shotPath, autoType, startTape, startRtty; double quitAfter; bool noSettings;
+    string startProgram, shotPath, autoType, startTape, startRtty, startSerial; double quitAfter; bool noSettings;
     string[] startDisk = new string[2];
     void ParseArgs(string[] args)
     {
@@ -172,7 +179,15 @@ public sealed class MainForm : Form
             else if (a == "--quit-after") { double.TryParse(v, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out quitAfter); i++; }
             else if (a == "--type") { autoType = v.Replace("\\r", "\r"); i++; }
             else if (a == "--tape") { startTape = v; i++; }
-            else if (a == "--cart") { v = v.ToLowerInvariant(); m.Cartridge = v.StartsWith("d") || v.StartsWith("f") ? Cart.Disk : v.StartsWith("r") ? Cart.Rtty : Cart.None; i++; }
+            else if (a == "--cart")
+            {
+                v = v.ToLowerInvariant();
+                m.Cartridge = v.StartsWith("d") || v.StartsWith("f") ? Cart.Disk : v.StartsWith("rs") || v.StartsWith("se") ? Cart.Rs232 : v.StartsWith("r") ? Cart.Rtty : v.StartsWith("w") ? Cart.WordPro : Cart.None;
+                if (m.Cartridge == Cart.WordPro) m.Exp = MemExp.None;
+                i++;
+            }
+            else if (a == "--lpen") m.Pen.Enabled = true;
+            else if (a == "--serial") { startSerial = v; m.Cartridge = Cart.Rs232; i++; }
             else if (a == "--disk" || a == "--disk1") { startDisk[0] = Path.GetFullPath(v); if (m.Cartridge != Cart.Rtty) m.Cartridge = Cart.Disk; i++; }
             else if (a == "--disk2") { startDisk[1] = Path.GetFullPath(v); i++; }
             else if (a == "--rtty") { startRtty = Path.GetFullPath(v); m.Cartridge = Cart.Rtty; i++; }
@@ -213,6 +228,20 @@ public sealed class MainForm : Form
         file.DropDownItems.Add(miTapeRight);
         file.DropDownItems.Add(miTapeInvert);
         file.DropDownItems.Add(Item("Stop tape", Keys.None, (s, e) => cmds.Enqueue(() => { if (m.Tape != null) m.Tape.Playing = false; })));
+        miRec = Item("Record to tape (CSAVE to a WAV file)...", Keys.None, (s, e) => RecordDialog());
+        miRecStop = Item("Stop recording", Keys.None, (s, e) => cmds.Enqueue(StopRecordingNow));
+        file.DropDownItems.Add(miRec);
+        file.DropDownItems.Add(miRecStop);
+        file.DropDownItems.Add(new ToolStripSeparator());
+        file.DropDownItems.Add(Item("Open the printout (LPRINT, LLIST, COPY)", Keys.None, (s, e) => OpenPrintout()));
+        var ser = new ToolStripMenuItem("RS-232");
+        ser.DropDownItems.Add(Item("Connect to a host (telnet) or COM port...", Keys.None, (s, e) => SerialDialog()));
+        ser.DropDownItems.Add(Item("Disconnect", Keys.None, (s, e) => cmds.Enqueue(() => { m.Ser.Disconnect(); ShowMessage("RS-232 disconnected"); })));
+        ser.DropDownItems.Add(Item("Send a text file...", Keys.None, (s, e) => SerialSendDialog()));
+        miSerLoop = Item("Loopback (the VZ receives what it sends)", Keys.None, (s, e) => cmds.Enqueue(() => m.Ser.Loopback = !m.Ser.Loopback));
+        ser.DropDownItems.Add(miSerLoop);
+        miSer = ser;
+        file.DropDownItems.Add(ser);
         file.DropDownItems.Add(new ToolStripSeparator());
         for (int d = 0; d < 2; d++)
         {
@@ -254,8 +283,12 @@ public sealed class MainForm : Form
         miCartNone = Item("None", Keys.None, (s, e) => Reconfigure(() => m.Cartridge = Cart.None));
         miCartDisk = Item("Disk drive controller (DD20, roms\\vzdos.rom)", Keys.None, (s, e) => Reconfigure(() => { m.Cartridge = Cart.Disk; if (m.Exp == MemExp.BennVenn) m.Exp = MemExp.Ram16K; }));
         miCartRtty = Item("RTTY terminal pack (K-6318, roms\\vzrtty.ic3)", Keys.None, (s, e) => Reconfigure(() => { m.Cartridge = Cart.Rtty; if (m.Exp == MemExp.BennVenn) m.Exp = MemExp.Ram16K; }));
-        cart.DropDownItems.AddRange(new ToolStripItem[] { miCartNone, miCartDisk, miCartRtty });
-        mach.DropDownItems.AddRange(new ToolStripItem[] { exp, cart, gfx, miJoyIf, miVzdos, miWriteBack, new ToolStripSeparator() });
+        miCartRs232 = Item("RS-232 interface (K-6317, roms\\rs232_v15.ic2)", Keys.None, (s, e) => Reconfigure(() => { m.Cartridge = Cart.Rs232; if (m.Exp == MemExp.BennVenn) m.Exp = MemExp.Ram16K; }));
+        miCartWordPro = Item("WordPro word processor (VZ300, no expansion, roms\\wordpro.u3-u5)", Keys.None, (s, e) => Reconfigure(() => { m.Cartridge = Cart.WordPro; m.Exp = MemExp.None; }));
+        cart.DropDownItems.AddRange(new ToolStripItem[] { miCartNone, miCartDisk, miCartRtty, miCartRs232, miCartWordPro });
+        miPrinterIf = Item("Printer interface (X-7320)", Keys.None, (s, e) => cmds.Enqueue(() => m.Printer.Enabled = !m.Printer.Enabled));
+        miLightPen = Item("Light pen (the mouse: hold the left button to press it to the screen)", Keys.None, (s, e) => cmds.Enqueue(() => { m.Pen.Enabled = !m.Pen.Enabled; ShowMessage(m.Pen.Enabled ? "Light pen on: point with the mouse, hold the left button" : "Light pen off"); }));
+        mach.DropDownItems.AddRange(new ToolStripItem[] { exp, cart, gfx, miJoyIf, miPrinterIf, miLightPen, miVzdos, miWriteBack, new ToolStripSeparator() });
         mach.DropDownItems.Add(Item("Power cycle", Keys.F4, (s, e) => cmds.Enqueue(PowerOnNow)));
         mach.DropDownItems.Add(Item("Reset CPU", Keys.Shift | Keys.F4, (s, e) => cmds.Enqueue(() => m.Cpu.Reset())));
         miPause = Item("Pause", Keys.F6, (s, e) => { paused = !paused; });
@@ -311,12 +344,17 @@ public sealed class MainForm : Form
         "Joystick 2: the second USB joystick.\n\n" +
         "F1 help   F2 SD card browser   F3 load .VZ   F4 power cycle   F5 reload program\n" +
         "F6 pause   F7 paste text   F8 mute   F9 warp   F10 visualiser   F11 / Alt+Enter fullscreen   F12 screenshot\n" +
-        "Drop a .VZ file on the window to run it; drop a folder to mount it as the SD card.";
+        "Drop a .VZ file on the window to run it; drop a folder to mount it as the SD card.\n\n" +
+        "Light pen (Machine menu): the mouse is the pen; hold the left button to press it to the screen.";
 
     void SyncMenu()
     {
         miVz200.Checked = m.Model == Model.VZ200; miVz300.Checked = m.Model == Model.VZ300;
         miCartNone.Checked = m.Cartridge == Cart.None || m.Exp == MemExp.BennVenn; miCartDisk.Checked = m.DiskOn; miCartRtty.Checked = m.RttyOn;
+        miCartRs232.Checked = m.Rs232On; miCartWordPro.Checked = m.WordProOn;
+        miPrinterIf.Checked = m.Printer.Enabled; miLightPen.Checked = m.Pen.Enabled;
+        miSer.Enabled = m.Rs232On; miSerLoop.Checked = m.Ser.Loopback;
+        miRec.Enabled = !m.CassOut.Recording; miRecStop.Enabled = m.CassOut.Recording;
         for (int d = 0; d < 2; d++) { miDisk[d].Enabled = m.DiskOn; var dk = m.Fdc.Drive[d]; miDisk[d].Text = "Disk drive " + (d + 1) + (dk == null ? " (empty)" : ": " + (dk.Path != null ? Path.GetFileName(dk.Path) : "blank disk")); }
         miRttyRx.Enabled = m.RttyOn;
         miExpNone.Checked = m.Exp == MemExp.None; miExp16.Checked = m.Exp == MemExp.Ram16K; miExpBv.Checked = m.Exp == MemExp.BennVenn;
@@ -374,6 +412,9 @@ public sealed class MainForm : Form
         if (m.Exp == MemExp.BennVenn) s += " + BennVenn SD 128K" + (m.RealDos ? " (VZDOS)" : ""); else if (m.Exp == MemExp.Ram16K) s += " + 16K";
         if (m.DiskOn) s += " + disk drive" + (m.Fdc.Rom == null ? " (no vzdos.rom)" : "");
         if (m.RttyOn) s += " + RTTY" + (m.Rtty.Rom == null ? " (no vzrtty.ic3)" : "");
+        if (m.Rs232On) s += " + RS-232" + (m.Ser.Rom == null ? " (no rs232_v15.ic2)" : "");
+        if (m.WordProOn) s += " + WordPro" + (m.WordProRom == null ? " (no wordpro.u3-u5)" : "");
+        if (m.Pen.Enabled) s += " + light pen";
         if (m.Gfx == GfxMod.Australian) s += " + Aus hi-res"; else if (m.Gfx == GfxMod.German) s += " + German hi-res";
         return s;
     }
@@ -412,7 +453,53 @@ public sealed class MainForm : Form
         paused = wasPaused;
     }
 
-    ToolStripMenuItem miTapeRight, miTapeInvert, miCartNone, miCartDisk, miCartRtty, miRttyRx;
+    ToolStripMenuItem miTapeRight, miTapeInvert, miCartNone, miCartDisk, miCartRtty, miRttyRx, miCartRs232, miCartWordPro, miPrinterIf, miLightPen,
+        miRec, miRecStop, miSer, miSerLoop;
+
+    void RecordDialog()
+    {
+        using (var f = new SaveFileDialog { Filter = "WAV audio (*.wav)|*.wav", FileName = "vz-tape.wav", Title = "Record the cassette output to" })
+            if (f.ShowDialog(this) == DialogResult.OK)
+            {
+                string p = f.FileName;
+                cmds.Enqueue(() => { m.CassOut.Start(p, m.Cpu.Cyc, m.Clock, m.Latch); ShowMessage("Recording to " + Path.GetFileName(p) + ": type CSAVE \"NAME\", then File > Stop recording"); });
+            }
+    }
+    void StopRecordingNow()
+    {
+        if (!m.CassOut.Recording) return;
+        try { double sec = m.CassOut.Stop(m.Cpu.Cyc); ShowMessage(string.Format("Saved {0:F1} s of tape to {1}", sec, Path.GetFileName(m.CassOut.File))); }
+        catch (Exception ex) { ShowMessage("Tape: " + ex.Message); }
+    }
+    void OpenPrintout()
+    {
+        cmds.Enqueue(() => m.Printer.Flush());
+        string p = m.Printer.TextPath;
+        if (p == null || !File.Exists(p)) { ShowMessage("Nothing printed yet (LPRINT, LLIST or COPY prints)"); return; }
+        try { Process.Start(new ProcessStartInfo(p) { UseShellExecute = true }); } catch (Exception ex) { ShowMessage(ex.Message); }
+    }
+    void SerialConnectNow(string target)
+    {
+        try { m.Ser.Connect(target); ShowMessage("RS-232 connected to " + target + " (" + m.Ser.Baud + " baud)"); }
+        catch (Exception ex) { ShowMessage("RS-232: can't connect to " + target + ": " + ex.Message); }
+    }
+    string lastSerialTarget = "localhost:23";
+    void SerialDialog()
+    {
+        string t = Prompt.Ask(this, "RS-232", "Connect the VZ's RS-232 port to a telnet host (host:port) or a PC serial port (COM1, COM2...):", lastSerialTarget);
+        if (string.IsNullOrEmpty(t)) return;
+        lastSerialTarget = t;
+        cmds.Enqueue(() => SerialConnectNow(t));
+    }
+    void SerialSendDialog()
+    {
+        using (var f = new OpenFileDialog { Filter = "Text (*.txt;*.bas;*.asc)|*.txt;*.bas;*.asc|All files|*.*", Title = "Send a file into the VZ's RS-232 port" })
+            if (f.ShowDialog(this) == DialogResult.OK)
+            {
+                string p = f.FileName;
+                cmds.Enqueue(() => { try { var b = File.ReadAllBytes(p); m.Ser.Send(b); ShowMessage("RS-232: sending " + Path.GetFileName(p) + " (" + b.Length + " bytes at " + m.Ser.Baud + " baud)"); } catch (Exception ex) { ShowMessage(ex.Message); } });
+            }
+    }
     readonly ToolStripMenuItem[] miDisk = new ToolStripMenuItem[2];
     readonly string[] diskPath = new string[2];
 
@@ -572,6 +659,20 @@ public sealed class MainForm : Form
         }
     }
 
+    // where the picture was last drawn in the display panel (for the light pen)
+    volatile int destX, destY, destW = 1, destH = 1, destFW = 256, destFH = 192;
+
+    /// <summary>Moves the light pen to the picture pixel under the mouse (display coordinates).</summary>
+    void PenTo(int mx, int my)
+    {
+        if (!m.Pen.Enabled) { if (display.Cursor != Cursors.Default) display.Cursor = Cursors.Default; return; }
+        if (display.Cursor != Cursors.Cross) display.Cursor = Cursors.Cross;
+        int fx = (int)((mx - destX) * (long)destFW / Math.Max(1, destW)), fy = (int)((my - destY) * (long)destFH / Math.Max(1, destH));
+        if (destFW == VzMachine.FBW) { fx -= VzMachine.BX; fy -= VzMachine.BY; }
+        if (fx < 0 || fx >= 256 || fy < 0 || fy >= 192) { m.Pen.X = m.Pen.Y = -1; return; }
+        m.Pen.X = fx; m.Pen.Y = fy;
+    }
+
     void Present(int[] px, int w, int h)
     {
         int cw = dispW, ch = dispH;
@@ -589,6 +690,7 @@ public sealed class MainForm : Form
             double s = Math.Min((double)cw / w, (double)ch / h);
             dw = (int)(w * s); dh = (int)(h * s);
         }
+        destX = (cw - dw) / 2; destY = (ch - dh) / 2; destW = dw; destH = dh; destFW = w; destFH = h;
         Native.Blit(displayHwnd, px, w, h, cw, ch, (cw - dw) / 2, (ch - dh) / 2, dw, dh);
     }
 
@@ -601,6 +703,7 @@ public sealed class MainForm : Form
         int side = (cw - dw) / 2;
         var parts = new List<Native.Part>();
         parts.Add(new Native.Part { Px = px, W = w, H = h, X = side, Y = (ch - dh) / 2, DW = dw, DH = dh });
+        destX = side; destY = (ch - dh) / 2; destW = dw; destH = dh; destFW = w; destFH = h;
         double k = Math.Min((double)side / VzVis.W, (double)ch / VzVis.H);
         if (k >= 2) k = Math.Floor(k); else if (k > 1) k = 1;
         int pw = (int)(VzVis.W * k), ph = (int)(VzVis.H * k);
@@ -685,6 +788,11 @@ public sealed class MainForm : Form
         if (tp != null && tp.Playing) { double p = tp.Position(m.Cpu.Cyc); tape = "TAPE " + (int)(p / 60) + ":" + ((int)p % 60).ToString("00") + "  "; }
         if (m.DiskOn && m.Fdc.Active) tape += "DISK " + (m.Fdc.Selected + 1) + " T" + m.Fdc.Track.ToString("00") + "  ";
         if (m.RttyOn) tape += "RTTY " + (m.Rtty.Ptt ? "TX " + (m.Rtty.TxMark ? "MARK" : "SPACE") : m.Rtty.RxPlaying ? "RX" : "IDLE") + "  ";
+        if (m.CassOut.Recording) tape += "REC " + ((m.Cpu.Cyc - m.CassOut.StartCycle) / m.Clock) + "s  ";
+        if (m.Printer.Enabled && m.Frames - m.Printer.LastFrame < 100) tape += "PRINTING  ";
+        if (m.Rs232On) tape += "RS-232 " + (m.Ser.LinkName ?? (m.Ser.Loopback ? "LOOP" : "-")) + "  ";
+        if (m.Pen.Enabled) tape += "PEN " + (m.Pen.OnScreen ? m.Pen.X + "," + m.Pen.Y + (m.Pen.Down ? " DOWN" : "") : "OFF SCREEN") + "  ";
+        if (m.Ser.LinkError != null) { ShowMessage("RS-232: " + m.Ser.LinkError); m.Ser.LinkError = null; }
         stRight.Text = tape + (paused ? "PAUSED  " : "") + (warp ? "WARP  " : "") + (muted ? "MUTE  " : "") + fps.ToString("0") + " fps";
     }
 
@@ -823,6 +931,9 @@ public sealed class MainForm : Form
                     case "disk2": if (File.Exists(v) && startDisk[1] == null) startDisk[1] = v; break;
                     case "graphics": m.Gfx = (GfxMod)Enum.Parse(typeof(GfxMod), v); break;
                     case "joyinterface": m.JoyInterface = v == "1"; break;
+                    case "printer": m.Printer.Enabled = v == "1"; break;
+                    case "lightpen": m.Pen.Enabled = v == "1"; break;
+                    case "rs232": lastSerialTarget = v; break;
                     case "bootvzdos": m.BootVzdos = v == "1"; break;
                     case "sdwriteback": m.SdWriteBack = v == "1"; break;
                     case "sd": if (Directory.Exists(v)) m.SdDir = v; break;
@@ -848,13 +959,31 @@ public sealed class MainForm : Form
         try
         {
             File.WriteAllLines(iniPath, new[] {
-                "machine=" + m.Model, "expansion=" + m.Exp, "cartridge=" + m.Cartridge, "disk1=" + (diskPath[0] ?? ""), "disk2=" + (diskPath[1] ?? ""), "graphics=" + m.Gfx, "joyinterface=" + (m.JoyInterface ? 1 : 0), "bootvzdos=" + (m.BootVzdos ? 1 : 0), "sdwriteback=" + (m.SdWriteBack ? 1 : 0),
+                "machine=" + m.Model, "expansion=" + m.Exp, "cartridge=" + m.Cartridge, "disk1=" + (diskPath[0] ?? ""), "disk2=" + (diskPath[1] ?? ""), "graphics=" + m.Gfx, "joyinterface=" + (m.JoyInterface ? 1 : 0), "printer=" + (m.Printer.Enabled ? 1 : 0), "lightpen=" + (m.Pen.Enabled ? 1 : 0), "rs232=" + lastSerialTarget, "bootvzdos=" + (m.BootVzdos ? 1 : 0), "sdwriteback=" + (m.SdWriteBack ? 1 : 0),
                 "sd=" + m.SdDir, "scale=" + scale, "integerscale=" + (integerScale ? 1 : 0), "border=" + (showBorder ? 1 : 0),
                 "fullscreen=" + (fullscreen ? 1 : 0), "mono=" + (m.Mono ? 1 : 0), "snow=" + (m.ShowSnow ? 1 : 0),
                 "arrowsjoystick=" + (arrowsJoy ? 1 : 0), "swapjoysticks=" + (swapJoy ? 1 : 0), "muted=" + (muted ? 1 : 0), "visualiser=" + (visOn ? 1 : 0),
                 "lastprogram=" + (lastProgram ?? "") });
         }
         catch { }
+    }
+}
+
+/// <summary>A one-line text prompt.</summary>
+static class Prompt
+{
+    public static string Ask(IWin32Window owner, string title, string text, string value)
+    {
+        using (var f = new Form { Text = title, FormBorderStyle = FormBorderStyle.FixedDialog, MinimizeBox = false, MaximizeBox = false, StartPosition = FormStartPosition.CenterParent, ClientSize = new Size(440, 110) })
+        {
+            var l = new Label { Text = text, Left = 10, Top = 8, Width = 420, Height = 36 };
+            var t = new TextBox { Text = value, Left = 10, Top = 46, Width = 420 };
+            var ok = new Button { Text = "OK", DialogResult = DialogResult.OK, Left = 274, Top = 76, Width = 75 };
+            var cancel = new Button { Text = "Cancel", DialogResult = DialogResult.Cancel, Left = 355, Top = 76, Width = 75 };
+            f.Controls.AddRange(new Control[] { l, t, ok, cancel });
+            f.AcceptButton = ok; f.CancelButton = cancel;
+            return f.ShowDialog(owner) == DialogResult.OK ? t.Text.Trim() : null;
+        }
     }
 }
 
