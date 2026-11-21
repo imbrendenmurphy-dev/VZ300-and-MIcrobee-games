@@ -117,6 +117,9 @@ All in `screenshots\promo\`. Each has a clean 4× shot with the border (1280×96
 | `vzdeck-mod-player`, `vzdeck-mod-tracker`, `vzdeck-xm-tracker` | VZ-DECK playing Amiga MOD and XM music |
 | `redline`, `zephyr-zone`, `hoppy2`, `bix`, `graves-gargoyles`, `red-dust-rumble`, `tennis2`, `southern-cross`, `ghost-hunter-3d`, `cybernoid` | games in play |
 | `megademo-raster` | the megademo's raster effect, showing the line-by-line 6847 |
+| `2018ad-kefrens-1` … `-4` | 2018 A.D.'s Kefrens bars: the beam panel shows the mid-line mode flicks in white and every row held (visualiser shots only) |
+| `2018ad-fld-1` … `-4` | 2018 A.D.'s FLD scroller: the row counter's staircase of line holds stretching the letters (visualiser shots only) |
+| `2018ad-helix`, `2018ad-waves` | 2018 A.D.'s helix and colour waves (visualiser shots only) |
 | `disk-drive` | Laserlink Extended BASIC loaded with `BRUN` from a `.dsk` through the emulated DD20 drive |
 | `rtty` | the RTTY terminal pack receiving a 45-baud RTTY recording |
 | `window-maxq`, `window-vzdeck` | the real VZonPC window, with Max-Q's attract mode and VZ-DECK |
