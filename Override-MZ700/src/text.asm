@@ -5,6 +5,10 @@
 txt_sub:        db "THE DROID TRANSFER GAME",0
 txt_credit:     db "MZ-700 VERSION  2026  VIBED BY BPM",0
 txt_press:      db "PRESS SPACE TO START",0
+txt_joy_off:    db "J: JOYSTICK OFF (KEYBOARD)",0
+txt_joy_on:     db "J: MZ-1X03 JOYSTICK ON",0
+txt_joy_cal:    db "CENTRE THE STICK...",0
+txt_joy_none:   db "J: NO JOYSTICK FOUND",0
 txt_best:       db "HIGH SCORE ",0
 
 scroll_text:
@@ -18,7 +22,7 @@ scroll_text:
         db "HOSTS BURN OUT - KEEP JUMPING TO STRONGER ONES.  ENERGIZERS RECHARGE YOU, "
         db "LIFTS TAKE YOU BETWEEN DECKS, CONSOLES SHOW THE DECK PLAN.  "
         db "CLEAR EVERY DECK AND THE LIGHTS GO OUT - CLEAR EVERY SHIP TO WIN.    "
-        db "CR PAUSES, BREAK QUITS.        ",0
+        db "CR PAUSES, BREAK QUITS.  PRESS J HERE FOR AN MZ-1X03 JOYSTICK: STICK MOVES, EITHER BUTTON FIRES.        ",0
 
 txt_gallery:    db "- D R O I D   D A T A B A N K -",0
 txt_energy:     db "ENERGY ",0

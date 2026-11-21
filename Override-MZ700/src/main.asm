@@ -90,6 +90,10 @@ init_once:
         ld (seed),hl
         ld a,5Ah
         ld (nseed),a
+        xor a
+        ld (joy_on),a               ; keyboard until J switches the stick on
+        ld (joy_dirs),a
+        ld (joy_jprev),a
         call hiscore_init
         ret
 

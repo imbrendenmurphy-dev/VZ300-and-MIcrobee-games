@@ -38,7 +38,7 @@ detect_vblank:
         ld a,c
 .bshort:
         ld (vblev+1),a              ; level seen during VBLANK
-        ret
+        jp timer_init               ; and start the scan-line clock
 
 ; ---------------------------------------------------------------------
 ; poll: call at least every ~15000 T.  On each VBLANK start it counts a
@@ -68,33 +68,72 @@ vblev:  cp 0                        ; VBLANK level (set by detect_vblank)
         pop bc
         ret
 
-; wait for the start of the next game frame (FRAMEF fields after the last
-; one, always at the start of a VBLANK)
+; wait for the start of the next game frame: the first VBLANK start at
+; least FRAMEF fields after the last frame.  The fields are measured with
+; 8253 counter 1 (it counts scan lines), so a long stretch of work that
+; misses a VBLANK edge in poll no longer makes the next frame wait extra
+; fields.  Keeps BC and DE.
+FRAME_LINES     equ FRAMEF*312
+CTR1            equ 0E005h
+
+timer_init:
+        ld a,74h                    ; counter 1: LSB/MSB, mode 2, binary
+        ld (CTRL),a
+        xor a
+        ld (CTR1),a
+        ld (CTR1),a
+        call read_ctr1
+        ld (last_ctr),hl
+        ret
+
+; HL = counter 1 (latched)
+read_ctr1:
+        ld a,40h
+        ld (CTRL),a
+        ld a,(CTR1)
+        ld l,a
+        ld a,(CTR1)
+        ld h,a
+        ret
+
+; HL = lines since the last frame, DE = counter now
+lines_since:
+        call read_ctr1
+        ex de,hl
+        ld hl,(last_ctr)
+        or a
+        sbc hl,de
+        ret
+
+last_ctr:       dw 0
+
 wait_frame:
-        ld a,(fieldcnt)
-        ld hl,lastframe
-        sub (hl)
-        cp FRAMEF
-        jr c,.w                     ; early: wait for the field count
-        ld hl,drops                 ; late: realign on the next VBLANK
+        push bc
+        push de
+        call lines_since
+        ld bc,FRAME_LINES+156
+        or a
+        sbc hl,bc
+        jr c,.w
+        ld hl,drops                 ; already late
         inc (hl)
-        ld a,(fieldcnt)
+.w:     ld a,(fieldcnt)
         ld b,a
-.l2:    call poll
+.e:     call poll                   ; next VBLANK start
         ld a,(fieldcnt)
         cp b
-        jr z,.l2
+        jr z,.e
+        call lines_since
+        ld bc,FRAME_LINES-156
+        or a
+        sbc hl,bc
+        jr c,.w                     ; too early: another field
+        ld (last_ctr),de
+        ld a,(fieldcnt)
         ld (lastframe),a
-        ret
-.w:     call poll
-        ld a,(fieldcnt)
-        ld hl,lastframe
-        sub (hl)
-        cp FRAMEF
-        jr c,.w
-        ld a,(fieldcnt)
-        ld (hl),a
-        ret
+        pop de
+        pop bc
+        jp joy_measure
 
 ; wait A fields
 wait_fields:
@@ -106,7 +145,7 @@ wait_fields:
         cp c
         jr z,.w
         djnz .f
-        ret
+        jp joy_measure
 
 ; wait for one field (handy in front-end loops)
 wait_field:
@@ -191,10 +230,163 @@ read_keys:
         cpl
         and 80h
         ld (key_quit),a
+        call joy_keys               ; MZ-1X03 joystick, when switched on
         ld a,c
         pop hl
         pop bc
         ret
+
+; ---------------------------------------------------------------------
+; MZ-1X03 joystick (connector A) on E008h.
+;   During VBLANK, bit 1 (X) and bit 2 (Y) read low for a time set by the
+;   stick: short = left / up, about 1 ms = centre, about 2 ms = right /
+;   down.  During the picture they are the two fire buttons.
+;   Sources differ on polarity and timing, so both are calibrated when
+;   the joystick is switched on (stick centred, buttons up): a direction
+;   is a count well away from the centre count, a fire button is a bit
+;   that differs from its idle level.
+; ---------------------------------------------------------------------
+JOYPORT         equ 0E008h
+
+; measure the stick: call right at the start of VBLANK (keeps all but AF)
+joy_measure:
+        ld a,(joy_on)
+        or a
+        ret z
+        push bc
+        push de
+        push hl
+        ld hl,JOYPORT
+        ld bc,0
+        ld d,255                    ; about 50 T a pass: 3.6 ms in all
+.l:     ld a,(hl)
+        rra
+        rra
+        jr c,$+3
+        inc b                       ; X still timing
+        rra
+        jr c,$+3
+        inc c                       ; Y still timing
+        dec d
+        jr nz,.l
+        ld a,b
+        ld (joy_x),a
+        ld a,c
+        ld (joy_y),a
+        ld e,0
+        ld a,(joy_cx)
+        ld d,b
+        call .axis                  ; A = 1 low, 2 high, 0 centre
+        rra
+        jr nc,$+4
+        set B_LEFT,e
+        rra
+        jr nc,$+4
+        set B_RIGHT,e
+        ld a,(joy_cy)
+        ld d,c
+        call .axis
+        rra
+        jr nc,$+4
+        set B_UP,e
+        rra
+        jr nc,$+4
+        set B_DOWN,e
+        ld a,e
+        ld (joy_dirs),a
+        pop hl
+        pop de
+        pop bc
+        ret
+; A = centre count, D = count -> A = 1 below centre/2, 2 above centre*3/2
+.axis:  cp 8
+        jr c,.none                  ; no usable centre
+        ld h,a
+        srl a
+        ld l,a                      ; L = centre / 2
+        cp d
+        jr c,.nl                    ; count > centre/2
+        jr z,.nl
+        ld a,1                      ; low: left / up
+        ret
+.nl:    ld a,h
+        add a,l                     ; centre * 3/2
+        jr c,.none
+        cp d
+        jr nc,.none
+        ld a,2                      ; high: right / down
+        ret
+.none:  xor a
+        ret
+
+; read_keys helper: OR joystick bits into C (fire only read in the picture)
+joy_keys:
+        ld a,(joy_on)
+        or a
+        ret z
+        ld a,(KEYPC)
+        and 80h
+        ld b,a
+        ld a,(vblev+1)
+        cp b
+        jr z,.old                   ; in VBLANK the bits are the stick
+        ld a,(JOYPORT)
+        and 6
+        ld (joy_fraw),a
+.old:   ld a,(joy_fraw)
+        ld b,a
+        ld a,(joy_fidle)
+        xor b
+        jr z,.nf
+        set B_FIRE,c
+.nf:    ld a,(joy_dirs)
+        or c
+        ld c,a
+        ret
+
+; switch the joystick on and calibrate it.  NZ = found, Z = nothing there
+joy_enable:
+        ld a,1
+        ld (joy_on),a
+        xor a
+        ld (joy_cx),a               ; no directions while calibrating
+        ld (joy_cy),a
+        ld a,4
+        call wait_fields            ; measures every field
+        ld a,(joy_x)
+        ld (joy_cx),a
+        ld b,a
+        ld a,(joy_y)
+        ld (joy_cy),a
+.vis:   call poll                   ; idle button levels, in the picture
+        ld a,(KEYPC)
+        and 80h
+        ld c,a
+        ld a,(vblev+1)
+        cp c
+        jr z,.vis
+        ld a,(JOYPORT)
+        and 6
+        ld (joy_fidle),a
+        ld (joy_fraw),a
+        ld a,b                      ; both axes must time out mid-range
+        cp 8
+        jr c,joy_disable
+        cp 240
+        jr nc,joy_disable
+        ld a,(joy_cy)
+        cp 8
+        jr c,joy_disable
+        cp 240
+        jr nc,joy_disable
+        or a                        ; NZ: found
+        ret
+
+joy_disable:
+        xor a
+        ld (joy_on),a
+        ld (joy_dirs),a
+        ret                         ; Z
 
 ; any key down? NZ if so (rows 0-9)
 anykey:

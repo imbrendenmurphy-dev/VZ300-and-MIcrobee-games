@@ -22,7 +22,7 @@ PAL = [(0, 0, 0), (0, 0, 255), (255, 0, 0), (255, 0, 255),
 # key name -> (matrix row, bit); from MZ700WIN key.def
 KEYS = {
     'cr': (0, 0), 'left': (7, 2), 'right': (7, 3), 'down': (7, 4), 'up': (7, 5),
-    'space': (6, 4), 'z': (1, 6), 'x': (2, 0), 'break': (8, 7), 'shift': (8, 0),
+    'space': (6, 4), 'j': (3, 6), 'z': (1, 6), 'x': (2, 0), 'break': (8, 7), 'shift': (8, 0),
     '1': (5, 7), '2': (5, 6), '3': (5, 5), 'a': (4, 7), 's': (2, 5),
 }
 
@@ -75,6 +75,31 @@ class MZ700:
     def io_write(self, port, v):
         pass                          # bank switching ports E0-E6: ignored (RAM model)
 
+    # MZ-1X03 joystick on connector A, modelled as in the MiSTer SharpMZ
+    # core: during VBLANK bits 1 (X) and 2 (Y) are low for 68 + 28 * pos
+    # T-states from the VBLANK start (pos 0 left/up, 128 centre, 255
+    # right/down); in the picture they are fire 1 / fire 2, low = pressed.
+    # joy = None means nothing is plugged in (E008h reads FFh).
+    joy = None                       # dict(x=-1/0/1, y=-1/0/1, f1=bool, f2=bool)
+
+    def joy_read(self):
+        j = self.joy
+        ft = self.cpu.t % FIELD_T
+        line = int(ft / LINE_T)
+        v = 0xF9
+        if line >= VISIBLE_LINES:
+            dt = ft - VISIBLE_LINES * LINE_T
+            for bit, axis in ((1, 'x'), (2, 'y')):
+                pos = {-1: 0, 0: 128, 1: 255}[j[axis]]
+                if dt >= 68 + 28 * pos:
+                    v |= 1 << bit
+        else:
+            if not j.get('f1'):
+                v |= 2
+            if not j.get('f2'):
+                v |= 4
+        return v
+
     vram_wait = None                 # None, 'all' (every line) or 'display'
     WIN0, WIN1 = 128, 191            # T-states into the line when VRAM is free
 
@@ -99,6 +124,8 @@ class MZ700:
             return None
         if a < 0xE000 or a > 0xE00F:
             return None
+        if a == 0xE008 and self.joy is not None:
+            return self.joy_read()
         if a == 0xE001:
             v = 0xFF
             for k in self.held:

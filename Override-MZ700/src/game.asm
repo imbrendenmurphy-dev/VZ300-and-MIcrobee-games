@@ -180,6 +180,8 @@ redraw_deck:
         call hud_full
         ld a,(fieldcnt)
         ld (lastframe),a
+        ld a,2                      ; a fire button still held from the
+        ld (fire_hold),a            ; screen before doesn't work a lift
         ret
 
 ; ---------------------------------------------------------------------

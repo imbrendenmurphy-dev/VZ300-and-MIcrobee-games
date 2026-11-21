@@ -35,6 +35,22 @@ sound chip, so you can hear it without loading the game.
 | SPACE next to a console | deck plan and data on your host |
 | CR | pause |
 | BREAK | quit to the title |
+| J (on the title screen) | switch the MZ-1X03 joystick on / off |
+
+### MZ-1X03 joystick
+
+Plug a Sharp MZ-1X03 into joystick socket A, centre the stick, and press
+**J** on the title screen. The game calibrates the centre and the idle level
+of the buttons, then says `MZ-1X03 JOYSTICK ON`. If nothing answers, it says
+`NO JOYSTICK FOUND`. The stick moves, either button fires (stick + button
+shoots, holding a button with the stick centred gives transfer mode), and
+the keyboard keeps working alongside it. Press J again to switch it off. It
+stays off at power-on, because a stock MZ-700 has no joystick.
+
+The stick is read at `$E008` as the 1X03's timing pulses (bits 1 and 2).
+They are timed at the start of each VBLANK, and the buttons are read during
+the picture. This follows the MiSTer SharpMZ and MAME documentation, so it
+has not been tried on a real 1X03.
 
 ## Playing
 
@@ -69,6 +85,7 @@ Needs Python 3 and Pillow (for screenshots only); sjasmplus is in `tools/`.
 py build.py                      generate data, assemble, write build/ and release/
 py tools/run.py 600 300          run 600 fields in the simulator, screenshot field 300
 py tools/test_game.py            scripted gameplay checks (all should pass)
+py tools/test_joy.py             MZ-1X03 joystick checks (simulated stick)
 py tools/test_demo.py 2500 250   watch the demo pilot, screenshots every 250 fields
 py tools/perf.py all 600         frame rate under a conservative VRAM wait model
 py tools/soak.py 20000           long attract-mode run (crash / stack checks)

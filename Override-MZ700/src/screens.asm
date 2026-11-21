@@ -102,6 +102,7 @@ title_screen:
         inc hl
         inc de
         djnz .nm
+        call joy_status_now
         ; stars
         ld hl,STARPOS
         ld b,32
@@ -129,6 +130,7 @@ title_fx:
         call z,parade
         call scroller
         call twinkle
+        call joy_title_key
         ; flash "press space"
         ld a,(logo_phase)
         and 16
@@ -138,6 +140,53 @@ title_fx:
         ld de,VRAM+17*40
         ld b,40
         jp fill_attr
+
+; J on the title screen: joystick on (with calibration) / off
+joy_title_key:
+        ld a,3                      ; row 3, bit 6 = J
+        ld (KEYPA),a
+        ld a,(KEYPB)
+        cpl
+        and 40h
+        ld hl,joy_jprev
+        ld b,(hl)
+        ld (hl),a
+        ret z                       ; not held
+        ld a,b
+        or a
+        ret nz                      ; held already
+        ld a,(joy_on)
+        or a
+        jr z,.on
+        call joy_disable
+        ld hl,txt_joy_off
+        jr joy_status
+.on:    ld hl,txt_joy_cal
+        call joy_status
+        call joy_enable
+        ld hl,txt_joy_on
+        jr nz,joy_status
+        ld hl,txt_joy_none
+
+; status line on row 19 of the title (HL = text)
+joy_status:
+        push hl
+        ld b,19
+        ld c,1
+        xor a
+        call clear_rows
+        pop hl
+        ld c,19
+        ld a,GREEN*16
+        jp print_centre
+
+joy_status_now:
+        ld hl,txt_joy_off
+        ld a,(joy_on)
+        or a
+        jr z,joy_status
+        ld hl,txt_joy_on
+        jr joy_status
 
 ; twinkling stars in the empty rows: one of 16 stars moves every field
 twinkle:

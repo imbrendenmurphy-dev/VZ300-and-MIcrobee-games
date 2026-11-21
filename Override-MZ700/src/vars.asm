@@ -98,6 +98,15 @@ keys            ds 1
 keys_prev       ds 1
 
 demo            ds 1
+joy_on          ds 1                ; MZ-1X03 joystick switched on
+joy_x           ds 1
+joy_y           ds 1
+joy_cx          ds 1                ; calibrated centre counts
+joy_cy          ds 1
+joy_dirs        ds 1
+joy_fraw        ds 1
+joy_fidle       ds 1
+joy_jprev       ds 1
 demo_abort      ds 1
 demo_time       ds 2
 
