@@ -84,13 +84,14 @@ K_REPL  equ 30
 K_WRAP  equ 31
 K_LAST  equ 31
 K_SHEET equ 127             ; (0.3, CTRL+V: above the printable range)
+K_MENU  equ 128             ; (0.4, CTRL+I; joystick fire in the editor too)
 
         include "vars.inc"
 
         org $A000
 entry:  jp start
 plugin: db 0                ; 1 = PLAYTXT.VZ (VZ-DECK plug-in), 0 = VZED.VZ
-        db "VZ-ED 0.3 VIBED BY BPM 2026",0
+        db "VZ-ED 0.4 VIBED BY BPM 2026",0
 
 ; ===========================================================================
 start:  di
@@ -255,6 +256,8 @@ dispatch:
 ds_0:   ld a,b
         cp 32
         jr c,ds_cmd
+        cp K_MENU
+        jr z,c_menu
         cp K_SHEET
         jr z,c_sheet
         ret nc
@@ -277,12 +280,14 @@ ds_cmd: cp K_RET
         jp (hl)
 cmdtab: dw c_left,c_right,c_up,c_down,c_pgup,c_pgdn,c_top,c_bot,c_home,c_end
         dw c_bs,c_del,c_none,c_ins,c_caps,c_open,c_save,c_saveas,c_new,c_quit
-        dw c_disp,c_help,c_none,c_mark,c_copy,c_cut,c_paste,c_find,c_next,c_repl
+        dw c_disp,c_help,c_menu,c_mark,c_copy,c_cut,c_paste,c_find,c_next,c_repl
         dw c_wrap
 c_none: ret
 c_help: xor a               ; help and the sheet view are overlays (ovl.asm)
         jp ovl_run
 c_sheet: ld a,1
+        jp ovl_run
+c_menu: ld a,2
         jp ovl_run
 
 c_left: call mv_left

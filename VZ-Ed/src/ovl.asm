@@ -3,8 +3,9 @@
 ;  are 3K slots in VZED.OVL (root folder of the card, next to VZED.CFG), loaded
 ;  into OVLA when used.  OVLA is the fallback clipboard's RAM: if that holds a
 ;  block it is parked in the gap (free part of the text buffer) meanwhile, and
-;  the overlay must not move the gap.  An overlay returns NC, or C with HL = a
-;  logical position to move the cursor to (it may set top and hs itself).
+;  the overlay must not move the gap.  An overlay returns NC with A = a key
+;  code to act on (0 = none), or C with HL = a logical position to move the
+;  cursor to (it may set top and hs itself).
 ;  Slot layout: dw build id (must equal ovl_id), then the code at OVLA+2.
 ;  This code is in the tail (copied below $A000 at start-up).
 ; ===========================================================================
@@ -106,12 +107,15 @@ ov_go:  call fat_sync
         push af
         push hl
         call ov_unstash
-        pop hl
-        pop af
         ld a,1
         ld (waitrel),a
-        ret nc
-        call gap_to
+        pop hl
+        pop af
+        jr c,ov_mv
+        or a                ; NC: A = a key to act on (0 = none)
+        ret z
+        jp dispatch
+ov_mv:  call gap_to
         jp reset_goal
 ov_bad2: call ov_unstash
 ov_bad: call fat_sync

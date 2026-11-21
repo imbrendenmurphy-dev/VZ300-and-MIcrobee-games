@@ -223,7 +223,7 @@ zg_x:   push hl
         scf
         ret
 zk_q:   call zs_back
-        or a
+        xor a               ; NC, no key
         ret
 zs_back: call set_display
         jp invalidate

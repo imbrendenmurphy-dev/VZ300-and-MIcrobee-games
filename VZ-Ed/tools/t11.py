@@ -1,4 +1,4 @@
-"""VZ-ED 0.3 tests: overlays (VZED.OVL) and the sheet view.
+"""VZ-ED 0.3 / 0.4 tests: overlays (VZED.OVL), the sheet view and the menu bar.
 
     py t11.py           all parts
     py t11.py sheet     only the sheet view
@@ -142,11 +142,11 @@ def part_ovl():
     print('== overlays')
     m = machine([('T.TXT', PARA.encode())]); open_t(m)
     keys(m, [('CTRL', 'H'), ('WAIT', 20)], extra=20)
-    check(title(m).startswith('VZ-ED 0.3 HELP'), 'CTRL+H shows help: %r' % title(m))
+    check(title(m).startswith('VZ-ED 0.4 HELP'), 'CTRL+H shows help: %r' % title(m))
     shot.save(m, S + 's_help_03.png')
     pages = 1
     for i in range(8):
-        if title(m).startswith('VZ-ED 0.3 HELP'):
+        if title(m).startswith('VZ-ED 0.4 HELP'):
             keys(m, ['SPACE', ('WAIT', 10)], extra=20); pages += 1
     md = Model(PARA, m.z.mem[sym['docrows']], False)
     check(screen_check(m, md, '') is None and buffer(m)[0] == PARA, 'help pages, then back in the text (%d pages)' % (pages - 1))
@@ -160,7 +160,7 @@ def part_ovl():
     keys(m, [('CTRL', 'V'), ('WAIT', 20)], extra=20)
     check('VZED.OVL MISSING OR OLD' in title(m) and not (m.latch & 8), 'VZED.OVL from another build: refused')
     keys(m, [('CTRL', 'H'), ('WAIT', 20)], extra=20)
-    check(title(m).startswith('VZ-ED 0.3 HELP'), '... its other slot still works')
+    check(title(m).startswith('VZ-ED 0.4 HELP'), '... its other slot still works')
     m = machine([('T.TXT', PARA.encode())], ovl=OVL[:3072]); open_t(m)
     keys(m, [('CTRL', 'V'), ('WAIT', 20)], extra=20)
     check('VZED.OVL MISSING' in title(m), 'VZED.OVL too short: refused')
@@ -185,8 +185,93 @@ def part_ovl():
         check(False, 'set-up: block %d fits the gap %d' % (n, gap))
     check(card_same(m), 'card unchanged')
 
+
+# ------------------------------------------------------------------ the menu bar (0.4)
+MENUS = [('FILE', ['NEW        ^N', 'OPEN       ^O', 'SAVE       ^S', 'SAVE AS    ^A', 'QUIT       ^Q']),
+         ('EDIT', ['MARK BLOCK ^K', 'COPY       ^J', 'CUT        ^Y', 'PASTE      ^P', 'INS / OVR  ^L', 'CAPS LOCK  ^U']),
+         ('FIND', ['FIND       ^F', 'FIND AGAIN ^G', 'REPLACE    ^E', 'GO TO TOP  ^T', 'GO TO END  ^B']),
+         ('VIEW', ['DISPLAY    ^D', 'WORD WRAP  ^W', 'SHEET VIEW ^V']),
+         ('HELP', ['KEYS       ^H'])]
+def menu_check(m, under, sel, item):
+    """SCR: the bar with menu sel cut out, the drop-down with item cut out, the text elsewhere"""
+    want = bytearray(under)
+    want[0:32] = ''.join(' %s ' % n for n, _ in MENUS).ljust(32).encode()
+    for x in range(sel * 6, sel * 6 + 6): want[x] |= 0x80
+    x0 = min(sel * 6, 17)
+    for r, t in enumerate(MENUS[sel][1]):
+        for k, ch in enumerate((' ' + t + ' ').encode()):
+            want[32 * (r + 1) + x0 + k] = ch | (0 if r == item else 0x80)
+    got = bytes(m.z.mem[0x8000:0x8200])
+    if got != bytes(want):
+        a = next(i for i in range(512) if got[i] != want[i])
+        return 'cell %d (row %d col %d): %02X, expected %02X' % (a, a // 32, a % 32, got[a], want[a])
+    if any(m.z.mem[sym['ROWATTR'] + r] & 1 for r in range(1, 16)): return 'rows not plain'
+    return None
+
+def part_menu():
+    print('== menu bar')
+    for style in (0, 2):
+        m = machine([('T.TXT', PARA.encode())]); open_t(m)
+        if style: keys(m, [('CTRL', 'D'), ('WAIT', 5)] * style)
+        md = Model(PARA, m.z.mem[sym['docrows']], False)
+        # the text under the menus is what was on screen, without the cursor
+        under = bytes(b & 0x7F if i >= 32 else b for i, b in enumerate(m.z.mem[0x8000:0x8200]))
+        keys(m, [('CTRL', 'I'), ('WAIT', 20)], extra=20)
+        err = menu_check(m, under, 0, 0)
+        check(err is None, 'style %d: CTRL+I shows FILE %s' % (style, err or ''))
+        if style == 0: shot.save(m, S + 's_menu_file.png')
+        path = [(('CTRL', ','), 1, 0), (('CTRL', 'SPACE'), 1, 1), (('CTRL', 'SPACE'), 1, 2), (('CTRL', '.'), 1, 1),
+                (('CTRL', '.'), 1, 0), (('CTRL', '.'), 1, 5), (('CTRL', ','), 2, 0), (',', 3, 0), (('CTRL', ','), 4, 0),
+                (('CTRL', ','), 0, 0), (('CTRL', 'M'), 4, 0), ('M', 3, 0), ('SPACE', 3, 1), ('SPACE', 3, 2),
+                ('SPACE', 3, 0), ('.', 3, 2)]
+        bad = None
+        for k, sel, item in path:
+            keys(m, [k, ('WAIT', 6)], extra=8)
+            err = menu_check(m, under, sel, item)
+            if err: bad = '%s -> %d/%d: %s' % (k, sel, item, err); break
+            if style == 2 and (sel, item) == (1, 1): shot.save(m, S + 's_menu_edit_gfx.png')
+        check(bad is None, 'style %d: moving through the menus %s' % (style, bad or ''))
+        keys(m, [('CTRL', 'Q'), ('WAIT', 15)], extra=20)       # close: nothing happens
+        check(screen_check(m, md, '') is None and buffer(m)[0] == PARA and m.z.mem[sym['wrap']] == 0,
+              'style %d: CTRL+Q closes, text and screen as before' % style)
+    # picking things
+    m = machine([('T.TXT', PARA.encode())]); open_t(m)
+    keys(m, [('CTRL', 'I'), ('WAIT', 20)] + [('CTRL', ',')] * 3 + [('CTRL', 'SPACE'), 'RET', ('WAIT', 20)], extra=30)
+    check(m.z.mem[sym['wrap']] == 1 and 'WORD WRAP ON' in title(m), 'VIEW / WORD WRAP + RETURN turns wrap on: %r' % title(m))
+    md = Model(PARA, m.z.mem[sym['docrows']], True)
+    check(screen_check(m, md, '') is None, '... and the screen is the wrapped text')
+    keys(m, [('CTRL', 'I'), ('WAIT', 20), 'W', ('WAIT', 20)], extra=30)
+    check(m.z.mem[sym['wrap']] == 0 and 'WORD WRAP OFF' in title(m), 'a letter (W) picks its item from the bar')
+    keys(m, [('CTRL', 'U'), ('WAIT', 5), ('CTRL', 'I'), ('WAIT', 20), 'D', ('WAIT', 20), ('CTRL', 'U'), ('WAIT', 5)], extra=30)
+    check(m.z.mem[sym['dstyle']] == 1 and m.z.mem[sym['caps']] == 0, 'with caps lock on too (D = DISPLAY)')
+    keys(m, [('CTRL', 'I'), ('WAIT', 20), 'X', ('WAIT', 10)], extra=10)
+    check(title(m).startswith(' FILE  EDIT'), 'a letter with no item does nothing')
+    keys(m, [('CTRL', 'I'), ('WAIT', 15)], extra=20)
+    check(not title(m).startswith(' FILE  EDIT'), 'CTRL+I again closes')
+    keys(m, [('CTRL', 'I'), ('WAIT', 20), 'H', ('WAIT', 20)], extra=30)
+    check(title(m).startswith('VZ-ED 0.4 HELP'), 'HELP / KEYS: one overlay starts another')
+    keys(m, [('CTRL', 'Q'), ('WAIT', 10), ('CTRL', 'I'), ('WAIT', 20), 'V', ('WAIT', 60)], extra=60)
+    check(bool(m.latch & 8), 'V from the bar opens the sheet view')
+    keys(m, ['Q', ('WAIT', 30), ('CTRL', 'I'), ('WAIT', 20), 'F', ('WAIT', 15)] + text_for('COLOUR') + ['RET', ('WAIT', 20)], extra=30)
+    c0 = PARA.lower().find('colour')
+    check(buffer(m)[1] == c0, 'F from the bar: find "colour" (cursor %d, expected %d)' % (buffer(m)[1], c0))
+    keys(m, [('CTRL', 'I'), ('WAIT', 20), 'K', ('WAIT', 10)] + [('CTRL', ',')] * 5 +
+         [('CTRL', 'I'), ('WAIT', 20), 'J', ('WAIT', 10), ('CTRL', 'B'), ('WAIT', 20),
+          ('CTRL', 'I'), ('WAIT', 20), 'P', ('WAIT', 15)], extra=30)
+    check(buffer(m)[0] == PARA + PARA[c0:c0 + 5], 'mark, copy, end, paste, all from the bar')
+    keys(m, [('CTRL', 'I'), ('WAIT', 20), 'O', ('WAIT', 30)], extra=30)
+    check('SAVE CHANGES' in title(m), 'O from the bar: asks to save the changes first (%r)' % title(m))
+    # joystick fire opens the bar in the editor
+    m = machine([('T.TXT', PARA.encode())]); open_t(m)
+    m.joy = {'FIRE'}; m.run(frames=6); m.joy = set(); m.run(frames=20)
+    check(title(m).startswith(' FILE  EDIT'), 'joystick fire opens the bar')
+    m.joy = {'DOWN'}; m.run(frames=6); m.joy = set(); m.run(frames=10)
+    m.joy = {'FIRE'}; m.run(frames=6); m.joy = set(); m.run(frames=40)
+    check('OPEN' in title(m), 'joystick down + fire picks FILE / OPEN (%r)' % title(m))
+    check(card_same(m), 'card unchanged')
+
 if __name__ == '__main__':
-    parts = {'sheet': part_sheet, 'ovl': part_ovl}
-    for p in (sys.argv[1:] or ['ovl', 'sheet']): parts[p]()
+    parts = {'sheet': part_sheet, 'ovl': part_ovl, 'menu': part_menu}
+    for p in (sys.argv[1:] or ['ovl', 'sheet', 'menu']): parts[p]()
     print('\n%d FAILED' % len(FAILS) if FAILS else '\nall passed')
     sys.exit(1 if FAILS else 0)

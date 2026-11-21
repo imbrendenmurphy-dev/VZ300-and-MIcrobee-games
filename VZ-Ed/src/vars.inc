@@ -115,4 +115,5 @@ ovslot equ $97FE
 ovskip equ $97FF
 ovcnt equ $9800
 ovst equ $9801
-VARS_END equ $9802
+menusel equ $9802
+VARS_END equ $9803

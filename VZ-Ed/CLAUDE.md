@@ -1,6 +1,6 @@
 # CLAUDE.md — VZ-ED (text editor / word processor for the VZ300)
 
-Handover from Claude chat to Claude Code, 20 Nov 2026; 0.2 written in Claude Code the same day; 0.3 (overlays + sheet view) on 21 Nov 2026.
+Handover from Claude chat to Claude Code, 20 Nov 2026; 0.2 written in Claude Code the same day; 0.3 (overlays + sheet view) and 0.4 (menu bar) on 21 Nov 2026.
 Read all of this before changing anything.
 
 Credits line for anything user-facing: **VIBED BY BPM 2026** (the user's standing preference — never
@@ -16,13 +16,13 @@ anything that writes to their SD card.
 
 | | |
 |---|---|
-| Version | **0.3** (21 Nov 2026): 0.2 + overlays (`VZED.OVL`: help moved there) + sheet view (CTRL+V). 0.2 is kept in `release/0.2/`, 0.1 in `release/0.1/`. |
+| Version | **0.4** (21 Nov 2026): 0.3 + menu bar (CTRL+I / joystick fire, overlay slot 2). 0.3 = overlays (`VZED.OVL`, help moved there) + sheet view (CTRL+V). Older versions in `release/0.3/`, `release/0.2/`, `release/0.1/`. |
 | Real hardware status | **NO VERSION HAS BEEN TESTED ON A REAL VZ YET** (the user tried 0.2 in VZonPC, which runs the real VZDOS). Everything below marked "verified" was verified in the emulators only. The user asked for 0.2 before reporting on 0.1. |
 | Outputs | `out/VZED.VZ` (standalone) and `out/PLAYTXT.VZ` (VZ-DECK plug-in), same code, byte `$A003` = 0 / 1; `out/VZED.OVL` (overlays, root of the card, section 13). |
-| Release copies | `release/` (0.3, identical to `out/`), `release/0.2/`, `release/0.1/`, `dist/VZ-ED-0.3.zip` (`py tools\package.py`) |
+| Release copies | `release/` (0.4, identical to `out/`), `release/0.3/`, `release/0.2/`, `release/0.1/`, `dist/VZ-ED-0.4.zip` (`py tools\package.py`) |
 | Build | `py src\build.py` (Windows) / `python3 src/build.py`. Python 3 only, no packages. |
-| Code size | code `$A000`-`$C5A0`; "tail" (tables, font, all messages, the overlay loader) `$9802`-`$9F1B`, stored after the code in the file and copied down at start-up; text buffer `$C600`-`$F5FF` (**12,288 bytes**; 0.2 had 12,032, 0.1 12,544). Room left: 95 bytes of code before `$C600`, 228 bytes of tail before `$A000`. New features go in overlays (section 13). |
-| Handover check | `py src\build.py` must reproduce `release/VZED.VZ` MD5 `c8283d2bd9e0a6669b42c59b89f6540f`, `release/PLAYTXT.VZ` `5e9611b871cbabb5e97acf8138173f51` and `release/VZED.OVL` `9bb637c68e0333e80a390badcc5e8e3c` (0.2: `a9cbdcff...` / `33f05a0c...` in `release/0.2/`; 0.1: `b245d89f...` / `f17ac5c1...` in `release/0.1/`) |
+| Code size | code `$A000`-`$C5A9`; "tail" (tables, font, all messages, the overlay loader) `$9803`-`$9F21`, stored after the code in the file and copied down at start-up; text buffer `$C600`-`$F5FF` (**12,288 bytes**; 0.2 had 12,032, 0.1 12,544). Room left: 86 bytes of code before `$C600`, 222 bytes of tail before `$A000`. New features go in overlays (section 13). |
+| Handover check | `py src\build.py` must reproduce `release/VZED.VZ` MD5 `96e4112c337320dbe3fd75c57976e8e5`, `release/PLAYTXT.VZ` `09f1d4f767b7b926f41a2b8279fccdd2` and `release/VZED.OVL` `569cf762aed819af050029e77727adb5` (0.3: `c8283d2b...` / `5e9611b8...` / `9bb637c6...` in `release/0.3/`; 0.2: `a9cbdcff...` / `33f05a0c...` in `release/0.2/`; 0.1: `b245d89f...` / `f17ac5c1...` in `release/0.1/`) |
 | Sister project | VZ-DECK (`../VZ-Deck`), the user's SD boot shell / file browser / music player. VZ-ED is its text plug-in. |
 
 ---
@@ -83,6 +83,16 @@ roadmap in section 9. 0.2 is described in section 12.
   on: screen rows, four strips of 64 (256 rows). Cursor keys / R C / T B move the box, RETURN goes
   there (top = that row, cursor at the box's top-left), Q / CTRL+Q / CTRL+V back.
 - Help text gained CTRL+V and sheet view lines; versions read 0.3.
+
+### Done in 0.4 (verified in the Python emulator and vzemu; section 13.6)
+
+- **Menu bar** (overlay slot 2): CTRL+I (new key code `K_MENU` = 128) or joystick fire in the editor
+  (`K_FIRE` was unused there). FILE EDIT FIND VIEW HELP, items show their CTRL key. Cursor keys (or plain
+  M , . SPACE, or the joystick) move, RETURN / fire pick, a letter picks that CTRL key's item from any
+  menu, CTRL+Q / CTRL+I close. The chosen item's key code goes to `dispatch`, so a menu item behaves
+  exactly like its CTRL key (including starting another overlay). Last menu kept in `menusel`.
+- Overlay return protocol extended: NC + A = key code to dispatch (0 = none). Help and sheet view now
+  return A = 0 (`xor a`).
 
 ### Not done (planned): see section 9.
 
@@ -424,7 +434,7 @@ VZ-DECK re-reads the DOS's folder when it comes back.
   from the user's machine. The start-up test (12.3) is designed so that if the guess is wrong VZ-ED
   just uses the small clipboard; the one test write is put back at once. Which "home" setting the
   real loader leaves (VZonPC says 1, the Python harness 0) is also unverified; the code works it out.
-- (0.2) The CTRL key choices (K J Y P F G E W, and 0.3's V) were picked by Claude, not by the user.
+- (0.2) The CTRL key choices (K J Y P F G E W, 0.3's V, 0.4's I) were picked by Claude, not by the user.
 - (0.3) Overlays read `VZED.OVL` with the same sector code as file loading; checked in the Python
   emulator and in vzemu/VZonPC (real VZDOS over SPI), not yet on the real card. Colours of the sheet
   view on a real CRT (blue/green and red/yellow) are unchecked.
@@ -465,7 +475,8 @@ VZ-DECK re-reads the DOS's folder when it comes back.
 1. 0.2 and 0.3 are done (sections 12, 13). 0.3 = overlays + sheet view (the user asked for these two;
    the menu bar from the old 0.3 plan is still to do). **Every new feature should be an overlay**
    (section 13.4); the main code has ~95 bytes and the tail ~228 bytes left.
-2. **Next**: menu bar alongside the CTRL keys (an overlay that returns a key code to dispatch?).
+2. 0.4 = the menu bar (done). **Next (0.5 in the old numbering, "0.4")**: output — printer port and PDF
+   export, as overlays (a menu item each under FILE).
 3. **0.4**: output — printer port (Centronics, port `$0E` data / strobe; plain text and Epson
    bold/underline), **PDF export** to the card (text-only PDF with built-in Courier/Helvetica: just
    text objects plus an xref table of byte offsets), choice of line endings.
@@ -501,8 +512,7 @@ from `tools/`: `py t2.py` etc. They read `../out/VZED.VZ` / `PLAYTXT.VZ`, so bui
 | `t9.py` (0.2) | **wrap**: 6 seeds x 120 random keys (typing incl. spaces, all moves, page, top/bottom, delete) in all 3 styles against a Python model of the wrap rule: text, cursor, line, *every screen row*, top is a real row start, cursor cell. **Blocks** with and without the spare bank, wrap on/off: copy, paste, cut marked backwards, delete, typing ends marking, CTRL+O keeps/empties the clipboard, a 9,280-byte block, too big for the fallback. **Highlighting** checked cell by cell while moving. **Find / again / not found / replace Y-N-A, with nothing, stop**, save, card clean. **VZED.CFG** wrap bit written and read, 0.1 file compatible. `py t9.py wrap <seed> [style]` = one long random run | all pass (20 Nov 2026); extra seeds 7, 8, 9, 10, 12, 13 x 240 keys (styles 0, 2, 1, 0, 2, 0) all pass |
 | `t9.py hscroll` (0.2) | wrap **off**, 3 seeds x 120 random keys on long lines: every screen row and the cursor cell checked, including sideways scrolling (catches the 0.1 blank-screen bug) | pass |
 | `t10.py` (0.2) | T-states per key in wrap mode, 600-character paragraphs | see 12.5 |
-| `t11.py` (0.3) | **ovl**: help from VZED.OVL (all pages, back in the text), no VZED.OVL / short / other build -> message and nothing else, the other slot still loads, the small clipboard parked across help + sheet view, and emptied with a message when the gap is too small, card unchanged. **sheet**: wrap off/on x 3 styles: video RAM compared byte for byte with a Python model at entry and after 14 random + 7 fixed moves, RETURN lands on the right cursor / top / hs (screen_check), Q leaves the cursor, text and card unchanged; empty / one-line / `a
-` texts. `py t11.py sheet` / `ovl` | all pass (21 Nov 2026) |
+| `t11.py` (0.3/0.4) | **ovl**: help from VZED.OVL (all pages, back in the text), no VZED.OVL / short / other build -> message and nothing else, the other slot still loads, the small clipboard parked across help + sheet view, and emptied with a message when the gap is too small, card unchanged. **sheet**: wrap off/on x 3 styles: video RAM compared byte for byte with a Python model at entry and after 14 random + 7 fixed moves, RETURN lands on the right cursor / top / hs (screen_check), Q leaves the cursor, text and card unchanged; empty / one-line / `a\n` texts. **menu**: SCR cell for cell (bar, cut-out menu, drop-down, text under it) after 16 moves in text and graphics styles, CTRL+Q closes with the screen as before, RETURN / letters (also with caps lock) / joystick fire + down pick items, CTRL+I closes, HELP and V start other overlays, find / mark / copy / paste from the bar. `py t11.py sheet` / `ovl` / `menu` | all pass (21 Nov 2026) |
 
 **Re-run on the PC by Claude Code, 20 Nov 2026** (after moving test scratch output from the chat
 sandbox's `/tmp/...` path to `testout/`): build matches both MD5s; t1, t2, t3, t4b, t4c, t6, t8, t5
@@ -693,3 +703,13 @@ into `zLB`, packed four to a byte (`cp 33 : ccf : rl c : sla c` = 10 for a lette
 zeroed, then `OR $55` over the box's 8 bytes. Only the rows of the old and new box are redrawn unless
 `zS0`/`zH0` change. Video address of row i: `$7000 + (i&63)*32 + (i>>6)*8` (strips in wrap mode).
 Speed (vzemu/Python, frames): entry with load 16-24; box move 1.5-3; T/B with a scroll 9-11.
+
+### 13.6 The menu bar (ovl_menu.asm, slot 2)
+On entry: SCR is copied to `zBK` (cursor bit cleared), all rows made plain (`set_rows` 0) so the menu
+looks the same in every style, `curcell` = `$FFFF`, `invalidate`. Each redraw: `zBK` back into SCR, the
+bar (`zm_bar`) over row 0 with the open menu's 6 cells bit 7 (a "hole" in the title bar), the drop-down
+(15 cells: space, 13-character item, space) at column `zm_x[menu]`, bit 7 except the chosen item;
+then `flush`. Items: `db K_code,"LABEL      ^X"` (the last character is the hotkey letter), generated
+in the source from a table; lists `zm_l0`..`zm_l4`, at most 6 items (graphics style has 9 rows). On
+leaving: `zBK` back, `invalidate` (render redraws everything with the right row attributes), NC with A
+= the item's key code or 0. `ovl_run` then `jp dispatch`es it.
