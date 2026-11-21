@@ -2,6 +2,20 @@
 
 **A Dick Smith VZ200 / VZ300 emulator for Windows, built for playing and making VZ games.**
 
+> **Built to run 2018 A.D.** VZonPC started with one goal: an emulator accurate enough to run **2018 A.D.** by Five Finger Punch (Edison 2018) the way a real VZ does. The demo loads from its original CD audio. The left channel loads the demo into the VZ, at normal speed and then with fast loaders, while the right channel plays the music through your speakers. Its Kefrens bars depend on mode changes landing on the exact pixel, so VZonPC times the video chip to the pixel to match.
+>
+> **To run it, double-click `Play 2018 AD.bat`.** It runs from whatever folder it's in. It sets up a VZ200, types `CRUN` and starts the tape. It needs `2018AD_combined.wav` next to it: download the demo's `combined.ogg` from scene.org and convert it to WAV. If the file is missing, the batch file says so.
+>
+> **New in this update**
+> - **The disk drive:** the DD20 controller and two 5.25" drives, emulated down to the magnetic signal on the disk. The real DOS BASIC V1.2 runs unmodified, and `SAVE`, `LOAD`, `INIT` and `BRUN` write back to `.dsk` images.
+> - **WordPro**, in the disk controller's cartridge slot as it was used: edit, print formatted pages, and save and load documents on disk in WordPro's own format.
+> - **The RS-232 interface:** its 1985 terminal ROM talks bit by bit at 300 baud to a telnet BBS, a PC serial port or a text file, using whatever settings you pick in its menu.
+> - **The RTTY terminal pack:** decodes radio-teletype from an audio file, and transmits through your speakers.
+> - **The printer:** `LPRINT`, `LLIST`, `COPY` and WordPro's printing go to a text file.
+> - **The light pen**, timed to the beam: the mouse is the pen. The original 1980s pen driver, which flips video mode part-way down the screen to find the pen, finds it to within a pixel.
+> - **Tape both ways:** `CSAVE` records to a WAV that loads back on a VZ200 or VZ300, and tape audio plays into the cassette socket.
+> - **Video timed to the pixel:** colour and mode changes part-way along a line land on the right pixel, so Kefrens bars and line holds work as on a real VZ300. A new visualiser panel shows the 6847's beam line by line.
+
 VZonPC runs VZ software exactly as the real machine does, down to the T-state. Plug in the BennVenn
 128K SD loader and it boots the real VZDOS from a folder on your PC: VZ-DECK comes up, you browse,
 launch games and play music, and anything you save lands straight back in that folder. Press F10 in
