@@ -24,7 +24,8 @@ small `.exe` with nothing to install.
 - PAL timing: 312 lines × 228 T-states per field, checked against RASTEST on a real VZ300
 
 **Video**
-- MC6847 drawn line by line, so mid-frame mode and colour-set changes show (raster splits work)
+- MC6847 timed to the pixel: mode and colour-set changes part-way along a line land on the right pixel, and the
+  6847's own row counter is modelled, so line-hold tricks (Kefrens bars, FLD) work as on a real VZ
 - Text, semigraphics and the 128×64 4-colour mode, in both colour sets
 - **Australian super hi-res mod** (8K video RAM, all eight GM modes up to 256×192, 2K paging through `OUT 32`)
 - **German hi-res mod** (256×192, following MAME's Laser 310 SHRG driver)
@@ -49,6 +50,11 @@ small `.exe` with nothing to install.
 - The real 8×6 keyboard matrix, with BREAK, RUBOUT and INSERT mapped
 - Paste the clipboard as typing, for BASIC listings
 
+**Tape**
+- Play a WAV, FLAC or MP3 into the cassette socket: `CLOAD`, `CRUN` and fast loaders work
+- A stereo tape's other channel plays through the speakers. 2018 A.D. by Five Finger Punch runs from its
+  original CD audio, with the data on the left channel into the VZ and the music on the right
+
 **Live visualiser (F10)**
 - Left: Z80 registers, a live disassembly with the game's own symbols, CPU hot spots, frame budget
   (busy / interrupt / DOS / waiting), an opcode heatmap and the stack
@@ -66,10 +72,10 @@ small `.exe` with nothing to install.
 
 **Size and requirements**
 - Windows 10 or 11 (it uses the .NET Framework 4 built into Windows). Nothing to install
-- `VZonPC.exe` is 148 KB, and `vzemu.exe` is 99 KB
+- `VZonPC.exe` is 158 KB, and `vzemu.exe` is 109 KB
 - Bring your own VZ ROM for BASIC. Machine-code games run without one
 
-**Not emulated:** the cassette, printer, disk drive and light pen.
+**Not emulated:** saving to cassette, the printer, disk drive and light pen.
 
 ## Screenshots
 

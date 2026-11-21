@@ -10,7 +10,8 @@ sp_save:         dw STACKTOP
 fs_low_count:    dw 0
 fs_high_count:   dw 0
 frame_count:     dw 0
-hphase:          db 22          ; horizontal phase, 4T units (0..31)
+hphase:          db 16          ; horizontal phase, 4T units (0..31). v1.5: 22 -> 16 puts the mode flicks
+                                ; at T 11..31 of the line, in horizontal blanking (22 showed them in the left border)
 kernel_pairs:    db 147         ; pairs of lines run by kernel each frame
 sd_ok:           db 0
 sd_sectors_read: dw 0

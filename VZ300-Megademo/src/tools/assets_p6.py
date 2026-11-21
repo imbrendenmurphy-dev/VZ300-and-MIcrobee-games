@@ -34,7 +34,7 @@ def build(out):
     kt = bytearray()
     for ln in range(400):
         dl = ln - D
-        if 0 <= dl < 192 or ln >= 300:
+        if -2 <= dl < 192 or ln >= 300:   # v1.5: hold from 2 lines before the picture, so line 0 already shows row 0
             c = 0x38 if (ln // 4) % 5 == 0 else 0x28
             kt += bytes((0x20, c))
         else:

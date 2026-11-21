@@ -24,8 +24,17 @@ public sealed class VzMachine
     // ---------------------------------------------------------------- timing
     public const int LINES = 312, LINET = 228, FRAMET = LINES * LINET;
     public const int FSLINES = 56;      // field sync (INT held, $6800 bit 7 low) for the first 56 lines
-    public int TopBorder = 25;          // lines between the end of FS and the first picture line
+    // Lines between the end of FS and the first picture line: 62, so the picture starts on line 118. Pinned down by
+    // three things that all hold only for line 118: photos of the megademo's finale Kefrens on a real VZ300 (its
+    // holds start on line 121 and show row 1, so the picture starts by 118), 2018 A.D.'s Kefrens (holds from line 120
+    // show row 0, so the picture starts at 118 or later), and the band heights in photos of the megademo's RASTER screen.
+    public int TopBorder = 62;
     public int PicStart { get { return FSLINES + TopBorder; } }
+    // T-state (from the start of a line) at which the first picture pixel is shown. Two pixels per T-state, so the
+    // picture spans H0..H0+127 and the borders are 16 T-states each side. Photos of the megademo on a real VZ300:
+    // the RASTER screen's 3-T-state mode flick (T 35..55, frame-sync jitter) shows near the left edge of the visible
+    // left border, and the finale's flick at T 37..40 doesn't show at all. That puts H0 between 53 and 65.
+    public int H0 = 58;
     public int Clock { get { return Model == Model.VZ300 ? 3546894 : 3579500; } }
 
     // ---------------------------------------------------------------- state
@@ -56,6 +65,22 @@ public sealed class VzMachine
     public const int FBW = 320, FBH = 240, BX = 32, BY = 24;
     public int[] Fb = new int[FBW * FBH];
     int lastLine = -1;
+
+    // Pixel-timed video: latch and video RAM writes are logged with the T-state they happen at, and each line is
+    // drawn once it has finished, so changes part-way along a line show at the right pixel.
+    struct VEv { public long T; public int Addr, Old, New; }   // Addr -1 = latch, else index into Vram
+    VEv[] vev = new VEv[8192]; int vevHead, vevN, vevVram;
+    int[] pAddr = new int[8], pOld = new int[8], pNew = new int[8]; int nPend;
+    int vLatch;                  // the latch as the 6847 sees it at the start of the next line to draw
+    int vBorder;                 // the latch at the end of the last picture line: sets the top and bottom border colour
+    int rowAddr, lineCtr;        // the 6847's own address counter: row start and line within the row
+    int[] lat = new int[LINET];
+    public long LineHolds;       // lines where the mode flipped, so the row counter was reset (total)
+    public VzTape Tape;          // cassette input (a WAV playing into $6800 bit 6), or null
+    public bool TapeMonitor = true;   // play a stereo tape's other channel through the PC's sound
+    public void PlayTape(VzTape t) { Tape = t; if (t != null) t.Play(Cpu.Cyc, Clock); }
+    public int DebugLine = -1;   // log this line's latch timeline every frame (vzemu: linelog LINE)
+    int[] snowX = new int[256], snowB = new int[256]; int snowN, snowLine = -1;
 
     // snow diagnostics
     public long SnowCount; public int SnowFirstPc = -1; public long SnowFirstFrame; public int SnowMaxLine;
@@ -227,6 +252,7 @@ public sealed class VzMachine
     {
         Cpu.Reset();
         Cpu.Cyc = 0; FrameStart = 0; lastLine = -1;
+        vevHead = vevN = vevVram = 0; nPend = 0; vLatch = vBorder = Latch; rowAddr = lineCtr = 0; snowN = 0;
         Mapper = 0; Vz300Mode = false;
         tps = 0;   // restart the sample clock
         if (Tr != null) Tr.ResetTimes();
@@ -271,7 +297,7 @@ public sealed class VzMachine
         {
             int r = 0x3F, lo = a & 0xFF;
             for (int i = 0; i < 8; i++) if ((lo & (1 << i)) == 0) r &= Keys[i];
-            r |= 0x40;                      // cassette input: no signal
+            if (Tape == null || !Tape.Playing || Tape.Level(Cpu.Cyc)) r |= 0x40;   // cassette input (no tape: high)
             if (!FsLow) r |= 0x80;          // field sync
             return r;
         }
@@ -288,8 +314,8 @@ public sealed class VzMachine
         if (Tr != null) Tr.W(a, v);
         if (a < 0x4000) return;
         if (a < 0x6800) { if (Exp == MemExp.BennVenn) Bv[DosOff(a)] = (byte)v; return; }
-        if (a < 0x7000) { SpeakerTo(v); Latch = v; return; }
-        if (a < 0x7800) { VideoAccess(a, v); Vram[(VBank << 11) + (a - 0x7000)] = (byte)v; return; }
+        if (a < 0x7000) { SpeakerTo(v); Pend(-1, Latch, v); Latch = v; return; }
+        if (a < 0x7800) { VideoAccess(a, v); int vi = (VBank << 11) + (a - 0x7000); Pend(vi, Vram[vi], v); Vram[vi] = (byte)v; return; }
         if (a < ramTop) { Ram[a] = (byte)v; return; }
         if (Exp == MemExp.Ram16K) { if (a >= packLo && a < packHi) Ram[a] = (byte)v; return; }
         if (Exp == MemExp.BennVenn && a >= 0x9000 && (!Vz300Mode || a >= 0xB800)) Bv[ExpOff(a)] = (byte)v;
@@ -343,11 +369,46 @@ public sealed class VzMachine
         if (!ShowSnow) return;
         // the 6847 shows the CPU's data byte instead of the fetched one: draw it as 8 dots
         int t = (int)((Cpu.Cyc - FrameStart) % LINET);
-        int x = (t - 50) * 2; if (x < 0 || x > 248) return;
-        int oy = ln - (PicStart - BY); if (oy < 0 || oy >= FBH) return;
+        int x = (t - H0) * 2; if (x < 0 || x > 248) return;
         int b = v >= 0 ? v : Vram[(VBank << 11) + (a - 0x7000)];
-        int o = oy * FBW + BX + (x & ~7);
-        for (int i = 0; i < 8; i++) Fb[o + i] = ((b >> (7 - i)) & 1) != 0 ? 0xFFFFFF : 0x202020;
+        if (ln != snowLine) { snowLine = ln; snowN = 0; }   // drawn over the line once it has been rendered
+        if (snowN < snowX.Length) { snowX[snowN] = x & ~7; snowB[snowN] = b; snowN++; }
+    }
+
+    // ---------------------------------------------------------------- write timing
+    // The Z80 core adds an instruction's cycles before it runs, so a write sees Cpu.Cyc = the end of the
+    // instruction. Writes come in the last machine cycles: the last one about 2 T-states before the end and
+    // each earlier one 3 T-states before that (LD (nn),HL writes L at +11 and H at +14 of 16).
+    void Pend(int addr, int old, int nw)
+    {
+        if (nPend == pAddr.Length) FlushPend(Cpu.Cyc);
+        pAddr[nPend] = addr; pOld[nPend] = old; pNew[nPend] = nw; nPend++;
+    }
+
+    void FlushPend(long end)
+    {
+        for (int i = 0; i < nPend; i++)
+        {
+            if (vevN == vev.Length)
+            {
+                if (vevHead > 0) { Array.Copy(vev, vevHead, vev, 0, vevN - vevHead); vevN -= vevHead; vevHead = 0; }
+                else Array.Resize(ref vev, vev.Length * 2);
+            }
+            long t = end - 3 * (nPend - i) + 1;
+            if (vevN > 0 && t < vev[vevN - 1].T) t = vev[vevN - 1].T;
+            vev[vevN].T = t; vev[vevN].Addr = pAddr[i]; vev[vevN].Old = pOld[i]; vev[vevN].New = pNew[i]; vevN++;
+            if (pAddr[i] >= 0) vevVram++;
+        }
+        nPend = 0;
+    }
+
+    /// <summary>A video RAM byte as it was at absolute time t (undoing later writes that are still logged).</summary>
+    int VramAt(int idx, long t)
+    {
+        if (vevVram > 0)
+            for (int i = vevHead; i < vevN; i++)
+                if (vev[i].Addr == idx && vev[i].T > t) return vev[i].Old;
+        return Vram[idx];
     }
 
     // ---------------------------------------------------------------- speaker -> samples
@@ -377,7 +438,9 @@ public sealed class VzMachine
         while (t >= sampNext)
         {
             sampAcc += lvl * (sampNext - cur);
-            if (AudioN < Audio.Length) Audio[AudioN++] = (short)(sampAcc / tps * Volume);
+            int smp = (int)(sampAcc / tps * Volume);
+            if (Tape != null && TapeMonitor) smp += Tape.Monitor(sampNext) / 2;   // the tape's other channel, e.g. a demo's music
+            if (AudioN < Audio.Length) Audio[AudioN++] = (short)Math.Max(-32768, Math.Min(32767, smp));
             sampAcc = 0; cur = sampNext; sampNext += tps;
         }
         sampAcc += lvl * (t - cur); sampLastT = t;
@@ -449,29 +512,31 @@ public sealed class VzMachine
         long rel = Cpu.Cyc - FrameStart;
         if (rel >= FRAMET)
         {
+            FlushPend(Cpu.Cyc);
             RenderTo(LINES); if (Tr != null) Tr.EndFrame(); FrameStart += FRAMET; Frames++; lastLine = -1;
             if (Card != null && Card.Dirty && SdWriteBack && Frames - cardWriteFrame > 25) FlushCard();   // the DOS has finished writing
             return false;
         }
         int line = (int)(rel / LINET);
-        if (line != lastLine) RenderTo(line + 1);
+        if (line - 1 != lastLine) RenderTo(line);   // draw the lines that have finished
         FsLow = line < FSLINES;
         Cpu.IntLine = FsLow;
         CurPc = Cpu.PC;
         if (biosArmed && CurPc == 0x4004 && (Mapper & 1) == 0 && Exp == MemExp.BennVenn) BiosBoot();
         if (DosTrapActive && (CurPc == 0x5F00 || CurPc == 0x5F03 || CurPc == 0x5F09))
         {
-            long d0 = Cpu.Cyc; DosTrap();
+            long d0 = Cpu.Cyc; DosTrap(); FlushPend(Cpu.Cyc);
             if (Tr != null) Tr.Dos(d0, Cpu.Cyc);
             return true;
         }
-        if (PreStep != null && !PreStep()) return true;
-        if (Tr == null) { Cpu.Step(); return true; }
+        if (PreStep != null && !PreStep()) { FlushPend(Cpu.Cyc); return true; }
+        if (Tr == null) { Cpu.Step(); FlushPend(Cpu.Cyc); return true; }
         long t0 = Cpu.Cyc;
         bool intTaken = Cpu.IntLine && Cpu.IFF1 && Cpu.EiDelay == 0;
         bool halted = Cpu.Halted && !intTaken;
         Tr.Pre();
         Cpu.Step();
+        FlushPend(Cpu.Cyc);
         Tr.Step(CurPc, t0, Cpu.Cyc, intTaken, halted);
         return true;
     }
@@ -515,9 +580,112 @@ public sealed class VzMachine
 
     int VramByte(int off) { return Gfx == GfxMod.None ? Vram[off & 0x7FF] : Vram[off & 0x1FFF]; }
 
+    /// <summary>Draws a finished line. The latch is followed T-state by T-state (two pixels each), video RAM is read
+    /// when the 6847 fetches each byte, and the 6847's address counter is modelled: it moves to the next row after
+    /// 12 lines (text) or 3 lines (128x64), and a mode flip during a line resets the line count, so the row is shown
+    /// again (the "line hold" behind Kefrens bars and FLD, which works on a real VZ300).</summary>
     void RenderLine(int ln)
     {
-        if (Tr != null && ln < LINES) Tr.LineMode[ln] = (AG ? 8 | GmCode : 0) | (CSS ? 16 : 0);
+        long ls = FrameStart + (long)ln * LINET;
+        int cur = vLatch; bool toggled = false;
+        int ei = vevHead;
+        for (int t = 0; t < LINET; t++)
+        {
+            long at = ls + t;
+            while (ei < vevN && vev[ei].T <= at)
+            {
+                if (vev[ei].Addr < 0) { if (((vev[ei].New ^ cur) & 8) != 0) toggled = true; cur = vev[ei].New; }
+                ei++;
+            }
+            lat[t] = cur;
+        }
+        int py = ln - PicStart;
+        if (py == 0) { rowAddr = 0; lineCtr = 0; }
+        if (ln == DebugLine)
+        {
+            var sb = new System.Text.StringBuilder("line " + ln + " frame " + Frames + " row " + rowAddr / 32 + "." + lineCtr + " latch:");
+            int p = -1; for (int t = 0; t < LINET; t++) if (lat[t] != p) { sb.AppendFormat(" {0}={1:X2}", t, lat[t]); p = lat[t]; }
+            Log(sb.ToString());
+        }
+        int mid = lat[Math.Min(LINET - 1, H0 + 64)];
+        if (Tr != null && ln < LINES) Tr.LineMode[ln] = ((mid & 8) != 0 ? 8 | GmCode : 0) | ((mid & 16) != 0 ? 16 : 0);
+        int oy = ln - (PicStart - BY);
+        if (oy >= 0 && oy < FBH)
+        {
+            if (Gfx != GfxMod.None) { int s = Latch; Latch = mid; RenderLineOld(ln); Latch = s; }
+            else DrawLine(oy, py, ls);
+            if (ShowSnow && snowLine == ln && py >= 0 && py < 192)
+                for (int k = 0; k < snowN; k++)
+                {
+                    int o = oy * FBW + BX + snowX[k];
+                    for (int i = 0; i < 8; i++) Fb[o + i] = ((snowB[k] >> (7 - i)) & 1) != 0 ? 0xFFFFFF : 0x202020;
+                }
+        }
+        for (int i = vevHead; i < ei; i++) if (vev[i].Addr >= 0) vevVram--;
+        vevHead = ei; if (vevHead == vevN) vevHead = vevN = 0;
+        vLatch = cur;
+        if (py == 191 && Gfx == GfxMod.None)
+        {
+            // the bottom border (lines past the end of the field) is one colour: the mode on the last picture line
+            vBorder = cur;
+            int bc = BorderColour(cur);
+            for (int y = oy + 1; y < FBH; y++) for (int x = 0; x < FBW; x++) Fb[y * FBW + x] = bc;
+        }
+        if (py >= 0 && py < 192)
+        {
+            if (toggled) { lineCtr = 0; LineHolds++; }
+            else if (++lineCtr >= ((cur & 8) != 0 ? 3 : 12)) { lineCtr = 0; rowAddr += 32; }
+        }
+    }
+
+    void DrawLine(int oy, int py, long ls)
+    {
+        int o = oy * FBW;
+        bool pic = py >= 0 && py < 192;
+        if (!pic)
+        {
+            // Above and below the picture the 6847 keeps the mode it had on the last picture line (photos of the
+            // megademo on a real VZ300: the top border shows the previous field's colour set, not the latch).
+            int bc = BorderColour(vBorder);
+            for (int x = 0; x < FBW; x++) Fb[o + x] = bc;
+            return;
+        }
+        int cachedCol = -1, b = 0;
+        for (int x = 0; x < FBW; x++)
+        {
+            int px = x - BX;
+            int t = H0 + (px >> 1);
+            if (t < 0) t = 0; else if (t >= LINET) t = LINET - 1;
+            int L = lat[t];
+            bool ag = (L & 8) != 0, css = (L & 16) != 0;
+            if (px < 0 || px >= 256) { Fb[o + x] = ag ? (css ? Pal[4] : Pal[0]) : BLACK; continue; }
+            int col = px >> 3;
+            if (col != cachedCol) { cachedCol = col; b = VramAt((rowAddr + col) & 0x7FF, ls + H0 + col * 4); }
+            int i = px & 7, c;
+            if (ag) c = Pal[((b >> (6 - (i >> 1) * 2)) & 3) + (css ? 4 : 0)];
+            else if ((b & 0x80) != 0)
+            {
+                int top = lineCtr < 6 ? 3 : 1;   // bit3 TL bit2 TR (top half), bit1 BL bit0 BR
+                c = ((b >> (i < 4 ? top : top - 1)) & 1) != 0 ? Pal[(b >> 4) & 7] : BLACK;
+            }
+            else
+            {
+                // 6847 text on the VZ: normal characters are bright green on dark green; inverse is dark on bright
+                int ry = lineCtr;
+                int bits = (ry >= 3 && ry < 10) ? Font6847.F[b & 63, ry - 3] : 0;
+                bool on = i >= 1 && i < 6 && ((bits >> (5 - i)) & 1) != 0;
+                if ((b & 0x40) != 0) on = !on;
+                c = on ? (css ? BRORANGE : Pal[0]) : (css ? DKORANGE : DKGREEN);
+            }
+            Fb[o + x] = c;
+        }
+    }
+
+    static int BorderColour(int latch) { return (latch & 8) != 0 ? ((latch & 16) != 0 ? Pal[4] : Pal[0]) : BLACK; }
+
+    /// <summary>The hi-res mods: whole-line rendering with the latch as it is mid-line.</summary>
+    void RenderLineOld(int ln)
+    {
         int oy = ln - (PicStart - BY);
         if (oy < 0 || oy >= FBH) return;
         int o = oy * FBW;

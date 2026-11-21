@@ -2,7 +2,7 @@
 
 A demoscene megademo for the Dick Smith VZ300, about six minutes long. It has plasma, Kefrens bars, a synthwave picture, shaded 3D cube and octahedron, tunnel and torus, rotozoom, twister, transparency, music and speech.
 
-**Version 1.4** · ViBED by BPM
+**Version 1.5** · ViBED by BPM
 
 ![finale](screenshots/14_finale.png)
 

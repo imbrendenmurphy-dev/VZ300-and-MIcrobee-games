@@ -139,11 +139,18 @@ public sealed class MainForm : Form
         {
             PowerOnNow();
             if (startProgram != null) LaunchNow(startProgram);
-            if (autoType != null) TypeString(autoType);
+            if (autoType != null) { if (startProgram == null && m.HasRom) typeHold = 150; TypeString(autoType); }   // let BASIC reach READY first
+            if (startTape != null)
+            {
+                // --tape FILE: start it once --type has finished, half a second later (as if pressing PLAY)
+                var t = VzTape.Load(startTape, tapeRight ? 1 : 0); t.Invert = tapeInvert;
+                pendingTape = t; pendingTapeDelay = 25;
+            }
         });
     }
 
-    string startProgram, shotPath, autoType; double quitAfter; bool noSettings;
+    VzTape pendingTape; int pendingTapeDelay, typeHold;
+    string startProgram, shotPath, autoType, startTape; double quitAfter; bool noSettings;
     void ParseArgs(string[] args)
     {
         noSettings = Array.Exists(args, x => x == "--no-settings" || x == "--quit-after");
@@ -161,6 +168,7 @@ public sealed class MainForm : Form
             else if (a == "--shot") { shotPath = Path.GetFullPath(v); i++; }
             else if (a == "--quit-after") { double.TryParse(v, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out quitAfter); i++; }
             else if (a == "--type") { autoType = v.Replace("\\r", "\r"); i++; }
+            else if (a == "--tape") { startTape = v; i++; }
             else if (a == "--border") { showBorder = v != "0"; i++; }
             else if (a == "--integer") { integerScale = v != "0"; i++; }
             else if (a == "--no-settings") { }
@@ -191,6 +199,13 @@ public sealed class MainForm : Form
         file.DropDownItems.Add(new ToolStripSeparator());
         file.DropDownItems.Add(Item("Mount SD card folder...", Keys.None, (s, e) => ChooseSdFolder()));
         file.DropDownItems.Add(Item("Open SD card folder in Explorer", Keys.None, (s, e) => { try { Process.Start("explorer.exe", "\"" + m.SdDir + "\""); } catch { } }));
+        file.DropDownItems.Add(new ToolStripSeparator());
+        file.DropDownItems.Add(Item("Play tape (audio file)...", Keys.None, (s, e) => OpenTapeDialog()));
+        miTapeRight = Item("Tape: use the right channel", Keys.None, (s, e) => { tapeRight = !tapeRight; miTapeRight.Checked = tapeRight; });
+        miTapeInvert = Item("Tape: invert the signal", Keys.None, (s, e) => { tapeInvert = !tapeInvert; miTapeInvert.Checked = tapeInvert; cmds.Enqueue(() => { if (m.Tape != null) m.Tape.Invert = tapeInvert; }); });
+        file.DropDownItems.Add(miTapeRight);
+        file.DropDownItems.Add(miTapeInvert);
+        file.DropDownItems.Add(Item("Stop tape", Keys.None, (s, e) => cmds.Enqueue(() => { if (m.Tape != null) m.Tape.Playing = false; })));
         file.DropDownItems.Add(new ToolStripSeparator());
         file.DropDownItems.Add(Item("Paste text as typing", Keys.F7, (s, e) => PasteText()));
         file.DropDownItems.Add(Item("Save screenshot", Keys.F12, (s, e) => Screenshot()));
@@ -364,6 +379,26 @@ public sealed class MainForm : Form
             }
         }
         paused = wasPaused;
+    }
+
+    ToolStripMenuItem miTapeRight, miTapeInvert;
+    bool tapeRight, tapeInvert;
+
+    /// <summary>Plays an audio file into the cassette input from now (type CLOAD or CRUN first, as on the real VZ).</summary>
+    void OpenTapeDialog()
+    {
+        using (var d = new OpenFileDialog { Filter = "Audio (*.wav;*.flac;*.mp3)|*.wav;*.flac;*.mp3|All files|*.*" })
+        {
+            if (d.ShowDialog(this) != DialogResult.OK) return;
+            try
+            {
+                var t = VzTape.Load(d.FileName, tapeRight ? 1 : 0);
+                t.Invert = tapeInvert;
+                cmds.Enqueue(() => m.PlayTape(t));
+                ShowMessage("Tape: " + t.Name + " (" + (int)(t.Seconds / 60) + ":" + ((int)t.Seconds % 60).ToString("00") + ")");
+            }
+            catch (Exception ex) { MessageBox.Show(this, ex.Message, "Play tape", MessageBoxButtons.OK, MessageBoxIcon.Warning); }
+        }
     }
 
     void OpenVzDialog()
@@ -570,7 +605,10 @@ public sealed class MainForm : Form
         string sd = m.SdDir;
         if (sd.Length > 50) sd = "..." + sd.Substring(sd.Length - 47);
         stLeft.Text = messageFrames > 0 ? message : ConfigText() + (m.HasRom ? "" : " (no ROM)") + "   SD: " + sd;
-        stRight.Text = (paused ? "PAUSED  " : "") + (warp ? "WARP  " : "") + (muted ? "MUTE  " : "") + fps.ToString("0") + " fps";
+        string tape = "";
+        var tp = m.Tape;
+        if (tp != null && tp.Playing) { double p = tp.Position(m.Cpu.Cyc); tape = "TAPE " + (int)(p / 60) + ":" + ((int)p % 60).ToString("00") + "  "; }
+        stRight.Text = tape + (paused ? "PAUSED  " : "") + (warp ? "WARP  " : "") + (muted ? "MUTE  " : "") + fps.ToString("0") + " fps";
     }
 
     // ------------------------------------------------------------------ input
@@ -623,7 +661,8 @@ public sealed class MainForm : Form
         m.Joy[0] = j1; m.Joy[1] = j1a; m.Joy[2] = j2; m.Joy[3] = j2a;
 
         // auto-typing (paste, RUN)
-        if (typing == null && typeQueue.Count > 0) { typing = typeQueue.Dequeue(); typePhase = 0; }
+        if (typeHold > 0) typeHold--;
+        else if (typing == null && typeQueue.Count > 0) { typing = typeQueue.Dequeue(); typePhase = 0; }
         if (typing != null)
         {
             if (typePhase < 3) foreach (var k in typing) m.SetKey(k, true);
@@ -649,6 +688,7 @@ public sealed class MainForm : Form
                 if (paused) { Thread.Sleep(20); nextT = sw.Elapsed.TotalMilliseconds; BlitLatest(); continue; }
 
                 PollInput();
+                if (pendingTape != null && typeQueue.Count == 0 && typing == null && typeHold == 0 && --pendingTapeDelay <= 0) { m.PlayTape(pendingTape); pendingTape = null; }
                 m.AudioOn = !warp && wave != null && wave.Ok;
                 m.RunFrame();
                 if (vis.T != null && visOn) vis.Render();

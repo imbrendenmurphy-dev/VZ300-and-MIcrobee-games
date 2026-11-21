@@ -97,7 +97,11 @@ public sealed class Headless
             tmarkLast = t;
         }
         foreach (var wr in watches)
-            if (a >= wr[0] && a <= wr[1]) Console.Error.WriteLine("write {0:X4}={1:X2} pc={2:X4} {3} frame {4}", a, v & 255, m.CurPc, Near(m.CurPc), m.Frames);
+            if (a >= wr[0] && a <= wr[1])
+            {
+                long rel = cpu.Cyc - m.FrameStart;   // the end of the instruction doing the write
+                Console.Error.WriteLine("write {0:X4}={1:X2} pc={2:X4} {3} frame {4} line {5} t {6}", a, v & 255, m.CurPc, Near(m.CurPc), m.Frames, rel / VzMachine.LINET, rel % VzMachine.LINET);
+            }
     }
 
     // run with optional profiling
@@ -225,7 +229,7 @@ public sealed class Headless
         foreach (var kv in sym) if (!vis.Sym.ContainsKey(kv.Value & 0xFFFF)) vis.Sym[kv.Value & 0xFFFF] = kv.Key.ToUpperInvariant();
     }
 
-    static readonly HashSet<string> configCmds = new HashSet<string> { "machine", "exp", "gfx", "rom", "joyif", "sd", "sym", "quiet", "topborder", "crash", "spok", "stack", "print", "romtrap", "watch" };
+    static readonly HashSet<string> configCmds = new HashSet<string> { "machine", "exp", "gfx", "rom", "joyif", "sd", "sym", "quiet", "topborder", "crash", "spok", "stack", "print", "romtrap", "watch", "linelog" };
 
     bool Exec(string ln)
     {
@@ -276,6 +280,7 @@ public sealed class Headless
             case "spok": sprLo = Num(a1); sprHi = Num(a2); break;
             case "stack": spLo = Num(a1); spHi = Num(a2); break;
             case "watch": watches.Add(new[] { Num(a1), a2 != "" ? Num(a2) : Num(a1) }); break;
+            case "linelog": m.DebugLine = a1 == "off" ? -1 : Num(a1); break;
             case "print": Console.WriteLine(ln.Length > 5 ? ln.Substring(5).Trim() : ""); break;
 
             // ---- running
@@ -287,6 +292,25 @@ public sealed class Headless
                 }
                 break;
             case "reset": m.Reset(); break;
+            case "tape":
+                {
+                    // tape FILE.wav [left|right|mix] [invert]: play a WAV into the cassette input from now
+                    string[] w = ln.Substring(4).Trim().Split(' ');
+                    int chn = 0; bool inv = false; int k = w.Length;
+                    while (k > 1 && (w[k - 1] == "left" || w[k - 1] == "right" || w[k - 1] == "mix" || w[k - 1] == "invert"))
+                    {
+                        k--;
+                        if (w[k] == "right") chn = 1; else if (w[k] == "mix") chn = -1; else if (w[k] == "invert") inv = true;
+                    }
+                    string f = string.Join(" ", w, 0, k).Trim('"');
+                    var t = VzTape.Load(f, chn); t.Invert = inv;
+                    m.PlayTape(t);
+                    Console.Error.WriteLine("tape: {0}, {1} Hz, {2:F1} s", t.Name, t.Rate, t.Seconds);
+                }
+                break;
+            case "tapestop": if (m.Tape != null) m.Tape.Playing = false; break;
+            case "tapepos": Console.Error.WriteLine("tape {0:F3} s{1}", m.Tape != null ? m.Tape.Position(cpu.Cyc) : 0, m.Tape != null && m.Tape.Playing ? "" : " (stopped)"); break;
+            case "tapeinvert": if (m.Tape != null) m.Tape.Invert = a1 == "on" || (a1 == "" && !m.Tape.Invert); break;
             case "frames": RunFrames(Num(a1)); break;
             case "seconds": RunFrames(Num(a1) * 50); break;
             case "down": SetKey(a1, true); break;

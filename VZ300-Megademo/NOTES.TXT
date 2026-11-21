@@ -1,4 +1,4 @@
-VZ300 MEGADEMO 2026  -  ViBED by BPM                         version 1.4
+VZ300 MEGADEMO 2026  -  ViBED by BPM                         version 1.5
 =======================================================================
 
 Needs: VZ300 (or VZ200) + BennVenn SD loader with 128K SRAM.
@@ -18,6 +18,19 @@ FILES (copy ALL of them to the ROOT of the SD card)
   LOAD"VZMEGA"    (or LOAD"RASTEST", LOAD"FXPLASMA" ...)  - they autostart.
 
 -----------------------------------------------------------------------
+WHAT'S NEW IN 1.5
+-----------------------------------------------------------------------
+  * The finale's Kefrens bars work on a real VZ300. In 1.4 they started
+    one scanline too late, so the screen showed a leftover VRAM row as
+    full-height stripes instead of the bars.
+  * Every raster effect is two scanlines higher: the picture starts 62
+    lines after field sync, not 64 (worked out from photos of 1.4 on a
+    real VZ300, and checked against 2018 A.D. by Five Finger Punch).
+  * The per-line mode flicks now land in the horizontal blanking, so the
+    dark dashes at the left edge of the Kefrens and FLD screens are gone.
+  Everything else is unchanged.
+
+-----------------------------------------------------------------------
 PLEASE RUN RASTEST FIRST AND SEND ME THESE NUMBERS
 -----------------------------------------------------------------------
 Screen 1 RESULTS (just write them down):
@@ -35,13 +48,13 @@ Screen 2 CALIBRATE (needs the most care):
     Find the value where the marker line sits EXACTLY on the top pixel
     row of the green text area (row "0"). Lower values put it in the
     black top border, higher values put it inside the text.
-    -> tell me that D LINE value (v1.1 uses 64, measured from your photos).
+    -> tell me that D LINE value (v1.5 uses 62: see WHAT'S NEW IN 1.5).
   * Two blocks of 10 lines further down the screen deliberately flick the
     video mode for a few cycles on every line. If that flick lands in the
     visible picture you see short green dashes / specks at the left or
     right edge. W / S changes HPHASE. Step through all 32 values and tell
     me the range of HPHASE values where BOTH blocks look clean (no
-    dashes anywhere). v1.1 uses 22 (measured from your photos).
+    dashes anywhere). v1.5 uses 16 (see WHAT'S NEW IN 1.5).
   Press RETURN.
 
 Screen 3 SPLIT: text, then a block of coloured vertical stripes, then text

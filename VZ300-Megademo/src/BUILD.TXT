@@ -1,4 +1,4 @@
-VZ300 MEGADEMO 2026 - ViBED by BPM            source code, version 1.4
+VZ300 MEGADEMO 2026 - ViBED by BPM            source code, version 1.5
 ======================================================================
 src/     Z80 assembly (sjasmplus syntax)
          resident.asm  engine + loader (the .VZ), core/music/speech.asm
@@ -16,3 +16,12 @@ The emulator also needs a VZ300 BASIC ROM image as tools/vzrom.v21
 Build everything:   bash tools/release.sh     -> build/release/
 One part only:      python3 tools/build.py p3 STARTORD=14 LOOPTEST=1 NAME=TEST
 Emulator:           gcc -O2 -o tools/vzemu tools/vzemu.c tools/z80.c
+
+v1.5: D = 62 (tools/vzcfg.py), hphase = 16 (src/core.asm), and the finale
+Kefrens table holds from 2 lines before the picture (tools/assets_p6.py).
+The released v1.5 files were made by patching those bytes into the v1.4
+release, so they match v1.4 everywhere else. Its speech is unchanged.
+tools/vzemu.c still uses the old timing (picture at line 120, first pixel
+at T 93). For testing, use VZonPC's vzemu.exe instead: it is timed to
+match a real VZ300 (picture at line 118, first pixel at about T 58,
+mode-flip line holds).

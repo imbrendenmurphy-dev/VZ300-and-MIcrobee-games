@@ -107,6 +107,26 @@ the picture the way the real machine shows them.
 **Machine:** VZ200 / VZ300, the memory expansion, the graphics mod and the joystick interface.
 Changing any of these power-cycles the machine and reloads the current program.
 
+## Tape input
+
+**File → Play tape (audio file)...** plays a WAV, FLAC or MP3 into the VZ's cassette socket, exactly as a tape
+recorder would. Type `CLOAD` or `CRUN` first, as on the real machine. The ROM's own loader reads it, and so do
+fast loaders that time the signal themselves. The status bar shows the tape position.
+
+- The input is modelled as the VZ's inverting comparator, with its threshold just above zero, so silence reads the
+  same as no tape. Fast loaders depend on that to finish a block. **Tape: invert the signal** flips it if a
+  recording was made the other way round.
+- With a stereo file, the left channel goes to the VZ, and the right channel plays through your speakers.
+  **Tape: use the right channel** swaps them.
+- Ogg files can't be opened: Windows only decodes Ogg for Store apps. Convert them to WAV first.
+- Saving to tape (`CSAVE`) isn't emulated.
+
+**2018 A.D. by Five Finger Punch** (Edison 2018) runs this way, from its original CD audio. Its left channel is a
+ROM-speed boot, then 25 speedloaded parts at about 4,000 bits per second. Its right channel is the music. Set up a
+VZ200 with no memory expansion, type `CRUN`, then play the audio (`combined.ogg` from scene.org, converted to WAV).
+From the command line:
+`VZonPC.exe --no-settings --machine vz200 --exp none --type "CRUN\r" --tape 2018AD_combined.wav`
+
 ## The visualiser (F10)
 
 **F10** (or **View → Visualiser**) shows live panels of what the machine is doing. In fullscreen they fill
@@ -149,9 +169,26 @@ The visualiser costs about 1.5 ms of CPU per frame, so everything still runs at 
 ## Hardware details
 
 - **Timing.** Each field is 312 lines × 228 T-states. INT and field sync (`$6800` bit 7 low) are held for the
-  first 56 lines, and the picture starts 25 lines later. The interrupt is level-triggered as on the
-  real VZ. The display is drawn line by line, so mid-frame changes to the mode or colour set show up.
-  These timings come from the harnesses used for your earlier games, and were checked against RASTEST on your VZ300.
+  first 56 lines, and the picture starts 62 lines after that (line 118). The interrupt is level-triggered as on the
+  real VZ.
+- **The 6847 is timed to the pixel.** Every latch and video RAM write is logged with the T-state it happens at
+  (within the instruction: the last write about 2 T-states before the instruction ends, earlier writes 3 T-states
+  apart). Each line is drawn once it has finished, two pixels per T-state, with the picture from T-state 58 to 185
+  of the line and 16 T-states of border each side. A mode or colour-set change part-way along a line shows at the
+  right pixel, and each byte is read from video RAM when the 6847 fetches it.
+- **The 6847's address counter is modelled.** It moves to the next 32-byte row after 12 lines (text) or 3 lines
+  (128×64), carrying on from wherever it is when the mode changes. A mode flip (text ↔ graphics) during a line resets
+  the line count, so the same row is shown again on the next line. This "line hold" is what Kefrens bars and FLD rely on.
+- **The top and bottom borders** keep the mode from the last picture line, not the live latch.
+- **Where these numbers come from:** photos of the VZ300 Megademo 1.4 on a real VZ300, and 2018 A.D. by Five Finger
+  Punch (https://github.com/vilcans/2018AD), whose Kefrens was tuned on a real Laser 200.
+  - The megademo's RASTER screen shows the hold, the border colours, and where its 3-T-state mode flick lands.
+  - Its finale Kefrens starts holding on line 121 and shows VRAM row 1 on the TV, so the picture starts by line 118.
+  - `test\kef2018\` is a cycle-exact port of 2018 A.D.'s Kefrens. It shows row 0 only if the picture starts on
+    line 118 or later. It runs correctly with no adjustment, with the flick hidden in the blanking.
+  - Together these fix the picture start at line 118, and put its left edge between T-states 53 and 65.
+
+  The hi-res mods are still drawn a whole line at a time.
 - **The keyboard** is the real matrix (rows on A0–A7, bit 5 is the first key in the manual).
 - **The joysticks** are on ports `$20`–`$2F`: bit 0 = joystick 1, bit 1 = its arm button, bit 2 = joystick 2,
   bit 3 = its arm button. The values are active low: 1 up, 2 down, 4 left, 8 right, 16 fire.
@@ -214,6 +251,8 @@ Paths in a script are relative to the current directory. Screenshots are PNG, 25
 | `type TEXT` | type text (`\r` = RETURN) |
 | `rand FRAMES [seed] [KEY,KEY,...]` | random-input soak |
 | `reset`, `poke A V`, `out PORT V` | |
+| `tape FILE [left\|right\|mix] [invert]` | play a WAV/FLAC/MP3 into the cassette input from now |
+| `tapestop`, `tapeinvert [on\|off]`, `tapepos` | stop, flip the polarity, print the tape position |
 
 **Inspection**
 
@@ -237,7 +276,8 @@ Paths in a script are relative to the current directory. Screenshots are PNG, 25
 | `vis FILE [panels]` | save the visualiser as PNG: 1920×1080 with the screen in the middle, or just the two 320×1080 panels |
 | `crash` | writes `crash.txt` (the last 4096 PCs) and stops when execution leaves sane memory |
 | `romtrap` | stop on a jump into ROM |
-| `watch LO [HI]` | log writes to a range |
+| `watch LO [HI]` | log writes to a range, with the line and T-state (`watch $6800 $6FFF` shows every latch write) |
+| `linelog LINE` / `linelog off` | each frame, log that line's latch changes by T-state and the 6847 row it shows |
 | `print TEXT`, `quit` | |
 
 **Environment:** `RANDRAM=seed` randomises RAM at power-on. `DOSSCRIBBLE=1` trashes memory below the DOS stack
@@ -248,7 +288,7 @@ To build test programs, assemble with `py tools\zasm.py src.asm -o out.bin --sym
 
 The GUI can also check itself: `VZonPC.exe GAME.VZ --quit-after 8 --shot win.png [--scale 2] [--gfx aus] [--fullscreen]`
 runs the real window for 8 seconds (add `--vis` for the visualiser; its window is saved as `win_vis.png`), captures it from the screen and exits without touching the settings.
-Other options: `--sd DIR`, `--machine`, `--exp`, `--type "RUN\r"`, `--border 0|1`, `--integer 0|1`.
+Other options: `--sd DIR`, `--machine`, `--exp`, `--type "RUN\r"`, `--tape FILE` (starts once the typing has finished), `--border 0|1`, `--integer 0|1`, `--no-settings`.
 
 ## Source
 
@@ -258,7 +298,7 @@ winmm joysticks, GDI display). Run `build.bat` after changes. C# 5 only: no stri
 
 ## Not emulated (yet)
 
-- The cassette.
+- Saving to cassette (`CSAVE`). Loading from tape audio works (see Tape input).
 - The printer and the disk drive.
 - The BennVenn's own flash BIOS and its built-in DOS. A small stand-in loads `VZDOS.VZ` instead, so without a
   `VZDOS.VZ` the loader goes straight to BASIC.

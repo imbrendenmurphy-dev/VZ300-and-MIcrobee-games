@@ -5,7 +5,7 @@ setlocal
 cd /d "%~dp0"
 set CSC=%WINDIR%\Microsoft.NET\Framework64\v4.0.30319\csc.exe
 if not exist "%CSC%" set CSC=%WINDIR%\Microsoft.NET\Framework\v4.0.30319\csc.exe
-set CORE=src\Z80.cs src\Z80Dis.cs src\Font6847.cs src\Machine.cs src\SdCard.cs src\Trace.cs src\Vis.cs src\Headless.cs
+set CORE=src\Z80.cs src\Z80Dis.cs src\Font6847.cs src\MfAudio.cs src\Tape.cs src\Machine.cs src\SdCard.cs src\Trace.cs src\Vis.cs src\Headless.cs
 set REFS=-r:System.Drawing.dll -r:System.Windows.Forms.dll -r:Microsoft.VisualBasic.dll
 
 "%CSC%" -nologo -optimize+ -target:exe -out:vzemu.exe -main:Headless %REFS% %CORE%
