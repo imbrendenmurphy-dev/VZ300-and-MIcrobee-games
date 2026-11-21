@@ -1,6 +1,7 @@
 # VZonPC
 
-An emulator for the Dick Smith **VZ200** and **VZ300** (VTech Laser 210/310) for Windows.
+An emulator for the Dick Smith **VZ200** and **VZ300** (VTech Laser 210/310) for Windows, with a version for
+Linux and macOS (see [Linux and macOS](#linux-and-macos)).
 
 - **Machines:** VZ200 (8K, 3.58 MHz) or VZ300 (18K, 3.55 MHz).
 - **Memory:** no expansion, the 16K RAM pack, or the **BennVenn SD loader with 128K**.
@@ -23,7 +24,8 @@ It builds with the C# compiler that comes with Windows. There is nothing to inst
 |---|---|
 | `VZonPC.exe` | the emulator window |
 | `vzemu.exe` | headless test runner (same emulation core) |
-| `build.bat` | rebuilds both from `src\` |
+| `VZonPC-SDL.exe`, `vzonpc.sh`, `vzemu.sh`, `play-2018ad.sh` | the Linux and macOS version, and its launch scripts |
+| `build.bat` | rebuilds all three from `src\` |
 | `SD\` | the default SD card folder (mount any folder from the File menu) |
 | `roms\` | put a VZ BASIC ROM here (optional, see below) |
 | `tools\zasm.py`, `tools\mkvz.py` | Z80 assembler and `.VZ` wrapper (Python 3) |
@@ -262,6 +264,43 @@ the screen, and **hold the left button** to press the pen against it. The cursor
   documents the ports.
 - The light pen disk on vz200.org (`Ligthpen.dsk`) is damaged: sector 12 of tracks 1 to 5 is bad, and its pen
   routine (`LPEN 2.0`) starts in one of them. The other programs load, but they need that routine.
+
+## Linux and macOS
+
+`VZonPC-SDL.exe` is the same emulator with a cross-platform front end on SDL2. It runs on Linux and macOS
+under modern .NET (8 or later) or Mono, and on Windows too, given `SDL2.dll`. The emulation, the visualiser,
+tapes, disks, cartridges, the printer and the light pen are all the same code as the Windows version.
+
+**On Fedora:**
+
+```
+sudo dnf install dotnet-runtime-8.0 SDL2 ffmpeg-free zenity
+./vzonpc.sh                      # or: ./vzonpc.sh GAME.VZ, ./vzonpc.sh --machine vz200 --cart disk ...
+./play-2018ad.sh                 # 2018 A.D. from its CD audio (2018AD_combined.wav or combined.ogg)
+./vzemu.sh script.txt            # the headless test runner
+```
+
+Debian and Ubuntu: `sudo apt install dotnet-runtime-8.0 libsdl2-2.0-0 ffmpeg zenity`. macOS: `brew install dotnet sdl2 ffmpeg`.
+The scripts use `dotnet` if it's there and Mono otherwise. If they aren't executable after unzipping, run
+`chmod +x *.sh`.
+
+- **There are no menus.** F1 shows the keys. The F keys do what they do on Windows (F2 load, F4 power cycle,
+  F10 visualiser, F11 fullscreen, F12 screenshot...), and Alt with a letter does the menu jobs: **Alt+M** VZ200/VZ300,
+  **Alt+X** memory, **Alt+C** cartridge, **Alt+G** graphics mod, **Alt+T** play a tape, **Alt+R** record, **Alt+D**/**Alt+F**
+  disks, **Alt+L** light pen, **Alt+N** printer, **Alt+1**–**5** window size. The command-line options and `vzonpc.ini`
+  are the same as on Windows.
+- **Drag and drop** a `.VZ`, a tape, a `.dsk` or a folder onto the window.
+- **File dialogs** use zenity or kdialog when one is installed.
+- **Messages** show along the bottom of the window in the 6847's own letters; the title bar shows the machine and status.
+- **Tapes:** WAV directly; MP3, FLAC and Ogg through ffmpeg.
+- **SD card deletes** go to the desktop's trash.
+- **Game controllers** use SDL's mappings: A or X fires, B or Y is the second fire.
+- **RS-232** to a telnet host works everywhere. A real serial port (`/dev/ttyUSB0`) needs Mono, or a .NET with the
+  System.IO.Ports package.
+
+`build.bat` builds `VZonPC-SDL.exe` along with the others. It's an ordinary .NET Framework 4 program with no
+Windows Forms; `VZonPC-SDL.runtimeconfig.json` lets modern .NET run it, and `VZonPC-SDL.exe.config` tells Mono where SDL2 is.
+Tested so far on Windows under .NET Framework 4.8 and .NET 8, not yet on Linux or macOS.
 
 ## The visualiser (F10)
 

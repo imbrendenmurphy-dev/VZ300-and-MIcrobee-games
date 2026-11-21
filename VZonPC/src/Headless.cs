@@ -2,8 +2,6 @@
 // Script commands are compatible with the per-game vzemu harnesses used for earlier VZ games.
 using System;
 using System.Collections.Generic;
-using System.Drawing;
-using System.Drawing.Imaging;
 using System.IO;
 using System.Text;
 
@@ -149,18 +147,7 @@ public sealed class Headless
         int w, h; int[] px = m.Snapshot(border, out w, out h);
         SavePng(fn, px, w, h, scale);
     }
-    public static void SavePng(string fn, int[] src, int w, int h, int scale)
-    {
-        if (scale < 1) scale = 1;
-        var bmp = new Bitmap(w * scale, h * scale, PixelFormat.Format32bppRgb);
-        var bd = bmp.LockBits(new Rectangle(0, 0, bmp.Width, bmp.Height), ImageLockMode.WriteOnly, PixelFormat.Format32bppRgb);
-        int[] dst = new int[bmp.Width * bmp.Height];
-        for (int y = 0; y < bmp.Height; y++) for (int x = 0; x < bmp.Width; x++) dst[y * bmp.Width + x] = src[(y / scale) * w + x / scale];
-        System.Runtime.InteropServices.Marshal.Copy(dst, 0, bd.Scan0, dst.Length);
-        bmp.UnlockBits(bd);
-        string dir = Path.GetDirectoryName(Path.GetFullPath(fn)); if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
-        bmp.Save(fn, ImageFormat.Png); bmp.Dispose();
-    }
+    public static void SavePng(string fn, int[] src, int w, int h, int scale) { Portable.SavePng(fn, src, w, h, scale); }
 
     // ---- WAV (44.1 kHz mono, box filtered)
     void WavStart(string fn)

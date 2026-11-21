@@ -44,7 +44,7 @@ public sealed class VzRtty
         Rom = null; RomName = null;
         foreach (var n in new[] { "vzrtty.ic3", "vzrtty.rom", "rtty.rom", "vzrtty.bin" })
         {
-            string p = Path.Combine(dir, n);
+            string p = Portable.Find(dir, n);
             if (File.Exists(p) && new FileInfo(p).Length == 0x1000) { Rom = File.ReadAllBytes(p); RomName = n; return; }
         }
     }

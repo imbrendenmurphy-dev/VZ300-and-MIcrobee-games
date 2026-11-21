@@ -295,7 +295,7 @@ public sealed class VzFloppy
         Rom = null; RomName = null;
         foreach (var n in new[] { "vzdos.rom", "vzdos12.rom", "vzdos.bin", "dd20.rom" })
         {
-            string p = Path.Combine(dir, n);
+            string p = Portable.Find(dir, n);
             if (File.Exists(p) && new FileInfo(p).Length == 0x2000) { Rom = File.ReadAllBytes(p); RomName = n; return; }
         }
     }

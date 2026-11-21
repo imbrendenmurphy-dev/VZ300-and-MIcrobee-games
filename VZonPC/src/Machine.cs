@@ -133,10 +133,10 @@ public sealed class VzMachine
         for (int i = 0; i < 3; i++)
         {
             string f = null;
-            foreach (var n in parts[i]) { string q = Path.Combine(RomDir, n); if (File.Exists(q) && new FileInfo(q).Length == 0x1000) { f = q; break; } }
+            foreach (var n in parts[i]) { string q = Portable.Find(RomDir, n); if (File.Exists(q) && new FileInfo(q).Length == 0x1000) { f = q; break; } }
             if (f == null)
             {
-                string whole = Path.Combine(RomDir, "wordpro.bin");
+                string whole = Portable.Find(RomDir, "wordpro.bin");
                 if (File.Exists(whole) && new FileInfo(whole).Length == 0x3000) { WordProRom = File.ReadAllBytes(whole); WordProName = "wordpro.bin"; }
                 return;
             }
@@ -176,10 +176,10 @@ public sealed class VzMachine
             : new[] { "vz200.rom", "vzrom.bin", "vz.rom", "vz300.rom", "vtechv20.u12", "laser310.rom" };
         foreach (var n in one16)
         {
-            string p = Path.Combine(RomDir, n);
+            string p = Portable.Find(RomDir, n);
             if (File.Exists(p) && new FileInfo(p).Length == 0x4000) { Rom = File.ReadAllBytes(p); RomName = n; return true; }
         }
-        string a = Path.Combine(RomDir, "vtechv20.u09"), b = Path.Combine(RomDir, "vtechv20.u10");
+        string a = Portable.Find(RomDir, "vtechv20.u09"), b = Portable.Find(RomDir, "vtechv20.u10");
         if (File.Exists(a) && File.Exists(b))
         {
             var r1 = File.ReadAllBytes(a); var r2 = File.ReadAllBytes(b);

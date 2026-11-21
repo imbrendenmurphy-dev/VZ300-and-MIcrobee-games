@@ -9,7 +9,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.IO.Ports;
 using System.Net.Sockets;
 using System.Text;
 
@@ -31,7 +30,7 @@ public sealed class VzRs232
         Rom = null; RomName = null;
         foreach (var n in new[] { "rs232_v16.ic2", "rs232_v15.ic2", "rs232.rom", "vzrs232.rom" })
         {
-            string p = Path.Combine(dir, n);
+            string p = Portable.Find(dir, n);
             if (File.Exists(p) && new FileInfo(p).Length == 0x800) { Rom = File.ReadAllBytes(p); RomName = n; return; }
         }
     }
@@ -164,7 +163,7 @@ public sealed class VzRs232
     public void ClearQueue() { lock (rxq) rxq.Clear(); }
 
     // ---------------------------------------------------------------- links: TCP, COM port, capture file
-    TcpClient tcp; NetworkStream ns; SerialPort sp; FileStream capture;
+    TcpClient tcp; NetworkStream ns; ComLink sp; FileStream capture;
     public string LinkName, LinkError, CapturePath;
     readonly byte[] rbuf = new byte[4096];
     int telnet;   // telnet option negotiation state: 0 data, 1 after IAC, 2 option byte
@@ -176,16 +175,12 @@ public sealed class VzRs232
     {
         Disconnect(); LinkError = null;
         target = target.Trim();
-        if (target.StartsWith("COM", StringComparison.OrdinalIgnoreCase))
+        if (target.StartsWith("COM", StringComparison.OrdinalIgnoreCase) || target.StartsWith("/dev/"))
         {
-            sp = new SerialPort(target, Baud, Parity == 'E' ? System.IO.Ports.Parity.Even : Parity == 'O' ? System.IO.Ports.Parity.Odd : System.IO.Ports.Parity.None,
-                DataBits, StopBits == 2 ? System.IO.Ports.StopBits.Two : System.IO.Ports.StopBits.One);
-            sp.DataReceived += (s, e) =>
-            {
-                try { int n = sp.BytesToRead; var b = new byte[n]; sp.Read(b, 0, n); lock (rxq) foreach (var x in b) rxq.Enqueue(x); }
-                catch (Exception) { }
-            };
-            sp.Open();
+            // a PC serial port: COM3 on Windows, /dev/ttyUSB0 on Linux
+            try { sp = ComLink.Open(target, Baud, Parity, DataBits, StopBits, rxq); }
+            catch (TypeLoadException) { throw new Exception("serial ports need Mono, or the System.IO.Ports package, on this .NET"); }
+            catch (FileNotFoundException) { throw new Exception("serial ports need Mono, or the System.IO.Ports package, on this .NET"); }
         }
         else
         {
@@ -263,4 +258,32 @@ public sealed class VzRs232
             if (Session.Length > 4000) { Session.Remove(0, 1000); SessionDir.RemoveRange(0, 1000); }
         }
     }
+}
+
+/// <summary>A PC serial port. It is a class of its own so that System.IO.Ports is loaded only when a port is used:
+/// modern .NET on Linux doesn't include it, but Mono and .NET Framework do.</summary>
+sealed class ComLink
+{
+    object sp;   // a SerialPort, kept as object so loading this class needs no System.IO.Ports
+
+    // the factory keeps the SerialPort type out of the caller, so a missing System.IO.Ports fails here, catchably
+    public static ComLink Open(string name, int baud, char parity, int dataBits, int stopBits, Queue<byte> rxq)
+    {
+        var c = new ComLink(); c.Init(name, baud, parity, dataBits, stopBits, rxq); return c;
+    }
+    void Init(string name, int baud, char parity, int dataBits, int stopBits, Queue<byte> rxq)
+    {
+        var p = new System.IO.Ports.SerialPort(name, baud, parity == 'E' ? System.IO.Ports.Parity.Even : parity == 'O' ? System.IO.Ports.Parity.Odd : System.IO.Ports.Parity.None,
+            dataBits, stopBits == 2 ? System.IO.Ports.StopBits.Two : System.IO.Ports.StopBits.One);
+        p.DataReceived += (s, e) =>
+        {
+            try { int n = p.BytesToRead; var b = new byte[n]; p.Read(b, 0, n); lock (rxq) foreach (var x in b) rxq.Enqueue(x); }
+            catch (Exception) { }
+        };
+        p.Open();
+        sp = p;
+    }
+    public bool IsOpen { get { return sp != null && ((System.IO.Ports.SerialPort)sp).IsOpen; } }
+    public void Write(byte[] b, int o, int n) { ((System.IO.Ports.SerialPort)sp).Write(b, o, n); }
+    public void Close() { if (sp != null) ((System.IO.Ports.SerialPort)sp).Close(); }
 }

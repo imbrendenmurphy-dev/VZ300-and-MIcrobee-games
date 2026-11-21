@@ -305,7 +305,7 @@ public sealed class SdCard
 
     bool Inside(string p)
     {
-        string full = Path.GetFullPath(p), root = Path.GetFullPath(Root).TrimEnd('\\') + "\\";
+        string full = Path.GetFullPath(p), root = Path.GetFullPath(Root).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
         return full.StartsWith(root, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -326,15 +326,7 @@ public sealed class SdCard
         Close();
     }
 
-    static void Recycle(string p, bool dir)
-    {
-        try
-        {
-            if (dir) Microsoft.VisualBasic.FileIO.FileSystem.DeleteDirectory(p, Microsoft.VisualBasic.FileIO.UIOption.OnlyErrorDialogs, Microsoft.VisualBasic.FileIO.RecycleOption.SendToRecycleBin);
-            else Microsoft.VisualBasic.FileIO.FileSystem.DeleteFile(p, Microsoft.VisualBasic.FileIO.UIOption.OnlyErrorDialogs, Microsoft.VisualBasic.FileIO.RecycleOption.SendToRecycleBin);
-        }
-        catch { }
-    }
+    static void Recycle(string p, bool dir) { Portable.Trash(p, dir); }
 
     /// <summary>Writes the DOS's changes back to the PC folder. Returns the number of files and folders changed.</summary>
     public int Flush(Action<string> log)

@@ -14,6 +14,7 @@
 > - **The printer:** `LPRINT`, `LLIST`, `COPY` and WordPro's printing go to a text file.
 > - **The light pen**, timed to the beam: the mouse is the pen. The original 1980s pen driver, which flips video mode part-way down the screen to find the pen, finds it to within a pixel.
 > - **Tape both ways:** `CSAVE` records to a WAV that loads back on a VZ200 or VZ300, and tape audio plays into the cassette socket.
+> - **Linux and macOS:** `VZonPC-SDL.exe` is the same emulator on SDL2, visualiser included. Run it with `./vzonpc.sh`, using .NET 8 or Mono; `./play-2018ad.sh` plays the demo.
 > - **Video timed to the pixel:** colour and mode changes part-way along a line land on the right pixel, so Kefrens bars and line holds work as on a real VZ300. A new visualiser panel shows the 6847's beam line by line.
 
 VZonPC runs VZ software exactly as the real machine does, down to the T-state. Plug in the BennVenn
@@ -100,6 +101,7 @@ small `.exe` with nothing to install.
 
 **Size and requirements**
 - Windows 10 or 11 (it uses the .NET Framework 4 built into Windows). Nothing to install
+- Linux and macOS: `VZonPC-SDL.exe` with SDL2 and .NET 8 or Mono (`sudo dnf install dotnet-runtime-8.0 SDL2` on Fedora)
 - `VZonPC.exe` is 210 KB, and `vzemu.exe` is 144 KB
 - Bring your own VZ ROM for BASIC, and the cartridge ROMs for the disk drive, RTTY, RS-232 and WordPro. Machine-code games run without one
 

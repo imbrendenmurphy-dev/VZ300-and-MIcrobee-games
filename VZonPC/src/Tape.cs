@@ -23,9 +23,9 @@ public class VzTape
     {
         if (!path.EndsWith(".wav", StringComparison.OrdinalIgnoreCase))
         {
-            // Ogg, MP3, FLAC...: Windows' own decoders, through Media Foundation
+            // Ogg, MP3, FLAC...: Media Foundation on Windows, ffmpeg elsewhere
             int rate, ch;
-            short[] pcm = MfAudio.Decode(path, out rate, out ch);
+            short[] pcm = Portable.DecodeAudio(path, out rate, out ch);
             var m = new VzTape { Name = Path.GetFileName(path), Rate = rate };
             if (channel >= ch) channel = 0;
             int n = pcm.Length / ch;
