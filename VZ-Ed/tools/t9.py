@@ -357,7 +357,8 @@ def part_hscroll():
         check(err is None, 'seed %d style %d%s' % (seed, style, '' if err is None else ': ' + err))
 
 parts = dict(hscroll=part_hscroll, wrap=part_wrap, blocks=part_blocks, find=part_find, cfg=part_cfg, sel=part_sel_wrap)
-if len(sys.argv) > 2 and sys.argv[1] == 'wrap':
+if __name__ != '__main__': pass
+elif len(sys.argv) > 2 and sys.argv[1] == 'wrap':
     err = run_wrap(int(sys.argv[2]), int(sys.argv[3]) if len(sys.argv) > 3 else 0, steps=20)
     print('seed', sys.argv[2], 'ok' if err is None else err)
 else:

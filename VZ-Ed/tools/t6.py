@@ -6,7 +6,7 @@ dos=open('VZDOS.VZ','rb').read(); ed=open('../out/VZED.VZ','rb').read()
 sym={l.split()[1]:int(l.split()[0],16) for l in open('../out/vzed.sym')}
 doc=b"Dear VZ friends,\r\n\r\nThis letter was written on a Dick Smith\r\nVZ300 with VZ-ED 0.1 and saved\r\nstraight to the SD card.\r\n\r\nThe quick brown fox jumps over the\r\nlazy dog: 0123456789 !?@#$%&*()\r\n<tags> [brackets] {braces} a_b ~x\r\n\r\nCheers,\r\nBPM\r\n"
 c=Card(spc=8); c.addfile(2,'VZDOS.VZ',dos); c.addfile(2,'SHELL.VZ',ed); c.addfile(2,'LETTER.TXT',doc)
-d=c.mkdir(2,'GAMES'); c.addfile(2,'NOTES.TXT',b'x'*1234); c.addfile(2,'README.TXT',b'r'*20)
+d=c.mkdir(2,'GAMES'); c.addfile(2,'NOTES.TXT',b'x'*1234); c.addfile(2,'README.TXT',b'r'*20); c.addfile(2,'VZED.OVL',open('../out/VZED.OVL','rb').read())
 c.finish()
 m=VZ(dos[24:],c,maxlba=max(c.sec)+5000)
 codeend=sym['code_end']

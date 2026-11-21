@@ -642,45 +642,4 @@ pn_ok:  or a
 pn_bad: scf
         ret
 
-; ---- help pages
-c_help: xor a
-        ld (edmode),a
-        ld hl,helptext
-        ld (hptr),hl
-hp_pg:  call cls_scr
-        xor a
-        call set_rows
-        ld hl,s_helphdr
-        ld de,SCR
-        call puts
-        ld a,(docrows)
-        ld b,a
-        ld de,SCR+32
-        ld hl,(hptr)
-hp_ln:  ld a,(hl)
-        cp $FF
-        jr z,hp_end
-        push de
-        call puts
-        pop de
-        inc hl
-        ex de,hl
-        ld a,b
-        ld bc,32
-        add hl,bc
-        ld b,a
-        ex de,hl
-        djnz hp_ln
-hp_end: ld (hptr),hl
-        call flush
-        call waitkey
-        cp K_QUIT
-        jr z,hp_x
-        ld hl,(hptr)
-        ld a,(hl)
-        cp $FF
-        jr nz,hp_pg
-hp_x:   ld a,1
-        ld (waitrel),a
-        ret
 

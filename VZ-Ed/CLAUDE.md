@@ -1,14 +1,14 @@
 # CLAUDE.md — VZ-ED (text editor / word processor for the VZ300)
 
-Handover from Claude chat to Claude Code, 20 Nov 2026; 0.2 written in Claude Code the same day.
+Handover from Claude chat to Claude Code, 20 Nov 2026; 0.2 written in Claude Code the same day; 0.3 (overlays + sheet view) on 21 Nov 2026.
 Read all of this before changing anything.
 
 Credits line for anything user-facing: **VIBED BY BPM 2026** (the user's standing preference — never
 "code by Claude" or similar).
 
-The user (BPM) is a retro collector, not a programmer (basic BASIC / Z80 knowledge). He tests on his
-real VZ300 and reports back with photos. Explain results in plain words; keep him in the loop on
-anything that writes to his SD card.
+The user (BPM) is a retro collector, not a programmer (basic BASIC / Z80 knowledge). They test on their
+real VZ300 and report back with photos. Explain results in plain words; keep them in the loop on
+anything that writes to their SD card.
 
 ---
 
@@ -16,13 +16,13 @@ anything that writes to his SD card.
 
 | | |
 |---|---|
-| Version | **0.2** (20 Nov 2026): 0.1 + word wrap on screen, blocks + clipboard, find / replace. 0.1 is kept in `release/0.1/`. |
-| Real hardware status | **NEITHER 0.1 NOR 0.2 HAS BEEN TESTED ON A REAL VZ.** Everything below marked "verified" was verified in the emulators only. The user asked for 0.2 before reporting on 0.1. |
-| Outputs | `out/VZED.VZ` (standalone) and `out/PLAYTXT.VZ` (VZ-DECK plug-in). Same code; byte `$A003` = 0 / 1. |
-| Release copies | `release/` (0.2, identical to `out/`), `release/0.1/` (the 0.1 files), `dist/VZ-ED-0.2.zip` (`py tools\package.py`) |
+| Version | **0.3** (21 Nov 2026): 0.2 + overlays (`VZED.OVL`: help moved there) + sheet view (CTRL+V). 0.2 is kept in `release/0.2/`, 0.1 in `release/0.1/`. |
+| Real hardware status | **NO VERSION HAS BEEN TESTED ON A REAL VZ YET** (the user tried 0.2 in VZonPC, which runs the real VZDOS). Everything below marked "verified" was verified in the emulators only. The user asked for 0.2 before reporting on 0.1. |
+| Outputs | `out/VZED.VZ` (standalone) and `out/PLAYTXT.VZ` (VZ-DECK plug-in), same code, byte `$A003` = 0 / 1; `out/VZED.OVL` (overlays, root of the card, section 13). |
+| Release copies | `release/` (0.3, identical to `out/`), `release/0.2/`, `release/0.1/`, `dist/VZ-ED-0.3.zip` (`py tools\package.py`) |
 | Build | `py src\build.py` (Windows) / `python3 src/build.py`. Python 3 only, no packages. |
-| Code size | code `$A000`-`$C6EF`; "tail" (tables, font, messages, help) `$97FE`-`$9FFB`, stored after the code in the file and copied down at start-up; text buffer `$C700`-`$F5FF` (**12,032 bytes**, 0.1 had 12,544). Only **16 bytes** of code room are left before the buffer would drop below 12,000 (see 12.6). |
-| Handover check | `py src\build.py` must reproduce `release/VZED.VZ` MD5 `a9cbdcffba35a597698d5e6525f532ce` and `release/PLAYTXT.VZ` MD5 `33f05a0cb31a809673929b2a60017613` (0.1: `b245d89f...` / `f17ac5c1...`, in `release/0.1/`) |
+| Code size | code `$A000`-`$C5A0`; "tail" (tables, font, all messages, the overlay loader) `$9802`-`$9F1B`, stored after the code in the file and copied down at start-up; text buffer `$C600`-`$F5FF` (**12,288 bytes**; 0.2 had 12,032, 0.1 12,544). Room left: 95 bytes of code before `$C600`, 228 bytes of tail before `$A000`. New features go in overlays (section 13). |
+| Handover check | `py src\build.py` must reproduce `release/VZED.VZ` MD5 `c8283d2bd9e0a6669b42c59b89f6540f`, `release/PLAYTXT.VZ` `5e9611b871cbabb5e97acf8138173f51` and `release/VZED.OVL` `9bb637c68e0333e80a390badcc5e8e3c` (0.2: `a9cbdcff...` / `33f05a0c...` in `release/0.2/`; 0.1: `b245d89f...` / `f17ac5c1...` in `release/0.1/`) |
 | Sister project | VZ-DECK (`../VZ-Deck`), the user's SD boot shell / file browser / music player. VZ-ED is its text plug-in. |
 
 ---
@@ -31,7 +31,7 @@ anything that writes to his SD card.
 
 The user wanted a "full-featured" general-purpose word processor for the VZ that reads and edits
 files on the BennVenn SD card, returns to VZ-DECK, has display options, output options (printer
-port / PDF), a "sheet view", and quality-of-life features. He picked the name **VZ-ED** and agreed a
+port / PDF), a "sheet view", and quality-of-life features. They picked the name **VZ-ED** and agreed a
 staged plan. **0.1 (the core) and 0.2 (wrap, blocks, find/replace) are done**; the rest is the
 roadmap in section 9. 0.2 is described in section 12.
 
@@ -72,6 +72,18 @@ roadmap in section 9. 0.2 is described in section 12.
 - CTRL+F find (either case, wraps to the top), CTRL+G again, CTRL+E replace cursor to end with
   Y/N/A/^Q and "n REPLACED".
 
+### Done in 0.3 (verified in the Python emulator and in vzemu/VZonPC with the real VZDOS; section 13)
+
+- **Overlays**: `VZED.OVL` in the root of the card holds 3K slots loaded to `$8900` on demand. Slot 0 =
+  help (moved out of `VZED.VZ`, which freed the room for the loader and gave the buffer 256 bytes back),
+  slot 1 = sheet view. A build id stops a `VZED.OVL` from another build running. Missing / short /
+  old file: `VZED.OVL MISSING OR OLD`, nothing else changes.
+- **Sheet view (CTRL+V)**: mode 1, one pixel per character (letters blue, spaces green), the editor's
+  screen as a yellow box (letters red). Wrap off: a line per pixel row, 64 rows x 128 columns; wrap
+  on: screen rows, four strips of 64 (256 rows). Cursor keys / R C / T B move the box, RETURN goes
+  there (top = that row, cursor at the box's top-left), Q / CTRL+Q / CTRL+V back.
+- Help text gained CTRL+V and sheet view lines; versions read 0.3.
+
 ### Not done (planned): see section 9.
 
 ---
@@ -79,7 +91,7 @@ roadmap in section 9. 0.2 is described in section 12.
 ## 2. Target hardware and constraints
 
 - Dick Smith **VZ300** (VZ200 compatible), Z80 at 3.54 MHz, MC6847 video, composite colour, 4:3 screen.
-- **BennVenn SD loader + 128K**, running **VZDOS 2.31** on the user's card (he also has 2.32).
+- **BennVenn SD loader + 128K**, running **VZDOS 2.31** on the user's card (they also have 2.32).
   VZ-DECK ships a patched VZDOS 2.32 (Ben Grimmett approved redistribution). The emulator tests use
   that patched 2.32 (`tools/VZDOS.VZ`).
 - One field = **70,630 T-states** (312 lines, 50 Hz). Field sync = bit 7 of `$6800` low for the
@@ -104,12 +116,13 @@ roadmap in section 9. 0.2 is described in section 12.
 | `$8410`-`$858F` | `CLIST`, up to 128 clusters x 3 bytes for a file being written |
 | `$8590`-`$85DA` | `INBUF`, `PNAME`, `CFGBUF`, `NAMEBUF`, `NEWNAME` (moved here in 0.2) |
 | `$85DB`-`$85F1` | `fbuf` find text (length + 22), kept; emptied at start-up |
+| `$8900`-`$96FF` | **0.3: the overlay area** (`OVLA`; code from the file up to `$94FF`, work RAM after it up to `OVLEND` `$9700`). Shared with the fallback clipboard (parked in the gap while an overlay runs, section 13) and DIRBUF/DPTR (only used by the file list). |
 | `$8600`-`$959F` | `DIRBUF`, folder records 20 bytes each, 200 max. **Outside the file list it is 0.2 scratch:** `LIN` `$8600` (wrap layout, 481 bytes), `RING` `$8800`, `WRS` `$8820`, `SRS` `$8850`, `SRP` `$8870`, `FFOLD` `$8880`, scratch variables `$88A0`-`$88D7`, `rbuf` `$88D8` (replace text, emptied by CTRL+O), fallback clipboard `CLIPF` `$8900`-`$95FF` |
 | `$95A0`-`$972F` | `DPTR`, sorted pointers to the records (moved in 0.2) |
-| `$9730`-`$97FD` | variables (`src/vars.inc`, generated by `gen.py`; zeroed at start) |
-| `$97FE`-`$9FFB` | the "tail": messages, KTAB `$9900`, TTAB `$9A00` + CTAB `$9A80`, FONT, more messages, help text. Copied from the end of the file at start-up (the first thing `start` does). |
-| `$A000`-`$C6EF` | code (+ the messages that didn't fit in the tail, `strmain.asm`) |
-| `$C700`-`$F5FF` | text gap buffer (`BUFS` = code end rounded up to a page; `BUFE` = `$F600`) |
+| `$9730`-`$9801` | variables (`src/vars.inc`, generated by `gen.py`; zeroed at start) |
+| `$9802`-`$9F1B` | the "tail": messages, KTAB `$9900`, TTAB `$9A00` + CTAB `$9A80`, FONT, more messages, `strmain.asm`, the overlay loader `ovl.asm`. Copied from the end of the file at start-up (the first thing `start` does). |
+| `$A000`-`$C5A0` | code |
+| `$C600`-`$F5FF` | text gap buffer (`BUFS` = code end rounded up to a page; `BUFE` = `$F600`) |
 | `$F600`-`$F7FF` | stack (`SP` = `$F800`) |
 | `$F800`-`$F9FF` | DOS sector buffer `SECBUF` — all card I/O goes through it |
 | `$FA00`-`$FFFF` | **the DOS's own RAM — never write**, except `$FB06`-`$FB09` (cache tag) and `$FB80` (read buffer pointer). Confirmed on the user's VZ in earlier projects that scrambling `$FA00`+ hangs the DOS. |
@@ -158,12 +171,17 @@ VZ-Ed/
     vzed.asm         main: start-up, editor loop, gap buffer, rendering, display, keyboard
     edit2.asm        0.2: word wrap, blocks + clipboard (incl. the bank test), find / replace
     files.asm        FAT32 layer: sectors, FAT, folders, allocation, safe save, load, folder list, config
-    ui.asm           file list, prompts, help, open/save/new/quit, exit/reload
-    strings.asm      the tail: messages, include tables.inc, more messages, help text (runs at $97FE+)
-    strmain.asm      the messages that didn't fit in the tail (stay with the code)
+    ui.asm           file list, prompts, open/save/new/quit, exit/reload
+    strings.asm      the tail: messages, include tables.inc, more messages (runs below $A000)
+    strmain.asm      more messages (0.3: also in the tail now)
+    ovl.asm          0.3: the overlay loader (in the tail): ovl_run, clipboard parking
+    ovl_help.asm     0.3: overlay slot 0, help pages + help text
+    ovl_sheet.asm    0.3: overlay slot 1, the sheet view
+    mainsym.inc      GENERATED by build.py from out/vzed.sym (main symbols for the overlays)
     gen.py           generates vars.inc (variable addresses) and tables.inc (KTAB, TTAB+CTAB, FONT)
     build.py         runs gen.py, assembles with tools/zasm.py, writes out/VZED.VZ and out/PLAYTXT.VZ
-                     (file = code $A000..code_end, then the tail bytes)
+                     (file = code $A000..code_end, then the tail bytes), then each overlay (own zasm
+                     run at OVLA) into out/VZED.OVL, and patches the build id into ovl_id and each slot
     vars.inc, tables.inc   GENERATED — edit gen.py, not these
   tools/
     zasm.py          the assembler (from the user's Galahxy project): local labels, include, align, assert
@@ -172,11 +190,11 @@ VZ-Ed/
     harness.py       VZ-ED test machine: multi-key keyboard, joystick, FAT32 image builder (optional MBR),
                      FAT32 checker; port $37 bank model: VZ(..., bank=True/False) (0.2)
     shot.py, vzrender.py   PNG screenshots (text and graphics mode)
-    t1..t10.py, prof.py     tests (section 10; t9/t10 are 0.2)
-    package.py       makes dist/VZ-ED-0.2 and the zip
+    t1..t11.py, prof.py     tests (section 10; t9/t10 are 0.2, t11 is 0.3)
+    package.py       makes dist/VZ-ED-0.3 and the zip
     VZDOS.VZ, SHELL.VZ      VZ-DECK 1.0 release files (VZSHELL=path runs t3 with another SHELL.VZ), needed by the tests
-  out/               build output (VZED.VZ, PLAYTXT.VZ, vzed.bin/.sym/.lst)
-  release/           the 0.2 files (release/0.1/ = the 0.1 files)
+  out/               build output (VZED.VZ, PLAYTXT.VZ, VZED.OVL, vzed.bin/.sym/.lst, ovl_*.bin/.sym/.lst)
+  release/           the 0.3 files (release/0.2/, release/0.1/ = older versions)
   screenshots/       emulator screenshots (0.1, plus 0.2 ones named 2x-*)
   testout/           test scratch output (git-ignored)
 ```
@@ -184,7 +202,7 @@ VZ-Ed/
 Build: `py src\build.py` from the project folder (or `cd src` then `py build.py`). It prints the code
 range, tail range and buffer size. `assert BUFS+12000 <= BUFE` and `assert tail_end <= $A000` at the
 end of vzed.asm guard the sizes. If the tail overflows you get "overlapping output at A000": move a
-message from `strings.asm` to `strmain.asm` (see 12.6).
+message out of the tail into the code (see 12.6), or better, move something into an overlay.
 
 `.VZ` header: `VZF0` + 17-byte name ("VZ-ED") + type `$F1` + load address `$A000`.
 
@@ -286,7 +304,7 @@ write `$4990`, directory search `$4D48`, next cluster `$49F8`). They were studie
 - FAT sectors are addressed as `FA16 + n` where `FA16` = reserved sectors **without the partition
   start**. On an MBR-partitioned card that reads/writes the wrong sectors. (The DOS's data-area
   start `FA0A` *does* include the partition start.) The user's card evidently works with the DOS for
-  everything he has done so far, but files that span several clusters on a partitioned card would
+  everything they have done so far, but files that span several clusters on a partitioned card would
   break. VZ-ED adds the partition start (`FB0A`) itself.
 - `$4990` updates **only FAT 1**; VZ-ED updates both copies.
 - The DOS writes the directory entry **before** the data and forces a 24-byte VZ header and `VZ`
@@ -401,25 +419,31 @@ VZ-DECK re-reads the DOS's folder when it comes back.
 ## 8. Known issues, limitations, and what is NOT verified
 
 ### Not verified on real hardware (everything in this list is an assumption until the user reports)
-- **Nothing has run on a real VZ yet** (0.1 or 0.2). The user was asked to back up his card before the first save.
+- **Nothing has run on a real VZ yet** (0.1 or 0.2). The user was asked to back up their card before the first save.
 - (0.2) The spare SRAM bank: the port `$37` behaviour comes from MAME's sdloader (via VZonPC), not
   from the user's machine. The start-up test (12.3) is designed so that if the guess is wrong VZ-ED
   just uses the small clipboard; the one test write is put back at once. Which "home" setting the
   real loader leaves (VZonPC says 1, the Python harness 0) is also unverified; the code works it out.
-- (0.2) The CTRL key choices (K J Y P F G E W) were picked by Claude, not by the user.
+- (0.2) The CTRL key choices (K J Y P F G E W, and 0.3's V) were picked by Claude, not by the user.
+- (0.3) Overlays read `VZED.OVL` with the same sector code as file loading; checked in the Python
+  emulator and in vzemu/VZonPC (real VZDOS over SPI), not yet on the real card. Colours of the sheet
+  view on a real CRT (blue/green and red/yellow) are unchecked.
 - Writing sectors through `$568C` on the real BennVenn card (the emulator's SD model accepts CMD24;
   no program has written to the card outside the DOS before).
 - The SHIFT and CTRL+SHIFT symbol legends; CTRL+: as rubout. The user was asked to report mismatches.
-- Joystick cursor movement on his interface.
-- Readability of the 4x6 graphics font on his CRT/LCD. Known weak glyph: lower-case `w` looks like
+- Joystick cursor movement on their interface.
+- Readability of the 4x6 graphics font on their CRT/LCD. Known weak glyph: lower-case `w` looks like
   `H`. `a`, `S`, `w` were redrawn once already.
-- Whether his card is MBR-partitioned or unpartitioned (both work in the emulator).
+- Whether their card is MBR-partitioned or unpartitioned (both work in the emulator).
 - That `VZED.VZ`'s restart (`OUT ($37),0 : JP 0`) returns to VZ-DECK — this is the documented VZ-DECK
-  way and the "Q quit test" in VZ-DECK's history worked on his machine, so it is likely fine.
+  way and the "Q quit test" in VZ-DECK's history worked on their machine, so it is likely fine.
 
 ### Limitations in 0.2 (by design / not yet built)
-- Max file 12,032 bytes (raw size checked before loading). 0.1 took 12,544.
-- No undo (cut / block delete / replace can't be taken back), no printing, no PDF, no sheet view,
+- Max file 12,288 bytes (raw size checked before loading). 0.2 took 12,032, 0.1 12,544.
+- Help and the sheet view need `VZED.OVL` in the root folder (like `VZED.CFG`), not next to `VZED.VZ`.
+- Sheet view shows 64 lines x 128 columns (wrap off) or 256 screen rows (wrap on) at a time and scrolls
+  with the box; letters only as dots (no shapes). In wrap mode the box can't move sideways.
+- No undo (cut / block delete / replace can't be taken back), no printing, no PDF,
   no menus, no BASIC or hex view, no big-file paging.
 - Wrap edge case: a 32-character word (no spaces) right before a line end leaves an empty screen
   row holding just the line end. Matches the model; harmless.
@@ -436,11 +460,12 @@ VZ-DECK re-reads the DOS's folder when it comes back.
 
 ## 9. Outstanding work and priorities (agreed staged plan)
 
-0. **First: the user's real-hardware report on 0.1 / 0.2**, and fixing what he finds (keyboard
+0. **First: the user's real-hardware report on 0.1 / 0.2**, and fixing what they find (keyboard
    legends, font glyphs, anything about saving, and whether the clipboard holds 10K or 3K, see 12.3).
-1. 0.2 is done (section 12). **Before 0.3, make code room** (16 bytes left); ideas in 12.6.
-2. **0.3**: "sheet view" — a whole page as a 1-pixel-per-character thumbnail in mode 1 with a box to
-   jump around (the user liked this idea a lot); menu bar alongside the CTRL keys.
+1. 0.2 and 0.3 are done (sections 12, 13). 0.3 = overlays + sheet view (the user asked for these two;
+   the menu bar from the old 0.3 plan is still to do). **Every new feature should be an overlay**
+   (section 13.4); the main code has ~95 bytes and the tail ~228 bytes left.
+2. **Next**: menu bar alongside the CTRL keys (an overlay that returns a key code to dispatch?).
 3. **0.4**: output — printer port (Centronics, port `$0E` data / strobe; plain text and Epson
    bold/underline), **PDF export** to the card (text-only PDF with built-in Courier/Helvetica: just
    text objects plus an xref table of byte offsets), choice of line endings.
@@ -476,6 +501,8 @@ from `tools/`: `py t2.py` etc. They read `../out/VZED.VZ` / `PLAYTXT.VZ`, so bui
 | `t9.py` (0.2) | **wrap**: 6 seeds x 120 random keys (typing incl. spaces, all moves, page, top/bottom, delete) in all 3 styles against a Python model of the wrap rule: text, cursor, line, *every screen row*, top is a real row start, cursor cell. **Blocks** with and without the spare bank, wrap on/off: copy, paste, cut marked backwards, delete, typing ends marking, CTRL+O keeps/empties the clipboard, a 9,280-byte block, too big for the fallback. **Highlighting** checked cell by cell while moving. **Find / again / not found / replace Y-N-A, with nothing, stop**, save, card clean. **VZED.CFG** wrap bit written and read, 0.1 file compatible. `py t9.py wrap <seed> [style]` = one long random run | all pass (20 Nov 2026); extra seeds 7, 8, 9, 10, 12, 13 x 240 keys (styles 0, 2, 1, 0, 2, 0) all pass |
 | `t9.py hscroll` (0.2) | wrap **off**, 3 seeds x 120 random keys on long lines: every screen row and the cursor cell checked, including sideways scrolling (catches the 0.1 blank-screen bug) | pass |
 | `t10.py` (0.2) | T-states per key in wrap mode, 600-character paragraphs | see 12.5 |
+| `t11.py` (0.3) | **ovl**: help from VZED.OVL (all pages, back in the text), no VZED.OVL / short / other build -> message and nothing else, the other slot still loads, the small clipboard parked across help + sheet view, and emptied with a message when the gap is too small, card unchanged. **sheet**: wrap off/on x 3 styles: video RAM compared byte for byte with a Python model at entry and after 14 random + 7 fixed moves, RETURN lands on the right cursor / top / hs (screen_check), Q leaves the cursor, text and card unchanged; empty / one-line / `a
+` texts. `py t11.py sheet` / `ovl` | all pass (21 Nov 2026) |
 
 **Re-run on the PC by Claude Code, 20 Nov 2026** (after moving test scratch output from the chat
 sandbox's `/tmp/...` path to `testout/`): build matches both MD5s; t1, t2, t3, t4b, t4c, t6, t8, t5
@@ -618,3 +645,51 @@ shared by three callers.
 Ideas for 0.3: move more code (not only data) into the tail and shrink the tail (e.g. shorter help
 text); simplify `srows_nw`/`next_line`; ask the user before trading buffer size (each 256 bytes of
 code past `$C700` costs 256 bytes of maximum file size).
+
+---
+
+## 13. 0.3 overlays (ovl.asm, ovl_help.asm, ovl_sheet.asm) — read before adding a feature
+
+### 13.1 Why
+The main program was full (16 bytes left in 0.2). Of the 128K, VZ-ED uses `$8000`-`$FFFF` of the main
+map and the spare 10K bank (clipboard). The second 18K bank at `$B800` (port `$37` bit 2, MAME model,
+unverified) is unused, but it hides the code, the text, the stack and the DOS's RAM while switched in,
+so it can only ever be a store. The user agreed: overlays from the card.
+
+### 13.2 The file and the loader
+`VZED.OVL` (root folder, found like `VZED.CFG`): slot n = sectors 6n..6n+5 (3,072 bytes), loaded to
+`OVLA` = `$8900`. Slot bytes 0-1 = the build id, code from `OVLA+2`. `build.py` assembles each overlay
+in its own zasm run against `mainsym.inc` (every main symbol as an `equ`), pads it to 3K, and puts the
+same id (CRC-32 of the program, low 16 bits, never 0) into `ovl_id` and each slot. `ovl_run` (A = slot,
+in the tail): `dir_find` in the root, walk the cluster chain (skip 6n sectors, copy 6), compare the id,
+`call OVLA+2`. On return: NC = nothing, C = move the cursor to logical HL (`gap_to` + `reset_goal`;
+the overlay may already have set `top` / `hs`). Errors: `VZED.OVL MISSING OR OLD`.
+
+### 13.3 Rules for overlay code
+- **Never move the gap** while it runs (the small clipboard may be parked there): read the text with
+  `log2phys`, `wrow`, `next_line`, `curpos`, `textlen`; return C + a position to move the cursor.
+- RAM: `OVLA`..`OVLEND` (`$9700`): code first, work variables after (as `equ`s past the end of the
+  code, so they are not in the file). Don't touch `$8600`-`$88FF` (wrap scratch used by `wrow` etc.).
+- `edmode` is 0 while an overlay runs (no cursor blink); `waitrel` = 1 on entry and on return.
+- An overlay that changes the screen mode calls `set_display` + `invalidate` before returning.
+- Labels: prefix them per overlay (`zh_`, `zs_`): they share one namespace with `mainsym.inc`.
+- Adding one: `src/ovl_x.asm` like the others (`include "mainsym.inc"`, `org OVLA`, `dw 0`), add it to
+  `OVERLAYS` in `build.py` (its index is the slot), a stub `ld a,slot : jp ovl_run` in the main code,
+  and copy the new `VZED.OVL` with the program (the id changes with every build).
+
+### 13.4 Parking the small clipboard
+With no spare bank (VZonPC, the Python harness with `bank=False`) the clipboard is `CLIPF` `$8900`,
+inside the overlay area. `ov_stash` copies it to the start of the gap if `ge-gs >= cliplen`
+(`ovst` = 1), and `ov_unstash` copies it back after the overlay; otherwise `cliplen` = 0 and
+`SMALL CLIPBOARD EMPTIED` (`ovst` = 2). With the spare bank nothing is parked.
+
+### 13.5 Sheet view internals
+Rows = lines (wrap off, `next_line`) or screen rows (wrap on, `wrow`). One pass at entry fills
+`zAT[k]` = start of row 64k (194 entries = 12,289 rows max), the row count `zNR` and the box row `zB`
+(the row that equals `top`). `zS0` = first row shown, `zH0` = first column shown (multiple of 4, as
+is the box column `zBH`); when the box leaves the sheet it is re-centred (`zs_fix`), and `zRT` (the
+starts of rows `zS0`..`zS0`+SH) is rebuilt from `zAT`. A row: the characters (around the gap, `zs_get`)
+into `zLB`, packed four to a byte (`cp 33 : ccf : rl c : sla c` = 10 for a letter), the rest of the row
+zeroed, then `OR $55` over the box's 8 bytes. Only the rows of the old and new box are redrawn unless
+`zS0`/`zH0` change. Video address of row i: `$7000 + (i&63)*32 + (i>>6)*8` (strips in wrap mode).
+Speed (vzemu/Python, frames): entry with load 16-24; box move 1.5-3; T/B with a scroll 9-11.

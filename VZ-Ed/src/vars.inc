@@ -111,4 +111,8 @@ clipmax equ $97F8
 cliplen equ $97FA
 askall equ $97FC
 clhome equ $97FD
-VARS_END equ $97FE
+ovslot equ $97FE
+ovskip equ $97FF
+ovcnt equ $9800
+ovst equ $9801
+VARS_END equ $9802

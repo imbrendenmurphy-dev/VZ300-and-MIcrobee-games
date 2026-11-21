@@ -1,4 +1,4 @@
-# VZ-ED 0.2
+# VZ-ED 0.3
 
 A full-screen text editor for the Dick Smith VZ300 / VZ200 with the BennVenn SD loader and 128K.
 It reads and writes text files straight on the SD card and works hand in hand with VZ-DECK.
@@ -7,14 +7,16 @@ VIBED BY BPM 2026
 
 ## Installing
 
-Copy both files to the **root** of the SD card:
+Copy the three files to the **root** of the SD card:
 
 | File | What it does |
 |---|---|
 | `VZED.VZ` | Run it from VZ-DECK (or the DOS) to start a new document. Quitting restarts into VZ-DECK. |
+| `VZED.OVL` | Help and the sheet view (see "Overlays" below). Without it everything else still works; CTRL+H and CTRL+V say `VZED.OVL MISSING OR OLD`. |
 | `PLAYTXT.VZ` | VZ-DECK plug-in. Press RETURN on any `.TXT` file in VZ-DECK and it opens in VZ-ED. Quitting goes straight back to VZ-DECK, in the same folder. |
 
-They are the same program; one byte tells them apart. **Back up your card before you first save
+`VZED.VZ` and `PLAYTXT.VZ` are the same program; one byte tells them apart. Always copy all three
+from the same release: an old `VZED.OVL` is refused rather than run. **Back up your card before you first save
 with it on real hardware.**
 
 ## Display styles (CTRL+D)
@@ -44,6 +46,26 @@ type. A word longer than the screen is split at 32 characters.
 With word wrap off, lines longer than 32 columns scroll sideways as before. Word wrap is remembered
 in `VZED.CFG` with the display style.
 
+## Sheet view (CTRL+V)
+
+A whole page at once, one dot for each character: blue for a letter, green for a space. The yellow
+box is the part the editor shows. Move it with the cursor keys, CTRL+R / C (a screen at a time) and
+CTRL+T / B (top / end), then press RETURN to go there. Q, CTRL+Q or CTRL+V go back without moving.
+
+* Word wrap off: one dot row per line, 64 lines and the first 128 columns (the sheet scrolls when the
+  box goes past an edge).
+* Word wrap on: one dot row per screen row, in four strips of 64 rows side by side (256 rows, about 7K
+  of text).
+
+## Overlays
+
+Help and the sheet view live in `VZED.OVL`, not in `VZED.VZ`: they are loaded from the card only when
+you use them (the sheet view is up in under half a second), so the editor keeps its room for text. Later features
+(printing, PDF, the BASIC and hex views) will be added the same way. `VZED.OVL` is only read, never
+written. On a machine without the spare 10K SRAM bank, the small clipboard is parked in the free part
+of the text buffer while an overlay runs; if the file leaves no room for it, it is emptied and VZ-ED
+says `SMALL CLIPBOARD EMPTIED`.
+
 ## Keys
 
 All commands are CTRL + a key. CTRL+H shows these on screen.
@@ -64,6 +86,7 @@ All commands are CTRL + a key. CTRL+H shows these on screen.
 | CTRL + N | new file |
 | CTRL + D | display style |
 | CTRL + W | word wrap on / off |
+| CTRL + V | sheet view (needs `VZED.OVL`) |
 | CTRL + K | mark a block (press again to stop marking) |
 | CTRL + J | copy the block |
 | CTRL + Y | cut the block |
@@ -138,10 +161,10 @@ Other details:
   layout against the DOS first and refuses to save (`CARD FORMAT NOT SUPPORTED`) if anything doesn't
   match, rather than guess.
 
-## Limits in 0.2
+## Limits in 0.3
 
-* Files up to 12,032 bytes (larger files will be paged from the card in 0.6). This is 512 bytes less
-  than 0.1 because of the new features.
+* Files up to 12,288 bytes (larger files will be paged from the card in 0.6). 0.3 has 256 bytes more
+  room than 0.2, because help moved to `VZED.OVL`.
 * Fixed in 0.2: in 0.1 the screen went blank when a long line scrolled sideways.
 * No undo yet: cut, delete and replace can't be taken back (save often; the `.BAK` keeps the last
   saved version).
@@ -153,8 +176,9 @@ Other details:
 | | |
 |---|---|
 | Needs | VZ300 / VZ200, BennVenn SD loader with 128K, VZDOS 2.31 or 2.32 |
-| Program | `$A000`-`$C6EF` (9,968 bytes), plus tables, font and messages copied at start-up to `$97FE`-`$9FFB` |
-| Text buffer | `$C700`-`$F5FF` (12,032 bytes, gap buffer) |
+| Program | `$A000`-`$C5A0`, plus tables, font, messages and the overlay loader copied at start-up to `$9802`-`$9F1B` |
+| Text buffer | `$C600`-`$F5FF` (12,288 bytes, gap buffer) |
+| Overlays | `VZED.OVL`: 3K slots (0 help, 1 sheet view) loaded to `$8900` |
 | Work RAM | `$8000`-`$9FFF`: screen shadow, folder list (200 entries), variables |
 | Clipboard | spare 10K SRAM bank at `$4000`-`$67FF` (`OUT ($37),3`), or 3,328 bytes at `$8900` |
 | Untouched | `$7800`-`$7FFF` (BASIC's and VZ-DECK's variables) and `$FA00`-`$FFFF` (the DOS's RAM) |
@@ -164,21 +188,22 @@ Other details:
 
 ## Building
 
-Needs Python 3 only: `python3 src/build.py` writes `out/VZED.VZ` and `out/PLAYTXT.VZ`.
+Needs Python 3 only: `python3 src/build.py` writes `out/VZED.VZ`, `out/PLAYTXT.VZ` and `out/VZED.OVL`.
 `tools/` has the assembler, the test emulator (runs the real VZDOS ROM and VZ-DECK; copy `VZDOS.VZ`
 and `SHELL.VZ` from the VZ-DECK release into `tools/` first) and the tests:
 `t2` editing and saving, `t3` the VZ-DECK round trip, `t4`/`t4b`/`t4c` card stress tests (MBR card,
 32K and 512-byte clusters, fragmented files, a full folder, a full card), `t5` random editing checked
 against a model, `t6` screenshots, `t7` timing, `t9` the 0.2 features (word wrap checked against a
-model, blocks, find / replace), `t10` word wrap timing.
+model, blocks, find / replace), `t10` word wrap timing, `t11` overlays and the sheet view (checked
+dot for dot against a model).
 
 ## Coming next
 
-* 0.3: sheet view (a whole page at once), menu bar
+* Next: a menu bar alongside the CTRL keys
 * 0.4: printer port, PDF export, line ending choice
 * 0.5: BASIC programs (edit a `.VZ` as text), hex viewer
 * 0.6: big files paged from the card, undo, bookmarks, word count
 
 ## Credits
 
-VZDOS and the SD loader are by Ben Grimmett (BennVenn). VZ-ED uses his DOS's sector routines.
+VZDOS and the SD loader are by Ben Grimmett (BennVenn). VZ-ED uses the DOS's sector routines.

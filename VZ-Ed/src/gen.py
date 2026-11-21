@@ -18,7 +18,9 @@ VARS = [('gs',2),('ge',2),('top',2),('hs',2),('curln',2),('goal',2),('curcell',2
  ('plugmode',1),('cfgcl',3),('cfghave',1),('cfg_ds',1),('cfg_caps',1),('cfg_ins',1),
  # 0.2
  ('wrap',1),('selon',1),('anchor',2),('dsel',1),('clipbank',1),('clipbase',2),('clipmax',2),('cliplen',2),
- ('askall',1),('clhome',1)]
+ ('askall',1),('clhome',1),
+ # 0.3
+ ('ovslot',1),('ovskip',1),('ovcnt',1),('ovst',1)]
 def gen_vars():
     a = 0x9730; out = ['VARS equ $%04X' % a]          # right after DPTR
     for n, s in VARS:
@@ -40,13 +42,13 @@ ROWS = [['T','W',None,'E','Q','R'],
         ['H','L',':','K',';','J']]
 K = dict(LEFT=1,RIGHT=2,UP=3,DOWN=4,PGUP=5,PGDN=6,TOP=7,BOT=8,HOME=9,END=10,BS=11,DEL=12,RET=13,
          INS=14,CAPS=15,OPEN=16,SAVE=17,SAVEAS=18,NEW=19,QUIT=20,DISP=21,HELP=22,
-         MARK=24,COPY=25,CUT=26,PASTE=27,FIND=28,NEXT=29,REPL=30,WRAP=31)
+         MARK=24,COPY=25,CUT=26,PASTE=27,FIND=28,NEXT=29,REPL=30,WRAP=31,SHEET=127)
 SHIFT = {'1':'!','2':'"','3':'#','4':'$','5':'%','6':'&','7':"'",'8':'(','9':')','0':'@',
          '-':'=',';':'+',':':'*',',':'<','.':'>',' ':' '}
 CTRL = {'M':'LEFT',',':'RIGHT','.':'UP',' ':'DOWN','R':'PGUP','C':'PGDN','T':'TOP','B':'BOT',
         'Z':'HOME','X':'END',':':'BS',';':'DEL','L':'INS','U':'CAPS','O':'OPEN','S':'SAVE',
         'A':'SAVEAS','N':'NEW','Q':'QUIT','D':'DISP','H':'HELP',
-        'K':'MARK','J':'COPY','Y':'CUT','P':'PASTE','F':'FIND','G':'NEXT','E':'REPL','W':'WRAP'}
+        'K':'MARK','J':'COPY','Y':'CUT','P':'PASTE','F':'FIND','G':'NEXT','E':'REPL','W':'WRAP','V':'SHEET'}
 CSHIFT = {'L':'?','K':'/','O':'[','P':']','I':'{','U':'}','M':'\\','N':'^','J':'|','H':'~',
           '-':'_','7':'`'}
 def ktab():
