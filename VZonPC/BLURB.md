@@ -2,11 +2,11 @@
 
 **A Dick Smith VZ200 / VZ300 emulator for Windows, built for playing and making VZ games.**
 
-> **Built to run 2018 A.D.** VZonPC started with one goal: an emulator accurate enough to run **2018 A.D.** by Five Finger Punch (Edison 2018) the way a real VZ does. The demo loads from its original CD audio. The left channel loads the demo into the VZ, at normal speed and then with fast loaders, while the right channel plays the music through your speakers. Its Kefrens bars depend on mode changes landing on the exact pixel, so VZonPC times the video chip to the pixel to match.
+> **This update: running 2018 A.D.** VZonPC was first made to run my own VZ games with a live visualiser. This update set a bigger goal: to run **2018 A.D.** by Five Finger Punch (Edison 2018) the way a real VZ does. The demo loads from its original CD audio. The left channel loads the demo into the VZ, at normal speed and then with fast loaders, while the right channel plays the music through your speakers. Its Kefrens bars depend on mode changes landing on the exact pixel, so VZonPC times the video chip to the pixel to match.
 >
 > **To run it, double-click `Play 2018 AD.bat`.** It runs from whatever folder it's in. It sets up a VZ200, types `CRUN` and starts the tape. It needs `2018AD_combined.wav` next to it: download the demo's `combined.ogg` from scene.org and convert it to WAV. If the file is missing, the batch file says so.
 >
-> **New in this update**
+> **Also new in this update**
 > - **The disk drive:** the DD20 controller and two 5.25" drives, emulated down to the magnetic signal on the disk. The real DOS BASIC V1.2 runs unmodified, and `SAVE`, `LOAD`, `INIT` and `BRUN` write back to `.dsk` images.
 > - **WordPro**, in the disk controller's cartridge slot as it was used: edit, print formatted pages, and save and load documents on disk in WordPro's own format.
 > - **The RS-232 interface:** its 1985 terminal ROM talks bit by bit at 300 baud to a telnet BBS, a PC serial port or a text file, using whatever settings you pick in its menu.
