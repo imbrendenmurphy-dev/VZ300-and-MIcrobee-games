@@ -83,6 +83,7 @@ public class VzTape
     }
 
     public double Seconds { get { return s.Length / (double)Rate; } }
+    public short[] Samples { get { return s; } }
 
     public bool HasMonitor { get { return mon != null; } }
 

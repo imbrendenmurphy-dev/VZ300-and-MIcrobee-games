@@ -9,6 +9,7 @@ using System.Text;
 public enum Model { VZ200, VZ300 }
 public enum MemExp { None, Ram16K, BennVenn }
 public enum GfxMod { None, Australian, German }
+public enum Cart { None, Disk, Rtty }   // what sits at $4000 when there is no BennVenn
 
 public sealed class VzMachine
 {
@@ -16,6 +17,10 @@ public sealed class VzMachine
     public Model Model = Model.VZ300;
     public MemExp Exp = MemExp.BennVenn;
     public GfxMod Gfx = GfxMod.None;
+    public Cart Cartridge = Cart.None;  // the DD20 disk controller or the RTTY interface (not with the BennVenn)
+    public VzFloppy Fdc; public VzRtty Rtty;
+    public bool DiskOn { get { return Cartridge == Cart.Disk && Exp != MemExp.BennVenn; } }
+    public bool RttyOn { get { return Cartridge == Cart.Rtty && Exp != MemExp.BennVenn; } }
     public bool JoyInterface = true;
     public bool ShowSnow = false;
     public bool UseRom = true;          // false = always use the built-in stub ROM
@@ -103,6 +108,7 @@ public sealed class VzMachine
         for (int i = 0; i < 8; i++) Keys[i] = 0x3F;
         BuildStubRom();
         BuildDosRom();
+        Fdc = new VzFloppy(this); Rtty = new VzRtty(this);
     }
 
     // ---------------------------------------------------------------- ROMs
@@ -238,6 +244,7 @@ public sealed class VzMachine
         }
         else { Array.Clear(Ram, 0, Ram.Length); Array.Clear(Bv, 0, Bv.Length); Array.Clear(Vram, 0, Vram.Length); }
         LoadRom();
+        Fdc.LoadRom(RomDir); Rtty.LoadRom(RomDir);
         Mapper = 0; Latch = 0; ShrgPort = 0x08; GerBank = 0; Vz300Mode = false;
         if (sdf != null) { sdf.Close(); sdf = null; }
         DosLog.Clear(); DosSectors = DosOpens = 0;
@@ -254,6 +261,7 @@ public sealed class VzMachine
         Cpu.Cyc = 0; FrameStart = 0; lastLine = -1;
         vevHead = vevN = vevVram = 0; nPend = 0; vLatch = vBorder = Latch; rowAddr = lineCtr = 0; snowN = 0;
         Mapper = 0; Vz300Mode = false;
+        Fdc.Reset(); Rtty.Reset();
         tps = 0;   // restart the sample clock
         if (Tr != null) Tr.ResetTimes();
     }
@@ -289,7 +297,12 @@ public sealed class VzMachine
         if (a < 0x4000) return Rom[a];
         if (a < 0x6800)
         {
-            if (Exp != MemExp.BennVenn) return 0xFF;
+            if (Exp != MemExp.BennVenn)
+            {
+                if (Cartridge == Cart.Disk) return Fdc.Rom != null && a < 0x6000 ? Fdc.Rom[a - 0x4000] : 0xFF;
+                if (Cartridge == Cart.Rtty) return peek && a >= 0x5000 ? 0xFF : Rtty.Read(a, Cpu.Cyc - 2);
+                return 0xFF;
+            }
             if ((Mapper & 1) != 0) return Bv[DosOff(a)];
             return DosRom[a - 0x4000];
         }
@@ -313,7 +326,7 @@ public sealed class VzMachine
         if (WriteHook != null) WriteHook(a, v);
         if (Tr != null) Tr.W(a, v);
         if (a < 0x4000) return;
-        if (a < 0x6800) { if (Exp == MemExp.BennVenn) Bv[DosOff(a)] = (byte)v; return; }
+        if (a < 0x6800) { if (Exp == MemExp.BennVenn) Bv[DosOff(a)] = (byte)v; else if (Cartridge == Cart.Rtty) Rtty.Write(a, v); return; }
         if (a < 0x7000) { SpeakerTo(v); Pend(-1, Latch, v); Latch = v; return; }
         if (a < 0x7800) { VideoAccess(a, v); int vi = (VBank << 11) + (a - 0x7000); Pend(vi, Vram[vi], v); Vram[vi] = (byte)v; return; }
         if (a < ramTop) { Ram[a] = (byte)v; return; }
@@ -334,6 +347,7 @@ public sealed class VzMachine
             if (Tr != null) Tr.Port(lo, r, false);
             return r;
         }
+        if (DiskOn && lo >= 0x10 && lo <= 0x13) { int r = Fdc.In(lo, Cpu.Cyc - 1); if (Tr != null) { Tr.Port(lo, r, false); Tr.DosLed = 255; } return r; }
         if (Exp == MemExp.BennVenn && lo == 0x39) { int r = GetCard().In(); if (Tr != null) { Tr.Port(lo, r, false); Tr.DosLed = 255; } return r; }
         if (Tr != null) Tr.Port(lo, 0xFF, false);
         return 0xFF;
@@ -343,6 +357,7 @@ public sealed class VzMachine
     {
         int lo = port & 0xFF;
         if (Tr != null) Tr.Port(lo, v, true);
+        if (DiskOn && lo == 0x10) { Fdc.Out(lo, v, Cpu.Cyc - 1); if (Tr != null) Tr.DosLed = 255; }
         if (Exp == MemExp.BennVenn)
         {
             if (lo == 0x37) Mapper = v;
@@ -363,13 +378,15 @@ public sealed class VzMachine
     {
         int ln = Line;
         if (ln < PicStart || ln >= PicStart + 192) return;
+        // the 6847 only fetches during the 128 T-states of picture; an access in the side borders shows nothing
+        int t = (int)((Cpu.Cyc - FrameStart) % LINET);
+        if (t < H0 || t >= H0 + 128) return;
         SnowCount++; SnowLineHist[ln]++;
         if (SnowFirstPc < 0) { SnowFirstPc = CurPc; SnowFirstFrame = Frames; }
         if (ln > SnowMaxLine) SnowMaxLine = ln;
         if (!ShowSnow) return;
         // the 6847 shows the CPU's data byte instead of the fetched one: draw it as 8 dots
-        int t = (int)((Cpu.Cyc - FrameStart) % LINET);
-        int x = (t - H0) * 2; if (x < 0 || x > 248) return;
+        int x = (t - H0) * 2;
         int b = v >= 0 ? v : Vram[(VBank << 11) + (a - 0x7000)];
         if (ln != snowLine) { snowLine = ln; snowN = 0; }   // drawn over the line once it has been rendered
         if (snowN < snowX.Length) { snowX[snowN] = x & ~7; snowB[snowN] = b; snowN++; }
@@ -440,6 +457,7 @@ public sealed class VzMachine
             sampAcc += lvl * (sampNext - cur);
             int smp = (int)(sampAcc / tps * Volume);
             if (Tape != null && TapeMonitor) smp += Tape.Monitor(sampNext) / 2;   // the tape's other channel, e.g. a demo's music
+            if (RttyOn) smp += Rtty.Tone(RATE);
             if (AudioN < Audio.Length) Audio[AudioN++] = (short)Math.Max(-32768, Math.Min(32767, smp));
             sampAcc = 0; cur = sampNext; sampNext += tps;
         }
@@ -515,10 +533,11 @@ public sealed class VzMachine
             FlushPend(Cpu.Cyc);
             RenderTo(LINES); if (Tr != null) Tr.EndFrame(); FrameStart += FRAMET; Frames++; lastLine = -1;
             if (Card != null && Card.Dirty && SdWriteBack && Frames - cardWriteFrame > 25) FlushCard();   // the DOS has finished writing
+            if (DiskOn) Fdc.Tick();
             return false;
         }
         int line = (int)(rel / LINET);
-        if (line - 1 != lastLine) RenderTo(line);   // draw the lines that have finished
+        if (line - 1 != lastLine) { RenderTo(line); if (RttyOn) Rtty.SampleLine(Cpu.Cyc); }   // draw the lines that have finished
         FsLow = line < FSLINES;
         Cpu.IntLine = FsLow;
         CurPc = Cpu.PC;
@@ -608,7 +627,11 @@ public sealed class VzMachine
             Log(sb.ToString());
         }
         int mid = lat[Math.Min(LINET - 1, H0 + 64)];
-        if (Tr != null && ln < LINES) Tr.LineMode[ln] = ((mid & 8) != 0 ? 8 | GmCode : 0) | ((mid & 16) != 0 ? 16 : 0);
+        if (Tr != null && ln < LINES)
+        {
+            Tr.LineMode[ln] = ((mid & 8) != 0 ? 8 | GmCode : 0) | ((mid & 16) != 0 ? 16 : 0);
+            Tr.Line(ln, lat, py >= 0 && py < 192 ? rowAddr / 32 : -1, toggled);
+        }
         int oy = ln - (PicStart - BY);
         if (oy >= 0 && oy < FBH)
         {

@@ -229,7 +229,7 @@ public sealed class Headless
         foreach (var kv in sym) if (!vis.Sym.ContainsKey(kv.Value & 0xFFFF)) vis.Sym[kv.Value & 0xFFFF] = kv.Key.ToUpperInvariant();
     }
 
-    static readonly HashSet<string> configCmds = new HashSet<string> { "machine", "exp", "gfx", "rom", "joyif", "sd", "sym", "quiet", "topborder", "crash", "spok", "stack", "print", "romtrap", "watch", "linelog" };
+    static readonly HashSet<string> configCmds = new HashSet<string> { "machine", "exp", "gfx", "rom", "joyif", "sd", "sym", "quiet", "topborder", "crash", "spok", "stack", "print", "romtrap", "watch", "linelog", "cart" };
 
     bool Exec(string ln)
     {
@@ -253,6 +253,49 @@ public sealed class Headless
                     booted = false;
                 }
                 break;
+            case "cart":
+                {
+                    string c = a1.ToLowerInvariant();
+                    m.Cartridge = c.StartsWith("d") || c.StartsWith("f") ? Cart.Disk : c.StartsWith("r") ? Cart.Rtty : Cart.None;
+                    booted = false;
+                }
+                break;
+            case "disk":
+                {
+                    // disk N FILE: put a disk image in drive 1 or 2 (FILE = blank for a fresh formatted disk)
+                    string rest = ln.Trim().Substring(cmd.Length).Trim(); int sp = rest.IndexOf(' ');
+                    int n = int.Parse(rest.Substring(0, sp)) - 1; string f = rest.Substring(sp + 1).Trim().Trim('"');
+                    var d = f.ToLowerInvariant() == "blank" ? VzDisk.Blank() : VzDisk.Load(f);
+                    m.Fdc.Insert(n, d);
+                    Console.WriteLine("drive {0}: {1} ({2} files)", n + 1, f, d.Directory().Count);
+                }
+                break;
+            case "diskeject": m.Fdc.Eject(int.Parse(a1) - 1); break;
+            case "diskdir":
+                {
+                    int n = a1 == "" ? 0 : int.Parse(a1) - 1;
+                    var d = m.Fdc.Drive[n];
+                    if (d == null) Console.WriteLine("drive {0}: empty", n + 1);
+                    else Console.WriteLine("drive {0}: {1}", n + 1, string.Join("  ", d.Directory()));
+                }
+                break;
+            case "diskstat":
+                Console.WriteLine("disk: track {0} drive {1} latch {2:X2} reads {3} writes {4} steps {5}", m.Fdc.Track, m.Fdc.Selected + 1, m.Fdc.Latch, m.Fdc.Reads, m.Fdc.Writes, m.Fdc.Steps);
+                break;
+            case "disksave":
+                {
+                    // disksave N FILE: write drive N's disk to a .dsk
+                    string rest = ln.Trim().Substring(cmd.Length).Trim(); int sp = rest.IndexOf(' ');
+                    int n = int.Parse(rest.Substring(0, sp)) - 1; string f = rest.Substring(sp + 1).Trim().Trim('"');
+                    System.IO.File.WriteAllBytes(f, m.Fdc.Drive[n].ToDsk());
+                }
+                break;
+            case "rttyrx": m.Rtty.PlayRx(ln.Trim().Substring(6).Trim().Trim('"'), m.Cpu.Cyc); Console.WriteLine("rtty: receiving " + a1); break;
+            case "rttytx": m.Rtty.RecordTx(ln.Trim().Substring(6).Trim().Trim('"')); break;
+            case "rttytxend": m.Rtty.EndRecordTx(); break;
+            case "rttyloop": m.Rtty.Loopback = a1 != "off"; break;
+            case "rttyinvert": if (a1.Contains("rx")) m.Rtty.RxInvert = !m.Rtty.RxInvert; if (a1.Contains("tx")) m.Rtty.TxInvert = !m.Rtty.TxInvert; break;
+            case "rttystat": Console.WriteLine("rtty: tx {0} ptt {1} tx changes {2} rx reads {3}", m.Rtty.TxMark ? "mark" : "space", m.Rtty.Ptt ? "on" : "off", m.Rtty.TxChanges, m.Rtty.RxReads); break;
             case "gfx":
                 {
                     string g = a1.ToLowerInvariant();

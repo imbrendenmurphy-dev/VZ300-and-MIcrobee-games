@@ -146,9 +146,10 @@ public sealed class VzVis
         buf = Left; Array.Clear(buf, 0, buf.Length); Fill(0, 0, W, H, BG);
         int y = 0;
         y = PRegs(y) + 6;
-        y = PCode(y, 30) + 6;
-        y = PHot(y, 11) + 6;
+        y = PCode(y, 18) + 6;
+        y = PHot(y, 7) + 6;
         y = PBudget(y) + 6;
+        y = PLines(y) + 6;
         y = POps(y) + 6;
         y = PStack(y, H - y);
 
@@ -509,10 +510,15 @@ public sealed class VzVis
         // picture area guides
         int p0 = m.PicStart / 2, p1 = (m.PicStart + 192) / 2, fs = VzMachine.FSLINES / 2;
         for (int t = 0; t < VzTrace.LT; t += 2) { Px(bx + t, y + p0, 0x50A060); Px(bx + t, y + p1, 0x50A060); Px(bx + t, y + fs, 0x806020); }
-        for (int r = p0; r < p1; r += 2) { Px(bx + 50, y + r, 0x50A060); Px(bx + 178, y + r, 0x50A060); }
+        for (int r = p0; r < p1; r += 2) { Px(bx + m.H0, y + r, 0x50A060); Px(bx + m.H0 + 128, y + r, 0x50A060); }
         // 6847 mode strip
         int sx = bx + VzTrace.LT + 3;
-        for (int r = 0; r < rh; r++) Fill(sx, y + r, 6, 1, ModeColour(T.LineModeShown[r * 2]));
+        for (int r = 0; r < rh; r++)
+        {
+            Fill(sx, y + r, 6, 1, ModeColour(T.LineModeShown[r * 2]));
+            int f = T.LineFlag[r * 2] | T.LineFlag[r * 2 + 1];   // a mode change during the line: a white tick
+            if (f != 0) Fill(sx + 6, y + r, 2, 1, (f & 1) != 0 ? AMBER : HI);
+        }
         int lx = sx + 10;
         Text(lx, y, "0 SYNC", 0xC09040); Text(lx, y + 9, "INT", 0xC09040);
         Text(lx, y + fs + 1, VzMachine.FSLINES.ToString(), DIM);
@@ -534,6 +540,54 @@ public sealed class VzVis
         int[] c = { 0x3050C0, 0x40A0C0, 0x30C060, 0x8040C0, 0xC04080, 0xC0A030, 0xE06030, 0xFFFFFF };
         return c[gm];
     }
+
+    // ---------------------------------------------------------------- 6847 picture lines
+    // Every picture line at one pixel per T-state: the mode the 6847 latch held at each T (dim in the side
+    // borders, bright in the 128 T-states the 6847 is drawing), white where AG or CSS changed during the line,
+    // and on the right the row the 6847's row counter showed on that line, amber where a mid-line flip held it.
+    int PLines(int y0)
+    {
+        int h = 15 + 192 + 22;
+        int y = Panel(y0, h, "6847 BEAM, LINE BY LINE", "228 T X 192 LINES");
+        int bx = 4, ps = m.PicStart, h0 = m.H0;
+        var lat = T.LineLat;
+        for (int py = 0; py < 192; py++)
+        {
+            int ln = ps + py; if (ln >= VzTrace.LINES) break;
+            int o = (y + py) * W + bx, lo = ln * VzTrace.LT, prev = lat[lo];
+            for (int t = 0; t < VzTrace.LT; t++)
+            {
+                int v = lat[lo + t];
+                int c = ModeColour(((v & 8) != 0 ? 8 | m.GmCode : 0) | (v & 16));
+                if (t < h0 || t >= h0 + 128) c = (c >> 2) & 0x3F3F3F;
+                if (((v ^ prev) & 0x18) != 0) c = HI;
+                prev = v;
+                buf[o + t] = c;
+            }
+        }
+        for (int py = 0; py < 192; py += 2) { Px(bx + h0 - 1, y + py, 0x80C090); Px(bx + h0 + 128, y + py, 0x80C090); }
+        // the row counter
+        int rx = bx + VzTrace.LT + 4, rw = W - 4 - rx;
+        Fill(rx, y, rw, 192, 0x081008);
+        for (int py = 0; py < 192; py++)
+        {
+            int ln = ps + py; if (ln >= VzTrace.LINES) break;
+            int row = T.LineRow[ln]; if (row < 0) continue;
+            int rows = (T.LineLat[ln * VzTrace.LT + h0 + 64] & 8) != 0 ? 64 : 16;
+            int len = Math.Min(rw, 1 + row * (rw - 1) / Math.Max(1, rows - 1));
+            bool held = (T.LineFlag[ln] & 1) != 0;
+            Fill(rx, y + py, len, 1, held ? 0x5A3C00 : 0x1A4A1E);
+            Px(rx + len - 1, y + py, held ? AMBER : GREEN);
+        }
+        int ly = y + 194;
+        Text(bx + h0 - 3 * 6 / 2, ly, h0.ToString(), DIM); Text(bx + h0 + 128 - 9, ly, (h0 + 128).ToString(), DIM);
+        Text(bx, ly, "T 0", DIM); TextR(bx + VzTrace.LT, ly, "227", DIM); Text(rx, ly, "ROW", DIM);
+        int x = Text(5, ly + 10, "MODE CHANGE ", DIM); x = Fill2(x, ly + 10, HI);
+        x = Text(x + 8, ly + 10, "ROW HELD ", DIM); x = Fill2(x, ly + 10, AMBER);
+        x = Text(x + 8, ly + 10, "LINE ", DIM); Text(x, ly + 10, ps + "-" + (ps + 191), TXT);
+        return y0 + h;
+    }
+    int Fill2(int x, int y, int c) { Fill(x, y + 1, 10, 5, c); return x + 10; }
 
     // ---------------------------------------------------------------- 6847
     static readonly string[] gmName = { "CG1  64X64  4 COLOURS", "RG1 128X64  2 COLOURS", "CG2 128X64  4 COLOURS", "RG2 128X96  2 COLOURS",
@@ -558,9 +612,9 @@ public sealed class VzVis
         x = Text(5, y3, "VRAM PER FRAME  WRITES ", DIM); x = Text(x, y3, T.VramW.ToString(), HI);
         x = Text(x + 8, y3, "READS ", DIM); Text(x, y3, T.VramR.ToString(), CYAN);
         int y4 = y + 30;
-        int changes = 0; for (int l = m.PicStart + 1; l < m.PicStart + 192; l++) if (T.LineModeShown[l] != T.LineModeShown[l - 1]) changes++;
-        x = Text(5, y4, "DURING PICTURE (SNOW) ", DIM); x = Text(x, y4, T.PicAccess.ToString(), T.PicAccess > 0 ? AMBER : TXT);
-        x = Text(x + 8, y4, "MODE SPLITS ", DIM); Text(x, y4, changes.ToString(), changes > 0 ? AMBER : TXT);
+        x = Text(5, y4, "SNOW ", DIM); x = Text(x, y4, T.PicAccess.ToString(), T.PicAccess > 0 ? AMBER : TXT);
+        x = Text(x + 8, y4, "SPLIT LINES ", DIM); x = Text(x, y4, T.Splits.ToString(), T.Splits > 0 ? AMBER : TXT);
+        x = Text(x + 8, y4, "HOLDS ", DIM); Text(x, y4, T.Holds.ToString(), T.Holds > 0 ? AMBER : TXT);
         return y0 + h;
     }
 
@@ -720,8 +774,91 @@ public sealed class VzVis
     }
 
     // ---------------------------------------------------------------- BennVenn
+    // ---------------------------------------------------------------- disk drive
+    int PDisk(int y0, int avail)
+    {
+        var f = m.Fdc;
+        int h = Math.Min(avail, 15 + 104);
+        int y = Panel(y0, h, "DISK DRIVE  DD20", f.Rom != null ? "VZ DOS ROM AT 4000" : "NO VZDOS.ROM");
+        int led = T.DosLed;
+        Fill(5, y - 1, 9, 9, f.Active ? Lerp(0x401000, 0xFF3030, Math.Max(0.35, led / 255.0)) : 0x301010);
+        int x = Text(20, y, f.Active ? "DRIVE " + (f.Selected + 1) : "MOTOR OFF", f.Active ? HI : DIM);
+        x = Text(x + 10, y, "TRACK ", DIM); x = Text(x, y, f.Track.ToString("00"), HI);
+        x = Text(x + 10, y, "LATCH $", DIM); x = Text(x, y, H2(f.Latch), TXT);
+        if (f.Writing) Text(x + 10, y, "WRITING", RED);
+        // the 40 tracks, with the head
+        int ty = y + 11, tw = 7;
+        for (int t = 0; t < VzDisk.TRACKS; t++)
+        {
+            int c = t == f.Track ? (f.Writing ? RED : f.Active ? HI : TXT) : t == f.LastTrack ? 0x805A10 : t == 0 ? 0x284A34 : 0x18301E;
+            Fill(5 + t * tw + (t / 10) * 2, ty, tw - 1, 8, c);
+        }
+        // the track under the head: its 16 sectors in their interleaved order, and where the head is now
+        int ry = ty + 12, rw = W - 10;
+        double cellUnits = VzDisk.CELL, secUnits = 155 * 8 * cellUnits;
+        for (int i = 0; i < 16; i++)
+        {
+            int x0 = 5 + (int)((cellUnits + i * secUnits) / VzDisk.REV * rw), x1 = 5 + (int)((cellUnits + (i + 1) * secUnits) / VzDisk.REV * rw);
+            Fill(x0, ry, x1 - x0 - 1, 10, i % 2 == 0 ? 0x1E4630 : 0x163624);
+            Text(x0 + (x1 - x0) / 2 - 5, ry + 2, VzDisk.SectorMap[i].ToString("X"), DIM);
+        }
+        if (f.Active) { int hx = 5 + (int)(f.Angle * rw); Fill(hx, ry - 2, 2, 14, f.Writing ? RED : AMBER); }
+        int y3 = ry + 14;
+        x = Text(5, y3, "INVERTER ", DIM); x = Text(x, y3, f.Inverter ? "1" : "0", TXT);
+        x = Text(x + 8, y3, "PHASES ", DIM); x = Text(x, y3, Convert.ToString(f.Latch & 15, 2).PadLeft(4, '0'), TXT);
+        x = Text(x + 8, y3, "85 RPM  16 X 128 BYTES", DIM);
+        y3 += 10;
+        x = Text(5, y3, "SHIFTS ", DIM); x = Text(x, y3, f.Reads.ToString(), TXT);
+        x = Text(x + 8, y3, "WRITES ", DIM); x = Text(x, y3, f.Writes.ToString(), TXT);
+        x = Text(x + 8, y3, "STEPS ", DIM); Text(x, y3, f.Steps.ToString(), TXT);
+        for (int d = 0; d < 2; d++)
+        {
+            y3 += 10; var dk = f.Drive[d];
+            x = Text(5, y3, "D" + (d + 1) + " ", DIM);
+            string n = dk == null ? "EMPTY" : (dk.Path != null ? Path.GetFileName(dk.Path) : "BLANK DISK").ToUpperInvariant();
+            if (n.Length > 34) n = n.Substring(0, 34);
+            x = Text(x, y3, n, dk == null ? DIM : TXT);
+            if (dk != null) Text(x + 6, y3, (dk.WriteProtect ? "PROTECTED " : "") + (dk.Dirty ? "UNSAVED" : ""), AMBER);
+        }
+        return y0 + h;
+    }
+
+    // ---------------------------------------------------------------- RTTY
+    int PRtty(int y0, int avail)
+    {
+        var r = m.Rtty;
+        int h = Math.Min(avail, 15 + 104);
+        int y = Panel(y0, h, "RTTY  K-6318", r.Rom != null ? "2125 / 2295 HZ AFSK" : "NO VZRTTY.IC3");
+        int x = Text(5, y, "RX ", DIM); x = Text(x, y, r.Loopback ? "LOOPBACK" : r.RxPlaying ? (r.RxName ?? "AUDIO").ToUpperInvariant() : "NO SIGNAL", r.RxPlaying || r.Loopback ? HI : DIM);
+        int y2 = y + 10;
+        x = Text(5, y2, "PTT ", DIM); x = Text(x, y2, r.Ptt ? "KEYED" : "OFF", r.Ptt ? RED : TXT);
+        x = Text(x + 10, y2, "TX ", DIM); x = Text(x, y2, r.TxMark ? "MARK" : "SPACE", r.Ptt ? HI : DIM);
+        x = Text(x + 10, y2, "RX ", DIM); Text(x, y2, r.RxMark(m.Cpu.Cyc) ? "MARK" : "SPACE", TXT);
+        // the last second of both lines, one column per 3.3 ms (a 45.45 baud bit is about 7 columns)
+        int sy = y2 + 14, sw = W - 30;
+        Text(5, sy + 3, "RX", CYAN); Text(5, sy + 25, "TX", AMBER);
+        Fill(22, sy, sw, 18, 0x081008); Fill(22, sy + 22, sw, 18, 0x081008);
+        int prevR = -1, prevT = -1;
+        for (int i = 0; i < sw; i++)
+        {
+            int v = r.Hist[(r.HistPos - sw + i + 2048) & 1023];
+            int ry = (v & 1) != 0 ? sy + 3 : sy + 14, tyy = (v & 2) != 0 ? sy + 25 : sy + 36;
+            if (prevR >= 0 && prevR != ry) Fill(22 + i, Math.Min(prevR, ry), 1, Math.Abs(prevR - ry) + 1, CYAN); else Px(22 + i, ry, CYAN);
+            if ((v & 4) != 0) { if (prevT >= 0 && prevT != tyy) Fill(22 + i, Math.Min(prevT, tyy), 1, Math.Abs(prevT - tyy) + 1, AMBER); else Px(22 + i, tyy, AMBER); }
+            if ((v & 8) != 0) Px(22 + i, sy + 17, 0x40A040);
+            prevR = ry; prevT = (v & 4) != 0 ? tyy : -1;
+        }
+        int y4 = sy + 44;
+        x = Text(5, y4, "TX BIT CHANGES ", DIM); x = Text(x, y4, r.TxChanges.ToString(), TXT);
+        x = Text(x + 8, y4, "RX POLLS ", DIM); Text(x, y4, r.RxReads.ToString(), TXT);
+        Text(5, y4 + 10, "MARK HIGH, 1 SECOND ACROSS", DIM);
+        return y0 + h;
+    }
+
     int PBennVenn(int y0, int avail)
     {
+        if (m.DiskOn) return PDisk(y0, avail);
+        if (m.RttyOn) return PRtty(y0, avail);
         int h = Math.Min(avail, 15 + 3 * 10 + 8 * 10);
         int y = Panel(y0, h, "BENNVENN SD", m.Exp == MemExp.BennVenn ? "128K + SD CARD" : "NOT FITTED");
         if (m.Exp != MemExp.BennVenn)

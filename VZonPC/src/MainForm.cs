@@ -132,7 +132,7 @@ public sealed class MainForm : Form
                 q.Start();
             }
         };
-        FormClosing += (s, e) => { running = false; if (emuThread != null) emuThread.Join(1000); m.FlushCard(); if (!noSettings) SaveSettings(); };
+        FormClosing += (s, e) => { running = false; if (emuThread != null) emuThread.Join(1000); m.FlushCard(); m.Fdc.SaveAll(); if (!noSettings) SaveSettings(); };
 
         m.Log = s => ShowMessage(s);
         cmds.Enqueue(() =>
@@ -140,6 +140,8 @@ public sealed class MainForm : Form
             PowerOnNow();
             if (startProgram != null) LaunchNow(startProgram);
             if (autoType != null) { if (startProgram == null && m.HasRom) typeHold = 150; TypeString(autoType); }   // let BASIC reach READY first
+            for (int d = 0; d < 2; d++) if (startDisk[d] != null) InsertDiskNow(d, startDisk[d]);
+            if (startRtty != null) { try { m.Rtty.PlayRx(startRtty, m.Cpu.Cyc); } catch (Exception ex) { ShowMessage("RTTY: " + ex.Message); } }
             if (startTape != null)
             {
                 // --tape FILE: start it once --type has finished, half a second later (as if pressing PLAY)
@@ -150,7 +152,8 @@ public sealed class MainForm : Form
     }
 
     VzTape pendingTape; int pendingTapeDelay, typeHold;
-    string startProgram, shotPath, autoType, startTape; double quitAfter; bool noSettings;
+    string startProgram, shotPath, autoType, startTape, startRtty; double quitAfter; bool noSettings;
+    string[] startDisk = new string[2];
     void ParseArgs(string[] args)
     {
         noSettings = Array.Exists(args, x => x == "--no-settings" || x == "--quit-after");
@@ -169,6 +172,10 @@ public sealed class MainForm : Form
             else if (a == "--quit-after") { double.TryParse(v, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out quitAfter); i++; }
             else if (a == "--type") { autoType = v.Replace("\\r", "\r"); i++; }
             else if (a == "--tape") { startTape = v; i++; }
+            else if (a == "--cart") { v = v.ToLowerInvariant(); m.Cartridge = v.StartsWith("d") || v.StartsWith("f") ? Cart.Disk : v.StartsWith("r") ? Cart.Rtty : Cart.None; i++; }
+            else if (a == "--disk" || a == "--disk1") { startDisk[0] = Path.GetFullPath(v); if (m.Cartridge != Cart.Rtty) m.Cartridge = Cart.Disk; i++; }
+            else if (a == "--disk2") { startDisk[1] = Path.GetFullPath(v); i++; }
+            else if (a == "--rtty") { startRtty = Path.GetFullPath(v); m.Cartridge = Cart.Rtty; i++; }
             else if (a == "--border") { showBorder = v != "0"; i++; }
             else if (a == "--integer") { integerScale = v != "0"; i++; }
             else if (a == "--no-settings") { }
@@ -207,6 +214,20 @@ public sealed class MainForm : Form
         file.DropDownItems.Add(miTapeInvert);
         file.DropDownItems.Add(Item("Stop tape", Keys.None, (s, e) => cmds.Enqueue(() => { if (m.Tape != null) m.Tape.Playing = false; })));
         file.DropDownItems.Add(new ToolStripSeparator());
+        for (int d = 0; d < 2; d++)
+        {
+            int dn = d;
+            var dm = new ToolStripMenuItem("Disk drive " + (d + 1));
+            dm.DropDownItems.Add(Item("Insert disk image (.dsk)...", Keys.None, (s, e) => OpenDiskDialog(dn)));
+            dm.DropDownItems.Add(Item("Insert a new blank disk...", Keys.None, (s, e) => NewDiskDialog(dn)));
+            dm.DropDownItems.Add(Item("Eject", Keys.None, (s, e) => cmds.Enqueue(() => { m.Fdc.Eject(dn); diskPath[dn] = null; ShowMessage("Drive " + (dn + 1) + " empty"); })));
+            miDisk[d] = dm;
+            file.DropDownItems.Add(dm);
+        }
+        miRttyRx = Item("RTTY: receive from an audio file...", Keys.None, (s, e) => OpenRttyDialog());
+        file.DropDownItems.Add(miRttyRx);
+        file.DropDownItems.Add(Item("RTTY: stop receiving", Keys.None, (s, e) => cmds.Enqueue(() => m.Rtty.RxPlaying = false)));
+        file.DropDownItems.Add(new ToolStripSeparator());
         file.DropDownItems.Add(Item("Paste text as typing", Keys.F7, (s, e) => PasteText()));
         file.DropDownItems.Add(Item("Save screenshot", Keys.F12, (s, e) => Screenshot()));
         file.DropDownItems.Add(new ToolStripSeparator());
@@ -229,7 +250,12 @@ public sealed class MainForm : Form
         miJoyIf = Item("Joystick interface", Keys.None, (s, e) => cmds.Enqueue(() => m.JoyInterface = !m.JoyInterface));
         miVzdos = Item("Boot VZDOS.VZ at power-on (BennVenn)", Keys.None, (s, e) => cmds.Enqueue(() => { m.BootVzdos = !m.BootVzdos; PowerOnNow(); }));
         miWriteBack = Item("Save SD card changes to the PC folder", Keys.None, (s, e) => cmds.Enqueue(() => { m.SdWriteBack = !m.SdWriteBack; if (m.SdWriteBack) m.FlushCard(); ShowMessage(m.SdWriteBack ? "SD card saves go to the PC folder" : "SD card saves stay in memory until power off"); }));
-        mach.DropDownItems.AddRange(new ToolStripItem[] { exp, gfx, miJoyIf, miVzdos, miWriteBack, new ToolStripSeparator() });
+        var cart = new ToolStripMenuItem("Cartridge (memory expansion None or 16K)");
+        miCartNone = Item("None", Keys.None, (s, e) => Reconfigure(() => m.Cartridge = Cart.None));
+        miCartDisk = Item("Disk drive controller (DD20, roms\\vzdos.rom)", Keys.None, (s, e) => Reconfigure(() => { m.Cartridge = Cart.Disk; if (m.Exp == MemExp.BennVenn) m.Exp = MemExp.Ram16K; }));
+        miCartRtty = Item("RTTY terminal pack (K-6318, roms\\vzrtty.ic3)", Keys.None, (s, e) => Reconfigure(() => { m.Cartridge = Cart.Rtty; if (m.Exp == MemExp.BennVenn) m.Exp = MemExp.Ram16K; }));
+        cart.DropDownItems.AddRange(new ToolStripItem[] { miCartNone, miCartDisk, miCartRtty });
+        mach.DropDownItems.AddRange(new ToolStripItem[] { exp, cart, gfx, miJoyIf, miVzdos, miWriteBack, new ToolStripSeparator() });
         mach.DropDownItems.Add(Item("Power cycle", Keys.F4, (s, e) => cmds.Enqueue(PowerOnNow)));
         mach.DropDownItems.Add(Item("Reset CPU", Keys.Shift | Keys.F4, (s, e) => cmds.Enqueue(() => m.Cpu.Reset())));
         miPause = Item("Pause", Keys.F6, (s, e) => { paused = !paused; });
@@ -290,6 +316,9 @@ public sealed class MainForm : Form
     void SyncMenu()
     {
         miVz200.Checked = m.Model == Model.VZ200; miVz300.Checked = m.Model == Model.VZ300;
+        miCartNone.Checked = m.Cartridge == Cart.None || m.Exp == MemExp.BennVenn; miCartDisk.Checked = m.DiskOn; miCartRtty.Checked = m.RttyOn;
+        for (int d = 0; d < 2; d++) { miDisk[d].Enabled = m.DiskOn; var dk = m.Fdc.Drive[d]; miDisk[d].Text = "Disk drive " + (d + 1) + (dk == null ? " (empty)" : ": " + (dk.Path != null ? Path.GetFileName(dk.Path) : "blank disk")); }
+        miRttyRx.Enabled = m.RttyOn;
         miExpNone.Checked = m.Exp == MemExp.None; miExp16.Checked = m.Exp == MemExp.Ram16K; miExpBv.Checked = m.Exp == MemExp.BennVenn;
         miGfxNone.Checked = m.Gfx == GfxMod.None; miGfxAus.Checked = m.Gfx == GfxMod.Australian; miGfxGer.Checked = m.Gfx == GfxMod.German;
         miJoyIf.Checked = m.JoyInterface;
@@ -343,6 +372,8 @@ public sealed class MainForm : Form
     {
         string s = m.Model == Model.VZ300 ? "VZ300" : "VZ200";
         if (m.Exp == MemExp.BennVenn) s += " + BennVenn SD 128K" + (m.RealDos ? " (VZDOS)" : ""); else if (m.Exp == MemExp.Ram16K) s += " + 16K";
+        if (m.DiskOn) s += " + disk drive" + (m.Fdc.Rom == null ? " (no vzdos.rom)" : "");
+        if (m.RttyOn) s += " + RTTY" + (m.Rtty.Rom == null ? " (no vzrtty.ic3)" : "");
         if (m.Gfx == GfxMod.Australian) s += " + Aus hi-res"; else if (m.Gfx == GfxMod.German) s += " + German hi-res";
         return s;
     }
@@ -381,7 +412,45 @@ public sealed class MainForm : Form
         paused = wasPaused;
     }
 
-    ToolStripMenuItem miTapeRight, miTapeInvert;
+    ToolStripMenuItem miTapeRight, miTapeInvert, miCartNone, miCartDisk, miCartRtty, miRttyRx;
+    readonly ToolStripMenuItem[] miDisk = new ToolStripMenuItem[2];
+    readonly string[] diskPath = new string[2];
+
+    /// <summary>Puts a disk image in drive d (emulation thread). Written disks are saved back to the file.</summary>
+    void InsertDiskNow(int d, string path)
+    {
+        try
+        {
+            var dk = VzDisk.Load(path);
+            m.Fdc.Insert(d, dk); diskPath[d] = path;
+            ShowMessage("Drive " + (d + 1) + ": " + Path.GetFileName(path) + (dk.WriteProtect ? " (write-protected)" : "") + ", " + dk.Directory().Count + " files");
+        }
+        catch (Exception ex) { ShowMessage("Can't read " + Path.GetFileName(path) + ": " + ex.Message); }
+    }
+    void OpenDiskDialog(int d)
+    {
+        using (var f = new OpenFileDialog { Filter = "VZ disk images (*.dsk;*.dvz)|*.dsk;*.dvz|All files|*.*" })
+            if (f.ShowDialog(this) == DialogResult.OK) { string p = f.FileName; cmds.Enqueue(() => InsertDiskNow(d, p)); }
+    }
+    void NewDiskDialog(int d)
+    {
+        using (var f = new SaveFileDialog { Filter = "VZ disk images (*.dsk)|*.dsk", FileName = "blank.dsk", Title = "Save the new blank disk as" })
+            if (f.ShowDialog(this) == DialogResult.OK)
+            {
+                string p = f.FileName;
+                try { File.WriteAllBytes(p, VzDisk.Blank().ToDsk()); cmds.Enqueue(() => InsertDiskNow(d, p)); }
+                catch (Exception ex) { MessageBox.Show(this, ex.Message, "New disk", MessageBoxButtons.OK, MessageBoxIcon.Warning); }
+            }
+    }
+    void OpenRttyDialog()
+    {
+        using (var f = new OpenFileDialog { Filter = "Audio (*.wav;*.flac;*.mp3)|*.wav;*.flac;*.mp3|All files|*.*", Title = "RTTY audio to receive (2125/2295 Hz AFSK)" })
+            if (f.ShowDialog(this) == DialogResult.OK)
+            {
+                string p = f.FileName;
+                cmds.Enqueue(() => { try { m.Rtty.PlayRx(p, m.Cpu.Cyc); ShowMessage("RTTY receiving " + Path.GetFileName(p)); } catch (Exception ex) { ShowMessage("RTTY: " + ex.Message); } });
+            }
+    }
     bool tapeRight, tapeInvert;
 
     /// <summary>Plays an audio file into the cassette input from now (type CLOAD or CRUN first, as on the real VZ).</summary>
@@ -418,6 +487,12 @@ public sealed class MainForm : Form
         var files = (string[])e.Data.GetData(DataFormats.FileDrop);
         if (files == null || files.Length == 0) return;
         if (Directory.Exists(files[0])) MountSd(files[0]);
+        else if (files[0].EndsWith(".dsk", StringComparison.OrdinalIgnoreCase) || files[0].EndsWith(".dvz", StringComparison.OrdinalIgnoreCase))
+        {
+            string p = files[0];
+            if (!m.DiskOn) Reconfigure(() => { m.Cartridge = Cart.Disk; if (m.Exp == MemExp.BennVenn) m.Exp = MemExp.Ram16K; });
+            cmds.Enqueue(() => InsertDiskNow(0, p));
+        }
         else Launch(files[0]);
     }
 
@@ -608,6 +683,8 @@ public sealed class MainForm : Form
         string tape = "";
         var tp = m.Tape;
         if (tp != null && tp.Playing) { double p = tp.Position(m.Cpu.Cyc); tape = "TAPE " + (int)(p / 60) + ":" + ((int)p % 60).ToString("00") + "  "; }
+        if (m.DiskOn && m.Fdc.Active) tape += "DISK " + (m.Fdc.Selected + 1) + " T" + m.Fdc.Track.ToString("00") + "  ";
+        if (m.RttyOn) tape += "RTTY " + (m.Rtty.Ptt ? "TX " + (m.Rtty.TxMark ? "MARK" : "SPACE") : m.Rtty.RxPlaying ? "RX" : "IDLE") + "  ";
         stRight.Text = tape + (paused ? "PAUSED  " : "") + (warp ? "WARP  " : "") + (muted ? "MUTE  " : "") + fps.ToString("0") + " fps";
     }
 
@@ -741,6 +818,9 @@ public sealed class MainForm : Form
                 {
                     case "machine": m.Model = v == "VZ200" ? Model.VZ200 : Model.VZ300; break;
                     case "expansion": m.Exp = (MemExp)Enum.Parse(typeof(MemExp), v); break;
+                    case "cartridge": m.Cartridge = (Cart)Enum.Parse(typeof(Cart), v); break;
+                    case "disk1": if (File.Exists(v) && startDisk[0] == null) startDisk[0] = v; break;
+                    case "disk2": if (File.Exists(v) && startDisk[1] == null) startDisk[1] = v; break;
                     case "graphics": m.Gfx = (GfxMod)Enum.Parse(typeof(GfxMod), v); break;
                     case "joyinterface": m.JoyInterface = v == "1"; break;
                     case "bootvzdos": m.BootVzdos = v == "1"; break;
@@ -768,7 +848,7 @@ public sealed class MainForm : Form
         try
         {
             File.WriteAllLines(iniPath, new[] {
-                "machine=" + m.Model, "expansion=" + m.Exp, "graphics=" + m.Gfx, "joyinterface=" + (m.JoyInterface ? 1 : 0), "bootvzdos=" + (m.BootVzdos ? 1 : 0), "sdwriteback=" + (m.SdWriteBack ? 1 : 0),
+                "machine=" + m.Model, "expansion=" + m.Exp, "cartridge=" + m.Cartridge, "disk1=" + (diskPath[0] ?? ""), "disk2=" + (diskPath[1] ?? ""), "graphics=" + m.Gfx, "joyinterface=" + (m.JoyInterface ? 1 : 0), "bootvzdos=" + (m.BootVzdos ? 1 : 0), "sdwriteback=" + (m.SdWriteBack ? 1 : 0),
                 "sd=" + m.SdDir, "scale=" + scale, "integerscale=" + (integerScale ? 1 : 0), "border=" + (showBorder ? 1 : 0),
                 "fullscreen=" + (fullscreen ? 1 : 0), "mono=" + (m.Mono ? 1 : 0), "snow=" + (m.ShowSnow ? 1 : 0),
                 "arrowsjoystick=" + (arrowsJoy ? 1 : 0), "swapjoysticks=" + (swapJoy ? 1 : 0), "muted=" + (muted ? 1 : 0), "visualiser=" + (visOn ? 1 : 0),

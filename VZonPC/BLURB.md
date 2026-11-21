@@ -17,6 +17,9 @@ small `.exe` with nothing to install.
 - VZ200 (Z80 at 3.58 MHz, 8K RAM) and VZ300 (Z80 at 3.55 MHz, 18K RAM), also known as the VTech Laser 210 / 310
 - Memory: none, the 16K RAM pack, or the **BennVenn SD loader with 128K** (paged DOS RAM and expansion banks, VZ300 mode)
 - Joystick interface on ports `$20`–`$2F`, two joysticks with fire and arm buttons
+- **Disk drive:** the DD20 controller with two 5.25" drives and the real DOS BASIC V1.2 ROM, emulated at the flux
+  level (stepper phases, the flux flip-flop, the shift register, 85 RPM). `.dsk` images; `SAVE`, `LOAD` and `INIT` write back to the file
+- **RTTY terminal pack** (DSE K-6318, 1984): receives AFSK RTTY from an audio file and transmits through the speakers
 
 **CPU**
 - Cycle-counted Z80 core, including the undocumented instructions and flags
@@ -29,7 +32,7 @@ small `.exe` with nothing to install.
 - Text, semigraphics and the 128×64 4-colour mode, in both colour sets
 - **Australian super hi-res mod** (8K video RAM, all eight GM modes up to 256×192, 2K paging through `OUT 32`)
 - **German hi-res mod** (256×192, following MAME's Laser 310 SHRG driver)
-- Optional VRAM "snow", showing where a program touches video RAM during the picture
+- Optional VRAM "snow", showing where a program touches video RAM while the 6847 is fetching
 - 1:1 pixels, ×2 to ×5, free window sizing with whole-pixel or aspect-correct scaling, border on/off, monochrome TV, fullscreen
 
 **Sound**
@@ -56,11 +59,13 @@ small `.exe` with nothing to install.
   original CD audio, with the data on the left channel into the VZ and the music on the right
 
 **Live visualiser (F10)**
+- A 6847 beam panel: every picture line at one pixel per T-state, coloured by mode, with mid-line changes in white
+  and the 6847's row counter alongside, so Kefrens flicks, split screens and line holds can be seen as they happen
 - Left: Z80 registers, a live disassembly with the game's own symbols, CPU hot spots, frame budget
   (busy / interrupt / DOS / waiting), an opcode heatmap and the stack
 - Right: a 64K memory map glowing with reads, writes and fetches; a T-state view of the whole field
   showing VRAM access, speaker clicks and port I/O against the beam; 6847 mode; a speaker scope and spectrum;
-  the keyboard matrix and joysticks; I/O ports; and BennVenn SD activity
+  the keyboard matrix and joysticks; I/O ports; and BennVenn SD, disk drive (head, sectors, spinning disk) or RTTY activity
 - Costs about 1.5 ms per frame, so games keep running at full speed
 
 **For developers**
@@ -72,10 +77,10 @@ small `.exe` with nothing to install.
 
 **Size and requirements**
 - Windows 10 or 11 (it uses the .NET Framework 4 built into Windows). Nothing to install
-- `VZonPC.exe` is 158 KB, and `vzemu.exe` is 109 KB
-- Bring your own VZ ROM for BASIC. Machine-code games run without one
+- `VZonPC.exe` is 182 KB, and `vzemu.exe` is 126 KB
+- Bring your own VZ ROM for BASIC, and the disk or RTTY ROM for those cartridges. Machine-code games run without one
 
-**Not emulated:** saving to cassette, the printer, disk drive and light pen.
+**Not emulated:** saving to cassette, the printer, the RS-232 and WordPro cartridges, and the light pen.
 
 ## Screenshots
 
@@ -89,4 +94,6 @@ All in `screenshots\promo\`. Each has a clean 4× shot with the border (1280×96
 | `vzdeck-mod-player`, `vzdeck-mod-tracker`, `vzdeck-xm-tracker` | VZ-DECK playing Amiga MOD and XM music |
 | `redline`, `zephyr-zone`, `hoppy2`, `bix`, `graves-gargoyles`, `red-dust-rumble`, `tennis2`, `southern-cross`, `ghost-hunter-3d`, `cybernoid` | games in play |
 | `megademo-raster` | the megademo's raster effect, showing the line-by-line 6847 |
+| `disk-drive` | Laserlink Extended BASIC loaded with `BRUN` from a `.dsk` through the emulated DD20 drive |
+| `rtty` | the RTTY terminal pack receiving a 45-baud RTTY recording |
 | `window-maxq`, `window-vzdeck` | the real VZonPC window, with Max-Q's attract mode and VZ-DECK |

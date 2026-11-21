@@ -4,6 +4,8 @@ An emulator for the Dick Smith **VZ200** and **VZ300** (VTech Laser 210/310) for
 
 - **Machines:** VZ200 (8K, 3.58 MHz) or VZ300 (18K, 3.55 MHz).
 - **Memory:** no expansion, the 16K RAM pack, or the **BennVenn SD loader with 128K**.
+- **Cartridges:** the **disk drive** (DD20 controller, two drives, `.dsk` images) and the **RTTY terminal pack**.
+- **Tape:** WAV, FLAC or MP3 audio into the cassette socket.
 - **SD card:** a folder on the PC stands in for the card.
 - **Graphics:** the standard MC6847, the **Australian super hi-res mod**, or the **German hi-res mod**. Both mods give 6K of video RAM and 256×192.
 - **Display:** 1:1 pixels, scaled ×2–×5, any window size, or fullscreen.
@@ -36,6 +38,8 @@ one of these names:
 |---|---|
 | VZ300 | `vz300.rom` or `vtechv20.u12` (16K) |
 | VZ200 | `vz200.rom` (16K), or `vtechv20.u09` + `vtechv20.u10` (8K each) |
+| Disk drive cartridge | `vzdos.rom` (8K, DOS BASIC V1.2) |
+| RTTY cartridge | `vzrtty.ic3` (4K) |
 
 The two are BASIC V2.0, so either machine falls back to the other's ROM. These are the
 MAME `vz200` / `laser310` ROM files. With a ROM, the emulator boots to `READY` and BASIC
@@ -127,6 +131,51 @@ VZ200 with no memory expansion, type `CRUN`, then play the audio (`combined.ogg`
 From the command line:
 `VZonPC.exe --no-settings --machine vz200 --exp none --type "CRUN\r" --tape 2018AD_combined.wav`
 
+## Disk drive (DD20)
+
+**Machine → Cartridge → Disk drive controller** plugs in the VZ disk controller (the DD20 / X-7304 interface) with
+two 5.25" drives. It needs the controller's 8K **DOS BASIC V1.2** ROM as `roms\vzdos.rom`. It works with no memory
+expansion or the 16K pack. At power-on the ROM signs on as `DOS BASIC V1.2`, and the usual DOS commands work:
+`DIR`, `SAVE "NAME"`, `LOAD "NAME"`, `RUN "NAME"`, `BSAVE`, `BLOAD`, `BRUN`, `ERA`, `REN`, `INIT`, `DRIVE 2` and the rest.
+
+- **File → Disk drive 1 / 2** inserts a disk image (`.dsk`, `.dvz`), makes a new blank disk, or ejects. Dropping a
+  `.dsk` on the window puts it in drive 1 (and plugs in the controller if needed). `--disk FILE` and `--disk2 FILE`
+  do the same from the command line. The disks in the drives are remembered between runs.
+- **Writes go back to the file**, a second after the DOS stops writing, and on eject and exit. A read-only file is a
+  write-protected disk. Images are written in the 155-bytes-per-sector layout MAME uses (99,200 bytes). Any VZ
+  image that has the sector marks can be read, including VZEM's 99,184-byte ones.
+- **It is emulated at the flux level, as MAME does it.** The VZ's DOS does all the encoding in software: it steps the
+  head through four stepper phases, polls a flip-flop that toggles on every flux transition, and reads bits from a
+  shift register at its own timing. The disk turns at 85 RPM, each bit cell is 32.4 µs, and a 1 has a second
+  transition 7.9 µs in. Tracks hold the real transition positions, so reads, writes and `INIT` (which reformats
+  every track) all run the real DOS code at the real speed. MAME patches two bytes of this ROM to make it work. VZonPC
+  doesn't need to: the Z80 timing is exact enough for the original.
+- The status bar shows the drive and track while the motor runs, and the visualiser's bottom-right panel shows the
+  head on the 40 tracks, the 16 sectors in their interleaved order and where the head is over the spinning disk.
+
+## RTTY terminal pack (K-6318)
+
+**Machine → Cartridge → RTTY terminal pack** plugs in Dick Smith's 1984 RTTY interface (designed by VK2IDL and Rex
+Callaghan, published in ETI, November and December 1984). It needs its 4K ROM as `roms\vzrtty.ic3`. At power-on
+the ROM shows its title, asks for your callsign, and then offers receive, transmit and message buffers
+(**SHIFT X** for the menu). It does 45, 50, 75 and 110 baud Baudot.
+
+- **Receiving:** **File → RTTY: receive from an audio file...** plays a recording into the cartridge's
+  demodulator. It takes WAV, FLAC or MP3 of standard amateur AFSK RTTY: mark 2125 Hz and space 2295 Hz
+  (170 Hz shift). It could be recorded off air, from a WebSDR, or made with fldigi. `--rtty FILE` does the same
+  from the command line.
+- **Transmitting:** while the ROM keys the transmitter, its tones play through your speakers, so they can be
+  decoded by fldigi on another machine.
+- **The cartridge's registers** are memory-mapped:
+  - reading `$5000`–`$57FF` gives the received bit in bit 7;
+  - writing `$5800`–`$5FFF` sets the transmitted bit in bit 7;
+  - writing `$6000`–`$67FF` sets the relay (push-to-talk) in bit 7.
+
+  The polarity comes from the ROM itself: 1 means mark on both lines, and `$FF` keys the transmitter. MAME maps the
+  same registers, but stubs the signals out.
+- The visualiser's bottom-right panel scopes the last second of the receive and transmit lines, with dots where the
+  ROM samples the received bit.
+
 ## The visualiser (F10)
 
 **F10** (or **View → Visualiser**) shows live panels of what the machine is doing. In fullscreen they fill
@@ -145,6 +194,12 @@ or pressing F10 again turns the visualiser off. It's remembered between runs.
   *DOS* (SD loading) is orange, and *Wait* is blue. Wait is time in a loop that comes back to the same
   address without writing anything, such as a vsync poll, a key wait, `DJNZ $` or `HALT`. A 6-second
   history graph sits underneath.
+- **6847 beam, line by line**: every picture line at one pixel per T-state, coloured by the mode the latch held at
+  that moment. The 16 T-states of border on each side are dim, and the 128 T-states the 6847 is drawing are bright.
+  White marks a mode or colour-set change part-way along a line. Kefrens flicks show as a white column, and a split
+  screen as a change of colour. On the right is the row the 6847's own address counter showed on each line. It climbs
+  in steps (every 12 lines in text, every 3 in 128×64), and goes flat and amber where a mid-line flip held the row,
+  which is what makes Kefrens bars and FLD work.
 - **Opcodes**: a 16×16 heatmap of the first opcode byte over the last second, plus the most-used instructions.
 - **Stack**: SP over time, the lowest SP this second, and the return addresses on the stack with the CALL each came from.
 
@@ -154,15 +209,18 @@ or pressing F10 again turns the visualiser off. It's remembered between runs.
   contents. PC (white) and SP (amber) are marked, and the regions are labelled.
 - **Beam and CPU**: one whole field as 228 T-states × 312 lines (two lines per row). It shows what the CPU was
   doing at every moment, overlaid with video RAM writes (white) and reads (cyan), speaker clicks (red),
-  port OUT/IN, and keyboard reads. The picture area, field sync, and a strip showing the 6847 mode on each line
-  are drawn alongside. This shows where in the frame a game draws, and whether it races the beam.
-- **MC6847**: the mode, AG, CSS, GM, the latch, the hi-res mod's port and page, video RAM accesses per frame,
-  accesses during the picture (snow) and mid-frame mode splits.
+  port OUT/IN, and keyboard reads. The picture area (lines 118–309, T-states 58–185), field sync, and a strip showing
+  the 6847 mode on each line are drawn alongside. A tick beside the strip marks a line whose mode changed part-way
+  along: white, or amber where it held the row. This shows where in the frame a game draws, and whether it races the beam.
+- **MC6847**: the mode, AG, CSS, GM, the latch, the hi-res mod's port and page, and video RAM accesses per frame.
+  It also counts snow (CPU accesses while the 6847 is fetching, so side-border accesses don't count), lines with a
+  mid-line mode change, and line holds.
 - **Speaker**: a scope of the whole field and a 0–6 kHz spectrum with the peak frequency.
 - **Keyboard and joysticks**: the 8×6 matrix with pressed keys lit and the rows the game scans flashing,
   plus both joystick ports.
 - **I/O ports**: all 256 ports flash on IN (green) and OUT (red), with the most recent ones and their values.
-- **BennVenn SD**: the port `$37` mapping, an SD activity light, and a log of files opened and sectors read.
+- **BennVenn SD**: the port `$37` mapping, an SD activity light, and a log of files opened and sectors read. With the
+  disk drive or RTTY cartridge plugged in, this panel shows that instead (see above).
 
 The visualiser costs about 1.5 ms of CPU per frame, so everything still runs at full speed.
 
@@ -253,6 +311,11 @@ Paths in a script are relative to the current directory. Screenshots are PNG, 25
 | `reset`, `poke A V`, `out PORT V` | |
 | `tape FILE [left\|right\|mix] [invert]` | play a WAV/FLAC/MP3 into the cassette input from now |
 | `tapestop`, `tapeinvert [on\|off]`, `tapepos` | stop, flip the polarity, print the tape position |
+| `cart disk\|rtty\|none` | plug in a cartridge (before the first run command; needs `rom auto` for the BASIC ROM) |
+| `disk N FILE`, `disk N blank`, `diskeject N` | put an image (or a fresh formatted disk) in drive 1 or 2; eject saves it |
+| `diskdir [N]`, `diskstat`, `disksave N FILE` | list the directory, show the head and counters, write the image out |
+| `rttyrx FILE`, `rttyloop [off]`, `rttyinvert rx\|tx`, `rttystat` | receive AFSK audio, loop TX into RX, flip polarity, show state |
+| `rttytx FILE` … `rttytxend` | record the transmitted tones to a WAV |
 
 **Inspection**
 
@@ -288,18 +351,18 @@ To build test programs, assemble with `py tools\zasm.py src.asm -o out.bin --sym
 
 The GUI can also check itself: `VZonPC.exe GAME.VZ --quit-after 8 --shot win.png [--scale 2] [--gfx aus] [--fullscreen]`
 runs the real window for 8 seconds (add `--vis` for the visualiser; its window is saved as `win_vis.png`), captures it from the screen and exits without touching the settings.
-Other options: `--sd DIR`, `--machine`, `--exp`, `--type "RUN\r"`, `--tape FILE` (starts once the typing has finished), `--border 0|1`, `--integer 0|1`, `--no-settings`.
+Other options: `--sd DIR`, `--machine`, `--exp`, `--type "RUN\r"`, `--tape FILE` (starts once the typing has finished), `--cart disk|rtty|none`, `--disk FILE`, `--disk2 FILE`, `--rtty FILE`, `--border 0|1`, `--integer 0|1`, `--no-settings`.
 
 ## Source
 
 `src\Z80.cs` (CPU), `src\Z80Dis.cs` (disassembler), `src\Trace.cs` + `src\Vis.cs` (visualiser), `src\Machine.cs` (memory map, BennVenn, 6847 video, speaker, DOS, loader),
-`src\Headless.cs` (`vzemu`), `src\MainForm.cs` / `src\WinIO.cs` / `src\SdBrowser.cs` (the window, waveOut audio,
+`src\Floppy.cs` (disk drive), `src\Rtty.cs` (RTTY cartridge), `src\Tape.cs` + `src\MfAudio.cs` (tape input), `src\Headless.cs` (`vzemu`), `src\MainForm.cs` / `src\WinIO.cs` / `src\SdBrowser.cs` (the window, waveOut audio,
 winmm joysticks, GDI display). Run `build.bat` after changes. C# 5 only: no string interpolation or `?.`.
 
 ## Not emulated (yet)
 
 - Saving to cassette (`CSAVE`). Loading from tape audio works (see Tape input).
-- The printer and the disk drive.
+- The printer, and the RS-232 and WordPro cartridges.
 - The BennVenn's own flash BIOS and its built-in DOS. A small stand-in loads `VZDOS.VZ` instead, so without a
   `VZDOS.VZ` the loader goes straight to BASIC.
 - Light pen.

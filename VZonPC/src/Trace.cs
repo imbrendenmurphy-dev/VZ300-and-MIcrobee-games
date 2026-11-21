@@ -26,6 +26,20 @@ public sealed class VzTrace
     byte[] ras = new byte[FT], ov = new byte[FT];
     public byte[] Ras = new byte[FT], Ov = new byte[FT];
     public readonly int[] LineMode = new int[LINES]; public int[] LineModeShown = new int[LINES];
+    // the 6847 latch at every T-state of every line, the row each picture line showed (-1 = border) and
+    // line flags (1 = AG flipped during the line, so the row counter was held; 2 = AG or CSS changed during the line)
+    byte[] lineLat = new byte[FT]; public byte[] LineLat = new byte[FT];
+    short[] lineRow = new short[LINES]; public short[] LineRow = new short[LINES];
+    byte[] lineFlag = new byte[LINES]; public byte[] LineFlag = new byte[LINES];
+    int holds, splits; public int Holds, Splits;
+    public void Line(int ln, int[] lat, int row, bool held)
+    {
+        int o = ln * LT; byte f = 0; int prev = lat[0];
+        for (int t = 0; t < LT; t++) { int v = lat[t]; lineLat[o + t] = (byte)v; if (((v ^ prev) & 0x18) != 0) f = 2; prev = v; }
+        if (row >= 0 && held) { f |= 1; holds++; }
+        if (row >= 0 && f != 0) splits++;
+        lineRow[ln] = (short)row; lineFlag[ln] = f;
+    }
 
     long lastWriteT, idleMark, dosCarry; bool inIsr; int isrSp; long isrT0;
     int intsFrame; public int Ints;
@@ -97,8 +111,9 @@ public sealed class VzTrace
     }
     void Pic()
     {
-        int ln = (int)((m.Cpu.Cyc - m.FrameStart) / LT);
-        if (ln >= m.PicStart && ln < m.PicStart + 192) picAcc++;
+        long r = m.Cpu.Cyc - m.FrameStart;
+        int ln = (int)(r / LT), t = (int)(r % LT);
+        if (ln >= m.PicStart && ln < m.PicStart + 192 && t >= m.H0 && t < m.H0 + 128) picAcc++;
     }
     public void Port(int lo, int v, bool isOut)
     {
@@ -199,6 +214,10 @@ public sealed class VzTrace
         b = Ov; Ov = ov; ov = b; Array.Clear(ov, 0, FT);
         if (dosCarry > 0) { for (int i = 0; i < Math.Min(FT, dosCarry); i++) ras[i] = S_DOS; dosCarry = 0; }
         Array.Copy(LineMode, LineModeShown, LINES);
+        var lb = LineLat; LineLat = lineLat; lineLat = lb;
+        var rb = LineRow; LineRow = lineRow; lineRow = rb;
+        var fb = LineFlag; LineFlag = lineFlag; lineFlag = fb;
+        Holds = holds; Splits = splits; holds = splits = 0;
 
         Ints = intsFrame; intsFrame = 0;
         VramW = vramW; VramR = vramR; PicAccess = picAcc; vramW = vramR = picAcc = 0;
