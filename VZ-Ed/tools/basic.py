@@ -122,7 +122,7 @@ if __name__ == '__main__':
     bad = 0
     for txt, prog in (('lines1.txt', 'rom1.bin'), ('lines2.txt', 'rom2.bin')):
         d = os.path.join(here, 'basicrom')          # lines typed into the real ROM, and what it made
-        typed = [l for l in open(os.path.join(d, txt)).read().split('\n') if l.strip()]
+        typed = [l for l in open(os.path.join(d, txt)).read().splitlines() if l.strip()]
         rom, _ = program_lines(open(os.path.join(d, prog), 'rb').read())
         for line, (ln, b) in zip(typed, rom):
             num, _, rest = line.partition(' ')
