@@ -482,7 +482,14 @@ if '--preview' in sys.argv:                    # contact sheet of every sprite
 open('game_full.asm', 'w').write(src)
 lo, data, sym = assemble(src)
 assert sym['BUFEND'] <= 0xD000, 'out of memory: %04X' % sym['BUFEND']
-open('DROPBEAR.MZT', 'wb').write(mzt(b'DROPBEAR 3D', lo, data, sym['start']))
+# DROPBEAR.MZT is packed (it unpacks itself to exactly the same memory image, and loads in about a
+# third of the time); DROPBEAR_FULL.MZT is the plain one, kept as a fallback.
+open('DROPBEAR_FULL.MZT', 'wb').write(mzt(b'DROPBEAR 3D', lo, data, sym['start']))
+import lzpack
+pk, pinfo = lzpack.packed_mzt(b'DROPBEAR 3D', lo, data, sym['start'], mzt)
+open('DROPBEAR.MZT', 'wb').write(pk)
+print('packed %d -> %d bytes, loads %04X-%04X, unpacker at %04X' %
+      (len(data), pinfo['size'], pinfo['load'], pinfo['end'], pinfo['exec']))
 open('game.sym', 'w').write('\n'.join('%-14s %04X' % (k, v) for k, v in sorted(sym.items(), key=lambda x: x[1])))
 print('load %04X size %d end %04X exec %04X  work areas to %04X, free %d bytes' %
       (lo, len(data), lo+len(data)-1, sym['start'], sym['BUFEND'], 0xD000-sym['BUFEND']))

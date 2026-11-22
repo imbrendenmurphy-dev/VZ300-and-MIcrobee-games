@@ -1,7 +1,7 @@
 # Where does a game frame's time go? Samples T-states per routine (by nearest preceding label).
 import bisect, sys
 from mzemu import MZ
-d = open('DROPBEAR.MZT', 'rb').read()
+d = open('DROPBEAR_FULL.MZT', 'rb').read()
 sym = {l.split()[0]: int(l.split()[1], 16) for l in open('game.sym')}
 m = MZ(0x1200, d[128:], 0x1200)
 m.run_until(sym['tm1'], 50_000_000)            # skip the title, then the intro page

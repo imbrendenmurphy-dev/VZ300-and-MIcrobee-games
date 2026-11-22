@@ -7,7 +7,11 @@ creatures and shooting.
 VIBED BY BPM 2026
 
 ## DROPBEAR 3D test v0.5: title, gallery and attract demo
-Load `release/DROPBEAR.MZT` through UniCMT (load address 1200h, starts automatically, 38K).
+Load `release/DROPBEAR.MZT` through UniCMT. It starts automatically. The file is packed to 15K
+(from 38K), so it loads in about 40% of the time, then unpacks itself in about half a second.
+`release/DROPBEAR_FULL.MZT` is the same game unpacked (38K, load address 1200h), kept as a fallback.
+
+**Testing on a real MZ-700:** see [TESTING.md](TESTING.md) for what to load, which keys to try and what to photograph.
 
 Since v0.5: SPACE works (it was mapped to the 0 key), it's a little faster (only the sky and ground that changed are redrawn, and the ray maths uses a faster multiply), and small creatures hang back a little and stay in sight when they're at your feet.
 
@@ -63,7 +67,7 @@ own wall textures and sky and ground colours.
   that hide secrets. Each area remembers what you've opened and beaten.
 - It's forgiving: if you go down, you start again at the door you came in by, with full health.
 
-**Not yet:** testing on a real MZ-700, and packing the file so it loads faster.
+**Not yet:** testing on a real MZ-700.
 
 | Key | Action |
 |---|---|
@@ -104,7 +108,8 @@ renderer doesn't depend on the character ROM (European or Japanese).
 ## Building
 From `src/`, with `PYTHONPATH=tools`:
 - `python build.py` writes `MZRAY.MZT` (the benchmark).
-- `python build_game.py` writes `DROPBEAR.MZT` (the game).
+- `python build_game.py` writes `DROPBEAR.MZT` (the game, packed) and `DROPBEAR_FULL.MZT` (unpacked).
 
-`tools/runtest.py`, `tools/walktest.py` and `tools/gametest.py` run them on the Z80/MZ-700 simulator.
+`tools/runtest.py`, `tools/walktest.py`, `tools/gametest.py`, `tools/attracttest.py` and `tools/packtest.py`
+run them on the Z80/MZ-700 simulator.
 The developer handover notes are in `CLAUDE.md`, and the porting plan is in `PORTING.md`.

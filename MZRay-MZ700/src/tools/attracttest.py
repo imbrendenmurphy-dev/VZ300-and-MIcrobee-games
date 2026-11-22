@@ -3,7 +3,7 @@
 from mzemu import MZ, FIELD
 d = open('DROPBEAR.MZT', 'rb').read()
 sym = {l.split()[0]: int(l.split()[1], 16) for l in open('game.sym')}
-m = MZ(0x1200, d[128:], 0x1200)
+m = MZ(int.from_bytes(d[20:22], 'little'), d[128:], int.from_bytes(d[22:24], 'little'))   # load, exec from the header
 fails = []
 def check(what, ok):
     print(('ok   ' if ok else 'FAIL ') + what)

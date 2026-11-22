@@ -1,6 +1,6 @@
 # Counts colour-RAM writes per game frame and which view rows they hit (diagnostic).
 from mzemu import MZ, FIELD
-d = open('DROPBEAR.MZT', 'rb').read()
+d = open('DROPBEAR_FULL.MZT', 'rb').read()
 sym = {l.split()[0]: int(l.split()[1], 16) for l in open('game.sym')}
 m = MZ(0x1200, d[128:], 0x1200)
 m.run_until(sym['tm1'], 50_000_000)

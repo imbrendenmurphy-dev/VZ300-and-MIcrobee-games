@@ -139,9 +139,27 @@ Credits line for anything user-facing: **VIBED BY BPM 2026** (the user's standin
     hanging back. All pass.
   - Note: the user's C: drive filled to 0 bytes during this work. Keep generated PNG/WAV files out of src
     (delete them after the tests).
-- **Next:** real-hardware testing (load time via UniCMT, fps, keys, sound pitch and the 8253 clock).
-  Then pack the sprite pages (mostly FFh) or compress the MZT if load time or memory needs it. Any
-  remaining polish: difficulty names, an opal tally on the win screen, a real character chart for punctuation.
+- **Packed MZT (Claude Code session 2, 22 Nov 2026).**
+  - **Sprite pages aren't mostly FFh:** measured, they are ~65% opaque, and only the gun pages (12x5) and
+    a few 14-column sprites have empty columns. Cropping would save ~1K at best, so it wasn't done.
+  - Instead `src/lzpack.py` packs the whole program: a byte LZ with literal runs (00-3F), short matches
+    (40-7F + 1-byte distance up to 256) and long matches (80-FF + 2-byte distance, 0 = end), optimal parse.
+    `release/DROPBEAR.MZT` is now the packed one: **15,534 bytes** (from 38,656), loaded at 6CA6h,
+    unpacker at A903h. The unpacker (di, sp=1200h, speaker off) works forward in place: the packed data
+    sits as low as it can while the output never overtakes an unread packed byte. It takes ~0.36 s, then
+    jumps to `start`. The memory image is **identical** to the plain build, so RAM use is unchanged
+    (still ~2.9K free, not the ~4K stated above).
+  - `release/DROPBEAR_FULL.MZT` is the plain build (load 1200h), kept as a fallback.
+  - `tools/packtest.py` unpacks in the simulator (with junk below the load address) and compares memory with
+    DROPBEAR_FULL. gametest and attracttest run the **packed** file (they take load and exec from the header),
+    so they also show the game doesn't depend on blank RAM above A900h. prof, speedtest, vramcount and diffview
+    load DROPBEAR_FULL.MZT, because they assume a 1200h start.
+  - Build takes ~15 s longer (the packer is plain Python).
+  - `TESTING.md` is the real-hardware test sheet given to the user.
+- **Next:** real-hardware testing per TESTING.md (load time via UniCMT, fps, keys, sound pitch and the
+  8253 clock). Any remaining polish: difficulty names, an opal tally on the win screen, a real character
+  chart for punctuation. If RAM runs out, the options are runtime-generated tables (the build-time tables are
+  page-sized and many could be computed at start-up), or dropping the buffered modes (BUF, LDI40 code).
 
 ## 1. Purpose and current status
 
@@ -149,7 +167,9 @@ Credits line for anything user-facing: **VIBED BY BPM 2026** (the user's standin
 converting the user's VZ300 game **DROPBEAR 3D** in whole or in part, swapping VZ300-specific routines
 and artwork for MZ-700 equivalents.
 
-**Current stage:** benchmark only. `MZRAY BENCH v0.1` is a textured raycaster test program used to
+**(Historical: sections 1 to 9 describe the v0.1 benchmark. For the game's status, see section 0.)**
+
+**Current stage (v0.1):** benchmark only. `MZRAY BENCH v0.1` is a textured raycaster test program used to
 measure real speed before any game design is committed. This is the same benchmark-first process
 used for the sibling projects (RAYBENCH â†’ DROPBEAR 3D on the VZ300, BEECAST â†’ BUNYIP on the Microbee).
 
@@ -413,7 +433,11 @@ MZRay-MZ700/
   README.md                user-facing description
   PORTING.md               DROPBEAR 3D -> MZ-700 porting plan and steps
   release/MZRAY.MZT        benchmark build (copy to UniCMT USB stick)
-  release/DROPBEAR.MZT     game build (step 1: world walkabout)
+  TESTING.md               real-MZ-700 test sheet for the user
+  release/DROPBEAR.MZT     game build, packed (self-unpacking, 15K)
+  release/DROPBEAR_FULL.MZT  game build, plain (38K, load 1200h)
+  src/lzpack.py            MZT packer + Z80 in-place unpacker
+  src/tools/packtest.py    checks the packed MZT unpacks to the plain image
   src/mzray.asm            benchmark source (with ;@@ placeholders filled by build.py)
   src/raycore.asm          shared raycaster: setmode/render/copybuf/castray/mul8/drawcol1/2/poll
   src/raytables.py         shared table generation + fill() + mzt()
