@@ -25,14 +25,13 @@ Version 0.3 was the speed pass:
 
 ## Building
 
-Python 3 with numpy and Pillow.
+You need Python 3 with numpy and Pillow, plus gcc for the emulator.
 
 ```
-python3 tools/mklevels.py        # levels, sprites, tables -> build/
-python3 tools/mkwaves.py         # enemy waves and bosses
-python3 tools/mkmusic.py         # title tune
-python3 tools/mk_starhive_disk.py   # assembles the game and loader -> build/STARHIVE.DS8
+python tools/build_all.py      # -> build/STARHIVE.DS8
 ```
+
+`CLAUDE.md` has the full developer notes: architecture, tools, and hardware rules.
 
 ## Testing tools
 

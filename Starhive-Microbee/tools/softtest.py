@@ -8,11 +8,11 @@ import run
 from mbee import PALETTE
 
 B = run.BUILD
-files = [l.strip() for l in (B / 'soft_files.txt').read_text().split()]
-blocks = {}
-for line in (B / 'soft_files.inc').read_text().splitlines():
-    blk, name = line.split('DB ')[1].split(',', 1)
-    blocks[int(blk)] = name.strip('"').replace(' ', '').replace('BNK', '.BNK')
+blocks = {}                 # (SOFTSCRL's files, when built: STARHIVE only
+if (B / 'soft_files.inc').exists():     # uses beam_frame from here)
+    for line in (B / 'soft_files.inc').read_text().splitlines():
+        blk, name = line.split('DB ')[1].split(',', 1)
+        blocks[int(blk)] = name.strip('"').replace(' ', '').replace('BNK', '.BNK')
 
 
 def frame(pp):

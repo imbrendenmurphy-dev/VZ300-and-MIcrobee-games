@@ -10,13 +10,18 @@ import numpy as np
 
 HERE = Path(__file__).resolve().parent
 FRAME_T = 67500
-SO = HERE / 'emu' / 'libmbee.so'
+SO = HERE / 'emu' / ('libmbee.dll' if os.name == 'nt' else 'libmbee.so')
 
 
 def build_lib():
+    """compiles the C model on first use (needs gcc: on Windows, MinGW-w64
+    gcc on the PATH)"""
     src = [HERE / 'emu' / 'z80.c', HERE / 'emu' / 'mbee.c']
     if not SO.exists() or any(s.stat().st_mtime > SO.stat().st_mtime for s in src):
-        subprocess.check_call(['gcc', '-O2', '-shared', '-fPIC', '-o', str(SO)] + [str(s) for s in src])
+        cmd = ['gcc', '-O2', '-shared', '-o', str(SO)] + [str(s) for s in src]
+        if os.name != 'nt':
+            cmd.insert(3, '-fPIC')
+        subprocess.check_call(cmd)
 
 
 build_lib()
