@@ -1,4 +1,4 @@
-"""Run RUNEDEEP in the Premium Plus model with the RAM blocks filled as
+"""Run RUNE AMOK in the Premium Plus model with the RAM blocks filled as
 the loader leaves them.
 
     py tools/rd.py OUTDIR "keys..."    a scripted run with screenshots

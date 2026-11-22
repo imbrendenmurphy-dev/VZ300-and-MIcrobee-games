@@ -1,4 +1,4 @@
-"""RUNEDEEP level blocks (used by mkdata.py): tiles, sprites, the level
+"""RUNE AMOK level blocks (used by mkdata.py): tiles, sprites, the level
 definition, actions and texts, and a check that each level can be
 finished."""
 import struct

@@ -1,4 +1,4 @@
-"""RUNEDEEP music and sound effects -> build/snd.inc
+"""RUNE AMOK music and sound effects -> build/snd.inc
 
 All tunes are original. Each level has its own mode and pulse:
   title        D minor march         "The Runedeep"

@@ -1,5 +1,5 @@
 ; =====================================================================
-;  RUNEDEEP - The Vault of the Hollow King
+;  RUNE AMOK - The Vault of the Hollow King
 ;  A first-person dungeon crawl for the Microbee Premium Plus.
 ;  VIBED BY BPM 2026
 ;

@@ -1,6 +1,8 @@
-# RUNEDEEP — The Vault of the Hollow King
+# RUNE AMOK — The Vault of the Hollow King
 
 A first-person dungeon crawl for the **Microbee Premium Plus**: step and turn on a grid, through four themed depths, with lightweight RPG systems, puzzles, and a three-voice beeper score. It was designed for the Microbee's PCG and colour hardware from the start, not ported from another machine.
+
+**The story.** For a thousand years the Wardens kept the Hollow King sealed in the Runedeep beneath the old gatehouse. The order is now dust. You are its last, half-trained apprentice, and you can hear him stirring below. (The name is a pun on "run amok"; the dungeon is still called the Runedeep.)
 
 VIBED BY BPM 2026
 
@@ -18,14 +20,14 @@ Version 1.0. It has been tested only in the emulator model (`tools/emu`, the Spi
 
 What has been checked in the model:
 
-- **Disk**: `release/RUNEDEEP.DS8` boots with the bn60 ROM to the CP/M prompt. Typing `RUNEDEEP` loads all files in about 16 seconds and starts the game. ESC then Y returns cleanly to `A>`, and `DIR` works afterwards (`tools/boottest.py`).
+- **Disk**: `release/RUNEAMOK.DS8` boots with the bn60 ROM to the CP/M prompt. Typing `RUNEAMOK` loads all files in about 16 seconds and starts the game. ESC then Y returns cleanly to `A>`, and `DIR` works afterwards (`tools/boottest.py`).
 - **Solvability**: every build checks that all four depths can be finished (`tools/mklevel.py`).
 - **Bot playthrough**: a bot plays through the keyboard (`tools/bot.py`): fighting, keys, levers, buttons, hidden walls, the trader, rune puzzle, stairs and the seal.
 - **Speed**: a step takes about 5 frames (0.1 s) from key press to the new view. Composing a view costs about 1.1 frames of CPU; it is copied to the hidden screen page in the blanking, and then the page flips.
 
 ## Playing
 
-Needs a Premium Plus with 1MB RAM. Boot `release/RUNEDEEP.DS8` and type `RUNEDEEP` at the `A>` prompt.
+Needs a Premium Plus with 1MB RAM. Boot `release/RUNEAMOK.DS8` and type `RUNEAMOK` at the `A>` prompt.
 
 | Key | Action |
 |---|---|

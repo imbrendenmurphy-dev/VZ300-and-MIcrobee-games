@@ -1,4 +1,4 @@
-"""RUNEDEEP font: 8 x 10 cells, a little flared at the serifs, mixed case.
+"""RUNE AMOK font: 8 x 10 cells, a little flared at the serifs, mixed case.
 Rows 0-9; caps sit on rows 1-7, descenders reach row 9. '#' = ink."""
 
 GLYPHS = r"""

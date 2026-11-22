@@ -1,6 +1,6 @@
-"""RUNEDEEP title logo -> build/TITLE.BNK
+"""RUNE AMOK title logo -> build/TITLE.BNK
 
-The word RUNEDEEP built from the game font, scaled up, its corners
+The word RUNE AMOK built from the game font, scaled up, its corners
 rounded, a bevel cut along its edges, then dithered and coloured by cell
 rows from gold to ember (one ink per cell, as everywhere else).
 Block layout: +0 dw glyph count, +2 db first row, rows, first column,
@@ -15,17 +15,20 @@ from walls import YELLOW, BRED, RED, WHITE, BROWN
 import views as V
 
 ROOT = Path(__file__).resolve().parent.parent
-WORD = 'RUNEDEEP'
+WORD = 'RUNE AMOK'
 SX, SY = 4, 6
-COLS, ROWS = 34, 5          # the logo region in cells
-C0, R0 = 3, 1
+COLS, ROWS = 36, 5          # the logo region in cells
+C0, R0 = 2, 1
 
 
 def build():
     W, H = COLS * 8, ROWS * 10
     big = np.zeros((H * 4, W * 4), np.uint8)
-    x = 4 * 4
+    x = 2 * 4
     for ch in WORD:
+        if ch == ' ':
+            x += 14 * 4
+            continue
         g = font.FONT[ch]
         for r in range(10):
             for c in range(8):

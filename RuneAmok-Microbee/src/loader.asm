@@ -1,5 +1,5 @@
 ; =====================================================================
-; RUNEDEEP.COM - CP/M loader for RUNEDEEP (Microbee Premium Plus)
+; RUNEAMOK.COM - CP/M loader for RUNE AMOK (Microbee Premium Plus)
 ;
 ; Adapted from the loader of Starhive / The Lantern Deep. Runs under the
 ; Premium's own CP/M: saves CP/M's screen, attribute, colour and its two
@@ -53,7 +53,7 @@ start:      ld sp,$A7F0
             ldir
             jp main
 
-m_title:    DB 13,10,"RUNEDEEP - Microbee Premium Plus",13,10
+m_title:    DB 13,10,"RUNE AMOK - Microbee Premium Plus",13,10
             DB "VIBED BY BPM 2026",13,10,"$"
 m_tpa:      DB "Needs a CP/M with a TPA above B000h.",13,10,"$"
 
@@ -119,7 +119,7 @@ fail:       ld c,9
 m_load:     DB "Loading$"
 m_go:       DB 13,10,"$"
 m_bank:     DB 13,10,"Cannot find the CP/M memory bank.",13,10,"$"
-m_ram:      DB 13,10,"RUNEDEEP needs a Microbee Premium Plus with 1MB RAM.",13,10,"$"
+m_ram:      DB 13,10,"RUNE AMOK needs a Microbee Premium Plus with 1MB RAM.",13,10,"$"
 m_file:     DB 13,10,"A game file is missing from this disk.",13,10,"$"
 
 ; A = block -> A = port 50h value: ROMs off, no video window
@@ -483,7 +483,7 @@ final_end:
 
             ASSERT $ <= $0700
             ORG $0700
-sig:        DB "RUNEDEEP-LOADSIG"               ; CP/M bank signature
+sig:        DB "RUNEAMOK-LOADSIG"               ; CP/M bank signature
             DB $1A
 
-            SAVEBIN "../build/RUNEDEEP.COM",$0100,$0611
+            SAVEBIN "../build/RUNEAMOK.COM",$0100,$0611

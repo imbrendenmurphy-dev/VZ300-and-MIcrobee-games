@@ -1,4 +1,4 @@
-"""RUNEDEEP sprites: creatures, items, floor features, wall decorations
+"""RUNE AMOK sprites: creatures, items, floor features, wall decorations
 and spell effects, drawn in world units and rendered for each depth.
 
 Style ("woodcut and torchlight"): a sprite is a silhouette in one ink

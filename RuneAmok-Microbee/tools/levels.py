@@ -1,4 +1,4 @@
-"""RUNEDEEP levels: four depths of 16 x 16.
+"""RUNE AMOK levels: four depths of 16 x 16.
 
 Map legend
   #  wall        %  wall (second look)    .  floor     D  door
@@ -69,7 +69,7 @@ L1 = dict(
     ],
     triggers=[],
     texts=['The Gatehouse',
-           'Carved: WARDEN, SEEK THE THREE SIGILS. THE HOLLOW KING WAITS BELOW.',
+           'Carved: LAST OF THE WARDENS, FIND THE THREE SIGILS. HE WAITS BELOW.',
            'Carved: WHAT THE WALL HIDES, THE BUTTON WAKES.',
            'Carved: DOWN TO THE GROTTO.',
            'Stone grinds: a wall slides away!'],

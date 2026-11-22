@@ -1,16 +1,17 @@
-RUNEDEEP - The Vault of the Hollow King
+RUNE AMOK - The Vault of the Hollow King
 A first-person dungeon crawl for the Microbee Premium Plus.
 VIBED BY BPM 2026
 
 Needs a Premium Plus with 1MB RAM. At the A> prompt type:
 
-    RUNEDEEP
+    RUNEAMOK
 
 Loading takes about 16 seconds. ESC (then Y) returns to CP/M.
 
-Beneath the old gatehouse lies the Runedeep. Find the three
-sigils that seal the Hollow King's vault, break the seal on the
-fourth depth and end him.
+For a thousand years the Wardens kept the Hollow King sealed
+in the Runedeep. The order is dust; you are its last, half-
+trained apprentice. Find the three sigils that seal his vault,
+break the seal on the fourth depth and end him.
 
 Keys
   Arrows or W A S D   walk forward/back, turn left/right

@@ -1,5 +1,5 @@
 ; =====================================================================
-;  RUNEDEEP - Microbee Premium Plus hardware, memory map, constants
+;  RUNE AMOK - Microbee Premium Plus hardware, memory map, constants
 ;  Z80 3.375 MHz, 1MB RAM (32 blocks of 32K), 32K PCG RAM (16 banks of
 ;  128 glyphs), 6545 CRTC. 40 x 25 cells of 8 x 10 pixels, PAL, 50 Hz.
 ;  A scanline is 216 T, a frame 313 lines (67 608 T).

@@ -1,10 +1,10 @@
-# RUNEDEEP — design and style guide
+# RUNE AMOK — design and style guide
 
 *A first-person dungeon crawl for the Microbee Premium Plus. VIBED BY BPM 2026.*
 
 ## 1. The idea
 
-RUNEDEEP was made for the Microbee from the start, not ported to it. The starting question was what a first-person crawler looks like when it is built around what the Premium Plus does well:
+RUNE AMOK was made for the Microbee from the start, not ported to it. The starting question was what a first-person crawler looks like when it is built around what the Premium Plus does well:
 
 - **PCG RAM as a tile set**: 16 banks × 128 programmable 8×10 glyphs.
 - **One ink and one paper for every cell**, from 16 colours.
@@ -29,6 +29,7 @@ So it is a **step-and-turn grid crawler** in the Dungeon Master tradition, not a
   | The Drowned Archive | Cyan dressed stone, bookshelves | A four-rune sequence puzzle, portals, a spinner, a gold-key vault |
   | The Ember Throne | Red brick | The sealed door (three sigils) and the Hollow King |
 
+- **Story**: you are the last Warden, the half-trained final apprentice of an order that kept the Hollow King sealed for a thousand years. The tablets address you as such, the trader knows you, and the ending is the oath kept.
 - **Goal**: recover the **three sigils** (one each on depths 1–3), break the seal on depth 4, and destroy the Hollow King.
 - **Turn-based**:
   - Turning is free.

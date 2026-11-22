@@ -66,7 +66,7 @@ t_fizzle:       db "The firebolt bursts on stone.",0
 t_trader_no:    db "The trader ducks. 'Oi!'",0
 t_shop1:        db "Trader: 1 Potion 20g  2 Hone blade  3 Mend mail",0
 t_shop2:        db "(blade and mail 50g+) SPACE leaves.",0
-t_shop_sold:    db "'A pleasure, Warden.'",0
+t_shop_sold:    db "'A pleasure, last Warden.'",0
 t_shop_poor:    db "'Come back with gold.'",0
 t_shop_bye:     db "'Mind the dark.'",0
 t_snd_all:      db "Sound: music and effects.",0
@@ -79,7 +79,7 @@ t_dead1:        db "You have fallen in the dark...",0
 t_dead2:        db "Rise again (half your gold lost)? Y/N",0
 t_rise:         db "You rise, aching, at the stair.",0
 t_win1:         db "The Hollow King crumbles to ash!",0
-t_win2:         db "The Runedeep is quiet at last. You are its Warden.",0
+t_win2:         db "The last Warden has kept the oath. The Runedeep sleeps.",0
 t_win3:         db "THE END - press a key.",0
 
 t_subtitle:     db "The Vault of the Hollow King",0
@@ -89,14 +89,15 @@ t_blank38:      db "                                        ",0
 
 ; title pages: row, column, colour, text ... FF
 tt_tale:
-        db 10,3,WHITE,"Beneath the old gatehouse lies the",0
-        db 11,3,WHITE,"Runedeep, where the Hollow King",0
-        db 12,3,WHITE,"stirs on his ember throne.",0
-        db 14,3,BCYAN,"Find the three SIGILS that seal his",0
-        db 15,3,BCYAN,"vault, break the seal, and end him.",0
-        db 17,3,GREY,"Four depths. Keys, levers and runes.",0
-        db 18,3,GREY,"A trader who asks no questions.",0
-        db 19,3,GREY,"And things that bite in the dark.",0
+        db 10,3,WHITE,"For a thousand years the Wardens",0
+        db 11,3,WHITE,"kept the Hollow King sealed in the",0
+        db 12,3,WHITE,"Runedeep. Now the order is dust,",0
+        db 13,3,WHITE,"and you - its last, half-trained",0
+        db 14,3,WHITE,"apprentice - hear him stir below.",0
+        db 16,3,BCYAN,"Find the three SIGILS that seal his",0
+        db 17,3,BCYAN,"vault, break the seal, and end him.",0
+        db 19,3,GREY,"Keys, levers, runes, a shifty",0
+        db 20,3,GREY,"trader - and things that bite.",0
         db $FF
 tt_keys:
         db 10,3,YELLOW,"Arrows / W A S D",0

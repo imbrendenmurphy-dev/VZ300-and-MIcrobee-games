@@ -1,5 +1,5 @@
 """End-to-end disk test in the Premium Plus model: the Microbee boot ROM boots CP/M
-from RUNEDEEP.DS8, RUNEDEEP is typed at the A> prompt, the loader fills the RAM blocks
+from RUNEAMOK.DS8, RUNEAMOK is typed at the A> prompt, the loader fills the RAM blocks
 and starts the game; the craft is flown, then ESC must give back the CP/M prompt."""
 import sys
 from pathlib import Path
@@ -24,7 +24,7 @@ def show(pp):
 
 def boot(rom_path, disk=None, out=None):
     rom = Path(rom_path).read_bytes()
-    disk = Path(disk) if disk else ROOT / 'build' / 'RUNEDEEP.DS8'
+    disk = Path(disk) if disk else ROOT / 'build' / 'RUNEAMOK.DS8'
     pp = Mbee(rom=rom, disk=disk.read_bytes())
     pp.run_frames(60)
     type_text(pp, 'B')
@@ -39,12 +39,12 @@ def boot(rom_path, disk=None, out=None):
     pp.run_frames(60)
     show(pp)
     before = pp.text()
-    type_text(pp, 'RUNEDEEP\r')
+    type_text(pp, 'RUNEAMOK\r')
     for i in range(1500):
         pp.run_frames(10)
         if pp.cpu.pc >= 0x8000 and pp.crtc[1] == 40:
             break
-    print('game took the display %.1f s after RUNEDEEP was typed (pc %04X, crtc R1 %d)' % ((pp.frames - t0) / 50.0, pp.cpu.pc, pp.crtc[1]))
+    print('game took the display %.1f s after RUNEAMOK was typed (pc %04X, crtc R1 %d)' % ((pp.frames - t0) / 50.0, pp.cpu.pc, pp.crtc[1]))
     pp.run_frames(100)
     if out:
         pp.png(Path(out) / 'boot_game.png', 1, aspect=1.83)

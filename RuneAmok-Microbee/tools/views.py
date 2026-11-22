@@ -1,4 +1,4 @@
-"""RUNEDEEP - the first-person view, built offline.
+"""RUNE AMOK - the first-person view, built offline.
 
 The view is 24 x 16 cells (192 x 160 pixels) of the Microbee's 8 x 10 PCG
 cells. Every vertical edge of the 3D geometry falls on an 8-pixel cell

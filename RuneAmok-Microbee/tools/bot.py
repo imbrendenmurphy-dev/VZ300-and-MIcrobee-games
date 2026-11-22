@@ -1,4 +1,4 @@
-"""A bot that plays RUNEDEEP in the emulator model through the keyboard,
+"""A bot that plays RUNE AMOK in the emulator model through the keyboard,
 reading the game's memory to find its way (the whole-game test).
 
     py tools/bot.py OUTDIR       plays all four levels, screenshots + log

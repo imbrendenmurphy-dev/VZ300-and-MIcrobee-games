@@ -1,10 +1,10 @@
-"""RUNEDEEP: build everything.   py tools/build.py [--nodata]
+"""RUNE AMOK: build everything.   py tools/build.py [--nodata]
 
 1. data: tiles, sprites, levels (mkdata.py), music (mkmusic.py), logo (title.py)
 2. the program (src/main.asm -> build/RUNE.BIN); a JR out of range is
    turned into a JP in the source and the build tried again
-3. the CP/M loader (src/loader.asm -> build/RUNEDEEP.COM)
-4. the disk: build/RUNEDEEP.DS8 (and a copy in release/)
+3. the CP/M loader (src/loader.asm -> build/RUNEAMOK.COM)
+4. the disk: build/RUNEAMOK.DS8 (and a copy in release/)
 """
 import re
 import shutil
@@ -68,7 +68,7 @@ def main():
     print('RUNE.BIN %d bytes (8000h-%04Xh)' % (size, 0x8000 + size))
     assemble('loader.asm', '../build/loader.sym')
     import build_disk as BD
-    files = {'RUNEDEEP.COM': (BUILD / 'RUNEDEEP.COM').read_bytes()}
+    files = {'RUNEAMOK.COM': (BUILD / 'RUNEAMOK.COM').read_bytes()}
     for b, n, e in FILES:
         files['%s.%s' % (n, e)] = (BUILD / ('%s.%s' % (n, e))).read_bytes()
     files['CCP.SYS'] = (ROOT / 'resources' / 'CCP.SYS').read_bytes()
@@ -77,10 +77,10 @@ def main():
         files['README.TXT'] = readme.read_text().replace('\r\n', '\n').replace('\n', '\r\n').encode('ascii') + b'\x1a'
     assert not any(n.startswith('SHELL') for n in files)
     sysdisk = (ROOT / 'resources' / 'boot_tracks.bin').read_bytes()
-    used = BD.build_disk(sysdisk, files, BUILD / 'RUNEDEEP.DS8')
-    print('RUNEDEEP.DS8: %d of 196 blocks used, %d files' % (used, len(files)))
+    used = BD.build_disk(sysdisk, files, BUILD / 'RUNEAMOK.DS8')
+    print('RUNEAMOK.DS8: %d of 196 blocks used, %d files' % (used, len(files)))
     (ROOT / 'release').mkdir(exist_ok=True)
-    shutil.copy(BUILD / 'RUNEDEEP.DS8', ROOT / 'release' / 'RUNEDEEP.DS8')
+    shutil.copy(BUILD / 'RUNEAMOK.DS8', ROOT / 'release' / 'RUNEAMOK.DS8')
 
 
 if __name__ == '__main__':

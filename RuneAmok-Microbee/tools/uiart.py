@@ -1,4 +1,4 @@
-"""RUNEDEEP UI glyphs.
+"""RUNE AMOK UI glyphs.
 
 Bank 14: the font (codes 80h-DFh = ASCII 32-127) and icons (E0h-FFh).
 Bank 15: the frame (80h-BFh) and the minimap (C0h-FFh, drawn at run time).

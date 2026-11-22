@@ -1,4 +1,4 @@
-"""RUNEDEEP data builder: the generated include, the UI block and the
+"""RUNE AMOK data builder: the generated include, the UI block and the
 level blocks.
 
     build/gen.inc     slot tables, map offsets per facing, sizes

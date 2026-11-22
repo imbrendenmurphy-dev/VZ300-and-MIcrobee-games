@@ -1,4 +1,4 @@
-"""RUNEDEEP - wall, door and floor art, rendered into view cells.
+"""RUNE AMOK - wall, door and floor art, rendered into view cells.
 
 Every face is rendered per pixel from a texture (luminance) and a material
 id per pixel, lit by the torch (brightness falls with depth), then put on
