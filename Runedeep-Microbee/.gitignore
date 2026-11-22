@@ -1,0 +1,7 @@
+build/
+__pycache__/
+*.pyc
+tools/emu/*.so
+tools/emu/*.dll
+tools/tcc/
+resources/*.rom
