@@ -161,8 +161,9 @@ def machine(files, bank=True, cfg=None):
     c = Card(spc=8); c.addfile(2, 'VZDOS.VZ', dos); c.addfile(2, 'SHELL.VZ', ed)
     for name, data in files: c.addfile(2, name, data)
     if cfg is not None: c.addfile(2, 'VZED.CFG', cfg)
+    c.addfile(2, 'VZED.OVL', open('../out/VZED.OVL', 'rb').read())   # (0.7: quitting needs it)
     c.finish()
-    m = VZ(dos[24:], c, maxlba=max(c.sec) + 5000, bank=bank); m.run(0x4004, frames=120)
+    m = VZ(dos[24:], c, maxlba=max(c.sec) + 5000, bank=bank); m.run(0x4004, frames=160)
     m.card = c
     return m
 def keys(m, ks, extra=10):

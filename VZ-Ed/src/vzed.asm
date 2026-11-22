@@ -87,68 +87,34 @@ K_SHEET equ 127             ; (0.3, CTRL+V: above the printable range)
 K_MENU  equ 128             ; (0.4, CTRL+I; joystick fire in the editor too)
 K_PDF   equ 129             ; (0.5, menu only) codes from 129 = overlay slot code-126
 K_PRINT equ 130
+K_UNDO  equ 131             ; (0.7) CTRL+-
+K_GOTO  equ 133             ; (0.7) menu: go to line   } all three: overlay
+K_INFO  equ 134             ; (0.7) menu: word count   } slot 7 (ovl_tools),
+K_SETMK equ 135             ; (0.7) CTRL+0: set a mark } told apart by ovkey
+K_MK1   equ 136             ; (0.7) CTRL+1..9: go to bookmark 1..9 (slot 7 too)
 
         include "vars.inc"
 
         org $A000
 entry:  jp start
 plugin: db 0                ; 1 = PLAYTXT.VZ (VZ-DECK plug-in), 0 = VZED.VZ
-        db "VZ-ED 0.6 VIBED BY BPM 2026",0
+        db "VZ-ED 0.7 VIBED BY BPM 2026",0
 
 ; ===========================================================================
 start:  di
         ld sp,STACKTOP
-        ld hl,code_end      ; messages and help text: to the spare RAM below $A000
+        ld hl,code_end      ; messages, tables, font: to the spare RAM below $A000
         ld de,tail
         ld bc,tail_end-tail
         ldir
-        xor a
-        ld (LATCH),a
-        ld hl,VARS
-        ld de,VARS+1
-        ld bc,VARS_END-VARS-1
-        ld (hl),0
+        ld hl,code_end+tail_end-tail    ; (0.7) start-up code: to the top of the
+        ld de,init_s                    ; empty text buffer, run once from there
+        ld bc,init_e-init_s
         ldir
-        ld hl,SECBUF
-        ld ($FB80),hl
-        ld a,$FF
-        ld (fatcache),a
-        ld (fatcache+1),a
-        ld (fatcache+2),a
-        ld (lastidx),a
-        ld hl,$FFFF
-        ld (goal),hl
-        ld (curcell),hl
-        ld a,1
-        ld (insmode),a
-        ld (crlf),a
-        ld (waitrel),a
-        ld (cfg_ins),a
-        call clip_init
-        ld hl,($FB45)       ; the folder VZ-DECK / the DOS is in
-        ld (cwd),hl
-        ld a,($FB47)
-        ld (cwd+2),a
-        call fs_init
-        call cfg_load
-        call joy_detect
-        call set_display
-        call buf_clear
-        ld a,(plugin)
+        call init
+        ld a,(plugmode)
         or a
         jr z,st_go
-        call verify_ho      ; really opened from VZ-DECK with a file?
-        jr c,st_go
-        ld a,1
-        ld (plugmode),a
-        ld hl,(HO+3)
-        ld (ldcl),hl
-        ld a,(HO+5)
-        ld (ldcl+2),a
-        ld hl,(HO+7)
-        ld (ldsz),hl
-        ld a,(HO+9)
-        ld (ldsz+2),a
         call load_file
         jr c,st_go
         ld hl,HO+11
@@ -158,72 +124,6 @@ start:  di
         ld a,1
         ld (named),a
 st_go:  jp edit
-
-; VZ-DECK hand-over: HO+3 cluster, HO+7 size, HO+11 name.  Only trusted if
-; that name is in this folder with that cluster and size (C = not trusted).
-verify_ho:
-        ld hl,(HO)
-        ld a,h
-        or l
-        scf
-        ret nz
-        ld a,(HO+6)
-        or a
-        scf
-        ret nz
-        ld a,(fs_ok)
-        or a
-        scf
-        ret z
-        ld hl,HO+11
-        call cwd_find
-        ret c
-        ld hl,(dwptr)
-        ld de,26
-        add hl,de
-        ld de,(HO+3)
-        ld a,(hl)
-        cp e
-        scf
-        ret nz
-        inc hl
-        ld a,(hl)
-        cp d
-        scf
-        ret nz
-        ld hl,(dwptr)
-        ld de,20
-        add hl,de
-        ld a,(HO+5)
-        cp (hl)
-        scf
-        ret nz
-        ld hl,(dwptr)
-        ld de,28
-        add hl,de
-        ld de,HO+7
-        ld b,3
-vh_s:   ld a,(de)
-        cp (hl)
-        scf
-        ret nz
-        inc hl
-        inc de
-        djnz vh_s
-        or a
-        ret
-
-joy_detect:
-        in a,($2C)
-        and $0F
-        cp $0F
-        ret nz
-        in a,($2E)
-        bit 4,a
-        ret z
-        ld a,1
-        ld (joyon),a
-        ret
 
 ; ===========================================================================
 ;  editor main loop
@@ -292,7 +192,13 @@ c_sheet: ld a,1
         jp ovl_run
 c_menu: ld a,2
         jp ovl_run
-c_ovl:  sub 126             ; K_PDF -> slot 3, K_PRINT -> slot 4
+c_ovl:  cp K_UNDO
+        jp z,c_undo
+        ld (ovkey),a
+        cp K_GOTO
+        jr c,co_s
+        ld a,K_GOTO         ; K_GOTO.. (and bookmarks) -> slot 7
+co_s:   sub 126             ; K_PDF -> slot 3, K_PRINT -> slot 4
         jp ovl_run
 
 c_left: call mv_left
@@ -383,6 +289,8 @@ type_char:
         jr c,tc_ins
         cp 10
         jr z,tc_ins
+        ld a,1              ; (0.7) overtyping: one OVR undo record
+        ld (uovr),a
         push bc
         call del_right
         pop bc
@@ -436,6 +344,7 @@ buf_clear:
         ld (modified),a
         ld (selon),a
         ld (basmode),a      ; (0.6) a text again
+        call un_clr         ; (0.7) no undo history, no bookmarks
         jp reset_goal
 
 ins_char:                   ; A = char
@@ -449,6 +358,7 @@ ins_char:                   ; A = char
         ld (hl),c
         inc hl
         ld (gs),hl
+        call un_ic
         ld a,1
         ld (modified),a
         ld a,c
@@ -470,6 +380,7 @@ del_left:
         ld hl,(gs)
         dec hl
         ld (gs),hl
+        call un_bs
         ld a,1
         ld (modified),a
         ld a,(hl)
@@ -489,6 +400,7 @@ del_right:
         ld hl,(ge)
         inc hl
         ld (ge),hl
+        call un_dl
         ld a,1
         ld (modified),a
         ret
@@ -1701,10 +1613,14 @@ waitkey:                    ; A = next event (no blink)
         include "edit2.asm"
         include "files.asm"
         include "ui.asm"
+        include "undo.asm"
 
 code_end:
-BUFS    equ (code_end+255)&$FF00
-        assert BUFS+12000 <= BUFE
+; (0.7) the undo history: from the end of the code up to BUFS (at least 1K)
+UBUF    equ code_end
+BUFS    equ $CA00           ; text buffer BUFS-BUFE: 11,264 bytes
+UBEND   equ BUFS
+        assert UBUF+1024 <= UBEND
 
 ; tables, font, messages and help text: stored after the code in the file and
 ; copied at start-up to the free RAM between the variables and $A000 (VZ-DECK's
@@ -1718,3 +1634,15 @@ tail:
         include "ovl.asm"
 tail_end:
         assert tail_end <= $A000
+
+; (0.7) start-up code: in the file after the tail; start copies it to INITRUN
+; (the top of the still empty text buffer) and calls it once.  clip_init's 10K
+; copy of $4000-$67FF goes just below it.
+INITRUN equ $F200
+        org INITRUN
+init_s:
+        include "init.asm"
+init_e:
+        assert init_e <= BUFE
+CIBUF   equ INITRUN-$2800
+        assert CIBUF >= code_end

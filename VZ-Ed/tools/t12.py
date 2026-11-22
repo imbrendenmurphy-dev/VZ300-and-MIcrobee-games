@@ -130,10 +130,10 @@ def part_pdf():
     d = readf(m, '/UNTITLED.PDF')
     check(d is not None and pdf_check(d, 'hi') is None and not files(m)[0], 'a new, unnamed text: UNTITLED.PDF')
     # too big for the card code (over 64K): refused, nothing written
-    m = machine([('T.TXT', b'\n' * 12000)]); open_t(m)
+    m = machine([('T.TXT', b'\n' * 11000)]); open_t(m)
     sec0 = dict(m.card.sec)
     menu_pick(m, 4, wait=600)
-    check('PDF TOO BIG' in title(m) and m.card.sec == sec0, '12,000 empty lines: PDF TOO BIG, card untouched (%r)' % title(m))
+    check('PDF TOO BIG' in title(m) and m.card.sec == sec0, '11,000 empty lines: PDF TOO BIG, card untouched (%r)' % title(m))
     # editing a .PDF as text: not replaced by its own PDF
     m = machine([('T.PDF', b'not really a pdf')])
     keys(m, [('CTRL', 'O'), ('WAIT', 20), 'SPACE', 'RET', ('WAIT', 30)])

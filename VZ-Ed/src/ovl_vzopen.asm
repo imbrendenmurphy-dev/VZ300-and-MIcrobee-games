@@ -111,6 +111,7 @@ zv_e:   ld (ge),hl
         ld (ovok),a
         ld (caps),a         ; capitals, as on the VZ (CTRL+U turns it off)
         call reset_goal
+        call un_clr         ; (0.7) no undo history / bookmarks from the old text
         xor a
         ret
 zv_big: call zv_clr

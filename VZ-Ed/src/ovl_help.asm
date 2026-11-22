@@ -47,7 +47,7 @@ zh_x:   ld a,1
         xor a               ; NC, no key: the cursor stays
         ret
 
-zh_hdr: db "VZ-ED 0.6 HELP  ^Q=DONE",0
+zh_hdr: db "VZ-ED 0.7 HELP  ^Q=DONE",0
 zh_text:
         db "CTRL + KEY:",0
         db " M , . SPC  CURSOR",0
@@ -82,6 +82,13 @@ zh_text:
         db " : ;   (BLOCK MARKED) DELETE IT",0
         db " F G   FIND / FIND AGAIN",0
         db " E     REPLACE (CURSOR TO END)",0
+        db " -     UNDO (AGAIN: THE ONE",0
+        db "       BEFORE, AND SO ON)",0
+        db " 0     SET A BOOKMARK (THEN 1-9)",0
+        db " 1-9   GO TO THAT BOOKMARK",0
+        db "FIND MENU: GO TO LINE",0
+        db "VIEW MENU: WORD COUNT (OF THE",0
+        db " BLOCK IF ONE IS MARKED)",0
         db "TYPING:",0
         db " LETTERS ARE LOWER CASE,",0
         db " SHIFT+LETTER = CAPITAL",0
@@ -109,7 +116,7 @@ zh_text:
         db " RETURN DOES IT, A LETTER DOES",0
         db " ITS ^ KEY, ^Q OR ^I CLOSES",0
         db " ",0
-        db "VZ-ED 0.6  VIBED BY BPM 2026",0
+        db "VZ-ED 0.7  VIBED BY BPM 2026",0
         db $FF
 zh_last:
         assert zh_last <= OVLA+OVLSEC*512

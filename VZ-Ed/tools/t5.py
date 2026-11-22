@@ -62,7 +62,7 @@ def buffer(m):
 random.seed(int(sys.argv[1]) if len(sys.argv)>1 else 7)
 start='Line one here\nsecond\n\nfourth line is quite a bit longer than the screen is wide\nfive\nsix\nseven\neight\nnine\nten\neleven\ntwelve\nthirteen\nfourteen\nfifteen\nsixteen\nseventeen end'
 c=Card(spc=8); c.addfile(2,'VZDOS.VZ',dos); c.addfile(2,'SHELL.VZ',ed); c.addfile(2,'T.TXT',start.encode()); c.finish()
-m=VZ(dos[24:],c,maxlba=max(c.sec)+5000); m.run(0x4004,frames=120)
+m=VZ(dos[24:],c,maxlba=max(c.sec)+5000); m.run(0x4004,frames=160)
 m.type_keys([('CTRL','O'),('WAIT',20),'SPACE','RET',('WAIT',30)]); m.run_script(extra=10)
 md=Model(start,15)
 bad=0

@@ -17,7 +17,7 @@ def guard(a,v):
         if 0x7800<=a<0x8000 and not (0x7600<=a<0x7700): return True
     return False
 m.guard=guard
-m.run(0x4004,frames=120)
+m.run(0x4004,frames=160)
 m.type_keys([('CTRL','O'),('WAIT',20)]); m.run_script(extra=5); shot.save(m,S+'s_list_text.png')
 m.type_keys(['SPACE','RET',('WAIT',30),('CTRL','SPACE'),('CTRL','SPACE'),('CTRL',','),('CTRL',',')]); m.run_script(extra=3)
 m.z.mem[sym['blinkon']]=1

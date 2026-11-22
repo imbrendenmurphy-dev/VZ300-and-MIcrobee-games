@@ -94,87 +94,11 @@ co_1:   call filelist
 
 c_quit: call check_modified
         ret c
-        call cfg_save
-exit:   xor a               ; back to text mode, clear the screen
-        ld (LATCH),a
-        ld hl,VRAM
-        ld de,VRAM+1
-        ld bc,511
-        ld (hl),$20
-        ldir
-        ld a,(plugmode)
-        or a
-        jr z,ex_rst
-        ld hl,s_shellnm     ; plug-in: find SHELL.VZ and reload it like the players do
-        call setname
-        ld hl,0
-        ld e,l
-        call dir_find
-        jr c,ex_rst
-        ld hl,(dwptr)
-        ld de,26
-        add hl,de
-        ld a,(hl)
-        ld (HO+22),a
-        inc hl
-        ld a,(hl)
-        ld (HO+23),a
-        ld hl,(dwptr)
-        ld de,20
-        add hl,de
-        ld a,(hl)
-        ld (HO+24),a
-        xor a
-        ld (HO+25),a
-        ld hl,(dwptr)
-        ld de,28
-        add hl,de
-        ld a,(hl)
-        ld (HO+26),a
-        inc hl
-        ld a,(hl)
-        ld (HO+27),a
-        call fat_sync
-        call dos_nocache
-        ld hl,rl_src
-        ld de,$7600
-        ld bc,rl_end-rl_src
-        ldir
-        jp $7600
+        ld a,8              ; (0.7) ovl_quit: settings, back to VZ-DECK / restart
+        call ovl_run
 ex_rst: xor a               ; restart: VZ-DECK comes back up
         out ($37),a
         jp 0
-rl_src: ld hl,$4456         ; "VD": tells VZ-DECK it is coming back
-        ld (HO),hl
-        ld hl,HO+22
-        ld de,$FA12
-        ld bc,4
-        ldir
-        ld hl,$7FE8
-        ld ($FB80),hl
-        ld hl,(HO+26)
-        ld de,511
-        add hl,de
-        ld a,h
-        srl a
-        ld (HO+28),a
-        call D_C2S
-        call D_READ
-        di
-rl_l:   ld hl,HO+28
-        dec (hl)
-        jr z,rl_x
-        ld hl,($FB80)
-        ld de,512
-        add hl,de
-        ld ($FB80),hl
-        call D_NEXT
-        di
-        jr rl_l
-rl_x:   ld hl,$F800
-        ld ($FB80),hl
-        jp $8000
-rl_end:
 
 ; ---- the file list.  NC = a file was opened.
 filelist:

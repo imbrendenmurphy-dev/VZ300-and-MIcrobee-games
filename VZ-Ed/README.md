@@ -1,4 +1,4 @@
-# VZ-ED 0.6
+# VZ-ED 0.7
 
 A full-screen text editor for the Dick Smith VZ300 / VZ200 with the BennVenn SD loader and 128K.
 It reads and writes text files straight on the SD card and works hand in hand with VZ-DECK.
@@ -12,7 +12,7 @@ Copy the three files to the **root** of the SD card:
 | File | What it does |
 |---|---|
 | `VZED.VZ` | Run it from VZ-DECK (or the DOS) to start a new document. Quitting restarts into VZ-DECK. |
-| `VZED.OVL` | Help, the sheet view, the menu bar, PDF export, printing, BASIC programs and the hex viewer (see "Overlays" below). Without it everything else still works; CTRL+H, CTRL+V and CTRL+I say `VZED.OVL MISSING OR OLD`. |
+| `VZED.OVL` | Help, the sheet view, the menu bar, PDF export, printing, BASIC programs, the hex viewer, bookmarks, go to line, word count and quitting (see "Overlays" below). Without it the editor still works; those say `VZED.OVL MISSING OR OLD` (CTRL+Q then just restarts, without saving the settings). |
 | `PLAYTXT.VZ` | VZ-DECK plug-in. Press RETURN on any `.TXT` file in VZ-DECK and it opens in VZ-ED. Quitting goes straight back to VZ-DECK, in the same folder. |
 
 `VZED.VZ` and `PLAYTXT.VZ` are the same program; one byte tells them apart. Always copy all three
@@ -56,6 +56,32 @@ with its CTRL key beside it, so you can learn the keys as you go.
 * RETURN (or fire) does the item. A letter does the item with that CTRL key straight away, from any
   menu (S saves, W turns word wrap on and off, ...).
 * CTRL+Q or CTRL+I closes the menu without doing anything. VZ-ED remembers the last menu you used.
+
+## Undo (CTRL+-)
+
+CTRL+- (CTRL and the minus key) takes back the last change; press it again for the one before, and
+so on. EDIT > UNDO does the same. A change is:
+
+* a run of typing (moving the cursor away and typing somewhere else starts a new one),
+* a run of CTRL+: (rubout) or CTRL+; (delete), a run of typing in overtype mode,
+* a paste, a block deleted or cut, or a whole replace (Y / A, every match it changed).
+
+The cursor goes back to where the change was. Undo remembers the last 1,157 bytes of changes (typed
+text costs nothing to remember, deleted text costs what it deleted): older ones are forgotten as new
+ones come in, and a single delete bigger than that can't be undone (cut it instead: CTRL+P brings it
+back). NEW and OPEN start with an empty history. `NOTHING TO UNDO` when there is nothing left. There
+is no redo.
+
+## Bookmarks, go to line, word count
+
+* CTRL+0 sets a bookmark at the cursor: VZ-ED asks `BOOKMARK: PRESS 1-9`, and says `MARK n SET`.
+* CTRL+1 ... CTRL+9 go to that bookmark (`NO MARK n` if it isn't set). Bookmarks stay on the same
+  text while you type and delete before them; one inside a deleted block moves to where the block
+  was. They are not saved with the file (NEW and OPEN clear them).
+* FIND > GO TO LINE asks for a line number (past the end goes to the last line).
+* VIEW > WORD COUNT shows `n WORDS n LINES n CHARS` on the title bar until you press a key; with a
+  block marked it counts just the block (`BLOCK n WORDS ...`). A word is anything between spaces or
+  line ends.
 
 ## BASIC programs (.VZ)
 
@@ -116,8 +142,8 @@ CTRL+T / B (top / end), then press RETURN to go there. Q, CTRL+Q or CTRL+V go ba
 
 ## Overlays
 
-Help, the sheet view, the menu bar, PDF export, printing, BASIC and the hex viewer live in `VZED.OVL`,
-not in `VZED.VZ`: they are loaded from the card only when
+Help, the sheet view, the menu bar, PDF export, printing, BASIC, the hex viewer, bookmarks, go to line, word
+count and quitting live in `VZED.OVL`, not in `VZED.VZ`: they are loaded from the card only when
 you use them (the sheet view is up in under half a second), so the editor keeps its room for text. Later features will be added the same way. `VZED.OVL` is only read, never
 written. On a machine without the spare 10K SRAM bank, the small clipboard is parked in the free part
 of the text buffer while an overlay runs; if the file leaves no room for it, it is emptied and VZ-ED
@@ -152,6 +178,9 @@ All commands are CTRL + a key. CTRL+H shows these on screen.
 | CTRL + F | find |
 | CTRL + G | find again |
 | CTRL + E | replace (from the cursor to the end) |
+| CTRL + - | undo (again: the change before) |
+| CTRL + 0 | set a bookmark (then 1-9) |
+| CTRL + 1 ... 9 | go to that bookmark |
 | CTRL + H | help |
 | CTRL + Q | quit (asks to save changes) |
 | Joystick | moves the cursor (also up/down/fire in the file list) |
@@ -219,15 +248,13 @@ Other details:
   layout against the DOS first and refuses to save (`CARD FORMAT NOT SUPPORTED`) if anything doesn't
   match, rather than guess.
 
-## Limits in 0.6
+## Limits in 0.7
 
-* Files up to 12,288 bytes (larger files will be paged from the card in 0.6). 0.3 has 256 bytes more
-  room than 0.2, because help moved to `VZED.OVL`.
+* Files up to 11,264 bytes. 0.7 gave 1K of the text buffer to the undo history (0.3-0.6: 12,288).
+  Bigger files open in the hex viewer; paging big files from the card is planned.
 * Fixed in 0.2: in 0.1 the screen went blank when a long line scrolled sideways.
 * Fixed in 0.6: the Save As prompt didn't take a `.`, so you couldn't give a file your own extension.
-* No undo yet: cut, delete and replace can't be taken back (save often; the `.BAK` keeps the last
-  saved version).
-* Text files only (BASIC programs and a hex view come in 0.5).
+* Undo remembers about 1.1K of changes, and no redo.
 * Sectors beyond the first 8 GB of a card can't be reached (the same limit as the DOS).
 
 ## Tech specs
@@ -235,9 +262,10 @@ Other details:
 | | |
 |---|---|
 | Needs | VZ300 / VZ200, BennVenn SD loader with 128K, VZDOS 2.31 or 2.32 |
-| Program | `$A000`-`$C5BC`, plus tables, font, messages and the overlay loader copied at start-up to `$9818`-`$9F96` |
-| Text buffer | `$C600`-`$F5FF` (12,288 bytes, gap buffer) |
-| Overlays | `VZED.OVL`: 3K slots (0 help, 1 sheet view, 2 menu bar, 3 PDF, 4 print, 5 open .VZ / hex view, 6 save BASIC) loaded to `$8900` |
+| Program | `$A000`-`$C579`, plus tables, font, messages and the overlay loader copied at start-up to `$9840`-`$9FEF`; the start-up code runs once from the empty text buffer (`$F200`) |
+| Undo history | `$C57A`-`$C9FF` (1,157 bytes) |
+| Text buffer | `$CA00`-`$F5FF` (11,264 bytes, gap buffer) |
+| Overlays | `VZED.OVL`: 3K slots (0 help, 1 sheet view, 2 menu bar, 3 PDF, 4 print, 5 open .VZ / hex view, 6 save BASIC, 7 bookmarks / go to line / word count, 8 quit) loaded to `$8900` |
 | Printer | VZ printer interface: busy = bit 0 of `IN ($00)`, data `OUT ($0E)`, strobe `OUT ($0D)` (as the ROM) |
 | Work RAM | `$8000`-`$9FFF`: screen shadow, folder list (200 entries), variables |
 | Clipboard | spare 10K SRAM bank at `$4000`-`$67FF` (`OUT ($37),3`), or 3,328 bytes at `$8900` |
@@ -256,12 +284,12 @@ and `SHELL.VZ` from the VZ-DECK release into `tools/` first) and the tests:
 against a model, `t6` screenshots, `t7` timing, `t9` the 0.2 features (word wrap checked against a
 model, blocks, find / replace), `t10` word wrap timing, `t11` overlays, the sheet view (checked
 dot for dot against a model) and the menu bar, `t12` PDF export (checked as a PDF and line by line)
-and printing, `t13` BASIC programs (against lines typed into the real ROM) and the hex viewer.
+and printing, `t13` BASIC programs (against lines typed into the real ROM) and the hex viewer, `t14` undo (random edits undone all the way back), bookmarks, go to line, word count.
 `tools/basic.py` is a Python model of the ROM's tokeniser and LIST.
 
 ## Coming next
 
-* Big files paged from the card, undo, bookmarks, word count
+* Big files paged from the card
 
 ## Credits
 

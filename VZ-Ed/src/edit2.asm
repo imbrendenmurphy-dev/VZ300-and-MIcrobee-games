@@ -802,6 +802,7 @@ blk_rm: call sel_range      ; remove the block from the text
         ld hl,(gs)
         or a
         sbc hl,bc
+        call un_blk
         push hl
         call count_lf
         ld hl,(curln)
@@ -884,6 +885,7 @@ c_paste: xor a              ; CTRL+P
         ld (gs),de
         pop bc
         pop hl
+        call un_pst
         call count_lf
         ld hl,(curln)
         add hl,de
@@ -900,76 +902,6 @@ clip_on: ld a,(clipbank)
         ret
 clip_off: ld a,(clhome)       ; back to what the DOS uses
         out ($37),a
-        ret
-
-; The spare 10K SRAM bank (port $37 = 3) holds the clipboard if it is really
-; separate from what the DOS uses.  Port $37 can't be read back, so first find
-; out what is mapped at $4000-$67FF now (copy it to the empty text buffer and
-; see whether setting 1 or 0 shows exactly the same) and always go back to that
-; ("clhome").  The bank is used only if it reads differently, and the one test
-; write is checked against the home view and put back at once.  Otherwise: the
-; 3.3K fallback clipboard in DIRBUF.
-clip_init:
-        xor a               ; (start-up) no find / replace text yet
-        ld (fbuf),a
-        ld (rbuf),a
-        ld hl,CLIPF
-        ld (clipbase),hl
-        ld hl,$9600-CLIPF
-        ld (clipmax),hl
-        ld hl,$4000
-        ld de,BUFS
-        ld bc,$2800
-        ldir
-        ld a,1
-        call ci_cmp
-        jr z,ci_home
-        xor a
-        call ci_cmp
-        jr z,ci_home
-        inc a               ; neither (not expected): the loader's usual 1, no bank
-ci_home: ld (clhome),a
-        ld a,3
-        call ci_cmp
-        jr z,clip_off       ; looks the same: no separate bank
-        ld hl,$4040
-        ld e,(hl)           ; the bank's byte
-        ld a,e
-        cpl
-        ld (hl),a
-        ld b,(hl)           ; read back
-        call clip_off
-        ld a,(BUFS+$40)     ; the home byte, as it was
-        cp (hl)
-        jr nz,ci_bad
-        ld a,3
-        out ($37),a
-        ld (hl),e
-        call clip_off
-        ld a,e
-        cpl
-        cp b
-        ret nz              ; the bank doesn't keep what is written
-        ld a,1
-        ld (clipbank),a
-        ld hl,CLIPB
-        ld (clipbase),hl
-        ld hl,$2800
-        ld (clipmax),hl
-        ret
-ci_bad: ld (hl),a           ; the write reached the home view: put it back
-        ret
-ci_cmp: ld (wk),a            ; A = setting to try.  Z if $4000-$67FF then
-        out ($37),a         ; matches the copy.  Returns with A = that setting.
-        ld hl,$4000
-        ld de,BUFS
-        ld bc,$2800
-cc_l:   ld a,(de)
-        cpi
-        jr nz,cc_x
-        inc de
-        jp pe,cc_l
-cc_x:   ld a,(wk)
         ret
 
 ; ---- show the block (or find match) on the screen: bit 7 of SCR
@@ -1390,6 +1322,7 @@ rp_do:  ld a,(fbuf)         ; the match goes, the new text comes in
         ld hl,(ge)
         add hl,bc
         ld (ge),hl
+        call un_rpd
         ld de,(gs)
         or a
         sbc hl,de
@@ -1405,6 +1338,7 @@ rp_do:  ld a,(fbuf)         ; the match goes, the new text comes in
         jr z,rp_d1
         ldir
 rp_d1:  ld (gs),de
+        call un_rpi
         ld a,1
         ld (modified),a
         ld hl,(rcount)
@@ -1414,9 +1348,11 @@ rp_d1:  ld (gs),de
 rp_skip: ld bc,1
         call gap_right
         jp rp_l
-rp_full: ld hl,m_full
+rp_full: call un_endg
+        ld hl,m_full
         jp set_msg
-rp_done: call reset_goal
+rp_done: call un_endg
+        call reset_goal
         ld hl,(rcount)
         ld de,msgbuf
         call putdec16

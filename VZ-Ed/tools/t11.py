@@ -18,7 +18,7 @@ def machine(files, bank=True, ovl=OVL):
     for name, data in files: c.addfile(2, name, data)
     if ovl is not None: c.addfile(2, 'VZED.OVL', ovl)
     c.finish()
-    m = VZ(dos[24:], c, maxlba=max(c.sec) + 5000, bank=bank); m.run(0x4004, frames=120)
+    m = VZ(dos[24:], c, maxlba=max(c.sec) + 5000, bank=bank); m.run(0x4004, frames=160)
     m.card = c; m.sec0 = dict(c.sec)
     return m
 def open_t(m):     # list: SHELL.VZ, T.TXT, VZDOS.VZ, VZED.OVL
@@ -142,11 +142,11 @@ def part_ovl():
     print('== overlays')
     m = machine([('T.TXT', PARA.encode())]); open_t(m)
     keys(m, [('CTRL', 'H'), ('WAIT', 20)], extra=20)
-    check(title(m).startswith('VZ-ED 0.6 HELP'), 'CTRL+H shows help: %r' % title(m))
+    check(title(m).startswith('VZ-ED 0.7 HELP'), 'CTRL+H shows help: %r' % title(m))
     shot.save(m, S + 's_help_03.png')
     pages = 1
     for i in range(8):
-        if title(m).startswith('VZ-ED 0.6 HELP'):
+        if title(m).startswith('VZ-ED 0.7 HELP'):
             keys(m, ['SPACE', ('WAIT', 10)], extra=20); pages += 1
     md = Model(PARA, m.z.mem[sym['docrows']], False)
     check(screen_check(m, md, '') is None and buffer(m)[0] == PARA, 'help pages, then back in the text (%d pages)' % (pages - 1))
@@ -160,7 +160,7 @@ def part_ovl():
     keys(m, [('CTRL', 'V'), ('WAIT', 20)], extra=20)
     check('VZED.OVL MISSING OR OLD' in title(m) and not (m.latch & 8), 'VZED.OVL from another build: refused')
     keys(m, [('CTRL', 'H'), ('WAIT', 20)], extra=20)
-    check(title(m).startswith('VZ-ED 0.6 HELP'), '... its other slot still works')
+    check(title(m).startswith('VZ-ED 0.7 HELP'), '... its other slot still works')
     m = machine([('T.TXT', PARA.encode())], ovl=OVL[:3072]); open_t(m)
     keys(m, [('CTRL', 'V'), ('WAIT', 20)], extra=20)
     check('VZED.OVL MISSING' in title(m), 'VZED.OVL too short: refused')
@@ -172,7 +172,7 @@ def part_ovl():
              ('CTRL', 'B'), ('WAIT', 20), ('CTRL', 'P'), ('WAIT', 10)], extra=30)
     check(buffer(m)[0] == PARA + PARA[:20], 'small clipboard kept across help and sheet view')
     # ... unless the text leaves no room for it
-    big = ('y' * 60 + '\n') * 200
+    big = ('y' * 60 + '\n') * 180          # (0.7: the buffer is 11,264)
     m = machine([('T.TXT', big.encode())], bank=False); open_t(m)
     keys(m, [('CTRL', 'K')] + [('CTRL', 'C'), ('WAIT', 15)] * 2 + [('CTRL', 'J'), ('WAIT', 10)], extra=30)
     n = w16(m, sym['cliplen'])
@@ -188,9 +188,9 @@ def part_ovl():
 
 # ------------------------------------------------------------------ the menu bar (0.4)
 MENUS = [('FILE', ['NEW        ^N', 'OPEN       ^O', 'SAVE       ^S', 'SAVE AS    ^A', 'SAVE AS PDF  ', 'PRINT        ', 'QUIT       ^Q']),
-         ('EDIT', ['MARK BLOCK ^K', 'COPY       ^J', 'CUT        ^Y', 'PASTE      ^P', 'INS / OVR  ^L', 'CAPS LOCK  ^U']),
-         ('FIND', ['FIND       ^F', 'FIND AGAIN ^G', 'REPLACE    ^E', 'GO TO TOP  ^T', 'GO TO END  ^B']),
-         ('VIEW', ['DISPLAY    ^D', 'WORD WRAP  ^W', 'SHEET VIEW ^V']),
+         ('EDIT', ['UNDO       ^-', 'MARK BLOCK ^K', 'COPY       ^J', 'CUT        ^Y', 'PASTE      ^P', 'BOOKMARK   ^0']),
+         ('FIND', ['FIND       ^F', 'FIND AGAIN ^G', 'REPLACE    ^E', 'GO TO LINE   ', 'GO TO TOP  ^T', 'GO TO END  ^B']),
+         ('VIEW', ['DISPLAY    ^D', 'WORD WRAP  ^W', 'SHEET VIEW ^V', 'WORD COUNT   ', 'INS / OVR  ^L', 'CAPS LOCK  ^U']),
          ('HELP', ['KEYS       ^H'])]
 def menu_check(m, under, sel, item):
     """SCR: the bar with menu sel cut out, the drop-down with item cut out, the text elsewhere"""
@@ -223,7 +223,7 @@ def part_menu():
         path = [(('CTRL', ','), 1, 0), (('CTRL', 'SPACE'), 1, 1), (('CTRL', 'SPACE'), 1, 2), (('CTRL', '.'), 1, 1),
                 (('CTRL', '.'), 1, 0), (('CTRL', '.'), 1, 5), (('CTRL', ','), 2, 0), (',', 3, 0), (('CTRL', ','), 4, 0),
                 (('CTRL', ','), 0, 0), (('CTRL', 'M'), 4, 0), ('M', 3, 0), ('SPACE', 3, 1), ('SPACE', 3, 2),
-                ('SPACE', 3, 0), ('.', 3, 2)]
+                ('SPACE', 3, 3), ('.', 3, 2)]
         bad = None
         for k, sel, item in path:
             keys(m, [k, ('WAIT', 6)], extra=8)
@@ -249,7 +249,7 @@ def part_menu():
     keys(m, [('CTRL', 'I'), ('WAIT', 15)], extra=20)
     check(not title(m).startswith(' FILE  EDIT'), 'CTRL+I again closes')
     keys(m, [('CTRL', 'I'), ('WAIT', 20), 'H', ('WAIT', 20)], extra=30)
-    check(title(m).startswith('VZ-ED 0.6 HELP'), 'HELP / KEYS: one overlay starts another')
+    check(title(m).startswith('VZ-ED 0.7 HELP'), 'HELP / KEYS: one overlay starts another')
     keys(m, [('CTRL', 'Q'), ('WAIT', 10), ('CTRL', 'I'), ('WAIT', 20), 'V', ('WAIT', 60)], extra=60)
     check(bool(m.latch & 8), 'V from the bar opens the sheet view')
     keys(m, ['Q', ('WAIT', 30), ('CTRL', 'I'), ('WAIT', 20), 'F', ('WAIT', 15)] + text_for('COLOUR') + ['RET', ('WAIT', 20)], extra=30)

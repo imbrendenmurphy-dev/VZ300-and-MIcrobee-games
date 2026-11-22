@@ -265,22 +265,26 @@ zm_l0:  db 7
         db K_PRINT,"PRINT        "
         db K_QUIT,"QUIT       ^Q"
 zm_l1:  db 6
+        db K_UNDO,"UNDO       ^-"
         db K_MARK,"MARK BLOCK ^K"
         db K_COPY,"COPY       ^J"
         db K_CUT,"CUT        ^Y"
         db K_PASTE,"PASTE      ^P"
-        db K_INS,"INS / OVR  ^L"
-        db K_CAPS,"CAPS LOCK  ^U"
-zm_l2:  db 5
+        db K_SETMK,"BOOKMARK   ^0"
+zm_l2:  db 6
         db K_FIND,"FIND       ^F"
         db K_NEXT,"FIND AGAIN ^G"
         db K_REPL,"REPLACE    ^E"
+        db K_GOTO,"GO TO LINE   "
         db K_TOP,"GO TO TOP  ^T"
         db K_BOT,"GO TO END  ^B"
-zm_l3:  db 3
+zm_l3:  db 6
         db K_DISP,"DISPLAY    ^D"
         db K_WRAP,"WORD WRAP  ^W"
         db K_SHEET,"SHEET VIEW ^V"
+        db K_INFO,"WORD COUNT   "
+        db K_INS,"INS / OVR  ^L"
+        db K_CAPS,"CAPS LOCK  ^U"
 zm_l4:  db 1
         db K_HELP,"KEYS       ^H"
 

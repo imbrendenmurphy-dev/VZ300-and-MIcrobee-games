@@ -1,7 +1,8 @@
 """Build VZ-ED: out/VZED.VZ (run from VZ-DECK) and out/PLAYTXT.VZ (VZ-DECK plug-in for .TXT).
 Needs Python 3 only.  The assembler is tools/zasm.py."""
 import os, sys, subprocess, zlib
-OVERLAYS = ['ovl_help', 'ovl_sheet', 'ovl_menu', 'ovl_pdf', 'ovl_print', 'ovl_vzopen', 'ovl_bsave']   # slots 0-6
+OVERLAYS = ['ovl_help', 'ovl_sheet', 'ovl_menu', 'ovl_pdf', 'ovl_print', 'ovl_vzopen', 'ovl_bsave',
+            'ovl_tools', 'ovl_quit']   # slots 0-8
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 sys.path.insert(0, HERE)
@@ -23,7 +24,8 @@ def build():
     # the file: code $A000..code_end, then the tail (tables, font, messages) that
     # start-up copies down to tail..tail_end
     code = bytearray(img[0xA000 - 0x9000:sym['code_end'] - 0x9000]
-                     + img[sym['tail'] - 0x9000:sym['tail_end'] - 0x9000])
+                     + img[sym['tail'] - 0x9000:sym['tail_end'] - 0x9000]
+                     + img[sym['init_s'] - 0x9000:sym['init_e'] - 0x9000])
     assert code[3] == 0
     # overlays (0.3): assembled one by one against the main symbols, 3K slots in VZED.OVL.
     # The build id (a checksum of the program) goes into ovl_id and into each slot, so a
@@ -55,8 +57,8 @@ def build():
     open(os.path.join(ROOT, 'out', 'VZED.VZ'), 'wb').write(vz('VZ-ED', code))
     plug = bytearray(code); plug[3] = 1
     open(os.path.join(ROOT, 'out', 'PLAYTXT.VZ'), 'wb').write(vz('VZ-ED', plug))
-    print('code $A000-$%04X, tail $%04X-$%04X, file %d bytes, text buffer $%04X-$F5FF (%d bytes)' % (
-        sym['code_end'] - 1, sym['tail'], sym['tail_end'] - 1, len(code), sym['BUFS'], 0xF600 - sym['BUFS']))
+    print('code $A000-$%04X, tail $%04X-$%04X, init $%04X-$%04X, undo %d bytes, file %d bytes, text buffer $%04X-$F5FF (%d bytes)' % (
+        sym['code_end'] - 1, sym['tail'], sym['tail_end'] - 1, sym['init_s'], sym['init_e'] - 1, sym['UBEND'] - sym['UBUF'], len(code), sym['BUFS'], 0xF600 - sym['BUFS']))
     return sym
 
 if __name__ == '__main__':

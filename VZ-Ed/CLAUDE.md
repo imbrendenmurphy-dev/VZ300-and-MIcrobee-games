@@ -16,13 +16,13 @@ anything that writes to their SD card.
 
 | | |
 |---|---|
-| Version | **0.6** (23 Nov 2026): 0.5 + BASIC `.VZ` programs edited as text and a hex viewer (overlay slots 5 and 6). 0.5 = SAVE AS PDF and PRINT (FILE menu, overlay slots 3 and 4). 0.4 = menu bar (CTRL+I / joystick fire, overlay slot 2). 0.3 = overlays (`VZED.OVL`, help moved there) + sheet view (CTRL+V). Older versions in `release/0.5/` ... `release/0.1/`. |
+| Version | **0.7** (23 Nov 2026): 0.6 + undo (CTRL+-), bookmarks (CTRL+0 set, CTRL+1-9 go), go to line and word count (menus, overlay slot 7); quitting moved to overlay slot 8; start-up code moved out of the main program; text buffer 11,264 bytes (1K to undo, the user chose this). 0.6 = 0.5 + BASIC `.VZ` programs edited as text and a hex viewer (overlay slots 5 and 6). 0.5 = SAVE AS PDF and PRINT (FILE menu, overlay slots 3 and 4). 0.4 = menu bar (CTRL+I / joystick fire, overlay slot 2). 0.3 = overlays (`VZED.OVL`, help moved there) + sheet view (CTRL+V). Older versions in `release/0.6/` ... `release/0.1/`. |
 | Real hardware status | **NO VERSION HAS BEEN TESTED ON A REAL VZ YET** (the user tried 0.2 in VZonPC, which runs the real VZDOS). Everything below marked "verified" was verified in the emulators only. The user asked for 0.2 before reporting on 0.1. |
 | Outputs | `out/VZED.VZ` (standalone) and `out/PLAYTXT.VZ` (VZ-DECK plug-in), same code, byte `$A003` = 0 / 1; `out/VZED.OVL` (overlays, root of the card, section 13). |
-| Release copies | `release/` (0.6, identical to `out/`), `release/0.5/` ... `release/0.1/`, `dist/VZ-ED-0.6.zip` (`py tools\package.py`) |
+| Release copies | `release/` (0.7, identical to `out/`), `release/0.6/` ... `release/0.1/`, `dist/VZ-ED-0.7.zip` (`py tools\package.py`) |
 | Build | `py src\build.py` (Windows) / `python3 src/build.py`. Python 3 only, no packages. |
-| Code size | code `$A000`-`$C5BC`; "tail" (tables, font, all messages, the overlay loader) `$9803`-`$9F21`, stored after the code in the file and copied down at start-up; text buffer `$C600`-`$F5FF` (**12,288 bytes**; 0.2 had 12,032, 0.1 12,544). Room left: 67 bytes of code before `$C600`, 105 bytes of tail before `$A000` (careful: the messages before `tables.inc` must stay below KTAB `$9900`, see 12.6). New features go in overlays (section 13). |
-| Handover check | `py src\build.py` must reproduce `release/VZED.VZ` MD5 `bf1be6cb21cbe0f8277ff7e446c81f97`, `release/PLAYTXT.VZ` `7b729e86a27ffa000ca902a36210191c` and `release/VZED.OVL` `80b612c51317326e6d7f235ac489beb7` (older versions are in `release/0.x/`) |
+| Code size | code `$A000`-`$C579`; "tail" (tables, font, all messages, the overlay loader) `$9840`-`$9FEF`, stored after the code in the file and copied down at start-up; start-up code (`init.asm`) stored after the tail, copied to `INITRUN` `$F200` and run once (section 13.9); undo history `UBUF` = code end .. `UBEND` = `BUFS` `$CA00` (1,157 bytes, must stay >= 1K); text buffer `$CA00`-`$F5FF` (**11,264 bytes**; 0.3-0.6 12,288). Room left: code can grow until the history drops to 1K (133 bytes), 16 bytes of tail before `$A000` (careful: the messages before `tables.inc` must stay below KTAB `$9900`, see 12.6). New features go in overlays (section 13). |
+| Handover check | `py src\build.py` must reproduce `release/VZED.VZ` MD5 `7c143776ff839ee653fa67ea83641df5`, `release/PLAYTXT.VZ` `ab2fd6faf269c4699357fe99419477ad` and `release/VZED.OVL` `3aaf0d6d0fd833ab04df62abd42b7ca4` (older versions are in `release/0.x/`) |
 | Sister project | VZ-DECK (`../VZ-Deck`), the user's SD boot shell / file browser / music player. VZ-ED is its text plug-in. |
 
 ---
@@ -113,6 +113,16 @@ roadmap in section 9. 0.2 is described in section 12.
 - `open_file` (tail) replaces `load_file` in the file list; `bas_save` (tail) hooks `save_doc`.
 - **Fixed (bug since 0.1)**: `.` wasn't in `s_namechr`, so the Save As prompt never took an extension.
 
+### Done in 0.7 (verified in the Python emulator, and under the real VZDOS in vzemu; section 13.9)
+
+- **Undo** (CTRL+-, EDIT > UNDO): history of edit records in `UBUF`..`UBEND`, hooks in every edit
+  primitive; random edit runs are undone all the way back to the loaded text (t14).
+- **Bookmarks** (CTRL+0 then 1-9 sets, CTRL+1..9 goes), kept on their text by `mk_ins`/`mk_del`.
+- **Go to line** (FIND menu), **word count** (VIEW menu; of the block if one is marked).
+- Room: start-up code (start body, verify_ho, joy_detect, clip_init, fs_init, cfg_load) moved to
+  `init.asm`; quitting (cfg_save, exit, the SHELL.VZ reloader) to `ovl_quit.asm` (slot 8). Without
+  VZED.OVL CTRL+Q still restarts (no settings saved).
+
 ### Not done (planned): see section 9.
 
 ---
@@ -148,10 +158,11 @@ roadmap in section 9. 0.2 is described in section 12.
 | `$8900`-`$96FF` | **0.3: the overlay area** (`OVLA`; code from the file up to `$94FF`, work RAM after it up to `OVLEND` `$9700`). Shared with the fallback clipboard (parked in the gap while an overlay runs, section 13) and DIRBUF/DPTR (only used by the file list). |
 | `$8600`-`$959F` | `DIRBUF`, folder records 20 bytes each, 200 max. **Outside the file list it is 0.2 scratch:** `LIN` `$8600` (wrap layout, 481 bytes), `RING` `$8800`, `WRS` `$8820`, `SRS` `$8850`, `SRP` `$8870`, `FFOLD` `$8880`, scratch variables `$88A0`-`$88D7`, `rbuf` `$88D8` (replace text, emptied by CTRL+O), fallback clipboard `CLIPF` `$8900`-`$95FF` |
 | `$95A0`-`$972F` | `DPTR`, sorted pointers to the records (moved in 0.2) |
-| `$9730`-`$9801` | variables (`src/vars.inc`, generated by `gen.py`; zeroed at start) |
-| `$9802`-`$9F1B` | the "tail": messages, KTAB `$9900`, TTAB `$9A00` + CTAB `$9A80`, FONT, more messages, `strmain.asm`, the overlay loader `ovl.asm`. Copied from the end of the file at start-up (the first thing `start` does). |
-| `$A000`-`$C5A0` | code |
-| `$C600`-`$F5FF` | text gap buffer (`BUFS` = code end rounded up to a page; `BUFE` = `$F600`) |
+| `$9730`-`$983F` | variables (`src/vars.inc`, generated by `gen.py`; zeroed at start) |
+| `$9840`-`$9FEF` | the "tail": messages, KTAB `$9900`, TTAB `$9A00` + CTAB `$9A80`, FONT, more messages, `strmain.asm`, the overlay loader `ovl.asm`. Copied from the end of the file at start-up (the first thing `start` does). |
+| `$A000`-`$C579` | code |
+| `$C57A`-`$C9FF` | (0.7) undo history `UBUF`..`UBEND` (section 13.9) |
+| `$CA00`-`$F5FF` | text gap buffer (`BUFS` = `$CA00` fixed since 0.7; `BUFE` = `$F600`). At start-up only: the file's tail and init bytes land here, `init` runs at `$F200`, clip_init's 10K copy at `CIBUF` `$CA00` |
 | `$F600`-`$F7FF` | stack (`SP` = `$F800`) |
 | `$F800`-`$F9FF` | DOS sector buffer `SECBUF` — all card I/O goes through it |
 | `$FA00`-`$FFFF` | **the DOS's own RAM — never write**, except `$FB06`-`$FB09` (cache tag) and `$FB80` (read buffer pointer). Confirmed on the user's VZ in earlier projects that scrambling `$FA00`+ hangs the DOS. |
@@ -475,7 +486,7 @@ VZ-DECK re-reads the DOS's folder when it comes back.
   way and the "Q quit test" in VZ-DECK's history worked on their machine, so it is likely fine.
 
 ### Limitations in 0.2 (by design / not yet built)
-- Max file 12,288 bytes (raw size checked before loading). 0.2 took 12,032, 0.1 12,544.
+- Max file 11,264 bytes since 0.7 (raw size checked before loading). 0.3-0.6 12,288, 0.2 12,032, 0.1 12,544.
 - Help and the sheet view need `VZED.OVL` in the root folder (like `VZED.CFG`), not next to `VZED.VZ`.
 - Sheet view shows 64 lines x 128 columns (wrap off) or 256 screen rows (wrap on) at a time and scrolls
   with the box; letters only as dots (no shapes). In wrap mode the box can't move sideways.
@@ -501,8 +512,8 @@ VZ-DECK re-reads the DOS's folder when it comes back.
 1. 0.2 and 0.3 are done (sections 12, 13). 0.3 = overlays + sheet view (the user asked for these two;
    the menu bar from the old 0.3 plan is still to do). **Every new feature should be an overlay**
    (section 13.4); the main code has ~95 bytes and the tail ~228 bytes left.
-2. 0.4 = the menu bar, 0.5 = PDF + print, 0.6 = BASIC + hex viewer (done). **Next**: big files paged
-   from the card, undo, bookmarks, word count. Options not built yet: Epson bold/underline, page size / margins,
+2. 0.4 = the menu bar, 0.5 = PDF + print, 0.6 = BASIC + hex viewer, 0.7 = undo, bookmarks, go to
+   line, word count (done). **Next**: big files paged from the card. Options not built yet: Epson bold/underline, page size / margins,
    line-ending choice for saving.
 3. **0.4**: output — printer port (Centronics, port `$0E` data / strobe; plain text and Epson
    bold/underline), **PDF export** to the card (text-only PDF with built-in Courier/Helvetica: just
@@ -540,6 +551,7 @@ from `tools/`: `py t2.py` etc. They read `../out/VZED.VZ` / `PLAYTXT.VZ`, so bui
 | `t9.py hscroll` (0.2) | wrap **off**, 3 seeds x 120 random keys on long lines: every screen row and the cursor cell checked, including sideways scrolling (catches the 0.1 blank-screen bug) | pass |
 | `t10.py` (0.2) | T-states per key in wrap mode, 600-character paragraphs | see 12.5 |
 | (0.6 note) | t4b's "file too big" case now says VZED.OVL MISSING OR OLD: big files go to the hex viewer, and that card has no VZED.OVL |
+| `t14.py` (0.7) | **undo**: 5 seeds of 70 random keys (typing, RET, BS, DEL, cursor, overtype, block delete, cut, copy, paste), bank and no bank: every undo gives an earlier snapshot in order, line count right, ends at the loaded text with NOTHING TO UNDO. **cases**: typing runs, BS / DEL runs (cursor), block, cut + 2 pastes, replace all (one step), replace with nothing, overtype run, history full (oldest dropped), too big (forgotten), NEW / OPEN clear it, EDIT menu. **marks**: set / go, follows edits, inside a deleted block, unset; go to line 12 / 999 / x; word count whole + block (bank and no bank). **quit**: VZED.CFG written, restart; no VZED.OVL still restarts | all pass (23 Nov 2026) |
 | `t13.py` (0.6) | **basic**: a program typed into the real ROM opens as its LIST and saves back byte-identical (and its .BAK); edits (lower case keywords, ?, ELSE, ', a new line) save = `basic.py`; reopened lists the same; no number / order / too long -> message, nothing written, cursor on the line; save as .TXT = the listing with CR LF; a 2nd ROM program round-trips; STARBLAS.VZ (code after the program) -> hex view, editor emptied. **hex**: 16K text, 70,000-byte binary (24-bit offsets) and SHELL.VZ in text and graphics styles: every row after down / page down / up / end / page up / top, Q keeps the text; no VZED.OVL -> message | all pass (23 Nov 2026) |
 | `t12.py` (0.5) | **pdf**: 7 texts (long lines, brackets and backslashes, empty, no LF, 3000 empty lines, exactly 64 lines, 80/81 columns): header, every xref offset, startxref, trailer, page tree, stream lengths, 64 lines a page, text line by line against a Python model, pdftotext reads it without warnings; asks before replacing (N keeps, Y replaces), UNTITLED.PDF, over 64K refused with the card untouched, the document is a .PDF itself refused, card full -> CARD FULL and a clean card. **print**: bytes = model lines + CR LF + FF, busy -> PRINTER NOT READY, CTRL+Q stops, busy then ready completes, CTRL+Q mid-print with a slow printer. The harness has a printer now (`m.prn`, `m.prn_busy`) | all pass (22 Nov 2026) |
 | `t11.py` (0.3/0.4) | **ovl**: help from VZED.OVL (all pages, back in the text), no VZED.OVL / short / other build -> message and nothing else, the other slot still loads, the small clipboard parked across help + sheet view, and emptied with a message when the gap is too small, card unchanged. **sheet**: wrap off/on x 3 styles: video RAM compared byte for byte with a Python model at entry and after 14 random + 7 fixed moves, RETURN lands on the right cursor / top / hs (screen_check), Q leaves the cursor, text and card unchanged; empty / one-line / `a\n` texts. **menu**: SCR cell for cell (bar, cut-out menu, drop-down, text under it) after 16 moves in text and graphics styles, CTRL+Q closes with the screen as before, RETURN / letters (also with caps lock) / joystick fire + down pick items, CTRL+I closes, HELP and V start other overlays, find / mark / copy / paste from the bar. `py t11.py sheet` / `ovl` / `menu` | all pass (21 Nov 2026) |
@@ -776,3 +788,27 @@ keywords starting with it; lines read around the gap (`zt_get`, never moves it);
 (count, then `wputb`), then `call sv_3` (save_doc's .BAK + rename). Errors return C + HL = line start.
 **Hex**: offsets 24 bit (`zOff`, `zRo`), `zx_byte` keeps the last sector in SECBUF (`zSec`) and walks
 the cluster chain from the last cluster it reached (`zCi`/`zCl`), from the start only when going back.
+
+### 13.9 0.7: init section, undo, bookmarks (init.asm, undo.asm, ovl_tools.asm slot 7, ovl_quit.asm slot 8)
+**Room**: the file is code + tail + init. `start` copies the tail down, then copies `init_s`..`init_e`
+from the file (at `code_end + tail length`) to `INITRUN` `$F200` and calls `init` (everything start used
+to do except the plug-in load, which needs the buffer and stays in `start`). clip_init's 10K copy goes to
+`CIBUF` = `INITRUN-$2800` (asserted >= code_end). Nothing in init.asm may be called after start-up.
+Start-up is ~8 frames longer than 0.6 (bigger file): the Python tests now boot for 160 frames, not 120.
+**Undo records** (stacked up from `UBUF`, `utop` = top): `[data] pos(2) len(2) type` read from the top;
+type 1 INS (no data), 2 DEL (data in order, cursor stays before it), 3 BS (data reversed, cursor after
+it), 4 OVR (old characters; same length typed over), bit 7 JOIN (undo the one below too: replace).
+Runs grow the top record (`un_ic`, `un_bs`, `un_dl` + `un_app`) unless `useal` (after paste, block,
+replace, undo) or `ujoin`. Full: `un_drop` removes the oldest (walk down to the record at UBUF, LDIR the
+rest down); a record bigger than the whole history: `un_forget`. Hooks: `ins_char` (un_ic), `del_left`
+(un_bs), `del_right` (un_dl; with `uovr` set by type_char's overtype path = OVR, and un_ic then skips),
+`c_paste` (un_pst), `blk_rm` (un_blk), replace `rp_do` (un_rpd = DEL + start group, un_rpi = INS joined;
+`un_endg` at rp_done / rp_full). `buf_clear` and the BASIC open call `un_clr`. **Any new code that
+changes the text must call a hook**, or undo will be wrong (c_undo checks pos/len against the text and
+the gap and forgets the history rather than guess).
+**Bookmarks**: `marks` 9 x 2 logical positions, $FFFF unset; `mk_ins` (marks after pos move up),
+`mk_del` (after the deleted text move down, inside it go to its start). Undo also calls them.
+**Keys**: CTRL+- = K_UNDO 131 (resident `c_undo`), CTRL+0 = K_SETMK 135, CTRL+1..9 = K_MK1 136..144,
+menu K_GOTO 133 / K_INFO 134: `c_ovl` stores the code in `ovkey` and runs slot 7 for every code >= 133.
+**Quit**: `c_quit` -> check_modified -> slot 8 (cfg_save, exit, reloader); if the overlay can't load,
+`ex_rst` restarts.
