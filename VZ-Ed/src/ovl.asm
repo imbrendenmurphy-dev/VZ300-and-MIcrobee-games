@@ -160,3 +160,59 @@ ov_unstash:
         ret
 ovu_m:  ld hl,m_clipgone
         jp set_msg
+
+; ---- (0.6) opening a file from the list: HL = its record (type, name 11, ...),
+; ldcl / ldsz set.  A .VZ file, or one too big for the text buffer, goes to
+; overlay slot 5 (a BASIC program is listed into the buffer; anything else is
+; shown in the hex viewer); other files are loaded as text.  C = not loaded.
+open_file:
+        xor a
+        ld (ovok),a
+        ld bc,9
+        add hl,bc
+        ld a,(hl)
+        cp 'V'
+        jr nz,of_2
+        inc hl
+        ld a,(hl)
+        cp 'Z'
+        jr nz,of_2
+        inc hl
+        ld a,(hl)
+        cp ' '
+        jr z,of_ovl
+of_2:   ld a,(ldsz+2)
+        or a
+        jr nz,of_ovl
+        ld hl,BUFE-BUFS
+        ld de,(ldsz)
+        or a
+        sbc hl,de
+        jp nc,load_file
+of_ovl: ld a,5
+of_run: call ovl_run
+        ld a,(ovok)         ; 1 = done (Z, NC)
+        cp 1
+        ret z
+        scf
+        ret
+
+; ---- (0.6) saving a BASIC program (from save_doc): as a .VZ it is tokenised
+; again by overlay slot 6; under any other name it is saved as text.
+bas_save:
+        ld hl,fname+8
+        ld a,(hl)
+        cp 'V'
+        jp nz,sv_txt
+        inc hl
+        ld a,(hl)
+        cp 'Z'
+        jp nz,sv_txt
+        inc hl
+        ld a,(hl)
+        cp ' '
+        jp nz,sv_txt
+        xor a
+        ld (ovok),a
+        ld a,6
+        jr of_run

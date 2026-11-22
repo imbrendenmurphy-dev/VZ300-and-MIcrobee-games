@@ -308,7 +308,9 @@ fl_file: push hl
         jr z,fl_f2
         ld a,$FF
         ld (ldsz+2),a
-fl_f2:  call load_file
+fl_f2:  pop hl               ; (0.6: .VZ files and big files go to an overlay)
+        push hl
+        call open_file
         pop hl
         ret c
         inc hl

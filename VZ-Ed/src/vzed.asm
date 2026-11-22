@@ -93,7 +93,7 @@ K_PRINT equ 130
         org $A000
 entry:  jp start
 plugin: db 0                ; 1 = PLAYTXT.VZ (VZ-DECK plug-in), 0 = VZED.VZ
-        db "VZ-ED 0.5 VIBED BY BPM 2026",0
+        db "VZ-ED 0.6 VIBED BY BPM 2026",0
 
 ; ===========================================================================
 start:  di
@@ -435,6 +435,7 @@ buf_clear:
         xor a
         ld (modified),a
         ld (selon),a
+        ld (basmode),a      ; (0.6) a text again
         jp reset_goal
 
 ins_char:                   ; A = char

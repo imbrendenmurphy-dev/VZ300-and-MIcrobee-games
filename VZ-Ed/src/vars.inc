@@ -116,4 +116,7 @@ ovskip equ $97FF
 ovcnt equ $9800
 ovst equ $9801
 menusel equ $9802
-VARS_END equ $9803
+ovok equ $9803
+basmode equ $9804
+bashdr equ $9805
+VARS_END equ $9818

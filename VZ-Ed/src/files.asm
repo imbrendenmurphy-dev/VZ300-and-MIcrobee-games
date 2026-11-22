@@ -1005,7 +1005,10 @@ save_doc:
         call set_msg
         scf
         ret
-sv_ok:  ld hl,m_saving
+sv_ok:  ld a,(basmode)       ; (0.6) a BASIC program: tokenised again
+        or a
+        jp nz,bas_save
+sv_txt: ld hl,m_saving
         call show_status
         ld hl,s_tmpname     ; 1. clear away an old temp file
         call cwd_find

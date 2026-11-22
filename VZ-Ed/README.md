@@ -1,4 +1,4 @@
-# VZ-ED 0.5
+# VZ-ED 0.6
 
 A full-screen text editor for the Dick Smith VZ300 / VZ200 with the BennVenn SD loader and 128K.
 It reads and writes text files straight on the SD card and works hand in hand with VZ-DECK.
@@ -12,7 +12,7 @@ Copy the three files to the **root** of the SD card:
 | File | What it does |
 |---|---|
 | `VZED.VZ` | Run it from VZ-DECK (or the DOS) to start a new document. Quitting restarts into VZ-DECK. |
-| `VZED.OVL` | Help, the sheet view, the menu bar, PDF export and printing (see "Overlays" below). Without it everything else still works; CTRL+H, CTRL+V and CTRL+I say `VZED.OVL MISSING OR OLD`. |
+| `VZED.OVL` | Help, the sheet view, the menu bar, PDF export, printing, BASIC programs and the hex viewer (see "Overlays" below). Without it everything else still works; CTRL+H, CTRL+V and CTRL+I say `VZED.OVL MISSING OR OLD`. |
 | `PLAYTXT.VZ` | VZ-DECK plug-in. Press RETURN on any `.TXT` file in VZ-DECK and it opens in VZ-ED. Quitting goes straight back to VZ-DECK, in the same folder. |
 
 `VZED.VZ` and `PLAYTXT.VZ` are the same program; one byte tells them apart. Always copy all three
@@ -57,6 +57,35 @@ with its CTRL key beside it, so you can learn the keys as you go.
   menu (S saves, W turns word wrap on and off, ...).
 * CTRL+Q or CTRL+I closes the menu without doing anything. VZ-ED remembers the last menu you used.
 
+## BASIC programs (.VZ)
+
+Open a BASIC program saved as a `.VZ` file (CTRL+O) and VZ-ED lists it as text, exactly as the VZ's
+own `LIST` shows it, one line per program line:
+
+    10 PRINT "HELLO"
+    20 GOTO 10
+
+Edit it like any text: change lines, add lines (each needs its line number, in order), delete lines.
+CTRL+S saves it back as a real BASIC program that the VZ loads and runs; the old version is kept as
+`NAME.BAK` as usual. VZ-ED turns the keywords back into BASIC's tokens the same way the VZ does when you
+type a line (it was checked against the VZ's own ROM), so a program opened and saved unchanged gives
+back exactly the same file.
+
+* Caps lock goes on when a BASIC program is opened, so you type capitals as on the VZ (CTRL+U turns it
+  off). Keywords are found in capitals or lower case either way.
+* If a line has no line number, or the numbers don't go up, or a line is too long, saving stops with
+  `NO LINE NO.`, `LINE ORDER` or `LONG LINE` and the cursor goes to that line. Nothing is written.
+* Save As with a `.TXT` name saves the listing as plain text instead.
+* A `.VZ` with machine code after the BASIC program (loaders often have this) can't be edited safely:
+  it opens in the hex viewer.
+
+## Hex viewer
+
+`.VZ` machine code programs, and any file too big for VZ-ED (over 12,288 bytes), open in a read-only
+hex viewer: 8 bytes a row as hex and as characters, read straight from the card, so any size works.
+Cursor keys move a row, CTRL+R / C a screen, CTRL+T / B the start / end; Q, CTRL+Q or RETURN go back
+to your text, which is left as it was.
+
 ## Save as PDF and Print (FILE menu)
 
 Both lay the text out the same way: lines of up to 80 characters, a long line broken after its last
@@ -87,9 +116,9 @@ CTRL+T / B (top / end), then press RETURN to go there. Q, CTRL+Q or CTRL+V go ba
 
 ## Overlays
 
-Help, the sheet view, the menu bar, PDF export and printing live in `VZED.OVL`, not in `VZED.VZ`: they are loaded from the card only when
-you use them (the sheet view is up in under half a second), so the editor keeps its room for text. Later features (the BASIC
-and hex views) will be added the same way. `VZED.OVL` is only read, never
+Help, the sheet view, the menu bar, PDF export, printing, BASIC and the hex viewer live in `VZED.OVL`,
+not in `VZED.VZ`: they are loaded from the card only when
+you use them (the sheet view is up in under half a second), so the editor keeps its room for text. Later features will be added the same way. `VZED.OVL` is only read, never
 written. On a machine without the spare 10K SRAM bank, the small clipboard is parked in the free part
 of the text buffer while an overlay runs; if the file leaves no room for it, it is emptied and VZ-ED
 says `SMALL CLIPBOARD EMPTIED`.
@@ -190,11 +219,12 @@ Other details:
   layout against the DOS first and refuses to save (`CARD FORMAT NOT SUPPORTED`) if anything doesn't
   match, rather than guess.
 
-## Limits in 0.5
+## Limits in 0.6
 
 * Files up to 12,288 bytes (larger files will be paged from the card in 0.6). 0.3 has 256 bytes more
   room than 0.2, because help moved to `VZED.OVL`.
 * Fixed in 0.2: in 0.1 the screen went blank when a long line scrolled sideways.
+* Fixed in 0.6: the Save As prompt didn't take a `.`, so you couldn't give a file your own extension.
 * No undo yet: cut, delete and replace can't be taken back (save often; the `.BAK` keeps the last
   saved version).
 * Text files only (BASIC programs and a hex view come in 0.5).
@@ -205,9 +235,9 @@ Other details:
 | | |
 |---|---|
 | Needs | VZ300 / VZ200, BennVenn SD loader with 128K, VZDOS 2.31 or 2.32 |
-| Program | `$A000`-`$C5B0`, plus tables, font, messages and the overlay loader copied at start-up to `$9803`-`$9F21` |
+| Program | `$A000`-`$C5BC`, plus tables, font, messages and the overlay loader copied at start-up to `$9818`-`$9F96` |
 | Text buffer | `$C600`-`$F5FF` (12,288 bytes, gap buffer) |
-| Overlays | `VZED.OVL`: 3K slots (0 help, 1 sheet view, 2 menu bar, 3 PDF, 4 print) loaded to `$8900` |
+| Overlays | `VZED.OVL`: 3K slots (0 help, 1 sheet view, 2 menu bar, 3 PDF, 4 print, 5 open .VZ / hex view, 6 save BASIC) loaded to `$8900` |
 | Printer | VZ printer interface: busy = bit 0 of `IN ($00)`, data `OUT ($0E)`, strobe `OUT ($0D)` (as the ROM) |
 | Work RAM | `$8000`-`$9FFF`: screen shadow, folder list (200 entries), variables |
 | Clipboard | spare 10K SRAM bank at `$4000`-`$67FF` (`OUT ($37),3`), or 3,328 bytes at `$8900` |
@@ -226,11 +256,11 @@ and `SHELL.VZ` from the VZ-DECK release into `tools/` first) and the tests:
 against a model, `t6` screenshots, `t7` timing, `t9` the 0.2 features (word wrap checked against a
 model, blocks, find / replace), `t10` word wrap timing, `t11` overlays, the sheet view (checked
 dot for dot against a model) and the menu bar, `t12` PDF export (checked as a PDF and line by line)
-and printing.
+and printing, `t13` BASIC programs (against lines typed into the real ROM) and the hex viewer.
+`tools/basic.py` is a Python model of the ROM's tokeniser and LIST.
 
 ## Coming next
 
-* BASIC programs (edit a `.VZ` BASIC program as text), hex viewer
 * Big files paged from the card, undo, bookmarks, word count
 
 ## Credits

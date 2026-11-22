@@ -1,6 +1,6 @@
 # CLAUDE.md — VZ-ED (text editor / word processor for the VZ300)
 
-Handover from Claude chat to Claude Code, 20 Nov 2026; 0.2 written in Claude Code the same day; 0.3 (overlays + sheet view) and 0.4 (menu bar) on 21 Nov 2026; 0.5 (PDF export, printing) on 22 Nov 2026.
+Handover from Claude chat to Claude Code, 20 Nov 2026; 0.2 written in Claude Code the same day; 0.3 (overlays + sheet view) and 0.4 (menu bar) on 21 Nov 2026; 0.5 (PDF export, printing) on 22 Nov 2026; 0.6 (BASIC programs, hex viewer) on 23 Nov 2026.
 Read all of this before changing anything.
 
 Credits line for anything user-facing: **VIBED BY BPM 2026** (the user's standing preference — never
@@ -16,13 +16,13 @@ anything that writes to their SD card.
 
 | | |
 |---|---|
-| Version | **0.5** (22 Nov 2026): 0.4 + SAVE AS PDF and PRINT (FILE menu, overlay slots 3 and 4). 0.4 = menu bar (CTRL+I / joystick fire, overlay slot 2). 0.3 = overlays (`VZED.OVL`, help moved there) + sheet view (CTRL+V). Older versions in `release/0.4/` ... `release/0.1/`. |
+| Version | **0.6** (23 Nov 2026): 0.5 + BASIC `.VZ` programs edited as text and a hex viewer (overlay slots 5 and 6). 0.5 = SAVE AS PDF and PRINT (FILE menu, overlay slots 3 and 4). 0.4 = menu bar (CTRL+I / joystick fire, overlay slot 2). 0.3 = overlays (`VZED.OVL`, help moved there) + sheet view (CTRL+V). Older versions in `release/0.5/` ... `release/0.1/`. |
 | Real hardware status | **NO VERSION HAS BEEN TESTED ON A REAL VZ YET** (the user tried 0.2 in VZonPC, which runs the real VZDOS). Everything below marked "verified" was verified in the emulators only. The user asked for 0.2 before reporting on 0.1. |
 | Outputs | `out/VZED.VZ` (standalone) and `out/PLAYTXT.VZ` (VZ-DECK plug-in), same code, byte `$A003` = 0 / 1; `out/VZED.OVL` (overlays, root of the card, section 13). |
-| Release copies | `release/` (0.5, identical to `out/`), `release/0.4/` ... `release/0.1/`, `dist/VZ-ED-0.5.zip` (`py tools\package.py`) |
+| Release copies | `release/` (0.6, identical to `out/`), `release/0.5/` ... `release/0.1/`, `dist/VZ-ED-0.6.zip` (`py tools\package.py`) |
 | Build | `py src\build.py` (Windows) / `python3 src/build.py`. Python 3 only, no packages. |
-| Code size | code `$A000`-`$C5B0`; "tail" (tables, font, all messages, the overlay loader) `$9803`-`$9F21`, stored after the code in the file and copied down at start-up; text buffer `$C600`-`$F5FF` (**12,288 bytes**; 0.2 had 12,032, 0.1 12,544). Room left: 79 bytes of code before `$C600`, 222 bytes of tail before `$A000`. New features go in overlays (section 13). |
-| Handover check | `py src\build.py` must reproduce `release/VZED.VZ` MD5 `14c2625496fbccd79c6d121a39b38f8f`, `release/PLAYTXT.VZ` `17a31bbe71bb1d5332efb9994610565b` and `release/VZED.OVL` `463ac9e334a7e561b916f7b4429611a4` (older versions are in `release/0.x/`; 0.2: `a9cbdcff...` / `33f05a0c...`; 0.1: `b245d89f...` / `f17ac5c1...`) |
+| Code size | code `$A000`-`$C5BC`; "tail" (tables, font, all messages, the overlay loader) `$9803`-`$9F21`, stored after the code in the file and copied down at start-up; text buffer `$C600`-`$F5FF` (**12,288 bytes**; 0.2 had 12,032, 0.1 12,544). Room left: 67 bytes of code before `$C600`, 105 bytes of tail before `$A000` (careful: the messages before `tables.inc` must stay below KTAB `$9900`, see 12.6). New features go in overlays (section 13). |
+| Handover check | `py src\build.py` must reproduce `release/VZED.VZ` MD5 `bf1be6cb21cbe0f8277ff7e446c81f97`, `release/PLAYTXT.VZ` `7b729e86a27ffa000ca902a36210191c` and `release/VZED.OVL` `80b612c51317326e6d7f235ac489beb7` (older versions are in `release/0.x/`) |
 | Sister project | VZ-DECK (`../VZ-Deck`), the user's SD boot shell / file browser / music player. VZ-ED is its text plug-in. |
 
 ---
@@ -100,6 +100,18 @@ roadmap in section 9. 0.2 is described in section 12.
   (FILE), no CTRL letter is free. `dispatch`: codes >= 129 -> `ovl_run` slot code-126 (`c_ovl`).
 - Shared layout `out_lay.inc`: 80-column lines, break after the last space in 80 (else at 80), a final
   LF makes no empty line; 64 lines a page.
+
+### Done in 0.6 (verified in the Python emulator, and the saved program in the real ROM via vzemu; section 13.8)
+
+- **BASIC programs**: opening a `.VZ` of type `$F0` that fits lists it as text (as the ROM's LIST);
+  CTRL+S as `.VZ` tokenises it again exactly as the ROM does (`tools/basic.py`, checked against lines
+  typed into the ROM), safe save with `.BAK`. A program opened and saved unchanged is byte-identical.
+  Bad line -> NO LINE NO. / LINE ORDER / LONG LINE, cursor on it, nothing written. Caps lock goes on.
+- **Hex viewer**: other `.VZ` files, BASIC with code after the program, and files over the buffer size
+  open read-only in hex (any size, 24-bit offsets), the old text untouched (except BASIC-with-code, which
+  is only found after loading: the editor is then empty and untitled).
+- `open_file` (tail) replaces `load_file` in the file list; `bas_save` (tail) hooks `save_doc`.
+- **Fixed (bug since 0.1)**: `.` wasn't in `s_namechr`, so the Save As prompt never took an extension.
 
 ### Not done (planned): see section 9.
 
@@ -445,6 +457,9 @@ VZ-DECK re-reads the DOS's folder when it comes back.
 - (0.5) Printing: ports from the VZ ROM's LPRINT (`$3AC4`: busy = bit 0 of `IN ($00)`, `OUT ($0E)` data,
   `OUT ($0D)` strobe) and VZonPC/MAME; never tried with a real printer. With no interface the port
   probably reads `$FF` = busy: VZ-ED then says PRINTER NOT READY and CTRL+Q gets out.
+- (0.6) BASIC: the tokeniser follows the VZ V2.1 ROM (checked in vzemu, which runs the real ROM);
+  programs saved by VZ-ED load, LIST and RUN there. Not yet on the real machine. Load address and name
+  come from the file's own header (`bashdr`).
 - (0.5) PDFs open in poppler (`pdftotext`, no warnings); not yet tried in Acrobat or on a phone.
 - (0.3) Overlays read `VZED.OVL` with the same sector code as file loading; checked in the Python
   emulator and in vzemu/VZonPC (real VZDOS over SPI), not yet on the real card. Colours of the sheet
@@ -486,9 +501,8 @@ VZ-DECK re-reads the DOS's folder when it comes back.
 1. 0.2 and 0.3 are done (sections 12, 13). 0.3 = overlays + sheet view (the user asked for these two;
    the menu bar from the old 0.3 plan is still to do). **Every new feature should be an overlay**
    (section 13.4); the main code has ~95 bytes and the tail ~228 bytes left.
-2. 0.4 = the menu bar, 0.5 = PDF + print (done). **Next**: BASIC programs (detokenise a BASIC `.VZ`
-   to text, edit, retokenise on save) and a read-only hex/ASCII viewer, as overlays; then big files,
-   undo, bookmarks, word count. Options not built yet: Epson bold/underline, page size / margins,
+2. 0.4 = the menu bar, 0.5 = PDF + print, 0.6 = BASIC + hex viewer (done). **Next**: big files paged
+   from the card, undo, bookmarks, word count. Options not built yet: Epson bold/underline, page size / margins,
    line-ending choice for saving.
 3. **0.4**: output — printer port (Centronics, port `$0E` data / strobe; plain text and Epson
    bold/underline), **PDF export** to the card (text-only PDF with built-in Courier/Helvetica: just
@@ -525,6 +539,8 @@ from `tools/`: `py t2.py` etc. They read `../out/VZED.VZ` / `PLAYTXT.VZ`, so bui
 | `t9.py` (0.2) | **wrap**: 6 seeds x 120 random keys (typing incl. spaces, all moves, page, top/bottom, delete) in all 3 styles against a Python model of the wrap rule: text, cursor, line, *every screen row*, top is a real row start, cursor cell. **Blocks** with and without the spare bank, wrap on/off: copy, paste, cut marked backwards, delete, typing ends marking, CTRL+O keeps/empties the clipboard, a 9,280-byte block, too big for the fallback. **Highlighting** checked cell by cell while moving. **Find / again / not found / replace Y-N-A, with nothing, stop**, save, card clean. **VZED.CFG** wrap bit written and read, 0.1 file compatible. `py t9.py wrap <seed> [style]` = one long random run | all pass (20 Nov 2026); extra seeds 7, 8, 9, 10, 12, 13 x 240 keys (styles 0, 2, 1, 0, 2, 0) all pass |
 | `t9.py hscroll` (0.2) | wrap **off**, 3 seeds x 120 random keys on long lines: every screen row and the cursor cell checked, including sideways scrolling (catches the 0.1 blank-screen bug) | pass |
 | `t10.py` (0.2) | T-states per key in wrap mode, 600-character paragraphs | see 12.5 |
+| (0.6 note) | t4b's "file too big" case now says VZED.OVL MISSING OR OLD: big files go to the hex viewer, and that card has no VZED.OVL |
+| `t13.py` (0.6) | **basic**: a program typed into the real ROM opens as its LIST and saves back byte-identical (and its .BAK); edits (lower case keywords, ?, ELSE, ', a new line) save = `basic.py`; reopened lists the same; no number / order / too long -> message, nothing written, cursor on the line; save as .TXT = the listing with CR LF; a 2nd ROM program round-trips; STARBLAS.VZ (code after the program) -> hex view, editor emptied. **hex**: 16K text, 70,000-byte binary (24-bit offsets) and SHELL.VZ in text and graphics styles: every row after down / page down / up / end / page up / top, Q keeps the text; no VZED.OVL -> message | all pass (23 Nov 2026) |
 | `t12.py` (0.5) | **pdf**: 7 texts (long lines, brackets and backslashes, empty, no LF, 3000 empty lines, exactly 64 lines, 80/81 columns): header, every xref offset, startxref, trailer, page tree, stream lengths, 64 lines a page, text line by line against a Python model, pdftotext reads it without warnings; asks before replacing (N keeps, Y replaces), UNTITLED.PDF, over 64K refused with the card untouched, the document is a .PDF itself refused, card full -> CARD FULL and a clean card. **print**: bytes = model lines + CR LF + FF, busy -> PRINTER NOT READY, CTRL+Q stops, busy then ready completes, CTRL+Q mid-print with a slow printer. The harness has a printer now (`m.prn`, `m.prn_busy`) | all pass (22 Nov 2026) |
 | `t11.py` (0.3/0.4) | **ovl**: help from VZED.OVL (all pages, back in the text), no VZED.OVL / short / other build -> message and nothing else, the other slot still loads, the small clipboard parked across help + sheet view, and emptied with a message when the gap is too small, card unchanged. **sheet**: wrap off/on x 3 styles: video RAM compared byte for byte with a Python model at entry and after 14 random + 7 fixed moves, RETURN lands on the right cursor / top / hs (screen_check), Q leaves the cursor, text and card unchanged; empty / one-line / `a\n` texts. **menu**: SCR cell for cell (bar, cut-out menu, drop-down, text under it) after 16 moves in text and graphics styles, CTRL+Q closes with the screen as before, RETURN / letters (also with caps lock) / joystick fire + down pick items, CTRL+I closes, HELP and V start other overlays, find / mark / copy / paste from the bar. `py t11.py sheet` / `ovl` / `menu` | all pass (21 Nov 2026) |
 
@@ -742,3 +758,21 @@ area can be overwritten by the parked clipboard before the editor redraws.
 **Print**: per byte wait for bit 0 of `IN ($00)` = 0, then `OUT ($0E)`, `OUT ($0D)`; the byte is kept in
 `zBy` (getkey / show_status use BC). Busy for ~16K polls -> PRINTER NOT READY; CTRL+Q checked every 16
 polls and between lines.
+
+### 13.8 BASIC and the hex viewer (ovl_vzopen.asm slot 5, ovl_bsave.asm slot 6, basic_kw.inc)
+**Rules** (checked by typing lines into the real ROM in vzemu; `tools/basic.py` is the model and its
+`py basic.py` re-checks against `tools/basicrom/`: lines typed into the ROM and the program bytes it made): one space after the line number is dropped;
+the first keyword in ROM-table order at each place (TOTAL -> TO TAL, FORMAT -> FOR MAT); ? = PRINT;
+ELSE gets a ':' in front even after a ':' (1:ELSE -> 1::ELSE); ' = ':' REM $FB; after REM / ' the rest is
+kept, after DATA up to ':'; quotes kept. LIST hides one ':' before ELSE / REM'. Table: `gen.py`
+`BASIC_KW` -> `basic_kw.inc` (first char | $80, unused = $FF, end $80); index k = token - $80.
+**Open** (`open_file` -> slot 5): header from the first sector ("VZF", type at +21 = $F0); the whole file
+is read raw to BUFE-size (no CR stripping!), the listing written from BUFS (`zd_wr` refuses to overtake
+the read pointer: zOv -> FILE TOO BIG), then moved to the top of the buffer like `load_file`. Name and
+load address -> `bashdr`. Bytes after the program's 0 0 -> not editable -> hex view.
+**Save** (`bas_save` -> slot 6 when basmode and the name ends .VZ): keyword index built first (`zFirst`
+by first character, `zNext` chains in table order, `zEnt` pointers) so each character tries only the
+keywords starting with it; lines read around the gap (`zt_get`, never moves it); two runs like the PDF
+(count, then `wputb`), then `call sv_3` (save_doc's .BAK + rename). Errors return C + HL = line start.
+**Hex**: offsets 24 bit (`zOff`, `zRo`), `zx_byte` keeps the last sector in SECBUF (`zSec`) and walks
+the cluster chain from the last cluster it reached (`zCi`/`zCl`), from the start only when going back.
