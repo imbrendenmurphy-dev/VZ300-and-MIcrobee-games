@@ -85,13 +85,15 @@ K_WRAP  equ 31
 K_LAST  equ 31
 K_SHEET equ 127             ; (0.3, CTRL+V: above the printable range)
 K_MENU  equ 128             ; (0.4, CTRL+I; joystick fire in the editor too)
+K_PDF   equ 129             ; (0.5, menu only) codes from 129 = overlay slot code-126
+K_PRINT equ 130
 
         include "vars.inc"
 
         org $A000
 entry:  jp start
 plugin: db 0                ; 1 = PLAYTXT.VZ (VZ-DECK plug-in), 0 = VZED.VZ
-        db "VZ-ED 0.4 VIBED BY BPM 2026",0
+        db "VZ-ED 0.5 VIBED BY BPM 2026",0
 
 ; ===========================================================================
 start:  di
@@ -258,6 +260,7 @@ ds_0:   ld a,b
         jr c,ds_cmd
         cp K_MENU
         jr z,c_menu
+        jr nc,c_ovl
         cp K_SHEET
         jr z,c_sheet
         ret nc
@@ -288,6 +291,8 @@ c_help: xor a               ; help and the sheet view are overlays (ovl.asm)
 c_sheet: ld a,1
         jp ovl_run
 c_menu: ld a,2
+        jp ovl_run
+c_ovl:  sub 126             ; K_PDF -> slot 3, K_PRINT -> slot 4
         jp ovl_run
 
 c_left: call mv_left

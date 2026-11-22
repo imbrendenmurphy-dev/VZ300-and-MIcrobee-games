@@ -256,11 +256,13 @@ zd_put: push bc
 zm_bar: db " FILE  EDIT  FIND  VIEW  HELP   "
 zm_x:   db 0,6,12,17,17
 zm_tab: dw zm_l0,zm_l1,zm_l2,zm_l3,zm_l4
-zm_l0:  db 5
+zm_l0:  db 7
         db K_NEW,"NEW        ^N"
         db K_OPEN,"OPEN       ^O"
         db K_SAVE,"SAVE       ^S"
         db K_SAVEAS,"SAVE AS    ^A"
+        db K_PDF,"SAVE AS PDF  "
+        db K_PRINT,"PRINT        "
         db K_QUIT,"QUIT       ^Q"
 zm_l1:  db 6
         db K_MARK,"MARK BLOCK ^K"

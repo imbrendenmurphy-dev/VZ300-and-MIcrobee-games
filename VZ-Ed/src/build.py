@@ -1,7 +1,7 @@
 """Build VZ-ED: out/VZED.VZ (run from VZ-DECK) and out/PLAYTXT.VZ (VZ-DECK plug-in for .TXT).
 Needs Python 3 only.  The assembler is tools/zasm.py."""
 import os, sys, subprocess, zlib
-OVERLAYS = ['ovl_help', 'ovl_sheet', 'ovl_menu']   # slots 0, 1, 2
+OVERLAYS = ['ovl_help', 'ovl_sheet', 'ovl_menu', 'ovl_pdf', 'ovl_print']   # slots 0-4
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 sys.path.insert(0, HERE)

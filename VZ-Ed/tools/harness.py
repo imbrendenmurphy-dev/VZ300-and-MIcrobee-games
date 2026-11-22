@@ -167,6 +167,7 @@ class VZ:
         s.bank1 = bytearray((i * 37 + 11) & 0xFF for i in range(0x2800)) if bank else None
         s.keys = set(); s.joy = set(); s.script = []; s.frame = 0; s.stop = None; s.con = ''
         s.writes_low = []; s.guard = None
+        s.prn = bytearray(); s.prn_data = 0; s.prn_busy = False   # (0.5) printer
         def rd(a):
             if s.bank1 is not None and (s.mapper & 3) == 3 and 0x4000 <= a < 0x6800:
                 return s.bank1[a-0x4000]
@@ -194,12 +195,16 @@ class VZ:
         def outp(p, v):
             p &= 0xFF
             if p == 0x39: s.sd.out(v)
+            elif p <= 0x0F:                  # printer interface: even = data latch, odd = strobe
+                if p & 1: s.prn.append(s.prn_data)
+                else: s.prn_data = v
             elif p == 0x37:
                 if s.bank1 is None and (v & 3) == 3: return   # no spare bank: setting 3 does nothing
                 s.ramsel = v & 1; s.mapper = v
         def inp(p):
             p &= 0xFF
             if p == 0x39: return s.sd.inp()
+            if p == 0x00: return 0xFF if s.prn_busy else 0xFE   # printer: bit 0 = busy
             J = {'UP':0,'DOWN':1,'LEFT':2,'RIGHT':3}
             if p == 0x2C:
                 v = 0xFF

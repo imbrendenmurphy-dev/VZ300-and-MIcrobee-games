@@ -1,4 +1,4 @@
-# VZ-ED 0.4
+# VZ-ED 0.5
 
 A full-screen text editor for the Dick Smith VZ300 / VZ200 with the BennVenn SD loader and 128K.
 It reads and writes text files straight on the SD card and works hand in hand with VZ-DECK.
@@ -12,7 +12,7 @@ Copy the three files to the **root** of the SD card:
 | File | What it does |
 |---|---|
 | `VZED.VZ` | Run it from VZ-DECK (or the DOS) to start a new document. Quitting restarts into VZ-DECK. |
-| `VZED.OVL` | Help, the sheet view and the menu bar (see "Overlays" below). Without it everything else still works; CTRL+H, CTRL+V and CTRL+I say `VZED.OVL MISSING OR OLD`. |
+| `VZED.OVL` | Help, the sheet view, the menu bar, PDF export and printing (see "Overlays" below). Without it everything else still works; CTRL+H, CTRL+V and CTRL+I say `VZED.OVL MISSING OR OLD`. |
 | `PLAYTXT.VZ` | VZ-DECK plug-in. Press RETURN on any `.TXT` file in VZ-DECK and it opens in VZ-ED. Quitting goes straight back to VZ-DECK, in the same folder. |
 
 `VZED.VZ` and `PLAYTXT.VZ` are the same program; one byte tells them apart. Always copy all three
@@ -57,6 +57,23 @@ with its CTRL key beside it, so you can learn the keys as you go.
   menu (S saves, W turns word wrap on and off, ...).
 * CTRL+Q or CTRL+I closes the menu without doing anything. VZ-ED remembers the last menu you used.
 
+## Save as PDF and Print (FILE menu)
+
+Both lay the text out the same way: lines of up to 80 characters, a long line broken after its last
+space (or at 80 if there is none), 64 lines a page.
+
+* **SAVE AS PDF** writes `NAME.PDF` next to the document (`UNTITLED.PDF` for a new one): Courier 10 pt
+  on A4, readable by any PDF reader on a PC or phone. If the PDF is already there it asks first. It is
+  written with the same care as saving (a temporary file, then renamed), so a full card or a power cut
+  leaves the old PDF as it was. The largest PDF is 64K (about 12K of ordinary text; a file of only
+  empty lines can be too big: `PDF TOO BIG`).
+* **PRINT** sends the lines to a printer on the VZ printer interface (the one BASIC's `LPRINT` uses),
+  each ending with CR LF, and a form feed at the end. CTRL+Q stops it. If the printer is off or not
+  there it says `PRINTER NOT READY` and waits (CTRL+Q stops). In VZonPC the printout goes to
+  `printer\printout.txt`.
+
+These two have no CTRL key (every letter is taken): use the menu (CTRL+I, FILE).
+
 ## Sheet view (CTRL+V)
 
 A whole page at once, one dot for each character: blue for a letter, green for a space. The yellow
@@ -70,9 +87,9 @@ CTRL+T / B (top / end), then press RETURN to go there. Q, CTRL+Q or CTRL+V go ba
 
 ## Overlays
 
-Help, the sheet view and the menu bar live in `VZED.OVL`, not in `VZED.VZ`: they are loaded from the card only when
-you use them (the sheet view is up in under half a second), so the editor keeps its room for text. Later features
-(printing, PDF, the BASIC and hex views) will be added the same way. `VZED.OVL` is only read, never
+Help, the sheet view, the menu bar, PDF export and printing live in `VZED.OVL`, not in `VZED.VZ`: they are loaded from the card only when
+you use them (the sheet view is up in under half a second), so the editor keeps its room for text. Later features (the BASIC
+and hex views) will be added the same way. `VZED.OVL` is only read, never
 written. On a machine without the spare 10K SRAM bank, the small clipboard is parked in the free part
 of the text buffer while an overlay runs; if the file leaves no room for it, it is emptied and VZ-ED
 says `SMALL CLIPBOARD EMPTIED`.
@@ -173,7 +190,7 @@ Other details:
   layout against the DOS first and refuses to save (`CARD FORMAT NOT SUPPORTED`) if anything doesn't
   match, rather than guess.
 
-## Limits in 0.4
+## Limits in 0.5
 
 * Files up to 12,288 bytes (larger files will be paged from the card in 0.6). 0.3 has 256 bytes more
   room than 0.2, because help moved to `VZED.OVL`.
@@ -188,9 +205,10 @@ Other details:
 | | |
 |---|---|
 | Needs | VZ300 / VZ200, BennVenn SD loader with 128K, VZDOS 2.31 or 2.32 |
-| Program | `$A000`-`$C5A9`, plus tables, font, messages and the overlay loader copied at start-up to `$9803`-`$9F21` |
+| Program | `$A000`-`$C5B0`, plus tables, font, messages and the overlay loader copied at start-up to `$9803`-`$9F21` |
 | Text buffer | `$C600`-`$F5FF` (12,288 bytes, gap buffer) |
-| Overlays | `VZED.OVL`: 3K slots (0 help, 1 sheet view, 2 menu bar) loaded to `$8900` |
+| Overlays | `VZED.OVL`: 3K slots (0 help, 1 sheet view, 2 menu bar, 3 PDF, 4 print) loaded to `$8900` |
+| Printer | VZ printer interface: busy = bit 0 of `IN ($00)`, data `OUT ($0E)`, strobe `OUT ($0D)` (as the ROM) |
 | Work RAM | `$8000`-`$9FFF`: screen shadow, folder list (200 entries), variables |
 | Clipboard | spare 10K SRAM bank at `$4000`-`$67FF` (`OUT ($37),3`), or 3,328 bytes at `$8900` |
 | Untouched | `$7800`-`$7FFF` (BASIC's and VZ-DECK's variables) and `$FA00`-`$FFFF` (the DOS's RAM) |
@@ -207,13 +225,13 @@ and `SHELL.VZ` from the VZ-DECK release into `tools/` first) and the tests:
 32K and 512-byte clusters, fragmented files, a full folder, a full card), `t5` random editing checked
 against a model, `t6` screenshots, `t7` timing, `t9` the 0.2 features (word wrap checked against a
 model, blocks, find / replace), `t10` word wrap timing, `t11` overlays, the sheet view (checked
-dot for dot against a model) and the menu bar.
+dot for dot against a model) and the menu bar, `t12` PDF export (checked as a PDF and line by line)
+and printing.
 
 ## Coming next
 
-* 0.4: printer port, PDF export, line ending choice
-* 0.5: BASIC programs (edit a `.VZ` as text), hex viewer
-* 0.6: big files paged from the card, undo, bookmarks, word count
+* BASIC programs (edit a `.VZ` BASIC program as text), hex viewer
+* Big files paged from the card, undo, bookmarks, word count
 
 ## Credits
 

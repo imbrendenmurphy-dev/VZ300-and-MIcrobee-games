@@ -47,7 +47,7 @@ zh_x:   ld a,1
         xor a               ; NC, no key: the cursor stays
         ret
 
-zh_hdr: db "VZ-ED 0.4 HELP  ^Q=DONE",0
+zh_hdr: db "VZ-ED 0.5 HELP  ^Q=DONE",0
 zh_text:
         db "CTRL + KEY:",0
         db " M , . SPC  CURSOR",0
@@ -67,6 +67,7 @@ zh_text:
         db " H     HELP   Q  QUIT",0
         db " V     SHEET VIEW (WHOLE PAGE)",0
         db " I     MENUS (OR JOYSTICK FIRE)",0
+        db "FILE MENU: SAVE AS PDF, PRINT",0
         db " W     WORD WRAP ON / OFF",0
         db " K     MARK A BLOCK (AGAIN=OFF)",0
         db " J Y   COPY / CUT THE BLOCK",0
@@ -101,7 +102,7 @@ zh_text:
         db " RETURN DOES IT, A LETTER DOES",0
         db " ITS ^ KEY, ^Q OR ^I CLOSES",0
         db " ",0
-        db "VZ-ED 0.4  VIBED BY BPM 2026",0
+        db "VZ-ED 0.5  VIBED BY BPM 2026",0
         db $FF
 zh_last:
         assert zh_last <= OVLA+OVLSEC*512
