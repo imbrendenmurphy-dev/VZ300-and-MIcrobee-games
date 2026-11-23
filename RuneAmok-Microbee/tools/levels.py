@@ -62,6 +62,7 @@ L1 = dict(
         (15, 6, W, D_TORCH, 'torch', 0, 0),
         (10, 9, W, D_TORCH, 'torch', 0, 0),
         (12, 13, S, D_TABLET, 'tablet', 3, 0),
+        (4, 8, E, D_ALCOVE, 'alcove', RING, 0),        # a ring of vigour in a niche
     ],
     actions=[
         [('toggle', 10, 10)],
@@ -81,7 +82,7 @@ L2 = dict(
         "################",
         "#.....#....#...#",
         "#.###.#.##.#.#.#",
-        "#.#...I.#..#.#.#",
+        "#.#._.I.#..#.#.#",
         "#.#.###.#.##.#.#",
         "#.#.#...#.#..#.#",
         "#...#.###.#.##.#",
@@ -112,12 +113,13 @@ L2 = dict(
         [('toggle', 8, 13), ('msg', 3)],
         [('open', 2, 13), ('msg', 4)],
     ],
-    triggers=[],
+    triggers=[(4, 3, [('once',), ('spawn', 3, 3, SPIDER), ('spawn', 5, 3, SPIDER), ('msg', 5)])],
     texts=['Fungal Grotto',
            'Scratched: BEWARE THE SOFT FLOOR. SOME WALLS ARE ONLY SHADOW.',
            'Scratched: THE SIGIL SLEEPS WEST, BEHIND A WALL THAT A LEVER OPENS.',
            'Somewhere a gate rattles.',
-           'Stone grinds: a wall slides away!'],
+           'Stone grinds: a wall slides away!',
+           'A click underfoot - spiders drop from the ceiling!'],
 )
 
 L3 = dict(
@@ -160,7 +162,7 @@ L3 = dict(
         [('open', 11, 13), ('msg', 3)],
     ],
     triggers=[(1, 8, ('tele', 14, 2, S)), (12, 3, ('tele', 3, 12, E)), (3, 12, ('tele', 1, 8, E))],
-    texts=['Drowned Archive',
+    texts=['The Archive',
            'Inked: THE VAULT OPENS TO FLAME, THEN WAVE, THEN STONE, THEN STAR.',
            'Inked: THE FLOOR HERE TURNS THE UNWARY. MIND YOUR COMPASS.',
            'The runes blaze: the vault door sinks into the floor!'],
@@ -189,7 +191,7 @@ L4 = dict(
     items=[(3, 4, POTION), (4, 3, GEM), (14, 13, POTION), (6, 9, GOLD), (11, 3, POTION), (5, 13, VIAL),
            (8, 9, RING)],
     mons=[(1, 9, IMP), (6, 11, HOUND), (12, 7, IMP), (14, 9, HOUND), (11, 13, IMP), (6, 5, HOUND),
-          (3, 1, IMP), (11, 1, KING)],
+          (3, 1, IMP), (11, 1, HOUND), (13, 14, KING)],
     decor=[
         (1, 15, N, D_TABLET, 'tablet', 1, 0),
         (7, 7, E, D_TORCH, 'torch', 0, 0),
@@ -200,10 +202,11 @@ L4 = dict(
         (10, 0, S, D_TORCH, 'torch', 0, 0),
     ],
     actions=[],
-    triggers=[],
-    texts=['The Ember Throne',
+    triggers=[(8, 9, [('once',), ('spawn', 8, 8, IMP), ('spawn', 8, 7, IMP), ('msg', 3)])],
+    texts=['Ember Throne',
            'Burnt: THE THRONE LIES BEYOND THE SEALED DOOR. THREE SIGILS BREAK THE SEAL.',
-           'Burnt: HERE THE HOLLOW KING SLEEPS. WAKE HIM AND END HIM.'],
+           'Burnt: HERE THE HOLLOW KING SLEEPS. WAKE HIM AND END HIM.',
+           'The shadows behind you take shape!'],
 )
 
 LEVELS = [L1, L2, L3, L4]

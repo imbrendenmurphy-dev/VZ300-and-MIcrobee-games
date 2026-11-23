@@ -435,6 +435,8 @@ monsters_turn:
         cp MT_TRADER
         jr z,.n
         ld (cur_type),a
+        cp MT_KING
+        call z,king_rage
         call mon_act
         ld a,(dead)
         or a
@@ -968,8 +970,124 @@ price_b:    dw 50
 price_m:    dw 50
 
 ; spawn a monster: DE = square address, A = type
+; DE = square address, A = type: a new, awake monster there (if the
+; square is free floor and a record is free)
 spawn_mon:
+        push ix
+        call .go
+        pop ix
         ret
+.go:    ld (spn_type),a
+        ld (spn_sq),de
+        xor a
+        ld (spn_ok),a
+        ld hl,(ppos)
+        or a
+        sbc hl,de
+        ret z                   ; not on the player
+        ld a,(de)
+        ld hl,passtab
+        call add_a_hl
+        ld a,(hl)
+        or a
+        ret z
+        ld hl,MONMAP-MAP
+        add hl,de
+        ld a,(hl)
+        or a
+        ret nz                  ; taken
+        ; a slot: a dead monster's, or a new one
+        ld ix,MONS
+        ld c,1
+        ld a,(nmons)
+        or a
+        jr z,.new
+        ld b,a
+.f:     ld a,(ix+M_TYPE)
+        cp $FF
+        jr z,.use
+        ld de,16
+        add ix,de
+        inc c
+        djnz .f
+.new:   ld a,(nmons)
+        cp 16
+        ret nc
+        inc a
+        ld (nmons),a
+.use:   ld a,(spn_type)
+        ld (ix+M_TYPE),a
+        call mon_stats
+        ld a,(hl)
+        ld (ix+M_HP),a
+        ld hl,(spn_sq)
+        ld de,MAP
+        or a
+        sbc hl,de
+        ld (ix+M_POS),l
+        ld (ix+M_POS+1),h
+        ld (ix+M_AWAKE),1
+        ld (ix+M_TIMER),0
+        ld de,MONMAP
+        add hl,de
+        ld (hl),c
+        ld a,1
+        ld (mt_moved),a
+        ld (spn_ok),a
+        ret
+
+spn_ok:     db 0
+spn_type:   db 0
+spn_sq:     dw 0
+
+; the Hollow King, badly hurt, calls his hounds (once): IX = the King
+king_rage:
+        ld a,(king_phase)
+        or a
+        ret nz
+        ld a,(ix+M_HP)
+        cp 50
+        ret nc
+        ld a,1
+        ld (king_phase),a
+        ld hl,sfx_gate
+        call sfx
+        ld hl,t_king_rage
+        ld a,BMAGENTA
+        call log_msgc
+        ld l,(ix+M_POS)
+        ld h,(ix+M_POS+1)
+        ld de,MAP
+        add hl,de
+        ld (kr_sq),hl
+        ld bc,$0208             ; two hounds, eight places to try
+        ld hl,kr_dirs
+.d:     ld d,(hl)
+        inc hl
+        ld e,(hl)
+        inc hl
+        push hl
+        push bc
+        ld hl,(kr_sq)
+        add hl,de
+        ex de,hl
+        ld a,7                  ; an ash hound
+        call spawn_mon
+        pop bc
+        pop hl
+        ld a,(spn_ok)
+        or a
+        jr z,.n
+        dec b
+        ret z
+.n:     dec c
+        jr nz,.d
+        ret
+
+kr_sq:      dw 0
+king_phase: db 0
+; (hi, lo) of the squares around the King
+kr_dirs:    db $FF,$E0, $00,$20, $FF,$FF, $00,$01, $FF,$DF, $FF,$E1, $00,$1F, $00,$21
 
 ; ---------------------------------------------------------------------
 ;  death and victory
@@ -986,6 +1104,9 @@ death:  call snd_quiet
         call log_msgc
         call ask_yn
         jr z,.rise
+        ld hl,es_lose
+        ld de,mus_dirge
+        call end_screen
         scf
         ret
 .rise:  xor a
@@ -1014,24 +1135,6 @@ death:  call snd_quiet
         ret
 
 victory:
-        call snd_quiet
-        ld hl,mus_victory
-        call play_tune
-        ld hl,t_win1
-        ld a,YELLOW
-        call log_msgc
-        ld hl,t_win2
-        ld a,WHITE
-        call log_msgc
-        ld hl,t_win3
-        ld a,BCYAN
-        call log_msgc
-        ld a,100
-        call frames
-        xor a
-        ld (cmd),a
-        ld (pressed),a
-.w:     call frame
-        call any_new
-        jr z,.w
-        ret
+        ld hl,es_win
+        ld de,mus_victory
+        jp end_screen

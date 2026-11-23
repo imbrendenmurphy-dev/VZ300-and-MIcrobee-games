@@ -24,10 +24,10 @@ So it is a **step-and-turn grid crawler** in the Dungeon Master tradition, not a
 
   | Depth | Theme | Puzzles |
   |---|---|---|
-  | The Gatehouse | Torchlit ashlar stone | Keys, a lever and gate, a hidden wall and button |
-  | The Fungal Grotto | Rough green cave rock | Illusory walls, a gate button, a lever that opens a hidden wall, a pit |
+  | The Gatehouse | Torchlit ashlar stone | Keys, a lever and gate, a hidden wall and button, a treasure alcove |
+  | The Fungal Grotto | Rough green cave rock | Illusory walls, a gate button, a lever that opens a hidden wall, a pit, a trap plate |
   | The Drowned Archive | Cyan dressed stone, bookshelves | A four-rune sequence puzzle, portals, a spinner, a gold-key vault |
-  | The Ember Throne | Red brick | The sealed door (three sigils) and the Hollow King |
+  | The Ember Throne | Red brick | The sealed door (three sigils), an ambush beyond it, and the Hollow King in his sealed hall |
 
 - **Story**: you are the last Warden, the half-trained final apprentice of an order that kept the Hollow King sealed for a thousand years. The tablets address you as such, the trader knows you, and the ending is the oath kept.
 - **Goal**: recover the **three sigils** (one each on depths 1–3), break the seal on depth 4, and destroy the Hollow King.
@@ -48,6 +48,9 @@ So it is a **step-and-turn grid crawler** in the Dungeon Master tradition, not a
   - Rune plaques that must be touched in an order given by an inscription. A wrong touch resets them all.
   - Portals, spinners, pits that drop you to the depth below.
   - Inscribed tablets that give hints.
+  - Alcoves holding treasure, trap plates and ambushes that call creatures out of the dark (each fires once).
+- **The Hollow King** fights alone at first; badly hurt, he howls and two ash hounds answer.
+- **Endings**: a victory page and a game-over page over the logo, each with the Warden's record (turns, foes slain, gold, level, sigils).
 - **Forgiving**: falling in battle offers *rise again* (half your gold lost) at the depth's stair.
 
 `tools/mklevel.py` checks every level can be finished (keys, levers, buttons, runes, portals) on every build. `tools/bot.py` plays the whole game through the keyboard in the emulator model.

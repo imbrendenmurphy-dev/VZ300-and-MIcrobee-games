@@ -78,9 +78,7 @@ t_onward:       db "Onward, then.",0
 t_dead1:        db "You have fallen in the dark...",0
 t_dead2:        db "Rise again (half your gold lost)? Y/N",0
 t_rise:         db "You rise, aching, at the stair.",0
-t_win1:         db "The Hollow King crumbles to ash!",0
-t_win2:         db "The last Warden has kept the oath. The Runedeep sleeps.",0
-t_win3:         db "THE END - press a key.",0
+t_king_rage:    db "The Hollow King howls - the ash hounds answer!",0
 
 t_subtitle:     db "The Vault of the Hollow King",0
 t_credit:       db "VIBED BY BPM 2026",0
@@ -130,4 +128,25 @@ tt_foes:
         db 16,3,YELLOW,"Imps and ash hounds",0
         db 17,5,GREY,"keep the Ember Throne -",0
         db 18,3,BCYAN,"and the Hollow King waits there.",0
+        db $FF
+
+; the end screens
+es_win:
+        db 9,4,YELLOW,"The Hollow King crumbles to ash.",0
+        db 11,3,WHITE,"The last Warden has kept the oath.",0
+        db 12,5,WHITE,"The Runedeep sleeps once more.",0
+        db 22,9,GREY,"Press a key for the title",0
+        db $FF
+es_lose:
+        db 9,6,BRED,"You have fallen in the dark.",0
+        db 11,2,WHITE,"The Hollow King stirs on, unopposed,",0
+        db 12,3,WHITE,"and the Runedeep waits for another.",0
+        db 22,9,GREY,"Press a key for the title",0
+        db $FF
+es_labels:
+        db 15,10,YELLOW,"Turns taken",0
+        db 16,10,YELLOW,"Foes slain",0
+        db 17,10,YELLOW,"Gold carried",0
+        db 18,10,YELLOW,"Warden level",0
+        db 19,10,YELLOW,"Sigils found",0
         db $FF

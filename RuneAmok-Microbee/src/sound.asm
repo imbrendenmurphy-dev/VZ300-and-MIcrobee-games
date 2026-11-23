@@ -7,7 +7,10 @@
 ;            decay: quieter than the effects, so the music sits behind)
 ;    BASS    a plucked pulse ("dum", not "beep")
 ;    FX      effects and drums: a pulse with a gliding pitch, or noise
-;  A sample is 214 T: 15 770 samples a second. No undocumented
+;  The voices are narrow pulses ("pin pulses") OR'd together and written
+;  to the speaker ONCE a sample, so the speaker never flips faster than
+;  the music itself: no high carrier for an emulator to alias.
+;  A sample is 216 T: 15 625 samples a second. No undocumented
 ;  instructions. Tunes and effects are tables (tools/mkmusic.py ->
 ;  build/snd.inc); snd_tick reads them once a frame.
 ; =====================================================================
@@ -18,6 +21,8 @@ snd_init:
         ld a,$5A
         ld (lfsr),a
 snd_quiet:
+        ld hl,0
+        ld (sfx_pend),hl
         xor a
         ld (sfx_on),a
         ld (mus_on),a
@@ -71,6 +76,11 @@ snd_until:
         ld a,e
         ld (gtg+1),a
         ld hl,(sa_f)
+        ld a,(lfsr)
+        or a
+        jr nz,.sd
+        ld a,$5A                ; never all zeros
+.sd:    ld e,a                  ; the noise register (E')
         exx
         ld hl,(sa_m)
         ld de,(sa_b)
@@ -79,6 +89,8 @@ snd_until:
         ld (sa_b),de
         exx
         ld (sa_f),hl
+        ld a,e
+        ld (lfsr),a
         xor a
         out (P_PIOB),a
         ret
@@ -90,10 +102,9 @@ gtg:    cp 0                    ; 7
 gma:    ld bc,0                 ; 10  MELODY: HL
         add hl,bc               ; 11
         ld a,h                  ; 4
-gmd:    cp 0                    ; 7
+gmd:    cp 0                    ; 7   a pulse while H < duty
         sbc a,a                 ; 4
-        and $40                 ; 7
-        out (P_PIOB),a          ; 11
+        ex af,af'               ; 4
 gbs:    ld bc,0                 ; 10  BASS: DE
         ex de,hl                ; 4
         add hl,bc               ; 11
@@ -101,23 +112,31 @@ gbs:    ld bc,0                 ; 10  BASS: DE
         ex de,hl                ; 4
 gbd:    cp 0                    ; 7
         sbc a,a                 ; 4
-        and $40                 ; 7
-        out (P_PIOB),a          ; 11
-        exx                     ; 4   FX: HL'
+        ld c,a                  ; 4
+        ex af,af'               ; 4
+        or c                    ; 4   melody OR bass
+        exx                     ; 4   FX: HL', noise register E'
+        ld d,a                  ; 4
 gfs:    ld bc,0                 ; 10
         add hl,bc               ; 11
 gfj:    jp gft                  ; 10
 gft:    ld a,h                  ; 4
 gfd:    cp 0                    ; 7
         sbc a,a                 ; 4
+        or d                    ; 4
         and $40                 ; 7
-        out (P_PIOB),a          ; 11
+        out (P_PIOB),a          ; 11  one write a sample: no carrier
         exx                     ; 4
-        jp gl                   ; 10  = 214 T
-gfn:    ld a,l                  ; 4   noise: the low byte's bits tumble
-        rlca                    ;     with an odd step
-        xor h
-gfnm:   and $40                 ;     (the mask sets the loudness)
+        jp gl                   ; 10  = 216 T
+gfn:    jr nc,.h                ;     noise: each time the counter wraps
+        ld a,e                  ;     (the step sets how often: the
+        add a,a                 ;     noise's brightness) the shift
+        jr nc,.x                ;     register takes a step
+        xor $1D
+.x:     ld e,a
+.h:     ld a,e
+        or d
+gfnm:   and $40
         out (P_PIOB),a
         exx
         jp gl
@@ -132,12 +151,8 @@ sfx:    push af
         ld a,(snd_mode)
         or a
         jr z,.no
-        ld (sfx_ptr),hl
-        xor a
-        ld (sfx_left),a
-        ld a,1
-        ld (sfx_on),a
-.no:    pop bc
+        ld (sfx_pend),hl        ; it starts at the next tick: a view
+.no:    pop bc                  ; composed meanwhile cannot cut it
         pop af
         ret
 
@@ -173,6 +188,18 @@ snd_tick:
         ld a,(snd_mode)
         or a
         jp z,mute
+        ld hl,(sfx_pend)
+        ld a,h
+        or l
+        jr z,.np
+        ld (sfx_ptr),hl
+        ld hl,0
+        ld (sfx_pend),hl
+        xor a
+        ld (sfx_left),a
+        inc a
+        ld (sfx_on),a
+.np:
         call .music
         jp .fx
 ; the music: melody (channel 1), bass (2), drums (3)
@@ -214,9 +241,9 @@ snd_tick:
         ld a,b
         sub c
         jr c,.lo
-        cp 24
+        cp 16
         jr nc,.md
-.lo:    ld a,24
+.lo:    ld a,16
 .md:    ld (gmd+1),a
 .bass:  ld ix,mus_p2
         call chan
@@ -422,12 +449,13 @@ note_step:
         ret
 
 ; the bass's duty over a note's first frames
-pluck:  db 112,84,64,52,44,38,34,30
+pluck:  db 72,56,44,36,30,26,22,20
 
 mel_duty:   db 96
 drum:       db 0
 drum_ptr:   dw 0
 sfx_left:   db 0
+sfx_pend:   dw 0
 fx_glide:   dw 0
 mus_p1x:
 

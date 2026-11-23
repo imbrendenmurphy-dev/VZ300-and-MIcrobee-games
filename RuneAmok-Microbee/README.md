@@ -13,6 +13,7 @@ VIBED BY BPM 2026
 | ![The Gatehouse](screenshots/02_gatehouse.png) | ![A rat attacks](screenshots/03_rat.png) |
 | ![Fungal Grotto](screenshots/04_grotto.png) | ![Drowned Archive runes](screenshots/05_archive.png) |
 | ![The Ember Throne](screenshots/06_ember.png) | ![The Hollow King](screenshots/07_king.png) |
+| ![An ambush beyond the seal](screenshots/09_ambush.png) | ![Victory](screenshots/08_victory.png) |
 
 ## Status
 
@@ -48,10 +49,10 @@ Find the **three sigils** on depths 1–3. They break the seal on the Ember Thro
 
 | Depth | Look | What's there |
 |---|---|---|
-| The Gatehouse | Torchlit grey stone, mossy walls | Rats and skeletons; a bronze key, a lever and gate, a hidden wall and its button |
-| The Fungal Grotto | Green cave rock | Cave spiders and fungoids; illusory walls, a gate button, a lever, a pit, the silver key, the trader |
+| The Gatehouse | Torchlit grey stone, mossy walls | Rats and skeletons; a bronze key, a lever and gate, a hidden wall and its button, a treasure alcove |
+| The Fungal Grotto | Green cave rock | Cave spiders and fungoids; illusory walls, a gate button, a lever, a pit, a trap plate, the silver key, the trader |
 | The Drowned Archive | Cyan stone and bookshelves | Ghouls and grave wisps; a four-rune sequence puzzle, portals, a spinner, the golden key, the FIREBOLT scroll |
-| The Ember Throne | Red brick | Ember imps and ash hounds; the sealed door, the Hollow King |
+| The Ember Throne | Red brick | Ember imps and ash hounds; the sealed door, an ambush, and the Hollow King, who calls his hounds when wounded |
 
 ## How it suits the Microbee
 

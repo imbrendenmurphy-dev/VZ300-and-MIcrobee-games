@@ -57,7 +57,7 @@ def solve(L, n):
     sig = 0
     done_items, done_dec = set(), set()
     acts = list(L['actions'])
-    tele = {(x, y): (t[1], t[2]) for (x, y, t) in L['triggers']}
+    tele = {(x, y): (t[1], t[2]) for (x, y, t) in L['triggers'] if not isinstance(t, list) and t[0] == 'tele'}
     runes = 0
     seen = set()
     for _ in range(80):
@@ -128,6 +128,20 @@ def solve(L, n):
         k = [(x, y) for (x, y, t) in L['mons'] if t == LV.KING][0]
         if k not in seen:
             print('  level 4: the king NOT reachable')
+            ok = False
+        # ...and only through the seal
+        m2 = [list(r) for r in L['map']]
+        st = [pos]
+        seen2 = {pos}
+        while st:
+            x, y = st.pop()
+            for dx, dy in NB:
+                q = (x + dx, y + dy)
+                if q not in seen2 and m2[q[1]][q[0]] in '.S<>_*@I':
+                    seen2.add(q)
+                    st.append(q)
+        if k in seen2:
+            print('  level 4: the king can be reached WITHOUT breaking the seal')
             ok = False
     lost = [(x, y, t) for (x, y, t) in L['items'] if (x, y) not in seen]
     if lost:
@@ -206,7 +220,7 @@ def build_level(n, L):
         ld += struct.pack('<HBBBBBB', off(x, y), side, S.IDS['D_' + nm], kind, param, 0, extra)
     trig = []
     for (x, y, t) in L['triggers']:
-        acts.append([t])
+        acts.append(list(t) if isinstance(t, list) else [t])
         trig.append((x, y, len(acts) - 1))
     ld.append(len(trig))
     for x, y, a in trig:
@@ -228,6 +242,10 @@ def build_level(n, L):
                 ab += struct.pack('<BHB', 4, off(op[1], op[2]), op[3])
             elif op[0] == 'hide':
                 ab += struct.pack('<BH', 5, off(op[1], op[2]))
+            elif op[0] == 'once':
+                ab += bytes([6])
+            elif op[0] == 'spawn':
+                ab += struct.pack('<BHB', 7, off(op[1], op[2]), op[3])
         ab.append(0)
     abase = B.here() + 2 * max(1, len(acts))
     tab = b''.join(struct.pack('<H', abase + p) for p in aptr) or b'\0\0'

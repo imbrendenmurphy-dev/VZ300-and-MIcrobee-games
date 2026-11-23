@@ -18,6 +18,7 @@ new_game:
         ld bc,hero_init_end-hero_init
         ldir
         xor a
+        ld (king_phase),a
         ld (visited),a
         ld (level),a
         ld (dead),a

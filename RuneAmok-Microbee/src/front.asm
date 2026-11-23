@@ -4,29 +4,7 @@
 ;  ESC returns to CP/M.
 ; =====================================================================
 front_end:
-        call snd_quiet
-        call display_off
-        ld a,MP_TITLE
-        out (P_MEM),a
-        ld a,($0003)            ; rows
-        ld l,a
-        ld a,($0005)            ; columns
-        ld e,a
-        call mul8               ; HL = cells
-        ld (tt_n),hl
-        ld d,h
-        ld e,l
-        add hl,hl
-        add hl,de
-        ld de,6
-        add hl,de               ; the glyphs
-        ld de,(0)               ; how many
-        xor a
-        call pcg_load
-        call screen_clear
-        xor a
-        call show_page
-        call tt_logo
+        call title_load
         ; the subtitle and the foot
         ld b,7
         ld c,6
@@ -178,7 +156,56 @@ tt_show:
         inc hl
         ld h,(hl)
         ld l,a
-        ; lines: row, column, colour, text 0 ... row FF ends
+        jp print_lines
+
+; the "press" line breathes
+tt_blink:
+        ld a,(tick)
+        and 31
+        ret nz
+        ld a,(tick)
+        and 32
+        ld a,WHITE
+        jr z,.c
+        ld a,GREY
+.c:     ld b,22
+        ld c,8
+        ld hl,t_press
+        jp print_at
+
+tt_pages:   dw tt_tale, tt_keys, tt_foes
+
+; the logo screen, blank below the logo, display still off
+title_load:
+        xor a
+        ld (nanim),a            ; the last view's colour cycling stops
+        call snd_quiet
+        call display_off
+        ld a,MP_TITLE
+        out (P_MEM),a
+        ld a,($0003)            ; rows
+        ld l,a
+        ld a,($0005)            ; columns
+        ld e,a
+        call mul8               ; HL = cells
+        ld (tt_n),hl
+        ld d,h
+        ld e,l
+        add hl,hl
+        add hl,de
+        ld de,6
+        add hl,de               ; the glyphs
+        ld de,(0)               ; how many
+        xor a
+        call pcg_load
+        call screen_clear
+        xor a
+        call show_page
+        call tt_logo
+        ret
+
+; HL = lines (row, column, colour, text 0 ... FF) -> printed
+print_lines:
 .l:     ld a,(hl)
         cp $FF
         ret z
@@ -197,19 +224,59 @@ tt_show:
         jr nz,.s
         jr .l
 
-; the "press" line breathes
-tt_blink:
-        ld a,(tick)
-        and 31
-        ret nz
-        ld a,(tick)
-        and 32
+; ---------------------------------------------------------------------
+;  the end of a game: HL = the page's lines, DE = its tune. The logo,
+;  the words, the Warden's record; any key returns.
+; ---------------------------------------------------------------------
+end_screen:
+        push de
+        push hl
+        call title_load
+        pop hl
+        call print_lines
+        ld hl,es_labels
+        call print_lines
         ld a,WHITE
-        jr z,.c
-        ld a,GREY
-.c:     ld b,22
-        ld c,8
-        ld hl,t_press
-        jp print_at
-
-tt_pages:   dw tt_tale, tt_keys, tt_foes
+        ld (pr_col),a
+        ld hl,(turns)
+        ld de,15*40+26
+        ld b,5
+        call print_num
+        ld hl,(kills)
+        ld de,16*40+26
+        ld b,5
+        call print_num
+        ld hl,(gold)
+        ld de,17*40+26
+        ld b,5
+        call print_num
+        ld a,(lvl)
+        ld l,a
+        ld h,0
+        ld de,18*40+26
+        ld b,5
+        call print_num
+        ld a,(sigils)           ; how many of the three
+        ld c,0
+        ld b,3
+.sg:    rra
+        jr nc,.sn
+        inc c
+.sn:    djnz .sg
+        ld l,c
+        ld h,0
+        ld de,19*40+26
+        ld b,5
+        call print_num
+        call display_on
+        pop hl
+        call play_tune
+        ld a,100
+        call frames
+        xor a
+        ld (cmd),a
+        ld (pressed),a
+.w:     call frame
+        call any_new
+        jr z,.w
+        jp snd_quiet

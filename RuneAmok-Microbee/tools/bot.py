@@ -13,7 +13,7 @@ import levels as LV
 MAP, MONMAP, ITEMMAP = 0xC800, 0xCC00, 0xD000
 FWD = [(0, -1), (1, 0), (0, 1), (-1, 0)]
 PASS = {0, 6, 16, 17, 18, 19, 20, 21, 22}
-OPENABLE = {3, 8, 9, 10, 5}
+OPENABLE = {3, 8, 9, 10}
 
 
 class Bot:
@@ -126,6 +126,8 @@ class Bot:
 
     def goto(self, x, y, tries=400):
         for _ in range(tries):
+            if self.v('won'):
+                return True
             if self.survive():
                 return False
             if self.pos() == (x, y):
@@ -175,6 +177,8 @@ class Bot:
     def fight_all(self, radius=99):
         """hunt every monster on the level (not the trader)"""
         for _ in range(40):
+            if self.v('won'):
+                return
             best = None
             for i in range(self.v('nmons')):
                 a = 0xD900 + 16 * i
@@ -220,6 +224,11 @@ def play_level2(b):
     b.pp.run_frames(40)
     b.shot('l2_start')
     b.fight_all(radius=10)
+    n0 = b.v('nmons')
+    b.goto(4, 3)
+    b.note('trap plate: monsters %d -> %d' % (n0, b.v('nmons')))
+    b.shot('l2_trap')
+    b.fight_all(radius=6)
     b.goto(1, 1)
     b.goto(3, 1)
     b.note('silver key: %d' % b.pp.peek(b.pp.S['keys'] + 1))
@@ -262,19 +271,33 @@ def play_level3(b):
 def play_level4(b):
     b.pp.run_frames(40)
     b.shot('l4_start')
-    b.fight_all(radius=12)
-    b.use(8, 6, LV.S)
+    b.fight_all(radius=14)
+    b.use(8, 6, LV.N)
     b.note('the seal')
     b.shot('l4_seal')
-    for _ in range(3):
+    alive = lambda: sum(1 for i in range(b.v('nmons')) if b.pp.peek(0xD900 + 16 * i) != 0xFF)
+    a0 = alive()
+    b.goto(8, 9)
+    b.note('ambush: monsters alive %d -> %d' % (a0, alive()))
+    b.shot('l4_ambush')
+    for _ in range(4):
         b.fight_all()
         if b.v('won'):
             break
-    b.note('won %d' % b.v('won'))
-    b.shot('l4_end')
+        if b.pp.peek(b.pp.S['king_phase']) and not getattr(b, 'raged', 0):
+            b.raged = 1
+            b.shot('l4_rage')
+    b.note('won %d, king phase %d' % (b.v('won'), b.pp.peek(b.pp.S['king_phase'])))
+    b.pp.run_frames(150)
+    b.shot('victory_screen')
 
 
 def main():
+    if '--l4' in sys.argv:
+        import jump
+        b = jump.to(3, sys.argv[1])
+        play_level4(b)
+        return
     b = Bot(sys.argv[1] if len(sys.argv) > 1 else 'build/bot')
     b.pp.run_frames(150)
     b.shot('title')
