@@ -134,4 +134,12 @@ mkp equ $9829
 mkn equ $982B
 marks equ $982D
 ovkey equ $983F
-VARS_END equ $9840
+bigmode equ $9840
+bigop equ $9841
+bsrc equ $9842
+bsz equ $9845
+bws equ $9847
+bwl equ $9849
+bwlf equ $984B
+lnbase equ $984D
+VARS_END equ $984F

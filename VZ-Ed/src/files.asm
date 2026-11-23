@@ -820,7 +820,10 @@ save_doc:
         call set_msg
         scf
         ret
-sv_ok:  ld a,(basmode)       ; (0.6) a BASIC program: tokenised again
+sv_ok:  ld a,(bigmode)       ; (0.8) a part of a big file: spliced into it
+        or a
+        jp nz,big_save
+        ld a,(basmode)       ; (0.6) a BASIC program: tokenised again
         or a
         jp nz,bas_save
 sv_txt: ld hl,m_saving

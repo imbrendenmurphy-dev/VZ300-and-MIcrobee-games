@@ -88,6 +88,7 @@ K_MENU  equ 128             ; (0.4, CTRL+I; joystick fire in the editor too)
 K_PDF   equ 129             ; (0.5, menu only) codes from 129 = overlay slot code-126
 K_PRINT equ 130
 K_UNDO  equ 131             ; (0.7) CTRL+-
+K_BIG   equ 132             ; (0.8) open a big file in parts: overlay slot 9
 K_GOTO  equ 133             ; (0.7) menu: go to line   } all three: overlay
 K_INFO  equ 134             ; (0.7) menu: word count   } slot 7 (ovl_tools),
 K_SETMK equ 135             ; (0.7) CTRL+0: set a mark } told apart by ovkey
@@ -98,7 +99,7 @@ K_MK1   equ 136             ; (0.7) CTRL+1..9: go to bookmark 1..9 (slot 7 too)
         org $A000
 entry:  jp start
 plugin: db 0                ; 1 = PLAYTXT.VZ (VZ-DECK plug-in), 0 = VZED.VZ
-        db "VZ-ED 0.7 VIBED BY BPM 2026",0
+        db "VZ-ED 0.8 VIBED BY BPM 2026",0
 
 ; ===========================================================================
 start:  di
@@ -195,21 +196,65 @@ c_menu: ld a,2
 c_ovl:  cp K_UNDO
         jp z,c_undo
         ld (ovkey),a
+        cp K_BIG
+        jr z,co_big
         cp K_GOTO
         jr c,co_s
         ld a,K_GOTO         ; K_GOTO.. (and bookmarks) -> slot 7
 co_s:   sub 126             ; K_PDF -> slot 3, K_PRINT -> slot 4
         jp ovl_run
+co_big: ld a,9
+        jp ovl_run
+
+; (0.8) a big file in parts: past the last line -> the next part, before the
+; first line -> the one before (overlay slot 9, after SAVE CHANGES? if needed)
+big_dn: ld hl,(bws)
+        ld de,(bwl)
+        add hl,de
+        ld de,(bsz)
+        or a
+        sbc hl,de
+        ld b,1
+        jr c,big_go
+        ret
+big_up: ld hl,(bws)
+        ld a,h
+        or l
+        ret z
+        ld b,2
+big_go: ld a,(bigmode)
+        or a
+        ret z
+        push bc
+        call check_modified
+        pop bc
+        ret c
+        ld a,b
+big_op: ld (bigop),a
+        ld a,9
+        jp ovl_run
+big_save: xor a             ; (from save_doc) the part goes back into the file
+        ld (ovok),a
+        ld a,3
+        ld (bigop),a
+        ld a,9
+        jp of_run
 
 c_left: call mv_left
         jp reset_goal
 c_right: call mv_right
         jp reset_goal
 c_up:   call setgoal
-        jp mv_up
+        call mv_up
+        ret nc
+        jr big_up
 c_down: call setgoal
-        jp mv_down
+        call mv_down
+        ret nc
+        jr big_dn
 c_pgup: call setgoal
+        call curpos
+        push hl
         ld a,(docrows)
         dec a
         ld b,a
@@ -218,8 +263,15 @@ cpu_l:  push bc
         call nc,top_up1
         pop bc
         djnz cpu_l
-        ret
+        call curpos
+        pop de
+        or a
+        sbc hl,de
+        ret nz              ; (0.8) didn't move: the part before
+        jr big_up
 c_pgdn: call setgoal
+        call curpos
+        push hl
         ld a,(docrows)
         dec a
         ld b,a
@@ -228,7 +280,12 @@ cpd_l:  push bc
         call nc,top_down1
         pop bc
         djnz cpd_l
-        ret
+        call curpos
+        pop de
+        or a
+        sbc hl,de
+        ret nz
+        jp big_dn
 c_top:  call gap_to_start
         ld hl,0
         ld (top),hl
@@ -344,6 +401,8 @@ buf_clear:
         ld (modified),a
         ld (selon),a
         ld (basmode),a      ; (0.6) a text again
+        ld (bigmode),a      ; (0.8) not a part of a big file
+        ld (lnbase),hl
         call un_clr         ; (0.7) no undo history, no bookmarks
         jp reset_goal
 
@@ -1017,6 +1076,8 @@ bs_1:   ld de,SCR+14
         ld (de),a
         inc de
         ld hl,(curln)
+        ld bc,(lnbase)      ; (0.8) lines in the parts before
+        add hl,bc
         call putdec16
         call curcol
         inc hl

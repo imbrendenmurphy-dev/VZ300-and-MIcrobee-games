@@ -50,7 +50,14 @@ zg_d:   ld a,(hl)
         pop hl
         inc hl
         djnz zg_d
-        ld a,d              ; line 0 = line 1
+        ld hl,(lnbase)      ; (0.8) a part of a big file: lines before it
+        ex de,hl
+        or a
+        sbc hl,de
+        ex de,hl
+        jr nc,zg_0
+        ld de,0
+zg_0:   ld a,d              ; line 0 = line 1
         or e
         jr nz,zg_1
         inc de

@@ -1,4 +1,4 @@
-# VZ-ED 0.7
+# VZ-ED 0.8
 
 A full-screen text editor for the Dick Smith VZ300 / VZ200 with the BennVenn SD loader and 128K.
 It reads and writes text files straight on the SD card and works hand in hand with VZ-DECK.
@@ -12,7 +12,7 @@ Copy the three files to the **root** of the SD card:
 | File | What it does |
 |---|---|
 | `VZED.VZ` | Run it from VZ-DECK (or the DOS) to start a new document. Quitting restarts into VZ-DECK. |
-| `VZED.OVL` | Help, the sheet view, the menu bar, PDF export, printing, BASIC programs, the hex viewer, bookmarks, go to line, word count and quitting (see "Overlays" below). Without it the editor still works; those say `VZED.OVL MISSING OR OLD` (CTRL+Q then just restarts, without saving the settings). |
+| `VZED.OVL` | Help, the sheet view, the menu bar, PDF export, printing, BASIC programs, the hex viewer, bookmarks, go to line, word count, big files and quitting (see "Overlays" below). Without it the editor still works; those say `VZED.OVL MISSING OR OLD` (CTRL+Q then just restarts, without saving the settings). |
 | `PLAYTXT.VZ` | VZ-DECK plug-in. Press RETURN on any `.TXT` file in VZ-DECK and it opens in VZ-ED. Quitting goes straight back to VZ-DECK, in the same folder. |
 
 `VZED.VZ` and `PLAYTXT.VZ` are the same program; one byte tells them apart. Always copy all three
@@ -71,6 +71,27 @@ text costs nothing to remember, deleted text costs what it deleted): older ones 
 ones come in, and a single delete bigger than that can't be undone (cut it instead: CTRL+P brings it
 back). NEW and OPEN start with an empty history. `NOTHING TO UNDO` when there is nothing left. There
 is no redo.
+
+## Big files (over 11K, up to 64K)
+
+A text file too big for the text buffer opens **in parts** of about 6K, each ending at a line end
+(`IN 6K PARTS` on the title bar). The rest of the file stays on the card.
+
+* Cursor down or CTRL+C on the last line of a part goes to the next part; cursor up or CTRL+R on the
+  first line goes to the part before (`NEXT PART`, `PART BEFORE`). The line number on the title bar
+  counts from the start of the whole file.
+* If you changed the part, VZ-ED first asks `SAVE CHANGES? Y/N  ^Q=STAY`: Y saves the whole file,
+  N forgets the changes in this part, CTRL+Q stays.
+* CTRL+S saves the **whole file**: VZ-ED writes it again as `VZEDTEMP.$$$` (the file before the part
+  as it is on the card, your part, the file after it), then the old one becomes `NAME.BAK` and the new
+  one takes its name, as for any save. So saving a big file takes a few seconds, and the card needs
+  room for a second copy. Save As works too (the new file is then the one being edited).
+* A part can grow to about 11K while you edit it. The whole file can't go over 65,535 bytes:
+  saving then says `FILE TOO BIG FOR VZ-ED` and nothing is written.
+* Find, replace, go to line (it takes the line numbers on the title bar), word count, the sheet view,
+  PDF and print work on the part you are in. Undo and bookmarks start again in each part. A line
+  longer than a part is split between two parts.
+* Files over 64K, `.VZ` files and binary files (a 0 byte in the first 512) open in the hex viewer.
 
 ## Bookmarks, go to line, word count
 
@@ -143,7 +164,7 @@ CTRL+T / B (top / end), then press RETURN to go there. Q, CTRL+Q or CTRL+V go ba
 ## Overlays
 
 Help, the sheet view, the menu bar, PDF export, printing, BASIC, the hex viewer, bookmarks, go to line, word
-count and quitting live in `VZED.OVL`, not in `VZED.VZ`: they are loaded from the card only when
+count, big files and quitting live in `VZED.OVL`, not in `VZED.VZ`: they are loaded from the card only when
 you use them (the sheet view is up in under half a second), so the editor keeps its room for text. Later features will be added the same way. `VZED.OVL` is only read, never
 written. On a machine without the spare 10K SRAM bank, the small clipboard is parked in the free part
 of the text buffer while an overlay runs; if the file leaves no room for it, it is emptied and VZ-ED
@@ -248,10 +269,11 @@ Other details:
   layout against the DOS first and refuses to save (`CARD FORMAT NOT SUPPORTED`) if anything doesn't
   match, rather than guess.
 
-## Limits in 0.7
+## Limits in 0.8
 
-* Files up to 11,264 bytes. 0.7 gave 1K of the text buffer to the undo history (0.3-0.6: 12,288).
-  Bigger files open in the hex viewer; paging big files from the card is planned.
+* Text files up to 11,264 bytes are edited whole (0.7 gave 1K of the text buffer to the undo history;
+  0.3-0.6: 12,288); text files up to 65,535 bytes in parts (see "Big files"); anything bigger only in
+  the hex viewer.
 * Fixed in 0.2: in 0.1 the screen went blank when a long line scrolled sideways.
 * Fixed in 0.6: the Save As prompt didn't take a `.`, so you couldn't give a file your own extension.
 * Undo remembers about 1.1K of changes, and no redo.
@@ -262,10 +284,10 @@ Other details:
 | | |
 |---|---|
 | Needs | VZ300 / VZ200, BennVenn SD loader with 128K, VZDOS 2.31 or 2.32 |
-| Program | `$A000`-`$C579`, plus tables, font, messages and the overlay loader copied at start-up to `$9840`-`$9FEF`; the start-up code runs once from the empty text buffer (`$F200`) |
-| Undo history | `$C57A`-`$C9FF` (1,157 bytes) |
+| Program | `$A000`-`$C5F4`, plus tables, font, messages and the overlay loader copied at start-up to `$984F`-`$9FF0`; the start-up code runs once from the empty text buffer (`$F200`) |
+| Undo history | `$C5F5`-`$C9FF` (1,035 bytes) |
 | Text buffer | `$CA00`-`$F5FF` (11,264 bytes, gap buffer) |
-| Overlays | `VZED.OVL`: 3K slots (0 help, 1 sheet view, 2 menu bar, 3 PDF, 4 print, 5 open .VZ / hex view, 6 save BASIC, 7 bookmarks / go to line / word count, 8 quit) loaded to `$8900` |
+| Overlays | `VZED.OVL`: 3K slots (0 help, 1 sheet view, 2 menu bar, 3 PDF, 4 print, 5 open .VZ / hex view, 6 save BASIC, 7 bookmarks / go to line / word count, 8 quit, 9 big files in parts) loaded to `$8900` |
 | Printer | VZ printer interface: busy = bit 0 of `IN ($00)`, data `OUT ($0E)`, strobe `OUT ($0D)` (as the ROM) |
 | Work RAM | `$8000`-`$9FFF`: screen shadow, folder list (200 entries), variables |
 | Clipboard | spare 10K SRAM bank at `$4000`-`$67FF` (`OUT ($37),3`), or 3,328 bytes at `$8900` |
@@ -284,12 +306,14 @@ and `SHELL.VZ` from the VZ-DECK release into `tools/` first) and the tests:
 against a model, `t6` screenshots, `t7` timing, `t9` the 0.2 features (word wrap checked against a
 model, blocks, find / replace), `t10` word wrap timing, `t11` overlays, the sheet view (checked
 dot for dot against a model) and the menu bar, `t12` PDF export (checked as a PDF and line by line)
-and printing, `t13` BASIC programs (against lines typed into the real ROM) and the hex viewer, `t14` undo (random edits undone all the way back), bookmarks, go to line, word count.
+and printing, `t13` BASIC programs (against lines typed into the real ROM) and the hex viewer, `t14` undo (random edits undone all the way back), bookmarks, go to line, word count, `t15` big files in parts (every part, saves checked against
+the file edited in Python).
 `tools/basic.py` is a Python model of the ROM's tokeniser and LIST.
 
 ## Coming next
 
-* Big files paged from the card
+* Ideas (not planned yet): find across all the parts of a big file, Epson bold / underline when
+  printing, page size and margins, a choice of line endings when saving, spell check
 
 ## Credits
 

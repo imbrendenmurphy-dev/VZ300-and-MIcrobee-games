@@ -26,7 +26,9 @@ zv_go:  ld a,1
         call set_msg
         xor a
         ret
-zv_1:   ld a,(ldsz+2)       ; a BASIC program that fits?
+zv_1:   call zv_big         ; (0.8) a big text file: edited in parts (slot 9)
+        ret nc
+        ld a,(ldsz+2)       ; a BASIC program that fits?
         or a
         jp nz,zx_go
         ld hl,(ldsz)
@@ -62,7 +64,7 @@ zv_1:   ld a,(ldsz+2)       ; a BASIC program that fits?
         cp $F0
         jp nz,zx_go
         call zv_load        ; (from here on the old text is gone)
-        jr c,zv_bad
+        jp c,zv_bad
         ld hl,(zD)          ; name and load address -> bashdr
         ld bc,4
         add hl,bc
@@ -73,10 +75,10 @@ zv_1:   ld a,(ldsz+2)       ; a BASIC program that fits?
         ld bc,2
         ldir
         call zd_detok
-        jr c,zv_bad         ; code after the program, or not a program
+        jp c,zv_bad         ; code after the program, or not a program
         ld a,(zOv)
         or a
-        jr nz,zv_big
+        jp nz,zv_bg2
         ld hl,(zWP)         ; the listing to the end of the buffer
         ld de,BUFS
         or a
@@ -113,8 +115,49 @@ zv_e:   ld (ge),hl
         call reset_goal
         call un_clr         ; (0.7) no undo history / bookmarks from the old text
         xor a
+        ld (bigmode),a      ; (0.8)
+        ld h,a
+        ld l,a
+        ld (lnbase),hl
+        xor a
         ret
-zv_big: call zv_clr
+zv_bgx: scf
+        ret
+zv_big: ld a,(ldsz+2)       ; (0.8) NC + A = K_BIG if it is a big text file:
+        or a                ; under 64K, too big for the buffer, not a .VZ
+        jr nz,zv_bgx        ; (no "VZF" header) and no 0 byte in its first sector
+        ld hl,(ldsz)
+        ld de,BUFE-BUFS+1
+        or a
+        sbc hl,de
+        jr c,zv_bgx
+        ld hl,ldcl
+        call ld24
+        call clvalid
+        ret c
+        call fat_sync
+        ld hl,ldcl
+        call ld24
+        xor a
+        call clus_lba
+        call rd_sec
+        ld hl,(SECBUF)
+        ld de,'V'+256*'Z'
+        or a
+        sbc hl,de
+        jr nz,zb_t
+        ld a,(SECBUF+2)
+        cp 'F'
+        jr z,zv_bgx
+zb_t:   ld hl,SECBUF
+        ld bc,512
+        xor a
+        cpir
+        jr z,zv_bgx         ; a 0 byte: not text
+        ld (bigop),a
+        ld a,K_BIG
+        ret
+zv_bg2: call zv_clr
         ld hl,m_toobig
         call set_msg
         xor a

@@ -2,7 +2,7 @@
 Needs Python 3 only.  The assembler is tools/zasm.py."""
 import os, sys, subprocess, zlib
 OVERLAYS = ['ovl_help', 'ovl_sheet', 'ovl_menu', 'ovl_pdf', 'ovl_print', 'ovl_vzopen', 'ovl_bsave',
-            'ovl_tools', 'ovl_quit']   # slots 0-8
+            'ovl_tools', 'ovl_quit', 'ovl_big']   # slots 0-9
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 sys.path.insert(0, HERE)

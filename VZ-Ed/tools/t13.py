@@ -125,7 +125,7 @@ def part_hex():
     random.seed(5)
     big = bytes(random.randrange(256) for _ in range(70000))       # over 64K: 24-bit offsets
     mid = ('A line of text for the hex viewer %05d\r\n' % 0) * 400
-    mid = ''.join('A line of text for the hex viewer %05d\r\n' % i for i in range(400)).encode()   # 16,400 bytes
+    mid = b'\0' + ''.join('A line of text for the hex viewer %05d\r\n' % i for i in range(400)).encode()[1:]   # 16,400 bytes (0.8: a 0 byte, or it opens in parts)
     for style in (0, 2):
         m = machine([('A.TXT', b'keep me\r\n'), ('BIG.BIN', big), ('MID.TXT', mid)])
         if style: keys(m, [('CTRL', 'D'), ('WAIT', 5)] * style)

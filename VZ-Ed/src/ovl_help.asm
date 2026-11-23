@@ -47,7 +47,7 @@ zh_x:   ld a,1
         xor a               ; NC, no key: the cursor stays
         ret
 
-zh_hdr: db "VZ-ED 0.7 HELP  ^Q=DONE",0
+zh_hdr: db "VZ-ED 0.8 HELP  ^Q=DONE",0
 zh_text:
         db "CTRL + KEY:",0
         db " M , . SPC  CURSOR",0
@@ -73,7 +73,12 @@ zh_text:
         db " ONE LINE NUMBER A LINE. SAVE",0
         db " AS .VZ MAKES THE PROGRAM",0
         db " AGAIN (^S), .TXT KEEPS TEXT",0
-        db "OTHER .VZ AND BIG FILES OPEN",0
+        db "TEXT FILES OVER 11K (UP TO 64K)",0
+        db " OPEN IN 6K PARTS: DOWN / ^C AT",0
+        db " THE END GOES TO THE NEXT PART,",0
+        db " UP / ^R AT THE TOP TO THE ONE",0
+        db " BEFORE. ^S SAVES THE WHOLE FILE",0
+        db "OTHER .VZ AND BIGGER FILES OPEN",0
         db " IN A HEX VIEW (READ ONLY)",0
         db " W     WORD WRAP ON / OFF",0
         db " K     MARK A BLOCK (AGAIN=OFF)",0
@@ -116,7 +121,7 @@ zh_text:
         db " RETURN DOES IT, A LETTER DOES",0
         db " ITS ^ KEY, ^Q OR ^I CLOSES",0
         db " ",0
-        db "VZ-ED 0.7  VIBED BY BPM 2026",0
+        db "VZ-ED 0.8  VIBED BY BPM 2026",0
         db $FF
 zh_last:
         assert zh_last <= OVLA+OVLSEC*512

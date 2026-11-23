@@ -142,11 +142,11 @@ def part_ovl():
     print('== overlays')
     m = machine([('T.TXT', PARA.encode())]); open_t(m)
     keys(m, [('CTRL', 'H'), ('WAIT', 20)], extra=20)
-    check(title(m).startswith('VZ-ED 0.7 HELP'), 'CTRL+H shows help: %r' % title(m))
+    check(title(m).startswith('VZ-ED 0.8 HELP'), 'CTRL+H shows help: %r' % title(m))
     shot.save(m, S + 's_help_03.png')
     pages = 1
     for i in range(8):
-        if title(m).startswith('VZ-ED 0.7 HELP'):
+        if title(m).startswith('VZ-ED 0.8 HELP'):
             keys(m, ['SPACE', ('WAIT', 10)], extra=20); pages += 1
     md = Model(PARA, m.z.mem[sym['docrows']], False)
     check(screen_check(m, md, '') is None and buffer(m)[0] == PARA, 'help pages, then back in the text (%d pages)' % (pages - 1))
@@ -160,7 +160,7 @@ def part_ovl():
     keys(m, [('CTRL', 'V'), ('WAIT', 20)], extra=20)
     check('VZED.OVL MISSING OR OLD' in title(m) and not (m.latch & 8), 'VZED.OVL from another build: refused')
     keys(m, [('CTRL', 'H'), ('WAIT', 20)], extra=20)
-    check(title(m).startswith('VZ-ED 0.7 HELP'), '... its other slot still works')
+    check(title(m).startswith('VZ-ED 0.8 HELP'), '... its other slot still works')
     m = machine([('T.TXT', PARA.encode())], ovl=OVL[:3072]); open_t(m)
     keys(m, [('CTRL', 'V'), ('WAIT', 20)], extra=20)
     check('VZED.OVL MISSING' in title(m), 'VZED.OVL too short: refused')
@@ -249,7 +249,7 @@ def part_menu():
     keys(m, [('CTRL', 'I'), ('WAIT', 15)], extra=20)
     check(not title(m).startswith(' FILE  EDIT'), 'CTRL+I again closes')
     keys(m, [('CTRL', 'I'), ('WAIT', 20), 'H', ('WAIT', 20)], extra=30)
-    check(title(m).startswith('VZ-ED 0.7 HELP'), 'HELP / KEYS: one overlay starts another')
+    check(title(m).startswith('VZ-ED 0.8 HELP'), 'HELP / KEYS: one overlay starts another')
     keys(m, [('CTRL', 'Q'), ('WAIT', 10), ('CTRL', 'I'), ('WAIT', 20), 'V', ('WAIT', 60)], extra=60)
     check(bool(m.latch & 8), 'V from the bar opens the sheet view')
     keys(m, ['Q', ('WAIT', 30), ('CTRL', 'I'), ('WAIT', 20), 'F', ('WAIT', 15)] + text_for('COLOUR') + ['RET', ('WAIT', 20)], extra=30)

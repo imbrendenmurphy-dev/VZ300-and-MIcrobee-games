@@ -25,7 +25,9 @@ VARS = [('gs',2),('ge',2),('top',2),('hs',2),('curln',2),('goal',2),('curcell',2
  ('ovok',1),('basmode',1),('bashdr',19),
  # 0.7
  ('utop',2),('useal',1),('ujoin',1),('uovr',1),('uty',1),('ukind',1),('upos',2),('ulen',2),('usrc',2),
- ('udsz',2),('uend',2),('mkp',2),('mkn',2),('marks',18),('ovkey',1)]
+ ('udsz',2),('uend',2),('mkp',2),('mkn',2),('marks',18),('ovkey',1),
+ # 0.8
+ ('bigmode',1),('bigop',1),('bsrc',3),('bsz',2),('bws',2),('bwl',2),('bwlf',2),('lnbase',2)]
 def gen_vars():
     a = 0x9730; out = ['VARS equ $%04X' % a]          # right after DPTR
     for n, s in VARS:
