@@ -1,0 +1,38 @@
+sym out/chunky.sym
+spok fill_row fill_end_sp
+crash
+vz out/CHUNKY.VZ
+tmark ptime
+frames 400
+print TITLE
+tstats
+tap SPACE 2
+frames 300
+screen test/p1.png
+print PLASMA
+tstats
+tap SPACE 2
+frames 300
+screen test/p2.png
+print STARS
+tstats
+tap SPACE 2
+frames 300
+screen test/p3.png
+print CUBE
+tstats
+tap SPACE 2
+frames 300
+screen test/p4.png
+print SCROLLER
+tstats
+tap SPACE 2
+frames 300
+screen test/p5.png
+print TUNNEL
+tstats
+tap SPACE 2
+frames 400
+screen test/p6.png
+print CREDITS
+tstats

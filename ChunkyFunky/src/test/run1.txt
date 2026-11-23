@@ -1,0 +1,7 @@
+sym out/chunky.sym
+crash
+spok fill_row fill_end_sp
+stack $B000 $B800
+vz out/CHUNKY.VZ
+shots test/s 18 384
+regs

@@ -1,0 +1,7 @@
+sym out/octo.sym
+spok irq kend
+vz out/OCTO.VZ
+frames 100
+prof 1
+frames 100
+profsave out/prof.txt

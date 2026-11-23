@@ -1,0 +1,11 @@
+sym out/octo.sym
+crash
+spok irq kend
+vz out/OCTO.VZ
+frames 100
+linelog 240
+frames 8
+linelog off
+screen out/o1.png 2
+frames 37
+screen out/o2.png 2

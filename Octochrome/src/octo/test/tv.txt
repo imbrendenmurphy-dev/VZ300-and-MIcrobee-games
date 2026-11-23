@@ -1,0 +1,5 @@
+vis on
+sym out/octo.sym
+vz out/OCTO.VZ
+frames 750
+vis out/octo_vis_full.png

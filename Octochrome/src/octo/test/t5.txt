@@ -1,0 +1,8 @@
+sym out/octo.sym
+crash
+spok irq kend
+vz out/OCTO.VZ
+wav out/octo_audio.wav
+frames 1600
+wavend
+screen out/o3.png 2

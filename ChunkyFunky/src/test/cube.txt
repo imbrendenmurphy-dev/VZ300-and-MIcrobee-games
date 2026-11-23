@@ -1,0 +1,13 @@
+sym out/chunky.sym
+spok $8177 $81A0
+vz out/CHUNKY.VZ
+tap SPACE 2
+frames 20
+tap SPACE 2
+frames 20
+tap SPACE 2
+frames 100
+shots test/c 6 1
+tmark ptime
+frames 100
+tstats

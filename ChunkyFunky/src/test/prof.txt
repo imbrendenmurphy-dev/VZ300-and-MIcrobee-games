@@ -1,0 +1,12 @@
+sym out/chunky.sym
+spok $8177 $81A0
+vz out/CHUNKY.VZ
+tap SPACE 2
+frames 20
+tap SPACE 2
+frames 20
+tap SPACE 2
+frames 100
+prof 1
+frames 100
+profsave test/prof_cube.txt

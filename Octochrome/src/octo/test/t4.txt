@@ -1,0 +1,7 @@
+sym out/octo.sym
+vz out/OCTO.VZ
+frames 30
+tap . 3
+frames 20
+linelog 240
+frames 200

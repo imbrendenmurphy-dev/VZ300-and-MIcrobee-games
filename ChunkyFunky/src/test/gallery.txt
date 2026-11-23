@@ -1,0 +1,19 @@
+sym out/chunky.sym
+spok fill_row fill_end_sp
+vz out/CHUNKY.VZ
+frames 300
+screen test/g1.png
+frames 900
+screen test/g2.png
+frames 800
+screen test/g3.png
+frames 700
+screen test/g4.png
+frames 900
+screen test/g5.png
+frames 1000
+screen test/g6.png
+frames 1000
+screen test/g7.png
+frames 400
+screen test/g8.png

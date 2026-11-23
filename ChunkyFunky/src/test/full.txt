@@ -1,0 +1,10 @@
+sym out/chunky.sym
+crash
+spok fill_row fill_end_sp
+vz out/CHUNKY.VZ
+tmark ptime
+wav out/chunky_demo_audio.wav
+frames 6200
+wavend
+tstats
+regs
