@@ -1,0 +1,53 @@
+crash
+sym build\game.sym
+disk A: outputs\BA.DS8
+disk B: outputs\BB.DS8
+disk C: outputs\BC.DS8
+disk D: outputs\BD.DS8
+boot
+until mus_play 4000
+poke dbg_r 4
+poke dbg_side 0
+pc dbg_room
+until loop 900
+fields 80
+poke sleep_t $FF
+poke sleep_t+1 $7F
+poke wstate 0
+poke wy 60
+poke wx 97
+poke wface 0
+fields 4
+down Q
+fields 160
+up Q
+fields 6
+peek shards 3
+screen test\q_search.png 1 both
+poke dbg_r 20
+poke dbg_side 0
+pc dbg_goto
+untiltext LOADING 600
+screen test\q_loading.png 1 colour
+until loop 3000
+fields 30
+down ESC
+fields 10
+up ESC
+fields 10
+screen test\q_quit.png 1 colour
+down N
+fields 10
+up N
+fields 20
+peek gmode 1
+down ESC
+fields 10
+up ESC
+fields 10
+down Y
+fields 10
+up Y
+until mus_play 3000
+fields 30
+screen test\q_title.png 1 colour

@@ -1,0 +1,16 @@
+crash
+disk outputs\BLACKOUT.DS80
+boot
+seconds 3
+crtc
+screen test\s1.png 2 colour
+down P
+seconds 2
+screen test\s2.png 2 colour
+up P
+down O
+fields 20
+screen test\s3.png 2 colour
+up O
+field
+regs

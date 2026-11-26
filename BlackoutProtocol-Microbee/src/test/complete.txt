@@ -1,0 +1,472 @@
+crash
+sym build\game.sym
+disk A: outputs\BA.DS8
+disk B: outputs\BB.DS8
+disk C: outputs\BC.DS8
+disk D: outputs\BD.DS8
+boot
+until mus_play 4000
+poke dbg_r 4
+poke dbg_side 0
+pc dbg_room
+until loop 900
+fields 80
+print SHARD 0 in CREW QUARTERS
+poke sleep_t $FF
+poke sleep_t+1 $7F
+poke wstate 0
+poke wy 60
+poke wx 100
+fields 4
+down Q
+fields 160
+up Q
+fields 6
+peek shards 3
+poke dbg_r 6
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+fields 80
+print SHARD 1 in COMMS ARRAY
+poke sleep_t $FF
+poke sleep_t+1 $7F
+poke wstate 0
+poke wy 60
+poke wx 88
+fields 4
+down Q
+fields 160
+up Q
+fields 6
+peek shards 3
+poke dbg_r 0
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+fields 80
+print SHARD 2 in CARGO BAY 7
+poke sleep_t $FF
+poke sleep_t+1 $7F
+poke wstate 0
+poke wy 144
+poke wx 44
+fields 4
+down Q
+fields 160
+up Q
+fields 6
+peek shards 3
+poke dbg_r 15
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+fields 80
+print SHARD 3 in GREENHOUSE 2
+poke sleep_t $FF
+poke sleep_t+1 $7F
+poke wstate 0
+poke wy 144
+poke wx 68
+fields 4
+down Q
+fields 160
+up Q
+fields 6
+peek shards 3
+poke dbg_r 12
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+fields 80
+print SHARD 4 in SEED VAULT
+poke sleep_t $FF
+poke sleep_t+1 $7F
+poke wstate 0
+poke wy 96
+poke wx 20
+fields 4
+down Q
+fields 160
+up Q
+fields 6
+peek shards 3
+poke dbg_r 14
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+fields 80
+print SHARD 5 in SPORE LAB
+poke sleep_t $FF
+poke sleep_t+1 $7F
+poke wstate 0
+poke wy 228
+poke wx 88
+fields 4
+down Q
+fields 160
+up Q
+fields 6
+peek shards 3
+poke dbg_r 22
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+fields 80
+print SHARD 6 in ICE CORE DRILL
+poke sleep_t $FF
+poke sleep_t+1 $7F
+poke wstate 0
+poke wy 228
+poke wx 68
+fields 4
+down Q
+fields 160
+up Q
+fields 6
+peek shards 3
+poke dbg_r 25
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+fields 80
+print SHARD 7 in FROST LAB
+poke sleep_t $FF
+poke sleep_t+1 $7F
+poke wstate 0
+poke wy 72
+poke wx 12
+fields 4
+down Q
+fields 160
+up Q
+fields 6
+peek shards 3
+poke dbg_r 20
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+fields 80
+print SHARD 8 in SAMPLE VAULT
+poke sleep_t $FF
+poke sleep_t+1 $7F
+poke wstate 0
+poke wy 228
+poke wx 92
+fields 4
+down Q
+fields 160
+up Q
+fields 6
+peek shards 3
+poke dbg_r 27
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+fields 80
+print SHARD 9 in TURBINE HALL
+poke sleep_t $FF
+poke sleep_t+1 $7F
+poke wstate 0
+poke wy 228
+poke wx 8
+fields 4
+down Q
+fields 160
+up Q
+fields 6
+peek shards 3
+poke dbg_r 30
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+fields 80
+print SHARD 10 in STEAM PLANT
+poke sleep_t $FF
+poke sleep_t+1 $7F
+poke wstate 0
+poke wy 96
+poke wx 128
+fields 4
+down Q
+fields 160
+up Q
+fields 6
+peek shards 3
+poke dbg_r 33
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+fields 80
+print SHARD 11 in CORE MONITOR
+poke sleep_t $FF
+poke sleep_t+1 $7F
+poke wstate 0
+poke wy 48
+poke wx 48
+fields 4
+down Q
+fields 160
+up Q
+fields 6
+peek shards 3
+poke dbg_r 39
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+fields 80
+print SHARD 12 in GRAVITY TEST
+poke sleep_t $FF
+poke sleep_t+1 $7F
+poke wstate 0
+poke wy 228
+poke wx 56
+fields 4
+down Q
+fields 160
+up Q
+fields 6
+peek shards 3
+poke dbg_r 38
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+fields 80
+print SHARD 13 in DARK ROOM
+poke sleep_t $FF
+poke sleep_t+1 $7F
+poke wstate 0
+poke wy 228
+poke wx 16
+fields 4
+down Q
+fields 160
+up Q
+fields 6
+peek shards 3
+poke dbg_r 40
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+fields 80
+print SHARD 14 in STAR ARCHIVE
+poke sleep_t $FF
+poke sleep_t+1 $7F
+poke wstate 0
+poke wy 228
+poke wx 108
+fields 4
+down Q
+fields 160
+up Q
+fields 6
+peek shards 3
+poke dbg_r 43
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+fields 80
+print SHARD 15 in DATA VAULT
+poke sleep_t $FF
+poke sleep_t+1 $7F
+poke wstate 0
+poke wy 228
+poke wx 48
+fields 4
+down Q
+fields 160
+up Q
+fields 6
+peek shards 3
+poke dbg_r 45
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+fields 80
+print SHARD 16 in MEMORY BANKS
+poke sleep_t $FF
+poke sleep_t+1 $7F
+poke wstate 0
+poke wy 60
+poke wx 100
+fields 4
+down Q
+fields 160
+up Q
+fields 6
+peek shards 3
+poke dbg_r 44
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+fields 80
+print SHARD 17 in LOGIC HALL
+poke sleep_t $FF
+poke sleep_t+1 $7F
+poke wstate 0
+poke wy 132
+poke wx 92
+fields 4
+down Q
+fields 160
+up Q
+fields 6
+peek shards 3
+poke dbg_r 8
+poke dbg_side 1
+pc dbg_goto
+until loop 900
+fields 80
+print SPLICE wing 0 in SPLICE LAB
+poke sleep_t $FF
+poke sleep_t+1 $7F
+poke wstate 0
+poke wy 228
+poke wx 76
+fields 4
+down Q
+fields 6
+up Q
+seconds 2
+poke sp_cur 10
+poke sp_cur+1 6
+poke sp_cur+2 11
+until loop 3000
+fields 20
+peek keys_done 1
+poke dbg_r 18
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+fields 80
+print SPLICE wing 1 in AGRI CONTROL
+poke sleep_t $FF
+poke sleep_t+1 $7F
+poke wstate 0
+poke wy 228
+poke wx 76
+fields 4
+down Q
+fields 6
+up Q
+seconds 2
+poke sp_cur 5
+poke sp_cur+1 14
+poke sp_cur+2 3
+until loop 3000
+fields 20
+peek keys_done 1
+poke dbg_r 26
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+fields 80
+print SPLICE wing 2 in CRYO CONTROL
+poke sleep_t $FF
+poke sleep_t+1 $7F
+poke wstate 0
+poke wy 228
+poke wx 88
+fields 4
+down Q
+fields 6
+up Q
+seconds 2
+poke sp_cur 13
+poke sp_cur+1 12
+poke sp_cur+2 7
+until loop 3000
+fields 20
+peek keys_done 1
+poke dbg_r 34
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+fields 80
+print SPLICE wing 3 in REACTOR LAB
+poke sleep_t $FF
+poke sleep_t+1 $7F
+poke wstate 0
+poke wy 228
+poke wx 76
+fields 4
+down Q
+fields 6
+up Q
+seconds 2
+poke sp_cur 7
+poke sp_cur+1 10
+poke sp_cur+2 14
+until loop 3000
+fields 20
+peek keys_done 1
+poke dbg_r 42
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+fields 80
+print SPLICE wing 4 in NAV CONTROL
+poke sleep_t $FF
+poke sleep_t+1 $7F
+poke wstate 0
+poke wy 228
+poke wx 84
+fields 4
+down Q
+fields 6
+up Q
+seconds 2
+poke sp_cur 3
+poke sp_cur+1 11
+poke sp_cur+2 5
+until loop 3000
+fields 20
+peek keys_done 1
+poke dbg_r 46
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+fields 80
+print SPLICE wing 5 in ANTECHAMBER
+poke sleep_t $FF
+poke sleep_t+1 $7F
+poke wstate 0
+poke wy 228
+poke wx 76
+fields 4
+down Q
+fields 6
+up Q
+seconds 2
+poke sp_cur 13
+poke sp_cur+1 12
+poke sp_cur+2 6
+until loop 3000
+fields 20
+peek keys_done 1
+print TO THE CORE
+poke dbg_r 46
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+fields 80
+poke sleep_t $FF
+poke sleep_t+1 $7F
+poke wx 140
+poke wy 96
+fields 4
+down P
+untilmem gmode 1 600
+untilmem cur_room 10 900
+up P
+seconds 2
+peek cur_room 1
+screen test\c_core.png 1 colour
+poke wx 76
+fields 4
+down Q
+fields 8
+up Q
+seconds 6
+screen test\c_won.png 1 colour
+peek keys_done 1

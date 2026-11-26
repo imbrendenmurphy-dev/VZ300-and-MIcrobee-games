@@ -1,0 +1,29 @@
+crash
+sym build\game.sym
+disk A: outputs\BA.DS8
+disk B: outputs\BB.DS8
+disk C: outputs\BC.DS8
+disk D: outputs\BD.DS8
+boot
+until mus_play 4000
+poke dbg_r 4
+poke dbg_side 0
+pc dbg_room
+until loop 900
+fields 80
+poke sleep_t $FF
+poke sleep_t+1 $7F
+poke wstate 0
+poke wy 60
+poke wx 103
+poke wface 0
+fields 4
+down Q
+fields 160
+up Q
+fields 6
+peek shards 3
+peek srch_row 2
+peek srch_c0 2
+peek wface 1
+peek wx 1

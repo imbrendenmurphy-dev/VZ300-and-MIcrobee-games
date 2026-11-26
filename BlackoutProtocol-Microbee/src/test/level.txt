@@ -1,0 +1,55 @@
+crash
+sym build\game.sym
+disk A: outputs\BA.DS8
+disk B: outputs\BB.DS8
+disk C: outputs\BC.DS8
+disk D: outputs\BD.DS8
+boot
+until mus_play 4000
+fields 50
+down SPACE
+fields 40
+up SPACE
+seconds 2
+screen test\l_level.png 1 colour
+down 3
+fields 30
+up 3
+until loop 3000
+seconds 3
+peek skill 7
+peek str_penalty 12
+screen test\l_ghost.png 1 colour
+poke dbg_r 20
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+fields 80
+down W
+fields 40
+up W
+seconds 3
+down S
+fields 40
+up S
+seconds 2
+down 1
+fields 30
+up 1
+until loop 900
+fields 10
+reset
+until mus_play 4000
+fields 50
+peek skill 1
+down L
+fields 40
+up L
+seconds 2
+screen test\l_load.png 1 colour
+down 1
+fields 30
+up 1
+until loop 3000
+fields 40
+peek skill 7

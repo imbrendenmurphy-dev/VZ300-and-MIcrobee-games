@@ -1,0 +1,56 @@
+crash
+sym build\game.sym
+disk outputs\BLACKOUT.DS80
+boot
+until title 3000
+seconds 2
+tap SPACE 3
+untilmem gmode 1 300
+fields 20
+down P
+untilmem gmode 0 600
+up P
+fields 20
+down P
+untilmem wx 130 400
+up P
+fields 2
+down Q
+fields 110
+up Q
+fields 2
+screen test\h_locker.png 2 colour
+down O
+untilmem wx 64 400
+up O
+fields 3
+down Q
+fields 3
+up Q
+untilmem wstate 0 300
+fields 3
+down O
+untilmem wx 44 300
+up O
+fields 2
+down Q
+fields 110
+up Q
+fields 4
+screen test\h_sleep.png 2 colour
+peek n_sleep 1
+tap W 3
+fields 60
+screen test\h_deck.png 2 colour
+tap W 3
+fields 60
+screen test\h_back.png 2 colour
+down P
+untilmem wstate 7 900
+fields 10
+screen test\h_dead.png 2 colour
+untilmem wstate 0 200
+fields 4
+screen test\h_respawn.png 2 colour
+peek deaths 1
+peek clk_m 1

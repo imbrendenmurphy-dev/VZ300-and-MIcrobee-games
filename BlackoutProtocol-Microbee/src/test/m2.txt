@@ -1,0 +1,11 @@
+crash
+sym build\game.sym
+disk outputs\BLACKOUT.DS80
+boot
+seconds 2
+tmark frames
+down O
+seconds 3
+tstats
+screen test\s5.png 2 colour
+up O

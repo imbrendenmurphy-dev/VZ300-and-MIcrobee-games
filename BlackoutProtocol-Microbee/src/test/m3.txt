@@ -1,0 +1,71 @@
+crash
+sym build\game.sym
+disk outputs\BLACKOUT.DS80
+boot
+seconds 3
+screen test\r0.png 2 colour
+down O
+untilmem gmode 1 600
+up O
+print entered shaft
+field
+seconds 2
+screen test\sh0.png 2 colour
+peek wx 1
+down O
+untilmem wx 78 400
+up O
+peek wx 1
+fields 5
+down A
+fields 20
+screen test\scroll1.png 2 colour
+fields 7
+screen test\scroll2.png 2 colour
+up A
+seconds 3
+screen test\sh1.png 2 colour
+peek cur_level 1
+down O
+untilmem gmode 0 800
+up O
+seconds 2
+screen test\r1.png 2 colour
+peek cur_room 1
+down P
+untilmem gmode 1 800
+up P
+fields 20
+down P
+untilmem wx 78 400
+up P
+fields 3
+down A
+fields 10
+up A
+untilmem lift_dir 0 400
+fields 20
+down P
+untilmem gmode 0 800
+up P
+seconds 1
+screen test\r2.png 2 colour
+down O
+untilmem gmode 1 800
+up O
+fields 20
+down O
+untilmem wx 78 400
+up O
+fields 3
+down A
+fields 10
+up A
+untilmem lift_dir 0 400
+fields 20
+down O
+untilmem gmode 0 800
+up O
+seconds 1
+screen test\r3.png 2 colour
+peek cur_room 1

@@ -1,0 +1,5262 @@
+crash
+sym build\game.sym
+disk A: outputs\BA.DS8
+disk B: outputs\BB.DS8
+disk C: outputs\BC.DS8
+disk D: outputs\BD.DS8
+boot
+until mus_play 4000
+poke dbg_r 1
+poke dbg_side 0
+pc dbg_room
+until loop 900
+poke clk_frames 19
+poke pen_min 10
+poke gun_cool 75
+poke grace_n 75
+poke fast_pat 0
+poke slow_hunt 0
+print ROOM 0
+until loop 900
+poke clk_h 8
+poke wstate 0
+poke dbg_r 0
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+poke deaths 0
+poke sleep_t $FF
+poke sleep_t+1 $7F
+fields 200
+peek deaths 1
+down P
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+up P
+fields 4
+peek deaths 1
+peek gmode 1
+print ROOM 1
+until loop 900
+poke clk_h 8
+poke wstate 0
+poke dbg_r 1
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+poke deaths 0
+poke sleep_t $FF
+poke sleep_t+1 $7F
+fields 200
+peek deaths 1
+down P
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+up P
+fields 4
+peek deaths 1
+peek gmode 1
+print ROOM 2
+until loop 900
+poke clk_h 8
+poke wstate 0
+poke dbg_r 2
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+poke deaths 0
+poke sleep_t $FF
+poke sleep_t+1 $7F
+fields 200
+peek deaths 1
+down P
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+up P
+fields 4
+peek deaths 1
+peek gmode 1
+print ROOM 3
+until loop 900
+poke clk_h 8
+poke wstate 0
+poke dbg_r 3
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+poke deaths 0
+poke sleep_t $FF
+poke sleep_t+1 $7F
+fields 200
+peek deaths 1
+down P
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+up P
+fields 4
+peek deaths 1
+peek gmode 1
+print ROOM 4
+until loop 900
+poke clk_h 8
+poke wstate 0
+poke dbg_r 4
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+poke deaths 0
+poke sleep_t $FF
+poke sleep_t+1 $7F
+fields 200
+peek deaths 1
+down P
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+up P
+fields 4
+peek deaths 1
+peek gmode 1
+print ROOM 5
+until loop 900
+poke clk_h 8
+poke wstate 0
+poke dbg_r 5
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+poke deaths 0
+poke sleep_t $FF
+poke sleep_t+1 $7F
+fields 200
+peek deaths 1
+down P
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+up P
+fields 4
+peek deaths 1
+peek gmode 1
+print ROOM 6
+until loop 900
+poke clk_h 8
+poke wstate 0
+poke dbg_r 6
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+poke deaths 0
+poke sleep_t $FF
+poke sleep_t+1 $7F
+fields 200
+peek deaths 1
+down P
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+up P
+fields 4
+peek deaths 1
+peek gmode 1
+print ROOM 7
+until loop 900
+poke clk_h 8
+poke wstate 0
+poke dbg_r 7
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+poke deaths 0
+poke sleep_t $FF
+poke sleep_t+1 $7F
+fields 200
+peek deaths 1
+down P
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+up P
+fields 4
+peek deaths 1
+peek gmode 1
+print ROOM 8
+until loop 900
+poke clk_h 8
+poke wstate 0
+poke dbg_r 8
+poke dbg_side 1
+pc dbg_goto
+until loop 900
+poke deaths 0
+poke sleep_t $FF
+poke sleep_t+1 $7F
+fields 200
+peek deaths 1
+down O
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+up O
+fields 4
+peek deaths 1
+peek gmode 1
+print ROOM 9
+until loop 900
+poke clk_h 8
+poke wstate 0
+poke dbg_r 9
+poke dbg_side 1
+pc dbg_goto
+until loop 900
+poke deaths 0
+poke sleep_t $FF
+poke sleep_t+1 $7F
+fields 200
+peek deaths 1
+down O
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+up O
+fields 4
+peek deaths 1
+peek gmode 1
+print ROOM 11
+until loop 900
+poke clk_h 8
+poke wstate 0
+poke dbg_r 11
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+poke deaths 0
+poke sleep_t $FF
+poke sleep_t+1 $7F
+fields 200
+peek deaths 1
+down P
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+up P
+fields 4
+peek deaths 1
+peek gmode 1
+print ROOM 12
+until loop 900
+poke clk_h 8
+poke wstate 0
+poke dbg_r 12
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+poke deaths 0
+poke sleep_t $FF
+poke sleep_t+1 $7F
+fields 200
+peek deaths 1
+down P
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+up P
+fields 4
+peek deaths 1
+peek gmode 1
+print ROOM 13
+until loop 900
+poke clk_h 8
+poke wstate 0
+poke dbg_r 13
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+poke deaths 0
+poke sleep_t $FF
+poke sleep_t+1 $7F
+fields 200
+peek deaths 1
+down P
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+up P
+fields 4
+peek deaths 1
+peek gmode 1
+print ROOM 14
+until loop 900
+poke clk_h 8
+poke wstate 0
+poke dbg_r 14
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+poke deaths 0
+poke sleep_t $FF
+poke sleep_t+1 $7F
+fields 200
+peek deaths 1
+down P
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+up P
+fields 4
+peek deaths 1
+peek gmode 1
+print ROOM 15
+until loop 900
+poke clk_h 8
+poke wstate 0
+poke dbg_r 15
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+poke deaths 0
+poke sleep_t $FF
+poke sleep_t+1 $7F
+fields 200
+peek deaths 1
+down P
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+up P
+fields 4
+peek deaths 1
+peek gmode 1
+print ROOM 16
+until loop 900
+poke clk_h 8
+poke wstate 0
+poke dbg_r 16
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+poke deaths 0
+poke sleep_t $FF
+poke sleep_t+1 $7F
+fields 200
+peek deaths 1
+down P
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+up P
+fields 4
+peek deaths 1
+peek gmode 1
+print ROOM 17
+until loop 900
+poke clk_h 8
+poke wstate 0
+poke dbg_r 17
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+poke deaths 0
+poke sleep_t $FF
+poke sleep_t+1 $7F
+fields 200
+peek deaths 1
+down P
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+up P
+fields 4
+peek deaths 1
+peek gmode 1
+print ROOM 18
+until loop 900
+poke clk_h 8
+poke wstate 0
+poke dbg_r 18
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+poke deaths 0
+poke sleep_t $FF
+poke sleep_t+1 $7F
+fields 200
+peek deaths 1
+down P
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+up P
+fields 4
+peek deaths 1
+peek gmode 1
+print ROOM 19
+until loop 900
+poke clk_h 8
+poke wstate 0
+poke dbg_r 19
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+poke deaths 0
+poke sleep_t $FF
+poke sleep_t+1 $7F
+fields 200
+peek deaths 1
+down P
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+up P
+fields 4
+peek deaths 1
+peek gmode 1
+print ROOM 20
+until loop 900
+poke clk_h 8
+poke wstate 0
+poke dbg_r 20
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+poke deaths 0
+poke sleep_t $FF
+poke sleep_t+1 $7F
+fields 200
+peek deaths 1
+down P
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+up P
+fields 4
+peek deaths 1
+peek gmode 1
+print ROOM 21
+until loop 900
+poke clk_h 8
+poke wstate 0
+poke dbg_r 21
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+poke deaths 0
+poke sleep_t $FF
+poke sleep_t+1 $7F
+fields 200
+peek deaths 1
+down P
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+up P
+fields 4
+peek deaths 1
+peek gmode 1
+print ROOM 22
+until loop 900
+poke clk_h 8
+poke wstate 0
+poke dbg_r 22
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+poke deaths 0
+poke sleep_t $FF
+poke sleep_t+1 $7F
+fields 200
+peek deaths 1
+down P
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+up P
+fields 4
+peek deaths 1
+peek gmode 1
+print ROOM 23
+until loop 900
+poke clk_h 8
+poke wstate 0
+poke dbg_r 23
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+poke deaths 0
+poke sleep_t $FF
+poke sleep_t+1 $7F
+fields 200
+peek deaths 1
+down P
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+up P
+fields 4
+peek deaths 1
+peek gmode 1
+print ROOM 24
+until loop 900
+poke clk_h 8
+poke wstate 0
+poke dbg_r 24
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+poke deaths 0
+poke sleep_t $FF
+poke sleep_t+1 $7F
+fields 200
+peek deaths 1
+down P
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+up P
+fields 4
+peek deaths 1
+peek gmode 1
+print ROOM 25
+until loop 900
+poke clk_h 8
+poke wstate 0
+poke dbg_r 25
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+poke deaths 0
+poke sleep_t $FF
+poke sleep_t+1 $7F
+fields 200
+peek deaths 1
+down P
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+up P
+fields 4
+peek deaths 1
+peek gmode 1
+print ROOM 26
+until loop 900
+poke clk_h 8
+poke wstate 0
+poke dbg_r 26
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+poke deaths 0
+poke sleep_t $FF
+poke sleep_t+1 $7F
+fields 200
+peek deaths 1
+down P
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+up P
+fields 4
+peek deaths 1
+peek gmode 1
+print ROOM 27
+until loop 900
+poke clk_h 8
+poke wstate 0
+poke dbg_r 27
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+poke deaths 0
+poke sleep_t $FF
+poke sleep_t+1 $7F
+fields 200
+peek deaths 1
+down P
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+up P
+fields 4
+peek deaths 1
+peek gmode 1
+print ROOM 28
+until loop 900
+poke clk_h 8
+poke wstate 0
+poke dbg_r 28
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+poke deaths 0
+poke sleep_t $FF
+poke sleep_t+1 $7F
+fields 200
+peek deaths 1
+down P
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+up P
+fields 4
+peek deaths 1
+peek gmode 1
+print ROOM 29
+until loop 900
+poke clk_h 8
+poke wstate 0
+poke dbg_r 29
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+poke deaths 0
+poke sleep_t $FF
+poke sleep_t+1 $7F
+fields 200
+peek deaths 1
+down P
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+up P
+fields 4
+peek deaths 1
+peek gmode 1
+print ROOM 30
+until loop 900
+poke clk_h 8
+poke wstate 0
+poke dbg_r 30
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+poke deaths 0
+poke sleep_t $FF
+poke sleep_t+1 $7F
+fields 200
+peek deaths 1
+down P
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+up P
+fields 4
+peek deaths 1
+peek gmode 1
+print ROOM 31
+until loop 900
+poke clk_h 8
+poke wstate 0
+poke dbg_r 31
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+poke deaths 0
+poke sleep_t $FF
+poke sleep_t+1 $7F
+fields 200
+peek deaths 1
+down P
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+up P
+fields 4
+peek deaths 1
+peek gmode 1
+print ROOM 32
+until loop 900
+poke clk_h 8
+poke wstate 0
+poke dbg_r 32
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+poke deaths 0
+poke sleep_t $FF
+poke sleep_t+1 $7F
+fields 200
+peek deaths 1
+down P
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+up P
+fields 4
+peek deaths 1
+peek gmode 1
+print ROOM 33
+until loop 900
+poke clk_h 8
+poke wstate 0
+poke dbg_r 33
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+poke deaths 0
+poke sleep_t $FF
+poke sleep_t+1 $7F
+fields 200
+peek deaths 1
+down P
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+up P
+fields 4
+peek deaths 1
+peek gmode 1
+print ROOM 34
+until loop 900
+poke clk_h 8
+poke wstate 0
+poke dbg_r 34
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+poke deaths 0
+poke sleep_t $FF
+poke sleep_t+1 $7F
+fields 200
+peek deaths 1
+down P
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+up P
+fields 4
+peek deaths 1
+peek gmode 1
+print ROOM 35
+until loop 900
+poke clk_h 8
+poke wstate 0
+poke dbg_r 35
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+poke deaths 0
+poke sleep_t $FF
+poke sleep_t+1 $7F
+fields 200
+peek deaths 1
+down P
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+up P
+fields 4
+peek deaths 1
+peek gmode 1
+print ROOM 36
+until loop 900
+poke clk_h 8
+poke wstate 0
+poke dbg_r 36
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+poke deaths 0
+poke sleep_t $FF
+poke sleep_t+1 $7F
+fields 200
+peek deaths 1
+down P
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+up P
+fields 4
+peek deaths 1
+peek gmode 1
+print ROOM 37
+until loop 900
+poke clk_h 8
+poke wstate 0
+poke dbg_r 37
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+poke deaths 0
+poke sleep_t $FF
+poke sleep_t+1 $7F
+fields 200
+peek deaths 1
+down P
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+up P
+fields 4
+peek deaths 1
+peek gmode 1
+print ROOM 38
+until loop 900
+poke clk_h 8
+poke wstate 0
+poke dbg_r 38
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+poke deaths 0
+poke sleep_t $FF
+poke sleep_t+1 $7F
+fields 200
+peek deaths 1
+down P
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+up P
+fields 4
+peek deaths 1
+peek gmode 1
+print ROOM 39
+until loop 900
+poke clk_h 8
+poke wstate 0
+poke dbg_r 39
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+poke deaths 0
+poke sleep_t $FF
+poke sleep_t+1 $7F
+fields 200
+peek deaths 1
+down P
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+up P
+fields 4
+peek deaths 1
+peek gmode 1
+print ROOM 40
+until loop 900
+poke clk_h 8
+poke wstate 0
+poke dbg_r 40
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+poke deaths 0
+poke sleep_t $FF
+poke sleep_t+1 $7F
+fields 200
+peek deaths 1
+down P
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+up P
+fields 4
+peek deaths 1
+peek gmode 1
+print ROOM 41
+until loop 900
+poke clk_h 8
+poke wstate 0
+poke dbg_r 41
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+poke deaths 0
+poke sleep_t $FF
+poke sleep_t+1 $7F
+fields 200
+peek deaths 1
+down P
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+up P
+fields 4
+peek deaths 1
+peek gmode 1
+print ROOM 42
+until loop 900
+poke clk_h 8
+poke wstate 0
+poke dbg_r 42
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+poke deaths 0
+poke sleep_t $FF
+poke sleep_t+1 $7F
+fields 200
+peek deaths 1
+down P
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+up P
+fields 4
+peek deaths 1
+peek gmode 1
+print ROOM 43
+until loop 900
+poke clk_h 8
+poke wstate 0
+poke dbg_r 43
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+poke deaths 0
+poke sleep_t $FF
+poke sleep_t+1 $7F
+fields 200
+peek deaths 1
+down P
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+up P
+fields 4
+peek deaths 1
+peek gmode 1
+print ROOM 44
+until loop 900
+poke clk_h 8
+poke wstate 0
+poke dbg_r 44
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+poke deaths 0
+poke sleep_t $FF
+poke sleep_t+1 $7F
+fields 200
+peek deaths 1
+down P
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+up P
+fields 4
+peek deaths 1
+peek gmode 1
+print ROOM 45
+until loop 900
+poke clk_h 8
+poke wstate 0
+poke dbg_r 45
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+poke deaths 0
+poke sleep_t $FF
+poke sleep_t+1 $7F
+fields 200
+peek deaths 1
+down P
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+up P
+fields 4
+peek deaths 1
+peek gmode 1
+print ROOM 46
+until loop 900
+poke clk_h 8
+poke wstate 0
+poke dbg_r 46
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+poke deaths 0
+poke sleep_t $FF
+poke sleep_t+1 $7F
+fields 200
+peek deaths 1
+down P
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+fields 19
+down SPACE
+fields 6
+up SPACE
+up P
+fields 4
+peek deaths 1
+peek gmode 1

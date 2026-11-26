@@ -1,0 +1,12 @@
+crash
+sym build\game.sym
+disk A: outputs\BA.DS8
+disk B: outputs\BB.DS8
+disk C: outputs\BC.DS8
+disk D: outputs\BD.DS8
+diskprotect A on
+boot
+until mus_play 4000
+fields 50
+screen test\autoboot.png 1 colour
+diskdir A

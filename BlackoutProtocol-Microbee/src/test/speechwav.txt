@@ -1,0 +1,10 @@
+sym build\game.sym
+disk A: outputs\BA.DS8
+disk B: outputs\BB.DS8
+disk C: outputs\BC.DS8
+disk D: outputs\BD.DS8
+boot
+until title_page_open 4000
+wav outputs\speech_clipped.wav
+seconds 5
+wavend

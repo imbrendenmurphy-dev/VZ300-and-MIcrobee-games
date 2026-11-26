@@ -1,0 +1,40 @@
+crash
+sym build\game.sym
+disk outputs\BLACKOUT.DS80
+boot
+untilmem gmode 0 400
+seconds 2
+down O
+untilmem wx 64 400
+up O
+fields 5
+peek wx 1
+down Q
+fields 4
+up Q
+fields 20
+screen test\ride.png 2 colour
+untilmem wstate 0 300
+fields 5
+peek wy 1
+screen test\up14.png 2 colour
+down O
+untilmem wx 48 300
+up O
+fields 3
+down Q
+fields 60
+screen test\search.png 2 colour
+fields 50
+up Q
+fields 2
+screen test\searched.png 2 colour
+down O
+untilmem wstate 2 400
+fields 8
+screen test\fall.png 2 colour
+up O
+untilmem wstate 0 300
+peek wy 1
+fields 10
+screen test\after.png 2 colour

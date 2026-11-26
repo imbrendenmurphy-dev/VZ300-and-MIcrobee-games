@@ -1,0 +1,13 @@
+# built by build.ps1 (except the voice clips and title tune, kept so a rebuild
+# doesn't need Windows text-to-speech)
+build/*
+!build/speech/
+build/speech/*
+!build/speech/*.bin
+!build/speech/lines.json
+!build/title.mus
+outputs/
+test/*.png
+*.wav
+# third-party: put sjasmplus.exe in tools/ yourself
+tools/sjasmplus.exe

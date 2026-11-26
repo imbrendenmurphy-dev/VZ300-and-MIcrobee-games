@@ -1,0 +1,18 @@
+crash
+sym build\game.sym
+disk A: outputs\BA.DS8
+disk B: outputs\BB.DS8
+disk C: outputs\BC.DS8
+
+boot
+fields 150
+screen test\boot_False.png 1 colour
+until mus_play 4000
+peek packs_in 1
+peek speech_ok 1
+poke dbg_r 20
+poke dbg_side 0
+pc dbg_room
+until pack_load 400
+until loop 2000
+peek cur_room 1

@@ -1,0 +1,21 @@
+crash
+sym build\game.sym
+disk outputs\BLACKOUT.DS80
+boot
+seconds 4
+screen test\g_title.png 2 colour
+tap SPACE 3
+seconds 2
+screen test\g_shaft.png 2 colour
+peek gmode 1
+peek wx 1
+down P
+untilmem gmode 0 600
+up P
+seconds 1
+screen test\g_cargo1.png 2 colour
+seconds 2
+screen test\g_cargo2.png 2 colour
+peek nrob 1
+peek robots 48
+peek wstate 1

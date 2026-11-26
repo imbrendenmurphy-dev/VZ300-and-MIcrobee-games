@@ -1,0 +1,23 @@
+crash
+sym build\game.sym
+disk A: outputs\BA.DS8
+disk B: outputs\BB.DS8
+disk C: outputs\BC.DS8
+disk D: outputs\BD.DS8
+boot
+until mus_play 4000
+poke dbg_r 20
+poke dbg_side 0
+pc dbg_room
+until loop 3000
+fields 50
+down ESC
+until esc_check.k 100
+fields 5
+up ESC
+fields 10
+screen test\e1.png 1 colour
+down Y
+fields 10
+up Y
+until mus_play 3000
