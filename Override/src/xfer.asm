@@ -188,6 +188,7 @@ xfer_main:
             call x_fire
 .step:      call x_step
             call xd_header
+            call xd_meter
             ld hl,(xc_time)
             dec hl
             ld (xc_time),hl
@@ -225,20 +226,17 @@ xfer_main:
             ; the verdict
             ld hl,res_txt
             call str_index
-            push hl
-            ld a,24
-            ld b,14
-            ld c,$AA
-            call fe_rows
-            ld de,$0102
-            ld a,(xc_res)
+            ld a,(xc_res)           ; won: gold; lost: alert; deadlock: system
+            ld c,BF_GOLD
             cp 1
             jr z,.rc
-            ld de,$0302
-.rc:        call txt_colour
-            pop hl
-            ld e,26
-            call fe_str2c
+            ld c,BF_ALERT
+            or a
+            jr z,.rc
+            ld c,BF_SYSTEM
+.rc:        ld a,c
+            ld e,31
+            call fe_header
             ld a,(xc_res)
             or a
             ld a,MUS_LOSE
@@ -685,6 +683,48 @@ LANE_Y0     equ 13
 xd_all:
             ld a,$AA
             call fe_cls
+            ld de,$0000             ; the header panel, rows 0-10
+            ld bc,$200B
+            ld a,3
+            call fe_panel
+            ; the two droids
+            ld a,(xc_side)
+            or a
+            ld b,3
+            jr z,.y
+            ld b,112
+.y:         ld c,2
+            ld hl,SPRC
+            call fe_spr
+            ld a,(xc_side)
+            or a
+            ld b,112
+            jr z,.e
+            ld b,3
+.e:         ld c,2
+            ld hl,SPRC+$700
+            call fe_spr
+            ; the core: a red frame round the node column
+            ld a,$FF
+            ld (bf_cb),a
+            ld c,11
+.cv:        ld b,57
+            call bf_plot
+            ld b,70
+            call bf_plot
+            inc c
+            ld a,c
+            cp 60
+            jr nz,.cv
+            ld b,57
+.ch:        ld c,11
+            call bf_plot
+            ld c,59
+            call bf_plot
+            inc b
+            ld a,b
+            cp 71
+            jr nz,.ch
             call xd_header
             ld c,0
 .l:         xor a
@@ -699,49 +739,36 @@ xd_all:
             ld a,c
             cp LANES
             jr nz,.l
-            ret
+            ld a,(xc_choose)
+            or a
+            ret nz
+            jp xd_meter
 
-; the header: both droids, charges, time
+; the header's live part (between the droids): charges, seconds, the
+; timer bar, YOU
 xd_header:
-            ld a,0
-            ld b,9
-            ld c,$AA
-            call fe_rows
-            ; you
-            ld a,(xc_side)
-            or a
-            ld b,2
-            jr z,.y
-            ld b,110
-.y:         ld c,0
-            ld hl,SPRC
-            call fe_spr
-            ld a,(xc_side)
-            or a
-            ld b,110
-            jr z,.e
-            ld b,2
-.e:         ld c,0
-            ld hl,SPRC+$700
-            call fe_spr
+            ld de,$0501
+            ld bc,$1609
+            ld a,$AA
+            call fe_box
             ; charges
             ld a,(xc_side)
             or a
             ld d,5
             jr z,.c1
-            ld d,24
+            ld d,21
 .c1:        ld a,(xc_mych)
             ld b,1
             call xd_charges
             ld a,(xc_side)
             or a
-            ld d,24
+            ld d,21
             jr z,.c2
             ld d,5
 .c2:        ld a,(xc_ench)
             ld b,3
             call xd_charges
-            ; time left (seconds)
+            ; time left: seconds, and a bar that runs down (red at the end)
             ld a,(xc_choose)
             or a
             jr nz,.choose
@@ -756,6 +783,21 @@ xd_header:
             ld hl,t_buf+1
             ld de,$0F02
             call fe_str
+            ld hl,(xc_time)
+            ld c,13
+            call div_hl_c
+            ld a,l
+            or a
+            jr z,.choose
+            ld b,a
+            ld a,(xc_time)
+            cp 75
+            ld a,$00
+            jr nc,.bc
+            ld a,$FF
+.bc:        ld de,$0607
+            ld c,2
+            call fe_box
 .choose:    ld de,$0002             ; "YOU" beside the time, on your side
             call txt_colour
             ld a,(xc_side)
@@ -767,6 +809,49 @@ xd_header:
             ld hl,you_txt
             jp fe_str
 you_txt:    db "YOU",0
+
+; the tug-of-war meter along the bottom (rows 60-62): yellow from the
+; left for the left side's nodes, red from the right for the right's
+xd_meter:
+            ld b,LANES
+            ld hl,xn_own
+            ld de,0
+.cn:        ld a,(hl)
+            cp 1
+            jr nz,.r
+            inc d
+.r:         cp 2
+            jr nz,.n
+            inc e
+.n:         inc hl
+            djnz .cn
+            push de
+            ld de,$043C
+            ld bc,$1803
+            ld a,$00
+            call fe_box
+            pop de
+            push de
+            ld a,d
+            add a,a
+            jr z,.nl
+            ld b,a
+            ld de,$043C
+            ld c,3
+            ld a,$55
+            call fe_box
+.nl:        pop de
+            ld a,e
+            add a,a
+            ret z
+            ld b,a
+            ld a,28
+            sub b
+            ld d,a
+            ld e,60
+            ld c,3
+            ld a,$FF
+            jp fe_box
 
 ; A = charges, B = colour, D = column: a pip per charge (max 7)
 xd_charges:
@@ -803,10 +888,10 @@ xd_charges:
             djnz .p
             ret
 
-; choose-side prompt
+; choose-side prompt, along the bottom
 xd_side:
-            ld a,10
-            ld b,6
+            ld a,59
+            ld b,5
             ld c,$AA
             call fe_rows
             ld de,$0102
@@ -816,7 +901,7 @@ xd_side:
             ld hl,side_l
             jr z,.s
             ld hl,side_r
-.s:         ld e,10
+.s:         ld e,59
             call fe_strc
             jp xd_header
 side_l:     db "< YOUR SIDE: LEFT >",0
@@ -842,6 +927,16 @@ xd_lane:
             jr z,.c
             ld a,$FF
 .c:         ld (xl_col),a
+            ld a,(xl_s)             ; clear the whole lane row first (sparks
+            or a                    ; cross the gap of a broken lane)
+            ld d,1
+            jr z,.cl
+            ld d,17
+.cl:        ld a,(xl_y)
+            ld e,a
+            ld bc,$0E01
+            ld a,$AA
+            call fe_box
             ld a,(xl_g)
             cp G_FORKED
             jp z,.forked
@@ -895,21 +990,26 @@ xd_lane:
             ld a,$99                ; blue/yellow end cap
             call fe_box
             jr .done
-.boost:     ld a,(xl_y)
+.boost:     ld hl,ic_boost          ; an amplifier: a yellow diamond
+            jr .icon
+.rev:       ld hl,ic_rev            ; a reverser: a green X
+.icon:      ld a,(xl_y)
             dec a
             ld e,a
+            ld b,3
+.ir:        push bc
+            push de
+            push hl
+            ld a,(hl)
             ld b,1
-            ld c,3
-            ld a,$66                ; yellow/blue block
+            ld c,1
             call fe_box
-            jr .done
-.rev:       ld a,(xl_y)
-            dec a
-            ld e,a
-            ld b,1
-            ld c,3
-            ld a,$00                ; green block: danger
-            call fe_box
+            pop hl
+            pop de
+            pop bc
+            inc hl
+            inc e
+            djnz .ir
             jr .done
 .fork:      ; a riser down to the next lane's wire
             ld a,(xl_y)
@@ -934,6 +1034,9 @@ xd_lane:
             call fe_box
             pop bc
             ret
+
+ic_boost:   db $96,$55,$96
+ic_rev:     db $28,$82,$28
 
 ; node A: its owner's colour (locked: solid; free: striped)
 xd_node:
@@ -1027,31 +1130,50 @@ xd_pulses:
             ld (xs_side),a
             cp 2
             jr nz,.sd
-            ; your cursor
+            ; your cursor: an arrow at the mouth of the lane
             ld a,(xc_side)
             or a
             ld d,0
             jr z,.cs
             ld d,31
-.cs:        ld a,9
-            ld e,a
+.cs:        ld e,11
             ld b,1
-            ld c,52
+            ld c,48
             ld a,$AA
             call fe_box
-            ld a,(xc_cur)
-            add a,a
-            add a,a
-            add a,LANE_Y0-1
-            ld e,a
-            ld b,1
-            ld c,3
             ld a,(fe_frames)
             and 4
             ld a,$55
             jr z,.cc
             ld a,$00
-.cc:        jp fe_box
+.cc:        ld (bf_cb),a
+            ld a,(xc_cur)
+            add a,a
+            add a,a
+            add a,LANE_Y0
+            ld c,a                  ; the wire row
+            ld a,(xc_side)
+            or a
+            ld b,0
+            ld d,1                  ; left: points right
+            jr z,.ar
+            ld b,127
+            ld d,-1                 ; right: points left
+.ar:        dec c
+            call bf_plot
+            inc c
+            call bf_plot
+            inc c
+            call bf_plot
+            dec c
+            ld a,b
+            add a,d
+            ld b,a
+            call bf_plot
+            ld a,b
+            add a,d
+            ld b,a
+            jp bf_plot
 
 ; ---- variables
 xc_mycls:   ds 1

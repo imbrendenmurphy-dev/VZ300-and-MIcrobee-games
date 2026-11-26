@@ -375,22 +375,27 @@ fe_frame:
 ; copy dirty rows (LDI, ~540 T a row)
 fe_present:
             ld a,22                 ; at most 22 rows a gap (~12K T): the rest
-            ld (fp_n),a             ; wait for the next one, so no snow
-            ld hl,fe_dirty
+            ld (fp_n),a             ; wait for the next one, so no snow.
+            ld a,(fp_next)          ; Round robin: start where the last gap
+            ld c,a                  ; stopped, so no row is ever starved
             ld b,64
-            ld de,VRAM
-            ld c,0
-.r:         ld a,(hl)
+.r:         ld a,c
+            and 63
+            ld c,a
+            ld hl,fe_dirty
+            add a,l
+            ld l,a
+            jr nc,.h
+            inc h
+.h:         ld a,(hl)
             or a
             jr z,.n
             ld a,(fp_n)
             dec a
-            ret m
+            jp m,.out
             ld (fp_n),a
             ld (hl),0
-            push hl
             push bc
-            push de
             ld l,c
             ld h,0
             add hl,hl
@@ -398,22 +403,22 @@ fe_present:
             add hl,hl
             add hl,hl
             add hl,hl
+            push hl
+            ld de,VRAM
+            add hl,de
+            ex de,hl                ; DE = video row
+            pop hl
             ld bc,FEBB
-            add hl,bc
+            add hl,bc               ; HL = buffer row
             REPT 32
             ldi
             ENDR
-            pop de
             pop bc
-            pop hl
-.n:         inc hl
-            ld a,e
-            add a,32
-            ld e,a
-            jr nc,.nc
-            inc d
-.nc:        inc c
+.n:         inc c
             djnz .r
+.out:       ld a,c
+            and 63
+            ld (fp_next),a
             ret
 
 ; mark rows dirty: A = first row, B = count
@@ -712,3 +717,4 @@ fs_srcp:    ds 2
 fs_sp:      ds 2
 fp_c:       ds 1
 fp_n:       ds 1
+fp_next:    db 0

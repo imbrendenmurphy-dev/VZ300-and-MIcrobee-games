@@ -395,6 +395,9 @@ game_loop:
             ld b,a
             xor a
             ld (event),a
+            ld a,(plr+O_FLAGS)      ; a dead player always comes first,
+            rla                     ; whatever else happened this frame
+            jp nc,ev_death
             ld a,b
             cp EV_TRANSFER
             jp z,ev_transfer
@@ -608,7 +611,10 @@ ev_death:
             call show_msg
             ld a,100
             ld (plr+O_INV),a
-            jp game_loop
+            xor a
+            ld (event),a
+            call check_cleared      ; (in case the last droid went with you)
+            jp game_loop.frame
 .over:      ld a,40
             call wait_fields_game
             call game_off

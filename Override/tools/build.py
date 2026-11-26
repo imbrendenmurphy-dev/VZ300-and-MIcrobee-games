@@ -274,6 +274,9 @@ def main():
     write('songs.inc', music.asm())
     write('gsongs.inc', music.gasm())
     write('fedata.inc', fedata.asm())
+    write('bigfont.inc', fedata.bigfont_asm())
+    write('ovsongs.inc', music.ov_asm())
+    write('ovdata.inc', fedata.ov_asm())
     a, out = assemble('main.asm')
     sym = a.sym
     lo, code = span(out, 0x8000, 0xB800)
@@ -296,18 +299,20 @@ def main():
         assert fa.sym['j_' + k] == sym[k], k
     n = datfile('OVCOM', [chunk(7, ulo, upper1), chunk(3, 0xB800, fe)], sym, build_id)
     print('OVCOM.DAT %d bytes' % n)
-    # the intro cinematic: assembled against main + front-end symbols, into low bank 3
-    fs = ['; generated: front-end symbols for the intro']
+    # the overlay (intro, title, attract pages, cards): assembled against
+    # main + front-end symbols, into low bank 3 below the sprite cache
+    fs = ['; generated: front-end symbols for the overlay']
     for k, v in sorted(fa.sym.items()):
         if '.' in k or k in sym: continue
         fs.append('%-24s equ $%04X' % (k, v & 0xFFFF))
     write('fesym.inc', '\n'.join(fs) + '\n')
-    write('att.inc', 'ship_art:\n' + db_lines(fedata.ship_shifts()) + '\n' + music.intro_asm())
-    aa, aout = assemble('att.asm')
-    alo, att = span(aout, 0x4000, 0x6000)
-    assert alo == 0x4000
-    print('intro $4000-$%04X (%d free)' % (0x4000 + len(att) - 1, 0x2000 - len(att)))
-    print('OVATT.DAT %d bytes' % datfile('OVATT', [chunk(3, 0x4000, att)], sym, build_id))
+    oa, oout = assemble('ovl.asm')
+    olo, ov = span(oout, 0x4000, 0x6000)
+    assert olo == 0x4000
+    print('overlay $4000-$%04X (%d free)' % (0x4000 + len(ov) - 1, 0x2000 - len(ov)))
+    print('OVTTL.DAT %d bytes' % datfile('OVTTL', [chunk(3, 0x4000, ov)], sym, build_id))
+    old = os.path.join(SD, 'OVATT.DAT')
+    if os.path.exists(old): os.remove(old)
     print('ship files %d bytes' % ship_files(sym, build_id))
     hdr = b'VZF0' + b'OVERRIDE'.ljust(17, b'\0') + bytes([0xF1, 0x00, 0x80])
     open(os.path.join(SD, 'OVERRIDE.VZ'), 'wb').write(hdr + code)
@@ -317,6 +322,8 @@ def main():
             f.write('%04X %s\n' % (v & 0xFFFF, k))
         for k, v in sorted(fa.sym.items(), key=lambda x: x[1]):
             if k not in sym: f.write('%04X %s\n' % (v & 0xFFFF, k))
+        for k, v in sorted(oa.sym.items(), key=lambda x: x[1]):
+            if k not in sym and k not in fa.sym: f.write('%04X %s\n' % (v & 0xFFFF, k))
 
 
 if __name__ == '__main__':

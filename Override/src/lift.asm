@@ -3,7 +3,8 @@
 ;  down, fire to step out.  In: lf_deck, lf_shaft. Out: A = deck.
 ;  console.asm - the deck map and the droid files
 ; =====================================================================
-LIFT_Y0     equ 10
+LIFT_Y0     equ 14
+MAP_Y0      equ 13             ; the console map's top row
 
 lift_main:
             ld a,$08
@@ -16,6 +17,9 @@ lift_main:
             ld hl,1500
             ld (t_time),hl
 .f:         call lift_car
+            ld a,(fe_frames)        ; the status line takes turns
+            and 126
+            call z,lift_label
             call fe_frame
             call fe_frame
             call read_input
@@ -133,13 +137,21 @@ sd_ptr:
             ret
 
 lift_draw:
-            ld a,$AA
-            call fe_cls
-            ld de,$0102
-            call txt_colour
+            ld a,BK_STARS|BK_FRAME
+            call fe_back
+            ld a,BF_GOLD
             ld hl,shipinfo+SI_NAME
-            ld e,1
-            call fe_strc
+            ld e,2
+            call fe_header
+            ; the shaft's x: two pixels wide, on its tile column
+            ld a,(lf_shaft)
+            ld e,a
+            ld d,0
+            ld hl,shipinfo+SI_SHAFTS
+            add hl,de
+            ld a,(hl)
+            add a,a
+            ld (lm_x),a
             ld a,(shipinfo+SI_NDECKS)
             ld b,a
             ld c,0
@@ -149,52 +161,21 @@ lift_draw:
             pop bc
             inc c
             djnz .d
-            ; the shaft: a red line through the decks it serves
-            ld a,(lf_shaft)
-            ld e,a
-            ld d,0
-            ld hl,shipinfo+SI_SHAFTS
-            add hl,de
-            ld a,(hl)
-            add a,a
-            add a,2
-            ld (lm_x),a
-            ld a,(shipinfo+SI_NDECKS)
-            ld c,0
-            ld b,a
-.s:         push bc
-            ld a,c
-            call deck_has_shaft
-            pop bc
-            push bc
-            jr z,.ns
-            ld a,c
+            jp lift_label
+
+; A = deck -> E = the top row of its bar
+deck_row:
             ld e,a
             add a,a
             add a,e
-            add a,a                 ; 6d
-            add a,LIFT_Y0-1
-            ld c,a
-            ld b,7
-.sl:        push bc
-            ld a,(lm_x)
-            ld b,a
-            ld a,3
-            call fe_px
-            pop bc
-            inc c
-            djnz .sl
-.ns:        pop bc
-            inc c
-            djnz .s
-            ld de,$0002
-            call txt_colour
-            ld hl,lift_txt
-            ld e,58
-            call fe_strc
-            jp lift_label
+            add a,a
+            add a,LIFT_Y0
+            ld e,a
+            ret
 
-; deck A's bar: green (droids aboard), blue-green (cleared), yellow (selected)
+; deck A: a framed hull section. Lit green with yellow windows while
+; droids remain, dark when cleared, bright yellow when selected. Then
+; its piece of the shaft and the you-are-here arrow.
 lift_bar:
             ld (lb_d),a
             call sd_ptr
@@ -202,110 +183,222 @@ lift_bar:
             pop ix
             ld a,(ix+SD_OFF)
             srl a                   ; 2 px a tile -> byte = off / 2
-            ld d,a
+            ld (lb_x),a
             ld a,(ix+SD_W)
             srl a
-            ld b,a
-            ld a,(lb_d)
-            ld e,a
-            add a,a
-            add a,e
-            add a,a
-            add a,LIFT_Y0
-            ld e,a
-            ld c,4
+            ld (lb_w),a
+            ; its state: frame colour, fill byte, window byte
             ld a,(lb_d)
             ld hl,lm_sel
             cp (hl)
-            ld a,$55
-            jr z,.c
+            ld hl,lb_sel
+            jr z,.st
             ld a,(lb_d)
-            push de
             call alive_slot
             ld a,(hl)
             inc hl
             or (hl)
+            ld hl,lb_lit
+            jr nz,.st
+            ld hl,lb_dark
+.st:        ld de,lb_fr
+            ld bc,3
+            ldir
+            ld a,(lb_d)
+            call deck_row
+            ld a,(lb_x)
+            ld d,a
+            ld a,(lb_w)
+            ld b,a
+            ld c,5
+            ld a,(lb_fr)
+            push de
+            call fe_panel
             pop de
-            ld a,$00
-            jr nz,.c
-            ld a,$22                ; cleared: green with blue
-.c:         call fe_box
-            ; you are here
+            ; the inside, inset a byte each side
+            ld a,(lb_w)
+            sub 2
+            jr c,.sh
+            jr z,.sh
+            ld b,a
+            inc d
+            inc e
+            ld c,1
+            ld a,(lb_fill)
+            push de
+            push bc
+            call fe_box
+            pop bc
+            pop de
+            inc e
+            ld a,(lb_win)
+            push de
+            push bc
+            call fe_box
+            pop bc
+            pop de
+            inc e
+            ld a,(lb_fill)
+            call fe_box
+.sh:        ; the shaft through this deck: a red and yellow ladder
+            ld a,(lb_d)
+            call deck_has_shaft
+            jr z,.yh
+            ld a,(lb_d)
+            call deck_row
+            dec e
+            ld c,e
+            ld d,7
+.sl:        ld a,(lm_x)
+            ld b,a
+            ld a,$FF
+            ld (bf_cb),a
+            call bf_plot
+            inc b
+            ld a,c
+            and 1
+            ld a,$55
+            jr z,.sy
+            ld a,$FF
+.sy:        ld (bf_cb),a
+            call bf_plot
+            inc c
+            dec d
+            jr nz,.sl
+.yh:        ; you are here: a yellow arrow left of the deck
             ld a,(lb_d)
             ld hl,lf_deck
             cp (hl)
             ret nz
-            ld a,(lb_d)
-            ld e,a
+            call deck_row
+            ld a,(lb_x)
             add a,a
-            add a,e
             add a,a
-            add a,LIFT_Y0+1
-            ld e,a
-            ld d,0
-            ld b,1
-            ld c,2
-            ld a,$FF
-            jp fe_box
+            sub 5
+            ld b,a
+            ld c,e
+            inc c
+            ld a,$55
+            ld (bf_cb),a
+            call bf_plot
+            inc c
+            call bf_plot
+            inc c
+            call bf_plot
+            dec c
+            inc b
+            call bf_plot
+            inc b
+            jp bf_plot
+; frame colour, fill byte, window byte
+lb_sel:     db 1,$55,$75            ; yellow, red windows
+lb_lit:     db 3,$00,$10            ; red frame, green, yellow windows
+lb_dark:    db 3,$AA,$8A            ; red frame, dark, green pin-lights
 
-; the car blinks on the selected deck
+; the car blinks on the selected deck: a 4x3 block on the shaft
 lift_car:
             ld a,(fe_frames)
             and 7
             ret nz
             ld a,(lm_sel)
-            ld e,a
-            add a,a
-            add a,e
-            add a,a
-            add a,LIFT_Y0
-            ld c,a
-            ld a,(lm_x)
-            ld b,a
+            call deck_row
+            inc e
+            ld c,e
             ld a,(fe_frames)
             and 8
-            ld a,1
+            ld a,$55
             jr z,.p
-            ld a,3
-.p:         push bc
-            call fe_px
+            ld a,$00
+.p:         ld (bf_cb),a
+            ld a,(lm_x)
+            dec a
+            ld b,a
+            ld d,3
+.r:         push bc
+            ld e,4
+.c:         call bf_plot
+            inc b
+            dec e
+            jr nz,.c
             pop bc
             inc c
-            ld a,(fe_frames)
-            and 8
-            ld a,1
-            jr z,.q
-            ld a,3
-.q:         jp fe_px
+            dec d
+            jr nz,.r
+            ld a,(lm_sel)
+            call deck_row
+            ld a,e
+            ld b,5
+            jp fe_mark
 
-; the name of the selected deck
+; the status line: the selected deck's name and what's left aboard,
+; taking turns with the controls
 lift_label:
-            ld a,50
+            ld a,57
             ld b,6
             ld c,$AA
             call fe_rows
-            ld a,(lm_sel)
+            ld a,(fe_frames)
+            and 128
+            jr z,.name
+            ld de,$0002
+            call txt_colour
+            ld hl,lift_txt
+            ld e,58
+            jp fe_strc
+.name:      ld a,(lm_sel)
             call sd_ptr
             push hl
             ld de,$0102
             call txt_colour
             ld a,(lm_sel)
             add a,'1'
-            ld (t_buf+5),a
-            ld hl,deck_txt
-            ld de,t_buf
-            ld bc,5
-            ldir
+            ld (t_buf),a
             ld a,' '
-            ld (t_buf+6),a
+            ld (t_buf+1),a
             pop hl
-            ld de,t_buf+7
+            ld de,t_buf+2
             call copy0
+            ex de,hl
+            ld (hl),' '
+            inc hl
+            ld (hl),' '
+            inc hl
+            push hl
+            ld a,(lm_sel)           ; droids left: count the alive bits
+            call alive_slot
+            ld e,(hl)
+            inc hl
+            ld d,(hl)
+            ld b,16
+            ld c,0
+.cnt:       srl d
+            rr e
+            jr nc,.z
+            inc c
+.z:         djnz .cnt
+            pop de
+            ld a,c
+            or a
+            ld hl,clear_txt
+            jr z,.cp
+            push de
+            ld de,t_buf2
+            call num3
+            pop de
+            ld hl,t_buf2+1
+            ld a,(hl)
+            cp '0'
+            jr nz,.cp0
+            inc hl
+.cp0:       call copy0
+            ld hl,left_txt
+.cp:        call copy0
             ld hl,t_buf
-            ld e,50
+            ld e,58
             jp fe_strc
-deck_txt:   db "DECK "
-lift_txt:   db "UP/DOWN RIDE, FIRE STEP OUT",0
+clear_txt:  db "CLEAR",0
+left_txt:   db " LEFT",0
+lift_txt:   db "UP/DOWN RIDE  FIRE STEP OUT",0
 
 ; =====================================================================
 ; console: the deck map, then the droid files (up to your class)
@@ -394,18 +487,21 @@ con_ok:
             ret
 
 con_file:
-            ld a,$AA
-            call fe_cls
-            ld de,$0102
-            call txt_colour
+            ld a,BK_GRID|BK_FRAME
+            call fe_back
+            ld a,BF_SYSTEM
             ld hl,dfile_txt
-            ld e,1
-            call fe_strc
+            ld e,2
+            call fe_header
             ld a,(cn_t)
             ld (r_page),a
-            ld a,12
+            ld a,16
             call roster_entry
-            ; the blurb
+            ; the blurb, in its own panel
+            ld de,$0022
+            ld bc,$200F
+            ld a,1
+            call fe_panel
             ld de,$0002
             call txt_colour
             ld a,(cn_t)
@@ -413,36 +509,35 @@ con_file:
             ld hl,r_blurbs
             call str_index
             push hl
-            ld e,34
+            ld e,37
             call fe_strc
             pop hl
 .e:         ld a,(hl)
             inc hl
             or a
             jr nz,.e
-            ld e,40
+            ld e,43
             call fe_strc
             ld de,$0302
             call txt_colour
             ld hl,cfile_txt
             ld e,57
             jp fe_strc
-dfile_txt:  db "CONSOLE: DROID FILES",0
+dfile_txt:  db "DROID FILES",0
 cfile_txt:  db "UP/DOWN BROWSE, FIRE EXIT",0
 
 ; the deck map: 2 pixels x 2 rows a tile
 con_map:
-            ld a,$AA
-            call fe_cls
-            ld de,$0102
-            call txt_colour
+            ld a,BK_STARS|BK_FRAME
+            call fe_back
+            ld a,BF_GOLD
             ld hl,dinfo+DI_NAME
-            ld e,1
-            call fe_strc
+            ld e,2
+            call fe_header
             ld de,$0302
             call txt_colour
             ld hl,cmap_txt
-            ld e,58
+            ld e,59
             call fe_strc
             xor a
             ld (cn_y),a
@@ -472,7 +567,7 @@ con_map:
             ; two rows of the buffer
             ld a,(cn_y)
             add a,a
-            add a,8
+            add a,MAP_Y0
             ld l,a
             ld h,0
             add hl,hl
@@ -565,7 +660,7 @@ con_dot:
             ld h,HIGH(DIV6)
             ld a,(hl)               ; y / 6
             add a,a
-            add a,8
+            add a,MAP_Y0
             ld c,a
             call .two
             inc c
@@ -584,6 +679,11 @@ cmap_txt:   db "FIRE: DROID FILES",0
 lm_sel:     ds 1
 lm_x:       ds 1
 lb_d:       ds 1
+lb_x:       ds 1
+lb_w:       ds 1
+lb_fr:      ds 1
+lb_fill:    ds 1
+lb_win:     ds 1
 cn_t:       ds 1
 cn_y:       ds 1
 cd_c:       ds 1

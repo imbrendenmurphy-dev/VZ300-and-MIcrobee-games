@@ -530,8 +530,8 @@ hunt_next:
 ; IX = droid: does it touch the player? C if so
 touch_player:
             ld a,(plr+O_FLAGS)
-            bit 7,a
-            ret z
+            rla                     ; C = alive
+            ret nc                  ; dead: never touching (NC)
             ld l,(ix+O_XL)
             ld h,(ix+O_XH)
             ld de,(plr+O_XL)

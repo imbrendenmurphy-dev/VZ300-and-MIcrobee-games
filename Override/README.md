@@ -1,7 +1,41 @@
 # OVERRIDE
-### v0.3 · three ships, 19 decks, 19 droid types · VIBED BY BPM 2026
+### v0.4 · three ships, 19 decks, 19 droid types · VIBED BY BPM 2026
 
-## What's new in v0.3: intro cinematic and a soundtrack in play
+## What's new in v0.4: fixes and a new look for the info screens
+- **Fixed: dying could leave you with no probe and no control.** The game handles one event a frame,
+  and your death could be overwritten in the same frame, either by a link touch or by DECK CLEARED
+  when the last droid went down with you. `touch_player` also returned a stale carry flag for a dead
+  player, so a droid could "touch" a corpse and start a link duel. Now a dead player always takes
+  priority, a dead probe can't be touched, and DECK CLEARED is re-checked after you respawn.
+- **Fixed: the title's scrolling ticker overlapped the high score.** HI now has its own row, and the
+  ticker runs in a framed band below it. The ticker also scrolls smoothly, a pixel a field, instead
+  of jumping a whole character at a time.
+- **A display font**: a chunky 6×8 sci-fi face with a yellow-over-green two-tone fill and a red drop
+  shadow (red for alerts, green for system screens), used for every heading. It replaces the
+  doubled-up 3×5 font.
+- **Backdrops**: a circuit-board grid (dotted traces with lit segments and yellow nodes), a starfield,
+  and red corner brackets, behind the briefing, droid files, high scores, ship cards, game over,
+  ending, lift and console. Headings sit on red-ruled bars, and the tables in framed panels.
+- **The lift's ship map**: every deck is a framed hull section, lit green with yellow windows while
+  droids remain, dark once cleared, and bright yellow when selected. The lift shaft is a red and
+  yellow ladder with a blinking car, and a yellow arrow marks your deck. The status line shows the
+  deck's name and how many droids are left ("2 QUARTERS 6 LEFT"), taking turns with the controls.
+- **The link duel's new look**: the droids sit in a framed header panel with their charge cells, the
+  seconds left and a timer bar that turns red in the last three seconds. The node column is framed
+  as a core. Amplifier gates show as yellow diamonds, reversers as green crosses. Your cursor is an
+  arrow at the lane's mouth. A tug-of-war meter along the bottom shows who holds how many nodes, and
+  the verdict comes up in the display font. Also fixed: sparks left trails across broken lanes.
+- **Console**: the deck name and DROID FILES headings in the display font, and each droid's file and
+  its description in panels.
+- **Memory**: the title, attract pages, ship cards, game over, ending and their music moved into an
+  overlay, `OVTTL.DAT` (7K). It loads into low bank 3 (where the deck's scroll buffer lives in play)
+  at the start of each attract cycle and for each card, freeing 4K of the front end for the font,
+  the backdrops and the new screens. It replaces `OVATT.DAT`.
+- **Front-end screen updates** are now round-robin: still at most 22 rows a field (no snow), but a
+  screen that redraws its top every frame can no longer starve its bottom rows.
+- Tested in the shared VZonPC emulator (`VZonPC\vzemu.exe`), including `DOSSCRIBBLE=1` runs.
+
+## v0.3: intro cinematic and a soundtrack in play
 - **An intro cinematic opens every attract cycle** (`OVATT.DAT`, about 16 seconds; fire skips it):
   - a drifting starfield, with "2391. THE OUTER BELT." typed in;
   - the Kestrel freighter glides in from the right;
@@ -65,7 +99,7 @@ kept: numbered droid classes, link duels, lifts between decks, consoles, and dec
 cleared.
 
 ## Running it
-Copy **all 25 files** from `release/` to the root of the SD card: `OVERRIDE.VZ`, `OVCOM.DAT`, `OVATT.DAT` (the intro),
+Copy **all 25 files** from `release/` to the root of the SD card: `OVERRIDE.VZ`, `OVCOM.DAT`, `OVTTL.DAT` (the intro, title and cards),
 `OV1.DAT`-`OV3.DAT` (ship headers) and `OV1D0.DAT`-`OV3D5.DAT` (one file per deck). Load
 `OVERRIDE.VZ` like any other .VZ. It loads at $8000 (10.6K), loads `OVCOM.DAT` at boot, and reads each
 deck from the card when you ride a lift to it (well under a second).
@@ -210,7 +244,8 @@ Leave the title alone and the game shows itself off:
 | upper 1 $C200-$C9FF | deck map (64 × 32 tiles) |
 | upper 1 $CA00-$EC63 | screen copy, tilesets, explosion, droid images, names |
 | upper 1 $F600-$F87F | the deck's waypoints |
-| upper 0 $B800-$E49F | front end (mapping 3): title, attract, duel, lift, console, cards, music |
+| upper 0 $B800-$D80E | front end (mapping 3): music player, display font, backdrops, duel, lift, console |
+| low bank 3 $4000-$5BC5 | between decks only: the overlay `OVTTL.DAT` (intro, title, attract, cards, their music) |
 | upper 0 $E800-$EFFF | front-end screen buffer |
 | upper 0 $F000-$FFFF | DOS stack, sector buffer, DOS RAM (never touched) |
 
@@ -219,7 +254,7 @@ with the DOS mapping only during calls, interrupts off and IM 1, and a 2K DOS st
 The file format is chunks (`db map, dw dest, dw length, data`), each with the build id.
 
 ## Verification
-**Only run in the emulator so far, not yet on a real VZ300.**
+**Only run in emulators so far, not yet on a real VZ300.** From v0.4 the tests run in the shared VZonPC emulator (`C:\Users\Owner\Documents\VZonPC\vzemu.exe`, same script language); `emu/` holds the game's original harness.
 - The harness is `emu/vzemu.exe`, a C# rewrite of the vzemu.c harness used by the other VZ games,
   built with the `csc` that ships with Windows. It has its own Z80 core, the BennVenn banking and DOS
   traps, field-sync INT, a snow counter, PNG screenshots, WAV capture and a profiler. As a check, it
