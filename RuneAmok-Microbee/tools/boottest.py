@@ -1,6 +1,6 @@
 """End-to-end disk test in the Premium Plus model: the Microbee boot ROM boots CP/M
 from RUNEAMOK.DS8, RUNEAMOK is typed at the A> prompt, the loader fills the RAM blocks
-and starts the game; the craft is flown, then ESC must give back the CP/M prompt."""
+and starts the game; the craft is flown, then ESC, Y leaves to the title and ESC there must give back the CP/M prompt."""
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -64,6 +64,11 @@ def boot(rom_path, disk=None, out=None):
     pp.keys = set()
     pp.run_frames(30)
     type_text(pp, 'Y')
+    pp.run_frames(150)                   # leaving the Runedeep: the title
+    print('left to the title: crtc R1 = %d' % pp.crtc[1])
+    pp.keys = {'ESC'}                    # ESC on the title: CP/M
+    pp.run_frames(8)
+    pp.keys = set()
     for i in range(100):
         pp.run_frames(10)
         if 'A>' in pp.text() and pp.crtc[1] == 80:

@@ -15,7 +15,7 @@ t_levelup:      db "You grow stronger: level ",0
 t_blocked:      db "Something blocks the way.",0
 t_door_shut:    db "A door. SPACE opens it.",0
 t_door_open:    db "The door creaks open.",0
-t_gate_shut:    db "The gate is shut fast.",0
+t_gate_shut:    db "The gate is shut fast - no keyhole. A lever somewhere must work it.",0
 t_locked:       db "The door is locked.",0
 t_wall:         db "Cold, solid stone.",0
 t_illus:        db "Your hand passes through the stone!",0
@@ -72,7 +72,7 @@ t_shop_bye:     db "'Mind the dark.'",0
 t_snd_all:      db "Sound: music and effects.",0
 t_snd_fx:       db "Sound: effects only.",0
 t_snd_off:      db "Sound: off.",0
-t_help:         db "Arrows/WASD move, Q E step, SPACE act, 1 fire 2 mend 3 potion, T sound, ESC quit",0
+t_help:         db "Arrows/WASD move, Q E step, SPACE act, 1 fire 2 mend 3 potion, T sound, ESC leave",0
 t_quit:         db "Leave the Runedeep? (Y/N)",0
 t_onward:       db "Onward, then.",0
 t_dead1:        db "You have fallen in the dark...",0
@@ -115,7 +115,7 @@ tt_keys:
         db 17,3,YELLOW,"T",0
         db 17,20,WHITE,"music/effects/off",0
         db 18,3,YELLOW,"ESC",0
-        db 18,20,WHITE,"back to CP/M",0
+        db 18,20,WHITE,"leave (title: CP/M)",0
         db 20,1,GREY,"Turning is free; all else takes a turn.",0
         db $FF
 tt_foes:

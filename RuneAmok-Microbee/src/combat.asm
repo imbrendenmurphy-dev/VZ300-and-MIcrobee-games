@@ -729,8 +729,10 @@ ask_quit:
         ld a,YELLOW
         call log_msgc
         call ask_yn
-        jp z,quit
-        ld hl,t_onward
+        jr nz,.stay
+        ld sp,STACK             ; out of the game: back to the title
+        jp restart
+.stay:  ld hl,t_onward
         jp log_msg
 
 ; wait for Y or N (or ESC = N) -> Z = yes

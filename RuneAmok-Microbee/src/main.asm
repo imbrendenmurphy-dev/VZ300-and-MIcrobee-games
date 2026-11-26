@@ -22,10 +22,11 @@ entry:  di
         call hw_init
         call snd_init
         call ui_init
-.main:  call front_end          ; title, story, controls: returns to play
+restart:                        ; also: leaving the Runedeep (ESC, Y)
+        call front_end          ; title, story, controls: returns to play
         call new_game
         call play
-        jr .main
+        jr restart
 
 ; ---------------------------------------------------------------------
 ;  one frame: sound until the vertical blanking, then the blanking's
@@ -96,12 +97,19 @@ quit:   di
         ldir
         xor a
         out (P_LV),a
-        ; CP/M's BIOS back (E000-EFFF, saved by the loader) - this RAM
-        ; held our variables and stack, so nothing may use them now
+        ; CP/M back (CCP, BDOS, BIOS: B000-EFFF, saved by the loader), as
+        ; a normal program leaves it. This RAM held our code, variables and
+        ; stack, so from here only this code (below B000) may run
         ld a,(EXIT_PORT)
         ex af,af'
         ld hl,$2800
-        ld de,$E000
+        ld de,$B000
+        ld bc,$4000
+        ldir
+        ld a,MP_SAVE | 8        ; no video window: the BIOS code under it
+        out (P_MEM),a
+        ld hl,$6800
+        ld de,$F000
         ld bc,$1000
         ldir
         ex af,af'

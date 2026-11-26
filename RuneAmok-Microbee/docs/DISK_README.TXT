@@ -6,7 +6,7 @@ Needs a Premium Plus with 1MB RAM. At the A> prompt type:
 
     RUNEAMOK
 
-Loading takes about 16 seconds. ESC (then Y) returns to CP/M.
+Loading takes about 16 seconds. In play, ESC (then Y) returns to the title; ESC on the title returns to CP/M.
 
 For a thousand years the Wardens kept the Hollow King sealed
 in the Runedeep. The order is dust; you are its last, half-
@@ -23,7 +23,7 @@ Keys
   3 or P              drink a healing potion
   H                   help
   T                   music+effects / effects / silence
-  ESC                 leave (asks first)
+  ESC                 leave to the title (asks first); on the title, CP/M
   A joystick on the parallel port works too.
 
 Turning is free; every other action takes a turn, and then the

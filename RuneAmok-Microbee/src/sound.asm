@@ -53,8 +53,10 @@ snd_toggle:
         jr z,.m
         ld hl,t_snd_fx
         dec a
-        jr z,.m
-        ld hl,t_snd_all
+        jr nz,.all
+        ld (mus_on),a           ; effects only: the tune stops
+        jr .m
+.all:   ld hl,t_snd_all
         push hl
         ld a,(level)
         call mus_level

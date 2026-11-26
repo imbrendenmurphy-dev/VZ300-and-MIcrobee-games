@@ -21,7 +21,7 @@ Version 1.0. It has been tested only in the emulator model (`tools/emu`, the Spi
 
 What has been checked in the model:
 
-- **Disk**: `release/RUNEAMOK.DS8` boots with the bn60 ROM to the CP/M prompt. Typing `RUNEAMOK` loads all files in about 16 seconds and starts the game. ESC then Y returns cleanly to `A>`, and `DIR` works afterwards (`tools/boottest.py`).
+- **Disk**: `release/RUNEAMOK.DS8` boots with the bn60 ROM to the CP/M prompt. Typing `RUNEAMOK` loads all files in about 16 seconds and starts the game. ESC then Y leaves to the title, and ESC on the title returns cleanly to `A>`, and `DIR` works afterwards (`tools/boottest.py`).
 - **Solvability**: every build checks that all four depths can be finished (`tools/mklevel.py`).
 - **Bot playthrough**: a bot plays through the keyboard (`tools/bot.py`): fighting, keys, levers, buttons, hidden walls, the trader, rune puzzle, stairs and the seal.
 - **Speed**: a step takes about 5 frames (0.1 s) from key press to the new view. Composing a view costs about 1.1 frames of CPU; it is copied to the hidden screen page in the blanking, and then the page flips.
@@ -39,7 +39,7 @@ Needs a Premium Plus with 1MB RAM. Boot `release/RUNEAMOK.DS8` and type `RUNEAMO
 | 3 or P | Drink a potion |
 | H | Help |
 | T | Music and effects, effects only, or silence |
-| ESC | Leave (asks first) |
+| ESC | Leave to the title (asks first); on the title, back to CP/M |
 
 A joystick on the parallel port also works.
 

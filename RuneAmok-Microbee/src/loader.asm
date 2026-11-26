@@ -324,9 +324,19 @@ save_video: ld a,BLK_SAVE
             ld de,$2000
             ld bc,$800
             ldir
-            ; CP/M's BIOS and its data (E000-EFFF): the game uses that RAM
-            ld hl,$E000
+            ; CP/M itself (CCP, BDOS, BIOS: B000-EFFF): the game uses that
+            ; RAM, and the warm boot only reloads what it finds damaged
+            ld hl,$B000
             ld de,$2800
+            ld bc,$4000
+            ldir
+            ; and the BIOS code under the video window (F000-FFFF of block 0,
+            ; where the final stage runs): the window off for this copy
+            ld a,BLK_SAVE
+            call blk_port
+            out (P_MEM),a
+            ld hl,$F000
+            ld de,$6800
             ld bc,$1000
             ldir
             ld a,(lv_save)

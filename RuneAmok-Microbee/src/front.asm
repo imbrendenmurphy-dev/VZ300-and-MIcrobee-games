@@ -47,8 +47,11 @@ front_end:
         ld a,2
 .sm:    ld (snd_mode),a
         cp 2
-        jr nz,.nt
-        ld hl,mus_title
+        jr z,.tm
+        xor a
+        ld (mus_on),a           ; effects only or silence: the tune stops
+        jr .nt
+.tm:    ld hl,mus_title
         call play_tune
 .nt:    ld a,(pressed)
         and 64

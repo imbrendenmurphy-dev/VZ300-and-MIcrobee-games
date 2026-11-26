@@ -160,7 +160,7 @@ The Premium holds the CPU when it touches video RAM during a displayed line, so 
 | Block 9 | Title logo |
 | Blocks 17–24 | Two blocks per depth: tiles and sprites, then wall tile lists, backdrop, level, actions, texts |
 | Block 25 | Each depth's live state while you are elsewhere, so it is exactly as you left it |
-| Block 16 | CP/M's own screen, saved by the loader, so ESC returns cleanly to the A> prompt |
+| Block 16 | CP/M's own screen and CP/M itself (B000-FFFF, including the BIOS code under the video window), saved by the loader, so leaving from the title returns cleanly to the A> prompt |
 
 ## 5. Sound
 
