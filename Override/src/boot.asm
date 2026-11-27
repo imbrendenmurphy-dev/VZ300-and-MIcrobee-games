@@ -62,6 +62,8 @@ boot:
             ld a,1
             ld (sfx_on),a
             ld (music_on),a
+            xor a                   ; sound on the speaker
+            call so_set
             ; on to the front end (never returns)
             call fe_call
             dw fe_main

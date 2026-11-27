@@ -30,5 +30,6 @@ W_LASER      equ 2
 W_TWIN       equ 3
 W_RAPID      equ 4
 W_CANNON     equ 5
-NTYPES      equ 19
-BUILD_ID    equ $7E77
+W_SCATTER    equ 6
+NTYPES      equ 23
+BUILD_ID    equ $1EE1

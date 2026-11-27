@@ -2,18 +2,22 @@
 r_names:
             db "LINK PROBE",0
             db "DUSTER",0
+            db "VALET",0
             db "COURIER",0
             db "STEWARD",0
             db "WELDER",0
             db "PORTER",0
+            db "DRILLER",0
             db "TECHNICIAN",0
             db "MEDIC",0
             db "SENTRY",0
+            db "FOREMAN",0
             db "SURVEYOR",0
             db "WARDEN",0
             db "ENFORCER",0
             db "BULWARK",0
             db "TROOPER",0
+            db "RAVAGER",0
             db "HUNTER",0
             db "MARSHAL",0
             db "DREADNOUGHT",0
@@ -26,21 +30,26 @@ r_wnames:
             db "TWIN LASER",0
             db "PULSE GUN",0
             db "PLASMA CANNON",0
+            db "SCATTER GUN",0
 r_blurbs:
             db "PROTOTYPE LINK UNIT. UNARMED.",0,"CAN SEIZE ANY DROID IT TOUCHES.",0
             db "DECK SWEEPER. SLOW AND HARMLESS.",0,"EASY TO SEIZE.",0
+            db "LINER SERVICE UNIT. DARTS ABOUT,",0,"NEVER FIGHTS.",0
             db "MESSAGE RUNNER. QUICK ON ITS",0,"WHEELS.",0
             db "CABIN SERVICE UNIT WITH A STUN",0,"ARC.",0
             db "REPAIR DROID. ITS TORCH MAKES A",0,"FAIR WEAPON.",0
             db "CARGO HAULER. HEAVY PLATING, NO",0,"GUNS.",0
+            db "MINING UNIT. ITS ROCK BLASTER",0,"SPRAYS SHRAPNEL.",0
             db "SYSTEMS TECH WITH A CUTTING",0,"LASER.",0
             db "SICKBAY UNIT. TOUGHER THAN IT",0,"LOOKS.",0
             db "SECURITY POST DROID. SHOOTS ON",0,"SIGHT.",0
+            db "MINE BOSS FRAME WITH A SCATTER",0,"GUN.",0
             db "SCOUT FRAME. FAST AND ALERT.",0,"",0
             db "BRIG GUARD WITH TWIN LASERS.",0,"",0
             db "RIOT UNIT. ARMOURED AND ANGRY.",0,"",0
             db "WALKING BLAST SHIELD. HARD TO",0,"STOP.",0
             db "BATTLE DROID WITH A PULSE GUN.",0,"",0
+            db "BOARDING DROID. CLOSE RANGE, NO",0,"MERCY.",0
             db "PURSUIT FRAME. FAST AND",0,"RELENTLESS.",0
             db "COMMAND GUARD WITH A PLASMA",0,"CANNON.",0
             db "SIEGE DROID. VERY SLOW, VERY",0,"TOUGH.",0

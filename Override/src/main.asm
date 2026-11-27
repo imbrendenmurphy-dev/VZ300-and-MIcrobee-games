@@ -36,5 +36,6 @@ code_end:
             include "gen/copy.inc"
             include "gen/gfxdata.inc"
             include "gmusic.asm"
+GSBUF:      ds GSBUF_SZ             ; this ship's two tunes (from OVn.DAT)
 upper_end:
             assert upper_end <= WPT

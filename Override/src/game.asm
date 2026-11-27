@@ -275,8 +275,15 @@ deck_enter:
             call ring_full
             ld hl,dinfo+DI_NAME
             call show_msg
-            ld a,(ship)             ; each ship has its own tune
-            call gm_play
+            ld a,(shipinfo+SI_NDECKS)   ; each ship has its own tune, and
+            dec a                   ; another for its bottom (engine) deck
+            ld b,a
+            ld a,(cur_deck)
+            cp b
+            ld a,0
+            jr nz,.tune
+            inc a
+.tune:      call gm_play
             jp game_on
 
 ; HL = this deck's alive word (A = deck)

@@ -51,6 +51,15 @@ def gen_deck(name, W, H, seed, lift_xs, n_con=1, n_ener=1, droids=(), style='roo
         K[top_wall][x] = 'W'; K[bot_wall][x] = 'W'
     rooms = []
     doors = []
+    # style: 'rooms' (the default), 'cells' (rows of small cabins), 'halls'
+    # (a few big halls full of machinery), 'bay' (an open bay right across
+    # the middle of the deck, the spine walls gone, cargo stacked about)
+    wmin, wmax = {'cells': (4, 6), 'halls': (12, 20)}.get(style, (6, 12))
+    bay = None
+    if style == 'bay':
+        bw = (bx - ax) * 2 // 5
+        b0 = (ax + bx) // 2 - bw // 2
+        bay = (b0, b0 + bw - 1)
     # rooms above and below the spine
     for side in ('top', 'bot'):
         if side == 'top':
@@ -62,7 +71,14 @@ def gen_deck(name, W, H, seed, lift_xs, n_con=1, n_ener=1, droids=(), style='roo
         x = ax + 1
         xs = []
         while True:
-            wdt = rng.randint(6, 12)
+            wdt = rng.randint(wmin, wmax)
+            if bay and x <= bay[0] - 1 <= x + wdt + 3:
+                # end this room at the bay's edge, carry on beyond it
+                if bay[0] - 1 - x >= 3:
+                    xs.append(bay[0] - 1)
+                xs.append(('BAY',))
+                x = bay[1] + 2
+                continue
             if x + wdt >= bx - 4:
                 xs.append(bx); break
             xs.append(x + wdt)
@@ -70,6 +86,13 @@ def gen_deck(name, W, H, seed, lift_xs, n_con=1, n_ener=1, droids=(), style='roo
         x0 = ax + 1
         prev = None
         for xe in xs:
+            if isinstance(xe, tuple):
+                # the bay: open floor; wall off the room beyond it
+                for y in range(ry0, ry1 + 1):
+                    if K[y][bay[1] + 1] == 'F': K[y][bay[1] + 1] = 'W'
+                x0 = bay[1] + 2
+                prev = None
+                continue
             # room spans x0..xe-1 (walls at xe unless it's the hull)
             if xe < bx:
                 for y in range(ry0, ry1 + 1):
@@ -82,7 +105,8 @@ def gen_deck(name, W, H, seed, lift_xs, n_con=1, n_ener=1, droids=(), style='roo
                 wy = top_wall if side == 'top' else bot_wall
                 iny = wy - 1 if side == 'top' else wy + 1
                 cand = [x for x in range(x0, xe - 1) if K[iny][x] == 'F' and K[iny][x + 1] == 'F'
-                        and K[wy][x] == 'W' and K[wy][x + 1] == 'W']
+                        and K[wy][x] == 'W' and K[wy][x + 1] == 'W'
+                        and K[2 * iny - wy][x] == 'F' and K[2 * iny - wy][x + 1] == 'F']
                 if cand:
                     dx = rng.choice(cand[len(cand) // 4: max(len(cand) // 4 + 1, 3 * len(cand) // 4)])
                     K[wy][dx] = 'DVL'; K[wy][dx + 1] = 'DVR'
@@ -95,7 +119,9 @@ def gen_deck(name, W, H, seed, lift_xs, n_con=1, n_ener=1, droids=(), style='roo
                     wxx = x0 - 1
                     cand = [y for y in range(ry0, ry1) if K[y][wxx] == 'W' and K[y + 1][wxx] == 'W'
                             and K[y][wxx - 1] == 'F' and K[y + 1][wxx - 1] == 'F'
-                            and K[y][wxx + 1] == 'F' and K[y + 1][wxx + 1] == 'F']
+                            and K[y][wxx + 1] == 'F' and K[y + 1][wxx + 1] == 'F'
+                            and K[y][wxx + 2] == 'F' and K[y + 1][wxx + 2] == 'F'
+                            and K[y][wxx - 2] == 'F' and K[y + 1][wxx - 2] == 'F']
                     if cand and rng.random() < 0.6:
                         dy = rng.choice(cand)
                         K[dy][wxx] = 'DHT'; K[dy + 1][wxx] = 'DHB'
@@ -103,6 +129,10 @@ def gen_deck(name, W, H, seed, lift_xs, n_con=1, n_ener=1, droids=(), style='roo
                         r['sidedoor'] = (wxx, dy, prev)
                 prev = r
             x0 = xe + 1
+    if bay:
+        for x in range(bay[0], bay[1] + 1):
+            for y in (top_wall, bot_wall):
+                if K[y][x] == 'W' and ax < x < bx: K[y][x] = 'F'
     # rooms without a door are sealed: make them part of the hull
     for r in rooms:
         if r['door'] is None and 'sidedoor' not in r:
@@ -209,11 +239,35 @@ def gen_deck(name, W, H, seed, lift_xs, n_con=1, n_ener=1, droids=(), style='roo
                 for (x, y), k in zip(cells, kind): K[y][x] = k
                 if not connected(K, W, H):
                     for x, y in cells: K[y][x] = 'F'
-        style = rng.random()
-        if style < 0.25 or style > 0.92:
-            fk = 'S' if style < 0.25 else 'G'
+        if style == 'halls' and w >= 12 and h >= 4:
+            # rows of machinery down a big hall
+            cy = (r['y0'] + r['y1']) // 2
+            for cx in range(r['x0'] + 3, r['x1'] - 3, 5):
+                cells = [(cx, cy), (cx + 1, cy)]
+                if all(K[y][x] == 'F' and (x, y) not in reserved for x, y in cells):
+                    kind = rng.choice([('P%d' % T_BANKA, 'P%d' % T_BANKB), ('P%d' % T_REACT, 'P%d' % T_REACT)])
+                    for (x, y), k in zip(cells, kind): K[y][x] = k
+                    if not connected(K, W, H):
+                        for x, y in cells: K[y][x] = 'F'
+        fs = rng.random()
+        if fs < 0.25 or fs > 0.92:
+            fk = 'S' if fs < 0.25 else 'G'
             for (x, y) in r['cells']:
                 if K[y][x] == 'F': K[y][x] = fk
+    # the bay: stacks of cargo on open floor, hazard plating round the edge
+    if bay:
+        for x in range(bay[0], bay[1] + 1):
+            for y in (2, H - 3):
+                if K[y][x] == 'F': K[y][x] = 'S'
+        for cx in range(bay[0] + 2, bay[1] - 2, 5):
+            for cy in (4, H - 6):
+                cells = [(cx, cy), (cx + 1, cy), (cx, cy + 1), (cx + 1, cy + 1)]
+                kinds = rng.choice([(T_CRATE,) * 4, (T_CRATE, T_BARREL, T_CRATE, T_CRATE), (T_BARREL,) * 4])
+                if all(K[y][x] in ('F', 'S') and (x, y) not in reserved for x, y in cells):
+                    old = [K[y][x] for x, y in cells]
+                    for (x, y), k in zip(cells, kinds): K[y][x] = 'P%d' % k
+                    if not connected(K, W, H):
+                        for (x, y), k in zip(cells, old): K[y][x] = k
     # floor decoration: grates along the spine, hazard strips by the lifts
     for x in range(ax + 1, bx):
         if K[sy0][x] == 'F' and K[sy1][x] == 'F' and (x // 6) % 3 == 1:
@@ -221,7 +275,7 @@ def gen_deck(name, W, H, seed, lift_xs, n_con=1, n_ener=1, droids=(), style='roo
     d = Deck()
     d.name = name; d.W = W; d.H = H; d.K = K
     d.rooms = rooms; d.lifts = lifts; d.consoles = consoles; d.eners = eners
-    d.sy0 = sy0; d.ax = ax; d.bx = bx
+    d.sy0 = sy0; d.ax = ax; d.bx = bx; d.bay = bay
     d.tiles = autotile(K, W, H, rng)
     build_waypoints(d)
     place_droids(d, droids, rng)
@@ -318,9 +372,26 @@ def build_waypoints(d):
     for r in d.rooms:
         if r['door']: xs.add(r['door'][0])
     for (lx, ly) in d.lifts: xs.add(lx)
+    bxs = []
+    if d.bay:
+        bxs = list(range(d.bay[0] + 1, d.bay[1], 5))
+        xs.update(bxs)
     xs = sorted(x for x in xs if d.ax + 1 <= x <= d.bx - 2)
     for x in xs: spine[x] = add(x, sy0)
     for a, b in zip(xs, xs[1:]): edges.add((spine[a], spine[b]))
+    if bxs:
+        # the open bay: a row of nodes above and below the spine, linked across and to it
+        def fits(x, y):
+            return all(walkable(K[y + j][x + i]) for i in (0, 1) for j in (0, 1))
+        for y in ((2 + sy0) // 2 - 1, (sy0 + 2 + d.H - 3) // 2):
+            prev = None
+            for x in bxs:
+                p = next(((xx, y) for xx in (x, x + 1, x - 1, x + 2) if fits(xx, y)), None)
+                if p is None: prev = None; continue
+                i = add(*p)
+                edges.add((i, spine[x]))
+                if prev is not None: edges.add((prev, i))
+                prev = i
     for r in d.rooms:
         cells = set(r['cells'])
         fit = [(x, y) for (x, y) in cells if all(walkable(K[y + j][x + i]) for i in (0, 1) for j in (0, 1))]
@@ -330,7 +401,7 @@ def build_waypoints(d):
             dx, wy, iny = r['door']
             iy = iny if r['side'] == 'bot' else iny - 1
             dpos = (dx, iy)
-            ok = [p for p in fit if line_clear(K, p, dpos)]
+            ok = [p for p in fit if line_clear(K, p, dpos)] or fit
             c = min(ok, key=lambda p: (p[0] - cx) ** 2 + (p[1] - cy) ** 2)
             ci = add(*c); r['node'] = ci
             di = add(*dpos)
@@ -369,7 +440,7 @@ def build_waypoints(d):
         if b not in adj[a]: adj[a].append(b)
         if a not in adj[b]: adj[b].append(a)
     for i, l in enumerate(adj):
-        assert len(l) <= 6, (d.name, i, l)
+        assert len(l) <= 5, (d.name, i, l)
         for j in l:
             assert line_clear(K, nodes[i], nodes[j]), (d.name, nodes[i], nodes[j])
     assert len(nodes) <= MAXWPT, (d.name, len(nodes))
@@ -433,33 +504,50 @@ def check_deck(d):
 # ---------------------------------------------------------------- ships
 # side-view: each deck has an offset (in tiles) from the ship's left end.
 SHIPS = [
-    dict(name='SV CORMORANT', seed=1101, start=0, decks=[
+    dict(name='SV CORMORANT', seed=1101, start=0, theme=0, tunes=('CORMORANT', 'CORMORANT_CORE'), decks=[
         dict(name='BRIDGE', w=34, h=16, off=14, con=1, ener=1, droids=[104, 152, 218, 355]),
-        dict(name='QUARTERS', w=50, h=18, off=6, con=1, ener=1, droids=[104, 104, 152, 218, 218, 263]),
+        dict(name='QUARTERS', w=50, h=18, off=6, con=1, ener=1, style='cells', droids=[104, 104, 152, 218, 218, 263]),
         dict(name='GALLEY', w=56, h=18, off=3, con=1, ener=1, droids=[104, 152, 218, 263, 307, 355]),
-        dict(name='CARGO HOLD', w=60, h=20, off=1, con=1, ener=1, droids=[307, 307, 104, 263, 355, 408]),
-        dict(name='MACHINE SHOP', w=52, h=18, off=5, con=1, ener=1, droids=[263, 263, 355, 307, 461]),
+        dict(name='CARGO HOLD', w=60, h=20, off=1, con=1, ener=1, style='bay', droids=[307, 307, 104, 263, 355, 408]),
+        dict(name='MACHINE SHOP', w=52, h=18, off=5, con=1, ener=1, style='halls', droids=[263, 263, 355, 307, 461]),
         dict(name='ENGINES', w=40, h=16, off=11, con=1, ener=1, droids=[263, 355, 408, 461]),
     ], shafts=[20, 34, 48]),
-    dict(name='MV HALCYON', seed=2202, start=0, decks=[
+    dict(name='LV ARCADIA', seed=4404, start=0, theme=1, tunes=('ARCADIA', 'ARCADIA_CORE'), decks=[
+        dict(name='SUN DECK', w=32, h=16, off=15, con=1, ener=1, style='halls', droids=[129, 129, 104, 152]),
+        dict(name='PROMENADE', w=48, h=18, off=8, con=1, ener=1, style='halls', droids=[129, 152, 218, 218, 104]),
+        dict(name='STATEROOMS', w=56, h=18, off=4, con=1, ener=1, style='cells', droids=[129, 129, 218, 218, 408, 104]),
+        dict(name='CASINO', w=58, h=20, off=3, con=1, ener=1, style='halls', droids=[218, 263, 355, 461, 129, 129]),
+        dict(name='THEATRE', w=54, h=18, off=5, con=1, ener=1, style='bay', droids=[218, 355, 408, 461, 152]),
+        dict(name='LAUNDRY', w=46, h=18, off=9, con=1, ener=1, droids=[104, 104, 307, 263, 218]),
+        dict(name='ENGINES', w=36, h=16, off=14, con=1, ener=1, droids=[263, 355, 461, 524]),
+    ], shafts=[18, 32, 46]),
+    dict(name='MV HALCYON', seed=2202, start=0, theme=2, tunes=('HALCYON', 'HALCYON_CORE'), decks=[
         dict(name='OBSERVATORY', w=30, h=16, off=17, con=1, ener=1, droids=[355, 408, 461]),
         dict(name='BRIDGE', w=44, h=18, off=10, con=1, ener=1, droids=[218, 461, 524, 355]),
-        dict(name='SICKBAY', w=54, h=18, off=5, con=1, ener=1, droids=[408, 408, 218, 152, 524]),
-        dict(name='LABS', w=60, h=20, off=2, con=1, ener=1, droids=[355, 355, 461, 524, 587, 263]),
-        dict(name='BRIG', w=58, h=18, off=3, con=1, ener=1, droids=[587, 587, 461, 632, 307]),
-        dict(name='STORES', w=50, h=18, off=7, con=1, ener=1, droids=[307, 307, 668, 263, 104]),
+        dict(name='SICKBAY', w=54, h=18, off=5, con=1, ener=1, style='cells', droids=[408, 408, 218, 152, 524]),
+        dict(name='LABS', w=60, h=20, off=2, con=1, ener=1, style='halls', droids=[355, 355, 461, 524, 587, 263]),
+        dict(name='BRIG', w=58, h=18, off=3, con=1, ener=1, style='cells', droids=[587, 587, 461, 632, 307]),
+        dict(name='STORES', w=50, h=18, off=7, con=1, ener=1, style='bay', droids=[307, 307, 668, 263, 104]),
         dict(name='REACTOR', w=36, h=16, off=14, con=1, ener=1, droids=[632, 461, 408, 668]),
     ], shafts=[20, 32, 44]),
-    dict(name='CV LEVIATHAN', seed=3303, start=0, decks=[
+    dict(name='HV GRINDSTONE', seed=5505, start=0, theme=3, tunes=('GRINDSTONE', 'GRINDSTONE_CORE'), decks=[
+        dict(name='BRIDGE', w=32, h=16, off=17, con=1, ener=1, droids=[461, 524, 341]),
+        dict(name='CREW MESS', w=46, h=18, off=10, con=1, ener=1, style='cells', droids=[218, 341, 104, 152, 408]),
+        dict(name='ORE BAY', w=62, h=22, off=1, con=1, ener=2, style='bay', droids=[307, 307, 341, 341, 479, 668]),
+        dict(name='DRILL DECK', w=58, h=20, off=3, con=1, ener=1, style='halls', droids=[341, 341, 479, 263, 587]),
+        dict(name='REFINERY', w=56, h=18, off=4, con=1, ener=1, droids=[479, 668, 632, 263, 355]),
+        dict(name='SMELTER', w=48, h=18, off=8, con=1, ener=1, style='halls', droids=[479, 705, 632, 587, 341]),
+        dict(name='ENGINES', w=38, h=16, off=14, con=1, ener=1, droids=[668, 705, 479, 461]),
+    ], shafts=[20, 34, 48]),
+    dict(name='CV LEVIATHAN', seed=3303, start=0, theme=4, tunes=('LEVIATHAN', 'LEVIATHAN_CORE'), decks=[
         dict(name='COMMAND', w=32, h=16, off=18, con=1, ener=1, droids=[908, 817, 632]),
-        dict(name='ARMOURY', w=46, h=18, off=10, con=1, ener=1, droids=[705, 705, 632, 587, 461]),
-        dict(name='BARRACKS', w=56, h=18, off=5, con=1, ener=1, droids=[705, 773, 632, 524, 218, 104]),
-        dict(name='HANGAR', w=62, h=22, off=1, con=1, ener=2, droids=[856, 773, 705, 668, 307, 307, 152]),
-        dict(name='FOUNDRY', w=58, h=20, off=3, con=1, ener=1, droids=[817, 668, 632, 587, 263, 263]),
+        dict(name='ARMOURY', w=46, h=18, off=10, con=1, ener=1, style='halls', droids=[705, 741, 632, 587, 461]),
+        dict(name='BARRACKS', w=56, h=18, off=5, con=1, ener=1, style='cells', droids=[705, 773, 741, 524, 218, 104]),
+        dict(name='HANGAR', w=62, h=22, off=1, con=1, ener=2, style='bay', droids=[856, 773, 705, 668, 307, 307, 152]),
+        dict(name='FOUNDRY', w=58, h=20, off=3, con=1, ener=1, style='halls', droids=[817, 668, 741, 587, 263, 263]),
         dict(name='CORE', w=48, h=18, off=8, con=1, ener=1, droids=[960, 908, 856, 773]),
     ], shafts=[22, 36, 50]),
 ]
-
 
 def make_ship(spec):
     decks = []
@@ -472,7 +560,8 @@ def make_ship(spec):
             if 3 <= tx <= ds['w'] - 5:
                 lx.append(tx)
         assert lx, ds['name']
-        d = gen_deck(ds['name'], ds['w'], ds['h'], spec['seed'] * 31 + i, lx, ds['con'], ds['ener'], ds['droids'])
+        d = gen_deck(ds['name'], ds['w'], ds['h'], spec['seed'] * 31 + i, lx, ds['con'], ds['ener'], ds['droids'],
+                     ds.get('style', 'rooms'))
         d.off = ds['off']
         d.shaft_of = []
         for (tx, ty) in d.lifts:
@@ -483,14 +572,15 @@ def make_ship(spec):
     return decks
 
 
-def deck_preview(d, path):
+def deck_preview(d, path, theme=0):
     from vzpal import pix_image
+    ts = gfx.theme_tiles(theme)
     rows = []
     for ty in range(d.H):
         for sr in range(6):
             r = []
             for tx in range(d.W):
-                r += gfx.tiles[d.tiles[ty][tx]][sr]
+                r += ts[d.tiles[ty][tx]][sr]
             rows.append(r)
     im = pix_image(rows, sx=2, sy=3)
     from PIL import ImageDraw
@@ -511,5 +601,5 @@ if __name__ == '__main__':
     for si, spec in enumerate(SHIPS):
         decks = make_ship(spec)
         for di, d in enumerate(decks):
-            deck_preview(d, 'build/deck_%d_%d.png' % (si + 1, di))
+            deck_preview(d, 'build/deck_%d_%d.png' % (si + 1, di), spec['theme'])
             print(spec['name'], d.name, d.W, d.H, 'nodes', len(d.nodes), 'rooms', len(d.rooms), 'lifts', d.lifts)

@@ -137,12 +137,64 @@ def dim_tile(t):
     return [[sw[c] for c in row] for row in t]
 
 
-def tileset_bytes(dim=False):
+# ---------------------------------------------------------------- ship themes
+# Each ship carries its own floors and wall plating (OVn.DAT loads them over
+# tiles_norm / tiles_dim). Theme 0 is the base set above.
+DIAMOND = ["gggbgggg", "ggbgbggg", "gbgggbgg", "ggbgbggg", "gggbgggg", "gggggggg"]
+GRID = ["bgbgbgbg", "bggggggg", "gggggggg", "bggggggg", "gggggggg", "bggggggg"]
+TREAD = ["gbgggbgg", "gggggggg", "gggbgggb", "gggggggg", "gbgggbgg", "gggggggg"]
+PLATE_A = ["bbbbbbbb", "bggggggg", "bggggggg", "bggggggg", "bggggggg", "bggggggg"]
+PLATE_B = ["bbbbbbbb", "gggggggg", "gggggggg", "gggggggg", "gggggggg", "gggggggg"]
+PLATE_C = ["bggggggg", "bggggggg", "bgggyggg", "bggggggg", "bggggggg", "bggggggg"]
+
+THEMES = [
+    dict(name='freighter'),
+    dict(name='liner', floor=[DIAMOND] * 4, plain=DIAMOND,
+         wall=dict(plate='b', mark=((2, 0), (2, 1), (2, 2), (2, 3), (2, 4), (2, 5), (2, 6), (2, 7)),
+                   mark_c='g', n='y', w='y', s='y', e='y')),
+    dict(name='science', floor=[GRID] * 4, plain=GRID,
+         wall=dict(plate='b', mark=((1, 3), (2, 3), (3, 3), (1, 4), (2, 4), (3, 4)), mark_c='g',
+                   n='y', w='y', s='r', e='r')),
+    dict(name='mining', floor=[TREAD] * 4, plain=TREAD,
+         wall=dict(plate='r', mark=((1, 1), (1, 6), (4, 1), (4, 6)), mark_c='y',
+                   n='y', w='y', s='b', e='b')),
+    dict(name='warship', floor=[PLATE_A, PLATE_B, PLATE_C, ["g" * 8] * 6], plain=["g" * 8] * 6,
+         wall=dict(plate='b', mark=((2, 2), (2, 5)), mark_c='y', n='r', w='r', s='y', e='y')),
+]
+
+
+def themed_wall(mask, w):
+    px = [[w['plate']] * 8 for _ in range(6)]
+    for (y, x) in w['mark']: px[y][x] = w['mark_c']
+    if mask & 1:
+        for x in range(8): px[0][x] = w['n']
+    if mask & 8:
+        for y in range(6): px[y][0] = w['w']
+    if mask & 4:
+        for x in range(8): px[5][x] = w['s']
+    if mask & 2:
+        for y in range(6): px[y][7] = w['e']
+    return [''.join(r) for r in px]
+
+
+def theme_tiles(theme):
+    th = THEMES[theme]
+    ts = list(tiles)
+    if 'floor' in th:
+        for k, t in enumerate(th['floor']): ts[T_FLOOR + k] = art(t)
+        ts[11] = art(th['plain'])
+    if 'wall' in th:
+        for m in range(16): ts[T_WALL + m] = art(themed_wall(m, th['wall']))
+    return ts
+
+
+def tileset_bytes(dim=False, theme=0):
     """layout [sub-row 0..5][tile 0..63][2 bytes] (128 bytes a sub-row)"""
     out = bytearray()
+    ts = theme_tiles(theme)
     for sr in range(6):
         for t in range(NT):
-            px = tiles[t]
+            px = ts[t]
             if dim and t in FLOORS:
                 px = dim_tile(px)
             out += pack_row(px[sr])
@@ -219,6 +271,19 @@ DROID_TPL = [
 ]
 
 
+# each class has its own head (rows 0-1) and running gear (row 7)
+CLASS_SHAPE = {
+    1: (("....bbbbb....", "..bbLLLLLbb.."), "..bbbbbbbbb.."),     # low dome, skirt
+    2: (("......b......", "...bbLLLbb..."), ".bb.bbbbb.bb."),     # aerial, two wheels
+    3: (("..bb.....bb..", ".bLLbbbbbLLb."), "bbb.......bbb"),     # twin lamps, heavy feet
+    4: (("...bbbbbbb...", ".bLLLLLLLLLb."), "..b.b.b.b.b.."),     # broad dome, many legs
+    5: (("....bLLLb....", "..bbLbbbLbb.."), ".bbbbbbbbbbb."),     # sensor eye, skid
+    6: (("b..bbbbbbb..b", "bbbLLLLLLLbbb"), "bb..bbbbb..bb"),     # shoulder spikes
+    7: ((".b..bbbbb..b.", ".bbbLLLLLbbb."), "bbbb.....bbbb"),     # antlers, tracks
+    8: (("bb.bbbbbbb.bb", "bbbLLLLLLLbbb"), "b.bbbbbbbbb.b"),     # armoured cowl
+    9: (("b.b.bbbbb.b.b", ".bbbLLLLLbbb."), "bbbbbbbbbbbbb"),     # crown, full tread
+}
+
 PROBE_TPL = [
     "b...bbbbb...b",
     ".bbbLLLLLbbb.",
@@ -237,7 +302,9 @@ def droid_image(num, band, digit, dome_light=None):
         return [[-1 if ch == '.' else band if ch == 'L' else 3 if ch == 'E' else C[ch] for ch in ln]
                 for ln in PROBE_TPL]
     rows = []
-    for y, ln in enumerate(DROID_TPL):
+    top, base = CLASS_SHAPE[num // 100]
+    tpl = [top[0], top[1]] + DROID_TPL[2:7] + [base]
+    for y, ln in enumerate(tpl):
         r = []
         for ch in ln:
             if ch == '.': r.append(-1)

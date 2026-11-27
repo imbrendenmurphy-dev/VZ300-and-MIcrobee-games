@@ -116,6 +116,8 @@ t_rogue2:   db 55,"EVERY DROID ABOARD.",0
 t_probe:    db 55,"ONE PROBE. ONE CHANCE.",0
 
 intro:
+            ld hl,ship_art          ; the intro's freighter
+            ld (at_art),hl
             ld a,$08
             call fe_setlatch
             call m_stop
@@ -378,7 +380,7 @@ ship_draw:
             ld h,0
             ld de,168
             call mul16x8_de         ; HL = phase*168
-            ld de,ship_art
+            ld de,(at_art)
             add hl,de
             ld (at_src),hl
             ; bytes to draw: min(12, 32 - col)
@@ -1139,7 +1141,8 @@ shipcard_main:
             ld hl,shipinfo+SI_NAME
             ld e,15
             call fe_header
-            ld a,42                 ; the freighter, centred
+            call card_art
+            ld a,42                 ; the ship, centred
             ld (at_sx),a
             ld a,31
             ld (at_sy),a
@@ -1189,7 +1192,12 @@ ship_droids:
             ret
 
 ship_txt:   db "SHIP ",0
-of3_txt:    db " OF 3",0
+of3_txt:    db " OF 5",0
+            assert NSHIPS == 5
+; the cards show this ship's own silhouette (from its ship file)
+card_art:   ld hl,SHIPART
+            ld (at_art),hl
+            ret
 decks_txt:  db " DECKS   ",0
 droids_txt: db " DROIDS",0
 go_txt:     db "SECURE EVERY DECK",0
@@ -1210,6 +1218,7 @@ shipdone_main:
             ld hl,shipinfo+SI_NAME
             ld e,24
             call fe_strc
+            call card_art
             ld a,42
             ld (at_sx),a
             ld a,33
@@ -1328,6 +1337,7 @@ at_col:     ds 1
 at_ship:    ds 1
 at_sx:      ds 1
 at_sy:      ds 1
+at_art:     ds 2
 at_alert:   ds 1
 at_probe:   ds 1
 at_px:      ds 1

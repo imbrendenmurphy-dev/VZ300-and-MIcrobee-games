@@ -23,24 +23,8 @@ fire_shot:
             inc hl
             ld a,(hl)
             ld (fs_life),a
-            ; velocity = shotvel[speed][dir]
-            ld a,(fs_spd)
-            add a,a
-            add a,a
-            add a,a
-            ld l,a
             ld a,(fs_dir)
-            add a,l
-            add a,a
-            ld l,a
-            ld h,0
-            ld de,shotvel
-            add hl,de
-            ld a,(hl)
-            ld (fs_vx),a
-            inc hl
-            ld a,(hl)
-            ld (fs_vy),a
+            call fs_vel
             ; start at the shooter's centre, a step ahead
             ld l,(ix+O_XL)
             ld h,(ix+O_XH)
@@ -72,7 +56,21 @@ fire_shot:
             add hl,de
             ld (fs_y),hl
             ld a,(fs_w)
-            cp W_TWIN
+            cp W_SCATTER
+            jr nz,.tw
+            ; scatter: a fan of three, the outer two a direction either side
+            ld a,(fs_dir)
+            inc a
+            call fs_vel
+            call spawn_shot
+            ld a,(fs_dir)
+            dec a
+            call fs_vel
+            call spawn_shot
+            ld a,(fs_dir)
+            call fs_vel
+            jr .one
+.tw:        cp W_TWIN
             jr nz,.one
             ; twin: two shots side by side (offset across the direction)
             ld a,(fs_dir)
@@ -105,6 +103,27 @@ fire_shot:
             jr z,.s
             ld a,SFX_ESHOT
 .s:         jp sfx
+
+; fs_vx/fs_vy = shotvel[fs_spd][A & 7]
+fs_vel:
+            and 7
+            ld l,a
+            ld a,(fs_spd)
+            add a,a
+            add a,a
+            add a,a
+            add a,l
+            add a,a
+            ld l,a
+            ld h,0
+            ld de,shotvel
+            add hl,de
+            ld a,(hl)
+            ld (fs_vx),a
+            inc hl
+            ld a,(hl)
+            ld (fs_vy),a
+            ret
 
 spawn_shot:
             ld hl,shots

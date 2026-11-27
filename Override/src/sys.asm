@@ -308,6 +308,7 @@ read_input:
             ld a,e
             ld (in_now),a
             ld (in_real),a
+            call so_key
             ld a,(in_new)           ; N: music on / off (and it isn't "any key")
             bit 6,a
             ret z
@@ -316,6 +317,83 @@ read_input:
             ld a,(music_on)
             xor 1
             ld (music_on),a
+            ret
+
+; C: the sound output, round speaker -> speaker + tape out -> tape out
+; only. The cassette port (latch bits 1-2) can feed an amplifier; it
+; isn't "any key".
+so_key:
+            push bc
+            push de
+            push hl
+            call .k
+            pop hl
+            pop de
+            pop bc
+            ret
+.k:         ld a,($68FB)            ; B X SHIFT C Z V : C = bit3
+            and 8
+            ld hl,cas_prev
+            ld b,(hl)
+            ld (hl),a
+            ret nz                  ; not held
+            ld a,b
+            or a
+            ret z                   ; held already
+            ld a,(in_new)
+            and $7F
+            ld (in_new),a
+            ld a,(snd_out)
+            inc a
+            cp 3
+            jr c,.s
+            xor a
+.s:         call so_set
+            ld a,(gm_on)            ; in play, say so on the HUD
+            or a
+            ret z
+            ld a,(snd_out)
+            add a,a
+            ld l,a
+            ld h,0
+            ld de,so_msgs
+            add hl,de
+            ld a,(hl)
+            inc hl
+            ld h,(hl)
+            ld l,a
+            jp show_msg
+
+; A = sound output (0-2): set the masks
+so_set:
+            ld (snd_out),a
+            add a,a
+            ld l,a
+            ld h,0
+            ld de,so_tab
+            add hl,de
+            ld a,(hl)
+            ld (spk_m),a
+            inc hl
+            ld a,(hl)
+            ld (cas_m),a
+            ret
+so_tab:     db $21,$00, $21,$06, $00,$06
+so_msgs:    dw so_m0,so_m1,so_m2
+so_m0:      db "SOUND: SPEAKER",0
+so_m1:      db "SOUND: BOTH",0
+so_m2:      db "SOUND: TAPE OUT",0
+
+; A = speaker bits, C = cassette bits -> A = the bits this output allows
+; (uses B, HL)
+so_mask:
+            ld hl,spk_m
+            and (hl)
+            ld b,a
+            ld a,c
+            inc hl
+            and (hl)                ; cas_m follows spk_m
+            or b
             ret
 
 ; both sticks at once (Cybernoid v1.7 port map: fire $2E/$2B,

@@ -54,8 +54,8 @@ title_pic:
             db $99,$AA,$00,$9A,$92,$AA,$84,$FE,$00,$FC,$95,$FE,$FF,$AA,$BB,$AA
             db $9D,$22,$FF,$AA,$9B,$AA,$9D,$22,$FF,$AA,$BB,$AA,$FF,$00
 story1:
-            db "THE KESTREL FREIGHTERS DRIFT",0
-            db "DARK AT THE EDGE OF THE BELT.",0
+            db "FIVE SHIPS OF THE KESTREL LINE",0
+            db "DRIFT DARK AT THE BELT'S EDGE.",0
             db "A ROGUE SHIP MIND, THE OVERMIND,",0
             db "HAS SEIZED EVERY DROID ABOARD.",0
             db "",0
@@ -66,8 +66,7 @@ story1:
             db "BORROW THEIR BODIES. CLEAR EVERY",0
             db $FF
 story2:
-            db "DECK OF ALL THREE SHIPS.",0
-            db "",0
+            db "DECK OF ALL FIVE SHIPS.",0
             db "CONTROLS",0
             db "MOVE      Q A O P  OR  JOYSTICK",0
             db "SHOOT     FIRE (SPACE OR M)",0
@@ -75,7 +74,8 @@ story2:
             db "          THEN TOUCH A DROID",0
             db "LIFT      FIRE ON A LIFT PAD",0
             db "CONSOLE   PUSH INTO A TERMINAL",0
-            db "PAUSE     RETURN",0
+            db "PAUSE     RETURN     MUSIC  N",0
+            db "SOUND OUT C: SPEAKER/BOTH/TAPE",0
             db $FF
 ship_art:
             db $AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$A0

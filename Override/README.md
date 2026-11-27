@@ -1,7 +1,60 @@
 # OVERRIDE
-### v0.4 · three ships, 19 decks, 19 droid types · VIBED BY BPM 2026
+### v0.5 · five ships, 33 decks, 23 droid types · VIBED BY BPM 2026
 
-## What's new in v0.4: fixes and a new look for the info screens
+## What's new in v0.5: more variety and more music
+- **Two new ships**, and the campaign is now five ships long:
+  1. **SV CORMORANT**, the freighter (classes 1-4)
+  2. **LV ARCADIA**, a cruise liner: Sun Deck, Promenade, Staterooms, Casino, Theatre, Laundry,
+     Engines (classes 1-5) *(new)*
+  3. **MV HALCYON**, the science vessel (classes 1-6)
+  4. **HV GRINDSTONE**, an ore hauler: Bridge, Crew Mess, Ore Bay, Drill Deck, Refinery, Smelter,
+     Engines (classes 1-7) *(new)*
+  5. **CV LEVIATHAN**, the warship, with the Overmind in its Core (classes 1-9)
+- **Each ship has its own look.** The ship file carries its own floor and wall tiles: diamond carpet
+  and gold-trimmed walls on the liner, a lab grid on the Halcyon, tread plate and red rust-plated
+  walls on the Grindstone, heavy plates with red-edged armour on the Leviathan. The ship cards show
+  each ship's own silhouette (liner, saucer-hulled lab ship, ore hauler with pods and a crane,
+  armoured wedge with turrets) instead of the freighter every time.
+- **New deck layouts.** Besides the usual rooms off a spine corridor, decks can now be:
+  - **cells**: rows of small cabins (Quarters, Staterooms, Sickbay, Brig, Crew Mess, Barracks);
+  - **halls**: a few big halls with rows of machinery (Machine Shop, Promenade, Casino, Labs,
+    Drill Deck, Smelter, Armoury, Foundry);
+  - **bays**: an open bay right across the middle of the deck, the corridor walls gone, cargo
+    stacked about and hazard plating round the edge (Cargo Hold, Theatre, Stores, Ore Bay, Hangar).
+- **Four new droids and a new weapon, the SCATTER GUN** (three shots in a fan, short range):
+  - 129 VALET (class 1): quick liner service unit, unarmed;
+  - 341 DRILLER (class 3): slow mining unit with a scatter gun;
+  - 479 FOREMAN (class 4): tough mine boss with a scatter gun;
+  - 741 RAVAGER (class 7): fast boarding droid with a scatter gun.
+- **Every class has its own body shape**: a low dome and skirt for class 1, an aerial and wheels for
+  class 2, twin lamps and heavy feet for 3, a broad dome on many legs for 4, a sensor eye for 5,
+  shoulder spikes for 6, antlers and tracks for 7, an armoured cowl for 8, and a crown and full
+  tread for 9. You can tell a droid's class at a glance before reading its number.
+- **Ten in-game tunes instead of three.** Each ship has its own tune, and its bottom deck (the
+  engines, reactor or core) has a second, busier engine-room tune:
+  - Cormorant: D minor, slow and uneasy / engine room: D minor, busy sixteenths;
+  - Arcadia: a breezy F major lounge tune over a walking bass / engine room: A minor arpeggios;
+  - Halcyon: E minor, pulsing / reactor: E minor arpeggios;
+  - Grindstone: G minor, heavy and industrial / engine room: C minor;
+  - Leviathan: C minor, driving / the Core: a fast A minor finale for the fight with the Overmind.
+
+  The tunes travel in the ship files (`OVn.DAT`) and load into a buffer in upper bank 1, so adding
+  them cost no resident memory; moving the old three out paid for the new droids.
+- **New front-end music**: the lift and console have their own calm three-voice tune, and a duel
+  against a heavy droid (class 7 and up) gets a faster, harder duel tune.
+- **Cassette out as a sound option.** C cycles the sound output: SPEAKER, BOTH (speaker and the
+  cassette socket) and TAPE OUT (cassette socket only, the speaker silent). Plug the cassette
+  output into an amplifier or powered speakers for much better sound than the built-in piezo. The
+  cassette port is a 2-bit output, so the voices are mixed as levels rather than just OR-ed: in play
+  the bass drives the high bit and the lead the low bit; in the front end voices 1-2 drive the high
+  bit and voice 3 the low bit, and effects take both. In play the HUD shows the new setting; it
+  applies everywhere, and C doesn't count as "any key" on the attract pages.
+- **Fixed**: the display font's M read as an H. Two deck-generator edge cases (a side door squeezed
+  against the tapered hull, a door whose approach the hull cut off) are now checked for.
+- Copy **all 41 files** from `release/`: there are new ship and deck files (`OV4*.DAT`,
+  `OV5*.DAT`), and every `OVn.DAT` changed.
+
+## v0.4: fixes and a new look for the info screens
 - **Fixed: dying could leave you with no probe and no control.** The game handles one event a frame,
   and your death could be overwritten in the same frame, either by a link touch or by DECK CLEARED
   when the last droid went down with you. `touch_player` also returned a stale carry flag for a dead
@@ -89,8 +142,8 @@
 Dick Smith VZ300 · BennVenn SD + 128K · Mode 1 (128×64, 4 colours) · all Z80
 
 An original top-down droid-transfer action game in the Paradroid tradition, written from scratch for
-the VZ300. A rogue ship mind, the OVERMIND, has taken over every droid on the three Kestrel Line
-freighters. You are the LINK PROBE (unit 000), a small unarmed unit that can take over any droid it
+the VZ300. A rogue ship mind, the OVERMIND, has taken over every droid on the five ships of the
+Kestrel Line. You are the LINK PROBE (unit 000), a small unarmed unit that can take over any droid it
 touches. Shoot droids, or link into them and win the circuit duel to take their bodies. Clear every
 deck of every ship.
 
@@ -99,8 +152,8 @@ kept: numbered droid classes, link duels, lifts between decks, consoles, and dec
 cleared.
 
 ## Running it
-Copy **all 25 files** from `release/` to the root of the SD card: `OVERRIDE.VZ`, `OVCOM.DAT`, `OVTTL.DAT` (the intro, title and cards),
-`OV1.DAT`-`OV3.DAT` (ship headers) and `OV1D0.DAT`-`OV3D5.DAT` (one file per deck). Load
+Copy **all 41 files** from `release/` to the root of the SD card: `OVERRIDE.VZ`, `OVCOM.DAT`, `OVTTL.DAT` (the intro, title and cards),
+`OV1.DAT`-`OV5.DAT` (ship headers, themes, tunes) and `OV1D0.DAT`-`OV5D5.DAT` (one file per deck). Load
 `OVERRIDE.VZ` like any other .VZ. It loads at $8000 (10.6K), loads `OVCOM.DAT` at boot, and reads each
 deck from the card when you ride a lift to it (well under a second).
 
@@ -108,7 +161,7 @@ deck from the card when you ride a lift to it (well under a second).
 |---|---|---|
 | `OVERRIDE.VZ` | the engine: renderer, droids, player, shots, HUD, SD loader, autopilot | main RAM $8000 |
 | `OVCOM.DAT` | the screen-copy code, tiles (normal and lights-out), droid images, explosions; and the front end: title, attract, link duel, lift, console, cards, music and songs, title picture | upper bank 1 $CA00 / upper bank 0 $B800 |
-| `OVn.DAT` | ship n: name, deck sizes, lift shafts, droid counts | main RAM |
+| `OVn.DAT` | ship n: name, deck sizes, lift shafts, droid counts; its tiles, its two tunes, its silhouette | main RAM / upper bank 1 / upper bank 0 |
 | `OVnDd.DAT` | deck d of ship n: map, deck info, droid spawn list, waypoint graph | upper bank 1 / main RAM |
 
 If the expansion is missing you get `NEEDS BENNVENN SD + 128K RAM`. If a file is missing you get
@@ -125,6 +178,7 @@ If the expansion is missing you get `NEEDS BENNVENN SD + 128K RAM`. If a file is
 | Console | push into a terminal | |
 | Pause | RETURN | |
 | Music on/off | N | |
+| Sound output: speaker / both / cassette out | C | |
 | Link duel | up/down choose a lane, fire sends a pulse; left/right picks your side at the start | |
 
 ## Playing
@@ -143,7 +197,7 @@ If the expansion is missing you get `NEEDS BENNVENN SD + 128K RAM`. If a file is
   to your own.
 - **Deck cleared**: when the last droid on a deck goes, the lights go out (the floor turns blue) and
   you score a 1,000-point bonus. Clear every deck for SHIP SECURED (a 5,000 bonus), then the next
-  ship loads. Free all three ships for the ending.
+  ship loads. Free all five ships for the ending.
 - Three probes (lives). Scores: 125 points for a class 1 droid, up to 725 for class 9.
 
 ### The link duel
@@ -164,18 +218,22 @@ nodes wins. The droid's AI thinks faster the higher its class.
 |---|---|---|---|
 | 000 | LINK PROBE | 0 | none |
 | 104 | DUSTER | 1 | none |
+| 129 | VALET | 1 | none (quick) |
 | 152 | COURIER | 1 | none |
 | 218 | STEWARD | 2 | arc zapper |
 | 263 | WELDER | 2 | arc zapper |
 | 307 | PORTER | 3 | none (heavy) |
+| 341 | DRILLER | 3 | scatter gun (slow) |
 | 355 | TECHNICIAN | 3 | laser |
 | 408 | MEDIC | 4 | arc zapper |
 | 461 | SENTRY | 4 | laser |
+| 479 | FOREMAN | 4 | scatter gun |
 | 524 | SURVEYOR | 5 | laser (fast) |
 | 587 | WARDEN | 5 | twin laser |
 | 632 | ENFORCER | 6 | twin laser |
 | 668 | BULWARK | 6 | laser (very tough) |
 | 705 | TROOPER | 7 | pulse gun |
+| 741 | RAVAGER | 7 | scatter gun (fast) |
 | 773 | HUNTER | 7 | pulse gun (fast, hunts you) |
 | 817 | MARSHAL | 8 | plasma cannon |
 | 856 | DREADNOUGHT | 8 | plasma cannon (slow, huge energy) |
@@ -184,8 +242,10 @@ nodes wins. The droid's AI thinks faster the higher its class.
 
 ## The ships
 1. **SV CORMORANT**: Bridge, Quarters, Galley, Cargo Hold, Machine Shop, Engines (classes 1-4)
-2. **MV HALCYON**: Observatory, Bridge, Sickbay, Labs, Brig, Stores, Reactor (classes 2-6)
-3. **CV LEVIATHAN**: Command, Armoury, Barracks, Hangar, Foundry, Core (classes 1-9)
+2. **LV ARCADIA**: Sun Deck, Promenade, Staterooms, Casino, Theatre, Laundry, Engines (classes 1-5)
+3. **MV HALCYON**: Observatory, Bridge, Sickbay, Labs, Brig, Stores, Reactor (classes 1-6)
+4. **HV GRINDSTONE**: Bridge, Crew Mess, Ore Bay, Drill Deck, Refinery, Smelter, Engines (classes 1-7)
+5. **CV LEVIATHAN**: Command, Armoury, Barracks, Hangar, Foundry, Core (classes 1-9)
 
 ## Attract sequence
 Leave the title alone and the game shows itself off:
@@ -237,15 +297,17 @@ Leave the title alone and the game shows itself off:
 | $7000-$77FF | video RAM |
 | $7800-$7BFF | left alone (ROM/DOS system area) |
 | $7C00-$7D7F / $7D80-$7FFF | IM 2 table / stack |
-| $8000-$AA84 | main code (379 bytes free) |
+| $8000-$AB85 | main code (122 bytes free) |
 | $AC00-$B4FF | variables, droid and shot tables, ship and deck info |
 | $B500 / $B600-$B7FF | y/6 table / SD bounce buffer |
 | upper 1 $B800-$C1FF | back buffer (64 × 40) |
 | upper 1 $C200-$C9FF | deck map (64 × 32 tiles) |
-| upper 1 $CA00-$EC63 | screen copy, tilesets, explosion, droid images, names |
+| upper 1 $CA00-$F262 | screen copy, tilesets (this ship's theme), explosion, droid images, names, game-music player |
+| upper 1 $F263-$F582 | this ship's two tunes (from `OVn.DAT`) |
 | upper 1 $F600-$F87F | the deck's waypoints |
-| upper 0 $B800-$D80E | front end (mapping 3): music player, display font, backdrops, duel, lift, console |
-| low bank 3 $4000-$5BC5 | between decks only: the overlay `OVTTL.DAT` (intro, title, attract, cards, their music) |
+| upper 0 $B800-$DA6B | front end (mapping 3): music player, display font, backdrops, duel, lift, console |
+| low bank 3 $4000-$5BDD | between decks only: the overlay `OVTTL.DAT` (intro, title, attract, cards, their music) |
+| upper 0 $E560-$E7FF | this ship's silhouette for the cards (4 phases, from `OVn.DAT`) |
 | upper 0 $E800-$EFFF | front-end screen buffer |
 | upper 0 $F000-$FFFF | DOS stack, sector buffer, DOS RAM (never touched) |
 
@@ -267,6 +329,11 @@ The file format is chunks (`db map, dw dest, dw length, data`), each with the bu
   - the console;
   - deck cleared (lights out) and ship secured, then loading ship 2;
   - an 18,000-frame random-input soak with random power-on RAM: no crash and no stack creep.
+  - v0.5, in VZonPC: every ship's card, first deck and bottom deck (checking the right tune plays on
+    each), Grindstone secured and the Leviathan loading after it with its own tiles and tunes, the
+    lift and console tune, the heavy-droid duel tune against the 908, scatter-gun droids firing
+    three-shot fans, 15,000-frame random soaks on the Arcadia and the Halcyon, a 9,000-frame soak in
+    the Ore Bay, and the attract loop with `DOSSCRIBBLE=1`: no crashes, lowest stack $7FD2.
 - The title theme was recorded to `screenshots/title_theme.wav`; its pitch checks out (the bass
   measures A2).
 
@@ -280,7 +347,7 @@ The file format is chunks (`db map, dw dest, dw length, data`), each with the bu
 
 ## Building
 ```
-py tools/build.py        # -> build/sd/OVERRIDE.VZ, OVCOM.DAT, OV1-3.DAT, OV1D0..OV3D5.DAT
+py tools/build.py        # -> build/sd/OVERRIDE.VZ, OVCOM.DAT, OV1-5.DAT, OV1D0..OV5D5.DAT
 py tools/fixjr.py src/main.asm   # (if an edit pushes a JR out of range)
 C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe /optimize+ /out:emu\vzemu.exe /r:System.Drawing.dll emu\Z80.cs emu\VzEmu.cs emu\Font6847.cs
 emu\vzemu.exe script.txt   # scripted runs: vz, sd, frames, tap, down/up, screen, wav, rand, crash, snow, tmark, prof ...

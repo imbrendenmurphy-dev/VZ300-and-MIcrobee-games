@@ -74,7 +74,8 @@ MAXFX       equ 8
 FXSZ        equ 5
 MAXWPT      equ 80
 WPT         equ $F600          ; waypoint table, upper bank 1 (80 x 8)
-NSHIPS      equ 3
+NSHIPS      equ 5
+GSBUF_SZ    equ 800
 DEMO_FRAMES equ 750
 
 EV_TRANSFER equ 1
@@ -106,6 +107,10 @@ snd_step:   ds 2
 snd_mask:   ds 1
 snd_noise:  ds 1
 music_on:   ds 1
+snd_out:    ds 1               ; 0 speaker, 1 speaker + tape out, 2 tape out only
+spk_m:      ds 1               ; latch bits allowed on the speaker ($21 or 0)
+cas_m:      ds 1               ; ... and on the cassette output ($06 or 0)
+cas_prev:   ds 1               ; the C key last frame (0 = held)
 ; ---- ring
 rb_n:       ds 1
 rb_x:       ds 1

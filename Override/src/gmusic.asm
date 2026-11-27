@@ -21,7 +21,8 @@ GC_FLAGS    equ 10              ; bit 7 resting
 GC_LOOP     equ 11
 GC_SIZE     equ 14
 
-; gm_play: A = tune (0-2: the ships), $FF = silence
+; gm_play: A = tune (0 the ship's main tune, 1 its engine-room tune; both
+; load with the ship file into GSBUF), $FF = silence
 gm_play:
             push ix
             call .go
@@ -36,7 +37,7 @@ gm_play:
             add a,a
             ld l,a
             ld h,0
-            ld de,gsong_table
+            ld de,GSBUF
             add hl,de
             ld a,(hl)
             inc hl
@@ -89,6 +90,10 @@ snd_make:
             ld b,0
 .v1:        ld a,b
             ld (.d1+1),a
+            ld a,$20                ; the speaker line and/or tape MSB
+            ld c,$04
+            call so_mask
+            ld (.a1+1),a
             ld hl,(gm_ch0+GC_STEP)
             ld (gv1_st),hl
             ; ---- voice 2: an effect, or the lead
@@ -98,9 +103,12 @@ snd_make:
             and $21
             cp $21
             ld a,$21
+            ld c,$06
             jr z,.vol
             ld a,$01
-.vol:       ld (.m2+1),a
+            ld c,$02
+.vol:       call so_mask
+            ld (.m2+1),a
             ld hl,(snd_step)
             ld (gv2_st),hl
             ld a,128
@@ -114,6 +122,8 @@ snd_make:
             ld de,$00AD             ; xor l : nop
             jr .tone
 .lead:      ld a,$01
+            ld c,$02
+            call so_mask
             ld (.m2+1),a
             ld hl,(gm_ch1+GC_STEP)
             ld (gv2_st),hl
@@ -156,7 +166,7 @@ snd_make:
             ld a,h                  ; 4
 .d1:        cp 0                    ; 7
             sbc a,a                 ; 4
-            and $20                 ; 7
+.a1:        and $20                 ; 7
             ex af,af'               ; 4
 .v2:        add iy,bc               ; 15  voice 2 (or noise)
             ld a,iyh                ; 8

@@ -163,7 +163,22 @@ SONGS['BRIEF'] = dict(loop=True, ch=[
     "u6 i1 A2:4 E2:4 | F2:4 C3:4 | D2:4 A2:4 | E2:4 E3:4 | A2:4 E2:4 | F2:4 C3:4 | D2:4 E2:4 | A2:8",
 ])
 
-SONG_ORDER = ['TITLE', 'LINK', 'WIN', 'LOSE', 'SHIPCARD', 'SHIPDONE', 'GAMEOVER', 'HISCORE', 'ENDING', 'BRIEF']
+# the lift and console: a calm, slightly eerie loop
+SONGS['LIFT'] = dict(loop=True, ch=[
+    "u6 i6 E5:2 G5:2 C6:2 G5:2 | D5:2 F5:2 B5:2 F5:2 | C5:2 E5:2 A5:2 E5:2 | B4:2 D5:2 G5:4 | "
+    "E5:2 G5:2 C6:2 E6:2 | F5:2 A5:2 D6:2 F6:2 | E6:2 C6:2 A5:2 F5:2 | G5:4 B5:4",
+    "u6 i2 C5:8 | B4:8 | A4:8 | G4:8 | C5:8 | D5:8 | C5:8 | B4:8",
+    "u6 i1 C3:4 G2:4 | G2:4 D3:4 | A2:4 E2:4 | G2:4 G2:4 | C3:4 E3:4 | D3:4 F3:4 | A2:4 F2:4 | G2:4 B2:4",
+])
+# the duel against a heavy droid (class 7 and up): faster, in A minor
+SONGS['LINK2'] = dict(loop=True, ch=[
+    "u3 i4 [A5:1 C6:1 E6:1 C6:1]x4 [Bb5:1 D6:1 F6:1 D6:1]x4 [A5:1 C6:1 E6:1 C6:1]x4 [G#5:1 B5:1 E6:1 B5:1]x4",
+    "u3 i1 [A2:1 A3:1]x8 [Bb2:1 Bb3:1]x8 [A2:1 A3:1]x8 [E2:1 E3:1]x8",
+    "u3 [i7 C3:1 i8 C6:1 i3 C5:1 i8 C6:1]x16",
+])
+
+SONG_ORDER = ['TITLE', 'LINK', 'WIN', 'LOSE', 'SHIPCARD', 'SHIPDONE', 'GAMEOVER', 'HISCORE', 'ENDING', 'BRIEF',
+              'LIFT', 'LINK2']
 
 # ------------------------------------------------------------------ in-game soundtrack
 # Two channels (bass on speaker line 5, lead on line 0), ticked once a game
@@ -183,13 +198,19 @@ def _gbass(ch, style=0):
     R = {'Dm': ('D2', 'A2', 'F2', 'C3'), 'Bb': ('Bb1', 'F2', 'D2', 'Ab2'), 'Gm': ('G1', 'D2', 'Bb1', 'F2'),
          'A': ('A1', 'E2', 'C#2', 'G2'), 'Em': ('E2', 'B2', 'G2', 'D3'), 'C': ('C2', 'G2', 'E2', 'Bb2'),
          'D': ('D2', 'A2', 'F#2', 'C3'), 'B': ('B1', 'F#2', 'D#2', 'A2'), 'Cm': ('C2', 'G2', 'Eb2', 'Bb2'),
-         'Ab': ('Ab1', 'Eb2', 'C2', 'Gb2'), 'G': ('G1', 'D2', 'B1', 'F2'), 'Fm': ('F1', 'C2', 'Ab1', 'Eb2')}[ch]
+         'Ab': ('Ab1', 'Eb2', 'C2', 'Gb2'), 'G': ('G1', 'D2', 'B1', 'F2'), 'Fm': ('F1', 'C2', 'Ab1', 'Eb2'),
+         'F': ('F1', 'C2', 'A1', 'Eb2'), 'Am': ('A1', 'E2', 'C2', 'G2'), 'E': ('E1', 'B1', 'G#1', 'D2'),
+         'Eb': ('Eb1', 'Bb1', 'G1', 'Db2')}[ch]
     up = lambda n: n[:-1] + str(int(n[-1]) + 1)     # an octave up: the VZ speaker is small
     r, f, t, s = [up(n) for n in R]
     if style == 0:   # slow, uneasy
         return '%s:4 r:2 %s:2 %s:4 %s:2 %s:2 | ' % (r, r, f, t, r)
     if style == 1:   # pulsing eighths
         return ' '.join(n + ':2' for n in (r, r, f, r, s, r, f, t)) + ' | '
+    if style == 3:   # walking quarters (the liner's lounge)
+        return '%s:4 %s:4 %s:4 %s:4 | ' % (r, t, f, s)
+    if style == 4:   # driving eighths (heavy industry)
+        return ' '.join(n + ':2' for n in (r, r, f, r, r, f, s, f)) + ' | '
     return ' '.join(n + ':1' for n in (r, r, r, f, r, r, s, r, r, r, f, r, t, r, f, s)) + ' | '
 
 
@@ -215,10 +236,61 @@ GSONGS['LEVIATHAN'] = [
     "i3 G5:2 C6:2 Eb6:4 D6:2 C6:2 G5:4 | Eb5:16 | Ab5:2 C6:2 Eb6:4 D6:2 C6:2 Ab5:4 | F5:16 | "
     "i1 F5:2 Ab5:2 C6:4 Eb6:4 F6:4 | Eb6:4 D6:4 C6:8 | D6:4 B5:4 G5:4 D5:4 | G5:8 B5:8 | ",
 ]
-GSONG_ORDER = ['CORMORANT', 'HALCYON', 'LEVIATHAN']
+# the engine-room tunes: each ship's bottom deck has its own, busier tune
+GSONGS['CORMORANT_CORE'] = [
+    "u3 i0 " + ''.join(_gbass(c, 2) for c in ['Dm', 'Dm', 'C', 'C', 'Bb', 'Bb', 'A', 'A'] * 2),
+    "u3 i1 D5:2 F5:2 A5:2 D6:4 C6:2 A5:2 F5:2 | E5:4 D5:4 r:8 | C5:2 E5:2 G5:2 C6:4 Bb5:2 G5:2 E5:2 | F5:4 E5:4 r:8 | "
+    "Bb4:2 D5:2 F5:2 Bb5:4 A5:2 F5:2 D5:2 | C5:4 D5:4 F5:8 | A4:2 C#5:2 E5:2 A5:4 G5:2 E5:2 C#5:2 | E5:16 | "
+    "i3 D6:8 A5:8 | F5:8 D5:8 | C6:8 G5:8 | E5:8 C5:8 | Bb5:8 F5:8 | D5:8 Bb4:8 | C#6:8 A5:8 | E6:12 r:4 | ",
+]
+# the liner: a breezy lounge tune over a walking bass
+GSONGS['ARCADIA'] = [
+    "u3 i4 " + ''.join(_gbass(c, 3) for c in ['F', 'F', 'Dm', 'Dm', 'Bb', 'Bb', 'C', 'C',
+                                             'F', 'F', 'Dm', 'Dm', 'Bb', 'C', 'F', 'F']),
+    "u3 i1 A5:4 C6:4 F6:6 E6:2 | D6:4 C6:4 A5:8 | F5:4 A5:4 D6:6 C6:2 | A5:12 r:4 | "
+    "D6:4 F6:4 Bb5:6 C6:2 | D6:4 C6:4 Bb5:8 | G5:4 Bb5:4 E6:6 D6:2 | C6:12 r:4 | "
+    "i3 F6:6 E6:2 C6:8 | A5:4 C6:4 F6:8 | E6:6 D6:2 A5:8 | F5:8 r:8 | "
+    "i1 Bb5:4 D6:4 F6:4 D6:4 | E6:4 G6:4 C6:8 | A6:6 G6:2 F6:4 C6:4 | F6:12 r:4 | ",
+]
+GSONGS['ARCADIA_CORE'] = [
+    "u3 i0 " + ''.join(_gbass(c, 2) for c in ['Am', 'Am', 'F', 'F', 'G', 'G', 'E', 'E'] * 2),
+    "u3 i2 [A5:2 r:2 E5:2 A5:2 C6:2 r:2 B5:2 A5:2]x2 [F5:2 r:2 C5:2 F5:2 A5:2 r:2 G5:2 F5:2]x2 "
+    "[G5:2 r:2 D5:2 G5:2 B5:2 r:2 A5:2 G5:2]x2 [E5:2 r:2 B4:2 E5:2 G#5:2 r:2 B5:2 G#5:2]x2 "
+    "i1 A5:6 B5:2 C6:4 E6:4 | D6:6 C6:2 A5:8 | F5:4 A5:4 C6:4 F6:4 | E6:8 r:8 | "
+    "G5:6 A5:2 B5:4 D6:4 | C6:6 B5:2 G5:8 | E5:4 G#5:4 B5:4 E6:4 | E6:12 r:4 | ",
+]
+GSONGS['HALCYON_CORE'] = [
+    "u3 i0 " + ''.join(_gbass(c, 2) for c in ['Em', 'Em', 'C', 'C', 'Am', 'Am', 'B', 'B'] * 2),
+    "u3 i2 [[E5:2 G5:2 B5:2 E6:2]x2 [E5:2 G5:2 C6:2 E6:2]x2 [E5:2 A5:2 C6:2 E6:2]x2 [D#5:2 F#5:2 B5:2 D#6:2]x2]x2 "
+    "i1 B5:8 G5:4 E5:4 | F#5:4 G5:4 A5:8 | G5:8 E5:4 C5:4 | D5:4 E5:4 G5:8 | "
+    "A5:8 C6:4 E6:4 | D6:4 C6:4 A5:8 | B5:4 D#6:4 F#6:4 B6:4 | F#6:16 | ",
+]
+# the ore hauler: heavy and industrial
+GSONGS['GRINDSTONE'] = [
+    "u3 i0 " + ''.join(_gbass(c, 4) for c in ['Gm', 'Gm', 'Eb', 'Eb', 'Cm', 'Cm', 'D', 'D'] * 2),
+    "u3 i3 G5:4 r:2 G5:2 Bb5:4 A5:2 G5:2 | D5:8 r:8 | G5:4 r:2 G5:2 Eb6:4 D6:2 C6:2 | Bb5:8 r:8 | "
+    "C6:4 r:2 C6:2 Eb6:4 D6:2 C6:2 | G5:8 Bb5:4 C6:4 | D6:4 C6:4 Bb5:4 A5:4 | F#5:8 D5:8 | "
+    "i2 [[G5:1 r:1 D6:1 r:1 G5:1 r:1 Bb5:1 r:1]x2 [G5:1 r:1 Eb6:1 r:1 G5:1 r:1 Bb5:1 r:1]x2 "
+    "[C6:1 r:1 G5:1 r:1 Eb5:1 r:1 G5:1 r:1]x2 [D6:1 r:1 A5:1 r:1 F#5:1 r:1 A5:1 r:1]x2]x2",
+]
+GSONGS['GRINDSTONE_CORE'] = [
+    "u3 i0 " + ''.join(_gbass(c, 2) for c in ['Cm', 'Cm', 'Ab', 'Ab', 'Fm', 'Fm', 'G', 'G'] * 2),
+    "u3 i1 C6:4 G5:4 Eb5:4 G5:4 | C6:4 D6:4 Eb6:8 | Ab5:4 Eb5:4 C5:4 Eb5:4 | Ab5:4 Bb5:4 C6:8 | "
+    "F5:4 Ab5:4 C6:4 F6:4 | Eb6:4 D6:4 C6:8 | B5:4 D6:4 G6:4 F6:4 | Eb6:4 D6:4 B5:8 | "
+    "i3 G6:8 Eb6:8 | C6:16 | Ab6:8 Eb6:8 | C6:16 | F6:8 C6:8 | Ab5:16 | G6:8 D6:8 | B5:16 | ",
+]
+# the last deck of the last ship: the Overmind's core
+GSONGS['LEVIATHAN_CORE'] = [
+    "u3 i0 " + ''.join(_gbass(c, 2) for c in ['Am', 'Am', 'F', 'F', 'Dm', 'Dm', 'E', 'E'] * 2),
+    "u3 i2 [[A5:1 C6:1 E6:1 A6:1]x4 [F5:1 A5:1 C6:1 F6:1]x4 [D5:1 F5:1 A5:1 D6:1]x4 [E5:1 G#5:1 B5:1 E6:1]x4]x2 "
+    "i1 A6:6 G6:2 E6:4 C6:4 | F6:6 E6:2 C6:8 | D6:6 C6:2 A5:4 F5:4 | E5:4 G#5:4 B5:8 | "
+    "A5:4 C6:4 E6:4 A6:4 | F6:4 A6:4 C7:8 | D7:4 C7:4 A6:4 F6:4 | E6:4 G#6:4 B6:8 | ",
+]
 
 
 def gasm():
+    """resident part: instruments and the pitch table. The tunes travel in
+    the ship files (gship_bytes) and load into GSBUF."""
     out = ['; generated by tools/music.py: the in-game soundtrack', 'ginstr:']
     for ins in GINSTR:
         out.append('            db %d,%d,%d,0' % ins)
@@ -226,23 +298,32 @@ def gasm():
     st = [min(65535, int(round(32.7032 * 2 ** ((n - 1) / 12.0) * 65536 / GRATE))) for n in range(1, 84)]
     for i in range(0, len(st), 12):
         out.append('            dw ' + ','.join(str(v) for v in st[i:i + 12]))
-    out.append('gsong_table: dw ' + ','.join('gs_%s' % n.lower() for n in GSONG_ORDER))
-    total = 0
-    for n in GSONG_ORDER:
-        lens = []
-        out.append('gs_%s: dw gs_%s_0,gs_%s_1' % (n.lower(), n.lower(), n.lower()))
-        for k, ch in enumerate(GSONGS[n]):
-            data, t = compile_channel(ch)
-            lens.append(t)
-            total += len(data) + 1
-            out.append('gs_%s_%d:' % (n.lower(), k))
-            for i in range(0, len(data), 24):
-                out.append('            db ' + ','.join(str(b) for b in data[i:i + 24]))
-            out.append('            db 254')
-        if len(set(lens)) != 1:
-            raise SystemExit('game song %s: channel lengths differ %s' % (n, lens))
-    out.append('; game music bytes: %d' % total)
     return '\n'.join(out) + '\n'
+
+
+def gship_bytes(names, base):
+    """a ship's tunes, located at base: dw tune0, tune1; then each tune's
+    header (dw ch0, ch1) and its two channels (each ends 254 = loop)"""
+    chans = []
+    for n in names:
+        cs = []
+        for ch in GSONGS[n]:
+            data, t = compile_channel(ch)
+            cs.append((data + bytes([254]), t))
+        if len(set(t for _, t in cs)) != 1:
+            raise SystemExit('game song %s: channel lengths differ %s' % (n, [t for _, t in cs]))
+        chans.append(cs)
+    out = bytearray(2 * len(names))
+    for k, cs in enumerate(chans):
+        hdr = base + len(out)
+        out[2 * k:2 * k + 2] = bytes([hdr & 255, hdr >> 8])
+        p = hdr + 4
+        h = bytearray()
+        for data, _ in cs:
+            h += bytes([p & 255, p >> 8]); p += len(data)
+        out += h
+        for data, _ in cs: out += data
+    return bytes(out)
 
 # front-end sound effects (channel 3, full volume)
 SFX = {
@@ -281,7 +362,7 @@ def intro_asm():
     return '\n'.join(out) + '\n'
 
 
-FE_SONGS = ['LINK', 'WIN', 'LOSE']                  # the duel's, in the front end
+FE_SONGS = ['LINK', 'WIN', 'LOSE', 'LIFT', 'LINK2']                  # the duel's, in the front end
 OV_SONGS = [n for n in SONG_ORDER if n not in FE_SONGS]   # the overlay's (OVTTL.DAT)
 
 

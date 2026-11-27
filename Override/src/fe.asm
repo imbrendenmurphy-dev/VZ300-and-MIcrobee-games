@@ -20,6 +20,7 @@ OV_SHIPCARD equ $4003
 OV_SHIPDONE equ $4006
 OV_GAMEOVER equ $4009
 OV_ENDING   equ $400C
+SHIPART     equ $E560          ; this ship's silhouette, 4 phases x 168 (from OVn.DAT)
 
 ; the attract loop: the overlay's intro, title and pages, then a game
 ; (or the demo), round and round
@@ -85,4 +86,4 @@ t_tune:     ds 1
 r_page:     ds 1
 re_y:       ds 1
 fe_end:
-            assert fe_end <= FEBB
+            assert fe_end <= SHIPART

@@ -122,7 +122,7 @@ def gen_tables():
         L.append('            db %d,%d,%d,%d,%d,%d,%d,$%02X,$%02X,0   ; %03d %s' %
                  (num & 255, num >> 8, en, spd, w, aggr, roster.cls(num), lo, hi, num, name))
     L.append('weapons:')
-    for k in range(6):
+    for k in range(len(roster.WEAPONS)):
         sp, dmg, rel, life = roster.WEAPONS[k]
         L.append('            db %d,%d,%d,%d' % (sp, dmg, rel, life))
     L.append('shotvel:')
@@ -146,7 +146,7 @@ def gen_consts(build_id):
     for k in dir(gfx):
         if (k.startswith('T_') or k.startswith('A_')) and isinstance(getattr(gfx, k), int):
             L.append('%-12s equ %d' % (k, getattr(gfx, k)))
-    for i, n in enumerate(['W_NONE', 'W_ZAP', 'W_LASER', 'W_TWIN', 'W_RAPID', 'W_CANNON']):
+    for i, n in enumerate(['W_NONE', 'W_ZAP', 'W_LASER', 'W_TWIN', 'W_RAPID', 'W_CANNON', 'W_SCATTER']):
         L.append('%-12s equ %d' % (n, i))
     L.append('NTYPES      equ %d' % roster.NTYPES)
     L.append('BUILD_ID    equ $%04X' % build_id)
@@ -221,7 +221,8 @@ def span(out, lo, hi):
     return a, bytes(out.get(i, 0) for i in range(a, b))
 
 
-def ship_files(sym, build_id):
+def ship_files(sym, fsym, build_id):
+    import music, fedata
     total = 0
     for si, spec in enumerate(ships.SHIPS):
         decks = ships.make_ship(spec)
@@ -239,7 +240,17 @@ def ship_files(sym, build_id):
             m = 0
             for s in d.shaft_of: m |= 1 << s
             h[o + 17] = m
-        total += datfile('OV%d' % (si + 1), [chunk(7, sym['shipinfo'], h)], sym, build_id)
+        # the ship's look and sound: its tile theme, its two tunes, its silhouette
+        th = spec['theme']
+        tunes = music.gship_bytes(spec['tunes'], sym['GSBUF'])
+        assert len(tunes) <= sym['GSBUF_SZ'], (spec['name'], len(tunes))
+        art = fedata.ship_shifts(fedata.SHIP_ARTS[th]())
+        assert len(art) == 0xE800 - fsym['SHIPART']
+        total += datfile('OV%d' % (si + 1), [chunk(7, sym['shipinfo'], h),
+                                             chunk(7, sym['tiles_norm'], gfx.tileset_bytes(False, th)),
+                                             chunk(7, sym['tiles_dim'], gfx.tileset_bytes(True, th)),
+                                             chunk(7, sym['GSBUF'], tunes),
+                                             chunk(3, fsym['SHIPART'], art)], sym, build_id)
         for di, d in enumerate(decks):
             mp = bytearray(64 * d.H)
             for y in range(d.H):
@@ -313,7 +324,7 @@ def main():
     print('OVTTL.DAT %d bytes' % datfile('OVTTL', [chunk(3, 0x4000, ov)], sym, build_id))
     old = os.path.join(SD, 'OVATT.DAT')
     if os.path.exists(old): os.remove(old)
-    print('ship files %d bytes' % ship_files(sym, build_id))
+    print('ship files %d bytes' % ship_files(sym, fa.sym, build_id))
     hdr = b'VZF0' + b'OVERRIDE'.ljust(17, b'\0') + bytes([0xF1, 0x00, 0x80])
     open(os.path.join(SD, 'OVERRIDE.VZ'), 'wb').write(hdr + code)
     print('OVERRIDE.VZ %d bytes' % (len(code) + 24))

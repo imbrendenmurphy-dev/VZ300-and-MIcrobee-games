@@ -115,14 +115,22 @@ m_tick:
             ld a,(m_chsfx+CH_DUTY)
             or a
             jr nz,.sfx
+            ld a,$20                ; voices 1-2: speaker and/or tape MSB
+            ld c,$04
+            call so_mask
+            ld (ml_m12+1),a
             ld ix,m_chan3
-            ld a,$20
+            ld a,$20                ; voice 3: speaker and/or tape LSB
+            ld c,$02
+            call so_mask
             ld (ml_m3+1),a
             ld (ml_m3n+1),a
             ld a,(ix+CH_DUTY)
             call m_mute
             jr .ch3
-.sfx:       ld a,$21
+.sfx:       ld a,$21                ; an effect: both lines, both tape bits
+            ld c,$06
+            call so_mask
             ld (ml_m3+1),a
             ld (ml_m3n+1),a
             ld ix,m_chsfx
@@ -317,7 +325,7 @@ ml_d2:      cp 0                    ; 7
             exx                     ; 4
             sbc a,a                 ; 4
             or e                    ; 4
-            and $20                 ; 7
+ml_m12:     and $20                 ; 7
             ld e,a                  ; 4
 ml_j3:      jp ml_tone              ; 10
 ml_tone:

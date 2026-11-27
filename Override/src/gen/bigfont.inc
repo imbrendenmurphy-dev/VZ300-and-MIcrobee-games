@@ -33,7 +33,7 @@ bf_glyphs:
             db $0C,$0C,$0C,$0C,$0C,$CC,$CC,$78   ; J
             db $CC,$D8,$F0,$E0,$F0,$D8,$CC,$CC   ; K
             db $C0,$C0,$C0,$C0,$C0,$C0,$C0,$FC   ; L
-            db $84,$CC,$FC,$CC,$CC,$CC,$CC,$CC   ; M
+            db $CC,$FC,$FC,$CC,$CC,$CC,$CC,$CC   ; M
             db $CC,$EC,$FC,$DC,$CC,$CC,$CC,$CC   ; N
             db $78,$CC,$CC,$CC,$CC,$CC,$CC,$78   ; O
             db $F8,$CC,$CC,$F8,$C0,$C0,$C0,$C0   ; P

@@ -9,6 +9,8 @@ MAP_Y0      equ 13             ; the console map's top row
 lift_main:
             ld a,$08
             call fe_setlatch
+            ld a,MUS_LIFT
+            call m_play
             ld a,(lf_deck)
             ld (lm_sel),a
             ld a,FX_LIFT
@@ -55,6 +57,7 @@ lift_main:
             call fe_sfx
             ld a,10
             call fe_delay
+            call m_stop
             ld a,(lm_sel)
             ret
 
@@ -401,8 +404,17 @@ left_txt:   db " LEFT",0
 lift_txt:   db "UP/DOWN RIDE  FIRE STEP OUT",0
 
 ; =====================================================================
-; console: the deck map, then the droid files (up to your class)
+; console: the deck map, then the droid files (up to your class), to the
+; lift's tune
 console_main:
+            ld a,MUS_LIFT
+            call m_play
+            call con_run
+            push af
+            call m_stop
+            pop af
+            ret
+con_run:
             ld a,$08
             call fe_setlatch
             ld a,FX_BEEP

@@ -21,8 +21,14 @@ LOCKT       equ 45
 xfer_main:
             ld a,$08
             call fe_setlatch
+            ld a,(xf_enemy)         ; heavy droids (class 7+) get the harder tune
+            ld c,T_CLASS
+            call type_stat
+            cp 7
             ld a,MUS_LINK
-            call m_play
+            jr c,.mus
+            ld a,MUS_LINK2
+.mus:       call m_play
             ; sprites: slot 0 = our host (built already), slot 7 = the enemy
             ld a,(xf_enemy)
             ld d,7

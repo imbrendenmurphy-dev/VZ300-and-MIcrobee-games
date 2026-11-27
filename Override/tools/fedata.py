@@ -99,8 +99,8 @@ def pic_bytes(px):
 
 
 STORY = [
-    "THE KESTREL FREIGHTERS DRIFT",
-    "DARK AT THE EDGE OF THE BELT.",
+    "FIVE SHIPS OF THE KESTREL LINE",
+    "DRIFT DARK AT THE BELT'S EDGE.",
     "A ROGUE SHIP MIND, THE OVERMIND,",
     "HAS SEIZED EVERY DROID ABOARD.",
     "",
@@ -111,8 +111,7 @@ STORY = [
     "BORROW THEIR BODIES. CLEAR EVERY",
 ]
 STORY2 = [
-    "DECK OF ALL THREE SHIPS.",
-    "",
+    "DECK OF ALL FIVE SHIPS.",
     "CONTROLS",
     "MOVE      Q A O P  OR  JOYSTICK",
     "SHOOT     FIRE (SPACE OR M)",
@@ -120,7 +119,8 @@ STORY2 = [
     "          THEN TOUCH A DROID",
     "LIFT      FIRE ON A LIFT PAD",
     "CONSOLE   PUSH INTO A TERMINAL",
-    "PAUSE     RETURN",
+    "PAUSE     RETURN     MUSIC  N",
+    "SOUND OUT C: SPEAKER/BOTH/TAPE",
 ]
 
 
@@ -173,9 +173,102 @@ def ship_art():
     return px
 
 
-def ship_shifts():
+def _canvas():
+    return [[B] * 44 for _ in range(14)]
+
+
+def _rect(px, x0, y0, x1, y1, c):
+    for y in range(y0, y1 + 1):
+        for x in range(x0, x1 + 1):
+            if 0 <= x < 44 and 0 <= y < 14: px[y][x] = c
+
+
+def liner_art():
+    """the Arcadia: a long white-yellow liner, three decks of windows, two funnels"""
+    px = _canvas()
+    for y in range(7, 12):                          # hull with a raked bow
+        x0 = 1 + max(0, 11 - y) * 0 + (y - 7) * 2 if y > 7 else 1
+        _rect(px, x0, y, 39 - (y - 7), y, Y)
+        px[y][x0] = G
+    _rect(px, 3, 11, 36, 11, G)
+    _rect(px, 2, 9, 38, 9, R)                       # the line's red band
+    _rect(px, 8, 4, 35, 6, Y)                       # superstructure
+    _rect(px, 12, 2, 31, 3, Y)
+    for x in range(9, 35, 2): px[5][x] = B
+    for x in range(13, 31, 2): px[3][x] = B
+    for x in range(3, 38, 3): px[8][x] = B
+    for fx in (17, 24):                             # funnels
+        _rect(px, fx, 0, fx + 2, 1, R)
+        px[0][fx] = G
+    _rect(px, 40, 8, 42, 10, R)                     # screws
+    px[9][43] = Y
+    return px
+
+
+def science_art():
+    """the Halcyon: a round lab hull, a ring of pods and a long sensor boom"""
+    px = _canvas()
+    for y in range(2, 12):                          # the disc
+        d = abs(y - 6.5)
+        h = int(round((5.5 ** 2 - d ** 2) ** 0.5 * 1.8)) if d < 5.5 else 0
+        _rect(px, 20 - h, y, 20 + h, y, Y)
+        if h: px[y][20 - h] = G; px[y][20 + h] = G
+    _rect(px, 11, 6, 29, 7, B)                      # the ring gap
+    for x in range(11, 30, 3): _rect(px, x, 6, x + 1, 7, R)
+    _rect(px, 0, 6, 10, 7, G)                       # sensor boom and dish
+    _rect(px, 0, 4, 1, 9, Y)
+    px[3][0] = G; px[10][0] = G
+    _rect(px, 31, 5, 37, 8, G)                      # drive section
+    _rect(px, 38, 5, 41, 8, R)
+    px[6][42] = Y; px[7][43] = Y
+    for x in (17, 20, 23): px[4][x] = B
+    return px
+
+
+def hauler_art():
+    """the Grindstone: a boxy ore hauler, cargo pods slung under a spine, a crane"""
+    px = _canvas()
+    _rect(px, 2, 5, 38, 6, G)                       # spine girder
+    for x in range(3, 38, 4): px[5][x] = B
+    for k, x in enumerate(range(6, 34, 7)):         # ore pods
+        _rect(px, x, 7, x + 5, 11, R if k % 2 else Y)
+        _rect(px, x, 7, x + 5, 7, G)
+    _rect(px, 0, 2, 7, 8, Y)                        # bridge block at the bow
+    _rect(px, 1, 3, 6, 3, B)
+    px[2][0] = G
+    _rect(px, 20, 1, 21, 4, G)                      # the crane
+    _rect(px, 21, 1, 29, 1, G)
+    px[2][29] = Y; px[3][29] = Y
+    _rect(px, 36, 3, 40, 9, Y)                      # engine block
+    _rect(px, 41, 4, 43, 8, R)
+    return px
+
+
+def warship_art():
+    """the Leviathan: an armoured wedge with gun turrets"""
+    px = _canvas()
+    for y in range(3, 12):                          # wedge: sharp bow on the left
+        d = abs(y - 7)
+        x0 = 2 + d * 3
+        _rect(px, x0, y, 40 - d, y, Y)
+        px[y][x0] = G
+    _rect(px, 6, 7, 38, 7, R)                       # armour seam
+    for x in range(10, 37, 4): px[9][x] = B
+    for tx in (12, 22):                             # turrets and barrels
+        _rect(px, tx, 1, tx + 3, 2, G)
+        _rect(px, tx - 4, 1, tx - 1, 1, G)
+    _rect(px, 28, 0, 33, 2, Y)                      # command tower
+    px[1][30] = B; px[1][31] = B
+    _rect(px, 41, 5, 43, 9, R)                      # drives
+    return px
+
+
+SHIP_ARTS = [ship_art, liner_art, science_art, hauler_art, warship_art]
+
+
+def ship_shifts(art=None):
     """4 phases x 14 rows x 12 bytes, opaque (blue padding)"""
-    art = ship_art(); out = bytearray()
+    art = art or ship_art(); out = bytearray()
     for p in range(4):
         for r in art:
             row = [B] * p + r + [B] * 48
@@ -207,7 +300,7 @@ BIG = {
     'J': ["....##", "....##", "....##", "....##", "....##", "##..##", "##..##", ".####."],
     'K': ["##..##", "##.##.", "####..", "###...", "####..", "##.##.", "##..##", "##..##"],
     'L': ["##....", "##....", "##....", "##....", "##....", "##....", "##....", "######"],
-    'M': ["#....#", "##..##", "######", "##..##", "##..##", "##..##", "##..##", "##..##"],
+    'M': ["##..##", "######", "######", "##..##", "##..##", "##..##", "##..##", "##..##"],
     'N': ["##..##", "###.##", "######", "##.###", "##..##", "##..##", "##..##", "##..##"],
     'O': [".####.", "##..##", "##..##", "##..##", "##..##", "##..##", "##..##", ".####."],
     'P': ["#####.", "##..##", "##..##", "#####.", "##....", "##....", "##....", "##...."],
