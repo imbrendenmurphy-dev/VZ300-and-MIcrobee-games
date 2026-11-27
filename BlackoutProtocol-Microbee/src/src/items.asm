@@ -152,6 +152,47 @@ fit_dim1:
         pop hl
         ret
 
+; On entry to a room, on Story and Agent: if a shard still hides in one of its
+; fittings, say so (and blip).  Explorers find the rooms worth searching; which
+; fitting is still up to them.
+str_signal: db "SHARD SIGNAL",0
+shard_hint:
+        ld a,(skill)
+        cp 2
+        ret nc
+        ld hl,(STAGE+10)
+        ld de,STAGE
+        add hl,de
+        ld a,(hl)
+        or a
+        ret z
+        ld b,a
+        inc hl
+        ld c,0                  ; fitting index
+.f:     push bc
+        push hl
+        inc hl
+        inc hl
+        ld a,(hl)               ; its item
+        cp $40
+        jr c,.n
+        ld a,c
+        call fit_searched
+        jr nz,.n
+        pop hl
+        pop bc
+        ld hl,str_signal
+        call msg_show
+        jp sfx_tick
+.n:     pop hl
+        pop bc
+        inc hl
+        inc hl
+        inc hl
+        inc c
+        djnz .f
+        ret
+
 ; On entry to a room: dim everything already searched.
 marks_apply:
         ld hl,(STAGE+10)

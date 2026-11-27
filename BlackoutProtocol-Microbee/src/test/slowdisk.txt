@@ -1,10 +1,7 @@
 crash
 sym build\game.sym
 fastdisk off
-disk A: outputs\BA.DS8
-disk B: outputs\BB.DS8
-disk C: outputs\BC.DS8
-disk D: outputs\BD.DS8
+disk A: outputs\BLACKOUT.DS8
 boot
 until mus_play 9000
 peek speech_ok 1

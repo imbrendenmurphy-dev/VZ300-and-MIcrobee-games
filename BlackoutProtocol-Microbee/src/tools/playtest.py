@@ -22,7 +22,7 @@ for i, rm in enumerate(R):
 shards.sort()
 TGT = [0b1010, 0b0110, 0b1011, 0b0101, 0b1110, 0b0011, 0b1101, 0b1100, 0b0111,
        0b0111, 0b1010, 0b1110, 0b0011, 0b1011, 0b0101, 0b1101, 0b1100, 0b0110]
-L = ['crash', 'sym build\\game.sym'] + [f'disk {d}: outputs\\B{d}.DS8' for d in 'ABCD'] + \
+L = ['crash', 'sym build\\game.sym'] + ['disk A: outputs\\BLACKOUT.DS8'] + \
     ['boot', 'until mus_play 4000',
      f'poke dbg_r {shards[0][1]}', 'poke dbg_side 0', 'pc dbg_room', 'until loop 900', 'fields 80']
 cur = shards[0][1]

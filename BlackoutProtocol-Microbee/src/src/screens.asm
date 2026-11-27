@@ -237,6 +237,10 @@ game_won:
         jp ovl_call
 game_over:
         ld sp,STACKTOP
+        xor a                   ; the clock ran out: it reads 00:00:00, not a wrapped hour
+        ld (clk_h),a
+        ld (clk_m),a
+        ld (clk_s),a
         ld a,OVL_OVER
         jp ovl_call
 

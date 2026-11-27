@@ -1,7 +1,4 @@
 disk A: outputs\BT.DS8
-disk B: outputs\BB.DS8
-disk C: outputs\BC.DS8
-disk D: outputs\BD.DS8
 boot
 typeat A> DIR_B:\r
 fields 100

@@ -15,13 +15,13 @@ with contextlib.redirect_stdout(io.StringIO()):
 R = g['rooms']
 UBEMU = r'C:\Users\Owner\Documents\Microbee\uBonPC\ubemu.exe'
 #        clk_frames pen_min gun_cool grace_n fast_pat slow_hunt  (= sk_tab in save.asm)
-LEVELS = {'story': [25, 5, 150, 150, 0, 1, 1, 2], 'agent': [19, 10, 90, 100, 0, 0, 0, 1], 'ghost': [16, 15, 50, 50, 1, 0, 0, 0], 'asleep': [19, 10, 90, 100, 0, 0, 0, 1]}
+LEVELS = {'story': [32, 3, 150, 150, 0, 1, 1, 2], 'agent': [24, 6, 90, 100, 0, 0, 0, 1], 'ghost': [17, 12, 55, 60, 1, 0, 0, 0], 'asleep': [24, 6, 90, 100, 0, 0, 0, 1]}
 VARS = ['clk_frames', 'pen_min', 'gun_cool', 'grace_n', 'fast_pat', 'slow_hunt', 'hunt_off', 'hb_trim']
 rooms = [i for i in range(len(R)) if i != 10]          # (not MERIDIAN's core room)
 
 
 def script(level):
-    L = ['crash', 'sym build\\game.sym'] + [f'disk {d}: outputs\\B{d}.DS8' for d in 'ABCD'] + \
+    L = ['crash', 'sym build\\game.sym'] + ['disk A: outputs\\BLACKOUT.DS8'] + \
         ['boot', 'until mus_play 4000', 'poke dbg_r 1', 'poke dbg_side 0',
          'pc dbg_room', 'until loop 900']
     L += [f'poke {v} {x}' for v, x in zip(VARS, LEVELS[level])]

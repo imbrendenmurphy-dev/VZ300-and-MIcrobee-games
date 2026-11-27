@@ -57,9 +57,6 @@ save_page_open:
         call slot_write
         ld hl,str_saved
         jr nc,.m
-        ld hl,str_noprot
-        bit 6,a
-        jr nz,.m
         ld hl,str_nosave
 .m:     ld (pend_msg),hl
         call sfx_found

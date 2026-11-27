@@ -30,9 +30,6 @@ start:
         ldir
         call hw_init
         call far_init
-        ld a,$FF                ; the drives: head positions unknown
-        ld (fdc_cyl),a
-        ld (fdc_drv),a
         ld a,(ld_packs)         ; disks B-D already read through CP/M at start-up
         ld (packs_in),a
         ld a,1                  ; Agent until a level is chosen (and for the test hooks)
@@ -93,7 +90,7 @@ loop:
         call present
         jr loop
 
-; ESC in a room or a shaft: "QUIT? Y/N" on the bar.  Y goes back to the title
+; ESC in a room or a shaft pauses: "PAUSED. Y=QUIT" on the bar.  Y goes back to the title
 ; (where L loads a saved game); N or ESC again carries on.
 KEY_ESC equ 48
 KEY_Y   equ 25
@@ -128,7 +125,7 @@ esc_check:
 .yes:   call wait_up
         ld sp,STACKTOP
         jp title
-str_quitq: db "QUIT? Y/N",0
+str_quitq: db "PAUSED. Y=QUIT",0
 
 ; ---------------------------------------------------------------- rooms
 ; A = room, B = arrival: 0 through the left door, 1 through the right
@@ -274,7 +271,8 @@ enter_room:
         ld hl,mus_core
 .w2:    xor a
         call mus_play
-.ws:    ld a,(first_visit)      ; first time in a guarded room: MERIDIAN notices
+.ws:    call shard_hint         ; (Story / Agent: "SHARD SIGNAL")
+        ld a,(first_visit)      ; first time in a guarded room: MERIDIAN notices
         or a
         ret z
         ld a,(nrob)
@@ -459,7 +457,7 @@ put_c1: push bc
 
 str_shaft: db "LIFT SHAFT A",0
 str_sealed: db "CORE SEALED",0
-str_level: db "LEVEL ",0
+str_level: db "FLOOR ",0
 
         include "video.asm"
         include "shaft.asm"
@@ -504,6 +502,8 @@ ovl2_run_end:
 ovl2_image_end:
 OVL2_LEN equ ovl2_image_end-ovl2_image
         ASSERT ovl2_run_end <= BACK
+        ASSERT ovl_run_end <= CPM_SP-$70   ; the overlays stay clear of the save stack
+        ASSERT ovl2_run_end <= CPM_SP-$70  ; and record (save.asm)
         SAVEBIN "../build/BLACKOUT.OV2",ovl2_image,OVL2_LEN
 
         org $E000

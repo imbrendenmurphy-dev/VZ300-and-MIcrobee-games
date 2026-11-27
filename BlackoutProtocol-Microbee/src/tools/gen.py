@@ -474,7 +474,7 @@ for w in range(6):
     members = [k for k, rm in enumerate(rooms) if rm.wing == w and rm.searchables()
                and not any(rm.t[r_][c_] == 'splb' for r_ in range(22) for c_ in range(42))]
     for s, ri in enumerate(rnd.sample(members, 3)): hide(ri, 0x40 + w * 3 + s)
-    for ri in rnd.sample(members, 2): hide(ri, 0x20)
+    for ri in rnd.sample(members, 3): hide(ri, 0x20)          # SLEEP: three a wing (generous)
     for ri in rnd.sample(members, 2 if w else 1): hide(ri, 0x30)
 
 # Each room is one record in the DAT, copied to the staging window on entry:

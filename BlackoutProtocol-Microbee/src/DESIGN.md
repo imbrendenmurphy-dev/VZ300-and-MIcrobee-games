@@ -361,3 +361,25 @@ status byte, the byte count and the first bytes (reference run: `outputs/fdctest
 The title shows "NO VOICE: DISK D NOT FOUND" when disk D couldn't be read.
 
 Shaft lifts (2026-11-23): Q/A **or the arrow keys** ride the lift (it read only the letters before), from anywhere on the platform (±10 half-pixels of centre, was ±4); Wren is centred when the ride starts. Test: `test/lift.txt`.
+
+**One disk, CP/M saves, generosity and polish (2026-11-27)**
+- **One disk**: everything (~240 KB) is on `outputs/BLACKOUT.DS8` (63 of 196 blocks). `load_assets`
+  reads BLACKOUT.DAT and WING2-4.DAT into the banks through CP/M at start-up; the game's own WD2793
+  code is gone (`src/fdc.asm` is two tiny stubs). A missing file stops at start-up with a message.
+- **Saves through CP/M** (`src/save.asm`, `cpm_io`): CP/M's BDOS + BIOS live at D600-FFFF. At
+  start-up the game copies D600-EFFF to bank 28 (F000-FFFF is RAM under the game's video window, which
+  it never touches). To save or load it parks its own D600-EFFF in bank 27, puts CP/M back, points the
+  BDOS error vectors (D609-D610) at its own handler, switches to CP/M's map ($0C), enables interrupts,
+  and does BDOS open / random read or write / close on A:SAVES.DAT; then CP/M (as it now stands) goes
+  back to bank 28 and the game returns. The record is 256 bytes at 4F00, the stack and flags just
+  below (the overlays are asserted to end before them). Microbee's BIOS answers a write to a
+  write-protected disk with "PRESS RETURN TO TRY AGAIN" forever; at start-up the game turns that branch
+  into "return the error" (only if the 8 bytes at F077 are exactly as expected), so a locked disk just
+  gives SAVE FAILED. Works on SD-card Premium Plus disk images because it is CP/M's own disk code.
+- **Generous** (`sk_tab`): Story 32 fields per game second, 3 min a death (~5 h clock, ~95 deaths
+  to spare); Agent 24 and 6 min (~3 h 50, ~38 to spare); Ghost 17 and 12 min (~2 h 45, ~10). Three
+  SLEEP codes a wing (was two). **SHARD SIGNAL** on entering a room whose fittings still hide a shard
+  (Story and Agent), so explorers know which rooms are worth a full search.
+- **Polish**: ESC is a pause ("PAUSED. Y=QUIT"; the title says ESC PAUSE); the shaft reads FLOOR n,
+  not LEVEL n; the game-over report shows 00:00:00 instead of a wrapped hour; READ.ME on the disk.
+- Bot re-run on the new levels: 0 door deaths on all three; blind-run deaths Story 19, Agent 20, Ghost 38; no room kills the blind bot more than twice on Story or Agent. Full test pass: completion (6 autosaves through CP/M), save/reset/load, write-protected save (SAVE FAILED), Ghost save/load, ESC pause, lifts, auto-boot, shard signal.

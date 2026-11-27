@@ -48,71 +48,46 @@ load_assets:
         ld de,dat_fcb
         ld a,DAT_FIRST
         call load_file
-; Disks B-D through CP/M too, while it is still here: each WINGn.DAT straight into its
-; pack's blocks, exactly where the game's own disk reader would put it.  (On a Premium
-; Plus with SD-card disk images the game's direct WD2793 reads don't reach B-D, but
-; CP/M does.)  A drive that isn't there is skipped, and the game falls back to its own
-; reader and "INSERT DISK" when it needs that pack.
+; The wings, MERIDIAN's voice and the music: each WINGn.DAT straight into its pack's
+; blocks.  Everything is on the one disk, so all of it is in RAM from here on.
         ld de,wing2_fcb
         ld a,PACK1_BASE
-        ld c,1
-        call try_pack
+        call load_file
         ld de,wing3_fcb
         ld a,PACK2_BASE
-        ld c,2
-        call try_pack
+        call load_file
         ld de,wing4_fcb
         ld a,PACK3_BASE
-        ld c,4
-        jp try_pack
-
-try_pack:
-        ld (ld_block),a
-        ld a,c
-        ld (ld_bit),a
-        ld (ld_fcb),de
-        ld a,(de)               ; "disk B", "disk C" ...
-        add a,'@'
-        ld (str_disk+7),a
-        ld de,str_disk
-        ld c,9
-        call 5
-        ld de,(ld_fcb)          ; is the drive there at all? (BIOS SELDSK: HL = 0 if not;
-        ld a,(de)               ;  asking BDOS would stop on "Err On B: Select")
-        dec a
-        ld c,a
-        ld e,0
-        ld hl,(1)               ; BIOS warm boot entry = BIOS+3; SELDSK = BIOS+27
-        ld de,24
-        add hl,de
-        ld (.sel+1),hl
-.sel:   call 0
-        push hl
-        ld c,0                  ; (and back to drive A for the BIOS)
-        ld e,1
-        ld hl,(.sel+1)
-        call .jp
-        pop hl
-        ld a,h
-        or l
-        jr z,.miss
-        ld de,(ld_fcb)
-        ld c,15                 ; open
-        call 5
-        inc a
-        jr z,.miss
-        ld a,(ld_block)
-        ld de,(ld_fcb)
         call load_file
-        ld a,(ld_bit)
-        ld hl,ld_packs
-        or (hl)
-        ld (hl),a
-        ret
-.miss:  ld de,str_miss
-        ld c,9
-        jp 5
-.jp:    jp (hl)
+        ld a,7
+        ld (ld_packs),a
+; The BIOS answers a write to a write-protected disk with "DISKETTE A IS WRITE
+; PROTECTED - PRESS RETURN TO TRY AGAIN" and waits, again and again.  Mid-game that
+; would hang a save, so (only if these are exactly the expected bytes) the branch
+; that leads to it becomes "return the error": the save then just says SAVE FAILED.
+        di
+        ld a,12                 ; CP/M's map with the video off: the BIOS's RAM at F000
+        out ($50),a
+        ld hl,$F077
+        ld de,wp_code
+        ld b,8
+.wp:    ld a,(de)
+        cp (hl)
+        jr nz,.nowp
+        inc hl
+        inc de
+        djnz .wp
+        ld a,$18                ; JR Z,+20 -> JR +20
+        ld ($F07D),a
+.nowp:  ei
+; Last, CP/M itself (BDOS + BIOS, D600-EFFF) into a bank: the game will overwrite it,
+; and puts it back for a moment whenever it saves or loads (save.asm, cpm_io).
+        ld a,CPM_SAVED
+        call bank_port
+        ld hl,CPM_BASE
+        ld de,0
+        ld bc,CPM_LEN
+        jp $8100
 
 ; DE = FCB, A = first block: read the whole file into the banks.
 load_file:
@@ -165,26 +140,25 @@ load_error:
         call 5
         jp 0
 str_loading: db 13,10,"BLACKOUT PROTOCOL - loading the station...",13,10,"$"
-str_nodat:   db 13,10,"BLACKOUT.DAT missing or unreadable.",13,10,"$"
+str_nodat:   db 13,10,"A game file is missing or unreadable: please copy the disk again.",13,10,"$"
 ld_block: db 0                  ; (here, not at E000: CP/M is still up there while loading)
 ld_dest: dw 0
 ld_fcb: dw 0
 dat_fcb: db 0,"BLACKOUTDAT"
         ds 25,0
-wing2_fcb: db 2,"WING2   DAT"
+wing2_fcb: db 0,"WING2   DAT"
         ds 25,0
-wing3_fcb: db 3,"WING3   DAT"
+wing3_fcb: db 0,"WING3   DAT"
         ds 25,0
-wing4_fcb: db 4,"WING4   DAT"
+wing4_fcb: db 0,"WING4   DAT"
         ds 25,0
-ld_bit:  db 0
 ld_packs: db 0                  ; packs read at start-up (bit 0 = pack 1 ...)
-str_disk: db 13,10,"Disk  B $"
-str_miss: db " - not found$"
+
 ovl_fcb: db 0,"BLACKOUTOVL"
         ds 25,0
 ovl2_fcb: db 0,"BLACKOUTOV2"
         ds 25,0
+wp_code: db $DB,$44,$CB,$77,$3E,$01,$28,$14   ; IN A,(44h) / BIT 6,A / LD A,1 / JR Z,..
 store_image:
         DISP $8100
 store_record:
@@ -304,24 +278,11 @@ spr_blit:
 .done:  ld a,PORT_GAME
         out ($50),a
         ret
-; A = port, HL = destination in that block; a READ SECTOR has just been
-; issued.  Takes bytes on DRQ until INTRQ; A = the final status.
-fdc_rd:
-        out ($50),a
-.w:     in a,($48)
-        rla
-        jr nc,.w
-        in a,($44)
-        bit 1,a
-        jr z,.done
-        in a,($47)
-        ld (hl),a
-        inc hl
-        jr .w
-.done:  ld b,a
+far_move:                       ; A = port (a block low), HL -> DE, BC bytes
+        out ($50),a             ; (copies between a bank and upper RAM either way)
+        ldir
         ld a,PORT_GAME
         out ($50),a
-        ld a,b
         ret
 farcode_end:
         ENT

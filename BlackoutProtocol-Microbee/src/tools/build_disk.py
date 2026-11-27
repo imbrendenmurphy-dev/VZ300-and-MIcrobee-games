@@ -1,4 +1,4 @@
-"""Build outputs/BLACKOUT.DS80: a Microbee CP/M boot disk, double sided, 80 tracks.
+"""Build outputs/BLACKOUT.DS8: a Microbee CP/M boot disk, double sided, 80 tracks.
 Boot tracks + CCP.SYS come from resources/ (taken from a Microbee CP/M boot disk).
 Run from the project root."""
 from pathlib import Path
@@ -49,27 +49,15 @@ def add(name, data):
 # Disk A boots straight into the game: its CCP.SYS is our loader (src/autoboot.asm), not the
 # CP/M command processor, and there is no SHELL.SYS (the Microbee shell is not used).
 ccp = Path('build/CCP.SYS').read_bytes(); assert len(ccp) <= 4096 and ccp[2:4] == b'\x00\xcb'
-readme = (b'BLACKOUT PROTOCOL\r\nMicrobee Premium Plus (1MB, 32K PCG RAM)\r\n'
-          b'Four disks: A (boot) in drive A, B in drive B, C in drive C, D in drive D.\r\n'
-          b'Disk A boots straight into the game (its CCP.SYS is a loader for\r\n'
-          b'BLACKOUT.COM; the Microbee shell is not used). From another CP/M\r\n'
-          b'boot disk you can also type BLACKOUT at the A> prompt.\r\n\x1a')
-placed = build('BA.DS8', True, [('CCP.SYS', ccp), ('SAVES.DAT', bytes(4096)), ('BLACKOUT.COM', Path('build/BLACKOUT.COM').read_bytes()),
-      ('BLACKOUT.DAT', Path('build/BLACKOUT.DAT').read_bytes()),
-      ('BLACKOUT.OVL', Path('build/BLACKOUT.OVL').read_bytes()), ('BLACKOUT.OV2', Path('build/BLACKOUT.OV2').read_bytes()),
+readme = (b'BLACKOUT PROTOCOL\r\nMicrobee Premium Plus (1 MB RAM, 32 KB PCG RAM)\r\n'
+          b'One disk: put BLACKOUT.DS8 in drive A and boot. The game starts by\r\n'
+          b'itself (its CCP.SYS is a loader for BLACKOUT.COM; the Microbee shell\r\n'
+          b'is not used). Saved games go in SAVES.DAT, so keep the disk writable.\r\n'
+          b'From another CP/M boot disk you can also type BLACKOUT at A>.\r\n\x1a')
+B = lambda n: Path('build/' + n).read_bytes()
+# Everything on one disk (~240 KB of ~780 KB).  The game reads it all through CP/M at
+# start-up; SAVES.DAT is read and written through CP/M too (src/save.asm).
+placed = build('BLACKOUT.DS8', True, [('CCP.SYS', ccp), ('SAVES.DAT', bytes(4096)), ('BLACKOUT.COM', B('BLACKOUT.COM')),
+      ('BLACKOUT.DAT', B('BLACKOUT.DAT')), ('BLACKOUT.OVL', B('BLACKOUT.OVL')), ('BLACKOUT.OV2', B('BLACKOUT.OV2')),
+      ('WING2.DAT', B('WING2.DAT')), ('WING3.DAT', B('WING3.DAT')), ('WING4.DAT', B('WING4.DAT')),
       ('READ.ME', readme)])
-assert placed['SAVES.DAT'] == 2       # the game reads and writes it at data-area logical sectors 16..19
-# BT.DS8: a test boot disk with the ordinary A> prompt (the real CCP.SYS), FDCTEST.COM, and
-# the game, which you can still run by typing BLACKOUT.  Put it in drive A instead of BA.
-real_ccp = (RES / 'CCP.SYS').read_bytes(); assert len(real_ccp) == 2432
-placed = build('BT.DS8', True, [('CCP.SYS', real_ccp), ('SAVES.DAT', bytes(4096)), ('BLACKOUT.COM', Path('build/BLACKOUT.COM').read_bytes()),
-      ('BLACKOUT.DAT', Path('build/BLACKOUT.DAT').read_bytes()),
-      ('BLACKOUT.OVL', Path('build/BLACKOUT.OVL').read_bytes()), ('BLACKOUT.OV2', Path('build/BLACKOUT.OV2').read_bytes()),
-      ('FDCTEST.COM', Path('build/FDCTEST.COM').read_bytes()),
-      ('READ.ME', b'BLACKOUT PROTOCOL test disk: boots to A>.  Try DIR B:, DIR C:, DIR D:,\r\n'
-                  b'then FDCTEST, then BLACKOUT.\r\n\x1a')])
-assert placed['SAVES.DAT'] == 2
-for letter, fname in (('B', 'WING2.DAT'), ('C', 'WING3.DAT'), ('D', 'WING4.DAT')):
-    placed = build(f'B{letter}.DS8', False, [(fname, Path('build/' + fname).read_bytes()),
-                   ('READ.ME', b'BLACKOUT PROTOCOL - data disk ' + letter.encode() + b'\r\n\x1a')])
-    assert placed[fname] == 1      # the game reads it from data-area logical sector 8

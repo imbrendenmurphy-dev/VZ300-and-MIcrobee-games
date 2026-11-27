@@ -1,0 +1,9 @@
+sym build\game.sym
+disk A: outputs\BLACKOUT.DS8
+boot
+until load_assets.nowp 4000
+regs
+peek $F077 8
+peek wp_code 8
+until mus_play 4000
+peek $F077 8

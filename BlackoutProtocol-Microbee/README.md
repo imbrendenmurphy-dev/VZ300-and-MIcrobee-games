@@ -2,8 +2,8 @@
 
 An original action-puzzle game in the style of *Impossible Mission*, for the
 **Microbee Premium Plus** (1 MB RAM, 32 KB PCG RAM). It runs in a full-screen
-PAL mode of 42×24 cells (336×288 pixels) and comes on four double-sided
-80-track disks.
+PAL mode of 42×24 cells (336×288 pixels) and comes on one double-sided
+80-track disk.
 
 MERIDIAN, the AI of the HALCYON ARRAY station, will cut the planet's power in
 eight hours. Agent Wren must search six wings of the station for 18 cipher
@@ -14,21 +14,15 @@ MERIDIAN's core.
 
 ## Running it
 
-1. Put the four disks in drives A to D: `release/BA.DS8` in A, `BB.DS8` in B,
-   `BC.DS8` in C and `BD.DS8` in D.
-2. Boot drive A. The game starts by itself.
+1. Put `release/BLACKOUT.DS8` in drive A (keep it writable, since saved games go on it).
+2. Boot it. The game starts by itself.
 
-At start-up the game reads all four disks through CP/M into the 1 MB of RAM,
-so nothing is loaded from disk during play. Disk A carries a small loader of
-its own in place of the CP/M command processor (see *Auto-boot* below), so it
-boots straight into the game. If disk D is missing, the game still runs, but
-the title shows "NO VOICE: DISK D NOT FOUND".
+At start-up the game reads everything into the 1 MB of RAM through CP/M, so
+nothing is loaded during play. The disk carries a small loader of its own in
+place of the CP/M command processor (see *Auto-boot* below), so it boots
+straight into the game.
 
-`BT.DS8` is a test disk to use in drive A instead of `BA`. It boots to the
-ordinary `A>` prompt, and holds the game (type `BLACKOUT`) and `FDCTEST`, which
-reports how the machine answers direct floppy-controller reads on drives A–D.
-
-In the uBonPC emulator, `src/play.bat` boots the four disks.
+In the uBonPC emulator, `src/play.bat` boots the disk.
 
 ## Controls
 
@@ -39,7 +33,7 @@ In the uBonPC emulator, `src/play.bat` boots the four disks.
 | `SPACE` | vault (a forward somersault over robots and gaps) |
 | `W` | wrist-deck: map, keys, shards, codes, time; `S` there to save |
 | `S` / `R` at a security terminal | use a SLEEP code (robots off 20 s) / a RESET code (lift pads back) |
-| `ESC` | quit to the title (Y/N) |
+| `ESC` | pause (`Y` quits to the title) |
 | `L` (title) | load a saved game |
 
 ## The game
@@ -56,10 +50,14 @@ In the uBonPC emulator, `src/play.bat` boots the four disks.
 - **Splice terminals**: in each wing, turn the three shards until they match
   the pattern, and that wing's key comes online.
 - **The clock**: a death costs game time, and when it reaches zero, it's dark.
-- **Three levels** (*Story*, *Agent*, *Ghost*): they change the clock speed,
-  the death penalty, robot speed and guns, and how long you're safe on entering
-  a room.
-- **Saves**: four slots on disk A. Slot 0 is an autosave made each time a key
+- **Three levels**, all built to be finished:
+  - *Story*: about 5 hours on the clock, 3 minutes a death, slow robots.
+  - *Agent*: about 3 h 50, 6 minutes a death.
+  - *Ghost*: about 2 h 45, 12 minutes a death, faster robots and guns.
+
+  On Story and Agent, a **SHARD SIGNAL** tells you when a room you enter still
+  hides a shard.
+- **Saves**: four slots on the disk. Slot 0 is an autosave made each time a key
   comes online.
 - **MERIDIAN speaks**, with nine original lines, and there's an original
   sectioned title tune plus wing stings.
@@ -98,8 +96,11 @@ drive a skeleton that renders a clean 24×24 sprite.
   not used**). Its `CCP.SYS` is a 384-byte loader (`src/src/autoboot.asm`) that
   reads `BLACKOUT.COM` and runs it. The disk works write-protected and is still
   an ordinary CP/M disk.
-- **Disks B–D** are read through CP/M at start-up. On a Premium Plus with SD-card
-  disk images, the game's own direct WD2793 reads don't reach those drives.
+- **Saving through CP/M**: the game overwrites CP/M while it runs, so it keeps a
+  copy in a spare bank. To save, it swaps CP/M back for a moment, lets the BDOS
+  write `SAVES.DAT`, then swaps itself back. That's CP/M's own disk code, so it
+  works on SD-card Premium Plus disk images too. A write-protected disk just
+  shows SAVE FAILED.
 
 ## Building
 
@@ -107,7 +108,7 @@ drive a skeleton that renders a clean 24×24 sprite.
 (`src/tools`: rooms, art, font, music, speech, disks), the Muybridge reference
 plates (`src/ref`) and the emulator test scripts (`src/test`). Put
 `sjasmplus.exe` in `src/tools/` and run `src/build.ps1`. The disks come out in
-`src/outputs/`. `src/DESIGN.md` is the full design and development log.
+`src/outputs/BLACKOUT.DS8`. `src/DESIGN.md` is the full design and development log.
 
 Blackout Protocol is an original game: its names, art, music and speech are
 its own, made in the style of *Impossible Mission*, not copied from it.

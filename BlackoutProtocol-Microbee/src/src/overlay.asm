@@ -590,7 +590,7 @@ title_page:
         db PG_TEXT,18,28,$0F,"SLEEP/RESET",0
         db PG_TEXT,19,4,$08,"OR THE ARROW KEYS",0
         db PG_KEY,19,27,"ESC",0
-        db PG_TEXT,19,31,$08,"QUIT",0
+        db PG_TEXT,19,31,$08,"PAUSE",0
         db PG_KEY,22,3," L ",0
         db PG_TEXT,22,7,$08,"LOAD A SAVED GAME",0
         db PG_BUL,21,10
@@ -730,5 +730,5 @@ str_lost1:   db "THE GRID WENT DARK",0
 str_lost2:   db "MERIDIAN'S BLACKOUT PROTOCOL RAN.",0
 str_stats:   db "SEARCHES ",0
 str_stats2:  db "   DEATHS ",0
-str_novoice: db "NO VOICE: DISK D NOT FOUND",0
+str_novoice: db "NO VOICE: DISK UNREADABLE",0
 str_again:   db "PRESS SPACE",0

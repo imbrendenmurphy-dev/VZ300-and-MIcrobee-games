@@ -1,0 +1,7 @@
+disk A: outputs\BT.DS8
+boot
+typeat A> DIR\r
+fields 50
+peek $0000 8
+regs
+dis $E606 4

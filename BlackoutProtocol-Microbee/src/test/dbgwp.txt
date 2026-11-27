@@ -1,0 +1,67 @@
+crash
+sym build\game.sym
+disk A: outputs\BLACKOUT.DS8
+boot
+until mus_play 4000
+fields 50
+screen test\s_title.png 1 colour
+poke dbg_r 20
+poke dbg_side 0
+pc dbg_room
+until loop 900
+fields 80
+poke shards 7
+poke keys_done 1
+peek cur_room 1
+down W
+fields 40
+up W
+seconds 3
+screen test\s_deck.png 1 colour
+down S
+fields 40
+up S
+seconds 2
+screen test\s_save.png 1 colour
+down 2
+fields 30
+up 2
+until loop 900
+fields 10
+screen test\s_saved.png 1 colour
+peekb 0 $D800 16
+reset
+until mus_play 4000
+fields 50
+down L
+fields 40
+up L
+seconds 2
+screen test\s_load.png 1 colour
+down 2
+fields 30
+up 2
+until loop 3000
+fields 80
+peek cur_room 1
+peek keys_done 1
+peek shards 3
+screen test\s_loaded.png 1 colour
+diskprotect A on
+down W
+fields 40
+up W
+seconds 3
+down S
+fields 40
+up S
+seconds 2
+down 3
+fields 30
+up 3
+fields 300
+regs
+peek $F07D 1
+ring on
+fields 5
+ring test\ring2.txt

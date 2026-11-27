@@ -1,9 +1,6 @@
 crash
 sym build\game.sym
-disk A: outputs\BA.DS8
-disk B: outputs\BB.DS8
-disk C: outputs\BC.DS8
-disk D: outputs\BD.DS8
+disk A: outputs\BLACKOUT.DS8
 boot
 until mus_play 4000
 poke dbg_r 4
@@ -57,33 +54,101 @@ fields 160
 up Q
 fields 6
 peek shards 3
-poke dbg_r 15
+poke dbg_r 12
 poke dbg_side 0
 pc dbg_goto
 until loop 900
 fields 80
-print SHARD 3 in GREENHOUSE 2
+print SHARD 3 in SEED VAULT
 poke sleep_t $FF
 poke sleep_t+1 $7F
 poke wstate 0
-poke wy 144
-poke wx 68
+poke wy 228
+poke wx 64
 fields 4
 down Q
 fields 160
 up Q
 fields 6
 peek shards 3
-poke dbg_r 12
+poke dbg_r 11
 poke dbg_side 0
 pc dbg_goto
 until loop 900
 fields 80
-print SHARD 4 in SEED VAULT
+print SHARD 4 in GREENHOUSE 1
 poke sleep_t $FF
 poke sleep_t+1 $7F
 poke wstate 0
-poke wy 96
+poke wy 228
+poke wx 48
+fields 4
+down Q
+fields 160
+up Q
+fields 6
+peek shards 3
+poke dbg_r 13
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+fields 80
+print SHARD 5 in IRRIGATION
+poke sleep_t $FF
+poke sleep_t+1 $7F
+poke wstate 0
+poke wy 60
+poke wx 80
+fields 4
+down Q
+fields 160
+up Q
+fields 6
+peek shards 3
+poke dbg_r 24
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+fields 80
+print SHARD 6 in COOLANT PUMPS
+poke sleep_t $FF
+poke sleep_t+1 $7F
+poke wstate 0
+poke wy 228
+poke wx 60
+fields 4
+down Q
+fields 160
+up Q
+fields 6
+peek shards 3
+poke dbg_r 19
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+fields 80
+print SHARD 7 in CRYO BAY 1
+poke sleep_t $FF
+poke sleep_t+1 $7F
+poke wstate 0
+poke wy 228
+poke wx 52
+fields 4
+down Q
+fields 160
+up Q
+fields 6
+peek shards 3
+poke dbg_r 23
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+fields 80
+print SHARD 8 in CRYO BAY 2
+poke sleep_t $FF
+poke sleep_t+1 $7F
+poke wstate 0
+poke wy 120
 poke wx 20
 fields 4
 down Q
@@ -91,80 +156,12 @@ fields 160
 up Q
 fields 6
 peek shards 3
-poke dbg_r 14
+poke dbg_r 31
 poke dbg_side 0
 pc dbg_goto
 until loop 900
 fields 80
-print SHARD 5 in SPORE LAB
-poke sleep_t $FF
-poke sleep_t+1 $7F
-poke wstate 0
-poke wy 228
-poke wx 88
-fields 4
-down Q
-fields 160
-up Q
-fields 6
-peek shards 3
-poke dbg_r 22
-poke dbg_side 0
-pc dbg_goto
-until loop 900
-fields 80
-print SHARD 6 in ICE CORE DRILL
-poke sleep_t $FF
-poke sleep_t+1 $7F
-poke wstate 0
-poke wy 228
-poke wx 68
-fields 4
-down Q
-fields 160
-up Q
-fields 6
-peek shards 3
-poke dbg_r 25
-poke dbg_side 0
-pc dbg_goto
-until loop 900
-fields 80
-print SHARD 7 in FROST LAB
-poke sleep_t $FF
-poke sleep_t+1 $7F
-poke wstate 0
-poke wy 72
-poke wx 12
-fields 4
-down Q
-fields 160
-up Q
-fields 6
-peek shards 3
-poke dbg_r 20
-poke dbg_side 0
-pc dbg_goto
-until loop 900
-fields 80
-print SHARD 8 in SAMPLE VAULT
-poke sleep_t $FF
-poke sleep_t+1 $7F
-poke wstate 0
-poke wy 228
-poke wx 92
-fields 4
-down Q
-fields 160
-up Q
-fields 6
-peek shards 3
-poke dbg_r 27
-poke dbg_side 0
-pc dbg_goto
-until loop 900
-fields 80
-print SHARD 9 in TURBINE HALL
+print SHARD 9 in PIPEWORKS
 poke sleep_t $FF
 poke sleep_t+1 $7F
 poke wstate 0
@@ -176,51 +173,34 @@ fields 160
 up Q
 fields 6
 peek shards 3
+poke dbg_r 28
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+fields 80
+print SHARD 10 in COOLING TOWER
+poke sleep_t $FF
+poke sleep_t+1 $7F
+poke wstate 0
+poke wy 228
+poke wx 132
+fields 4
+down Q
+fields 160
+up Q
+fields 6
+peek shards 3
 poke dbg_r 30
 poke dbg_side 0
 pc dbg_goto
 until loop 900
 fields 80
-print SHARD 10 in STEAM PLANT
-poke sleep_t $FF
-poke sleep_t+1 $7F
-poke wstate 0
-poke wy 96
-poke wx 128
-fields 4
-down Q
-fields 160
-up Q
-fields 6
-peek shards 3
-poke dbg_r 33
-poke dbg_side 0
-pc dbg_goto
-until loop 900
-fields 80
-print SHARD 11 in CORE MONITOR
-poke sleep_t $FF
-poke sleep_t+1 $7F
-poke wstate 0
-poke wy 48
-poke wx 48
-fields 4
-down Q
-fields 160
-up Q
-fields 6
-peek shards 3
-poke dbg_r 39
-poke dbg_side 0
-pc dbg_goto
-until loop 900
-fields 80
-print SHARD 12 in GRAVITY TEST
+print SHARD 11 in STEAM PLANT
 poke sleep_t $FF
 poke sleep_t+1 $7F
 poke wstate 0
 poke wy 228
-poke wx 56
+poke wx 16
 fields 4
 down Q
 fields 160
@@ -232,12 +212,29 @@ poke dbg_side 0
 pc dbg_goto
 until loop 900
 fields 80
-print SHARD 13 in DARK ROOM
+print SHARD 12 in DARK ROOM
 poke sleep_t $FF
 poke sleep_t+1 $7F
 poke wstate 0
 poke wy 228
-poke wx 16
+poke wx 48
+fields 4
+down Q
+fields 160
+up Q
+fields 6
+peek shards 3
+poke dbg_r 36
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+fields 80
+print SHARD 13 in TELESCOPE
+poke sleep_t $FF
+poke sleep_t+1 $7F
+poke wstate 0
+poke wy 120
+poke wx 64
 fields 4
 down Q
 fields 160
@@ -253,8 +250,8 @@ print SHARD 14 in STAR ARCHIVE
 poke sleep_t $FF
 poke sleep_t+1 $7F
 poke wstate 0
-poke wy 228
-poke wx 108
+poke wy 60
+poke wx 128
 fields 4
 down Q
 fields 160
@@ -278,34 +275,34 @@ fields 160
 up Q
 fields 6
 peek shards 3
-poke dbg_r 45
+poke dbg_r 44
 poke dbg_side 0
 pc dbg_goto
 until loop 900
 fields 80
-print SHARD 16 in MEMORY BANKS
+print SHARD 16 in LOGIC HALL
 poke sleep_t $FF
 poke sleep_t+1 $7F
 poke wstate 0
-poke wy 60
-poke wx 100
+poke wy 228
+poke wx 52
 fields 4
 down Q
 fields 160
 up Q
 fields 6
 peek shards 3
-poke dbg_r 44
+poke dbg_r 45
 poke dbg_side 0
 pc dbg_goto
 until loop 900
 fields 80
-print SHARD 17 in LOGIC HALL
+print SHARD 17 in MEMORY BANKS
 poke sleep_t $FF
 poke sleep_t+1 $7F
 poke wstate 0
-poke wy 132
-poke wx 92
+poke wy 60
+poke wx 36
 fields 4
 down Q
 fields 160

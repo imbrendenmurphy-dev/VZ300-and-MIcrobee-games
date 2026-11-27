@@ -1,13 +1,16 @@
 ; ---------------------------------------------------------------------------
-; Save games: SAVES.DAT on disk A (CP/M block 2 = data-area logical sectors
-; 16..19), one 512-byte sector a slot.  Slot 0 is the autosave (written when a
-; key comes online), slots 1-3 are the player's.  Read and written straight
-; through the WD2793, in the same way as the packs.
+; Save games: SAVES.DAT on the disk, 512 bytes a slot (the record uses the first
+; 256).  Slot 0 is the autosave (written when a key comes online), slots 1-3 are
+; the player's.  Read and written through CP/M itself (cpm_io below): the game
+; parks its own copy of D600-EFFF in a bank, puts back the CP/M it saved at
+; start-up, lets the BDOS do the disk work, then swaps back.  CP/M's own disk
+; code is what works on every Premium Plus, SD-card disk images included.
 ; Record: "BPS1", room, door side, clock h m s, wings seen, said hour, keys
-; online, shards held, then the game_vars block.
+; online, shards held, level, then the game_vars block.
 ; ---------------------------------------------------------------------------
-SAVE_BUF equ DIRTY_PREV         ; 512 bytes; only used while a page is up
-SAVE_LSEC equ 16
+SAVE_BUF equ $4F00              ; 256 bytes in the program's own block (CP/M leaves it
+                                ; alone), above the overlays and the room record
+SAVE_LEN equ 256
 SV_ROOM  equ 4
 SV_SIDE  equ 5
 SV_CLK   equ 6
@@ -18,26 +21,15 @@ SV_SHARDS equ 12
 SV_SKILL equ 13
 SV_VARS  equ 16
 
-; Slot A: read its sector into SAVE_BUF.  Carry on a disk error.
+; Slot A: read it into SAVE_BUF.  Carry on a disk error.
 slot_read:
-        call slot_at
-        ld hl,SAVE_BUF
-        jp sec_read
+        ld c,33                 ; BDOS read random
+        jp cpm_io
 
-; Slot A: write SAVE_BUF to it.  Carry on an error, A = status (bit 6 = protected).
+; Slot A: write SAVE_BUF to it.  Carry on a disk error.
 slot_write:
-        call slot_at
-        ld hl,SAVE_BUF
-        jp sec_write
-
-slot_at:
-        add a,SAVE_LSEC
-        ld l,a
-        ld h,0
-        ld (pk_lsec),hl
-        xor a
-        ld (pk_drive),a
-        ret
+        ld c,34                 ; BDOS write random
+        jp cpm_io
 
 ; Z if SAVE_BUF holds a save.
 save_valid:
@@ -57,7 +49,7 @@ save_magic: db "BPS1"
 save_pack:
         ld hl,SAVE_BUF
         ld de,SAVE_BUF+1
-        ld bc,511
+        ld bc,SAVE_LEN-1
         ld (hl),0
         ldir
         ld hl,save_magic
@@ -128,8 +120,6 @@ save_restore:
 
 ; Autosave into slot 0 (when a key comes online).
 autosave:
-        call present            ; SAVE_BUF is the last-frame dirty list: two
-        call present            ; presents with nothing new leave both lists empty
         call save_pack
         xor a
         call slot_write
@@ -164,9 +154,10 @@ skill_apply:
         ret
 ;            fields/s  min off  gun cool  grace  fast patrols  slow hunters
 ; (then: hunters stand down, robot touch box trimmed each side by n half-pixels)
-sk_tab: db  25,        5,       150,      150,   0,            1,  1, 2   ; Story
-        db  19,        10,      90,       100,   0,            0,  0, 1   ; Agent
-        db  16,        15,      50,       50,    1,            0,  0, 0   ; Ghost
+; Generous by design: Agent leaves a first-time player ~40 deaths to spare (see DESIGN.md).
+sk_tab: db  32,        3,       150,      150,   0,            1,  1, 2   ; Story
+        db  24,        6,       90,       100,   0,            0,  0, 1   ; Agent
+        db  17,        12,      55,       60,    1,            0,  0, 0   ; Ghost
 
 ; A = number of bits set.  Preserves HL.
 count_bits:
@@ -180,64 +171,131 @@ count_bits:
 .d:     ld a,c
         ret
 
-; ------------------------------------------------------------- sectors
-; Logical sector pk_lsec of drive pk_drive <-> HL (fixed RAM).  Carry on error.
-sec_read:
-        ld a,$80                ; READ SECTOR
-        jr sec_io
-sec_write:
-        ld a,$A0                ; WRITE SECTOR
-sec_io: ld (sec_cmd),a
-        ld (sec_buf),hl
-        call lsec_place         ; cylinder, side, sector ID
-        ld b,3
-.try:   push bc
-        call fdc_seek
-        jr c,.err
-        ld a,(pk_id)
-        out (FDC_SEC),a
-        ld a,(sec_cmd)
-        out (FDC_CMD),a
-        ld hl,(sec_buf)
-        cp $80
-        jr nz,.wr
-.rd:    in a,(FDC_LATCH)        ; bytes in on DRQ until INTRQ
-        rla
-        jr nc,.rd
-        in a,(FDC_CMD)
-        bit 1,a
-        jr z,.done
-        in a,(FDC_DAT)
-        ld (hl),a
+; ------------------------------------------------------------- CP/M
+; C = BDOS function (33 read / 34 write random), A = slot: the first two 128-byte
+; records of the slot <-> SAVE_BUF.  Carry if CP/M reported a problem.
+; Runs entirely from the program's own block (0100-4FFF) and FARCODE: CP/M's
+; BDOS and BIOS sit at D600-FFFF, and the game's copy of D600-EFFF goes to a bank
+; while CP/M is back.  (F000-FFFF is RAM the game never touches: its video window
+; covers it.)  A disk error doesn't stop on CP/M's "Err On A:": the BDOS error
+; routines are pointed at cpm_err while we're in.
+CPM_BASE equ $D600              ; BDOS
+CPM_LEN  equ $F000-CPM_BASE
+CPM_SAVED equ 28                ; CP/M as it was at start-up (bank.asm)
+CPM_PARK  equ 27                ; the game's own D600-EFFF while CP/M is in
+PORT_CPM  equ $0C               ; CP/M's map: block 2 low, video off (RAM at F000)
+CPM_SP   equ $4EF0              ; a small stack, and our flags, below SAVE_BUF
+CPM_ERRF equ $4EF2
+CPM_FN   equ $4EF3
+CPM_REC  equ $4EF4
+cpm_io:
+        ld (CPM_SP),sp
+        ld sp,CPM_SP            ; (grows down from 4EF0)
+        add a,a                 ; slot * 4 records
+        add a,a
+        ld (CPM_REC),a
+        ld a,c
+        ld (CPM_FN),a
+        di
+        ld a,CPM_PARK           ; the game's D600-EFFF -> its bank
+        call bank_port
+        ld hl,CPM_BASE
+        ld de,0
+        ld bc,CPM_LEN
+        call far_move
+        ld a,CPM_SAVED          ; CP/M back in
+        call bank_port
+        ld hl,0
+        ld de,CPM_BASE
+        ld bc,CPM_LEN
+        call far_move
+        ld hl,cpm_err           ; disk errors come to us, not to the console
+        ld (CPM_BASE+9),hl
+        ld (CPM_BASE+11),hl
+        ld (CPM_BASE+13),hl
+        ld (CPM_BASE+15),hl
+        xor a
+        ld (CPM_ERRF),a
+        ld a,PORT_CPM
+        out ($50),a
+        ei
+        ld c,13                 ; reset the disk system
+        call 5
+        ld hl,sv_fcb+12         ; a fresh FCB: extent, records, map, random record
+        ld b,24
+.z:     ld (hl),0
         inc hl
-        jr .rd
-.wr:    in a,(FDC_LATCH)        ; bytes out on DRQ until INTRQ
-        rla
-        jr nc,.wr
-        in a,(FDC_CMD)
-        bit 1,a
-        jr z,.done
-        ld a,(hl)
-        out (FDC_DAT),a
-        inc hl
-        jr .wr
-.done:  bit 6,a                 ; write protected: no point trying again
-        jr nz,.prot
-        and $1C
-        jr nz,.err
-        pop bc
+        djnz .z
+        ld de,sv_fcb
+        ld c,15                 ; open SAVES.DAT
+        call 5
+        inc a
+        jr z,.bad
+        ld hl,SAVE_BUF
+        ld a,(CPM_REC)
+        call .rec
+        ld hl,SAVE_BUF+128
+        ld a,(CPM_REC)
+        inc a
+        call .rec
+        ld a,(CPM_FN)
+        cp 34
+        jr nz,.out
+        ld de,sv_fcb
+        ld c,16                 ; close: the directory is up to date
+        call 5
+        inc a
+        jr nz,.out
+.bad:   ld a,1
+        ld (CPM_ERRF),a
+.out:   di
+        ld a,PORT_GAME
+        out ($50),a
+        ld a,CPM_SAVED          ; CP/M as it now stands -> its bank (for next time)
+        call bank_port
+        ld hl,CPM_BASE
+        ld de,0
+        ld bc,CPM_LEN
+        call far_move
+        ld a,CPM_PARK           ; and the game back
+        call bank_port
+        ld hl,0
+        ld de,CPM_BASE
+        ld bc,CPM_LEN
+        call far_move
+        ld sp,(CPM_SP)
+        ld a,(CPM_ERRF)
         or a
-        ret
-.err:   pop bc
-        ld a,$FF
-        ld (fdc_cyl),a
-        djnz .try
+        ret z
         scf
         ret
-.prot:  pop bc
-        scf
+; HL = buffer, A = record: one random read or write.
+.rec:   ld (sv_fcb+33),a
+        xor a
+        ld (sv_fcb+34),a
+        ld (sv_fcb+35),a
+        ex de,hl
+        ld c,26                 ; DMA
+        call 5
+        ld de,sv_fcb
+        ld a,(CPM_FN)
+        ld c,a
+        call 5
+        or a
+        ret z
+        ld a,1
+        ld (CPM_ERRF),a
         ret
+; The BDOS's four error routines (bad sector, select, read-only disk, read-only
+; file), while we're in: note it and carry on ("ignore", as RETURN would).
+cpm_err:
+        ld a,1
+        ld (CPM_ERRF),a
+        ret
+sv_fcb: db 1,"SAVES   DAT"
+        ds 24,0
 
 str_nosave: db "SAVE FAILED",0
 str_saved:  db "GAME SAVED",0       ; (resident: resume_room reloads the overlay window
-str_noprot: db "DISK A LOCKED",0    ;  before these are printed)
+;  before these are printed)
+        ASSERT SV_VARS+game_vars_end-game_vars <= SAVE_LEN
