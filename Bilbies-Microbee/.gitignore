@@ -1,0 +1,7 @@
+build/
+tools/emu/libmbee.so
+__pycache__/
+tools/vzref/ref.bin
+tools/vzref/ref.sym
+*.pyc
+tools/lzbc

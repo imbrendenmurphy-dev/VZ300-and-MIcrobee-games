@@ -1,0 +1,25 @@
+ 0 WIN   saved  6/10 need  5 lost  4 ticks  810 fields  3400 4.20 f/tick
+ 1 WIN   saved 12/12 need  9 lost  0 ticks 1199 fields  5000 4.17 f/tick
+ 2 WIN   saved 15/15 need 10 lost  0 ticks 1404 fields  6000 4.27 f/tick
+ 3 WIN   saved 10/10 need  7 lost  0 ticks  818 fields  3500 4.28 f/tick
+ 4 WIN   saved 19/20 need 15 lost  1 ticks  978 fields  4400 4.50 f/tick
+ 5 WIN   saved 15/15 need 10 lost  0 ticks  861 fields  3700 4.30 f/tick
+ 6 WIN   saved 20/20 need 14 lost  0 ticks 2190 fields  9200 4.20 f/tick
+ 7 WIN   saved 20/20 need 16 lost  0 ticks 1697 fields  7100 4.18 f/tick
+ 8 WIN   saved 15/15 need 11 lost  0 ticks 1312 fields  5700 4.34 f/tick
+ 9 WIN   saved 19/20 need 15 lost  1 ticks 1129 fields  4900 4.34 f/tick
+10 WIN   saved 20/20 need 15 lost  0 ticks 1117 fields  4900 4.39 f/tick
+11 WIN   saved 15/15 need 11 lost  0 ticks  928 fields  3900 4.20 f/tick
+12 WIN   saved 12/15 need 10 lost  0 ticks 5251 fields 21200 4.04 f/tick
+13 WIN   saved 19/20 need 15 lost  1 ticks 1423 fields  6900 4.85 f/tick
+14 WIN   saved 20/20 need 16 lost  0 ticks 1729 fields  7600 4.40 f/tick
+15 WIN   saved 22/25 need 18 lost  3 ticks 1578 fields  7000 4.44 f/tick
+16 WIN   saved 20/20 need 15 lost  0 ticks 1413 fields  5900 4.18 f/tick
+17 WIN   saved 30/30 need 24 lost  0 ticks 1323 fields  5900 4.46 f/tick
+18 WIN   saved 30/30 need 27 lost  0 ticks 2171 fields  9700 4.47 f/tick
+19 WIN   saved 30/30 need 25 lost  0 ticks 1525 fields  6900 4.52 f/tick
+20 WIN   saved 30/30 need 24 lost  0 ticks 1733 fields  8300 4.79 f/tick
+21 WIN   saved 25/25 need 20 lost  0 ticks 1030 fields  4500 4.37 f/tick
+22 WIN   saved 29/30 need 26 lost  1 ticks 1594 fields  9500 5.96 f/tick
+23 WIN   saved 40/40 need 34 lost  0 ticks 1490 fields  8100 5.44 f/tick
+wins: 24 of 24
