@@ -20,7 +20,6 @@ entry:      di
             include "droid.asm"
             include "player.asm"
             include "shots.asm"
-            include "hud.asm"
             include "sound.asm"
             include "game.asm"
             include "demo.asm"
@@ -38,4 +37,14 @@ code_end:
             include "gmusic.asm"
 GSBUF:      ds GSBUF_SZ             ; this ship's two tunes (from OVn.DAT)
 upper_end:
+
+; ---------------------------------------------------------------------
+;  main RAM above the variables (CODE2-DIV6), loaded from OVCOM.DAT at
+;  boot: play-only code (the HUD, the alert level)
+; ---------------------------------------------------------------------
+            org CODE2
+            include "hud.asm"
+            include "alert.asm"
+code2_end:
+            assert code2_end <= DIV6
             assert upper_end <= WPT

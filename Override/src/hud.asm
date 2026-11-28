@@ -43,10 +43,7 @@ hud_all_draw:
             ld bc,BBW*9
             ld a,$AA                ; blue
             call fill
-            ld hl,BB+BBW*9
-            ld bc,BBW
-            ld a,$FF                ; red rule
-            call fill
+            call alert_rule         ; the rule, in the alert's colour
             ld d,1
             ld e,2
             call txt_colour

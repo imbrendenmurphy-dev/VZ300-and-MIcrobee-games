@@ -32,4 +32,4 @@ W_RAPID      equ 4
 W_CANNON     equ 5
 W_SCATTER    equ 6
 NTYPES      equ 23
-BUILD_ID    equ $62E5
+BUILD_ID    equ $9F67

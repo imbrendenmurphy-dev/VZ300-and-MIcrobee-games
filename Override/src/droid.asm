@@ -834,7 +834,8 @@ add_type_score:
             ld e,(hl)
             inc hl
             ld d,(hl)               ; BCD points (4 digits)
-            jp add_score
+            call add_score
+            jp alert_kill           ; (a droid gone heats the alert)
 
 ; ---------------------------------------------------------------------
 draw_droids:

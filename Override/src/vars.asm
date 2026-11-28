@@ -112,6 +112,9 @@ spk_m:      ds 1               ; latch bits allowed on the speaker ($21 or 0)
 cas_m:      ds 1               ; ... and on the cassette output ($06 or 0)
 cas_prev:   ds 1               ; the C key last frame (0 = held)
 spt_n:      ds 1               ; snd_ptn's call counter
+al_heat:    ds 1               ; alert: kills heat it up, it cools each second
+al_lvl:     ds 1               ; 0 green, 1 yellow, 2 red
+al_t:       ds 1               ; frames to the next alert second
 ; ---- ring
 rb_n:       ds 1
 rb_x:       ds 1
@@ -306,6 +309,7 @@ sd_rd:      ds 2
 shipinfo:   ds SISZ
 dinfo:      ds DISZ
 vars_end:
-            assert vars_end <= DIV6
+            assert vars_end <= CODE2
+CODE2       equ $B1F0          ; play-only code (OVCOM.DAT), up to DIV6
 DIV6        equ $B500          ; y / 6, one page
             emit

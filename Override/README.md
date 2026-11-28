@@ -1,7 +1,16 @@
 # OVERRIDE
-### v0.6 · five ships, 33 decks, 23 droid types · VIBED BY BPM 2026
+### v0.7 · five ships, 33 decks, 23 droid types · VIBED BY BPM 2026
 
-## What's new in v0.6: progression without frustration
+## What's new in v0.7: the alert level
+- **The ship's alert level**, after Paradroid's alert status. Every droid you destroy or take
+  over heats the alert up (three quick kills make it red), and it cools a little every second
+  (red back to green in about 15 seconds). The rule under the HUD shows it: green, yellow or red,
+  with YELLOW ALERT or RED ALERT on the HUD as it rises. While it lasts, yellow alert pays 25
+  points a second and red alert 75, so fighting fast is worth it. It resets for each ship.
+- **Room to grow**: the HUD code moved out of the main program into free RAM above the variables
+  ($B1F0, loaded from `OVCOM.DAT` at boot), taking the main program from 20 bytes free to 490.
+
+## v0.6: progression without frustration
 - **You keep your droid between ships.** You used to arrive on every new ship as the bare probe,
   often in front of armed droids. Now you arrive in the body you finished the last ship in, with
   its energy refilled. (A new game, or a continue, still starts as the probe.)
@@ -378,8 +387,9 @@ Leave the title alone and the game shows itself off:
 | $7000-$77FF | video RAM |
 | $7800-$7BFF | left alone (ROM/DOS system area) |
 | $7C00-$7D7F / $7D80-$7FFF | IM 2 table / stack |
-| $8000-$ABF9 | main code (20 bytes free) |
+| $8000-$AA15 | main code (490 bytes free) |
 | $AC00-$B4FF | variables, droid and shot tables, ship and deck info |
+| $B1F0-$B468 | play-only code: the HUD and the alert level (from `OVCOM.DAT`) |
 | $B500 / $B600-$B7FF | y/6 table / SD bounce buffer |
 | upper 1 $B800-$C1FF | back buffer (64 × 40) |
 | upper 1 $C200-$C9FF | deck map (64 × 32 tiles) |

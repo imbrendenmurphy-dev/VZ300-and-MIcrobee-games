@@ -99,6 +99,7 @@ ship_enter:
             ld a,MAP_GAME
             call setmap
             call gm_stop            ; the ship's tune starts on its first deck
+            call alert_reset
             call snd_hush
             ld a,(ship)
             add a,'1'
@@ -404,6 +405,7 @@ game_loop:
             call draw_shots
             call draw_fx
             call snd_pt
+            call alert_tick
             call hud_update
             call present
             ld a,(plr+O_FLAGS)      ; a dead player always comes first,
@@ -665,6 +667,7 @@ wait_fields_game:
             call draw_shots
             call draw_fx
             call snd_pt
+            call alert_tick
             call hud_update
             call present
             ld a,(wfg_n)

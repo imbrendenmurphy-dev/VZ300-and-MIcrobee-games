@@ -290,7 +290,7 @@ def main():
     write('ovdata.inc', fedata.ov_asm())
     a, out = assemble('main.asm')
     sym = a.sym
-    lo, code = span(out, 0x8000, 0xB800)
+    lo, code = span(out, 0x8000, sym['VARS'])
     assert lo == 0x8000
     ulo, upper1 = span(out, 0xB800, 0x10000)
     print('main code $8000-$%04X (%d bytes free)' % (sym['code_end'] - 1, sym['VARS'] - sym['code_end']))
@@ -308,7 +308,10 @@ def main():
     # check the front end's jump table matches what main expects
     for k in ('fe_main', 'fe_transfer', 'fe_lift', 'fe_console', 'fe_shipcard', 'fe_shipdone', 'fe_gameover', 'fe_ending'):
         assert fa.sym['j_' + k] == sym[k], k
-    n = datfile('OVCOM', [chunk(7, ulo, upper1), chunk(3, 0xB800, fe)], sym, build_id)
+    clo, code2 = span(out, sym['CODE2'], sym['DIV6'])
+    assert clo == sym['CODE2']
+    print('play code $%04X-$%04X (%d free below DIV6)' % (clo, clo + len(code2) - 1, sym['DIV6'] - clo - len(code2)))
+    n = datfile('OVCOM', [chunk(7, ulo, upper1), chunk(3, 0xB800, fe), chunk(7, clo, code2)], sym, build_id)
     print('OVCOM.DAT %d bytes' % n)
     # the overlay (intro, title, attract pages, cards): assembled against
     # main + front-end symbols, into low bank 3 below the sprite cache
