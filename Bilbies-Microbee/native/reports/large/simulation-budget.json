@@ -1,0 +1,38 @@
+{
+  "walking": {
+    "initial_state": 1,
+    "actors": 40,
+    "ticks": 8,
+    "tstates": [
+      66940,
+      66961,
+      66940,
+      66940,
+      66940,
+      66940,
+      66940,
+      66940
+    ],
+    "maximum": 66961,
+    "mean": 66942.625
+  },
+  "falling": {
+    "initial_state": 2,
+    "actors": 40,
+    "ticks": 8,
+    "tstates": [
+      78800,
+      78841,
+      78820,
+      78820,
+      78800,
+      78820,
+      78820,
+      78820
+    ],
+    "maximum": 78841,
+    "mean": 78817.625
+  },
+  "scope": "original game_tick on a synthetic flat collision mask; no graphics or inputs",
+  "native_renderer_integrated": false
+}

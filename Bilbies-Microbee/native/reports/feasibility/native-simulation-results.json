@@ -1,0 +1,32 @@
+[
+  {
+    "case": "one",
+    "matching_ticks": 16,
+    "max_tstates": 83331
+  },
+  {
+    "case": "unsupported",
+    "matching_ticks": 16,
+    "max_tstates": 76412
+  },
+  {
+    "case": "bomb",
+    "matching_ticks": 16,
+    "max_tstates": 104297
+  },
+  {
+    "case": "multiple",
+    "matching_ticks": 16,
+    "max_tstates": 105527
+  },
+  {
+    "case": "builder",
+    "matching_ticks": 16,
+    "max_tstates": 82095
+  },
+  {
+    "case": "digger",
+    "matching_ticks": 16,
+    "max_tstates": 76627
+  }
+]

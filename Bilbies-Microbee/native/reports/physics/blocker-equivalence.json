@@ -1,0 +1,37 @@
+{
+  "reference": "executed original linear Z80 path",
+  "traces": [
+    {
+      "case": "one",
+      "identical_ticks": 24,
+      "indexed_max": 83334,
+      "linear_max": 265626
+    },
+    {
+      "case": "unsupported",
+      "identical_ticks": 24,
+      "indexed_max": 76412,
+      "linear_max": 258704
+    },
+    {
+      "case": "bomb",
+      "identical_ticks": 24,
+      "indexed_max": 106926,
+      "linear_max": 258843
+    },
+    {
+      "case": "multiple",
+      "identical_ticks": 24,
+      "indexed_max": 105546,
+      "linear_max": 266678
+    },
+    {
+      "case": "added_between_ticks",
+      "identical_ticks": 24,
+      "indexed_max": 83343,
+      "linear_max": 265635
+    }
+  ],
+  "matching_query_results": 1540,
+  "rendering_bypassed": true
+}

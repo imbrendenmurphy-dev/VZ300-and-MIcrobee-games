@@ -1,0 +1,38 @@
+{
+  "resolution": [
+    640,
+    256
+  ],
+  "phase_map_cases": 24,
+  "terrain_tstates": 61567,
+  "sprite_alignment_cases": 80,
+  "gait_frame_mode_cases": 16,
+  "sprite_dimensions": [
+    12,
+    8
+  ],
+  "ten_sprite_tstates": 62583,
+  "forty_sprite_tstates": 254053,
+  "forty_spread_sprite_tstates": 246859,
+  "forty_staggered_sprite_tstates": 536865,
+  "maximum_cells_per_actor": 6,
+  "steady_terrain_tstates": 21716,
+  "forty_steady_total_frames": 4.085466666666667,
+  "moving_present_max_tstates": 318310,
+  "unchanged_present_tstates": 10136,
+  "moving_present_steady_max_tstates": 284702,
+  "graphics_25hz_budget_tstates": 135000,
+  "graphics_25hz_worst_case_pass": false,
+  "unchanged_present_video_writes": 0,
+  "terrain_frames": 0.9121037037037037,
+  "ten_total_frames": 1.8392592592592591,
+  "forty_total_frames": 4.675851851851852,
+  "sprite_oracle": "masked native 12x8, 10 and 40 overlapping bilbies; all 8 gait frames",
+  "legacy_framebuffer_untouched": true,
+  "static_pcg_unchanged_during_scroll": true,
+  "native_terrain_patch_plus_40_sprites": "pixel oracle passed in both modes",
+  "monochrome_all_cells_white_on_black": true,
+  "native_keyboard_pan_and_mode_switch": true,
+  "pause_debounced_and_runtime_frame_counter": true,
+  "oversubscribed_foreground": "signals exhaustion; static PCG preserved; frame intentionally incomplete"
+}

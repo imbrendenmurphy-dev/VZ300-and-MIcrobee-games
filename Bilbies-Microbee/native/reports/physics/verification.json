@@ -1,0 +1,304 @@
+{
+  "maps": [
+    {
+      "level": 0,
+      "name": "BURROW DOWN",
+      "mismatches": 0
+    },
+    {
+      "level": 1,
+      "name": "UP THE BANK",
+      "mismatches": 0
+    },
+    {
+      "level": 2,
+      "name": "RED ROCK WALL",
+      "mismatches": 0
+    },
+    {
+      "level": 3,
+      "name": "GUM TREE GULLY",
+      "mismatches": 0
+    },
+    {
+      "level": 4,
+      "name": "WAIT HERE",
+      "mismatches": 0
+    },
+    {
+      "level": 5,
+      "name": "SLOPING OFF",
+      "mismatches": 0
+    },
+    {
+      "level": 6,
+      "name": "DRIPSTONE HALL",
+      "mismatches": 0
+    },
+    {
+      "level": 7,
+      "name": "CRYSTAL LADDER",
+      "mismatches": 0
+    },
+    {
+      "level": 8,
+      "name": "UNDERGROUND CREEK",
+      "mismatches": 0
+    },
+    {
+      "level": 9,
+      "name": "BOOM GATE",
+      "mismatches": 0
+    },
+    {
+      "level": 10,
+      "name": "ECHO CHAMBER",
+      "mismatches": 0
+    },
+    {
+      "level": 11,
+      "name": "LONG WAY DOWN",
+      "mismatches": 0
+    },
+    {
+      "level": 12,
+      "name": "MOONLIT RUINS",
+      "mismatches": 0
+    },
+    {
+      "level": 13,
+      "name": "THE JETTY",
+      "mismatches": 0
+    },
+    {
+      "level": 14,
+      "name": "STONE TOWER",
+      "mismatches": 0
+    },
+    {
+      "level": 15,
+      "name": "TWO WAYS HOME",
+      "mismatches": 0
+    },
+    {
+      "level": 16,
+      "name": "SINKING FEELING",
+      "mismatches": 0
+    },
+    {
+      "level": 17,
+      "name": "NIGHT SHIFT",
+      "mismatches": 0
+    },
+    {
+      "level": 18,
+      "name": "RED CENTRE",
+      "mismatches": 0
+    },
+    {
+      "level": 19,
+      "name": "TERMITE TOWERS",
+      "mismatches": 0
+    },
+    {
+      "level": 20,
+      "name": "BILLABONG",
+      "mismatches": 0
+    },
+    {
+      "level": 21,
+      "name": "CRYSTAL CAVERNS",
+      "mismatches": 0
+    },
+    {
+      "level": 22,
+      "name": "THUNDER GORGE",
+      "mismatches": 0
+    },
+    {
+      "level": 23,
+      "name": "THE LAST BURROW",
+      "mismatches": 0
+    },
+    {
+      "level": 24,
+      "name": "TITLE",
+      "mismatches": 0
+    }
+  ],
+  "save": {
+    "restart": true,
+    "write_protected": true,
+    "deleted_save": true
+  },
+  "headless_solutions": [
+    {
+      "level": 0,
+      "name": "BURROW DOWN",
+      "ended": true,
+      "saved": 6,
+      "required": 5
+    },
+    {
+      "level": 1,
+      "name": "UP THE BANK",
+      "ended": true,
+      "saved": 12,
+      "required": 9
+    },
+    {
+      "level": 2,
+      "name": "RED ROCK WALL",
+      "ended": true,
+      "saved": 15,
+      "required": 10
+    },
+    {
+      "level": 3,
+      "name": "GUM TREE GULLY",
+      "ended": true,
+      "saved": 10,
+      "required": 7
+    },
+    {
+      "level": 4,
+      "name": "WAIT HERE",
+      "ended": true,
+      "saved": 19,
+      "required": 15
+    },
+    {
+      "level": 5,
+      "name": "SLOPING OFF",
+      "ended": true,
+      "saved": 15,
+      "required": 10
+    },
+    {
+      "level": 6,
+      "name": "DRIPSTONE HALL",
+      "ended": true,
+      "saved": 20,
+      "required": 14
+    },
+    {
+      "level": 7,
+      "name": "CRYSTAL LADDER",
+      "ended": true,
+      "saved": 20,
+      "required": 16
+    },
+    {
+      "level": 8,
+      "name": "UNDERGROUND CREEK",
+      "ended": true,
+      "saved": 15,
+      "required": 11
+    },
+    {
+      "level": 9,
+      "name": "BOOM GATE",
+      "ended": true,
+      "saved": 19,
+      "required": 15
+    },
+    {
+      "level": 10,
+      "name": "ECHO CHAMBER",
+      "ended": true,
+      "saved": 20,
+      "required": 15
+    },
+    {
+      "level": 11,
+      "name": "LONG WAY DOWN",
+      "ended": true,
+      "saved": 15,
+      "required": 11
+    },
+    {
+      "level": 12,
+      "name": "MOONLIT RUINS",
+      "ended": true,
+      "saved": 12,
+      "required": 10
+    },
+    {
+      "level": 13,
+      "name": "THE JETTY",
+      "ended": true,
+      "saved": 19,
+      "required": 15
+    },
+    {
+      "level": 14,
+      "name": "STONE TOWER",
+      "ended": true,
+      "saved": 20,
+      "required": 16
+    },
+    {
+      "level": 15,
+      "name": "TWO WAYS HOME",
+      "ended": true,
+      "saved": 22,
+      "required": 18
+    },
+    {
+      "level": 16,
+      "name": "SINKING FEELING",
+      "ended": true,
+      "saved": 20,
+      "required": 15
+    },
+    {
+      "level": 17,
+      "name": "NIGHT SHIFT",
+      "ended": true,
+      "saved": 30,
+      "required": 24
+    },
+    {
+      "level": 18,
+      "name": "RED CENTRE",
+      "ended": true,
+      "saved": 30,
+      "required": 27
+    },
+    {
+      "level": 19,
+      "name": "TERMITE TOWERS",
+      "ended": true,
+      "saved": 30,
+      "required": 25
+    },
+    {
+      "level": 20,
+      "name": "BILLABONG",
+      "ended": true,
+      "saved": 30,
+      "required": 24
+    },
+    {
+      "level": 21,
+      "name": "CRYSTAL CAVERNS",
+      "ended": true,
+      "saved": 25,
+      "required": 20
+    },
+    {
+      "level": 22,
+      "name": "THUNDER GORGE",
+      "ended": true,
+      "saved": 29,
+      "required": 26
+    },
+    {
+      "level": 23,
+      "name": "THE LAST BURROW",
+      "ended": true,
+      "saved": 40,
+      "required": 34
+    }
+  ]
+}

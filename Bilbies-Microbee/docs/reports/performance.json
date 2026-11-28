@@ -1,0 +1,12 @@
+{
+  "cpu_hz": 3375000,
+  "frame_tstates": 67500,
+  "forced": 1089304,
+  "unchanged": 285894,
+  "scroll_4_logical_pixels": 660900,
+  "frames": {
+    "forced": 16.138,
+    "unchanged": 4.235,
+    "scroll": 9.791
+  }
+}

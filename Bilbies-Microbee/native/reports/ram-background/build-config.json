@@ -1,0 +1,4 @@
+{
+  "ram_background": true,
+  "renderer": "renderer_ram.asm"
+}

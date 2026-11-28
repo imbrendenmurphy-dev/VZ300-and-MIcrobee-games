@@ -1,0 +1,12 @@
+{
+  "rom_cpm_launch": true,
+  "keyboard_builder_assignment": true,
+  "builder_collision_and_visible_patch": true,
+  "patch_survives_pan_and_mono": true,
+  "pause_stops_simulation": true,
+  "restart_restores_terrain": true,
+  "edit_patch_count": 2,
+  "edit_patch_tstates": 33387,
+  "max_tick_bridge_tstates": 27183,
+  "model": "ppmodel + z80 1.2.0, not independent emulator or hardware"
+}

@@ -1,0 +1,71 @@
+{
+  "scope": "Actual original scripted solutions executed in compatibility Z80 model; counts sampled at each game_tick entry, not human play or native renderer performance.",
+  "native_window_caveat": "320 logical pixels corresponds to the current 640-pixel view at 2x logical scaling. Window maximum uses any horizontal position and ignores vertical clipping; it is an upper bound, not the number under a particular native camera.",
+  "sampled_levels": [
+    {
+      "level": 0,
+      "name": "BURROW DOWN",
+      "ticks": 810,
+      "active_peak": 10,
+      "original_camera_peak": 10,
+      "any_320_window_peak": 10,
+      "saved": 6
+    },
+    {
+      "level": 5,
+      "name": "SLOPING OFF",
+      "ticks": 861,
+      "active_peak": 15,
+      "original_camera_peak": 14,
+      "any_320_window_peak": 15,
+      "saved": 15
+    },
+    {
+      "level": 6,
+      "name": "DRIPSTONE HALL",
+      "ticks": 2190,
+      "active_peak": 20,
+      "original_camera_peak": 12,
+      "any_320_window_peak": 20,
+      "saved": 20
+    },
+    {
+      "level": 11,
+      "name": "LONG WAY DOWN",
+      "ticks": 928,
+      "active_peak": 15,
+      "original_camera_peak": 13,
+      "any_320_window_peak": 15,
+      "saved": 15
+    },
+    {
+      "level": 12,
+      "name": "MOONLIT RUINS",
+      "ticks": 5251,
+      "active_peak": 15,
+      "original_camera_peak": 13,
+      "any_320_window_peak": 15,
+      "saved": 12
+    },
+    {
+      "level": 17,
+      "name": "NIGHT SHIFT",
+      "ticks": 1323,
+      "active_peak": 30,
+      "original_camera_peak": 26,
+      "any_320_window_peak": 30,
+      "ticks_with_30_active": 424,
+      "saved": 30
+    },
+    {
+      "level": 23,
+      "name": "THE LAST BURROW",
+      "ticks": 1490,
+      "active_peak": 40,
+      "original_camera_peak": 27,
+      "any_320_window_peak": 40,
+      "ticks_with_40_active": 472,
+      "saved": 40
+    }
+  ]
+}

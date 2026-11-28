@@ -1,0 +1,66 @@
+{
+  "sprite_dimensions": [
+    16,
+    16
+  ],
+  "colour": {
+    "static_glyphs": 1792,
+    "phase_map_bytes": 49152,
+    "pcg_bytes": 28672,
+    "dynamic_slots": 255,
+    "one_pixel_scenery_merges": 65,
+    "collision_glyphs_protected": 211,
+    "native_rasters": {
+      "decoded_bank_bytes": 30464,
+      "compressed_phase_bytes": [
+        3423,
+        3468,
+        3456,
+        3470,
+        3486,
+        3472,
+        3434,
+        3482
+      ],
+      "pack_bytes": 27723,
+      "compressor": "ZX0 v2 quick"
+    }
+  },
+  "mono": {
+    "static_glyphs": 1651,
+    "phase_map_bytes": 49152,
+    "pcg_bytes": 26416,
+    "dynamic_slots": 255,
+    "one_pixel_scenery_merges": 0,
+    "collision_glyphs_protected": 350,
+    "native_rasters": {
+      "decoded_bank_bytes": 30464,
+      "compressed_phase_bytes": [
+        2472,
+        2531,
+        2493,
+        2509,
+        2505,
+        2549,
+        2520,
+        2534
+      ],
+      "pack_bytes": 20145,
+      "compressor": "ZX0 v2 quick"
+    }
+  },
+  "compiled_sprites": {
+    "bank": 14,
+    "origin": 8192,
+    "bytes": 21561,
+    "record_bytes": 32,
+    "vertical_phases": 16,
+    "directions": 1,
+    "frames": 8,
+    "rows": {
+      "masked": 1935,
+      "opaque": 405,
+      "transparent": 60
+    }
+  }
+}

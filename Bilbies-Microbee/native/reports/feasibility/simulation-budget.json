@@ -1,0 +1,222 @@
+{
+  "walking": {
+    "initial_state": 1,
+    "one_blocker": false,
+    "actors": 40,
+    "ticks": 8,
+    "tstates": [
+      66954,
+      66975,
+      66954,
+      66954,
+      66954,
+      66954,
+      66954,
+      66954
+    ],
+    "maximum": 66975,
+    "mean": 66956.625
+  },
+  "falling": {
+    "initial_state": 2,
+    "one_blocker": false,
+    "actors": 40,
+    "ticks": 8,
+    "tstates": [
+      78814,
+      78855,
+      78834,
+      78834,
+      78814,
+      78834,
+      78834,
+      78834
+    ],
+    "maximum": 78855,
+    "mean": 78831.625
+  },
+  "walking_with_blocker": {
+    "initial_state": 1,
+    "one_blocker": true,
+    "actors": 40,
+    "ticks": 8,
+    "tstates": [
+      83094,
+      83115,
+      83094,
+      83094,
+      83094,
+      82167,
+      83085,
+      83085
+    ],
+    "maximum": 83115,
+    "mean": 82978.5
+  },
+  "building_first_stick": {
+    "initial_state": 7,
+    "one_blocker": false,
+    "actors": 40,
+    "ticks": 8,
+    "tstates": [
+      177283,
+      18756,
+      18735,
+      18735,
+      18735,
+      18735,
+      18735,
+      18735
+    ],
+    "maximum": 177283,
+    "mean": 38556.125
+  },
+  "count_survey": [
+    {
+      "initial_state": 1,
+      "one_blocker": false,
+      "actors": 10,
+      "ticks": 8,
+      "tstates": [
+        22404,
+        22425,
+        22404,
+        22404,
+        22404,
+        22404,
+        22403,
+        22403
+      ],
+      "maximum": 22425,
+      "mean": 22406.375
+    },
+    {
+      "initial_state": 1,
+      "one_blocker": true,
+      "actors": 10,
+      "ticks": 8,
+      "tstates": [
+        25560,
+        25581,
+        25560,
+        25560,
+        25560,
+        24651,
+        25568,
+        25568
+      ],
+      "maximum": 25581,
+      "mean": 25451
+    },
+    {
+      "initial_state": 1,
+      "one_blocker": false,
+      "actors": 20,
+      "ticks": 8,
+      "tstates": [
+        37233,
+        37254,
+        37233,
+        37233,
+        37232,
+        37232,
+        37232,
+        37232
+      ],
+      "maximum": 37254,
+      "mean": 37235.125
+    },
+    {
+      "initial_state": 1,
+      "one_blocker": true,
+      "actors": 20,
+      "ticks": 8,
+      "tstates": [
+        44723,
+        44744,
+        44723,
+        44723,
+        44722,
+        43795,
+        44713,
+        44713
+      ],
+      "maximum": 44744,
+      "mean": 44607
+    },
+    {
+      "initial_state": 1,
+      "one_blocker": false,
+      "actors": 30,
+      "ticks": 8,
+      "tstates": [
+        52086,
+        52107,
+        52085,
+        52085,
+        52085,
+        52085,
+        52085,
+        52085
+      ],
+      "maximum": 52107,
+      "mean": 52087.875
+    },
+    {
+      "initial_state": 1,
+      "one_blocker": true,
+      "actors": 30,
+      "ticks": 8,
+      "tstates": [
+        63892,
+        63913,
+        63891,
+        63891,
+        63891,
+        62982,
+        63900,
+        63900
+      ],
+      "maximum": 63913,
+      "mean": 63782.5
+    },
+    {
+      "initial_state": 1,
+      "one_blocker": false,
+      "actors": 40,
+      "ticks": 8,
+      "tstates": [
+        66954,
+        66975,
+        66954,
+        66954,
+        66954,
+        66954,
+        66954,
+        66954
+      ],
+      "maximum": 66975,
+      "mean": 66956.625
+    },
+    {
+      "initial_state": 1,
+      "one_blocker": true,
+      "actors": 40,
+      "ticks": 8,
+      "tstates": [
+        83094,
+        83115,
+        83094,
+        83094,
+        83094,
+        82167,
+        83085,
+        83085
+      ],
+      "maximum": 83115,
+      "mean": 82978.5
+    }
+  ],
+  "scope": "original game_tick on a synthetic flat collision mask; no graphics or inputs",
+  "native_renderer_integrated": false
+}
