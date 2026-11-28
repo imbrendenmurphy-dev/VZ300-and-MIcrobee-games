@@ -35,6 +35,7 @@ restart:                        ; also: leaving the Runedeep (ESC, Y)
 frame:
         call snd_field          ; plays until the blanking starts
         call vb_commit
+        call vb_hurt
         call vb_anim
         call vb_ui
         ld hl,tick

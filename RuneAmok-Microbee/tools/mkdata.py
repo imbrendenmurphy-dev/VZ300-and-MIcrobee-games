@@ -55,6 +55,14 @@ def gen_inc(sprite_squares, decor_faces):
     L.append('df_offp:	dw df_off0,df_off1,df_off2,df_off3')
     for d in range(4):
         L.append('df_off%d:	dw ' % d + ','.join(str(map_off(V.SLOTS[si].dx, dz, d) & 0xFFFF) for si, dz, sh in decor_faces))
+    ds = [(si, s) for si, s in enumerate(V.SLOTS) if s.kind == 'S' and abs(s.dx) == 1 and s.dz == 1]
+    L.append('NDS EQU %d' % len(ds))
+    L.append('ds_tab:	; side faces that can carry a decoration: slot, sprite depth word, the face looks (facing + n) & 3')
+    for si, s in ds:
+        L.append('	db %d,%d,%d	; %s' % (si, 1 if s.dx < 0 else 3, 1 if s.dx < 0 else 3, s.name()))
+    L.append('ds_offp:	dw ds_off0,ds_off1,ds_off2,ds_off3')
+    for d in range(4):
+        L.append('ds_off%d:	dw ' % d + ','.join(str(map_off(s.dx, s.dz, d) & 0xFFFF) for si, s in ds))
     L.append('row24:	dw ' + ','.join(str(i * 24) for i in range(V.VH)))
     L.append('row40:	dw ' + ','.join(str((i + 1) * 40 + 1) for i in range(V.VH)))
     (BUILD / 'gen.inc').write_text('\n'.join(L) + '\n')
@@ -71,11 +79,18 @@ def sprite_squares():
 def decor_faces():
     out = []
     for si, s in enumerate(V.SLOTS):
-        if s.kind == 'F' and 1 <= s.dz <= 3 and abs(s.dx) <= 1:
+        if s.kind == 'F' and 1 <= s.dz <= 2 and abs(s.dx) <= 1:
             w = (s.x1 - s.x0) // 8
             out.append((si, s.dz, s.dx * w))
     out.sort(key=lambda t: -t[1])
     return out
+
+
+def side_feature(s):
+    """the side faces that show a door, gate or seal as one (the rest show
+    plain wall: glyphs are scarce): beside the corridor, one and two
+    squares ahead - where you spot them as you walk"""
+    return abs(s.dx) == 1 and s.dz in (1, 2)
 
 
 def colsets(D, theme, kind, blob, back=None):
@@ -85,8 +100,8 @@ def colsets(D, theme, kind, blob, back=None):
         back = W.floor_cells(theme)
     ptrs = []
     for s in V.SLOTS:
-        if kind in 'DGV' and s.kind == 'S':
-            ptrs.append(None)
+        if kind in 'DGV' and s.kind == 'S' and not side_feature(s):
+            ptrs.append(None)           # a plain wall (A) there
             continue
         fc = W.face_cells(s, theme, kind)
         out = bytearray()

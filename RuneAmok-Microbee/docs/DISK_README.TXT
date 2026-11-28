@@ -1,5 +1,6 @@
 RUNE AMOK - The Vault of the Hollow King
 A first-person dungeon crawl for the Microbee Premium Plus.
+Run amok in the Runedeep: four depths, three sigils, one oath.
 VIBED BY BPM 2026
 
 Needs a Premium Plus with 1MB RAM. At the A> prompt type:

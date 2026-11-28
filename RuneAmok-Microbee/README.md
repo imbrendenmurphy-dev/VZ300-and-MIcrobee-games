@@ -1,30 +1,50 @@
 # RUNE AMOK — The Vault of the Hollow King
 
-A first-person dungeon crawl for the **Microbee Premium Plus**: step and turn on a grid, through four themed depths, with lightweight RPG systems, puzzles, and a three-voice beeper score. It was designed for the Microbee's PCG and colour hardware from the start, not ported from another machine.
+*Run amok in the Runedeep.*
 
-**The story.** For a thousand years the Wardens kept the Hollow King sealed in the Runedeep beneath the old gatehouse. The order is now dust. You are its last, half-trained apprentice, and you can hear him stirring below. (The name is a pun on "run amok"; the dungeon is still called the Runedeep.)
+The Wardens are dust and the seal is cracking. The only one left to hold it is you: a half-trained apprentice with a short sword, one potion and a map you'll have to fill in as you go.
+
+Go down through four depths beneath the old gatehouse:
+
+- **The Gatehouse:** torchlit corridors where rats and restless bones keep watch.
+- **The Fungal Grotto:** a cave that drops spiders on careless feet.
+- **The Drowned Archive:** wailing wisps and a rune puzzle among the bookshelves.
+- **The Ember Throne:** red halls where ash hounds prowl and the Hollow King waits on his throne.
+
+Along the way you pull levers and press hidden buttons, haggle with a shifty trader, and find the three sigils. Then break the seal, and keep the oath.
+
+It's a step-and-turn first-person crawl made for the **Microbee Premium Plus** from the ground up, not ported from another machine:
+- woodcut-style art pre-rendered into the PCG;
+- torches, runes and water that flicker by colour cycling;
+- a three-voice beeper score with its own theme for every depth;
+- turn-based fights where every blow lands on screen.
+
+(The name is a pun on "run amok". The dungeon is still called the Runedeep.)
 
 VIBED BY BPM 2026
+
+![Rune Amok in play](docs/showcase.gif)
 
 ![Title](screenshots/01_title.png)
 
 | | |
 |---|---|
-| ![The Gatehouse](screenshots/02_gatehouse.png) | ![A rat attacks](screenshots/03_rat.png) |
+| ![The Gatehouse](screenshots/02_gatehouse.png) | ![A blow lands on a rat](screenshots/03_rat.png) |
 | ![Fungal Grotto](screenshots/04_grotto.png) | ![Drowned Archive runes](screenshots/05_archive.png) |
 | ![The Ember Throne](screenshots/06_ember.png) | ![The Hollow King](screenshots/07_king.png) |
 | ![An ambush beyond the seal](screenshots/09_ambush.png) | ![Victory](screenshots/08_victory.png) |
+| ![The gate seen from the side, the lever's wall marked on the map](screenshots/10_side_gate.png) | |
 
 ## Status
 
-Version 1.0. It has been tested only in the emulator model (`tools/emu`, the Spindrift/REDBACK Premium Plus model), **not on real hardware, and not in uBee512**.
+Version 1.1. It has been tested in the emulator model (`tools/emu`, the Spindrift/REDBACK Premium Plus model) and in uBonPC. It has **not been tested on real hardware**. It loads and plays in uBee512, but there the sound crackles, which uBonPC doesn't reproduce.
 
-What has been checked in the model:
+What has been checked:
 
 - **Disk**: `release/RUNEAMOK.DS8` boots with the bn60 ROM to the CP/M prompt. Typing `RUNEAMOK` loads all files in about 16 seconds and starts the game. ESC then Y leaves to the title, and ESC on the title returns cleanly to `A>`, and `DIR` works afterwards (`tools/boottest.py`).
 - **Solvability**: every build checks that all four depths can be finished (`tools/mklevel.py`).
 - **Bot playthrough**: a bot plays through the keyboard (`tools/bot.py`): fighting, keys, levers, buttons, hidden walls, the trader, rune puzzle, stairs and the seal.
-- **Speed**: a step takes about 5 frames (0.1 s) from key press to the new view. Composing a view costs about 1.1 frames of CPU; it is copied to the hidden screen page in the blanking, and then the page flips.
+- **Speed**: composing a view costs about 1.1 frames of CPU (`tools/perf.py`). It is copied to the hidden screen page in the blanking, and then the page flips.
 
 ## Playing
 
@@ -80,10 +100,12 @@ The full design and style guide is in [`docs/DESIGN.md`](docs/DESIGN.md). In sho
 | `py tools/rd.py OUT "w150 SPACE w60 UP sname"` | Scripted run with screenshots |
 | `py tools/bot.py OUT` | The whole-game bot |
 | `py tools/perf.py` | Step timing |
+| `py tools/showcase.py` | Records `docs/showcase.gif` |
+| `py tools/sheet.py OUT [names]` | Contact sheet of the creatures as the Microbee draws them |
 | `py tools/boottest.py resources/bn60.rom OUT` | Real boot from the disk image |
 
 ## Not verified
 
 - Real Premium Plus hardware: the timing of the blanking commit, the keyboard and the joystick.
-- uBee512.
+- Sound in uBee512 (it crackles there; uBonPC plays it cleanly). Which matches real hardware is still to be checked.
 - The model's CPU-hold behaviour is the one the owner measured on real hardware for Spindrift. The commit writes only in the vertical blanking, so it should be safe.

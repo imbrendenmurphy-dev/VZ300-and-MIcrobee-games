@@ -37,6 +37,9 @@ def sprite_ids_for(L):
         if m != LV.TRADER:
             ids.add(S.IDS['A_' + nm])
     ids.add(S.IDS['X_fireball'])
+    ids.add(S.IDS['X_slash'])
+    # every decoration also on the side walls
+    ids |= {S.IDS['S_' + S.CAT[i][0][2:]] for i in list(ids) if S.CAT[i][1] == 'decor'}
     return ids
 
 
@@ -184,7 +187,7 @@ def build_level(n, L):
     nbefore = len(D.pats)
     sprdata = {}
     for sid in sorted(ids):
-        for dz in (1, 2, 3):
+        for dz in ((1, 3) if S.CAT[sid][1] == 'sdecor' else (1, 2, 3)):
             cells = S.render_sprite(S.CAT[sid], dz)
             if not cells:
                 continue
@@ -286,4 +289,5 @@ def sprite_inc():
     L.append('mon_spr:\t; idle sprite of each monster type (attack = +1)')
     L.append('\tdb ' + ','.join(str(S.IDS['M_' + nm]) for nm in LV.MON_SPRITE))
     assert S.IDS['D_lever_up'] % 2 == 0
+    L.append('SDECOR EQU %d' % (S.IDS['S_lever_up'] - S.IDS['D_lever_up']))   # side-wall sprite = decor sprite + SDECOR
     return L

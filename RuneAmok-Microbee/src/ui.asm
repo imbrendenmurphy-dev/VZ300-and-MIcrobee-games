@@ -36,6 +36,9 @@ ui_init:
 
 ; the frame and the panel labels (both pages)
 ui_frame:
+        xor a
+        ld (hurtflash),a        ; a flash in progress would paint over it
+        ld (hf_lit),a
         call screen_clear
         ; top and bottom rules
         ld hl,0
@@ -834,3 +837,91 @@ vb_ui:
         pop bc
         djnz .k
         ret
+
+; ---------------------------------------------------------------------
+;  struck: the view's frame blinks red (hurtflash counts the frames down;
+;  set by hurt_player). Written straight into the colour RAM of both pages.
+; ---------------------------------------------------------------------
+vb_hurt:
+        ld a,(hurtflash)
+        or a
+        jr nz,.on
+        ld a,(hf_lit)
+        or a
+        ret z
+        xor a                   ; over: the frame's own colours back
+        ld (hf_lit),a
+        ld e,C_FRAME
+        jr hf_paint
+.on:    dec a
+        ld (hurtflash),a
+        and 4
+        ld e,BRED
+        jr nz,.c
+        ld e,C_FRAME
+.c:     ld a,(hf_lit)
+        cp e
+        ret z
+        ld a,e
+        ld (hf_lit),a
+hf_paint:                       ; E = the colour
+        ld a,COL_ON
+        out (P_COLCTL),a
+        ld hl,PCGWIN
+        call .page
+        ld hl,PCGWIN+PAGE1
+        call .page
+        xor a
+        out (P_COLCTL),a
+        ret
+.page:  push hl
+        ld b,26                 ; rows 0 and 17
+.t:     ld (hl),e
+        push hl
+        ld a,l
+        add a,low(17*40)
+        ld l,a
+        ld a,h
+        adc a,high(17*40)
+        ld h,a
+        ld (hl),e
+        pop hl
+        inc hl
+        djnz .t
+        pop hl
+        push hl
+        ld bc,40
+        add hl,bc
+        ld b,16                 ; columns 0 and 25, rows 1-16
+.v:     ld (hl),e
+        push hl
+        ld a,l
+        add a,25
+        ld l,a
+        jr nc,.v1
+        inc h
+.v1:    ld (hl),e
+        pop hl
+        push bc
+        ld bc,40
+        add hl,bc
+        pop bc
+        djnz .v
+        pop hl
+        ld a,e                  ; the knots: yellow unless red
+        cp C_FRAME
+        jr nz,.k
+        ld a,C_KNOT
+.k:     ld (hl),a
+        ld bc,25
+        add hl,bc
+        ld (hl),a
+        ld bc,17*40-25
+        add hl,bc
+        ld (hl),a
+        ld bc,25
+        add hl,bc
+        ld (hl),a
+        ret
+
+hf_lit:     db 0

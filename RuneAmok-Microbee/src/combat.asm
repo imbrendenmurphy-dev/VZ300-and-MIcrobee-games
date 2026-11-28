@@ -85,7 +85,7 @@ mon_sprite:
         ld a,(flash_mon)
         cp b
         jr nz,.nf
-        ld a,WHITE
+        ld a,BRED
         ld (sp_flash),a
 .nf:    ld a,(ix+M_TYPE)
         cp $FF
@@ -228,6 +228,8 @@ attack: ld (cur_mon),a
         call mb_chr
         ld a,GREY
         call mb_go
+        xor a
+        call show_blow          ; the blade swings, nothing bleeds
         jp end_turn
 .hit:   ; damage = atk + rnd(atk/2 + 1) - defence, at least 1
         ld a,(atk)
@@ -275,19 +277,39 @@ damage_mon:
         call mb_go
         call flash_monster
         jp end_turn
-.dead:  call kill_mon
+.dead:  call flash_monster      ; the killing blow shows too
+        call kill_mon
         jp end_turn
 
-; the current monster (cur_mon / IX) flashes white for a moment
+; the current monster (cur_mon / IX) is struck: the blade's slash across
+; it and the creature flashing red, held long enough to see
 flash_monster:
+        ld a,1
+show_blow:                      ; A = 0: a miss (the slash alone)
+        or a
+        jr z,.nf
         ld a,(cur_mon)
-        ld (flash_mon),a
-        call view_refresh
-        ld a,5
+.nf:    ld (flash_mon),a
+        ld a,(blow_spr)
+        ld (fx_sprite),a
+        cp SP_X_SLASH
+        jr nz,.kd               ; a spell stays where it struck
+        ld a,1
+        ld (fx_dz),a            ; the blade: on the foe in front
+.kd:    ld a,SP_X_SLASH
+        ld (blow_spr),a         ; (a spell sets its own for one blow)
+        push ix
+        call view_refresh       ; returns once the view is on screen
+        ld a,12
         call frames
         xor a
         ld (flash_mon),a
-        jp view_refresh
+        ld (fx_sprite),a
+        call view_refresh
+        pop ix
+        ret
+
+blow_spr:   db SP_X_SLASH
 
 kill_mon:
         ld hl,sfx_kill
@@ -666,7 +688,7 @@ mon_strike:
 .done:  ld a,(atk_mon)
         or a
         ret z
-        ld a,6
+        ld a,14
         call frames
         xor a
         ld (atk_mon),a
@@ -685,6 +707,8 @@ hurt_player:
         push af
         ld hl,sfx_hurt
         call sfx
+        ld a,24
+        ld (hurtflash),a        ; the view's frame flashes red (vb_hurt)
         call ui_stats
         pop af
         or a
@@ -890,6 +914,10 @@ cast_fire:
         ld a,4
         call rndn
         add a,b
+        push af
+        ld a,SP_X_FIREBALL
+        ld (blow_spr),a         ; the fire, not a blade, lands
+        pop af
         jp damage_mon
 
 ; ---------------------------------------------------------------------

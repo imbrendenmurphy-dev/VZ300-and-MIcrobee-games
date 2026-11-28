@@ -400,11 +400,15 @@ mb_square:
         ld hl,mp_player
         call add_a_hl
         jr .pat
-.notp:  ld a,(hl)
+.notp:  push hl
+        ld a,(hl)
         and 31
         ld hl,mp_types
         call add_a_hl
         ld a,(hl)
+        pop hl
+        cp 2
+        call z,mp_decor         ; a wall: does something hang on it?
         ld l,a
         add a,a
         add a,a
@@ -428,6 +432,49 @@ mb_square:
         djnz .r
         ret
 
+; HL = a wall square -> A = 10 if a lever, button, rune, tablet, fountain
+; or alcove is on it (torches don't count), else 2 (BC, DE kept)
+mp_decor:
+        push de
+        push bc
+        ld de,MAP
+        or a
+        sbc hl,de               ; its offset
+        ld a,(ndecor)
+        or a
+        jr z,.no
+        ld b,a
+        ld de,DECOR
+.l:     ld a,(de)
+        cp l
+        jr nz,.s
+        inc de
+        ld a,(de)
+        dec de
+        cp h
+        jr nz,.s
+        push de
+        inc de
+        inc de
+        inc de
+        inc de
+        ld a,(de)               ; its kind
+        pop de
+        cp D_TORCH
+        jr nz,.yes
+.s:     ld a,e
+        add a,8
+        ld e,a
+        jr nc,.n
+        inc d
+.n:     djnz .l
+.no:    ld a,2
+        jr .x
+.yes:   ld a,10
+.x:     pop bc
+        pop de
+        ret
+
 ; square type -> minimap pattern
 mp_types:
         db 1,2,2,3,4,5,2,2,3,3,3,1,1,1,1,1
@@ -443,6 +490,7 @@ mp_pats:
         db 0,6,9,6,0            ; 7 pit
         db 0,0,6,6,0            ; 8 plate
         db 9,6,6,9,0            ; 9 portal
+        db 15,9,15,9,15         ; 10 a wall with something on it
 mp_player:
         db 6,15,6,6,0           ; N
         db 4,6,15,6,4           ; E

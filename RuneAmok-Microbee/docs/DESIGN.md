@@ -84,8 +84,9 @@ The 3D view is **cell-aligned by construction**. The half-widths of the square b
 - Monsters, items and decorations are drawn in world units (`tools/sprites.py`) and rendered for each of three depths.
 - A creature is a **solid silhouette, one ink per cell**, with its features (eye sockets, ribs, the hollow face of the King) cut out in black. A second material, such as a sword, flame or crown, takes whole cells of its own.
 - **A sprite cell owns its cell.** Whatever was behind it goes black, so a creature carries a little of its own darkness. Silhouettes are kept chunky so this reads as a deliberate halo, not a smear.
-- Close up (one square away) each creature has an **attack pose**.
-- Creature colours are picked to stand off their depth's walls: orange rats and white bone on grey stone, magenta spiders on green rock, green ghouls on cyan, cool white and cyan foes on the red throne halls.
+- Close up (one square away) each creature has an **attack pose**, held long enough to read (about a quarter second) when it strikes.
+- Low beasts are drawn **in profile** (the rat, the ash hound): a side view says "rat" or "wolf" in a few cells where a head-on view of a small animal reads as a blob.
+- Creature colours are picked to stand off their depth's walls: grey rats with pink tails and white bone on grey stone, magenta spiders on green rock, green ghouls on cyan, cool white and cyan foes on the red throne halls.
 
 ### 3.5 Colour is the animation
 
@@ -99,7 +100,10 @@ Re-composing a view costs a little. Changing a colour byte costs almost nothing.
 | Portal | Portals | A rainbow swirl |
 | Glow | Wisps | Green and cyan breathing |
 
-A struck creature flashes white for a few frames by overriding its cells' colour.
+**Combat feedback** is drawn, not only logged:
+
+- **Your blow**: a white crescent slash with a yellow spark is drawn across the foe in front, and a struck foe flashes red (its cells' colour overridden), held for about a quarter second after the view shows. A miss shows the slash alone. A firebolt shows its fire instead of the slash.
+- **A blow on you**: the frame around the view blinks red three times (its colour bytes written straight into colour RAM in the blanking: no recompose), while a foe in front holds its attack pose.
 
 ### 3.6 Reserved colours
 
@@ -120,7 +124,7 @@ A struck creature flashes white for a few frames by overriding its cells' colour
   - a six-line message log.
 - The font is a small serif face, mixed case, with descenders.
 - Bars are 13 cells of nine partial-fill glyphs.
-- The minimap is drawn at run time into 64 glyphs, at 2×2 squares per cell. The player's cell turns yellow.
+- The minimap is drawn at run time into 64 glyphs, at 2×2 squares per cell. The player's cell turns yellow. A wall with a lever, button, rune, tablet, fountain or alcove on it is drawn as a block with two slots, so switches you have seen stay findable.
 
 ## 4. How it runs
 
@@ -139,7 +143,7 @@ The Z80 composes a view in four passes:
 
 1. Copy the level's floor and ceiling backdrop into a shadow buffer (codes, attributes, colours).
 2. Walk the 32 wall slots near to far. The first solid slot over a column fills it with its pre-made tile column, and its depth key is kept.
-3. Draw decorations on front faces that won their columns.
+3. Draw decorations on front faces that won their columns, and on the side walls one square ahead (their own side-on sprites, so a lever, button, rune or torch is seen as you walk past, not only head-on).
 4. Draw items, creatures and spells far to near, only in columns whose wall lies beyond them.
 
 ### 4.2 The Premium's video-RAM wait

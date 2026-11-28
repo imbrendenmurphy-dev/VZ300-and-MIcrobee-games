@@ -37,12 +37,26 @@ class Canvas:
             z = V.ZB[dz]
             self.sx, self.sy = V.FX / z, V.FY / z
             self.ox, self.oy = V.CX, V.CY
+        elif mode == 'side':
+            # a side wall beside the corridor: k = 0, 1 left (squares dz 0, 1),
+            # 2, 3 right. The face's x runs along the wall (left: near to far)
+            self.right = dz >= 2
+            d = dz & 1
+            self.X = 0.5 if self.right else -0.5
+            self.z0, self.z1 = V.ZB[d], V.ZB[d + 1]
+            z = (self.z0 + self.z1) / 2
+            self.sx = V.FX * 0.5 * (self.z1 - self.z0) / z / z
+            self.sy = V.FY / z
         self.z = z if mode != 'floor' else None
 
     k = 1.0
 
     def pt(self, x, y):
         x, y = x * self.k, y * self.k
+        if self.mode == 'side':
+            u = 0.5 - x if self.right else x + 0.5
+            z = self.z0 + u * (self.z1 - self.z0)
+            return ((V.CX + V.FX * self.X / z) * SS, (V.CY - V.FY * y / z) * SS)
         return ((self.ox + x * self.sx) * SS, (self.oy - y * self.sy) * SS)
 
     def floor_pt(self, X, t):
@@ -56,6 +70,10 @@ class Canvas:
         getattr(self.dm, fn)(shape, fill=int(lum * 255), *a, **k)
 
     def ell(self, cx, cy, rx, ry, lab, lum=1.0):
+        if self.mode == 'side':     # an ellipse on a receding wall
+            self.poly([(cx + rx * np.cos(a), cy + ry * np.sin(a)) for a in np.linspace(0, 2 * np.pi, 20, endpoint=False)],
+                      lab, lum)
+            return
         x0, y0 = self.pt(cx - rx, cy + ry)
         x1, y1 = self.pt(cx + rx, cy - ry)
         self._fill([x0, y0, x1, y1], lab, lum, 'ellipse')
@@ -88,7 +106,7 @@ class Canvas:
         self.dm.ellipse([cx - rr, cy - rr, cx + rr, cy + rr], fill=255)
 
 
-def render(draw, mode, dz, mats, shiftx=0.0, mincov=10, scale=1.0, **kw):
+def render(draw, mode, dz, mats, shiftx=0.0, mincov=10, scale=1.0, band=None, **kw):
     """-> list of cells (col, row, pattern bytes, colour byte)"""
     c = Canvas(mode, dz, shiftx)
     c.k = scale
@@ -104,7 +122,8 @@ def render(draw, mode, dz, mats, shiftx=0.0, mincov=10, scale=1.0, **kw):
     major = counts.argmax(-1)
     lit = (major >= 2) & solid
     meanlum = np.where(lab >= 2, lum, 0).sum(-1) / np.maximum((lab >= 2).sum(-1), 1)
-    band = min(dz - 1, 2) if mode != 'face' else min(dz - 1, 2)
+    if band is None:
+        band = min(dz - 1, 2)
     out = []
     for cr in range(V.VH):
         for cc in range(V.VW):
@@ -141,24 +160,44 @@ def render(draw, mode, dz, mats, shiftx=0.0, mincov=10, scale=1.0, **kw):
 #  creatures (world units, origin at the feet, y up)
 # =====================================================================
 def rat(c, pose='idle'):
-    lunge = pose == 'attack'
-    h = 0.24
-    c.ell(0, h * 0.5, 0.26, h * 0.5, 2, 0.9)                 # body
-    c.ell(0, h * 0.62, 0.2, h * 0.38, 2, 1.0)
-    c.ell(0, h * 0.55 + (0.06 if lunge else 0), 0.13, 0.11, 2, 1.0)  # head (facing us)
-    c.poly([(-0.12, 0.33), (-0.2, 0.44), (-0.05, 0.36)], 2)  # ears
-    c.poly([(0.12, 0.33), (0.2, 0.44), (0.05, 0.36)], 2)
-    c.ell(-0.055, 0.2, 0.03, 0.03, 1)                         # eyes
-    c.ell(0.055, 0.2, 0.03, 0.03, 1)
-    c.dot(-0.055, 0.2, 3)
-    c.dot(0.055, 0.2, 3)
-    if lunge:
-        c.poly([(-0.07, 0.1), (0.07, 0.1), (0.0, 0.02)], 1)  # open jaws
-        c.px_line([(-0.05, 0.1), (-0.04, 0.06)], 2)
-        c.px_line([(0.05, 0.1), (0.04, 0.06)], 2)
-    c.line([(0.22, 0.05), (0.38, 0.12), (0.45, 0.3)], 0.025, 2)  # tail
-    c.ell(-0.18, 0.02, 0.06, 0.03, 2)
-    c.ell(0.18, 0.02, 0.06, 0.03, 2)
+    """a big sewer rat in profile, nose to the left: grey fur, pink tail,
+    ears and feet, a red eye. Attacking, it rears with its teeth bared"""
+    atk = pose == 'attack'
+    c.k *= 1.3                                                  # a big one
+    hy = 0.08 if atk else 0.0                                   # head raised
+    hx = -0.04 if atk else 0.0
+    # the tail first (behind)
+    c.line([(0.24, 0.1), (0.36, 0.03), (0.47, 0.03), (0.54, 0.09), (0.56, 0.17)], 0.022, 4)
+    # body: a rounded back, the haunch high at the rear
+    c.ell(0.04, 0.13, 0.21, 0.12, 2, 0.9)
+    c.ell(0.14, 0.15, 0.12, 0.14, 2, 1.0)
+    c.poly([(-0.14, 0.05 + hy * 0.5), (0.0, 0.02), (0.2, 0.02), (0.2, 0.2), (-0.1, 0.24 + hy)], 2, 0.85)
+    # fur: woodcut cuts along the back
+    for k in range(4):
+        x = -0.02 + k * 0.07
+        c.px_line([(x, 0.2 - k * 0.005), (x + 0.04, 0.17 - k * 0.005)], 1)
+    # head and snout
+    c.ell(-0.15 + hx, 0.15 + hy, 0.085, 0.08, 2)
+    c.poly([(-0.17 + hx, 0.21 + hy), (-0.33 + hx, 0.12 + hy), (-0.34 + hx, 0.09 + hy), (-0.17 + hx, 0.08 + hy)], 2)
+    c.ell(-0.13 + hx, 0.25 + hy, 0.045, 0.05, 4)                # ear
+    c.ell(-0.13 + hx, 0.245 + hy, 0.02, 0.028, 1)
+    c.ell(-0.21 + hx, 0.16 + hy, 0.024, 0.022, 1)               # eye
+    c.dot(-0.21 + hx, 0.16 + hy, 3)
+    c.dot(-0.34 + hx, 0.105 + hy, 4, 2)                         # nose
+    for dy in (0.04, 0.0):                                      # whiskers
+        c.px_line([(-0.29 + hx, 0.11 + hy), (-0.4 + hx, 0.11 + hy + dy)], 2, 0.6)
+    if atk:
+        c.poly([(-0.33 + hx, 0.095 + hy), (-0.18 + hx, 0.09 + hy), (-0.3 + hx, 0.02 + hy)], 1)   # jaws open
+        c.px_line([(-0.32 + hx, 0.095 + hy), (-0.32 + hx, 0.06 + hy)], 5, 1.0, 2)             # incisors
+        c.line([(-0.12, 0.1), (-0.22, 0.12), (-0.27, 0.07)], 0.03, 2)                         # claws up
+        c.ell(-0.27, 0.07, 0.03, 0.02, 4)
+        c.line([(-0.05, 0.06), (-0.1, 0.02), (-0.13, 0.0)], 0.03, 2)
+    else:
+        c.line([(-0.11, 0.07), (-0.13, 0.0)], 0.03, 2)          # forelegs
+        c.line([(-0.05, 0.05), (-0.06, 0.0)], 0.028, 2, 0.7)
+        c.ell(-0.145, 0.0, 0.04, 0.015, 4)
+    c.line([(0.17, 0.06), (0.22, 0.0)], 0.035, 2)               # hind leg
+    c.ell(0.2, 0.0, 0.055, 0.016, 4)
 
 
 def skeleton(c, pose='idle'):
@@ -259,7 +298,7 @@ def ghoul(c, pose='idle'):
 
 def wisp(c, pose='idle'):
     atk = pose == 'attack'
-    r = 0.2 if not atk else 0.26
+    r = 0.2                                  # (the attack only opens its mouth: glyphs)
     y = 0.55
     for i in range(6):
         a = i * np.pi / 3
@@ -297,28 +336,48 @@ def imp(c, pose='idle'):
 
 
 def hound(c, pose='idle'):
+    """an ash hound in profile, muzzle to the left: a lean grey wolf with
+    a mane and tail of fire. Attacking, it lunges with its jaws open"""
     atk = pose == 'attack'
-    c.ell(0, 0.3, 0.2, 0.14, 2, 0.8)                              # body behind
-    for s in (-1, 1):
-        c.line([(s * 0.1, 0.24), (s * 0.12, 0.1), (s * 0.11, 0.01)], 0.045, 2)
-        c.ell(s * 0.12, 0.01, 0.05, 0.02, 2)
-    c.ell(0, 0.36, 0.13, 0.12, 2)                                 # chest
-    hy = 0.46 if not atk else 0.42
-    c.ell(0, hy, 0.12, 0.1, 2)                                    # head
-    c.poly([(-0.1, hy + 0.05), (-0.17, hy + 0.18), (-0.04, hy + 0.08)], 2)
-    c.poly([(0.1, hy + 0.05), (0.17, hy + 0.18), (0.04, hy + 0.08)], 2)
-    c.ell(0, hy - 0.06, 0.07, 0.05, 2)                            # muzzle
-    c.ell(-0.045, hy + 0.02, 0.025, 0.018, 1)
-    c.ell(0.045, hy + 0.02, 0.025, 0.018, 1)
-    c.dot(-0.045, hy + 0.02, 3)
-    c.dot(0.045, hy + 0.02, 3)
+    hx, hy = (-0.05, -0.04) if atk else (0.0, 0.0)
+    # far legs (dimmer), then the body
+    c.line([(-0.08, 0.3), (-0.05, 0.15), (-0.08, 0.0)], 0.042, 2, 0.6)
+    c.line([(0.17, 0.3), (0.21, 0.16), (0.17, 0.0)], 0.042, 2, 0.6)
+    c.ell(0.04, 0.37, 0.23, 0.1, 2, 0.9)                        # back and loins
+    c.ell(-0.13, 0.35, 0.12, 0.14, 2)                           # deep chest
+    c.poly([(-0.2, 0.32), (0.12, 0.33), (0.2, 0.38), (-0.08, 0.26)], 2, 0.8)
+    # near legs
     if atk:
-        c.poly([(-0.06, hy - 0.07), (0.06, hy - 0.07), (0.04, hy - 0.15), (-0.04, hy - 0.15)], 1)
-        for k in (-0.04, -0.015, 0.015, 0.04):
-            c.px_line([(k, hy - 0.07), (k, hy - 0.1)], 2)
-    for k in range(5):                                            # spines of flame
-        x = -0.12 + k * 0.06
-        c.poly([(x - 0.025, 0.42), (x + 0.025, 0.42), (x + 0.01, 0.52 + 0.03 * (k % 2))], 3)
+        c.line([(-0.17, 0.3), (-0.27, 0.22), (-0.33, 0.12)], 0.038, 2)
+        c.line([(-0.12, 0.28), (-0.2, 0.18), (-0.24, 0.08)], 0.034, 2, 0.8)
+    else:
+        c.line([(-0.16, 0.3), (-0.17, 0.15), (-0.15, 0.0)], 0.05, 2)
+        c.ell(-0.165, 0.0, 0.045, 0.016, 2)
+    c.line([(0.12, 0.33), (0.2, 0.2), (0.15, 0.1), (0.14, 0.0)], 0.05, 2)
+    c.ell(0.12, 0.0, 0.045, 0.016, 2)
+    # neck and head, carried low like a hunting wolf
+    c.poly([(-0.2, 0.44), (-0.06, 0.46), (-0.2 + hx, 0.54 + hy), (-0.34 + hx, 0.44 + hy)], 2)
+    c.ell(-0.29 + hx, 0.47 + hy, 0.08, 0.07, 2)
+    c.poly([(-0.32 + hx, 0.53 + hy), (-0.49 + hx, 0.465 + hy), (-0.5 + hx, 0.43 + hy), (-0.33 + hx, 0.4 + hy)], 2)
+    for ex in (0.0, 0.045):                                       # ears, pricked
+        c.poly([(-0.28 + ex + hx, 0.52 + hy), (-0.25 + ex + hx, 0.65 + hy), (-0.21 + ex + hx, 0.52 + hy)], 2, 0.8 + ex * 4)
+    c.ell(-0.335 + hx, 0.49 + hy, 0.024, 0.015, 1)               # eye, a coal
+    c.dot(-0.335 + hx, 0.49 + hy, 3)
+    c.dot(-0.495 + hx, 0.455 + hy, 1)                            # nose
+    for k in range(3):                                           # lean ribs
+        c.px_line([(-0.17 + k * 0.045, 0.4), (-0.15 + k * 0.045, 0.3)], 1)
+    if atk:
+        c.poly([(-0.5 + hx, 0.43 + hy), (-0.3 + hx, 0.43 + hy), (-0.46 + hx, 0.33 + hy)], 1)   # jaws
+        c.poly([(-0.46 + hx, 0.33 + hy), (-0.3 + hx, 0.42 + hy), (-0.31 + hx, 0.37 + hy)], 2)
+        for k in (-0.47, -0.43, -0.39):
+            c.px_line([(k + hx, 0.43 + hy), (k + hx, 0.4 + hy)], 5)
+    # the mane and tail: flames
+    for k in range(6):
+        x = -0.2 + k * 0.07
+        y = 0.45 - k * 0.012
+        c.poly([(x - 0.035, y), (x + 0.035, y), (x + 0.03, y + 0.1 + 0.04 * (k % 2))], 3)
+    c.poly([(0.24, 0.4), (0.28, 0.36), (0.42, 0.5), (0.38, 0.56), (0.34, 0.47)], 3)
+    c.poly([(0.3, 0.42), (0.36, 0.42), (0.47, 0.6)], 3)
 
 
 def king(c, pose='idle'):
@@ -361,14 +420,15 @@ def trader(c, pose='idle'):
 
 
 CREATURES = {
-    'rat': (rat, {2: ([BROWN, BROWN, RED], 0), 3: ([BRED, RED, RED], 0)}),
+    'rat': (rat, {2: ([GREY, GREY, DGREY], 0), 3: ([BRED, RED, RED], 0), 4: ([BMAGENTA, MAGENTA, MAGENTA], 0),
+                  5: ([WHITE, WHITE, GREY], 0)}),
     'skeleton': (skeleton, {2: ([WHITE, GREY, DGREY], 0), 3: ([BCYAN, CYAN, BLUE], 0), 4: ([BROWN, BROWN, RED], 0)}),
     'spider': (spider, {2: ([BMAGENTA, MAGENTA, MAGENTA], 0), 3: ([BRED, RED, RED], 0)}),
     'fungoid': (fungoid, {2: ([BRED, RED, RED], 0), 3: ([YELLOW, BROWN, BROWN], 0)}),
     'ghoul': (ghoul, {2: ([BGREEN, GREEN, GREEN], 0), 3: ([YELLOW, BROWN, BROWN], 0)}),
     'wisp': (wisp, {2: ([WHITE, BCYAN, CYAN], ANIM_GLOW + 2)}),
     'imp': (imp, {2: ([BMAGENTA, MAGENTA, MAGENTA], 0), 3: ([YELLOW, YELLOW, BRED], ANIM_FLAME)}),
-    'hound': (hound, {2: ([WHITE, GREY, DGREY], 0), 3: ([YELLOW, BRED, RED], ANIM_FLAME)}),
+    'hound': (hound, {2: ([WHITE, GREY, DGREY], 0), 3: ([YELLOW, BRED, RED], ANIM_FLAME), 5: ([WHITE, WHITE, GREY], 0)}),
     'king': (king, {2: ([BCYAN, CYAN, BLUE], 0), 3: ([BRED, BRED, RED], 0), 4: ([YELLOW, YELLOW, BROWN], 0)}),
     'trader': (trader, {2: ([YELLOW, BROWN, BROWN], 0), 3: ([WHITE, GREY, GREY], 0), 4: ([BROWN, BROWN, RED], 0),
                         5: ([YELLOW, YELLOW, BROWN], ANIM_FLAME)}),
@@ -533,8 +593,8 @@ def dc_lever_down(c):
 
 def dc_button(c):
     c.rect(-0.08, -0.05, 0.08, 0.09, 2)
-    c.ell(0, 0.02, 0.045, 0.045, 1)
-    c.ell(0, 0.02, 0.03, 0.03, 3)
+    c.ell(0, 0.02, 0.075, 0.075, 1)
+    c.ell(0, 0.02, 0.06, 0.06, 3)
 
 
 def rune_plaque(sym, lit):
@@ -568,6 +628,10 @@ def dc_torch(c):
 
 
 def dc_fountain(c):
+    if c.mode == 'side':                             # edge-on: the head and the spout
+        c.ell(0, 0.15, 0.08, 0.08, 2)
+        c.rect(-0.02, -0.33, 0.02, 0.1, 3)
+        return
     c.ell(0, 0.15, 0.08, 0.08, 2)                    # a lion's head
     c.ell(-0.03, 0.17, 0.015, 0.012, 1)
     c.ell(0.03, 0.17, 0.015, 0.012, 1)
@@ -579,10 +643,11 @@ def dc_fountain(c):
 
 def dc_tablet(c):
     c.poly([(-0.16, -0.2), (0.16, -0.2), (0.16, 0.15), (0.0, 0.22), (-0.16, 0.15)], 2)
-    for y in (0.1, 0.03, -0.04, -0.11):
-        for x in (-0.1, -0.04, 0.02, 0.08):
-            if hash2(int(x * 100), int(y * 100), 3) > 0.25:
-                c.rect(x, y - 0.012, x + 0.04, y + 0.012, 1)
+    if c.mode == 'side':                         # edge-on: a plain slab
+        c.rect(-0.11, -0.13, 0.11, 0.08, 1)
+        return
+    for y in (0.1, 0.03, -0.04, -0.11):          # lines of carving
+        c.rect(-0.11, y - 0.012, 0.11, y + 0.012, 1)
 
 
 def dc_alcove(c):
@@ -613,7 +678,23 @@ def fx_fire(c):
     c.poly([(-0.1, 0.42), (-0.3, 0.5), (-0.1, 0.5)], 2)
 
 
-FX = [('fireball', fx_fire, {2: ([YELLOW, YELLOW, BRED], ANIM_FLAME)})]
+def fx_slash(c):
+    """the Warden's blade: a bright crescent across the foe, a spark where it bites"""
+    cx, cy = 0.02, 0.42
+    outer, inner = [], []
+    for t in np.linspace(0, 1, 16):
+        a = np.radians(35 + 150 * t)
+        w = 0.07 * np.sin(np.pi * t) + 0.008
+        outer.append((cx + np.cos(a) * 0.36, cy + np.sin(a) * 0.36 - 0.25 * t))
+        inner.append((cx + np.cos(a) * (0.36 - w), cy + np.sin(a) * (0.36 - w) - 0.25 * t))
+    c.poly(outer + inner[::-1], 2)
+    sx, sy = cx + np.cos(np.radians(110)) * 0.34, cy + np.sin(np.radians(110)) * 0.34 - 0.125
+    c.poly([(sx, sy + 0.09), (sx + 0.025, sy + 0.02), (sx + 0.09, sy), (sx + 0.025, sy - 0.02),
+            (sx, sy - 0.09), (sx - 0.025, sy - 0.02), (sx - 0.09, sy), (sx - 0.025, sy + 0.02)], 3)
+
+
+FX = [('fireball', fx_fire, {2: ([YELLOW, YELLOW, BRED], ANIM_FLAME)}),
+      ('slash', fx_slash, {2: ([WHITE, WHITE, GREY], 0), 3: ([YELLOW, YELLOW, BROWN], 0)})]
 
 
 # =====================================================================
@@ -633,6 +714,8 @@ def catalogue():
         cat.append(('A_' + n, 'atk', f, m))
     for n, f, m in FX:
         cat.append(('X_' + n, 'fx', f, m))
+    for n, f, m in DECORS:          # the same, on a side wall (dz word k: 0, 1 left; 2, 3 right)
+        cat.append(('S_' + n, 'sdecor', f, m))
     return cat
 
 
@@ -642,6 +725,8 @@ IDS = {e[0]: i for i, e in enumerate(CAT) if e}
 
 def render_sprite(entry, dz):
     name, kind, f, mats = entry
+    if kind == 'fx' and name == 'X_slash' and dz != 1:
+        return None                     # a blow lands close up only
     if kind in ('mon', 'fx'):
         return render(f, 'billboard', dz, mats)
     if kind == 'item':
@@ -655,7 +740,11 @@ def render_sprite(entry, dz):
             return None
         return render(f, 'floor', dz, mats, mincov=6)
     if kind == 'decor':
+        if dz == 3:
+            return None                 # too small to read that far off
         return render(f, 'face', dz, mats, mincov=4, scale=1.8)
+    if kind == 'sdecor':
+        return render(f, 'side', dz, mats, mincov=3, scale=1.8, band=0 if dz in (0, 2) else 1)
 
 
 def mon_draw(name, pose):

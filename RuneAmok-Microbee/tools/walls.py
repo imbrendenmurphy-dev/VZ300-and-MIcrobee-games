@@ -53,7 +53,7 @@ def ashlar(u, v, pu, pv, side, courses=4, seed=1, rough=0.0):
     uu = (u + off) * 2.0
     col = np.floor(uu)
     fu = uu - col
-    colid = 0 if not side else col
+    colid = 0
     mw_u = line_w(pu * 0.5, 0.04)
     mw_v = line_w(pv / courses, 0.07)
     mortar = (fu < mw_u) | (fv < mw_v)
@@ -65,7 +65,7 @@ def ashlar(u, v, pu, pv, side, courses=4, seed=1, rough=0.0):
     # speckle
     us = (u % 0.5) if not side else u
     sp = hash2(np.floor(us * 61), np.floor(v * 77), seed + 3)
-    face = np.where(sp > 0.975, face * 0.35, face)
+    face = np.where((sp > 0.975) & (not side), face * 0.35, face)   # (side faces plain: glyphs)
     if rough:
         cr = hash2(np.floor((u % 0.5 if not side else u) * 9 + v * 3), np.floor(v * 13), seed + 9)
         face = np.where(cr > 1 - rough, face * 0.5, face)
@@ -140,10 +140,10 @@ def library(u, v, pu, pv, side, seed=6):
     bid = np.floor(bu)
     key = (bid % (0.5 / bw)) if not side else bid
     h = hash2(key, srow, seed)
-    top = 0.18 + 0.3 * h
+    top = 0.18 + 0.15 * np.floor(h * 3)
     book = (fv > top) & ~plank
     gap = (bu - bid) < line_w(pu * bw, 0.12)
-    lum = np.where(book & ~gap, 0.55 + 0.45 * hash2(key, srow, seed + 1), 0.0)
+    lum = np.where(book & ~gap, 0.8, 0.0)
     band_ = (fv > top + 0.12) & (fv < top + 0.2)
     lum = np.where(book & band_, lum * 0.4, lum)
     lum = np.where(plank, 0.9, lum)
@@ -189,13 +189,16 @@ def face_pixels(slot, theme, kind):
     tex = TEXTURES['library' if kind == 'B' and theme.name == 'archive' and not side else theme.wall]
     lum = tex(u, v, pu, pv, side)
     mat = np.where(inside, 1, 0)
-    if slot.kind == 'F' and kind in ('D', 'G', 'V', 'X'):
+    if kind in ('D', 'G', 'V', 'X'):          # front faces and side faces alike
         lum, mat = feature(slot, theme, kind, u, v, pu, pv, lum, mat, inside)
     return lum, mat, inside, z
 
 
 def door_cols(slot):
-    """door opening in whole cells: the middle half of the face"""
+    """door opening in whole cells: the middle half of the face (on a side
+    face, the middle half of its depth)"""
+    if slot.kind == 'S':
+        return 0.22, 0.78
     w = slot.x1 - slot.x0
     cells = w // 8
     k = {12: 3, 8: 2, 6: 1, 4: 1}[cells]

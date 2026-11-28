@@ -182,6 +182,8 @@ tt_pages:   dw tt_tale, tt_keys, tt_foes
 title_load:
         xor a
         ld (nanim),a            ; the last view's colour cycling stops
+        ld (hurtflash),a        ; and any red flash of the frame
+        ld (hf_lit),a
         call snd_quiet
         call display_off
         ld a,MP_TITLE

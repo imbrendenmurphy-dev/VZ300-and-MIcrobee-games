@@ -300,6 +300,50 @@ decor_pass:
         inc ix
         pop bc
         djnz .f
+        ; the side walls beside the corridor, one square ahead: their own
+        ; sprites (decoration + SDECOR), drawn where their face won
+        ld hl,ds_offp
+        call facing_ptr
+        ld (dp_off),hl
+        ld ix,ds_tab
+        ld b,NDS
+.sf:    push bc
+        ld hl,(dp_off)
+        ld e,(hl)
+        inc hl
+        ld d,(hl)
+        inc hl
+        ld (dp_off),hl
+        ld a,(facing)
+        add a,(ix+2)
+        and 3
+        ld (dp_side),a          ; the face looks across the corridor
+        ld hl,(ppos)
+        add hl,de
+        ld a,(hl)
+        or a
+        jr z,.sn
+        cp 16
+        jr nc,.sn
+        call find_decor
+        or a
+        jr z,.sn
+        add a,SDECOR-1
+        ld (sp_id),a
+        ld a,(ix+1)
+        ld (sp_dz),a
+        xor a
+        ld (sp_shift),a
+        ld a,(ix+0)
+        ld (sp_slot),a
+        ld a,255
+        ld (sp_key),a
+        call draw_sprite
+.sn:    inc ix
+        inc ix
+        inc ix
+        pop bc
+        djnz .sf
         ret
 
 ; HL = square address -> A = decoration sprite + 1 on the side we see, or 0
@@ -405,7 +449,9 @@ sprite_pass:
         ld a,(hl)
         or a
         jr z,.n
+        push ix                 ; (mon_sprite points IX at the monster)
         call mon_sprite         ; A = monster + 1 -> A = sprite id, (sp_flash)
+        pop ix
         or a
         jr z,.n
         ld (sp_id),a
