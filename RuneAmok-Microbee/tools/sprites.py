@@ -591,14 +591,25 @@ def dc_lever_down(c):
     dc_lever(c, True)
 
 
-def dc_button(c):
+def dc_button(c, pressed=False):
     c.rect(-0.08, -0.05, 0.08, 0.09, 2)
     c.ell(0, 0.02, 0.075, 0.075, 1)
-    c.ell(0, 0.02, 0.06, 0.06, 3)
+    if pressed:                                  # sunk into its socket: a small disc in a wide dark ring
+        c.ell(0, 0.02, 0.035, 0.035, 3)
+    else:
+        c.ell(0, 0.02, 0.06, 0.06, 3)
+
+
+def dc_button_in(c):
+    dc_button(c, True)
 
 
 def rune_plaque(sym, lit):
     def d(c):
+        if lit and c.mode != 'side':             # lit: rays round the plaque (the same for every rune)
+            for x0, y0, dx, dy in ((-0.15, 0.22, -0.05, 0.05), (0.15, 0.22, 0.05, 0.05), (-0.15, -0.12, -0.05, -0.05),
+                                   (0.15, -0.12, 0.05, -0.05)):
+                c.line([(x0, y0), (x0 + dx, y0 + dy)], 0.02, 3)
         c.rect(-0.13, -0.1, 0.13, 0.2, 2)
         c.rect(-0.11, -0.08, 0.11, 0.18, 1)
         m = 3
@@ -659,7 +670,7 @@ DECORS = [  # name, draw, materials
     ('lever_up', dc_lever, {2: ([GREY, DGREY, DGREY], 0), 3: ([YELLOW, YELLOW, BROWN], 0)}),
     ('lever_dn', dc_lever_down, {2: ([GREY, DGREY, DGREY], 0), 3: ([YELLOW, YELLOW, BROWN], 0)}),
     ('button', dc_button, {2: ([GREY, DGREY, DGREY], 0), 3: ([BRED, RED, RED], 0)}),
-    ('button_in', dc_button, {2: ([GREY, DGREY, DGREY], 0), 3: ([RED, RED, RED], 0)}),
+    ('button_in', dc_button_in, {2: ([GREY, DGREY, DGREY], 0), 3: ([RED, RED, RED], 0)}),
 ]
 for s in range(4):
     DECORS.append(('rune%d' % s, rune_plaque(s, False), {2: ([GREY, DGREY, DGREY], 0), 3: ([BLUE, BLUE, BLUE], 0)}))

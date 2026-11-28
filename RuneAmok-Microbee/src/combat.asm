@@ -80,7 +80,12 @@ mon_sprite:
         call mon_rec
         pop af
         ld b,a
-        xor a
+        ld a,(hide_mon)
+        cp b
+        jr nz,.nh
+        xor a                   ; blinked out (a blow landing)
+        ret
+.nh:    xor a
         ld (sp_flash),a
         ld a,(flash_mon)
         cp b
@@ -286,8 +291,18 @@ damage_mon:
 flash_monster:
         ld a,1
 show_blow:                      ; A = 0: a miss (the slash alone)
+        push ix
         or a
         jr z,.nf
+        ; a hit: the foe blinks out for a beat (a cue by shape, not
+        ; colour alone), then shows red under the blade
+        ld a,(cur_mon)
+        ld (hide_mon),a
+        call view_refresh
+        ld a,3
+        call frames
+        xor a
+        ld (hide_mon),a
         ld a,(cur_mon)
 .nf:    ld (flash_mon),a
         ld a,(blow_spr)
@@ -298,7 +313,6 @@ show_blow:                      ; A = 0: a miss (the slash alone)
         ld (fx_dz),a            ; the blade: on the foe in front
 .kd:    ld a,SP_X_SLASH
         ld (blow_spr),a         ; (a spell sets its own for one blow)
-        push ix
         call view_refresh       ; returns once the view is on screen
         ld a,12
         call frames
@@ -310,6 +324,7 @@ show_blow:                      ; A = 0: a miss (the slash alone)
         ret
 
 blow_spr:   db SP_X_SLASH
+hide_mon:   db 0
 
 kill_mon:
         ld hl,sfx_kill

@@ -102,10 +102,24 @@ Re-composing a view costs a little. Changing a colour byte costs almost nothing.
 
 **Combat feedback** is drawn, not only logged:
 
-- **Your blow**: a white crescent slash with a yellow spark is drawn across the foe in front, and a struck foe flashes red (its cells' colour overridden), held for about a quarter second after the view shows. A miss shows the slash alone. A firebolt shows its fire instead of the slash.
-- **A blow on you**: the frame around the view blinks red three times (its colour bytes written straight into colour RAM in the blanking: no recompose), while a foe in front holds its attack pose.
+- **Your blow**: a struck foe blinks out for a beat; then a white crescent slash with a yellow spark is drawn across it, and it flashes red (its cells' colour overridden), held for about a quarter second after the view shows. A miss shows the slash alone. A firebolt shows its fire instead of the slash.
+- **A blow on you**: the frame around the view blinks red three times and its rules turn to thick bars (colour and screen bytes written straight into both pages in the blanking: no recompose), while a foe in front holds its attack pose.
 
-### 3.6 Reserved colours
+### 3.6 Shape before colour
+
+The game must read on a monochrome monitor, where every lit pixel shows the same, so **no state is shown by colour alone**. Colour adds to a shape cue; it never replaces one:
+
+| State | Colour | Shape |
+|---|---|---|
+| A key, sigil or spell not yet held | dark grey | a dot instead of the icon |
+| A lit rune | magenta pulse | rays at the plaque's corners (the same rays for every rune, so they cost few glyphs) |
+| A pressed button | darker red | a small disc sunk in a wide dark socket |
+| A foe struck | red flash | it blinks out for a beat, then the slash crosses it |
+| You struck | the frame blinks red | the frame's rules turn to thick bars (two font slots the game never prints, `{` and `}`) |
+
+Depth is the one place colour still carries meaning: the dither density makes up for each ink's brightness, so on mono the far walls look about as bright as the near ones. A second, mono-tuned set of wall art would need glyphs there is no room for.
+
+### 3.7 Reserved colours
 
 | Colour | Means |
 |---|---|
@@ -116,7 +130,7 @@ Re-composing a view costs a little. Changing a colour byte costs almost nothing.
 | Green | Life and healing |
 | Bronze and gold | The frame |
 
-### 3.7 The frame and UI
+### 3.8 The frame and UI
 
 - A bronze double rule with knotted corners frames:
   - the view (24×16 cells, 192×160 pixels);

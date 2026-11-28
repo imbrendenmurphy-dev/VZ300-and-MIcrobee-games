@@ -13,7 +13,7 @@
 ;  Level block B (mapped low): +0 backdrop, +2 wall table.
 ;  Level block A: +SPRIDX sprite index (dw per sprite and depth).
 ; =====================================================================
-SPRIDX      EQU $4800
+SPRIDX      EQU $4880         ; just past 1856 glyphs (tools/mkdata.py SPRITE_BASE)
 
 ; HL = table of 4 pointers -> HL = the one for (facing)
 facing_ptr:

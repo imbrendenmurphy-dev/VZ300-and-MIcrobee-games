@@ -43,14 +43,19 @@ frame:
         call snd_tick
         jp read_input
 
-; wait A frames
+; wait A frames (an animation holding: (busy) is set meanwhile, for the
+; test bot - keys pressed now are not acted on)
 frames: or a
         ret z
+        ld hl,busy
+        inc (hl)
 .l:     push af
         call frame
         pop af
         dec a
         jr nz,.l
+        ld hl,busy
+        dec (hl)
         ret
 
 ; ESC: give CP/M its screen back and warm-boot (what MODES.COM does)

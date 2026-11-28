@@ -24,7 +24,7 @@ BUILD.mkdir(exist_ok=True)
 KINDS = ['A', 'B', 'D', 'G', 'V']          # kind 1..5
 FACING = [(0, -1), (1, 0), (0, 1), (-1, 0)]  # N E S W
 MAPW = 32
-SPRITE_BASE = 0x4800                       # sprite index in the A block
+SPRITE_BASE = 0x4880                       # sprite index in the A block: just past 1856 glyphs (view.asm SPRIDX)
 
 
 def map_off(dx, dz, d):

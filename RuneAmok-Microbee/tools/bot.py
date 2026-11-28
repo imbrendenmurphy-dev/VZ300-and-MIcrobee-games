@@ -40,7 +40,7 @@ class Bot:
         for _ in range(maxf):
             self.pp.run_frames(1)
             self.frames += 1
-            if self.v('cm_state') == 0:
+            if self.v('cm_state') == 0 and self.v('busy') == 0:
                 break
 
     def key(self, k, hold=2, after=4):

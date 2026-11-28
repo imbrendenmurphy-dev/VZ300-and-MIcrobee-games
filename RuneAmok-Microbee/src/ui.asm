@@ -515,7 +515,8 @@ ui_items:
         push hl
         ld a,(hl)
         or a
-        ld a,BLACK
+        ld b,F_DOT              ; not held: a dot (by shape, not colour)
+        ld a,DGREY
         jr z,.kc
         ld a,c
         push de
@@ -525,8 +526,8 @@ ui_items:
         add hl,de
         ld a,(hl)
         pop de
-.kc:    ld b,I_KEY
-        call put_icon
+        ld b,I_KEY
+.kc:    call put_icon
         inc de
         pop hl
         push hl
@@ -553,31 +554,34 @@ ui_items:
 .s:     push bc
         ld hl,tmp_sig
         srl (hl)
+        ld b,F_DOT
         ld a,DGREY
         jr nc,.sc
+        ld b,I_SIGIL
         ld a,BMAGENTA
-.sc:    ld b,I_SIGIL
-        call put_icon
+.sc:    call put_icon
         inc de
         pop bc
         djnz .s
         inc de
         ld a,(spells)
         rra
+        ld b,F_DOT
         ld a,DGREY
         jr nc,.f
+        ld b,I_FLAME
         ld a,BRED
-.f:     ld b,I_FLAME
-        call put_icon
+.f:     call put_icon
         inc de
         ld a,(spells)
         rra
         rra
+        ld b,F_DOT
         ld a,DGREY
         jr nc,.m
+        ld b,I_MEND
         ld a,BGREEN
-.m:     ld b,I_MEND
-        call put_icon
+.m:     call put_icon
         ret
 
 key_cols:   db BROWN, GREY, YELLOW
@@ -865,17 +869,40 @@ vb_hurt:
         ld a,e
         ld (hf_lit),a
 hf_paint:                       ; E = the colour
+        ld a,e
+        ld (hf_c),a
+        ld d,e
         ld a,COL_ON
         out (P_COLCTL),a
         ld hl,PCGWIN
-        call .page
+        call hf_cells
+        call hf_knots
         ld hl,PCGWIN+PAGE1
-        call .page
+        call hf_cells
+        call hf_knots
         xor a
         out (P_COLCTL),a
-        ret
-.page:  push hl
-        ld b,26                 ; rows 0 and 17
+        ; and the shape: thick bars while red (a cue a mono monitor shows)
+        ld e,F_H
+        ld d,F_V
+        ld a,(hf_c)
+        cp C_FRAME
+        jr z,.sh
+        ld e,F_HHIT
+        ld d,F_VHIT
+.sh:    ld a,LV_SCREEN
+        out (P_LV),a
+        ld hl,VIDEO
+        call hf_cells
+        ld hl,VIDEO+PAGE1
+        jp hf_cells
+
+; HL = page base: E into the rules of rows 0 and 17 (columns 1-24),
+; D into columns 0 and 25 (rows 1-16)
+hf_cells:
+        push hl
+        inc hl
+        ld b,24
 .t:     ld (hl),e
         push hl
         ld a,l
@@ -892,15 +919,15 @@ hf_paint:                       ; E = the colour
         push hl
         ld bc,40
         add hl,bc
-        ld b,16                 ; columns 0 and 25, rows 1-16
-.v:     ld (hl),e
+        ld b,16
+.v:     ld (hl),d
         push hl
         ld a,l
         add a,25
         ld l,a
         jr nc,.v1
         inc h
-.v1:    ld (hl),e
+.v1:    ld (hl),d
         pop hl
         push bc
         ld bc,40
@@ -908,7 +935,12 @@ hf_paint:                       ; E = the colour
         pop bc
         djnz .v
         pop hl
-        ld a,e                  ; the knots: yellow unless red
+        ret
+
+; HL = colour page base: the four knots, yellow unless red
+hf_knots:
+        push hl
+        ld a,(hf_c)
         cp C_FRAME
         jr nz,.k
         ld a,C_KNOT
@@ -922,6 +954,8 @@ hf_paint:                       ; E = the colour
         ld bc,25
         add hl,bc
         ld (hl),a
+        pop hl
         ret
 
+hf_c:       db 0
 hf_lit:     db 0

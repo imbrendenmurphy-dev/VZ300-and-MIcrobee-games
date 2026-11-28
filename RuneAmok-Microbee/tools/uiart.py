@@ -42,6 +42,13 @@ def bar(n):
 def bank14():
     out = list(font.glyphs())                  # 96
     names = {}
+    # two font characters the game never prints carry the frame's "struck"
+    # rules: thick bars, so a hit shows by shape as well as by red
+    for ch, k, rows in (('{', 'HHIT', ["........", "........", "########", "########", "########", "########",
+                                       "########", "########", "........", "........"]),
+                        ('}', 'VHIT', [".######."] * 10)):
+        out[ord(ch) - 32] = g(rows)
+        names['f' + k] = 0x80 + ord(ch) - 32
     for n in ICON_ORDER:
         names[n] = 0x80 + len(out)
         out.append(g(ICONS[n]))
@@ -99,6 +106,7 @@ def frame_glyph(kind):
 
 
 FRAME_ORDER = ['H', 'V', 'TL', 'TR', 'BL', 'BR', 'X', 'TD', 'TU', 'TRt', 'TLt', 'RUNE', 'DOT']
+HIT_GLYPHS = ['HHIT', 'VHIT']
 
 
 def bank15():
@@ -110,7 +118,7 @@ def inc_lines():
     _, n15 = bank15()
     L = []
     for k, v in n14.items():
-        if k.startswith('f') and k[1:] in FRAME_ORDER:
+        if k.startswith('f') and k[1:] in FRAME_ORDER + HIT_GLYPHS:
             L.append('F_%s EQU $%02X' % (k[1:].upper(), v))
         else:
             L.append('I_%s EQU $%02X' % (k.upper(), v))

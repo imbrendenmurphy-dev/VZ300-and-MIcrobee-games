@@ -37,7 +37,13 @@ VIBED BY BPM 2026
 
 ## Status
 
-Version 1.1. It has been tested in the emulator model (`tools/emu`, the Spindrift/REDBACK Premium Plus model) and in uBonPC. It has **not been tested on real hardware**. It loads and plays in uBee512, but there the sound crackles, which uBonPC doesn't reproduce.
+Version 1.2. It has been played on a real Microbee Premium Plus, and tested in the emulator model (`tools/emu`, the Spindrift/REDBACK Premium Plus model) and in uBonPC. It loads and plays in uBee512, but there the sound crackles, which uBonPC doesn't reproduce.
+
+It plays on a **colour or a monochrome monitor**. Nothing is shown by colour alone:
+- Keys, sigils and spells you don't have yet are dots in the panel.
+- A lit rune has rays round it, and a pressed button sits sunk in its socket.
+- A struck foe blinks out before it flashes red under the blade.
+- When you are struck, the view's frame turns to thick red bars.
 
 What has been checked:
 
@@ -106,6 +112,5 @@ The full design and style guide is in [`docs/DESIGN.md`](docs/DESIGN.md). In sho
 
 ## Not verified
 
-- Real Premium Plus hardware: the timing of the blanking commit, the keyboard and the joystick.
-- Sound in uBee512 (it crackles there; uBonPC plays it cleanly). Which matches real hardware is still to be checked.
+- Sound in uBee512 (it crackles there; uBonPC plays it cleanly).
 - The model's CPU-hold behaviour is the one the owner measured on real hardware for Spindrift. The commit writes only in the vertical blanking, so it should be safe.

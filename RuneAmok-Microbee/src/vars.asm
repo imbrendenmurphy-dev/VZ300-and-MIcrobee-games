@@ -70,6 +70,7 @@ ui_dirty:   DS 1            ; b0 stats, b1 log, b2 minimap, b3 compass
 log_new:    DS 1
 mini_dirty: DS 8            ; one bit per minimap cell (64)
 hurtflash:  DS 1
+busy:       DS 1            ; >0 while an animation holds (frames)
 msgbuf:     DS 128
 ; sound
 snd_mode:   DS 1            ; 0 off, 1 effects, 2 music and effects
