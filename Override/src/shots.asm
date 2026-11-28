@@ -7,6 +7,8 @@
 ; fire_shot: A = weapon, B = direction, C = owner (0 player, 1 enemy),
 ; IX = shooter
 fire_shot:
+            cp W_DISRUPT            ; (no shot: it hits everything in sight)
+            jp z,disrupt
             ld (fs_w),a
             ld a,b
             ld (fs_dir),a

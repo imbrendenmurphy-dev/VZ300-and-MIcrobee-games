@@ -414,6 +414,7 @@ def asm():
         for w in words:
             if len(lines[-1]) + len(w) + 1 > 32: lines.append('')
             lines[-1] = (lines[-1] + ' ' + w).strip()
+        assert len(lines) <= 2, (r[1], lines)
         lines = (lines + ['', ''])[:2]
         L.append('            db "%s",0,"%s",0' % tuple(lines))
     # the whole fleet for the ending: each ship's silhouette, phase 0 only

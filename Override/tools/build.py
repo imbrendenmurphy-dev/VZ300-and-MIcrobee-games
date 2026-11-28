@@ -119,8 +119,9 @@ def gen_tables():
     L.append('types:')
     for num, name, en, spd, w, aggr, blurb in roster.ROSTER:
         lo, hi = bcd(roster.score_value(num))
-        L.append('            db %d,%d,%d,%d,%d,%d,%d,$%02X,$%02X,0   ; %03d %s' %
-                 (num & 255, num >> 8, en, spd, w, aggr, roster.cls(num), lo, hi, num, name))
+        L.append('            db %d,%d,%d,%d,%d,%d,%d,$%02X,$%02X,%d   ; %03d %s' %
+                 (num & 255, num >> 8, en, spd, w, aggr, roster.cls(num), lo, hi,
+                  1 if num in roster.IMMUNE else 0, num, name))
     L.append('weapons:')
     for k in range(len(roster.WEAPONS)):
         sp, dmg, rel, life = roster.WEAPONS[k]
@@ -146,9 +147,10 @@ def gen_consts(build_id):
     for k in dir(gfx):
         if (k.startswith('T_') or k.startswith('A_')) and isinstance(getattr(gfx, k), int):
             L.append('%-12s equ %d' % (k, getattr(gfx, k)))
-    for i, n in enumerate(['W_NONE', 'W_ZAP', 'W_LASER', 'W_TWIN', 'W_RAPID', 'W_CANNON', 'W_SCATTER']):
+    for i, n in enumerate(['W_NONE', 'W_ZAP', 'W_LASER', 'W_TWIN', 'W_RAPID', 'W_CANNON', 'W_SCATTER', 'W_DISRUPT']):
         L.append('%-12s equ %d' % (n, i))
     L.append('NTYPES      equ %d' % roster.NTYPES)
+    L.append('DIS_DAMAGE  equ %d' % roster.DISRUPT_DAMAGE)
     L.append('BUILD_ID    equ $%04X' % build_id)
     write('consts.inc', '\n'.join(L) + '\n')
 

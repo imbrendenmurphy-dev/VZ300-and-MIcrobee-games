@@ -1,7 +1,13 @@
 # OVERRIDE
 ### v0.7 · five ships, 33 decks, 23 droid types · VIBED BY BPM 2026
 
-## What's new in v0.7: the alert level
+## What's new in v0.7: the alert level and the disruptor
+- **The disruptor**, after Paradroid's. It fires no shot: it hits everything in sight at once.
+  Carried by the 817 Marshal and the 908 Prefect. In your hands it hits every hostile droid on
+  screen (16 damage each, every 1.6 seconds); in theirs it hits you whenever they can see you, so
+  there is nothing to dodge. Heavy plating is disruptor-proof: the 307 Porter, 668 Bulwark,
+  856 Dreadnought, 908 Prefect and 960 Overmind (their droid files say so), and so are you while
+  you're in one of those bodies. A class 8 body is now well worth stealing.
 - **The ship's alert level**, after Paradroid's alert status. Every droid you destroy or take
   over heats the alert up (three quick kills make it red), and it cools a little every second
   (red back to green in about 15 seconds). The rule under the HUD shows it: green, yellow or red,
@@ -312,7 +318,7 @@ about two classes above your own is an even fight. The attract sequence has a pa
 | 152 | COURIER | 1 | none |
 | 218 | STEWARD | 2 | arc zapper |
 | 263 | WELDER | 2 | arc zapper |
-| 307 | PORTER | 3 | none (heavy) |
+| 307 | PORTER | 3 | none (heavy, disruptor-proof) |
 | 341 | DRILLER | 3 | scatter gun (slow) |
 | 355 | TECHNICIAN | 3 | laser |
 | 408 | MEDIC | 4 | arc zapper |
@@ -321,14 +327,14 @@ about two classes above your own is an even fight. The attract sequence has a pa
 | 524 | SURVEYOR | 5 | laser (fast) |
 | 587 | WARDEN | 5 | twin laser |
 | 632 | ENFORCER | 6 | twin laser |
-| 668 | BULWARK | 6 | laser (very tough) |
+| 668 | BULWARK | 6 | laser (very tough, disruptor-proof) |
 | 705 | TROOPER | 7 | pulse gun |
 | 741 | RAVAGER | 7 | scatter gun (fast) |
 | 773 | HUNTER | 7 | pulse gun (fast, hunts you) |
-| 817 | MARSHAL | 8 | plasma cannon |
-| 856 | DREADNOUGHT | 8 | plasma cannon (slow, huge energy) |
-| 908 | PREFECT | 9 | plasma cannon |
-| 960 | OVERMIND | 9 | plasma cannon (the final droid, in the CORE of the Leviathan) |
+| 817 | MARSHAL | 8 | disruptor |
+| 856 | DREADNOUGHT | 8 | plasma cannon (slow, huge energy, disruptor-proof) |
+| 908 | PREFECT | 9 | disruptor (and disruptor-proof) |
+| 960 | OVERMIND | 9 | plasma cannon (disruptor-proof; the final droid, in the CORE of the Leviathan) |
 
 ## The ships
 1. **SV CORMORANT**: Bridge, Quarters, Galley, Cargo Hold, Machine Shop, Engines (classes 1-4)
@@ -387,9 +393,9 @@ Leave the title alone and the game shows itself off:
 | $7000-$77FF | video RAM |
 | $7800-$7BFF | left alone (ROM/DOS system area) |
 | $7C00-$7D7F / $7D80-$7FFF | IM 2 table / stack |
-| $8000-$AA15 | main code (490 bytes free) |
+| $8000-$AA15 | main code (481 bytes free) |
 | $AC00-$B4FF | variables, droid and shot tables, ship and deck info |
-| $B1F0-$B468 | play-only code: the HUD and the alert level (from `OVCOM.DAT`) |
+| $B1F0-$B4F8 | play-only code: the HUD, the alert level and the disruptor (from `OVCOM.DAT`) |
 | $B500 / $B600-$B7FF | y/6 table / SD bounce buffer |
 | upper 1 $B800-$C1FF | back buffer (64 × 40) |
 | upper 1 $C200-$C9FF | deck map (64 × 32 tiles) |

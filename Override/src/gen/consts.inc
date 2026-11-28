@@ -31,5 +31,7 @@ W_TWIN       equ 3
 W_RAPID      equ 4
 W_CANNON     equ 5
 W_SCATTER    equ 6
+W_DISRUPT    equ 7
 NTYPES      equ 23
-BUILD_ID    equ $9F67
+DIS_DAMAGE  equ 16
+BUILD_ID    equ $A045

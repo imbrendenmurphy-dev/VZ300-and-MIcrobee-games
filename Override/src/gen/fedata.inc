@@ -31,6 +31,7 @@ r_wnames:
             db "PULSE GUN",0
             db "PLASMA CANNON",0
             db "SCATTER GUN",0
+            db "DISRUPTOR",0
 r_blurbs:
             db "PROTOTYPE LINK UNIT. UNARMED.",0,"CAN SEIZE ANY DROID IT TOUCHES.",0
             db "DECK SWEEPER. SLOW AND HARMLESS.",0,"EASY TO SEIZE.",0
@@ -38,7 +39,7 @@ r_blurbs:
             db "MESSAGE RUNNER. QUICK ON ITS",0,"WHEELS.",0
             db "CABIN SERVICE UNIT WITH A STUN",0,"ARC.",0
             db "REPAIR DROID. ITS TORCH MAKES A",0,"FAIR WEAPON.",0
-            db "CARGO HAULER. HEAVY PLATING, NO",0,"GUNS.",0
+            db "CARGO HAULER. HEAVY PLATING, NO",0,"GUNS. DISRUPTOR PROOF.",0
             db "MINING UNIT. ITS ROCK BLASTER",0,"SPRAYS SHRAPNEL.",0
             db "SYSTEMS TECH WITH A CUTTING",0,"LASER.",0
             db "SICKBAY UNIT. TOUGHER THAN IT",0,"LOOKS.",0
@@ -47,14 +48,14 @@ r_blurbs:
             db "SCOUT FRAME. FAST AND ALERT.",0,"",0
             db "BRIG GUARD WITH TWIN LASERS.",0,"",0
             db "RIOT UNIT. ARMOURED AND ANGRY.",0,"",0
-            db "WALKING BLAST SHIELD. HARD TO",0,"STOP.",0
+            db "WALKING BLAST SHIELD. HARD TO",0,"STOP. DISRUPTOR PROOF.",0
             db "BATTLE DROID WITH A PULSE GUN.",0,"",0
             db "BOARDING DROID. CLOSE RANGE, NO",0,"MERCY.",0
             db "PURSUIT FRAME. FAST AND",0,"RELENTLESS.",0
-            db "COMMAND GUARD WITH A PLASMA",0,"CANNON.",0
-            db "SIEGE DROID. VERY SLOW, VERY",0,"TOUGH.",0
-            db "THE SHIP MIND'S OWN BODYGUARD.",0,"",0
-            db "THE ROGUE SHIP MIND IN A BATTLE",0,"FRAME.",0
+            db "COMMAND GUARD. ITS DISRUPTOR",0,"HITS EVERY DROID IN SIGHT.",0
+            db "SIEGE DROID. VERY SLOW, VERY",0,"TOUGH. DISRUPTOR PROOF.",0
+            db "SHIP MIND'S GUARD. CARRIES A",0,"DISRUPTOR. DISRUPTOR PROOF.",0
+            db "THE ROGUE SHIP MIND IN A BATTLE",0,"FRAME. DISRUPTOR PROOF.",0
 fleet_art:
             db $AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$A0,$00,$00,$AA,$AA,$AA,$AA,$AA,$AA
             db $AA,$AA,$AA,$99,$99,$99,$AA,$80,$00,$AA,$AA,$AA,$AA,$AA,$AA,$55,$55,$55,$AA,$80,$00,$AA,$AA,$AA

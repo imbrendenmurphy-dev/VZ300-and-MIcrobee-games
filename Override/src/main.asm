@@ -45,6 +45,7 @@ upper_end:
             org CODE2
             include "hud.asm"
             include "alert.asm"
+            include "disrupt.asm"
 code2_end:
             assert code2_end <= DIV6
             assert upper_end <= WPT

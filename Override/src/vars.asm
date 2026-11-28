@@ -33,6 +33,7 @@ T_NUM       equ 0
 T_EN        equ 2
 T_SPEED     equ 3
 T_WEAPON    equ 4
+T_FLAGS     equ 9              ; bit 0: disruptor-proof
 T_AGGR      equ 5
 T_CLASS     equ 6
 T_SCORE     equ 7
