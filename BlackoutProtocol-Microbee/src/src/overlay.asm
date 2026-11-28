@@ -456,3 +456,4 @@ str_stats2:  db "   DEATHS ",0
 str_novoice: db "NO VOICE: DISK UNREADABLE",0
 str_again:   db "PRESS SPACE",0
         include "music_ov1.inc"
+        include "mapinfo.inc"

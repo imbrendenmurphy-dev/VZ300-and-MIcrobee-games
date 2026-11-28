@@ -64,7 +64,7 @@ poke sleep_t $FF
 poke sleep_t+1 $7F
 poke wstate 0
 poke wy 228
-poke wx 64
+poke wx 28
 fields 4
 down Q
 fields 160
@@ -98,24 +98,7 @@ poke sleep_t $FF
 poke sleep_t+1 $7F
 poke wstate 0
 poke wy 60
-poke wx 80
-fields 4
-down Q
-fields 160
-up Q
-fields 6
-peek shards 3
-poke dbg_r 24
-poke dbg_side 0
-pc dbg_goto
-until loop 900
-fields 80
-print SHARD 6 in COOLANT PUMPS
-poke sleep_t $FF
-poke sleep_t+1 $7F
-poke wstate 0
-poke wy 228
-poke wx 60
+poke wx 92
 fields 4
 down Q
 fields 160
@@ -127,12 +110,12 @@ poke dbg_side 0
 pc dbg_goto
 until loop 900
 fields 80
-print SHARD 7 in CRYO BAY 1
+print SHARD 6 in CRYO BAY 1
 poke sleep_t $FF
 poke sleep_t+1 $7F
 poke wstate 0
 poke wy 228
-poke wx 52
+poke wx 40
 fields 4
 down Q
 fields 160
@@ -144,41 +127,24 @@ poke dbg_side 0
 pc dbg_goto
 until loop 900
 fields 80
-print SHARD 8 in CRYO BAY 2
-poke sleep_t $FF
-poke sleep_t+1 $7F
-poke wstate 0
-poke wy 120
-poke wx 20
-fields 4
-down Q
-fields 160
-up Q
-fields 6
-peek shards 3
-poke dbg_r 31
-poke dbg_side 0
-pc dbg_goto
-until loop 900
-fields 80
-print SHARD 9 in PIPEWORKS
+print SHARD 7 in CRYO BAY 2
 poke sleep_t $FF
 poke sleep_t+1 $7F
 poke wstate 0
 poke wy 228
-poke wx 8
+poke wx 136
 fields 4
 down Q
 fields 160
 up Q
 fields 6
 peek shards 3
-poke dbg_r 28
+poke dbg_r 21
 poke dbg_side 0
 pc dbg_goto
 until loop 900
 fields 80
-print SHARD 10 in COOLING TOWER
+print SHARD 8 in FREEZER ROW
 poke sleep_t $FF
 poke sleep_t+1 $7F
 poke wstate 0
@@ -190,17 +156,51 @@ fields 160
 up Q
 fields 6
 peek shards 3
-poke dbg_r 30
+poke dbg_r 28
 poke dbg_side 0
 pc dbg_goto
 until loop 900
 fields 80
-print SHARD 11 in STEAM PLANT
+print SHARD 9 in COOLING TOWER
 poke sleep_t $FF
 poke sleep_t+1 $7F
 poke wstate 0
 poke wy 228
-poke wx 16
+poke wx 36
+fields 4
+down Q
+fields 160
+up Q
+fields 6
+peek shards 3
+poke dbg_r 32
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+fields 80
+print SHARD 10 in HEAT SINK
+poke sleep_t $FF
+poke sleep_t+1 $7F
+poke wstate 0
+poke wy 228
+poke wx 128
+fields 4
+down Q
+fields 160
+up Q
+fields 6
+peek shards 3
+poke dbg_r 27
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+fields 80
+print SHARD 11 in TURBINE HALL
+poke sleep_t $FF
+poke sleep_t+1 $7F
+poke wstate 0
+poke wy 228
+poke wx 8
 fields 4
 down Q
 fields 160
@@ -216,8 +216,8 @@ print SHARD 12 in DARK ROOM
 poke sleep_t $FF
 poke sleep_t+1 $7F
 poke wstate 0
-poke wy 228
-poke wx 48
+poke wy 96
+poke wx 80
 fields 4
 down Q
 fields 160
@@ -233,8 +233,8 @@ print SHARD 13 in TELESCOPE
 poke sleep_t $FF
 poke sleep_t+1 $7F
 poke wstate 0
-poke wy 120
-poke wx 64
+poke wy 228
+poke wx 148
 fields 4
 down Q
 fields 160
@@ -250,25 +250,8 @@ print SHARD 14 in STAR ARCHIVE
 poke sleep_t $FF
 poke sleep_t+1 $7F
 poke wstate 0
-poke wy 60
-poke wx 128
-fields 4
-down Q
-fields 160
-up Q
-fields 6
-peek shards 3
-poke dbg_r 43
-poke dbg_side 0
-pc dbg_goto
-until loop 900
-fields 80
-print SHARD 15 in DATA VAULT
-poke sleep_t $FF
-poke sleep_t+1 $7F
-poke wstate 0
-poke wy 228
-poke wx 48
+poke wy 132
+poke wx 36
 fields 4
 down Q
 fields 160
@@ -280,12 +263,12 @@ poke dbg_side 0
 pc dbg_goto
 until loop 900
 fields 80
-print SHARD 16 in LOGIC HALL
+print SHARD 15 in LOGIC HALL
 poke sleep_t $FF
 poke sleep_t+1 $7F
 poke wstate 0
-poke wy 228
-poke wx 52
+poke wy 60
+poke wx 64
 fields 4
 down Q
 fields 160
@@ -297,12 +280,29 @@ poke dbg_side 0
 pc dbg_goto
 until loop 900
 fields 80
-print SHARD 17 in MEMORY BANKS
+print SHARD 16 in MEMORY BANKS
 poke sleep_t $FF
 poke sleep_t+1 $7F
 poke wstate 0
 poke wy 60
-poke wx 36
+poke wx 16
+fields 4
+down Q
+fields 160
+up Q
+fields 6
+peek shards 3
+poke dbg_r 43
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+fields 80
+print SHARD 17 in DATA VAULT
+poke sleep_t $FF
+poke sleep_t+1 $7F
+poke wstate 0
+poke wy 228
+poke wx 44
 fields 4
 down Q
 fields 160
@@ -347,7 +347,7 @@ poke sleep_t $FF
 poke sleep_t+1 $7F
 poke wstate 0
 poke wy 228
-poke wx 76
+poke wx 64
 fields 4
 down Q
 fields 6
@@ -375,7 +375,7 @@ poke sleep_t $FF
 poke sleep_t+1 $7F
 poke wstate 0
 poke wy 228
-poke wx 88
+poke wx 76
 fields 4
 down Q
 fields 6
@@ -431,7 +431,7 @@ poke sleep_t $FF
 poke sleep_t+1 $7F
 poke wstate 0
 poke wy 228
-poke wx 84
+poke wx 76
 fields 4
 down Q
 fields 6
@@ -486,7 +486,7 @@ fields 80
 poke sleep_t $FF
 poke sleep_t+1 $7F
 poke wx 140
-poke wy 96
+poke wy 144
 fields 4
 down P
 untilmem gmode 1 600

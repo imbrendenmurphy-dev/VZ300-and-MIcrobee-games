@@ -12,7 +12,7 @@
 ; ---------------------------------------------------------------------------
 DEMO_ROOM  equ 0                ; Cargo Bay 7: conveyors, a guard, lots to search
 DEMO_TICKS equ 2250             ; ~45 s of logic ticks
-DEMO_SEE   equ 26               ; vault when a robot is this close ahead (half-pixels)
+DEMO_SEE   equ 38               ; vault when a robot is this close ahead (half-pixels)
 
 demo_start:
         ld sp,STACKTOP

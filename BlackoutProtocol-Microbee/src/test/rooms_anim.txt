@@ -1,0 +1,59 @@
+crash
+sym build\game.sym
+disk A: outputs\BLACKOUT.DS8
+boot
+until mus_play 4000
+poke dbg_r 13
+poke dbg_side 0
+pc dbg_room
+until loop 900
+fields 60
+screen test\rm_13_a.png 1 colour
+seconds 2
+screen test\rm_13_b.png 1 colour
+peek amb_n 1
+poke dbg_r 23
+poke dbg_side 0
+pc dbg_room
+until loop 900
+fields 60
+screen test\rm_23_a.png 1 colour
+seconds 2
+screen test\rm_23_b.png 1 colour
+peek amb_n 1
+poke dbg_r 33
+poke dbg_side 0
+pc dbg_room
+until loop 900
+fields 60
+screen test\rm_33_a.png 1 colour
+seconds 2
+screen test\rm_33_b.png 1 colour
+peek amb_n 1
+poke dbg_r 39
+poke dbg_side 0
+pc dbg_room
+until loop 900
+fields 60
+screen test\rm_39_a.png 1 colour
+seconds 2
+screen test\rm_39_b.png 1 colour
+peek amb_n 1
+poke dbg_r 45
+poke dbg_side 0
+pc dbg_room
+until loop 900
+fields 60
+screen test\rm_45_a.png 1 colour
+seconds 2
+screen test\rm_45_b.png 1 colour
+peek amb_n 1
+poke dbg_r 27
+poke dbg_side 0
+pc dbg_room
+until loop 900
+fields 60
+screen test\rm_27_a.png 1 colour
+seconds 2
+screen test\rm_27_b.png 1 colour
+peek amb_n 1

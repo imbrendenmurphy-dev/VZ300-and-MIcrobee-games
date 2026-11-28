@@ -165,7 +165,11 @@ st_ground:
         jr z,.noturn
         dec a
         ld (turnt),a
-        ld a,F_TURN
+        ld b,a                  ; three in-betweens over six ticks
+        ld a,5
+        sub b
+        srl a
+        add a,F_TURN
         jr .setf
 .noturn:
         ld a,(wmove)
@@ -204,7 +208,7 @@ st_ground:
         ret c
         jp start_fall
 .turn:  ld a,(wmove)            ; (called with the old facing still set)
-        ld a,4
+        ld a,6
         ld (turnt),a
         ret
 
@@ -429,6 +433,13 @@ st_fall:
         ld hl,wtim
         inc (hl)
         ld a,(hl)
+        push af                 ; flailing: two frames
+        rrca
+        rrca
+        and 1
+        add a,F_FALL
+        ld (wframe),a
+        pop af
         and 1
         jr nz,.go
         ld a,(lowgrav)          ; low gravity: a slow fall
@@ -468,7 +479,7 @@ start_death:
         ld (wstate),a
         xor a
         ld (wtim),a
-        ld a,F_FALL
+        ld a,F_DIE
         ld (wframe),a
         ld hl,deaths
         inc (hl)
@@ -477,6 +488,20 @@ start_death:
 st_dead:
         ld hl,wtim
         inc (hl)
+        ld a,(hl)
+        ld b,F_DIE+3            ; jolt, jolt..., slump, then flat
+        cp 40
+        jr nc,.df
+        dec b
+        cp 24
+        jr nc,.df
+        rrca
+        rrca
+        and 1
+        add a,F_DIE
+        ld b,a
+.df:    ld a,b
+        ld (wframe),a
         ld a,(hl)
         cp 60
         ret c
@@ -655,7 +680,7 @@ st_search:
         rrca
         rrca
         rrca
-        and 1
+        and 3                   ; kneel, reach, rummage, rummage
         add a,F_SEARCH
         ld (wframe),a
         ld hl,sprog

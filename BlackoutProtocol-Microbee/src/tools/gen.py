@@ -194,8 +194,32 @@ import sys as _s0; _s0.path.insert(0, 'tools')
 import styles as _styles
 for _n, _rows in _styles.TILES.items(): tile(_n, _rows, DGREY)
 
+# --- incidental animation: decor that has a second frame.  The game swaps each
+# such cell with its partner now and then (src/ambient.asm), never under a sprite.
+E_ = "........"
+tile('fan2', ["XXXXXXXX", "X......X", "XX....XX", "X.X..X.X", "X..XX..X", "X..XX..X",
+              "X.X..X.X", "XX....XX", "X......X", "X......X", "XXXXXXXX", E_], GREY)
+tile('gauge2', [E_, "..XXXX..", ".X....X.", "X......X", "X...X..X", "X..X...X", ".XX...X.",
+                "..XXXX..", E_, "XXXXXXXX", "X.X..X.X", E_], WHITE)
+tile('termt2', ["XXXXXXXX", "X......X", "X.XX.X.X", "X......X", "X.X.XX.X", "X......X", "XXXXXXXX",
+                ".X....X.", "XXXXXXXX", "X.X.X.XX", "XX.X.X.X", "XXXXXXXX"], BCYAN)
+tile('beacon', [E_, "...XX...", "..X..X..", "XXX..X..", "..X..X..", ".XXXXXX.", "XXXXXXXX", E_, E_, E_, E_, E_], YELLOW)
+tile('beacon2', [E_, "...XX...", "..X..X..", "..X..XXX", "..X..X..", ".XXXXXX.", "XXXXXXXX", E_, E_, E_, E_, E_], YELLOW)
+tile('leds', ["XXXXXXXX", "X......X", "X.X..X.X", "X......X", "X..X.X.X", "X......X", "X.X...XX",
+              "X......X", "XXXXXXXX", E_, E_, E_], BGREEN)
+tile('leds2', ["XXXXXXXX", "X......X", "X..X.X.X", "X......X", "X.X...XX", "X......X", "X.X..X.X",
+               "X......X", "XXXXXXXX", E_, E_, E_], BGREEN)
+tile('wave', ["XXXXXXXX", "X......X", "X.X....X", "XX.X..XX", "X...XX.X", "X......X", "XXXXXXXX",
+              "...XX...", "..XXXX..", E_, E_, E_], BCYAN)
+tile('wave2', ["XXXXXXXX", "X......X", "X...X..X", "X.XX.X.X", "XX....XX", "X......X", "XXXXXXXX",
+               "...XX...", "..XXXX..", E_, E_, E_], BCYAN)
+tile('lampb', ["...XX...", "...XX...", "..XXXX..", ".XXXXXX.", "XXXXXXXX", E_, ".X.XX.X.", E_, "..X..X..", E_, E_, E_], WHITE)
+tile('lampo', ["...XX...", "...XX...", "..XXXX..", ".X....X.", "XXXXXXXX", E_, E_, E_, E_, E_, E_, E_], WHITE)
+AMB_PAIRS = [('fan', 'fan2'), ('gauge', 'gauge2'), ('termt', 'termt2'), ('beacon', 'beacon2'),
+             ('leds', 'leds2'), ('wave', 'wave2'), ('lampb', 'lampo')]
 names = list(TILES)
 tid = {n: i for i, n in enumerate(names)}
+db("amb_pairs", [tid[n] for a, b in AMB_PAIRS for n in (a, b)] + [255])
 db("tiles", sum((TILES[n][0] for n in names), []), 12)
 TILE_BYTES = 12
 
@@ -466,6 +490,10 @@ for _rm in rooms:
     keep = []
     for (k, f, lo, hi, st, sp) in _rm.robots:
         if k >= 4: keep.append((k, f, lo, hi, st, sp)); continue      # vents, lasers: fixed
+        if k == 3:                                                      # sentries stand: floor where they are
+            if _floor_ok(_rm, f, st): keep.append((k, f, lo, hi, st, sp))
+            else: _cut += 1
+            continue
         ok = [x for x in range(lo, hi + 1) if _floor_ok(_rm, f, x)]
         if not ok: _cut += 1; continue
         x0 = min(ok, key=lambda x: abs(x - st))                         # its stretch of floor
@@ -477,6 +505,24 @@ for _rm in rooms:
         keep.append((k, f, a_, b_, x0, sp))
     _rm.robots = keep
 print('robot beats trimmed to solid floor:', _cut)
+# variety: past the first wing, robots on floors without a door become a mix of
+# patrols, zappers and (from Cryo on) sentries, so rooms aren't all the same machine
+import random as _random
+_vr = _random.Random(4242)
+for _i, _rm in enumerate(rooms):
+    _spl = any(_rm.t[r_][c_] == 'splb' for r_ in range(22) for c_ in range(42))
+    if _rm.wing == 0 or _spl or _i == 10: continue
+    new = []
+    for (k, f, lo, hi, st, sp) in _rm.robots:
+        _away = (_rm.doors[0] != f or lo >= 64) and (_rm.doors[1] != f or hi <= 92)   # 16+ cells from a door on its floor
+        if k == 0 and f in _rm.doors and _away and _vr.random() < 0.4: k = 1             # a zapper, out of reach of the door
+        elif k == 0 and f not in _rm.doors:
+            roll = _vr.random()
+            if roll < 0.4: k = 1                                        # zapper
+            elif roll < 0.65 and _rm.wing >= 2: k = 3; lo = hi = st     # sentry: stands, turns, zaps
+            elif roll < 0.8 and _rm.wing >= 3: k = 2                    # hunter drone (never a door floor)
+        new.append((k, f, lo, hi, st, sp))
+    _rm.robots = new
 
 # shafts A..L: per level (room on the left, room on the right)
 LETTERS = "ABCDEFGHIJKL"
@@ -583,18 +629,23 @@ for s, (letter, levels) in enumerate(SHAFTS):
         ids.append(row_of[row])
     pm = ids + [b for row in rows for b in row]
     assert len(pm) <= 0x0A80, (letter, len(pm))       # the data window, clear of the save area
-    blk, ofs, n = dat_for(WING_PACK[wing]).add(pm)
+    blk, ofs, n = dat.add(pm)                          # core data: CORE_BASE+k = block DAT_FIRST+k
+    blk = DAT_FIRST + int(blk.split('+')[1])
     lv = []
     for (left, right), lr in zip(levels, level_rows):
         lv += [lr - 12, 255 if left is None else left, 255 if right is None else right]
     bg, ink = SHAFT_TINT[wing]
     colcol = [ink | (bg << 4) if c < 16 or c > 25 else ink for c in range(COLS)]
-    shaft_tab += [blk, ofs & 255, ofs >> 8, n & 255, n >> 8] + lv + [ord(letter)] + colcol
+    shaft_tab.append([blk, ofs & 255, ofs >> 8, n & 255, n >> 8] + lv + [ord(letter)] + colcol)
     shaft_packs.append(WING_PACK[wing])
 assert len(pairs) <= 128, len(pairs)
 out.append(f"PM_ROWS equ {SH_ROWS - 1}")
 SHAFT_REC = 5 + 3 * NLEV + 1 + COLS
-db("shaft_tab", shaft_tab, 30)
+# each shaft's record lives in the banks; the one you're in is copied to shaft_cur
+out.append("shaft_far:")
+for rec in shaft_tab:
+    blk, ofs, n = dat.add(bytes(rec))
+    out.append(f"        db {blk}\n        dw ${ofs:04X},{n}")
 dw("combo_src", [w for (a, b) in pairs for w in (f"tiles+{a*TILE_BYTES}", f"tiles+{b*TILE_BYTES}")])
 db("combo_a", [a for (a, b) in pairs])
 # doors: per room  left (shaft, level, floor row), right (shaft, level, floor row); 255 = none
@@ -610,7 +661,8 @@ for i, rm in enumerate(rooms):
     room_door += d
 db("room_door", room_door, 6)
 # wrist-deck map: per room the column and row of its block; per room its number of fittings
-db("room_mapinfo", sum(([2 + (rm.gap + 1) * 3, 13 + rm.level * 2] for rm in rooms), []))
+_mi = sum(([2 + (rm.gap + 1) * 3, 13 + rm.level * 2] for rm in rooms), [])    # (in overlay 1: only the deck uses it)
+Path('src/mapinfo.inc').write_text('room_mapinfo:\n' + ''.join('        db ' + ','.join(str(x) for x in _mi[k:k + 16]) + '\n' for k in range(0, len(_mi), 16)))
 db("room_nfits", [len(rm.searchables()) for rm in rooms])
 # splice puzzle: each shard is a circuit node with arms N=1 E=2 S=4 W=8
 # --- key cards: each wing's key is a 4 x 4 punch card cut into three connected
@@ -770,7 +822,7 @@ for k, (pd, (drive, fname)) in enumerate(zip(packs, PACK_DISKS)):
     ptab += [drive, 8, 0, nsec & 255, nsec >> 8, base]
     print(f"{fname}: {len(img)} bytes ({nsec} sectors) -> drive {'ABCD'[drive]}, blocks {base}..{base + len(pd.blocks) - 1}")
     base += len(pd.blocks)
-assert base <= 32, "out of banked RAM"
+assert base <= 27, "banked data would reach blocks 27-31 (CP/M park and copy, overlays)"
 txt = Path("src/assets.inc").read_text()
 txt = "\n".join(pk) + "\n" + txt
 txt += f"NPACKS equ {len(packs)}\nPACK_REC equ 6\n"

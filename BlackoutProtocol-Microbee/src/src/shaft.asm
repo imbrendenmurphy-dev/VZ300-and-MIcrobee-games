@@ -499,6 +499,7 @@ shaft_render:
 ; ---------------------------------------------------------------- shaft mode
 ; cur_shaft set; A = level, B = arrival (0 left tunnel, 1 right tunnel, 2 on the lift)
 enter_shaft:
+        call shaft_load
         push bc
         call set_level
         xor a
@@ -564,14 +565,26 @@ enter_shaft:
 
 ; HL = this shaft's record in shaft_tab.
 shaft_rec:
+        ld hl,shaft_cur         ; (copied from the banks on entering the shaft)
+        ret
+
+; cur_shaft's record from the banks -> shaft_cur.  Preserves AF, BC.
+shaft_load:
+        push af
+        push bc
         ld a,(cur_shaft)
-        ld hl,shaft_tab
-        or a
-        ret z
-        ld de,SHAFT_REC
-.a:     add hl,de
-        dec a
-        jr nz,.a
+        ld l,a
+        add a,a
+        add a,a
+        add a,l
+        ld l,a
+        ld h,0
+        ld de,shaft_far
+        add hl,de
+        ld de,shaft_cur
+        call far_load
+        pop bc
+        pop af
         ret
 
 ; A = level: shy, the rooms on either side, walking limits.

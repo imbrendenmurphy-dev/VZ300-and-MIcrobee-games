@@ -99,18 +99,43 @@ objs_gather:
         ld (ix+OB_H),20
         ld a,(iy+RB_DIR)
         ld (ix+OB_FACE),a
+        ld a,(iy+RB_KIND)       ; this kind's ten frames: kind * 10 + n
+        ld e,a
+        add a,a
+        add a,a
+        add a,e
+        add a,a
+        ld e,a
         ld hl,(sleep_t)
         ld a,h
         or l
-        ld a,4
+        ld a,9                  ; asleep
         ld c,$0C
         jr nz,.fr
+        ld a,(iy+RB_KIND)       ; its colour
+        ld hl,rb_inks
+        add a,l
+        ld l,a
+        jr nc,$+3
+        inc h
+        ld c,(hl)
+        ld a,(iy+SP_ON)         ; just fired: its firing pose
+        or a
+        jr z,.mv
+        ld a,(iy+SP_LIFE)
+        cp ZAP_LIFE-3
+        ld a,8
+        jr nc,.fr
+.mv:    ld a,(iy+RB_KIND)       ; drones hover and turrets sweep even standing still
+        cp 2
         ld a,(iy+RB_ANIM)
+        jr c,.an
+        ld a,(frames)
         rrca
-        rrca
-        and 3
-        ld c,$09
-.fr:    ld (ix+OB_INK),c
+.an:    rrca
+        and 7
+.fr:    add a,e
+        ld (ix+OB_INK),c
         ld l,a
         add a,a
         add a,l
@@ -406,3 +431,4 @@ rect_meet:
         ret
 .no:    or a
         ret
+rb_inks: db $09,$0B,$0D,$0E       ; patrol red, zapper yellow, hunter magenta, sentry cyan

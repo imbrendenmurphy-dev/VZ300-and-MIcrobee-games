@@ -1,48 +1,48 @@
 ﻿room              wing            story           agent           ghost          asleep
 CARGO BAY 7          0         run 0            run 0            run 0            run 0    
 HYDROPONICS 2        0         run 1            run 0            run 2            run 0    
-SERVER HALL          0         run 1            run 2            run 1            run 0    
-REACTOR CONTROL      0         run 1            run 1            run 1            run 0    
-CREW QUARTERS        0         run 0            run 1 out        run 1            run 0    
+SERVER HALL          0         run 1            run 1            run 0            run 0    
+REACTOR CONTROL      0         run 1            run 2            run 0            run 0    
+CREW QUARTERS        0         run 0            run 1 out        run 2            run 0    
 MED BAY              0         run 1            run 2            run 2            run 0    
 COMMS ARRAY          0         run 0            run 0            run 0            run 0    
-CRYO STORE           0         run 1            run 1            run 2            run 0    
+CRYO STORE           0         run 1            run 1            run 0 out        run 0    
 SPLICE LAB           0         run 0            run 0            run 0            run 0    
 SECURITY OFFICE      0         run 0            run 0            run 0            run 0    
-GREENHOUSE 1         1         run 0            run 0            run 0            run 0    
-SEED VAULT           1         run 0            run 0            run 0            run 0    
+GREENHOUSE 1         1         run 0            run 0            run 3            run 0    
+SEED VAULT           1         run 1            run 1            run 1            run 0    
 IRRIGATION           1         run 0            run 0            run 0            run 0    
-SPORE LAB            1         run 0            run 0            run 0            run 0    
-GREENHOUSE 2         1         run 0            run 0            run 0            run 0    
+SPORE LAB            1         run 1 out        run 1 out        run 0            run 0    
+GREENHOUSE 2         1         run 1            run 1            run 3            run 0    
 ORCHARD DOME         1         run 0            run 0            run 0            run 0    
 NURSERY              1         run 0            run 0            run 0            run 0    
 AGRI CONTROL         1         run 0            run 0            run 0            run 0    
-CRYO BAY 1           2         run 1 out        run 1 out        run 3            run 0    
-SAMPLE VAULT         2         run 0            run 1            run 1            run 0    
-FREEZER ROW          2         run 0            run 0            run 0            run 0    
-ICE CORE DRILL       2         run 1            run 1            run 3            run 0    
+CRYO BAY 1           2         run 1            run 0            run 3            run 0    
+SAMPLE VAULT         2         run 0            run 0            run 0            run 0    
+FREEZER ROW          2         run 0            run 0            run 1 out        run 0    
+ICE CORE DRILL       2         run 0            run 0            run 0            run 0    
 CRYO BAY 2           2         run 0            run 0            run 0            run 0    
-COOLANT PUMPS        2         run 1 out        run 0            run 2            run 0    
-FROST LAB            2         run 1            run 1 out        run 0 out        run 0    
+COOLANT PUMPS        2         run 1            run 1            run 0            run 0    
+FROST LAB            2         run 0            run 0            run 0            run 0    
 CRYO CONTROL         2         run 0            run 0            run 0            run 0    
-TURBINE HALL         3         run 1            run 0            run 2            run 0    
-COOLING TOWER        3         run 1            run 1            run 1            run 0    
-FUEL STORE           3         run 1            run 0            run 0            run 0    
-STEAM PLANT          3         run 0            run 0            run 0            run 0    
-PIPEWORKS            3         run 0            run 1 out        run 1 out        run 0    
-HEAT SINK            3         run 1            run 0            run 0            run 0    
-CORE MONITOR         3         run 1            run 0            run 2            run 0    
+TURBINE HALL         3         run 0            run 0            run 0            run 0    
+COOLING TOWER        3         run 1 out        run 0            run 0            run 0    
+FUEL STORE           3         run 1            run 1            run 2            run 0    
+STEAM PLANT          3         run 0            run 1            run 1            run 0    
+PIPEWORKS            3         run 0            run 0            run 0            run 0    
+HEAT SINK            3         run 0            run 0            run 0            run 0    
+CORE MONITOR         3         run 0            run 0            run 0            run 0    
 REACTOR LAB          3         run 0            run 0            run 0            run 0    
-STAR DECK            4         run 1            run 1            run 2            run 0    
+STAR DECK            4         run 1            run 1            run 1            run 0    
 TELESCOPE            4         run 0            run 0            run 0            run 0    
 ORBIT LAB            4         run 1            run 1            run 1            run 0    
-DARK ROOM            4         run 0            run 2            run 0            run 0    
-GRAVITY TEST         4         run 0            run 0            run 1            run 0    
-STAR ARCHIVE         4         run 0            run 0            run 0            run 0    
+DARK ROOM            4         run 1            run 1            run 3            run 0    
+GRAVITY TEST         4         run 0 out        run 0 out        run 0            run 0 out
+STAR ARCHIVE         4         run 1            run 1            run 3            run 0    
 SENSOR ARRAY         4         run 0            run 0            run 0            run 0    
 NAV CONTROL          4         run 0            run 0            run 0            run 0    
-DATA VAULT           5         run 1 out        run 0 out        run 0 out        run 0 out
-LOGIC HALL           5         run 1 out        run 3            run 3            run 0 out
-MEMORY BANKS         5         run 1            run 0            run 2            run 0    
-ANTECHAMBER          5         run 0            run 0            run 0            run 0    
-TOTAL (door deaths / run deaths / got out)  story: 0/19/4  agent: 0/20/5  ghost: 0/33/3  asleep: 0/0/2
+DATA VAULT           5         run 1            run 1            run 3            run 0    
+LOGIC HALL           5         run 0 out        run 0 out        run 0 out        run 0 out
+MEMORY BANKS         5         run 0            run 0            run 0            run 0    
+ANTECHAMBER          5         run 1            run 0            run 0            run 0    
+TOTAL (door deaths / run deaths / got out)  story: 0/18/4  agent: 0/18/4  ghost: 0/31/3  asleep: 0/0/2

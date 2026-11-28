@@ -79,6 +79,7 @@ loop:
         jr nz,.shw
         call pads_moving        ; a moving pad redraws everything near it
         call objs_frame
+        call amb_step           ; incidental animation
         jr .still
 .shw:   ld a,(lift_dir)
         or a
@@ -194,6 +195,7 @@ enter_room:
         ld a,(grace_n)          ; a moment's grace on the way in
         ld (grace),a
         call marks_apply
+        call amb_scan           ; its fans, gauges, screens, beacons...
         ld hl,(STAGE+0)         ; its name
         ld de,STAGE
         add hl,de
@@ -462,6 +464,7 @@ str_level: db "FLOOR ",0
         include "ui.asm"
         include "save.asm"
         include "demo.asm"
+        include "ambient.asm"
         include "fdc.asm"
         include "sound.asm"
         include "bank.asm"
@@ -562,6 +565,12 @@ vb_count: db 0
 vb_last: db 0
 ticks:  db 0
 pend_msg: dw 0
+amb_n:  db 0
+amb_i:  db 0
+amb_c:  db 0
+amb_r:  db 0
+amb_list: ds AMB_MAX*2
+shaft_cur: ds SHAFT_REC         ; the shaft you're in (from the banks)
 cmb_list: ds 129                ; this shaft's combos: count, then their numbers
 title_n: db 0
 demo_on: db 0

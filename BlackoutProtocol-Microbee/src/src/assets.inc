@@ -1,7 +1,7 @@
 CORE_BASE equ 4
-PACK1_BASE equ 7
-PACK2_BASE equ 8
-PACK3_BASE equ 9
+PACK1_BASE equ 9
+PACK2_BASE equ 10
+PACK3_BASE equ 11
 ycell:
         db $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$01,$01,$01,$01
         db $01,$01,$01,$01,$01,$01,$01,$01,$02,$02,$02,$02,$02,$02,$02,$02
@@ -49,6 +49,8 @@ rowbase:
         dw $A500,$A7A0,$AA40,$ACE0,$AF80,$B220,$B4C0,$B760
         dw $BA00,$BCA0,$BF40,$C1E0,$C480,$C720,$C9C0,$CC60
         dw $CF00,$D1A0,$D440
+amb_pairs:
+        db $1A,$6B,$2D,$6C,$2F,$6D,$6E,$6F,$70,$71,$72,$73,$74,$75,$FF
 tiles:
         db $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
         db $00,$00,$00,$00,$00,$10,$00,$00,$00,$00,$00,$00
@@ -157,6 +159,17 @@ tiles:
         db $54,$FE,$02,$02,$02,$32,$02,$02,$FE,$54,$00,$00
         db $00,$00,$DD,$00,$76,$00,$FF,$00,$00,$00,$00,$00
         db $88,$FF,$88,$88,$FF,$88,$88,$FF,$00,$00,$00,$00
+        db $FF,$81,$C3,$A5,$99,$99,$A5,$C3,$81,$81,$FF,$00
+        db $00,$3C,$42,$81,$89,$91,$62,$3C,$00,$FF,$A5,$00
+        db $FF,$81,$B5,$81,$AD,$81,$FF,$42,$FF,$AB,$D5,$FF
+        db $00,$18,$24,$E4,$24,$7E,$FF,$00,$00,$00,$00,$00
+        db $00,$18,$24,$27,$24,$7E,$FF,$00,$00,$00,$00,$00
+        db $FF,$81,$A5,$81,$95,$81,$A3,$81,$FF,$00,$00,$00
+        db $FF,$81,$95,$81,$A3,$81,$A5,$81,$FF,$00,$00,$00
+        db $FF,$81,$A1,$D3,$8D,$81,$FF,$18,$3C,$00,$00,$00
+        db $FF,$81,$89,$B5,$C3,$81,$FF,$18,$3C,$00,$00,$00
+        db $18,$18,$3C,$7E,$FF,$00,$5A,$00,$24,$00,$00,$00
+        db $18,$18,$3C,$42,$FF,$00,$00,$00,$00,$00,$00,$00
 room_wing:
         db $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$05,$01,$01,$01,$01,$01
         db $01,$01,$01,$02,$02,$02,$02,$02,$02,$02,$02,$03,$03,$03,$03,$03
@@ -183,79 +196,79 @@ room_far:
         db CORE_BASE+0
         dw $2F4A,1567
         db PACK3_BASE+0
-        dw $0010,1669
+        dw $0010,1663
         db PACK1_BASE+0
-        dw $0010,759
+        dw $0010,771
         db PACK1_BASE+0
-        dw $0307,829
+        dw $0313,729
         db PACK1_BASE+0
-        dw $0644,748
+        dw $05EC,730
         db PACK1_BASE+0
-        dw $0930,819
+        dw $08C6,706
         db PACK1_BASE+0
-        dw $0C63,709
+        dw $0B88,726
         db PACK1_BASE+0
-        dw $0F28,904
+        dw $0E5E,843
         db PACK1_BASE+0
-        dw $12B0,727
+        dw $11A9,772
         db PACK1_BASE+0
-        dw $1587,693
+        dw $14AD,846
         db PACK1_BASE+0
-        dw $183C,377
+        dw $17FB,408
         db PACK1_BASE+0
-        dw $19B5,405
+        dw $1993,518
         db PACK1_BASE+0
-        dw $1B4A,375
+        dw $1B99,405
         db PACK1_BASE+0
-        dw $1CC1,547
+        dw $1D2E,522
         db PACK1_BASE+0
-        dw $1EE4,377
+        dw $1F38,388
         db PACK1_BASE+0
-        dw $205D,361
+        dw $20BC,409
         db PACK1_BASE+0
-        dw $21C6,536
+        dw $2255,508
         db PACK1_BASE+0
-        dw $23DE,479
+        dw $2451,572
         db PACK2_BASE+0
-        dw $0010,934
+        dw $0010,1126
         db PACK2_BASE+0
-        dw $03B6,905
+        dw $0476,1117
         db PACK2_BASE+0
-        dw $073F,888
+        dw $08D3,1016
         db PACK2_BASE+0
-        dw $0AB7,1084
+        dw $0CCB,984
         db PACK2_BASE+0
-        dw $0EF3,955
+        dw $10A3,929
         db PACK2_BASE+0
-        dw $12AE,939
+        dw $1444,898
         db PACK2_BASE+0
-        dw $1659,928
+        dw $17C6,948
         db PACK2_BASE+0
-        dw $19F9,987
+        dw $1B7A,1045
         db PACK2_BASE+0
-        dw $1DD4,1716
+        dw $1F8F,1756
         db PACK2_BASE+0
-        dw $2488,1756
+        dw $266B,1438
         db PACK2_BASE+0
-        dw $2B64,1438
+        dw $2C09,1459
         db PACK2_BASE+0
-        dw $3102,1447
+        dw $31BC,1776
         db PACK2_BASE+0
-        dw $36A9,1472
+        dw $38AC,1399
         db PACK2_BASE+0
-        dw $3C69,1502
+        dw $3E23,1474
         db PACK2_BASE+0
-        dw $4247,1483
+        dw $43E5,1702
         db PACK2_BASE+0
-        dw $4812,1755
+        dw $4A8B,1493
         db PACK3_BASE+0
-        dw $0695,1510
+        dw $068F,1512
         db PACK3_BASE+0
-        dw $0C7B,1162
+        dw $0C77,1199
         db PACK3_BASE+0
-        dw $1105,1134
+        dw $1126,1230
         db PACK3_BASE+0
-        dw $1573,1460
+        dw $15F4,1137
 tile_flags:
         db $00,$00,$00,$01,$01,$01,$00,$00,$00,$00,$00,$00,$00,$02,$00,$02
         db $00,$02,$00,$02,$00,$02,$00,$02,$02,$00,$00,$00,$00,$01,$00,$00
@@ -263,33 +276,34 @@ tile_flags:
         db $04,$00,$08,$00,$02,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
         db $00,$00,$00,$00,$00,$00,$00,$00,$11,$21,$81,$01,$00,$40,$00,$00
         db $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-        db $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+        db $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+        db $00,$00,$00,$00,$00,$00
 PM_ROWS equ 88
-shaft_tab:
-        db CORE_BASE+0,$69,$35,$7A,$02,$00,$09,$00,$16,$FF,$01,$2C,$08,$02,$42,$FF,$03,$41,$4C,$4C,$4C,$4C,$4C,$4C,$4C,$4C,$4C,$4C,$4C,$4C
-        db $4C,$4C,$4C,$4C,$0C,$0C,$0C,$0C,$0C,$0C,$0C,$0C,$0C,$0C,$4C,$4C,$4C,$4C,$4C,$4C,$4C,$4C,$4C,$4C,$4C,$4C,$4C,$4C,$4C,$4C
-        db CORE_BASE+0,$E3,$37,$A8,$01,$00,$00,$04,$16,$01,$05,$2C,$02,$06,$42,$03,$07,$42,$4C,$4C,$4C,$4C,$4C,$4C,$4C,$4C,$4C,$4C,$4C,$4C
-        db $4C,$4C,$4C,$4C,$0C,$0C,$0C,$0C,$0C,$0C,$0C,$0C,$0C,$0C,$4C,$4C,$4C,$4C,$4C,$4C,$4C,$4C,$4C,$4C,$4C,$4C,$4C,$4C,$4C,$4C
-        db PACK1_BASE+0,$BD,$25,$A8,$01,$00,$04,$0B,$16,$05,$0C,$2C,$06,$0D,$42,$07,$0E,$43,$2A,$2A,$2A,$2A,$2A,$2A,$2A,$2A,$2A,$2A,$2A,$2A
-        db $2A,$2A,$2A,$2A,$0A,$0A,$0A,$0A,$0A,$0A,$0A,$0A,$0A,$0A,$2A,$2A,$2A,$2A,$2A,$2A,$2A,$2A,$2A,$2A,$2A,$2A,$2A,$2A,$2A,$2A
-        db PACK1_BASE+0,$65,$27,$A8,$01,$00,$0B,$0F,$16,$0C,$10,$2C,$0D,$11,$42,$0E,$12,$44,$2A,$2A,$2A,$2A,$2A,$2A,$2A,$2A,$2A,$2A,$2A,$2A
-        db $2A,$2A,$2A,$2A,$0A,$0A,$0A,$0A,$0A,$0A,$0A,$0A,$0A,$0A,$2A,$2A,$2A,$2A,$2A,$2A,$2A,$2A,$2A,$2A,$2A,$2A,$2A,$2A,$2A,$2A
-        db PACK1_BASE+0,$0D,$29,$A8,$01,$00,$0F,$13,$16,$10,$14,$2C,$11,$15,$42,$12,$16,$45,$4E,$4E,$4E,$4E,$4E,$4E,$4E,$4E,$4E,$4E,$4E,$4E
-        db $4E,$4E,$4E,$4E,$0E,$0E,$0E,$0E,$0E,$0E,$0E,$0E,$0E,$0E,$4E,$4E,$4E,$4E,$4E,$4E,$4E,$4E,$4E,$4E,$4E,$4E,$4E,$4E,$4E,$4E
-        db PACK1_BASE+0,$B5,$2A,$A8,$01,$00,$13,$17,$16,$14,$18,$2C,$15,$19,$42,$16,$1A,$46,$4E,$4E,$4E,$4E,$4E,$4E,$4E,$4E,$4E,$4E,$4E,$4E
-        db $4E,$4E,$4E,$4E,$0E,$0E,$0E,$0E,$0E,$0E,$0E,$0E,$0E,$0E,$4E,$4E,$4E,$4E,$4E,$4E,$4E,$4E,$4E,$4E,$4E,$4E,$4E,$4E,$4E,$4E
-        db PACK2_BASE+0,$ED,$4E,$A8,$01,$00,$17,$1B,$16,$18,$1C,$2C,$19,$1D,$42,$1A,$1E,$47,$1B,$1B,$1B,$1B,$1B,$1B,$1B,$1B,$1B,$1B,$1B,$1B
-        db $1B,$1B,$1B,$1B,$0B,$0B,$0B,$0B,$0B,$0B,$0B,$0B,$0B,$0B,$1B,$1B,$1B,$1B,$1B,$1B,$1B,$1B,$1B,$1B,$1B,$1B,$1B,$1B,$1B,$1B
-        db PACK2_BASE+0,$95,$50,$A8,$01,$00,$1B,$1F,$16,$1C,$20,$2C,$1D,$21,$42,$1E,$22,$48,$1B,$1B,$1B,$1B,$1B,$1B,$1B,$1B,$1B,$1B,$1B,$1B
-        db $1B,$1B,$1B,$1B,$0B,$0B,$0B,$0B,$0B,$0B,$0B,$0B,$0B,$0B,$1B,$1B,$1B,$1B,$1B,$1B,$1B,$1B,$1B,$1B,$1B,$1B,$1B,$1B,$1B,$1B
-        db PACK2_BASE+0,$3D,$52,$A0,$03,$00,$1F,$23,$16,$20,$24,$2C,$21,$25,$42,$22,$26,$49,$5D,$5D,$5D,$5D,$5D,$5D,$5D,$5D,$5D,$5D,$5D,$5D
-        db $5D,$5D,$5D,$5D,$0D,$0D,$0D,$0D,$0D,$0D,$0D,$0D,$0D,$0D,$5D,$5D,$5D,$5D,$5D,$5D,$5D,$5D,$5D,$5D,$5D,$5D,$5D,$5D,$5D,$5D
-        db PACK2_BASE+0,$DD,$55,$A0,$03,$00,$23,$27,$16,$24,$28,$2C,$25,$29,$42,$26,$2A,$4A,$5D,$5D,$5D,$5D,$5D,$5D,$5D,$5D,$5D,$5D,$5D,$5D
-        db $5D,$5D,$5D,$5D,$0D,$0D,$0D,$0D,$0D,$0D,$0D,$0D,$0D,$0D,$5D,$5D,$5D,$5D,$5D,$5D,$5D,$5D,$5D,$5D,$5D,$5D,$5D,$5D,$5D,$5D
-        db PACK3_BASE+0,$27,$1B,$A0,$03,$00,$27,$2B,$16,$28,$2C,$2C,$29,$2D,$42,$2A,$2E,$4B,$19,$19,$19,$19,$19,$19,$19,$19,$19,$19,$19,$19
-        db $19,$19,$19,$19,$09,$09,$09,$09,$09,$09,$09,$09,$09,$09,$19,$19,$19,$19,$19,$19,$19,$19,$19,$19,$19,$19,$19,$19,$19,$19
-        db PACK3_BASE+0,$C7,$1E,$1A,$05,$00,$2B,$FF,$16,$2C,$FF,$2C,$2D,$FF,$42,$2E,$0A,$4C,$19,$19,$19,$19,$19,$19,$19,$19,$19,$19,$19,$19
-        db $19,$19,$19,$19,$09,$09,$09,$09,$09,$09,$09,$09,$09,$09,$19,$19,$19,$19,$19,$19,$19,$19,$19,$19,$19,$19,$19,$19,$19,$19
+shaft_far:
+        db CORE_BASE+0
+        dw $5375,60
+        db CORE_BASE+0
+        dw $53B1,60
+        db CORE_BASE+0
+        dw $53ED,60
+        db CORE_BASE+0
+        dw $5429,60
+        db CORE_BASE+0
+        dw $5465,60
+        db CORE_BASE+0
+        dw $54A1,60
+        db CORE_BASE+0
+        dw $54DD,60
+        db CORE_BASE+0
+        dw $5519,60
+        db CORE_BASE+0
+        dw $5555,60
+        db CORE_BASE+0
+        dw $5591,60
+        db CORE_BASE+0
+        dw $55CD,60
+        db CORE_BASE+0
+        dw $5609,60
 combo_src:
         dw tiles+24,tiles+24,tiles+72,tiles+72,tiles+336,tiles+336,tiles+120,tiles+120
         dw tiles+0,tiles+0,tiles+24,tiles+96,tiles+24,tiles+0,tiles+72,tiles+0
@@ -335,54 +349,47 @@ room_door:
         db $FF,$FF,$FF,$00,$00,$15
         db $0B,$03,$15,$FF,$FF,$FF
         db $02,$00,$0E,$03,$00,$08
-        db $02,$01,$0A,$03,$01,$15
-        db $02,$02,$0D,$03,$02,$07
-        db $02,$03,$15,$03,$03,$0A
-        db $03,$00,$15,$04,$00,$15
+        db $02,$01,$0D,$03,$01,$0D
+        db $02,$02,$07,$03,$02,$15
+        db $02,$03,$15,$03,$03,$15
+        db $03,$00,$15,$04,$00,$07
         db $03,$01,$15,$04,$01,$0A
-        db $03,$02,$07,$04,$02,$15
-        db $03,$03,$15,$04,$03,$0E
-        db $04,$00,$15,$05,$00,$15
-        db $04,$01,$15,$05,$01,$15
-        db $04,$02,$0A,$05,$02,$0A
-        db $04,$03,$15,$05,$03,$07
-        db $05,$00,$15,$06,$00,$15
+        db $03,$02,$0E,$04,$02,$07
+        db $03,$03,$15,$04,$03,$15
+        db $04,$00,$0C,$05,$00,$0C
+        db $04,$01,$0D,$05,$01,$15
+        db $04,$02,$0C,$05,$02,$15
+        db $04,$03,$15,$05,$03,$15
+        db $05,$00,$0A,$06,$00,$15
         db $05,$01,$0C,$06,$01,$15
-        db $05,$02,$0E,$06,$02,$15
-        db $05,$03,$07,$06,$03,$07
-        db $06,$00,$07,$07,$00,$0D
-        db $06,$01,$06,$07,$01,$0D
-        db $06,$02,$0D,$07,$02,$06
-        db $06,$03,$0A,$07,$03,$0A
-        db $07,$00,$08,$08,$00,$15
-        db $07,$01,$08,$08,$01,$15
-        db $07,$02,$06,$08,$02,$06
-        db $07,$03,$0E,$08,$03,$0E
-        db $08,$00,$0A,$09,$00,$0A
-        db $08,$01,$0C,$09,$01,$0C
-        db $08,$02,$0E,$09,$02,$15
-        db $08,$03,$0D,$09,$03,$15
-        db $09,$00,$0E,$0A,$00,$07
-        db $09,$01,$15,$0A,$01,$15
-        db $09,$02,$07,$0A,$02,$15
-        db $09,$03,$0C,$0A,$03,$15
-        db $0A,$00,$15,$0B,$00,$15
-        db $0A,$01,$15,$0B,$01,$15
-        db $0A,$02,$07,$0B,$02,$07
-        db $0A,$03,$15,$0B,$03,$0A
-room_mapinfo:
-        db $05,$0D,$05,$0F,$05,$11,$05,$13,$08,$0D,$08,$0F,$08,$11,$08,$13
-        db $02,$11,$02,$0D,$26,$13,$0B,$0D,$0B,$0F,$0B,$11,$0B,$13,$0E,$0D
-        db $0E,$0F,$0E,$11,$0E,$13,$11,$0D,$11,$0F,$11,$11,$11,$13,$14,$0D
-        db $14,$0F,$14,$11,$14,$13,$17,$0D,$17,$0F,$17,$11,$17,$13,$1A,$0D
-        db $1A,$0F,$1A,$11,$1A,$13,$1D,$0D,$1D,$0F,$1D,$11,$1D,$13,$20,$0D
-        db $20,$0F,$20,$11,$20,$13,$23,$0D,$23,$0F,$23,$11,$23,$13
+        db $05,$02,$0D,$06,$02,$0D
+        db $05,$03,$15,$06,$03,$15
+        db $06,$00,$0A,$07,$00,$0A
+        db $06,$01,$15,$07,$01,$15
+        db $06,$02,$0E,$07,$02,$07
+        db $06,$03,$07,$07,$03,$15
+        db $07,$00,$0D,$08,$00,$15
+        db $07,$01,$07,$08,$01,$15
+        db $07,$02,$07,$08,$02,$0D
+        db $07,$03,$07,$08,$03,$07
+        db $08,$00,$0C,$09,$00,$0C
+        db $08,$01,$15,$09,$01,$0D
+        db $08,$02,$15,$09,$02,$15
+        db $08,$03,$0A,$09,$03,$15
+        db $09,$00,$07,$0A,$00,$15
+        db $09,$01,$06,$0A,$01,$15
+        db $09,$02,$0A,$0A,$02,$15
+        db $09,$03,$15,$0A,$03,$0D
+        db $0A,$00,$0C,$0B,$00,$0C
+        db $0A,$01,$07,$0B,$01,$15
+        db $0A,$02,$0D,$0B,$02,$0D
+        db $0A,$03,$15,$0B,$03,$0E
 room_nfits:
-        db $0C,$16,$16,$0D,$11,$11,$0C,$10,$06,$09,$00,$11,$0A,$0C,$09,$0B
-        db $0E,$0E,$07,$0C,$0E,$0C,$11,$0A,$0A,$12,$0E,$0C,$0F,$10,$0E,$10
-        db $13,$14,$0E,$0E,$0D,$0A,$0D,$0B,$10,$0F,$11,$10,$0F,$0E,$0B
+        db $0C,$16,$16,$0D,$11,$11,$0C,$10,$06,$09,$00,$11,$0E,$0C,$0B,$0B
+        db $09,$10,$0C,$0E,$0F,$0B,$0F,$0B,$0C,$0D,$10,$0E,$09,$15,$13,$13
+        db $0C,$14,$13,$0E,$0D,$0C,$12,$0A,$10,$0A,$0F,$0D,$12,$17,$0A
 tone_rooms:
-        db $05,$10,$14,$1B,$24,$FF
+        db $05,$0E,$15,$1D,$29,$2D
 NCOMBOS equ 96
 NLEVELS equ 4
 SHAFT_REC equ 60
@@ -393,89 +400,178 @@ SHARDS_PER_KEY equ 3
 CORE_ROOM equ 10
 robot_vt:
         db CORE_BASE+0
-        dw $398B
+        dw $5645
         db CORE_BASE+0
-        dw $3E8B
+        dw $5B45
         db CORE_BASE+0
-        dw $438B
+        dw $6045
         db CORE_BASE+0
-        dw $488B
+        dw $6545
         db CORE_BASE+0
-        dw $4D8B
-spark_vt:
+        dw $6A45
         db CORE_BASE+0
-        dw $528B
+        dw $6F45
         db CORE_BASE+0
-        dw $540B
-hazard_vt:
+        dw $7445
         db CORE_BASE+0
-        dw $558B
-        db CORE_BASE+0
-        dw $5B8B
-        db CORE_BASE+0
-        dw $618B
-        db CORE_BASE+0
-        dw $678B
-wren_vt:
-        db CORE_BASE+0
-        dw $6D8B
-        db CORE_BASE+0
-        dw $738B
-        db CORE_BASE+0
-        dw $798B
+        dw $7945
         db CORE_BASE+1
         dw $0000
         db CORE_BASE+1
-        dw $0600
+        dw $0500
         db CORE_BASE+1
-        dw $0C00
+        dw $0A00
         db CORE_BASE+1
-        dw $1200
+        dw $0F00
         db CORE_BASE+1
-        dw $1800
+        dw $1400
+        db CORE_BASE+1
+        dw $1900
         db CORE_BASE+1
         dw $1E00
         db CORE_BASE+1
-        dw $2400
+        dw $2300
         db CORE_BASE+1
-        dw $2A00
+        dw $2800
         db CORE_BASE+1
-        dw $3000
+        dw $2D00
         db CORE_BASE+1
-        dw $3600
+        dw $3200
+        db CORE_BASE+1
+        dw $3700
         db CORE_BASE+1
         dw $3C00
         db CORE_BASE+1
-        dw $4200
+        dw $4100
         db CORE_BASE+1
-        dw $4800
+        dw $4600
         db CORE_BASE+1
-        dw $4E00
+        dw $4B00
         db CORE_BASE+1
-        dw $5400
+        dw $5000
+        db CORE_BASE+1
+        dw $5500
         db CORE_BASE+1
         dw $5A00
         db CORE_BASE+1
-        dw $6000
+        dw $5F00
         db CORE_BASE+1
-        dw $6600
+        dw $6400
         db CORE_BASE+1
-        dw $6C00
+        dw $6900
         db CORE_BASE+1
-        dw $7200
+        dw $6E00
+        db CORE_BASE+1
+        dw $7300
         db CORE_BASE+1
         dw $7800
         db CORE_BASE+2
         dw $0000
         db CORE_BASE+2
+        dw $0500
+        db CORE_BASE+2
+        dw $0A00
+        db CORE_BASE+2
+        dw $0F00
+        db CORE_BASE+2
+        dw $1400
+        db CORE_BASE+2
+        dw $1900
+        db CORE_BASE+2
+        dw $1E00
+spark_vt:
+        db CORE_BASE+2
+        dw $2300
+        db CORE_BASE+2
+        dw $2480
+hazard_vt:
+        db CORE_BASE+2
+        dw $2600
+        db CORE_BASE+2
+        dw $2C00
+        db CORE_BASE+2
+        dw $3200
+        db CORE_BASE+2
+        dw $3800
+wren_vt:
+        db CORE_BASE+2
+        dw $3E00
+        db CORE_BASE+2
+        dw $4400
+        db CORE_BASE+2
+        dw $4A00
+        db CORE_BASE+2
+        dw $5000
+        db CORE_BASE+2
+        dw $5600
+        db CORE_BASE+2
+        dw $5C00
+        db CORE_BASE+2
+        dw $6200
+        db CORE_BASE+2
+        dw $6800
+        db CORE_BASE+2
+        dw $6E00
+        db CORE_BASE+2
+        dw $7400
+        db CORE_BASE+2
+        dw $7A00
+        db CORE_BASE+3
+        dw $0000
+        db CORE_BASE+3
         dw $0600
+        db CORE_BASE+3
+        dw $0C00
+        db CORE_BASE+3
+        dw $1200
+        db CORE_BASE+3
+        dw $1800
+        db CORE_BASE+3
+        dw $1E00
+        db CORE_BASE+3
+        dw $2400
+        db CORE_BASE+3
+        dw $2A00
+        db CORE_BASE+3
+        dw $3000
+        db CORE_BASE+3
+        dw $3600
+        db CORE_BASE+3
+        dw $3C00
+        db CORE_BASE+3
+        dw $4200
+        db CORE_BASE+3
+        dw $4800
+        db CORE_BASE+3
+        dw $4E00
+        db CORE_BASE+3
+        dw $5400
+        db CORE_BASE+3
+        dw $5A00
+        db CORE_BASE+3
+        dw $6000
+        db CORE_BASE+3
+        dw $6600
+        db CORE_BASE+3
+        dw $6C00
+        db CORE_BASE+3
+        dw $7200
+        db CORE_BASE+3
+        dw $7800
+        db CORE_BASE+4
+        dw $0000
+        db CORE_BASE+4
+        dw $0600
+        db CORE_BASE+4
+        dw $0C00
 F_STAND equ 0
 F_RUN equ 1
 F_TURN equ 11
-F_VAULT equ 12
-F_FALL equ 23
-F_SEARCH equ 24
-F_COUNT equ 26
+F_VAULT equ 14
+F_FALL equ 25
+F_SEARCH equ 27
+F_DIE equ 31
+F_COUNT equ 35
 RUN_FRAMES equ 10
 vault_dy:
         db $00,$FE,$FC,$FA,$F8,$F6,$F5,$F3,$F2,$F1,$F0,$EF,$EE,$ED,$ED,$EC
@@ -486,29 +582,29 @@ vault_dy_lg:
         db $E3,$E2,$E1,$E0,$E0,$DF,$DF,$DE,$DE,$DE,$DE,$DE,$DE,$DF,$DF,$E0
         db $E0,$E1,$E2,$E3,$E4,$E5,$E6,$E8,$E9,$EB,$EC,$EE,$F0,$F2,$F4,$F6
         db $F8,$FB,$FD,$00
-logo_far: db CORE_BASE+2
-        dw $0C00,901
-title_far: db CORE_BASE+2
-        dw $0F85,1278
+logo_far: db CORE_BASE+4
+        dw $1200,901
+title_far: db CORE_BASE+4
+        dw $1585,1278
 speech_far:
         db PACK3_BASE+0
-        dw $23E1,11268
+        dw $1A65,11268
+        db PACK3_BASE+0
+        dw $4669,13481
         db PACK3_BASE+1
-        dw $0000,13481
+        dw $0000,2938
         db PACK3_BASE+1
-        dw $34A9,2938
+        dw $0B7A,7132
         db PACK3_BASE+1
-        dw $4023,7132
+        dw $2756,4557
         db PACK3_BASE+1
-        dw $5BFF,4557
+        dw $3923,7191
+        db PACK3_BASE+1
+        dw $553A,5424
         db PACK3_BASE+2
-        dw $0000,7191
+        dw $0000,6285
         db PACK3_BASE+2
-        dw $1C17,5424
-        db PACK3_BASE+2
-        dw $3147,6285
-        db PACK3_BASE+2
-        dw $49D4,8837
+        dw $188D,8837
 font:
         db $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
         db $00,$30,$30,$30,$30,$30,$30,$00,$30,$30,$00,$00
@@ -681,5 +777,16 @@ T_CHIP_L equ 103
 T_CHIP_R equ 104
 T_CT_B equ 105
 T_GRID equ 106
+T_FAN2 equ 107
+T_GAUGE2 equ 108
+T_TERMT2 equ 109
+T_BEACON equ 110
+T_BEACON2 equ 111
+T_LEDS equ 112
+T_LEDS2 equ 113
+T_WAVE equ 114
+T_WAVE2 equ 115
+T_LAMPB equ 116
+T_LAMPO equ 117
 NPACKS equ 3
 PACK_REC equ 6

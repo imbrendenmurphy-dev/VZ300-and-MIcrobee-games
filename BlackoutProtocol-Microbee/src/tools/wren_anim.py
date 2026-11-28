@@ -180,26 +180,39 @@ def airborne(p):
 FRAMES = {}
 FRAMES['stand'] = [SOM[0]]
 FRAMES['run'] = [run_key(k) for k in range(RUN_FRAMES)]
-FRAMES['turn'] = [TURN]
+# turning on the spot: three in-betweens (body squares to the screen and back)
+TURN_A = Pose(lean=2, hipA=10, kneeA=8, hipB=-6, kneeB=14, shA=-12, elA=30, shB=12, elB=28)
+TURN_B = Pose(lean=-4, hipA=4, kneeA=16, hipB=-14, kneeB=8, shA=-30, elA=50, shB=30, elB=50, head=-4)
+FRAMES['turn'] = [TURN_A, TURN, TURN_B]
 # the game's vault slots: crouch, takeoff, 7 spin frames, opening out, landing
 FRAMES['vault'] = [SOM[2], SOM[3], SOM[4], SOM[5], SOM[6], SOM[7], SOM[8], airborne(SOM[9]), airborne(SOM[10]),
                    airborne(SOM[11]), SOM[9]]
-FRAMES['fall'] = [FALL]
-FRAMES['search'] = KNEEL
+FALL2 = Pose(lean=6, hipA=30, kneeA=60, hipB=-16, kneeB=20, shA=120, elA=40, shB=175, elB=30, ground=False)
+FRAMES['fall'] = [FALL, FALL2]                                  # arms and legs flailing
+# searching: kneel, reach in, rummage (two), on a loop
+KNEEL_REACH = Pose(lean=30, hipA=86, kneeA=92, hipB=-6, kneeB=96, footB=150, shA=96, elA=8, shB=70, elB=30, head=14)
+KNEEL_DIG = Pose(lean=34, hipA=86, kneeA=92, hipB=-6, kneeB=96, footB=150, shA=80, elA=46, shB=100, elB=20, head=20)
+FRAMES['search'] = KNEEL + [KNEEL_REACH, KNEEL_DIG]
+# caught: an electric jolt (arched back, arms thrown out, twice), a slump, then flat
+ZAP1 = Pose(lean=-16, hipA=-10, kneeA=10, hipB=14, kneeB=20, shA=150, elA=10, shB=-150, elB=20, head=-20)
+ZAP2 = Pose(lean=-8, hipA=12, kneeA=22, hipB=-12, kneeB=8, shA=-140, elA=30, shB=160, elB=10, head=-10)
+SLUMP = Pose(lean=48, hipA=90, kneeA=110, hipB=70, kneeB=120, shA=20, elA=10, shB=10, elB=10, head=40, footA=100, footB=100)
+LIE = Pose(lean=0, rot=-88, hipA=6, kneeA=10, hipB=-4, kneeB=16, shA=10, elA=20, shB=-10, elB=30, head=10)
+FRAMES['die'] = [ZAP1, ZAP2, SLUMP, LIE]
 
 def all_frames():
     order = []
-    for name in ('stand', 'run', 'turn', 'vault', 'fall', 'search'):
+    for name in ('stand', 'run', 'turn', 'vault', 'fall', 'search', 'die'):
         for i, p in enumerate(FRAMES[name]):
             order.append((name, i, render(p)))
     return order
 
 if __name__ == '__main__':
     fr = all_frames()
-    Z = 6
-    sheet = Image.new('RGB', ((W + 4) * Z * len(fr) // 2 + 8, (H + 6) * Z * 2), (25, 25, 60))
+    Z = 6; cols = 12; rows = (len(fr) + cols - 1) // cols
+    sheet = Image.new('RGB', (cols * (W + 4) * Z + 8, rows * (H + 6) * Z + 8), (25, 25, 60))
     for k, (name, i, bm) in enumerate(fr):
-        ox = (k % ((len(fr) + 1) // 2)) * (W + 4) * Z + 8; oy = (k // ((len(fr) + 1) // 2)) * (H + 6) * Z + 8
+        ox = (k % cols) * (W + 4) * Z + 8; oy = (k // cols) * (H + 6) * Z + 8
         for y in range(H):
             for x in range(W):
                 c = (255, 255, 255) if bm[y][x] else (0, 0, 0)

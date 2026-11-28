@@ -416,3 +416,24 @@ Shaft lifts (2026-11-23): Q/A **or the arrow keys** ride the lift (it read only 
 - Memory: the screens' tunes moved into overlays 1 and 3 and the dead pack tables went, so the main
   program is 16.6 KB again; BLACKOUT.OV3 is block 29.
 - Bot after this round: 0 door deaths on all levels; blind-run deaths Story 19, Agent 20, Ghost 33 (Ghost was 38: zaps are short-range now). Tests: completion with the card puzzle (6 keys), tone lock opened (+1 SLEEP +1 RESET), save/reset/load, Ghost save, ESC, lifts, deck in a shaft, attract demo, lift stop (12 still frames), pad ride (no trail).
+
+**Animation, robot types and room life (2026-11-28)**
+- **Wren**: 35 frames. New: a three-frame turn (six ticks), two flailing fall frames, a four-frame
+  search loop (kneel, reach, rummage x2), and a death (electric jolt x2, slump, flat; `F_DIE`).
+- **Four robot designs** (`tools/robots_art.py`), ten frames each (eight moving, firing, asleep),
+  picked as kind * 10 + n in `objects.asm`, each in its own colour: WARDEN patrol (red, tracked, eye
+  sweeping, arms crackle when firing), ARC zapper (yellow, walker with a discharge coil), DART hunter
+  (magenta, hovering drone, thruster flicker, prongs out to strike), TURRET sentry (cyan, sweeping
+  barrel, muzzle flash). Drones and turrets animate off the frame counter even when still.
+- **Robot mix**: from Hydroponics on, robots on floors without a door become patrols, zappers, sentries
+  (Cryo on) or hunter drones (Reactor on); zappers may share a door floor only 16+ cells from it.
+  Now 32 patrols, 18 zappers, 6 hunters, 2 sentries (+ vents and lasers).
+- **Incidental animation** (`src/ambient.asm`): decor tiles with a partner frame (`amb_pairs`: fan,
+  gauge, terminal screen, beacon, LED panel, wave screen, failing lamp) are listed on entering a room
+  (up to 24) and one swaps every other frame, in the room map too, never under Wren or a robot.
+- **More room detail**: each wing's decor set adds LED panels, wave screens, beacons and fans; two to
+  four decor pieces per wall zone (was one to three); half the rooms have one failing lamp.
+- **Memory**: shaft records moved to the banks (copied to `shaft_cur` on entry; `shaft_far`), the deck
+  map's table into overlay 1; robot frames and the new Wren frames are in the banks (core data now
+  ~138 KB, blocks 4-8; packs end at block 13; gen.py asserts nothing reaches blocks 27-31).
+- Bot after the new robot mix: 0 door deaths on all levels; blind-run deaths Story 18, Agent 18, Ghost 31; no room kills the blind bot more than once on Story or Agent. All regressions pass (completion, save/load, levels, lifts, deck in shaft, tone lock, attract).

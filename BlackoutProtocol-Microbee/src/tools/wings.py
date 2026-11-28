@@ -21,23 +21,23 @@ def themes(C):
     return {
         1: dict(style='glass', pal=(C['BGREEN'], C['GREEN'], C['BCYAN'], C['GREEN']), floor=('floor', C['BGREEN']),
                 furn=[('plantt', 'plantb', None), ('plantt', 'plantb', None), ('tankt', 'tankb', C['BCYAN']), ('lockt', 'lockb', C['GREEN'])],
-                decor=[('window', C['BCYAN']), ('valve', C['YELLOW'])], lamp=C['BGREEN'],
+                decor=[('window', C['BCYAN']), ('valve', C['YELLOW']), ('leds', C['BGREEN']), ('fan', C['GREEN'])], lamp=C['BGREEN'],
                 signs=["GROW BAY", "SECTOR 2", "HUMIDITY", "SPORES"], robots=[0, 0, 2]),
         2: dict(style='ice', pal=(C['WHITE'], C['BBLUE'], C['BCYAN'], C['BBLUE']), floor=('grate', C['BCYAN']),
                 furn=[('tankt', 'tankb', C['WHITE']), ('lockt', 'lockb', C['BCYAN']), ('scrtop', 'scrbot', C['BCYAN'])],
-                decor=[('gauge', C['WHITE']), ('window', C['BCYAN'])], lamp=C['WHITE'],
+                decor=[('gauge', C['WHITE']), ('window', C['BCYAN']), ('wave', C['BCYAN']), ('leds', C['WHITE'])], lamp=C['WHITE'],
                 signs=["MINUS 120", "KEEP SEALED", "SAMPLES", "COLD STORE"], robots=[0, 1, 1]),
         3: dict(style='pipes', pal=(C['YELLOW'], C['RED'], C['BRED'], C['RED']), floor=('hazard', None),
                 furn=[('tankt', 'tankb', C['YELLOW']), ('rackt', 'rackb', C['BRED']), ('lockt', 'lockb', C['YELLOW'])],
-                decor=[('valve', C['YELLOW']), ('gauge', C['YELLOW']), ('fan', C['BRED'])], lamp=C['BRED'],
+                decor=[('valve', C['YELLOW']), ('gauge', C['YELLOW']), ('fan', C['BRED']), ('beacon', C['YELLOW'])], lamp=C['BRED'],
                 signs=["DANGER", "HIGH TEMP", "STEAM", "TURBINE 4"], robots=[0, 3, 2]),
         4: dict(style='space', pal=(C['BMAG'], C['BLUE'], C['WHITE'], C['BLUE']), floor=('floor', C['WHITE']),
                 furn=[('scrtop', 'scrbot', C['BMAG']), ('rackt', 'rackb', C['BCYAN']), ('bedt', 'bedb', C['WHITE'])],
-                decor=[('window', C['WHITE']), ('dish', C['BCYAN'])], lamp=C['WHITE'],
+                decor=[('window', C['WHITE']), ('dish', C['BCYAN']), ('wave', C['BMAG']), ('beacon', C['BCYAN'])], lamp=C['WHITE'],
                 signs=["ORBIT", "ZERO G", "STARS", "DOCK 9"], robots=[1, 2, 0]),
         5: dict(style='circuit', pal=(C['BRED'], C['MAG'], C['BMAG'], C['MAG']), floor=('grate', C['BMAG']),
                 furn=[('rackt', 'rackb', C['BMAG']), ('scrtop', 'scrbot', C['BRED']), ('lockt', 'lockb', C['MAG'])],
-                decor=[('coret', C['BRED']), ('fan', C['BMAG'])], lamp=C['BRED'],
+                decor=[('coret', C['BRED']), ('fan', C['BMAG']), ('leds', C['BRED']), ('wave', C['BMAG'])], lamp=C['BRED'],
                 signs=["MERIDIAN", "LOGIC", "MEMORY", "NO ENTRY"], robots=[1, 2, 3, 0]),
     }
 
@@ -111,7 +111,9 @@ def build_room(G, wing, name, rng, splice, solid_tiles):
                         if (c + k) in cols and (f, c + k) not in used:
                             r.furn(f, c + k, top, bot, ink2); used.add((f, c + k))
         # signs first (different words, clear of each other), then lamps and fittings round them
-        for c in range(4, 38, rng.randint(7, 10)): r.decor(1, c, 'lamp', th['lamp'])
+        lamps = list(range(4, 38, rng.randint(7, 10)))
+        flick = rng.choice(lamps) if rng.random() < 0.5 else None      # now and then a failing lamp
+        for c in lamps: r.decor(1, c, 'lampb' if c == flick else 'lamp', th['lamp'])
         zones = [(p + 2, f - 4) for p, f in zip([0] + floors, floors) if f - 4 >= p + 2]
         taken = set()
         words = rng.sample(th['signs'] + [name], 2)
@@ -129,7 +131,7 @@ def build_room(G, wing, name, rng, splice, solid_tiles):
         for f in floors:
             z0, z1 = prev + 1, f - 3
             if z1 - z0 >= 2:
-                for _ in range(rng.randint(1, 3)):
+                for _ in range(rng.randint(2, 4)):
                     nm, ink2 = rng.choice(th['decor'])
                     rr, cc = rng.randint(z0 + 1, z1 - 1), rng.randint(4, 37)
                     if (rr, cc) not in taken: r.decor(rr, cc, nm, ink2); taken.add((rr, cc))
