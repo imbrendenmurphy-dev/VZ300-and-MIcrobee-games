@@ -5,6 +5,7 @@
 
 ; tile_at: BC = x (pixels), E = y (rows) -> A = attributes, HL = map cell
 tile_at:
+            call snd_ptn
             ld a,c
             srl b
             rra
@@ -173,6 +174,7 @@ door_update:
             ret
 
 door_one:
+            call snd_pt
             ld l,(ix+4)
             ld h,(ix+5)
             ld (dr_cx),hl

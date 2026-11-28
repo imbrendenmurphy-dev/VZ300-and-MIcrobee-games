@@ -1,8 +1,86 @@
 # OVERRIDE
-### v0.5 · five ships, 33 decks, 23 droid types · VIBED BY BPM 2026
+### v0.6 · five ships, 33 decks, 23 droid types · VIBED BY BPM 2026
 
-## What's new in v0.5: more variety and more music
-- **Two new ships**, and the campaign is now five ships long:
+## What's new in v0.6: progression without frustration
+- **You keep your droid between ships.** You used to arrive on every new ship as the bare probe,
+  often in front of armed droids. Now you arrive in the body you finished the last ship in, with
+  its energy refilled. (A new game, or a continue, still starts as the probe.)
+- **A spare probe for every ship secured**, up to five (the HUD shows four spares). The Ship
+  Secured card says so: BONUS 5000 +1 PROBE.
+- **Continue.** After game over (and your initials, if you made the table), CONTINUE? counts down
+  from 9: fire takes you back to the start of the ship you reached with three probes and the
+  score from zero, so the high-score table stays honest. The game-over screen also shows how far
+  you got (REACHED SHIP 3 OF 5).
+- **Gentler arrival decks.** You land on each ship's top deck, so those decks shouldn't be the
+  ones that kill you on the way in. They are now the easy rooms of each ship:
+  - Halcyon's Observatory: a sentry (461) swapped for a steward (218);
+  - Grindstone's Bridge: 341, 263, 461 instead of 461, 524, 341;
+  - Leviathan's Command: 632, 587, 461, 218 instead of the Prefect (908) and a Marshal (817)
+    at the door. The Prefect now waits only in the Core with the Overmind.
+- **The sound setting outside play**: the title's bottom line takes turns between PRESS FIRE TO
+  START and the current output (C  SOUND: SPEAKER / BOTH / TAPE OUT), and pressing C there
+  shows the new setting straight away.
+- **The ending shows the whole fleet**: THE FLEET IS FREE over all five ships' silhouettes,
+  before the credits.
+- **Fixed: the attract demo could sit in the lift for the whole demo.** The lift autopilot only
+  acted when a frame counter was a multiple of 64, but the lift loop steps it by 2, so on an odd
+  count it never chose a deck. It now rides to the next deck that still has droids.
+
+- **Fixed: losing a link duel as the bare probe left the game running with no probe.** The duel
+  flagged your death, then jumped back to the top of the frame loop, which clears the event. The
+  same jump also lost DECK CLEARED when you won a duel against a deck's last droid. Both now carry
+  on into the loop without clearing it, and the loop now checks every frame for a dead player
+  rather than only when an event is waiting.
+- **Fixed: the briefing's LINK line was 33 characters**, one more than fits. The 33rd (a comma)
+  wrapped into the next pixel row at the left edge and drew over the L of LINK. The build now
+  refuses any briefing line over 32 characters.
+- **Smoother, in-tune music in play.** With only one interrupt a field, the ring's samples were
+  played only in the screen-copy loops and the idle wait: every frame had a 13-20 ms stretch (the
+  game logic, sprites and HUD) with no sound at all. The tune kept stopping and catching up, its
+  tempo followed the frame rate, and because fewer samples were played than the tunes were pitched
+  for, everything ran about a third flat. Now:
+  - every droid, shot, door and sprite, every tile row of a deck column being drawn, every fourth
+    tile lookup and HUD character, and two points in the frame loop play one sample, and the
+    mixer plays one for every eight it makes. The longest silent gap fell from about 20 ms to 3;
+  - the tune steps by fields (25 a second), not frames, so a slow frame no longer drags it;
+  - the tunes are pitched for the rate actually measured in play (about 60 samples a field);
+  - the ring keeps 250 samples queued (three fields) instead of 232.
+
+  The sample sites still aren't evenly spaced (the field with the screen copy plays more than the
+  field with the game logic), so there is some roughness left, but no more gaps or drift.
+
+- **Link duels rebalanced.** They were hardest exactly where you need them: as the bare probe, a
+  good player won about half the time against a class 1 droid, 31% against class 2 and 22% against
+  class 3 (a model of the duel with its real rules and AI, against a simulated player with human
+  reaction times). Now:
+  - you get 7 + your class pulses (was 5 + class); the droid gets 1 + 1.5 x its class (was 4 +
+    class), so a low droid is outgunned and a high one still isn't;
+  - nodes you take stay locked longer than the droid's (70 steps against 45);
+  - the droid thinks more slowly (every 30 - 2 x class steps, was 22);
+  - only class 5 and up keep a pulse back to steal a node in the last two seconds;
+  - holding up or down repeats (12 lanes a second), and you get eight seconds to pick a side
+    (was under three), with the prompt explaining what to do;
+  - a new attract page, THE LINK DUEL, explains the rules.
+
+  In the model, a novice player as the probe now wins about 97% against class 1, 87% against
+  class 2, 84% against class 3 and 52% against class 4. A body two or three classes up is about
+  even, and the class 9s stay hard (a class 5 body wins about a third of the time). The model is
+  	ools/duelsim.py.
+- **You take half damage** from shots and collisions (rounded up), so a body lasts twice as long.
+- **Fixed: winning a duel played the LINK FAILED jingle.** It now plays the bright fanfare.
+- **HUD**: the energy bar's empty part is now a dotted track, so a full bar visibly reaches the
+  end (it is energy against that body's maximum). Spare probes now show as a count and a little probe ("2" and a ringed
+  red eye) between the name and the score; the old yellow pips sat under the score and ran into it.
+- **The intro ends with a cut to empty space** instead of a full-screen yellow flash.
+- **The briefing pages sit one pixel in from the left edge.**
+
+How the balance was judged: the autopilot was meant to play each ship for ten minutes, but it is
+far too cautious to measure difficulty (two droids in ten minutes). Instead each deck got a threat
+score from its droids' weapons, aggression and energy. The ship totals run 343, 364, 732, 992 and
+1400, and the spikes were the arrival decks above (Leviathan's Command was the third-hardest deck
+in the game, at 187).
+
+## v0.5: more variety and more music- **Two new ships**, and the campaign is now five ships long:
   1. **SV CORMORANT**, the freighter (classes 1-4)
   2. **LV ARCADIA**, a cruise liner: Sun Deck, Promenade, Staterooms, Casino, Theatre, Laundry,
      Engines (classes 1-5) *(new)*
@@ -196,9 +274,9 @@ If the expansion is missing you get `NEEDS BENNVENN SD + 128K RAM`. If a file is
 - **Consoles** show the deck map with every droid on it, then the droid files for every class up
   to your own.
 - **Deck cleared**: when the last droid on a deck goes, the lights go out (the floor turns blue) and
-  you score a 1,000-point bonus. Clear every deck for SHIP SECURED (a 5,000 bonus), then the next
-  ship loads. Free all five ships for the ending.
-- Three probes (lives). Scores: 125 points for a class 1 droid, up to 725 for class 9.
+  you score a 1,000-point bonus. Clear every deck for SHIP SECURED (a 5,000 bonus and a spare probe), then the next
+  ship loads, and you keep the droid you're in. Free all five ships for the ending.
+- Three probes (lives), up to five. After game over you can continue from the ship you reached. Scores: 125 points for a class 1 droid, up to 725 for class 9.
 
 ### The link duel
 Twelve lanes on each side run from the edge to a central column of twelve nodes, which start split
@@ -210,8 +288,11 @@ colour and **locks** for a moment (a solid node is locked; a striped one can be 
 - **boosted** (a yellow and blue block: locks for twice as long)
 - **reversed** (a green block: hands the node to the *other* side, so avoid it)
 
-You get 5 + your class pulses and the droid gets 4 + its class. After ten seconds, whoever holds more
-nodes wins. The droid's AI thinks faster the higher its class.
+You get 7 + your class pulses and the droid gets 1 + 1.5 x its class (rounded down), and your nodes stay locked longer than the droid's. After ten seconds,
+whoever holds more nodes wins. The droid's AI thinks faster the higher its class, and from class 5 up it
+keeps a pulse back to steal a node in the last two seconds. You have eight seconds to pick a side, and
+holding up or down moves the cursor quickly. Roughly: the bare probe can take classes 1-3, and a body
+about two classes above your own is an even fight. The attract sequence has a page explaining the duel.
 
 ## The cast
 | No. | Name | Class | Weapon |
@@ -297,7 +378,7 @@ Leave the title alone and the game shows itself off:
 | $7000-$77FF | video RAM |
 | $7800-$7BFF | left alone (ROM/DOS system area) |
 | $7C00-$7D7F / $7D80-$7FFF | IM 2 table / stack |
-| $8000-$AB85 | main code (122 bytes free) |
+| $8000-$ABF9 | main code (20 bytes free) |
 | $AC00-$B4FF | variables, droid and shot tables, ship and deck info |
 | $B500 / $B600-$B7FF | y/6 table / SD bounce buffer |
 | upper 1 $B800-$C1FF | back buffer (64 × 40) |
@@ -305,8 +386,8 @@ Leave the title alone and the game shows itself off:
 | upper 1 $CA00-$F262 | screen copy, tilesets (this ship's theme), explosion, droid images, names, game-music player |
 | upper 1 $F263-$F582 | this ship's two tunes (from `OVn.DAT`) |
 | upper 1 $F600-$F87F | the deck's waypoints |
-| upper 0 $B800-$DA6B | front end (mapping 3): music player, display font, backdrops, duel, lift, console |
-| low bank 3 $4000-$5BDD | between decks only: the overlay `OVTTL.DAT` (intro, title, attract, cards, their music) |
+| upper 0 $B800-$DDCA | front end (mapping 3): music player, display font, backdrops, duel, lift, console |
+| low bank 3 $4000-$5DC7 | between decks only: the overlay `OVTTL.DAT` (intro, title, attract, cards, their music) |
 | upper 0 $E560-$E7FF | this ship's silhouette for the cards (4 phases, from `OVn.DAT`) |
 | upper 0 $E800-$EFFF | front-end screen buffer |
 | upper 0 $F000-$FFFF | DOS stack, sector buffer, DOS RAM (never touched) |

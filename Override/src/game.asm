@@ -61,13 +61,9 @@ game_new:
             ld (gn_map),a
             ld (gn_sp),sp
             xor a
-            ld (score),a
-            ld (score+1),a
-            ld (score+2),a
             ld (ship),a
             ld (gm_on),a
-            ld a,3
-            ld (lives),a
+            call new_run
             ld hl,0
             ld (demo_t),hl
             ld a,1
@@ -84,7 +80,17 @@ game_exit:
             call game_off
             ld sp,(gn_sp)
             ld a,(gn_map)
-            call setmap
+            jp setmap
+
+; a fresh run: no score, three probes, starting as the bare probe
+new_run:
+            xor a
+            ld (score),a
+            ld (score+1),a
+            ld (score+2),a
+            ld (plr+O_TYPE),a
+            ld a,3
+            ld (lives),a
             ret
 
 ; ---------------------------------------------------------------------
@@ -129,17 +135,19 @@ ship_enter:
             add ix,de
             pop bc
             djnz .d
-            ; the player arrives as the bare probe
+            ; the player arrives in the body they left the last ship in
+            ; (the bare probe on a new run), with fresh energy
+            ld a,(plr+O_TYPE)
+            push af
             ld ix,plr
             ld hl,plr
             ld bc,OSZ
             xor a
             call fill
-            ld (plr+O_FLAGS),a
             ld a,$80
             ld (plr+O_FLAGS),a
             call slots_reset
-            xor a
+            pop af
             ld (plr+O_TYPE),a
             ld (slot_type),a
             ld ix,plr
@@ -360,6 +368,7 @@ game_loop:
             xor a
             ld (event),a
 .frame:     call read_input
+            call snd_pt
             ld a,(demo)
             or a
             jr z,.real
@@ -394,17 +403,18 @@ game_loop:
             call draw_player
             call draw_shots
             call draw_fx
+            call snd_pt
             call hud_update
             call present
+            ld a,(plr+O_FLAGS)      ; a dead player always comes first,
+            rla                     ; whatever else happened (or didn't)
+            jr nc,.dead
             ld a,(event)
             or a
             jr z,.frame
             ld b,a
             xor a
             ld (event),a
-            ld a,(plr+O_FLAGS)      ; a dead player always comes first,
-            rla                     ; whatever else happened this frame
-            jp nc,ev_death
             ld a,b
             cp EV_TRANSFER
             jp z,ev_transfer
@@ -417,6 +427,9 @@ game_loop:
             cp EV_CLEARED
             jp z,ev_cleared
             jp .frame
+.dead:      xor a
+            ld (event),a
+            jp ev_death
 
 demo_quit:
             ld a,(demo_ship)
@@ -503,8 +516,8 @@ ev_transfer:
             ld hl,msg_linked
             call show_msg
             call game_on
-            call check_cleared
-            jp game_loop
+            call check_cleared      ; (keep the event it may set)
+            jp game_loop.frame
 .dead:      ld hl,msg_deadlock
             call show_msg
             ld a,60
@@ -515,8 +528,8 @@ ev_transfer:
 .lost:      call game_on
             ld a,40
             ld (ix+O_RAM),a
-            call host_lost
-            jp game_loop
+            call host_lost          ; (the probe: a death)
+            jp game_loop.frame
 
 ev_lift:
             call game_off
@@ -630,7 +643,14 @@ ev_death:
             ret nz
             call fe_call
             dw fe_gameover
-            ret
+            or a                    ; A = 1: continue on this ship
+            ret z
+            call new_run            ; from its top deck, with a new score
+            xor a
+            ld (deck_loaded),a
+            call ship_enter
+            jp c,game_exit
+            jp game_loop
 
 ; keep showing frames for a moment (A = fields)
 wait_fields_game:
@@ -644,6 +664,7 @@ wait_fields_game:
             call draw_droids
             call draw_shots
             call draw_fx
+            call snd_pt
             call hud_update
             call present
             ld a,(wfg_n)
@@ -694,7 +715,12 @@ ev_cleared:
             call game_off
             ld de,$5000
             call add_score
-            ld a,(demo)
+            ld a,(lives)            ; and a spare probe (up to five)
+            cp 5
+            jr nc,.nl
+            inc a
+            ld (lives),a
+.nl:        ld a,(demo)
             or a
             ret nz
             call fe_call

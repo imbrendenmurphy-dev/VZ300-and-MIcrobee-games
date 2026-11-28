@@ -115,7 +115,7 @@ STORY2 = [
     "CONTROLS",
     "MOVE      Q A O P  OR  JOYSTICK",
     "SHOOT     FIRE (SPACE OR M)",
-    "LINK      HOLD FIRE, STAND STILL,",
+    "LINK      HOLD FIRE, STAND STILL",
     "          THEN TOUCH A DROID",
     "LIFT      FIRE ON A LIFT PAD",
     "CONSOLE   PUSH INTO A TERMINAL",
@@ -123,6 +123,18 @@ STORY2 = [
     "SOUND OUT C: SPEAKER/BOTH/TAPE",
 ]
 
+STORY3 = [
+    "THE LINK DUEL",
+    "PICK A SIDE (LEFT/RIGHT), FIRE.",
+    "UP/DOWN PICKS A WIRE. FIRE SENDS",
+    "A PULSE: ITS NODE TURNS YOUR",
+    "COLOUR AND LOCKS FOR A MOMENT.",
+    "CAPPED WIRES ARE BROKEN. GREEN",
+    "CROSSES HAND NODES TO THE DROID.",
+    "YELLOW DIAMONDS LOCK FOR LONGER.",
+    "HOLD MORE NODES AT THE END.",
+    "THE PROBE CAN TAKE CLASSES 1-3.",
+]
 
 def rle(data):
     """n < $80: n+1 literal bytes follow; n >= $80: repeat the next byte n-$7D times (3..130)"""
@@ -279,6 +291,9 @@ def ship_shifts(art=None):
 def strings_asm(label, lines):
     out = ['%s:' % label]
     for l in lines:
+        # 32 columns of 4 pixels: a 33rd character would wrap into the next
+        # pixel row at the left edge
+        assert len(l) <= 32, (label, len(l), l)
         out.append('            db "%s",0' % l)
     out.append('            db $FF')
     return out
@@ -376,6 +391,7 @@ def ov_asm():
         L.append('            db ' + ','.join('$%02X' % v for v in b[i:i + 16]))
     L += strings_asm('story1', STORY)
     L += strings_asm('story2', STORY2)
+    L += strings_asm('story3', STORY3)
     L.append('ship_art:')
     b = ship_shifts()
     for i in range(0, len(b), 16):
@@ -400,6 +416,13 @@ def asm():
             lines[-1] = (lines[-1] + ' ' + w).strip()
         lines = (lines + ['', ''])[:2]
         L.append('            db "%s",0,"%s",0' % tuple(lines))
+    # the whole fleet for the ending: each ship's silhouette, phase 0 only
+    # (drawn at x multiple of 4), 14 rows x 12 bytes
+    L.append('fleet_art:')
+    for f in SHIP_ARTS:
+        b = ship_shifts(f())[:168]
+        for i in range(0, len(b), 24):
+            L.append('            db ' + ','.join('$%02X' % v for v in b[i:i + 24]))
     return '\n'.join(L) + '\n'
 
 

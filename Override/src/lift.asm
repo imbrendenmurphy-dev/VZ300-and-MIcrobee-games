@@ -29,8 +29,8 @@ lift_main:
             or a
             jr z,.real
             ; the autopilot rides one deck down (or up from the bottom)
-            ld a,(fe_frames)
-            and 63
+            ld a,(fe_frames)        ; (it steps by 2: test the even bits)
+            and 62
             jr nz,.n3
             call lift_auto
             jr .go

@@ -17,6 +17,7 @@ G_FORKED    equ 5              ; the lane under a fork (no entry of its own)
 LANES       equ 12
 XF_TIME     equ 250            ; frames (two fields each) = 10 seconds
 LOCKT       equ 45
+PLOCKT      equ 70             ; (yours)
 
 xfer_main:
             ld a,$08
@@ -34,18 +35,23 @@ xfer_main:
             ld d,7
             ld b,0
             call build_type
-            ; charges: you 5 + class, them 4 + class
+            ; charges: you 7 + your class, the droid 1 + 1.5 x its class
+            ; (the bare probe can take classes 1-3 most times; a body two
+            ; or three classes up is about even)
             ld a,(xf_mine)
             ld c,T_CLASS
             call type_stat
             ld (xc_mycls),a
-            add a,5
+            add a,7
             ld (xc_mych),a
             ld a,(xf_enemy)
             ld c,T_CLASS
             call type_stat
             ld (xc_ecls),a
-            add a,4
+            ld b,a
+            srl a
+            add a,b
+            inc a
             ld (xc_ench),a
             call xb_make
             ; nodes start alternating
@@ -75,7 +81,7 @@ xfer_main:
             ; ---- choose a side
             ld a,1
             ld (xc_choose),a
-            ld a,70
+            ld a,200                ; eight seconds to read the board
             ld (xc_t),a
 .ch:        call xd_side
             call fe_frame
@@ -104,9 +110,10 @@ xfer_main:
             jr .ct
 .cauto:     ; the demo picks the side with more working lanes
             ld a,(xc_t)
-            cp 40
+            cp 170
             jr nz,.ct
-            call xai_side
+            call xai_side           ; (after a second and a bit, then go)
+            jr .cgo
 .ct:        ld hl,xc_t
             dec (hl)
             jr nz,.ch
@@ -128,25 +135,33 @@ xfer_main:
             ld a,(demo)
             or a
             jr nz,.pai
-            ; your cursor and fire
+            ; your cursor (held up/down repeats) and fire
             ld a,(in_new)
-            and K_UP
-            jr z,.u
-            ld a,(xc_cur)
-            or a
-            jr z,.u
-            dec a
-            ld (xc_cur),a
-            ld a,FX_MOVE
-            call fe_sfx
-.u:         ld a,(in_new)
-            and K_DOWN
+            and K_UP|K_DOWN
+            jr z,.rp
+            ld b,a
+            ld a,6                  ; first repeat after a quarter second
+            ld (xc_rep),a
+            ld a,b
+            jr .mv
+.rp:        ld a,(in_now)
+            and K_UP|K_DOWN
             jr z,.d
+            ld hl,xc_rep
+            dec (hl)
+            jr nz,.d
+            ld (hl),2               ; then twelve lanes a second
+.mv:        and K_UP
             ld a,(xc_cur)
-            cp LANES-1
+            jr z,.dn
+            or a
+            jr z,.d
+            dec a
+            jr .mc
+.dn:        cp LANES-1
             jr z,.d
             inc a
-            ld (xc_cur),a
+.mc:        ld (xc_cur),a
             ld a,FX_MOVE
             call fe_sfx
 .d:         ld a,(in_new)
@@ -178,7 +193,7 @@ xfer_main:
             ld a,(xc_ecls)
             add a,a
             ld b,a
-            ld a,22
+            ld a,30
             sub b
             ld (hl),a               ; thinks faster the higher its class
             ld a,(xc_side)
@@ -243,11 +258,8 @@ xfer_main:
 .rc:        ld a,c
             ld e,31
             call fe_header
-            ld a,(xc_res)
-            or a
-            ld a,MUS_LOSE
-            jr z,.j
-            dec a
+            ld a,(xc_res)           ; taken over: the fanfare; else the dirge
+            cp 1
             ld a,MUS_WIN
             jr z,.j
             ld a,MUS_LOSE
@@ -416,8 +428,13 @@ x_arrive:
             ld a,(xs_side)
             inc a
             ld (xa_own),a           ; owner code 1 left, 2 right
+            ld a,(xs_side)          ; your nodes stay locked longer
+            ld hl,xc_side
+            cp (hl)
             ld a,LOCKT
-            ld (xa_lock),a
+            jr nz,.lk
+            ld a,PLOCKT
+.lk:        ld (xa_lock),a
             ld a,b
             cp G_BREAK
             jr z,.out
@@ -429,7 +446,8 @@ x_arrive:
             jr .one
 .nr:        cp G_BOOST
             jr nz,.nb
-            ld a,LOCKT*2
+            ld a,(xa_lock)
+            add a,a
             ld (xa_lock),a
             jr .one
 .nb:        cp G_FORK
@@ -491,7 +509,11 @@ xai_pick:
             ld (xa_side),a
             inc a
             ld (xa_me),a            ; my owner code
-            ; save a charge for the last two seconds unless rich
+            ; class 5 and up save a charge for the last two seconds
+            ; unless rich
+            ld a,(xc_ecls)
+            cp 5
+            jr c,.go
             ld a,(xa_ch)
             cp 2
             jr nc,.go
@@ -851,7 +873,7 @@ xd_meter:
             add a,a
             ret z
             ld b,a
-            ld a,28
+            ld a,30
             sub b
             ld d,a
             ld e,60
@@ -902,6 +924,10 @@ xd_side:
             call fe_rows
             ld de,$0102
             call txt_colour
+            ld hl,side_h            ; takes turns with how to choose
+            ld a,(xc_t)
+            and 32
+            jr z,.s
             ld a,(xc_side)
             or a
             ld hl,side_l
@@ -912,6 +938,7 @@ xd_side:
             jp xd_header
 side_l:     db "< YOUR SIDE: LEFT >",0
 side_r:     db "< YOUR SIDE: RIGHT >",0
+side_h:     db "PICK THE SIDE, THEN FIRE",0
 
 ; draw lane C of side A (wire, gate, entry)
 xd_lane:
@@ -1187,6 +1214,7 @@ xc_ecls:    ds 1
 xc_mych:    ds 1
 xc_ench:    ds 1
 xc_cur:     ds 1
+xc_rep:     ds 1
 xc_ecur:    ds 1
 xc_side:    ds 1
 xc_choose:  ds 1

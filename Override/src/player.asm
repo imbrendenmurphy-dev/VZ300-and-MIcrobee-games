@@ -472,6 +472,8 @@ player_hurt:
             or a
             ret nz
             ld a,b
+            srl a                   ; you take half (rounded up)
+            adc a,0
 player_hurt_raw:
             ld b,a
             ld a,(plr+O_EN)

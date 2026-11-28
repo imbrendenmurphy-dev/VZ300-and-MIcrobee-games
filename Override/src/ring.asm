@@ -103,7 +103,8 @@ render_blk:
             jr z,.nt
             ld (rb_sr),a
             jr .row
-.nt:        xor a
+.nt:        call snd_pt             ; a sample each tile row
+            xor a
             ld (rb_sr),a
             push hl
             ld hl,(rb_map)
@@ -287,6 +288,9 @@ render_row:
             call emit4
             ld hl,rr_x
             inc (hl)
+            ld a,(hl)               ; a sample every four columns
+            and 3
+            call z,snd_pt
             ld hl,rr_n
             dec (hl)
             jr nz,.x

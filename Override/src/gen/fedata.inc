@@ -55,3 +55,39 @@ r_blurbs:
             db "SIEGE DROID. VERY SLOW, VERY",0,"TOUGH.",0
             db "THE SHIP MIND'S OWN BODYGUARD.",0,"",0
             db "THE ROGUE SHIP MIND IN A BATTLE",0,"FRAME.",0
+fleet_art:
+            db $AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$A0,$00,$00,$AA,$AA,$AA,$AA,$AA,$AA
+            db $AA,$AA,$AA,$99,$99,$99,$AA,$80,$00,$AA,$AA,$AA,$AA,$AA,$AA,$55,$55,$55,$AA,$80,$00,$AA,$AA,$AA
+            db $AA,$A8,$00,$00,$00,$00,$00,$00,$02,$AA,$AA,$AA,$AA,$85,$55,$55,$55,$55,$55,$55,$55,$8F,$EA,$AA
+            db $A8,$59,$99,$99,$99,$99,$99,$99,$99,$4F,$FE,$AA,$85,$55,$55,$55,$55,$55,$55,$55,$55,$4F,$FD,$AA
+            db $A8,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$4F,$FE,$AA,$AA,$85,$55,$55,$55,$55,$55,$55,$55,$8F,$EA,$AA
+            db $AA,$A8,$00,$00,$00,$00,$00,$00,$02,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$80,$00,$AA,$AA,$AA
+            db $AA,$AA,$AA,$AA,$AA,$AA,$AA,$80,$00,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA
+            db $AA,$AA,$AA,$AA,$8F,$AA,$3E,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$BF,$AA,$FE,$AA,$AA,$AA,$AA,$AA
+            db $AA,$AA,$AA,$55,$55,$55,$55,$55,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$66,$66,$66,$66,$65,$AA,$AA,$AA,$AA
+            db $AA,$AA,$55,$55,$55,$55,$55,$55,$55,$AA,$AA,$AA,$AA,$AA,$66,$66,$66,$66,$66,$66,$65,$AA,$AA,$AA
+            db $AA,$AA,$55,$55,$55,$55,$55,$55,$55,$AA,$AA,$AA,$85,$55,$55,$55,$55,$55,$55,$55,$55,$55,$AA,$AA
+            db $AA,$59,$65,$96,$59,$65,$96,$59,$65,$96,$FE,$AA,$AF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FE,$FD,$AA
+            db $AA,$A8,$55,$55,$55,$55,$55,$55,$55,$6A,$FE,$AA,$A8,$00,$00,$00,$00,$00,$00,$00,$00,$2A,$AA,$AA
+            db $AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA
+            db $AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA
+            db $AA,$AA,$AA,$A1,$55,$55,$52,$AA,$AA,$AA,$AA,$AA,$2A,$AA,$AA,$15,$55,$55,$55,$2A,$AA,$AA,$AA,$AA
+            db $5A,$AA,$A8,$55,$65,$96,$55,$4A,$AA,$AA,$AA,$AA,$5A,$AA,$A1,$55,$55,$55,$55,$50,$00,$0F,$FA,$AA
+            db $50,$00,$03,$EF,$BE,$FB,$EF,$BC,$00,$0F,$F6,$AA,$50,$00,$03,$EF,$BE,$FB,$EF,$BC,$00,$0F,$F9,$AA
+            db $5A,$AA,$A1,$55,$55,$55,$55,$50,$00,$0F,$FA,$AA,$5A,$AA,$A8,$55,$55,$55,$55,$4A,$AA,$AA,$AA,$AA
+            db $2A,$AA,$AA,$15,$55,$55,$55,$2A,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$A1,$55,$55,$52,$AA,$AA,$AA,$AA,$AA
+            db $AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA
+            db $AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$00,$00,$0A,$AA,$AA,$AA,$AA
+            db $15,$55,$AA,$AA,$AA,$0A,$AA,$9A,$AA,$AA,$AA,$AA,$6A,$A9,$AA,$AA,$AA,$0A,$AA,$9A,$AA,$55,$6A,$AA
+            db $55,$55,$AA,$AA,$AA,$0A,$AA,$AA,$AA,$55,$7F,$AA,$55,$55,$02,$02,$02,$02,$02,$02,$02,$55,$7F,$AA
+            db $55,$55,$00,$00,$00,$00,$00,$00,$00,$55,$7F,$AA,$55,$55,$00,$80,$02,$00,$08,$00,$2A,$55,$7F,$AA
+            db $55,$55,$55,$BF,$FE,$55,$5B,$FF,$EA,$55,$7F,$AA,$AA,$A5,$55,$BF,$FE,$55,$5B,$FF,$EA,$55,$6A,$AA
+            db $AA,$A5,$55,$BF,$FE,$55,$5B,$FF,$EA,$AA,$AA,$AA,$AA,$A5,$55,$BF,$FE,$55,$5B,$FF,$EA,$AA,$AA,$AA
+            db $AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA
+            db $AA,$AA,$AA,$AA,$AA,$AA,$AA,$55,$5A,$AA,$AA,$AA,$AA,$AA,$00,$00,$A0,$00,$0A,$5A,$5A,$AA,$AA,$AA
+            db $AA,$AA,$AA,$00,$AA,$A0,$0A,$55,$5A,$AA,$AA,$AA,$AA,$AA,$AA,$A1,$55,$55,$55,$55,$55,$6A,$AA,$AA
+            db $AA,$AA,$A8,$55,$55,$55,$55,$55,$55,$5A,$AA,$AA,$AA,$AA,$15,$55,$55,$55,$55,$55,$55,$56,$BF,$AA
+            db $AA,$85,$55,$55,$55,$55,$55,$55,$55,$55,$BF,$AA,$A1,$5F,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FD,$7F,$AA
+            db $AA,$85,$55,$55,$55,$55,$55,$55,$55,$55,$BF,$AA,$AA,$AA,$19,$59,$59,$59,$59,$59,$59,$56,$BF,$AA
+            db $AA,$AA,$A8,$55,$55,$55,$55,$55,$55,$5A,$AA,$AA,$AA,$AA,$AA,$A1,$55,$55,$55,$55,$55,$6A,$AA,$AA
+            db $AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA

@@ -265,9 +265,9 @@ at_events:
             ld a,58
             ld (at_py),a
             jp at_events
-.flash:     xor a
+.flash:     xor a                   ; a cut to empty space, with a zap
             ld b,64
-            ld c,$55
+            ld c,$AA
             call fe_rows
             ld a,FX_ZAP
             call fe_sfx
@@ -571,12 +571,15 @@ title_screen:
             ld (tk_n),a
             ld hl,1000
             ld (t_time),hl
+            ld a,(snd_out)
+            ld (at_so),a
             call press_draw
 .f:         call fe_frame
             call read_input
             ld a,(in_new)
             and K_FIRE
             ret nz
+            call so_watch
             ld a,(fe_frames)
             and 1
             call z,parade
@@ -593,7 +596,12 @@ title_screen:
             jr nz,.f
             ret                     ; Z: timed out
 
+; the bottom line takes turns: PRESS FIRE (blinking), then the sound setting
 press_draw:
+            call line59
+            ld a,(fe_frames)
+            and 64
+            jr nz,so_draw
             ld a,(fe_frames)
             and 32
             ld de,$0102
@@ -603,6 +611,55 @@ press_draw:
             ld hl,press_txt
             ld e,59
             jp fe_strc
+
+; "C  SOUND: SPEAKER" (or BOTH / TAPE OUT) in green on row 59
+so_draw:
+            call line59
+            ld de,$0002
+            call txt_colour
+            ld hl,so_pre
+            ld de,t_buf
+            call copy0
+            ld a,(snd_out)
+            add a,a
+            ld l,a
+            ld h,0
+            push de
+            ld de,ov_so_msgs
+            add hl,de
+            ld a,(hl)
+            inc hl
+            ld h,(hl)
+            ld l,a
+            pop de
+            call copy0
+            ld hl,t_buf
+            ld e,59
+            jp fe_strc
+so_pre:     db "C  ",0
+; (the overlay's own copy: the HUD's live in upper bank 1)
+ov_so_msgs: dw ov_so0,ov_so1,ov_so2
+ov_so0:     db "SOUND: SPEAKER",0
+ov_so1:     db "SOUND: BOTH",0
+ov_so2:     db "SOUND: TAPE OUT",0
+
+; clear rows 59-63
+line59:
+            ld de,59
+            ld bc,$2005
+            ld a,$AA
+            jp fe_box
+
+; C pressed? show the new setting at once
+so_watch:
+            ld a,(snd_out)
+            ld hl,at_so
+            cp (hl)
+            ret z
+            ld (hl),a
+            ld a,64
+            ld (fe_frames),a
+            jp so_draw
 
 ; the next parade droid in slot C: its type and colours
 par_next:
@@ -763,6 +820,12 @@ story_pages:
             call type_page
             ret nz
             ld a,200
+            call fe_delay
+            ret nz
+            ld hl,story3
+            call type_page
+            ret nz
+            ld a,250
             jp fe_delay
 
 ; type out a page of lines (HL, $FF ends), green on blue
@@ -773,6 +836,17 @@ type_page:
             ld de,$0102             ; yellow: clear of the green grid
             call txt_colour
             call fe_txt
+            ; one pixel in from the edge: each glyph's spacing column on
+            ; its left instead of its right (shift the glyph table along)
+            ld hl,txt_tab
+            ld b,8
+.sh:        ld a,(hl)
+            srl a
+            srl a
+            or $80                  ; (blue paper in the new left pixel)
+            ld (hl),a
+            inc hl
+            djnz .sh
             pop hl
             ld e,3
 .line:      ld a,(hl)
@@ -1233,7 +1307,7 @@ shipdone_main:
             call fe_delay
             jp m_stop
 secured_txt: db "SHIP SECURED",0
-bonus_txt:  db "BONUS 5000",0
+bonus_txt:  db "BONUS 5000  +1 PROBE",0
 
 gameover_main:
             ld a,$08
@@ -1258,12 +1332,90 @@ gameover_main:
             ld hl,t_buf
             ld e,40
             call fe_strc
+            ; how far you got
+            ld hl,reach_txt
+            ld de,t_buf
+            call copy0
+            ld a,(ship)
+            add a,'1'
+            ld (de),a
+            inc de
+            ld hl,of3_txt
+            call copy0
+            ld de,$0002
+            call txt_colour
+            ld hl,t_buf
+            ld e,51
+            call fe_strc
             ld a,200
             call fe_delay
             call m_stop
-            jp hi_enter
+            call hi_enter
+; continue? The ship you reached, from its top deck: fire within ten
+; seconds. A = 1 to continue.
+            ld a,BK_STARS|BK_FRAME
+            call fe_back
+            ld de,$0002
+            call txt_colour
+            ld hl,shipinfo+SI_NAME
+            ld e,22
+            call fe_strc
+            call card_art
+            ld a,42
+            ld (at_sx),a
+            ld a,29
+            ld (at_sy),a
+            call ship_draw
+            ld de,$0102
+            call txt_colour
+            ld hl,cont1_txt
+            ld e,47
+            call fe_strc
+            ld de,$0002
+            call txt_colour
+            ld hl,cont2_txt
+            ld e,54
+            call fe_strc
+            ld a,9
+            ld (at_end),a
+.c:         ld hl,cont_txt
+            ld de,t_buf
+            call copy0
+            ld a,(at_end)
+            add a,'0'
+            ld (de),a
+            inc de
+            xor a
+            ld (de),a
+            ld a,BF_SYSTEM
+            ld hl,t_buf
+            ld e,6
+            call fe_header
+            ld a,FX_TICK
+            call fe_sfx
+            ld a,50
+            call fe_delay
+            jr nz,.key
+            ld hl,at_end
+            dec (hl)
+            jp p,.c
+.no:        xor a
+            ret
+.key:       ld a,(in_new)
+            and K_FIRE
+            jr z,.no
+            ld a,FX_SELECT
+            call fe_sfx
+            ld a,20
+            call fe_delay
+            ld a,1
+            ret
 over_txt:   db "GAME OVER",0
 score_txt:  db "SCORE ",0
+reach_txt:  db "REACHED SHIP ",0
+cont_txt:   db "CONTINUE? ",0
+cont1_txt:  db "FIRE: BACK TO THIS SHIP",0
+cont2_txt:  db "3 PROBES, SCORE FROM ZERO",0
 
 ending_main:
             ld a,$08
@@ -1272,6 +1424,38 @@ ending_main:
             call m_playhl
             ld hl,ending1
             call type_page
+            ld a,250
+            call fe_delay
+            ld a,250
+            call fe_delay
+            ; the whole fleet, freed
+            ld a,BK_STARS|BK_FRAME
+            call fe_back
+            ld a,BF_GOLD
+            ld hl,fleet_txt
+            ld e,3
+            call fe_header
+            ld hl,fleet_pos
+            ld de,fleet_art
+            ld b,5
+.fl:        push bc
+            ld a,(hl)
+            ld (at_sx),a
+            inc hl
+            ld a,(hl)
+            ld (at_sy),a
+            inc hl
+            push hl
+            ld (at_art),de
+            push de
+            call ship_draw
+            pop hl
+            ld de,168
+            add hl,de
+            ex de,hl
+            pop hl
+            pop bc
+            djnz .fl
             ld a,250
             call fe_delay
             ld a,250
@@ -1319,6 +1503,8 @@ ending1:    db "THE LAST LIGHTS OF THE",0
             db "THE FLEET IS FREE.",0
             db $FF
 end_big:    db "OVERRIDE",0
+fleet_txt:  db "THE FLEET IS FREE",0
+fleet_pos:  db 8,17, 72,17, 8,33, 72,33, 40,49
 ending2:    db "VIBED BY BPM 2026",0
             db "FOR THE DICK SMITH VZ300",0
             db "WITH THE BENNVENN SD + 128K",0
@@ -1343,6 +1529,7 @@ at_probe:   ds 1
 at_px:      ds 1
 at_py:      ds 1
 at_end:     ds 1
+at_so:      ds 1
 at_src:     ds 2
 at_scol:    ds 1
 at_sw:      ds 1

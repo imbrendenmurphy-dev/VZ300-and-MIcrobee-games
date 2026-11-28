@@ -81,6 +81,7 @@ build_sprite:
 ; spr_sil: 0 = normal, else a colour byte to fill the shape with.
 ; ---------------------------------------------------------------------
 draw_spr:
+            call snd_pt
             ld (ds_blk),hl
             ; sx = x - cam_x
             ld hl,(cam_x)

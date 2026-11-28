@@ -126,6 +126,38 @@ idle_sample:
             ret                     ; 10
 IDLE_DLY    equ 55
 
+; one sample in the middle of other work (each droid, shot, door and
+; sprite), so the speaker keeps moving through the game logic instead of
+; stopping for 15 ms a frame. Game mode only; keeps every register.
+; snd_ptn: the same every fourth call (for short, busy routines: tile
+; lookups, HUD characters)
+snd_ptn:
+            push af
+            ld a,(spt_n)
+            dec a
+            and 3
+            ld (spt_n),a
+            jr z,.go
+            pop af
+            ret
+.go:        pop af
+snd_pt:
+            push af
+            ld a,(gm_on)            ; (the front end shares some routines)
+            or a
+            jr z,.x
+            push hl
+            ld hl,snd_rd
+            ld a,(hl)
+            inc (hl)
+            ld l,a
+            ld h,HIGH(SNDBUF)
+            ld a,(hl)
+            ld (LATCH),a
+            pop hl
+.x:         pop af
+            ret
+
 ; hand the finished back buffer to the ISR
 present:
             ld a,1
@@ -379,10 +411,7 @@ so_set:
             ld (cas_m),a
             ret
 so_tab:     db $21,$00, $21,$06, $00,$06
-so_msgs:    dw so_m0,so_m1,so_m2
-so_m0:      db "SOUND: SPEAKER",0
-so_m1:      db "SOUND: BOTH",0
-so_m2:      db "SOUND: TAPE OUT",0
+; (the messages, so_msgs, live in upper bank 1: gmusic.asm)
 
 ; A = speaker bits, C = cassette bits -> A = the bits this output allows
 ; (uses B, HL)

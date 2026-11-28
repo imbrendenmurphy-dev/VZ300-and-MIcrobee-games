@@ -200,7 +200,7 @@ hud_energy:
             ld d,a
             ld a,e
             cpl
-            and $AA                 ; the rest blue
+            and $88                 ; the rest: a dotted track
             or d
             ld (hl),a
             ld c,0
@@ -209,24 +209,43 @@ hud_energy:
             ret
 partmask:   db $00,$C0,$F0,$FC
 
-; lives: a yellow pip each at columns 28-31 of rows 7-8
+; lives: the number of spare probes in red, then a probe (a yellow ring,
+; red eye, green feelers), in the text rows between the name field
+; (columns 4-21) and the score (26-31): column 22, then 23-24
 hud_lives:
-            ld hl,BB+BBW*7+BBG+27
-            call .row
-            ld hl,BB+BBW*8+BBG+27
-.row:       ld a,(lives)
+            ld a,(lives)
             dec a                   ; spare probes
-            ld b,4
-.l:         ld c,$AA
-            or a
-            jr z,.e
-            jp m,.e
-            ld c,$96                ; blue, yellow, yellow, blue
-            dec a
-.e:         ld (hl),c
+            add a,'0'
+            ld hl,hud_buf
+            ld (hl),a
             inc hl
-            djnz .l
+            ld (hl),0
+            ld de,$0302
+            call txt_colour
+            ld hl,hud_buf
+            ld de,$1602
+            call draw_str
+            ld hl,BB+BBW*2+BBG+23
+            ld de,probe_icon
+            ld b,5
+.r:         ld a,(de)
+            ld (hl),a
+            inc de
+            inc hl
+            ld a,(de)
+            ld (hl),a
+            inc de
+            push bc
+            ld bc,BBW-1
+            add hl,bc
+            pop bc
+            djnz .r
             ret
+probe_icon: db $A5,$6A              ; ..YY Y...
+            db $9F,$DA              ; .YRR RY..
+            db $1F,$D2              ; GYRR RYG.
+            db $9F,$DA
+            db $A5,$6A
 
 ; HL = message (0 ends) shown in the name field for a few seconds
 show_msg:

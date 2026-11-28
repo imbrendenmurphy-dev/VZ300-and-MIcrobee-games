@@ -70,12 +70,24 @@ story2:
             db "CONTROLS",0
             db "MOVE      Q A O P  OR  JOYSTICK",0
             db "SHOOT     FIRE (SPACE OR M)",0
-            db "LINK      HOLD FIRE, STAND STILL,",0
+            db "LINK      HOLD FIRE, STAND STILL",0
             db "          THEN TOUCH A DROID",0
             db "LIFT      FIRE ON A LIFT PAD",0
             db "CONSOLE   PUSH INTO A TERMINAL",0
             db "PAUSE     RETURN     MUSIC  N",0
             db "SOUND OUT C: SPEAKER/BOTH/TAPE",0
+            db $FF
+story3:
+            db "THE LINK DUEL",0
+            db "PICK A SIDE (LEFT/RIGHT), FIRE.",0
+            db "UP/DOWN PICKS A WIRE. FIRE SENDS",0
+            db "A PULSE: ITS NODE TURNS YOUR",0
+            db "COLOUR AND LOCKS FOR A MOMENT.",0
+            db "CAPPED WIRES ARE BROKEN. GREEN",0
+            db "CROSSES HAND NODES TO THE DROID.",0
+            db "YELLOW DIAMONDS LOCK FOR LONGER.",0
+            db "HOLD MORE NODES AT THE END.",0
+            db "THE PROBE CAN TAKE CLASSES 1-3.",0
             db $FF
 ship_art:
             db $AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$AA,$A0

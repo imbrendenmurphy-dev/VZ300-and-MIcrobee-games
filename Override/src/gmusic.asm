@@ -7,7 +7,7 @@
 ;  (a loud effect takes both lines and mutes the bass).
 ; =====================================================================
 SNDBUF      equ $F900           ; 256 samples (latch values)
-SND_AHEAD   equ 232             ; keep this many samples queued
+SND_AHEAD   equ 250             ; keep this many samples queued (3 fields)
 
 GC_PTR      equ 0
 GC_WAIT     equ 2
@@ -72,11 +72,30 @@ gm_stop:
 ; once a frame: step the tune, then fill the ring
 snd_make:
             push ix
+            ld a,(fieldctr)         ; the tune steps 25 times a second
+            ld hl,gm_lastf          ; whatever the frame rate: once for
+            ld c,(hl)               ; every two fields since last time
+            ld (hl),a
+            sub c
+            ld hl,gm_frac
+            add a,(hl)
+            ld b,a
+            and 1
+            ld (hl),a
+            srl b
+            jr z,.nt
+            ld a,b
+            cp 4
+            jr c,.st
+            ld b,4
+.st:        push bc
             ld ix,gm_ch0
             call gm_ch
             ld ix,gm_ch1
             call gm_ch
-            pop ix
+            pop bc
+            djnz .st
+.nt:        pop ix
             ; ---- voice 1: the bass (muted by a loud effect or music off)
             ld a,(gm_ch0+GC_DUTY)
             ld b,a
@@ -180,7 +199,17 @@ snd_make:
             xor LATCH_GAME          ; 7
             ld (hl),a               ; 7
             inc l                   ; 4
-            dec b                   ; 4
+            ld a,b                  ; 4   every eighth sample made, play
+            and 7                   ; 7   one (the mixing itself takes
+            jr nz,.np               ; 12  ~20K T a frame)
+            ld a,(snd_rd)
+            ld e,a
+            inc a
+            ld (snd_rd),a
+            ld d,HIGH(SNDBUF)
+            ld a,(de)
+            ld (LATCH),a
+.np:        dec b                   ; 4
             exx                     ; 4
             jr nz,.l                ; 12
             ld (gv1_ph),hl
@@ -287,7 +316,14 @@ gm_ch:
 
 gm_ch0:     ds GC_SIZE
 gm_ch1:     ds GC_SIZE
+; the sound-output messages for the HUD (sys.asm so_key)
+so_msgs:    dw so_m0,so_m1,so_m2
+so_m0:      db "SOUND: SPEAKER",0
+so_m1:      db "SOUND: BOTH",0
+so_m2:      db "SOUND: TAPE OUT",0
 gm_cur:     db $FF
+gm_lastf:   db 0
+gm_frac:    db 0
 gv1_ph:     ds 2
 gv1_st:     ds 2
 gv2_ph:     ds 2

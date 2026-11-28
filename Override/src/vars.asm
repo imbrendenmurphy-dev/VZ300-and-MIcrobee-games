@@ -111,6 +111,7 @@ snd_out:    ds 1               ; 0 speaker, 1 speaker + tape out, 2 tape out onl
 spk_m:      ds 1               ; latch bits allowed on the speaker ($21 or 0)
 cas_m:      ds 1               ; ... and on the cassette output ($06 or 0)
 cas_prev:   ds 1               ; the C key last frame (0 = held)
+spt_n:      ds 1               ; snd_ptn's call counter
 ; ---- ring
 rb_n:       ds 1
 rb_x:       ds 1

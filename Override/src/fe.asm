@@ -68,8 +68,10 @@ ov_run:
             push hl
             call ov_load
             pop hl
-            ret c
+            jr c,.fail
             jp (hl)
+.fail:      xor a                   ; (no overlay: no continue)
+            ret
 
             include "fesys.asm"
             include "fecommon.asm"

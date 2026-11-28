@@ -262,6 +262,7 @@ droids_update:
             ret
 
 droid_one:
+            call snd_pt
             ld a,(ix+O_FLASH)
             or a
             jr z,.nf

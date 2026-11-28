@@ -183,7 +183,9 @@ SONG_ORDER = ['TITLE', 'LINK', 'WIN', 'LOSE', 'SHIPCARD', 'SHIPDONE', 'GAMEOVER'
 # ------------------------------------------------------------------ in-game soundtrack
 # Two channels (bass on speaker line 5, lead on line 0), ticked once a game
 # frame (25 a second); the mixer's samples are ~875 T apart.
-GRATE = 3546875 / 875.0
+# measured in VZonPC: about 60 ring samples are played a field in play
+# (the sample sites aren't evenly spaced), so pitch the steps for that
+GRATE = 60 * 50.0
 GINSTR = [
     (120, 3, 56),    # 0 bass: punchy square, settling
     (100, 2, 36),    # 1 lead

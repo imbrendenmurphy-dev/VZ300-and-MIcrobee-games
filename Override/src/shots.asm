@@ -175,6 +175,7 @@ shots_update:
             ret
 
 shot_one:
+            call snd_pt
             dec (ix+7)
             jr z,.kill
             ; move

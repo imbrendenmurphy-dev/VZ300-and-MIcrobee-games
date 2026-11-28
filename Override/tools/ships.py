@@ -522,7 +522,7 @@ SHIPS = [
         dict(name='ENGINES', w=36, h=16, off=14, con=1, ener=1, droids=[263, 355, 461, 524]),
     ], shafts=[18, 32, 46]),
     dict(name='MV HALCYON', seed=2202, start=0, theme=2, tunes=('HALCYON', 'HALCYON_CORE'), decks=[
-        dict(name='OBSERVATORY', w=30, h=16, off=17, con=1, ener=1, droids=[355, 408, 461]),
+        dict(name='OBSERVATORY', w=30, h=16, off=17, con=1, ener=1, droids=[355, 408, 218]),
         dict(name='BRIDGE', w=44, h=18, off=10, con=1, ener=1, droids=[218, 461, 524, 355]),
         dict(name='SICKBAY', w=54, h=18, off=5, con=1, ener=1, style='cells', droids=[408, 408, 218, 152, 524]),
         dict(name='LABS', w=60, h=20, off=2, con=1, ener=1, style='halls', droids=[355, 355, 461, 524, 587, 263]),
@@ -531,7 +531,7 @@ SHIPS = [
         dict(name='REACTOR', w=36, h=16, off=14, con=1, ener=1, droids=[632, 461, 408, 668]),
     ], shafts=[20, 32, 44]),
     dict(name='HV GRINDSTONE', seed=5505, start=0, theme=3, tunes=('GRINDSTONE', 'GRINDSTONE_CORE'), decks=[
-        dict(name='BRIDGE', w=32, h=16, off=17, con=1, ener=1, droids=[461, 524, 341]),
+        dict(name='BRIDGE', w=32, h=16, off=17, con=1, ener=1, droids=[341, 263, 461]),
         dict(name='CREW MESS', w=46, h=18, off=10, con=1, ener=1, style='cells', droids=[218, 341, 104, 152, 408]),
         dict(name='ORE BAY', w=62, h=22, off=1, con=1, ener=2, style='bay', droids=[307, 307, 341, 341, 479, 668]),
         dict(name='DRILL DECK', w=58, h=20, off=3, con=1, ener=1, style='halls', droids=[341, 341, 479, 263, 587]),
@@ -540,7 +540,7 @@ SHIPS = [
         dict(name='ENGINES', w=38, h=16, off=14, con=1, ener=1, droids=[668, 705, 479, 461]),
     ], shafts=[20, 34, 48]),
     dict(name='CV LEVIATHAN', seed=3303, start=0, theme=4, tunes=('LEVIATHAN', 'LEVIATHAN_CORE'), decks=[
-        dict(name='COMMAND', w=32, h=16, off=18, con=1, ener=1, droids=[908, 817, 632]),
+        dict(name='COMMAND', w=32, h=16, off=18, con=1, ener=1, droids=[632, 587, 461, 218]),
         dict(name='ARMOURY', w=46, h=18, off=10, con=1, ener=1, style='halls', droids=[705, 741, 632, 587, 461]),
         dict(name='BARRACKS', w=56, h=18, off=5, con=1, ener=1, style='cells', droids=[705, 773, 741, 524, 218, 104]),
         dict(name='HANGAR', w=62, h=22, off=1, con=1, ener=2, style='bay', droids=[856, 773, 705, 668, 307, 307, 152]),

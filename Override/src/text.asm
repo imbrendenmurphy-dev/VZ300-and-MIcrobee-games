@@ -89,6 +89,7 @@ glyph:
 
 ; draw_char: A = character, D = byte column, E = pixel row
 draw_char:
+            call snd_ptn
             push de
             push af
             call txt_addr
