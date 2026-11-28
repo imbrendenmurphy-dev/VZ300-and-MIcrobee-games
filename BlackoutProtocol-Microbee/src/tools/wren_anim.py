@@ -14,9 +14,10 @@ from PIL import Image, ImageDraw
 S = 8                          # oversampling
 W = H = 24
 # segment lengths (pixels at 1x)
-HEAD_R, NECK, TORSO, THIGH, SHIN, FOOT = 2.9, 0.6, 6.6, 5.6, 5.6, 2.4
-UARM, FARM = 4.4, 4.2
-WID = dict(torso=5.0, thigh=3.2, shin=2.6, foot=2.0, uarm=2.2, farm=1.9)
+# Lithe proportions: a small head, long legs, slim limbs (the first set read as a blob).
+HEAD_R, NECK, TORSO, THIGH, SHIN, FOOT = 2.45, 0.7, 6.3, 5.9, 5.9, 2.2
+UARM, FARM = 4.3, 4.1
+WID = dict(torso=3.9, thigh=2.35, shin=1.85, foot=1.5, uarm=1.6, farm=1.35)
 
 def vec(angle, length):
     a = math.radians(angle)
@@ -76,8 +77,8 @@ def render(p):
         limb(j['knee' + sd], j['ankle' + sd], WID['shin'], outline=near)
         limb(j['ankle' + sd], j['toe' + sd], WID['foot'], outline=near)
     def arm(sd, near):
-        limb(j['sh'], j['elbow' + sd], WID['uarm'], outline=near, gap=0.7)
-        limb(j['elbow' + sd], j['hand' + sd], WID['farm'], outline=near, gap=0.7)
+        limb(j['sh'], j['elbow' + sd], WID['uarm'], outline=near, gap=1.15)
+        limb(j['elbow' + sd], j['hand' + sd], WID['farm'], outline=near, gap=1.15)
     arm('B', False); side('B', False)                            # far side
     limb(j['hip'], j['sh'], WID['torso'])
     x, y = P(j['head']); r = HEAD_R * S
@@ -88,9 +89,15 @@ def render(p):
     hx, hy = j['head']
     eye = (hx + fx * 0.4 + math.sin(a) * 0.3, hy + fy * 0.4 + math.cos(a) * 0.3)
     d.line([P(eye), P((eye[0] + fx * 2.6, eye[1] + fy * 2.6))], fill=0, width=int(0.9 * S))
+    if not p.rot:                                                # belt: a dark band at the hips
+        bx, by = j['hip']; sx, sy = j['sh']
+        ux, uy = (sx - bx) / TORSO, (sy - by) / TORSO               # along the torso
+        c = (bx + ux * 1.3, by + uy * 1.3); n = (-uy, ux)
+        w = WID['torso'] / 2 + 0.2
+        d.line([P((c[0] - n[0] * w, c[1] - n[1] * w)), P((c[0] + n[0] * w, c[1] + n[1] * w))], fill=0, width=int(0.85 * S))
     side('A', True); arm('A', True)                              # near side
     small = img.resize((W, H), Image.BOX)
-    bm = [[1 if small.getpixel((x, y)) >= 110 else 0 for x in range(W)] for y in range(H)]
+    bm = [[1 if small.getpixel((x, y)) >= 96 else 0 for x in range(W)] for y in range(H)]
     # tidy: fill pin-holes, drop lone pixels (they shimmer at 50 Hz)
     def n4(x, y): return sum(bm[y + dy][x + dx] for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))
                              if 0 <= x + dx < W and 0 <= y + dy < H)

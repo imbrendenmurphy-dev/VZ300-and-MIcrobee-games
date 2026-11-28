@@ -1,0 +1,23 @@
+crash
+sym build\game.sym
+disk A: outputs\BLACKOUT.DS8
+boot
+until mus_play 4000
+poke dbg_r 5
+poke dbg_side 0
+pc dbg_goto
+until loop 900
+fields 40
+poke sleep_t $FF
+poke sleep_t+1 $7F
+poke wstate 0
+poke wy 228
+poke wx 60
+fields 4
+down Q
+fields 6
+up Q
+fields 30
+screen test\tone_dbg.png 1 colour
+peek cur_room 1
+peek wstate 1

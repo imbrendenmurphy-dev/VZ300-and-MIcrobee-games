@@ -58,6 +58,6 @@ B = lambda n: Path('build/' + n).read_bytes()
 # Everything on one disk (~240 KB of ~780 KB).  The game reads it all through CP/M at
 # start-up; SAVES.DAT is read and written through CP/M too (src/save.asm).
 placed = build('BLACKOUT.DS8', True, [('CCP.SYS', ccp), ('SAVES.DAT', bytes(4096)), ('BLACKOUT.COM', B('BLACKOUT.COM')),
-      ('BLACKOUT.DAT', B('BLACKOUT.DAT')), ('BLACKOUT.OVL', B('BLACKOUT.OVL')), ('BLACKOUT.OV2', B('BLACKOUT.OV2')),
+      ('BLACKOUT.DAT', B('BLACKOUT.DAT')), ('BLACKOUT.OVL', B('BLACKOUT.OVL')), ('BLACKOUT.OV2', B('BLACKOUT.OV2')), ('BLACKOUT.OV3', B('BLACKOUT.OV3')),
       ('WING2.DAT', B('WING2.DAT')), ('WING3.DAT', B('WING3.DAT')), ('WING4.DAT', B('WING4.DAT')),
       ('READ.ME', readme)])

@@ -1,0 +1,49 @@
+sym build\game.sym
+disk A: outputs\BLACKOUT.DS8
+boot
+until mus_play 4000
+down SPACE
+fields 30
+up SPACE
+seconds 2
+down 2
+fields 20
+up 2
+until loop 3000
+seconds 2
+poke dbg_r 0
+poke dbg_side 1
+pc dbg_shaft
+until loop 900
+seconds 1
+screen test\shaft_0.png 1 colour
+poke dbg_r 2
+poke dbg_side 1
+pc dbg_shaft
+until loop 900
+seconds 1
+screen test\shaft_2.png 1 colour
+poke dbg_r 4
+poke dbg_side 1
+pc dbg_shaft
+until loop 900
+seconds 1
+screen test\shaft_4.png 1 colour
+poke dbg_r 6
+poke dbg_side 1
+pc dbg_shaft
+until loop 900
+seconds 1
+screen test\shaft_6.png 1 colour
+poke dbg_r 8
+poke dbg_side 1
+pc dbg_shaft
+until loop 900
+seconds 1
+screen test\shaft_8.png 1 colour
+poke dbg_r 10
+poke dbg_side 1
+pc dbg_shaft
+until loop 900
+seconds 1
+screen test\shaft_10.png 1 colour

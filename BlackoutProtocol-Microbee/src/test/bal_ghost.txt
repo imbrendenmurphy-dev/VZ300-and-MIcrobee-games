@@ -7,10 +7,10 @@ poke dbg_r 1
 poke dbg_side 0
 pc dbg_room
 until loop 900
-poke clk_frames 16
-poke pen_min 15
-poke gun_cool 50
-poke grace_n 50
+poke clk_frames 17
+poke pen_min 12
+poke gun_cool 55
+poke grace_n 60
 poke fast_pat 1
 poke slow_hunt 0
 poke hunt_off 0

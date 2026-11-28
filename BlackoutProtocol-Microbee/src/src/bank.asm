@@ -45,6 +45,9 @@ load_assets:
         ld de,ovl2_fcb
         ld a,OVL2_BLOCK
         call load_file
+        ld de,ovl3_fcb
+        ld a,OVL3_BLOCK
+        call load_file
         ld de,dat_fcb
         ld a,DAT_FIRST
         call load_file
@@ -157,6 +160,8 @@ ld_packs: db 0                  ; packs read at start-up (bit 0 = pack 1 ...)
 ovl_fcb: db 0,"BLACKOUTOVL"
         ds 25,0
 ovl2_fcb: db 0,"BLACKOUTOV2"
+        ds 25,0
+ovl3_fcb: db 0,"BLACKOUTOV3"
         ds 25,0
 wp_code: db $DB,$44,$CB,$77,$3E,$01,$28,$14   ; IN A,(44h) / BIT 6,A / LD A,1 / JR Z,..
 store_image:

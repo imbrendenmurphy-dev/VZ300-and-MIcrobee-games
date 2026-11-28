@@ -143,14 +143,6 @@ enter_room:
         call flag_bit
         or (hl)
         ld (hl),a
-        ld a,(cur_room)         ; its pack (drives B-D) into RAM if need be
-        ld hl,room_pack
-        add a,l
-        ld l,a
-        jr nc,$+3
-        inc h
-        ld a,(hl)
-        call pack_need
         ld a,(cur_room)
         ld l,a                  ; the room's record from the banks -> STAGE
         ld h,0
@@ -505,6 +497,17 @@ OVL2_LEN equ ovl2_image_end-ovl2_image
         ASSERT ovl_run_end <= CPM_SP-$70   ; the overlays stay clear of the save stack
         ASSERT ovl2_run_end <= CPM_SP-$70  ; and record (save.asm)
         SAVEBIN "../build/BLACKOUT.OV2",ovl2_image,OVL2_LEN
+; the third overlay: the splice terminal and the tone lock (block OVL3_BLOCK)
+OVL3_BLOCK equ 29
+ovl3_image:
+        DISP DATA_WIN
+        include "overlay3.asm"
+ovl3_run_end:
+        ENT
+ovl3_image_end:
+OVL3_LEN equ ovl3_image_end-ovl3_image
+        ASSERT ovl3_run_end <= CPM_SP-$70
+        SAVEBIN "../build/BLACKOUT.OV3",ovl3_image,OVL3_LEN
 
         org $E000
 vars_start:
@@ -559,6 +562,7 @@ vb_count: db 0
 vb_last: db 0
 ticks:  db 0
 pend_msg: dw 0
+cmb_list: ds 129                ; this shaft's combos: count, then their numbers
 title_n: db 0
 demo_on: db 0
 demo_dir: db 0
@@ -623,7 +627,7 @@ d_rcy1: db 0
 er_c:   db 0
 er_r1:  db 0
 nrob:   db 0
-robots: ds 4*24
+robots: ds MAXROB*RB_SIZE
 seen_row: db 0
 sees:   db 0
 asleep: db 0
@@ -657,6 +661,7 @@ srch_bits: ds NROOMS*4
 visited: ds (NROOMS+7)/8
 searches: db 0
 deaths: db 0
+tones_done: db 0                ; tone locks opened (bit = wing)
 sleep_t: dw 0
 game_vars_end:
 fb_frame: db 0

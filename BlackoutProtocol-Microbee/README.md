@@ -40,15 +40,21 @@ In the uBonPC emulator, `src/play.bat` boots the disk.
 
 - **47 rooms in six wings**: Docking, Hydroponics, Cryo Labs, Reactor Deck,
   Observatory and the MERIDIAN Core. They're joined by twelve smoothly
-  scrolling lift shafts, and each wing has its own architecture, so they look
-  different even on a mono screen.
+  scrolling lift shafts, one room-height per floor, and each wing has its own
+  architecture (shafts included), so they look different even on a mono screen.
 - **Searching**: stand at a piece of furniture and hold `Q`. It might hide a
   shard, a SLEEP or RESET code, or nothing. Searched furniture is half-toned.
-- **Robots**: patrols, shooters, hunters and sentries, plus steam vents and
-  laser gates. Watch their patterns, vault them, change floors, or put them
-  to sleep from a security terminal.
-- **Splice terminals**: in each wing, turn the three shards until they match
-  the pattern, and that wing's key comes online.
+- **Robots**: patrols, zappers, hunters and sentries, plus steam vents and
+  laser gates. They zap at close range when you're in front of them. Watch
+  their patterns, vault them, change floors, or put them to sleep from a
+  security terminal.
+- **Splice terminals**: each wing's key is a punch card cut into three
+  shards. You find the shards scrambled, then turn (`R`) and flip (`F`) them
+  until the three fill the card exactly. `H` gets help for ten minutes of the
+  clock.
+- **Tone locks**: in five wings a security terminal is locked by a tone
+  sequence. MERIDIAN plays it and you repeat it on keys 1–6, over three rounds.
+  It opens for a SLEEP and a RESET code.
 - **The clock**: a death costs game time, and when it reaches zero, it's dark.
 - **Three levels**, all built to be finished:
   - *Story*: about 5 hours on the clock, 3 minutes a death, slow robots.

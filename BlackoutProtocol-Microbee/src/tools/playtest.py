@@ -20,8 +20,6 @@ for i, rm in enumerate(R):
         for c in range(42):
             if rm.t[r][c] == 'splb' and rm.wing not in splice and i != 10: splice[rm.wing] = (i, r, c)
 shards.sort()
-TGT = [0b1010, 0b0110, 0b1011, 0b0101, 0b1110, 0b0011, 0b1101, 0b1100, 0b0111,
-       0b0111, 0b1010, 0b1110, 0b0011, 0b1011, 0b0101, 0b1101, 0b1100, 0b0110]
 L = ['crash', 'sym build\\game.sym'] + ['disk A: outputs\\BLACKOUT.DS8'] + \
     ['boot', 'until mus_play 4000',
      f'poke dbg_r {shards[0][1]}', 'poke dbg_side 0', 'pc dbg_room', 'until loop 900', 'fields 80']
@@ -34,10 +32,14 @@ def stand(r, c):            # on the floor below fitting row r, column c, robots
 for k, room, r, c in shards:
     if room != cur: L += goto(room); cur = room
     L += [f'print SHARD {k} in {R[room].name}'] + stand(r, c) + ['down Q', 'fields 160', 'up Q', 'fields 6', 'peek shards 3']
+CARDS, xf = g['CARDS'], g['card_xf']
+def w16(v): return [v & 255, v >> 8]
 for w in range(6):
     room, r, c = splice[w]
-    L += goto(room) + [f'print SPLICE wing {w} in {R[room].name}'] + stand(r, c) + ['down Q', 'fields 6', 'up Q', 'seconds 2',
-         f'poke sp_cur {TGT[3*w]}', f'poke sp_cur+1 {TGT[3*w+1]}', f'poke sp_cur+2 {TGT[3*w+2]}', 'until loop 3000', 'fields 20', 'peek keys_done 1']
+    S, O = CARDS[w]
+    cur = w16(xf(S[0], 1)) + w16(S[1]) + w16(S[2])      # shard 1 flipped, the rest solved: F finishes it
+    L += goto(room) + [f'print SPLICE wing {w} in {R[room].name}'] + stand(r, c) + ['down Q', 'fields 6', 'up Q', 'seconds 2'] + \
+         [f'poke cp_cur+{k} {v}' for k, v in enumerate(cur)] + ['down F', 'fields 6', 'up F', 'until loop 3000', 'fields 20', 'peek keys_done 1']
 ante = next(i for i, rm in enumerate(R) if rm.name == 'ANTECHAMBER')
 L += ['print TO THE CORE'] + goto(ante) + ['poke sleep_t $FF', 'poke sleep_t+1 $7F', 'poke wx 140',
       f'poke wy {R[ante].doors[1] * 12 - 24}', 'fields 4', 'down P', 'untilmem gmode 1 600', 'untilmem cur_room 10 900', 'up P',

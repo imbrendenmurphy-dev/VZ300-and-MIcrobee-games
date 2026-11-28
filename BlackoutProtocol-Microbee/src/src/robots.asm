@@ -1,7 +1,10 @@
 ; ---------------------------------------------------------------------------
 ; MERIDIAN's robots.  Up to four per room, each with one spark.
-; Kinds: 0 patrol, 1 shooter (patrols, fires along its floor), 2 hunter (runs at
-; Wren when he's on its floor), 3 sentry (stands, turns, fires).
+; Kinds: 0 patrol, 1 zapper (patrols, zaps at close range), 2 hunter (runs at
+; Wren when he's on its floor), 3 sentry (stands, turns, zaps).
+; A zap is a short electric bolt: a robot only fires when Wren is close in front
+; of it (ZAP_REACH), and the bolt dies after ZAP_LIFE ticks, like a discharge, not
+; a bullet across the room.
 ; Positions are in half-pixels like Wren's; a robot is 24 x 20.
 ; ---------------------------------------------------------------------------
 MAXROB  equ 4
@@ -29,7 +32,10 @@ SP_RCX  equ 20
 SP_RCY0 equ 21
 SP_RCY1 equ 22
 SP_DRAWN equ 23
-RB_SIZE equ 24
+SP_LIFE equ 24
+RB_SIZE equ 25
+ZAP_REACH equ 44                ; half-pixels (~11 cells) in front
+ZAP_LIFE  equ 10                ; ticks (3 half-pixels a tick: ~7 cells)
 SLEEP_FRAMES equ 1000           ; 20 seconds
 
 ; Robots from the room record in STAGE.
@@ -289,6 +295,13 @@ robot_fire:
         inc a
 .f:     cp (ix+RB_DIR)
         ret nz
+        ld a,(wx)               ; and close?
+        sub (ix+RB_X)
+        jr nc,.ab
+        neg
+.ab:    cp ZAP_REACH
+        ret nc
+        ld (ix+SP_LIFE),ZAP_LIFE
         ld (ix+SP_ON),1
         ld a,(ix+RB_DIR)
         ld (ix+SP_DIR),a
@@ -313,6 +326,8 @@ spark_move:
         ld a,(ix+SP_ON)
         or a
         ret z
+        dec (ix+SP_LIFE)        ; a discharge, not a bullet: it fizzles out
+        jr z,.off
         ld a,(slow_hunt)        ; Story: slower shots
         ld c,3
         or a

@@ -3,7 +3,7 @@
 ; ---------------------------------------------------------------------------
         jp title_page_open
         jp deck_page_open
-        jp splice_puzzle
+        jp title_page_open      ; (the splice terminal moved to overlay 3)
         jp won_open
         jp over_open
 deck_page_open:
@@ -241,267 +241,6 @@ room_ink:
         ld a,$0E
         ret
 
-splice_puzzle:
-        ld a,(sp_key)
-        ld b,a
-        add a,a
-        add a,b
-        ld hl,splice_tgt
-        add a,l
-        ld l,a
-        jr nc,$+3
-        inc h
-        ld de,sp_tgt
-        ld bc,3
-        ldir
-        ld b,3                  ; scramble each shard by 1..3 turns
-        ld hl,sp_tgt
-        ld de,sp_cur
-.sc:    ld a,(frames)
-        add a,b
-        and 3
-        jr nz,$+3
-        inc a
-        ld c,a
-        ld a,(hl)
-.rt:    call rot_mask
-        dec c
-        jr nz,.rt
-        ld (de),a
-        inc hl
-        inc de
-        djnz .sc
-        call page_begin
-        ld hl,splice_page
-        call page_run
-        ld a,18
-        ld (pr_col),a
-        ld a,$0D
-        ld (pr_ink),a
-        ld c,3
-        ld a,(sp_key)
-        inc a
-        call put_digit
-        ld b,0                  ; the three targets, dim
-.g:     push bc
-        ld hl,sp_tgt
-        ld a,b
-        add a,l
-        ld l,a
-        jr nc,$+3
-        inc h
-        ld a,(hl)
-        ld c,b
-        ld b,15
-        ld e,$08
-        call shard_draw
-        pop bc
-        inc b
-        ld a,b
-        cp 3
-        jr nz,.g
-        call sp_redraw
-        call page_show
-.loop:  call present
-        ld b,0
-.key:   push bc
-        ld a,b
-        add a,KEY_1
-        call scan_key
-        ld c,a
-        pop bc
-        ld hl,sp_down
-        ld a,b
-        add a,l
-        ld l,a
-        jr nc,$+3
-        inc h
-        ld a,c
-        or a
-        jr z,.rel
-        ld a,(hl)               ; new press?
-        or a
-        jr nz,.nk
-        ld (hl),1
-        ld hl,sp_cur
-        ld a,b
-        add a,l
-        ld l,a
-        jr nc,$+3
-        inc h
-        ld a,(hl)
-        call rot_mask
-        ld (hl),a
-        push bc
-        call sfx_blip
-        call sp_redraw
-        pop bc
-        jr .nk
-.rel:   ld (hl),0
-.nk:    inc b
-        ld a,b
-        cp 3
-        jr nz,.key
-        ld hl,sp_cur            ; solved?
-        ld de,sp_tgt
-        ld b,3
-.cmp:   ld a,(de)
-        cp (hl)
-        jr nz,.unsolved
-        inc hl
-        inc de
-        djnz .cmp
-        ld a,(sp_key)           ; key online
-        ld b,a
-        ld a,1
-        inc b
-.bit:   dec b
-        jr z,.set
-        add a,a
-        jr .bit
-.set:   ld hl,keys_done
-        or (hl)
-        ld (hl),a
-        ld hl,str_sp_done
-        ld a,24
-        ld c,3
-        ld e,$A0
-        call page_text
-        call present
-        ld hl,mus_keyok
-        xor a
-        call mus_play
-        ld a,SPK_KEYOK
-        call say
-        call autosave           ; a key online: the autosave slot
-        ld b,25
-.w:     push bc
-        call present
-        pop bc
-        djnz .w
-        jp resume_room
-.unsolved:
-        ld a,KEY_X
-        call scan_key
-        jp z,.loop
-        jp resume_room
-
-sp_redraw:
-        ld b,0
-.s:     push bc
-        ld hl,sp_cur
-        ld a,b
-        add a,l
-        ld l,a
-        jr nc,$+3
-        inc h
-        ld a,(hl)
-        ld hl,sp_tgt-sp_cur-0
-        push af
-        ld hl,sp_tgt
-        ld a,b
-        add a,l
-        ld l,a
-        jr nc,$+3
-        inc h
-        pop af
-        ld e,$09                ; red until it lines up
-        cp (hl)
-        jr nz,.c
-        ld e,$0A
-.c:     ld c,b
-        ld b,7
-        call shard_draw
-        pop bc
-        inc b
-        ld a,b
-        cp 3
-        jr nz,.s
-        ret
-
-; Shard: mask A (N1 E2 S4 W8) as a 3 x 3 cell node, top row B, slot C (0..2), ink E.
-shard_draw:
-        ld (sd_mask),a
-        ld a,e
-        ld (sd_ink),a
-        ld a,c                  ; column = 8 + slot * 10
-        add a,a
-        ld c,a
-        add a,a
-        add a,a
-        add a,c
-        add a,8
-        ld (sd_col),a
-        ld a,b
-        ld (sd_row),a
-        ld d,0                  ; cell 0..8
-.c:     push de
-        ld a,d
-        ld e,T_EMPTY
-        cp 4
-        jr nz,.n1
-        ld e,T_CIRN
-.n1:    ld b,a
-        ld a,(sd_mask)
-        ld c,a
-        ld a,b
-        cp 1
-        jr nz,.n2
-        bit 0,c
-        jr z,.n2
-        ld e,T_CIRV
-.n2:    ld a,b
-        cp 7
-        jr nz,.n3
-        bit 2,c
-        jr z,.n3
-        ld e,T_CIRV
-.n3:    ld a,b
-        cp 5
-        jr nz,.n4
-        bit 1,c
-        jr z,.n4
-        ld e,T_CIRH
-.n4:    ld a,b
-        cp 3
-        jr nz,.n5
-        bit 3,c
-        jr z,.n5
-        ld e,T_CIRH
-.n5:    ld d,e                  ; tile
-        ld a,(sd_ink)
-        ld e,a
-        ld a,b                  ; row / column of cell b
-        ld c,0
-.dv:    cp 3
-        jr c,.dd
-        sub 3
-        inc c
-        jr .dv
-.dd:    push af
-        ld a,(sd_row)
-        add a,c
-        ld c,a
-        pop af
-        ld hl,sd_col
-        add a,(hl)
-        call redraw_cell
-        pop de
-        inc d
-        ld a,d
-        cp 9
-        jr nz,.c
-        ret
-
-; Rotate an N/E/S/W mask a quarter turn clockwise.
-rot_mask:
-        add a,a
-        bit 4,a
-        jr z,.r
-        or 1
-.r:     and 15
-        ret
-
 title_page_open:
         ld sp,STACKTOP
         call page_begin
@@ -693,21 +432,6 @@ report_page:
         db PG_TEXT,22,21,$0F,"TO GO AGAIN",0
         db PG_END
 
-splice_page:
-        db PG_PANEL,1,2,21,39,$0D
-        db PG_HEAD,1,4,$0D,"SPLICE TERMINAL",0
-        db PG_TEXT,3,5,$0F,"OVERRIDE KEY",0
-        db PG_TEXT,5,5,$0E,"SHARDS",0
-        db PG_SEP,12,4,37
-        db PG_TEXT,13,5,$08,"TARGET CIRCUIT",0
-        db PG_KEY,19,5," 1 ",0
-        db PG_KEY,19,9," 2 ",0
-        db PG_KEY,19,13," 3 ",0
-        db PG_TEXT,19,17,$0F,"TURN A SHARD",0
-        db PG_KEY,20,5," X ",0
-        db PG_TEXT,20,9,$0F,"LEAVE THE TERMINAL",0
-        db PG_END
-
 str_deck:    db "WRIST-DECK",0
 str_keys:    db "OVERRIDE KEYS",0
 str_key:     db "KEY ",0
@@ -722,7 +446,6 @@ str_splice:  db "SPLICE OVERRIDE KEY ",0
 str_sp_help: db "1  2  3  TURN A SHARD",0
 str_sp_help2: db "X  LEAVE THE TERMINAL",0
 str_sp_ghost: db "MATCH THE CIRCUIT:",0
-str_sp_done: db " KEY ONLINE ",0
 str_won1:    db "MERIDIAN  OFFLINE",0
 str_won2:    db "THE GRID IS SAFE, AGENT.",0
 str_won3:    db "TIME TO SPARE",0
@@ -732,3 +455,4 @@ str_stats:   db "SEARCHES ",0
 str_stats2:  db "   DEATHS ",0
 str_novoice: db "NO VOICE: DISK UNREADABLE",0
 str_again:   db "PRESS SPACE",0
+        include "music_ov1.inc"

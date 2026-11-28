@@ -325,9 +325,15 @@ down Q
 fields 6
 up Q
 seconds 2
-poke sp_cur 10
-poke sp_cur+1 6
-poke sp_cur+2 11
+poke cp_cur+0 31
+poke cp_cur+1 0
+poke cp_cur+2 48
+poke cp_cur+3 51
+poke cp_cur+4 64
+poke cp_cur+5 204
+down F
+fields 6
+up F
 until loop 3000
 fields 20
 peek keys_done 1
@@ -347,9 +353,15 @@ down Q
 fields 6
 up Q
 seconds 2
-poke sp_cur 5
-poke sp_cur+1 14
-poke sp_cur+2 3
+poke cp_cur+0 102
+poke cp_cur+1 0
+poke cp_cur+2 136
+poke cp_cur+3 204
+poke cp_cur+4 17
+poke cp_cur+5 51
+down F
+fields 6
+up F
 until loop 3000
 fields 20
 peek keys_done 1
@@ -369,9 +381,15 @@ down Q
 fields 6
 up Q
 seconds 2
-poke sp_cur 13
-poke sp_cur+1 12
-poke sp_cur+2 7
+poke cp_cur+0 191
+poke cp_cur+1 0
+poke cp_cur+2 32
+poke cp_cur+3 51
+poke cp_cur+4 0
+poke cp_cur+5 204
+down F
+fields 6
+up F
 until loop 3000
 fields 20
 peek keys_done 1
@@ -391,9 +409,15 @@ down Q
 fields 6
 up Q
 seconds 2
-poke sp_cur 7
-poke sp_cur+1 10
-poke sp_cur+2 14
+poke cp_cur+0 142
+poke cp_cur+1 0
+poke cp_cur+2 232
+poke cp_cur+3 8
+poke cp_cur+4 0
+poke cp_cur+5 247
+down F
+fields 6
+up F
 until loop 3000
 fields 20
 peek keys_done 1
@@ -413,9 +437,15 @@ down Q
 fields 6
 up Q
 seconds 2
-poke sp_cur 3
-poke sp_cur+1 11
-poke sp_cur+2 5
+poke cp_cur+0 0
+poke cp_cur+1 241
+poke cp_cur+2 206
+poke cp_cur+3 4
+poke cp_cur+4 49
+poke cp_cur+5 3
+down F
+fields 6
+up F
 until loop 3000
 fields 20
 peek keys_done 1
@@ -435,9 +465,15 @@ down Q
 fields 6
 up Q
 seconds 2
-poke sp_cur 13
-poke sp_cur+1 12
-poke sp_cur+2 6
+poke cp_cur+0 17
+poke cp_cur+1 19
+poke cp_cur+2 0
+poke cp_cur+3 114
+poke cp_cur+4 119
+poke cp_cur+5 1
+down F
+fields 6
+up F
 until loop 3000
 fields 20
 peek keys_done 1

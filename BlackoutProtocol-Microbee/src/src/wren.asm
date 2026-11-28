@@ -76,7 +76,12 @@ wren_update:
 st_ground:
         ld a,(gmode)
         or a
-        jp nz,.walk             ; the shaft tunnels: walking only
+        jr z,.room
+        ld a,(knew)             ; the shaft tunnels: walking, and the wrist-deck
+        bit K_DECK,a
+        jp nz,deck_open
+        jp .walk
+.room:
         ld a,(knew)
         bit K_DECK,a
         jp nz,deck_open
@@ -940,9 +945,8 @@ pads_update:
 .p:     ld a,(ix+P_DIR)
         or a
         jr z,.n
-        ld a,(ix+P_Y)
-        ld (ix+P_OY),a
-        add a,(ix+P_DIR)
+        ld a,(ix+P_Y)           ; (P_OY is where it was last DRAWN: pads_draw sets it,
+        add a,(ix+P_DIR)        ;  so two or three ticks in one frame leave no trail)
         ld (ix+P_Y),a
         ld (ix+P_MOVED),1
         cp (ix+P_TGT)
@@ -999,7 +1003,9 @@ pads_draw:
         djnz .c
         inc c
         jr .r
-.drawn: ld a,(ix+P_DIR)
+.drawn: ld a,(ix+P_Y)            ; drawn here now
+        ld (ix+P_OY),a
+        ld a,(ix+P_DIR)
         or a
         jr nz,.mv
         call pad_bake

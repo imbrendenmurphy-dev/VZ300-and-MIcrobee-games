@@ -157,10 +157,6 @@ tiles:
         db $54,$FE,$02,$02,$02,$32,$02,$02,$FE,$54,$00,$00
         db $00,$00,$DD,$00,$76,$00,$FF,$00,$00,$00,$00,$00
         db $88,$FF,$88,$88,$FF,$88,$88,$FF,$00,$00,$00,$00
-room_pack:
-        db $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$03,$01,$01,$01,$01,$01
-        db $01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$02,$02,$02,$02,$02
-        db $02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$03,$03,$03,$03
 room_wing:
         db $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$05,$01,$01,$01,$01,$01
         db $01,$01,$01,$02,$02,$02,$02,$02,$02,$02,$02,$03,$03,$03,$03,$03
@@ -187,7 +183,7 @@ room_far:
         db CORE_BASE+0
         dw $2F4A,1567
         db PACK3_BASE+0
-        dw $0010,1666
+        dw $0010,1669
         db PACK1_BASE+0
         dw $0010,759
         db PACK1_BASE+0
@@ -209,17 +205,17 @@ room_far:
         db PACK1_BASE+0
         dw $19B5,405
         db PACK1_BASE+0
-        dw $1B4A,381
+        dw $1B4A,375
         db PACK1_BASE+0
-        dw $1CC7,547
+        dw $1CC1,547
         db PACK1_BASE+0
-        dw $1EEA,377
+        dw $1EE4,377
         db PACK1_BASE+0
-        dw $2063,361
+        dw $205D,361
         db PACK1_BASE+0
-        dw $21CC,536
+        dw $21C6,536
         db PACK1_BASE+0
-        dw $23E4,479
+        dw $23DE,479
         db PACK2_BASE+0
         dw $0010,934
         db PACK2_BASE+0
@@ -229,37 +225,37 @@ room_far:
         db PACK2_BASE+0
         dw $0AB7,1084
         db PACK2_BASE+0
-        dw $0EF3,961
+        dw $0EF3,955
         db PACK2_BASE+0
-        dw $12B4,939
+        dw $12AE,939
         db PACK2_BASE+0
-        dw $165F,928
+        dw $1659,928
         db PACK2_BASE+0
-        dw $19FF,987
+        dw $19F9,987
         db PACK2_BASE+0
-        dw $1DDA,1716
+        dw $1DD4,1716
         db PACK2_BASE+0
-        dw $248E,1756
+        dw $2488,1756
         db PACK2_BASE+0
-        dw $2B6A,1438
+        dw $2B64,1438
         db PACK2_BASE+0
-        dw $3108,1453
+        dw $3102,1447
         db PACK2_BASE+0
-        dw $36B5,1472
+        dw $36A9,1472
         db PACK2_BASE+0
-        dw $3C75,1502
+        dw $3C69,1502
         db PACK2_BASE+0
-        dw $4253,1483
+        dw $4247,1483
         db PACK2_BASE+0
-        dw $481E,1755
+        dw $4812,1755
         db PACK3_BASE+0
-        dw $0692,1510
+        dw $0695,1510
         db PACK3_BASE+0
-        dw $0C78,1162
+        dw $0C7B,1162
         db PACK3_BASE+0
-        dw $1102,1134
+        dw $1105,1134
         db PACK3_BASE+0
-        dw $1570,1460
+        dw $1573,1460
 tile_flags:
         db $00,$00,$00,$01,$01,$01,$00,$00,$00,$00,$00,$00,$00,$02,$00,$02
         db $00,$02,$00,$02,$00,$02,$00,$02,$02,$00,$00,$00,$00,$01,$00,$00
@@ -268,39 +264,64 @@ tile_flags:
         db $00,$00,$00,$00,$00,$00,$00,$00,$11,$21,$81,$01,$00,$40,$00,$00
         db $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
         db $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+PM_ROWS equ 88
 shaft_tab:
-        db CORE_BASE+0,$69,$35,$8C,$07,$00,$09,$00,$08,$FF,$01,$10,$08,$02,$18,$FF,$03,$41,$4C,$4C,$4C,$4C,$4C,$4C,$4C,$4C,$4C,$4C,$4C,$4C
+        db CORE_BASE+0,$69,$35,$7A,$02,$00,$09,$00,$16,$FF,$01,$2C,$08,$02,$42,$FF,$03,$41,$4C,$4C,$4C,$4C,$4C,$4C,$4C,$4C,$4C,$4C,$4C,$4C
         db $4C,$4C,$4C,$4C,$0C,$0C,$0C,$0C,$0C,$0C,$0C,$0C,$0C,$0C,$4C,$4C,$4C,$4C,$4C,$4C,$4C,$4C,$4C,$4C,$4C,$4C,$4C,$4C,$4C,$4C
-        db CORE_BASE+0,$F5,$3C,$8C,$07,$00,$00,$04,$08,$01,$05,$10,$02,$06,$18,$03,$07,$42,$4C,$4C,$4C,$4C,$4C,$4C,$4C,$4C,$4C,$4C,$4C,$4C
+        db CORE_BASE+0,$E3,$37,$A8,$01,$00,$00,$04,$16,$01,$05,$2C,$02,$06,$42,$03,$07,$42,$4C,$4C,$4C,$4C,$4C,$4C,$4C,$4C,$4C,$4C,$4C,$4C
         db $4C,$4C,$4C,$4C,$0C,$0C,$0C,$0C,$0C,$0C,$0C,$0C,$0C,$0C,$4C,$4C,$4C,$4C,$4C,$4C,$4C,$4C,$4C,$4C,$4C,$4C,$4C,$4C,$4C,$4C
-        db PACK1_BASE+0,$C3,$25,$8C,$07,$00,$04,$0B,$08,$05,$0C,$10,$06,$0D,$18,$07,$0E,$43,$2A,$2A,$2A,$2A,$2A,$2A,$2A,$2A,$2A,$2A,$2A,$2A
+        db PACK1_BASE+0,$BD,$25,$A8,$01,$00,$04,$0B,$16,$05,$0C,$2C,$06,$0D,$42,$07,$0E,$43,$2A,$2A,$2A,$2A,$2A,$2A,$2A,$2A,$2A,$2A,$2A,$2A
         db $2A,$2A,$2A,$2A,$0A,$0A,$0A,$0A,$0A,$0A,$0A,$0A,$0A,$0A,$2A,$2A,$2A,$2A,$2A,$2A,$2A,$2A,$2A,$2A,$2A,$2A,$2A,$2A,$2A,$2A
-        db PACK1_BASE+0,$4F,$2D,$8C,$07,$00,$0B,$0F,$08,$0C,$10,$10,$0D,$11,$18,$0E,$12,$44,$2A,$2A,$2A,$2A,$2A,$2A,$2A,$2A,$2A,$2A,$2A,$2A
+        db PACK1_BASE+0,$65,$27,$A8,$01,$00,$0B,$0F,$16,$0C,$10,$2C,$0D,$11,$42,$0E,$12,$44,$2A,$2A,$2A,$2A,$2A,$2A,$2A,$2A,$2A,$2A,$2A,$2A
         db $2A,$2A,$2A,$2A,$0A,$0A,$0A,$0A,$0A,$0A,$0A,$0A,$0A,$0A,$2A,$2A,$2A,$2A,$2A,$2A,$2A,$2A,$2A,$2A,$2A,$2A,$2A,$2A,$2A,$2A
-        db PACK1_BASE+0,$DB,$34,$8C,$07,$00,$0F,$13,$08,$10,$14,$10,$11,$15,$18,$12,$16,$45,$4E,$4E,$4E,$4E,$4E,$4E,$4E,$4E,$4E,$4E,$4E,$4E
+        db PACK1_BASE+0,$0D,$29,$A8,$01,$00,$0F,$13,$16,$10,$14,$2C,$11,$15,$42,$12,$16,$45,$4E,$4E,$4E,$4E,$4E,$4E,$4E,$4E,$4E,$4E,$4E,$4E
         db $4E,$4E,$4E,$4E,$0E,$0E,$0E,$0E,$0E,$0E,$0E,$0E,$0E,$0E,$4E,$4E,$4E,$4E,$4E,$4E,$4E,$4E,$4E,$4E,$4E,$4E,$4E,$4E,$4E,$4E
-        db PACK1_BASE+0,$67,$3C,$8C,$07,$00,$13,$17,$08,$14,$18,$10,$15,$19,$18,$16,$1A,$46,$4E,$4E,$4E,$4E,$4E,$4E,$4E,$4E,$4E,$4E,$4E,$4E
+        db PACK1_BASE+0,$B5,$2A,$A8,$01,$00,$13,$17,$16,$14,$18,$2C,$15,$19,$42,$16,$1A,$46,$4E,$4E,$4E,$4E,$4E,$4E,$4E,$4E,$4E,$4E,$4E,$4E
         db $4E,$4E,$4E,$4E,$0E,$0E,$0E,$0E,$0E,$0E,$0E,$0E,$0E,$0E,$4E,$4E,$4E,$4E,$4E,$4E,$4E,$4E,$4E,$4E,$4E,$4E,$4E,$4E,$4E,$4E
-        db PACK2_BASE+0,$F9,$4E,$8C,$07,$00,$17,$1B,$08,$18,$1C,$10,$19,$1D,$18,$1A,$1E,$47,$1B,$1B,$1B,$1B,$1B,$1B,$1B,$1B,$1B,$1B,$1B,$1B
+        db PACK2_BASE+0,$ED,$4E,$A8,$01,$00,$17,$1B,$16,$18,$1C,$2C,$19,$1D,$42,$1A,$1E,$47,$1B,$1B,$1B,$1B,$1B,$1B,$1B,$1B,$1B,$1B,$1B,$1B
         db $1B,$1B,$1B,$1B,$0B,$0B,$0B,$0B,$0B,$0B,$0B,$0B,$0B,$0B,$1B,$1B,$1B,$1B,$1B,$1B,$1B,$1B,$1B,$1B,$1B,$1B,$1B,$1B,$1B,$1B
-        db PACK2_BASE+0,$85,$56,$8C,$07,$00,$1B,$1F,$08,$1C,$20,$10,$1D,$21,$18,$1E,$22,$48,$1B,$1B,$1B,$1B,$1B,$1B,$1B,$1B,$1B,$1B,$1B,$1B
+        db PACK2_BASE+0,$95,$50,$A8,$01,$00,$1B,$1F,$16,$1C,$20,$2C,$1D,$21,$42,$1E,$22,$48,$1B,$1B,$1B,$1B,$1B,$1B,$1B,$1B,$1B,$1B,$1B,$1B
         db $1B,$1B,$1B,$1B,$0B,$0B,$0B,$0B,$0B,$0B,$0B,$0B,$0B,$0B,$1B,$1B,$1B,$1B,$1B,$1B,$1B,$1B,$1B,$1B,$1B,$1B,$1B,$1B,$1B,$1B
-        db PACK2_BASE+0,$11,$5E,$8C,$07,$00,$1F,$23,$08,$20,$24,$10,$21,$25,$18,$22,$26,$49,$5D,$5D,$5D,$5D,$5D,$5D,$5D,$5D,$5D,$5D,$5D,$5D
+        db PACK2_BASE+0,$3D,$52,$A0,$03,$00,$1F,$23,$16,$20,$24,$2C,$21,$25,$42,$22,$26,$49,$5D,$5D,$5D,$5D,$5D,$5D,$5D,$5D,$5D,$5D,$5D,$5D
         db $5D,$5D,$5D,$5D,$0D,$0D,$0D,$0D,$0D,$0D,$0D,$0D,$0D,$0D,$5D,$5D,$5D,$5D,$5D,$5D,$5D,$5D,$5D,$5D,$5D,$5D,$5D,$5D,$5D,$5D
-        db PACK2_BASE+0,$9D,$65,$8C,$07,$00,$23,$27,$08,$24,$28,$10,$25,$29,$18,$26,$2A,$4A,$5D,$5D,$5D,$5D,$5D,$5D,$5D,$5D,$5D,$5D,$5D,$5D
+        db PACK2_BASE+0,$DD,$55,$A0,$03,$00,$23,$27,$16,$24,$28,$2C,$25,$29,$42,$26,$2A,$4A,$5D,$5D,$5D,$5D,$5D,$5D,$5D,$5D,$5D,$5D,$5D,$5D
         db $5D,$5D,$5D,$5D,$0D,$0D,$0D,$0D,$0D,$0D,$0D,$0D,$0D,$0D,$5D,$5D,$5D,$5D,$5D,$5D,$5D,$5D,$5D,$5D,$5D,$5D,$5D,$5D,$5D,$5D
-        db PACK3_BASE+0,$24,$1B,$8C,$07,$00,$27,$2B,$08,$28,$2C,$10,$29,$2D,$18,$2A,$2E,$4B,$19,$19,$19,$19,$19,$19,$19,$19,$19,$19,$19,$19
+        db PACK3_BASE+0,$27,$1B,$A0,$03,$00,$27,$2B,$16,$28,$2C,$2C,$29,$2D,$42,$2A,$2E,$4B,$19,$19,$19,$19,$19,$19,$19,$19,$19,$19,$19,$19
         db $19,$19,$19,$19,$09,$09,$09,$09,$09,$09,$09,$09,$09,$09,$19,$19,$19,$19,$19,$19,$19,$19,$19,$19,$19,$19,$19,$19,$19,$19
-        db PACK3_BASE+0,$B0,$22,$8C,$07,$00,$2B,$FF,$08,$2C,$FF,$10,$2D,$FF,$18,$2E,$0A,$4C,$19,$19,$19,$19,$19,$19,$19,$19,$19,$19,$19,$19
+        db PACK3_BASE+0,$C7,$1E,$1A,$05,$00,$2B,$FF,$16,$2C,$FF,$2C,$2D,$FF,$42,$2E,$0A,$4C,$19,$19,$19,$19,$19,$19,$19,$19,$19,$19,$19,$19
         db $19,$19,$19,$19,$09,$09,$09,$09,$09,$09,$09,$09,$09,$09,$19,$19,$19,$19,$19,$19,$19,$19,$19,$19,$19,$19,$19,$19,$19,$19
-shaft_pack:
-        db $00,$00,$01,$01,$01,$01,$02,$02,$02,$02,$03,$03
 combo_src:
-        dw tiles+324,tiles+324,tiles+336,tiles+336,tiles+0,tiles+0,tiles+324,tiles+0
-        dw tiles+336,tiles+0,tiles+0,tiles+36,tiles+36,tiles+324,tiles+36,tiles+336
-        dw tiles+36,tiles+0
+        dw tiles+24,tiles+24,tiles+72,tiles+72,tiles+336,tiles+336,tiles+120,tiles+120
+        dw tiles+0,tiles+0,tiles+24,tiles+96,tiles+24,tiles+0,tiles+72,tiles+0
+        dw tiles+96,tiles+0,tiles+336,tiles+0,tiles+120,tiles+0,tiles+0,tiles+36
+        dw tiles+36,tiles+24,tiles+36,tiles+72,tiles+36,tiles+336,tiles+36,tiles+120
+        dw tiles+24,tiles+528,tiles+72,tiles+528,tiles+528,tiles+24,tiles+528,tiles+72
+        dw tiles+948,tiles+948,tiles+936,tiles+936,tiles+936,tiles+96,tiles+948,tiles+96
+        dw tiles+948,tiles+0,tiles+936,tiles+0,tiles+36,tiles+948,tiles+36,tiles+936
+        dw tiles+948,tiles+528,tiles+936,tiles+528,tiles+528,tiles+948,tiles+528,tiles+936
+        dw tiles+996,tiles+996,tiles+996,tiles+96,tiles+996,tiles+0,tiles+36,tiles+996
+        dw tiles+996,tiles+528,tiles+528,tiles+996,tiles+1032,tiles+1032,tiles+1056,tiles+1056
+        dw tiles+1044,tiles+1044,tiles+1032,tiles+96,tiles+1032,tiles+0,tiles+1056,tiles+0
+        dw tiles+1044,tiles+0,tiles+36,tiles+1032,tiles+36,tiles+1056,tiles+36,tiles+1044
+        dw tiles+1032,tiles+528,tiles+1056,tiles+528,tiles+1044,tiles+528,tiles+528,tiles+1032
+        dw tiles+528,tiles+1056,tiles+528,tiles+1044,tiles+1128,tiles+1128,tiles+1116,tiles+1092
+        dw tiles+1104,tiles+1116,tiles+1092,tiles+1104,tiles+1104,tiles+96,tiles+1128,tiles+96
+        dw tiles+1128,tiles+0,tiles+1104,tiles+0,tiles+1092,tiles+0,tiles+1116,tiles+0
+        dw tiles+36,tiles+1128,tiles+36,tiles+1092,tiles+36,tiles+1116,tiles+36,tiles+1104
+        dw tiles+1128,tiles+528,tiles+1092,tiles+528,tiles+1116,tiles+528,tiles+1104,tiles+528
+        dw tiles+528,tiles+1128,tiles+528,tiles+1116,tiles+528,tiles+1104,tiles+528,tiles+1092
+        dw tiles+1116,tiles+96,tiles+1092,tiles+96,tiles+1224,tiles+1200,tiles+1200,tiles+1200
+        dw tiles+1200,tiles+1224,tiles+1212,tiles+1212,tiles+1200,tiles+96,tiles+1200,tiles+0
+        dw tiles+1224,tiles+0,tiles+1212,tiles+0,tiles+36,tiles+1200,tiles+36,tiles+1224
+        dw tiles+36,tiles+1212,tiles+1200,tiles+528,tiles+1224,tiles+528,tiles+1212,tiles+528
+        dw tiles+528,tiles+1224,tiles+528,tiles+1200,tiles+528,tiles+1212,tiles+1224,tiles+96
 combo_a:
-        db $1B,$1C,$00,$1B,$1C,$00,$03,$03,$03
+        db $02,$06,$1C,$0A,$00,$02,$02,$06,$08,$1C,$0A,$00,$03,$03,$03,$03
+        db $02,$06,$2C,$2C,$4F,$4E,$4E,$4F,$4F,$4E,$03,$03,$4F,$4E,$2C,$2C
+        db $53,$53,$53,$03,$53,$2C,$56,$58,$57,$56,$56,$58,$57,$03,$03,$03
+        db $56,$58,$57,$2C,$2C,$2C,$5E,$5D,$5C,$5B,$5C,$5E,$5E,$5C,$5B,$5D
+        db $03,$03,$03,$03,$5E,$5B,$5D,$5C,$2C,$2C,$2C,$2C,$5D,$5B,$66,$64
+        db $64,$65,$64,$64,$66,$65,$03,$03,$03,$64,$66,$65,$2C,$2C,$2C,$66
 room_door:
         db $00,$00,$15,$01,$00,$15
         db $00,$01,$15,$01,$01,$0D
@@ -360,10 +381,9 @@ room_nfits:
         db $0C,$16,$16,$0D,$11,$11,$0C,$10,$06,$09,$00,$11,$0A,$0C,$09,$0B
         db $0E,$0E,$07,$0C,$0E,$0C,$11,$0A,$0A,$12,$0E,$0C,$0F,$10,$0E,$10
         db $13,$14,$0E,$0E,$0D,$0A,$0D,$0B,$10,$0F,$11,$10,$0F,$0E,$0B
-splice_tgt:
-        db $0A,$06,$0B,$05,$0E,$03,$0D,$0C,$07,$07,$0A,$0E,$03,$0B,$05,$0D
-        db $0C,$06
-NCOMBOS equ 9
+tone_rooms:
+        db $05,$10,$14,$1B,$24,$FF
+NCOMBOS equ 96
 NLEVELS equ 4
 SHAFT_REC equ 60
 NROOMS equ 47
@@ -373,32 +393,36 @@ SHARDS_PER_KEY equ 3
 CORE_ROOM equ 10
 robot_vt:
         db CORE_BASE+0
-        dw $4481
+        dw $398B
         db CORE_BASE+0
-        dw $4981
+        dw $3E8B
         db CORE_BASE+0
-        dw $4E81
+        dw $438B
         db CORE_BASE+0
-        dw $5381
+        dw $488B
         db CORE_BASE+0
-        dw $5881
+        dw $4D8B
 spark_vt:
         db CORE_BASE+0
-        dw $5D81
+        dw $528B
         db CORE_BASE+0
-        dw $5F01
+        dw $540B
 hazard_vt:
         db CORE_BASE+0
-        dw $6081
+        dw $558B
         db CORE_BASE+0
-        dw $6681
+        dw $5B8B
         db CORE_BASE+0
-        dw $6C81
+        dw $618B
         db CORE_BASE+0
-        dw $7281
+        dw $678B
 wren_vt:
         db CORE_BASE+0
-        dw $7881
+        dw $6D8B
+        db CORE_BASE+0
+        dw $738B
+        db CORE_BASE+0
+        dw $798B
         db CORE_BASE+1
         dw $0000
         db CORE_BASE+1
@@ -445,10 +469,6 @@ wren_vt:
         dw $0000
         db CORE_BASE+2
         dw $0600
-        db CORE_BASE+2
-        dw $0C00
-        db CORE_BASE+2
-        dw $1200
 F_STAND equ 0
 F_RUN equ 1
 F_TURN equ 11
@@ -467,12 +487,12 @@ vault_dy_lg:
         db $E0,$E1,$E2,$E3,$E4,$E5,$E6,$E8,$E9,$EB,$EC,$EE,$F0,$F2,$F4,$F6
         db $F8,$FB,$FD,$00
 logo_far: db CORE_BASE+2
-        dw $1800,901
+        dw $0C00,901
 title_far: db CORE_BASE+2
-        dw $1B85,1278
+        dw $0F85,1278
 speech_far:
         db PACK3_BASE+0
-        dw $2A3C,11268
+        dw $23E1,11268
         db PACK3_BASE+1
         dw $0000,13481
         db PACK3_BASE+1
@@ -661,7 +681,5 @@ T_CHIP_L equ 103
 T_CHIP_R equ 104
 T_CT_B equ 105
 T_GRID equ 106
-pack_tab:
-        db 1,8,0,34,0,7,2,8,0,55,0,8,3,8,0,183,0,9
 NPACKS equ 3
 PACK_REC equ 6

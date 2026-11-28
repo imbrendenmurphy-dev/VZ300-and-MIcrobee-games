@@ -325,7 +325,27 @@ term_under:
         ret
 
 start_term:
-        ld a,WS_TERM
+        ld a,(cur_room)         ; a tone lock?
+        ld hl,tone_rooms
+        ld b,6
+.tr:    cp (hl)
+        jr z,.tone
+        inc hl
+        djnz .tr
+        jr .term
+.tone:  ld a,6                  ; its wing = 6 - B; opened already?
+        sub b
+        ld b,a
+        inc b
+        ld a,(tones_done)
+.tb:    rrca
+        djnz .tb
+        jr c,.term
+        ld a,1
+        ld (srch_lock),a
+        ld a,OVL_TONE
+        jp ovl_call
+.term:  ld a,WS_TERM
         ld (wstate),a
         ld a,1
         ld (srch_lock),a

@@ -1,0 +1,23 @@
+crash
+sym build\game.sym
+disk A: outputs\BLACKOUT.DS8
+boot
+until mus_play 4000
+down SPACE
+fields 30
+up SPACE
+seconds 2
+down 2
+fields 20
+up 2
+until loop 3000
+seconds 3
+down A
+fields 6
+up A
+untilmem lift_dir 0 600
+fields 10
+crtclog test\crtc_stop.txt
+fields 6
+crtclogend
+shots test\lf 12 1

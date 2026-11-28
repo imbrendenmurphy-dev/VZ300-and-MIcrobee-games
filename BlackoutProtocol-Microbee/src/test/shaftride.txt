@@ -1,0 +1,24 @@
+crash
+sym build\game.sym
+disk A: outputs\BLACKOUT.DS8
+boot
+until mus_play 4000
+down SPACE
+fields 30
+up SPACE
+seconds 2
+down 2
+fields 20
+up 2
+until loop 3000
+seconds 3
+screen test\sh_top.png 1 colour
+down A
+fields 6
+up A
+shots test\sr 6 12
+untilmem lift_dir 0 900
+field
+fields 10
+screen test\sh_stop.png 1 colour
+shots test\lf 8 1

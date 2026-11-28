@@ -12,6 +12,7 @@
 ;  * when the lift stops, the band goes back to ordinary cells, so Wren can
 ;    walk off into a tunnel.  The picture doesn't change at any point.
 ; ---------------------------------------------------------------------------
+LIFT_STEP equ 6                 ; pixels a frame (divides the 12-pixel cell)
 BAND_R0  equ 9
 BAND_R1  equ 12
 REG_C0   equ 18
@@ -165,10 +166,17 @@ times42:
         ret
 
 ; HL = shaft_pm row A.
+; The map is a row table (PM_ROWS bytes: which distinct row goes where) and then
+; the distinct rows, 42 pair indices each: floors are a whole room apart now, and
+; most rows repeat, so this keeps a tall shaft within the data window.
 pm_row: ld l,a
         ld h,0
-        call times42
         ld de,SHAFT_PM
+        add hl,de
+        ld l,(hl)
+        ld h,0
+        call times42
+        ld de,SHAFT_PM+PM_ROWS
         add hl,de
         ret
 
@@ -330,10 +338,30 @@ gen_combos:
         ld a,12
         sub b
         ld (cnta),a
-        ld ix,combo_src
-        ld de,$F800
-        ld b,NCOMBOS
+        ld hl,cmb_list          ; only this shaft's combos (cmb_scan)
+        ld b,(hl)
+        inc hl
 .k:     push bc
+        ld a,(hl)
+        inc hl
+        push hl
+        ld l,a                  ; IX = combo_src + k*4, DE = F800 + k*16
+        ld h,0
+        add hl,hl
+        add hl,hl
+        ld de,combo_src
+        add hl,de
+        push hl
+        pop ix
+        ld l,a
+        ld h,0
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        add hl,hl
+        ld de,$F800
+        add hl,de
+        ex de,hl
         ld l,(ix+0)
         ld h,(ix+1)
         ld a,(sho)
@@ -353,27 +381,77 @@ gen_combos:
         ld c,a
         ld b,0
         ldir
-.nb:    ld a,e
-        and $F0
-        add a,16
-        ld e,a
-        jr nc,$+3
-        inc d
-        ld bc,4
-        add ix,bc
+.nb:    pop hl
         pop bc
         djnz .k
         ld a,$80
         out ($1C),a
         ret
 
+; The combos the loaded shaft uses -> cmb_list (count, then their numbers).  A shaft
+; uses a few dozen of the ~100 there are; making only those each frame keeps the
+; ride fast.
+cmb_scan:
+        ld hl,BOUNCE            ; 128 flags (BOUNCE is free once far_load is done)
+        ld de,BOUNCE+1
+        ld bc,127
+        ld (hl),0
+        ldir
+        call shaft_rec          ; the map's length: rows after the row table
+        inc hl
+        inc hl
+        inc hl
+        ld c,(hl)
+        inc hl
+        ld b,(hl)
+        ld hl,-PM_ROWS
+        add hl,bc
+        ld b,h
+        ld c,l
+        ld hl,SHAFT_PM+PM_ROWS
+.s:     ld a,(hl)
+        and $7F
+        ld e,a
+        ld d,BOUNCE>>8
+        ld a,1
+        ld (de),a
+        inc hl
+        dec bc
+        ld a,b
+        or c
+        jr nz,.s
+        ld hl,BOUNCE
+        ld de,cmb_list+1
+        ld b,0                  ; count
+        ld c,0                  ; k
+.l:     ld a,(hl)
+        or a
+        jr z,.n
+        ld a,c
+        ld (de),a
+        inc de
+        inc b
+.n:     inc hl
+        inc c
+        ld a,c
+        cp NCOMBOS
+        jr c,.l
+        ld a,b
+        ld (cmb_list),a
+        ret
+
 ; Draw the stopped shaft view at shy into BACK, with the lift.
 shaft_render:
-        ld a,(shy)
-        call pm_row
         ld de,BACK
         ld b,ROOM_ROWS
 .r:     push bc
+        ld a,ROOM_ROWS          ; this row of the map (rows aren't adjacent in the
+        sub b                   ;  compact map: look each one up)
+        ld hl,shy
+        add a,(hl)
+        push de
+        call pm_row
+        pop de
         ld c,0
 .c:     push hl
         ld a,(hl)
@@ -442,14 +520,6 @@ enter_shaft:
 .side:  ld (wx),a
         ld a,SHAFT_WY
         ld (wy),a
-        ld a,(cur_shaft)        ; its pack (drives B-D) into RAM if need be
-        ld hl,shaft_pack
-        add a,l
-        ld l,a
-        jr nc,$+3
-        inc h
-        ld a,(hl)
-        call pack_need
         call shaft_rec          ; its letter and column colours first
         ld de,5+3*NLEVELS
         add hl,de
@@ -460,6 +530,7 @@ enter_shaft:
         call shaft_rec          ; this shaft's pair map from the banks
         ld de,SHAFT_PM
         call far_load
+        call cmb_scan           ; which combos this shaft uses (gen_combos makes only those)
         call shaft_render
         ld hl,str_shaft
         call hud_draw
@@ -622,7 +693,7 @@ shaft_update:
         dec a
         jr nz,.down
         ld a,(sho)              ; up: the view moves up
-        sub 2
+        sub LIFT_STEP
         jr nc,.u1
         add a,12
         ld hl,shy
@@ -630,7 +701,7 @@ shaft_update:
 .u1:    ld (sho),a
         jr .arrive
 .down:  ld a,(sho)
-        add a,2
+        add a,LIFT_STEP
         cp 12
         jr c,.d1
         sub 12
@@ -649,19 +720,20 @@ shaft_update:
         ld a,(tgt_level)        ; arrived; keep going if the key is still held
         ld (cur_level),a
         call show_level
+        call read_keys          ; (Q / A or the arrow keys)
         ld a,(lift_dir)
         dec a
         jr nz,.hd
-        ld a,KEY_Q
-        call scan_key
+        ld a,(kbits)
+        bit K_UP,a
         jr z,.stop
         ld a,(cur_level)
         or a
         jr z,.stop
         dec a
         jr .more
-.hd:    ld a,KEY_A
-        call scan_key
+.hd:    ld a,(kbits)
+        bit K_DOWN,a
         jr z,.stop
         ld a,(cur_level)
         inc a
@@ -675,17 +747,12 @@ shaft_update:
         ld (lift_dir),a
         ld a,(cur_level)
         call set_level
-        call shaft_render
-        ld c,BAND_R0            ; band rows of BACK -> NATIVE
-        xor a
-        call cell_addr
-        ld d,h
-        ld e,l
-        ld a,h
-        sub $40
-        ld h,a
-        ld bc,(BAND_R1-BAND_R0+1)*COLS*16
-        ldir
+        call shaft_render       ; the settled view onto BOTH pages, as on entry (the
+        ld hl,str_shaft         ; scroll leaves the two pages out of step, which
+        call hud_draw           ; flickered until you left the shaft)
+        call show_level
+        call full_redraw
+        call show_all
         ld a,LIFT_WX
         ld (wx),a
         jp wren_place

@@ -122,11 +122,14 @@ splice_open:
         jp msg_show
 .go:    ld a,b
         ld (sp_key),a
-        ld a,OVL_SPLICE
+        ld a,OVL_CARD
         jp ovl_call
 ; ------------------------------------------------------------ rooms, again
 ; Rebuild the current room after a page, keeping Wren, robots, pads and finds.
 resume_room:
+        ld a,(gmode)            ; (back from the wrist-deck in a lift shaft)
+        or a
+        jp nz,shaft_resume
         ld a,(cur_room)         ; the overlay used STAGE: read the record again
         ld l,a
         ld h,0
@@ -194,24 +197,32 @@ resume_room:
 ; The information screens live in BLACKOUT.OVL (block OVL_BLOCK); A = which.
 OVL_TITLE equ 0
 OVL_DECK equ 1
-OVL_SPLICE equ 2
+OVL_SPLICE equ OVL_CARD
 OVL_WON equ 3
 OVL_OVER equ 4
 OVL_SAVE equ 5                  ; (the second overlay from here)
 OVL_LOAD equ 6
 OVL_LEVEL equ 7
+OVL_CARD  equ 8                 ; (the third overlay from here)
+OVL_TONE  equ 9
 ovl_call:
         push af
         ld hl,ovl_far
         cp OVL_SAVE
         jr c,.one
         ld hl,ovl2_far
+        cp OVL_CARD
+        jr c,.one
+        ld hl,ovl3_far
 .one:   ld de,DATA_WIN
         call far_load
         pop af
         cp OVL_SAVE
         jr c,.jt
         sub OVL_SAVE
+        cp OVL_CARD-OVL_SAVE
+        jr c,.jt
+        sub OVL_CARD-OVL_SAVE
 .jt:
         ld l,a
         add a,a
@@ -221,10 +232,32 @@ ovl_call:
         ld de,DATA_WIN
         add hl,de
         jp (hl)
+; The wrist-deck borrowed the shaft's pair map: draw the shaft again at this floor,
+; with Wren where she was.
+shaft_resume:
+        ld a,(wx)
+        push af
+        ld a,(cur_level)
+        ld b,2
+        call enter_shaft
+        call wren_erase
+        pop af
+        ld (wx),a
+        call wren_place
+        ld hl,(pend_msg)        ; ("GAME SAVED")
+        ld a,h
+        or l
+        ret z
+        ld de,0
+        ld (pend_msg),de
+        jp msg_show
+
 ovl_far: db OVL_BLOCK
         dw 0,OVL_LEN
 ovl2_far: db OVL2_BLOCK
         dw 0,OVL2_LEN
+ovl3_far: db OVL3_BLOCK
+        dw 0,OVL3_LEN
 title:  ld sp,STACKTOP
         ld a,OVL_TITLE
         jp ovl_call
@@ -268,6 +301,17 @@ game_init:
         ld (said_hour),a
         ld (wings_seen),a
         ret
+
+; Test hook: a fresh game on the lift of shaft dbg_r at floor dbg_side.
+dbg_shaft:
+        ld sp,STACKTOP
+        call game_init
+        ld a,(dbg_r)
+        ld (cur_shaft),a
+        ld a,(dbg_side)
+        ld b,2
+        call enter_shaft
+        jp loop
 
 ; Test hook (only ever reached from the emulator: pc dbg_room): a fresh game
 ; dropped into room dbg_r through door dbg_side.

@@ -455,6 +455,29 @@ for _rm in rooms:
         _sf = {r_ + 1 for r_ in range(22) for c_ in range(42) if _rm.t[r_][c_] == 'splb'}
         _rm.robots = [rb for rb in _rm.robots if rb[1] not in _sf or rb[0] >= 4]
 
+# robots keep to solid floor: every x on a robot's beat must have floor under its whole
+# body, and lift-pad wells count as gaps (the pad may be up or down).  Before this a
+# robot could stroll across an empty pad well that Wren would have fallen down.
+def _floor_ok(rm, f, x):
+    gaps = {(fr, c) for c0, fl in rm.pads for fr in fl for c in range(c0, c0 + 3)}
+    return all(rm.t[f][c] in SOLID and (f, c) not in gaps for c in range((x + 2) // 4, (x + 9) // 4 + 1))
+_cut = 0
+for _rm in rooms:
+    keep = []
+    for (k, f, lo, hi, st, sp) in _rm.robots:
+        if k >= 4: keep.append((k, f, lo, hi, st, sp)); continue      # vents, lasers: fixed
+        ok = [x for x in range(lo, hi + 1) if _floor_ok(_rm, f, x)]
+        if not ok: _cut += 1; continue
+        x0 = min(ok, key=lambda x: abs(x - st))                         # its stretch of floor
+        a_ = b_ = x0
+        while a_ - 1 >= lo and _floor_ok(_rm, f, a_ - 1): a_ -= 1
+        while b_ + 1 <= hi and _floor_ok(_rm, f, b_ + 1): b_ += 1
+        if b_ - a_ < 12: _cut += 1; continue
+        if (a_, b_) != (lo, hi): _cut += 1
+        keep.append((k, f, a_, b_, x0, sp))
+    _rm.robots = keep
+print('robot beats trimmed to solid floor:', _cut)
+
 # shafts A..L: per level (room on the left, room on the right)
 LETTERS = "ABCDEFGHIJKL"
 at = {(rm.gap, rm.level): k for k, rm in enumerate(rooms)}
@@ -499,7 +522,6 @@ def room_record(i, rm):
     return rec
 # which disk: wing 0 on A; wings 1-2 on B; 3-4 on C; 5 and the core on D
 WING_PACK = {0: 0, 1: 1, 2: 1, 3: 2, 4: 2, 5: 3}
-db("room_pack", [WING_PACK[rm.wing] for rm in rooms])
 db("room_wing", [rm.wing for rm in rooms])
 out.append("room_far:")
 for i, rm in enumerate(rooms):
@@ -512,30 +534,55 @@ db("tile_flags", [(1 if n in SOLID else 0) | (2 if n in SEARCH else 0) | (4 if n
                   | (64 if n == 'mist' else 0) | (128 if n == 'ice' else 0) for n in names])
 
 # --- lift shafts --------------------------------------------------------------
-# Columns: 0-15 rock, 16 shaft wall, 17-24 shaft, 25 wall, 26-41 rock.  Colour is
-# constant down each column (each wing tints its own shafts).
-TOP = 12; GAP = 8; NLEV = 4
+# Columns: 0-15 wall, 16 shaft wall, 17-24 shaft, 25 wall, 26-41 wall.  Colour is
+# constant down each column (each wing tints its own shafts), so each wing's look
+# comes from its tiles: its own wall texture beside the shaft (the same architecture
+# as its rooms), cables down the shaft, a cross-beam halfway between floors, and a
+# lamp over each landing.  Floors are a whole room (22 rows) apart, the same scale as
+# the rooms, so one floor of lift travel is one room.
+TOP = 12; GAP = ROOM_ROWS; NLEV = 4
 level_rows = [TOP + GAP * i for i in range(NLEV)]
 SH_ROWS = level_rows[-1] + (ROOM_ROWS - 12) + 1
 SHAFT_TINT = {0: (BLUE, BBLUE), 1: (GREEN, BGREEN), 2: (BLUE, BCYAN), 3: (RED, YELLOW), 4: (MAG, BMAG), 5: (RED, BRED)}
+def shaft_wall(wing, r, c):
+    """The wing's wall texture away from the shaft (r = row in the shaft map)."""
+    k = c if c < 16 else c - 26
+    if wing == 0: return 'wall' if k % 5 else 'rivet'
+    if wing == 1: return 'gl_m' if k % 6 == 0 else 'gl_d'
+    if wing == 2: return 'ic_a'
+    if wing == 3: return 'pp_v' if k % 7 == 3 else ('pp_f' if k % 5 == 4 else 'pp_h')
+    if wing == 4: return 'sp_rib' if k % 9 == 0 else ('sp_s0', 'sp_s1', 'sp_s2')[(r + k * 2) % 3]
+    return 'ct_v' if k % 7 == 3 else ('ct_c' if (r + k) % 3 == 0 else 'ct_h')
 pairs = {}
 shaft_tab = []
 shaft_packs = []
 for s, (letter, levels) in enumerate(SHAFTS):
     wing = s // 2
-    sh = [['rock' if c < 16 or c > 25 else 'shaftw' if c in (16, 25) else 'empty' for c in range(COLS)] for _ in range(SH_ROWS)]
+    sh = [[shaft_wall(wing, r, c) if c < 16 or c > 25 else 'shaftw' if c in (16, 25)
+           else ('pipev' if c in (17, 24) else 'empty') for c in range(COLS)] for r in range(SH_ROWS)]
+    for lr in level_rows:                                   # a cross-beam between floors
+        b = lr + GAP // 2
+        if b < SH_ROWS - 1:
+            for c in list(range(0, 16)) + list(range(26, 42)): sh[b][c] = 'truss'
     for (left, right), lr in zip(levels, level_rows):
         for side, room_ in (('L', left), ('R', right)):
             if room_ is None: continue
             for c in (range(0, 18) if side == 'L' else range(24, 42)):
                 sh[lr - 1][c] = sh[lr - 2][c] = sh[lr - 3][c] = 'empty'
                 sh[lr][c] = 'floor'
-    pm = []
+            sh[lr - 4][15 if side == 'L' else 26] = 'lamp'      # a lamp over the landing
+    rows = []; row_of = {}; ids = []
     for y in range(SH_ROWS - 1):
+        row = []
         for c in range(COLS):
             key = (tid[sh[y][c]], tid[sh[y + 1][c]])
             if key not in pairs: pairs[key] = len(pairs)
-            pm.append(0x80 | pairs[key])
+            row.append(0x80 | pairs[key])
+        row = tuple(row)
+        if row not in row_of: row_of[row] = len(rows); rows.append(row)
+        ids.append(row_of[row])
+    pm = ids + [b for row in rows for b in row]
+    assert len(pm) <= 0x0A80, (letter, len(pm))       # the data window, clear of the save area
     blk, ofs, n = dat_for(WING_PACK[wing]).add(pm)
     lv = []
     for (left, right), lr in zip(levels, level_rows):
@@ -545,9 +592,9 @@ for s, (letter, levels) in enumerate(SHAFTS):
     shaft_tab += [blk, ofs & 255, ofs >> 8, n & 255, n >> 8] + lv + [ord(letter)] + colcol
     shaft_packs.append(WING_PACK[wing])
 assert len(pairs) <= 128, len(pairs)
+out.append(f"PM_ROWS equ {SH_ROWS - 1}")
 SHAFT_REC = 5 + 3 * NLEV + 1 + COLS
 db("shaft_tab", shaft_tab, 30)
-db("shaft_pack", shaft_packs)
 dw("combo_src", [w for (a, b) in pairs for w in (f"tiles+{a*TILE_BYTES}", f"tiles+{b*TILE_BYTES}")])
 db("combo_a", [a for (a, b) in pairs])
 # doors: per room  left (shaft, level, floor row), right (shaft, level, floor row); 255 = none
@@ -566,8 +613,46 @@ db("room_door", room_door, 6)
 db("room_mapinfo", sum(([2 + (rm.gap + 1) * 3, 13 + rm.level * 2] for rm in rooms), []))
 db("room_nfits", [len(rm.searchables()) for rm in rooms])
 # splice puzzle: each shard is a circuit node with arms N=1 E=2 S=4 W=8
-db("splice_tgt", [0b1010, 0b0110, 0b1011, 0b0101, 0b1110, 0b0011, 0b1101, 0b1100, 0b0111,
-                  0b0111, 0b1010, 0b1110, 0b0011, 0b1011, 0b0101, 0b1101, 0b1100, 0b0110])
+# --- key cards: each wing's key is a 4 x 4 punch card cut into three connected
+# fragments (its shards).  At the splice terminal the shards are found scrambled
+# (turned and/or flipped); turned the right way they tile the card exactly.
+# Bit r*4+c is hole (r, c).  Orientation o: bit 0 = flip, bits 1-2 = quarter turns.
+def _bit(r, c): return 1 << (r * 4 + c)
+def card_xf(m, o):
+    if o & 1: m = sum(_bit(r, 3 - c) for r in range(4) for c in range(4) if m & _bit(r, c))
+    for _ in range(o >> 1): m = sum(_bit(c, 3 - r) for r in range(4) for c in range(4) if m & _bit(r, c))
+    return m
+_crng = random.Random(1887)
+CARDS = []
+for w in range(6):
+    while True:
+        own = [[-1] * 4 for _ in range(4)]
+        seeds = _crng.sample([(r, c) for r in range(4) for c in range(4)], 3)
+        for k, (r, c) in enumerate(seeds): own[r][c] = k
+        while any(-1 in row for row in own):
+            k = _crng.randrange(3)
+            edge = [(r + dr, c + dc) for r in range(4) for c in range(4) if own[r][c] == k
+                    for dr, dc in ((1, 0), (-1, 0), (0, 1), (0, -1))
+                    if 0 <= r + dr < 4 and 0 <= c + dc < 4 and own[r + dr][c + dc] == -1]
+            if edge: r, c = _crng.choice(edge); own[r][c] = k
+        S = [sum(_bit(r, c) for r in range(4) for c in range(4) if own[r][c] == k) for k in range(3)]
+        if min(bin(s).count('1') for s in S) < 4: continue
+        O = []
+        for s in S:                        # a scramble that really changes the shard
+            o = _crng.choice([o for o in range(1, 8) if card_xf(s, o) != s] or [0])
+            O.append(o)
+        if all(card_xf(s, o) != s for s, o in zip(S, O)): break
+    CARDS.append((S, O))
+Path('src/cards.inc').write_text('; generated by tools/gen.py: per wing three shards (dw, solved) and their scrambles (db)\ncards:\n'
+    + ''.join(f'        dw ${S[0]:04X},${S[1]:04X},${S[2]:04X}\n        db {O[0]},{O[1]},{O[2]}\n' for S, O in CARDS))
+# --- tone locks: in each wing one security terminal is a tone lock instead
+TONE_ROOMS = []
+for w in range(6):
+    cand = [i for i, rm in enumerate(rooms) if rm.wing == w and i != 10
+            and any(rm.t[r][c] == 'termb' for r in range(22) for c in range(42))
+            and not any(rm.t[r][c] == 'splb' for r in range(22) for c in range(42))]
+    TONE_ROOMS.append(cand[len(cand) // 2] if cand else 255)      # (the Core has none)
+db("tone_rooms", TONE_ROOMS)
 out.append(f"NCOMBOS equ {len(pairs)}")
 out.append(f"NLEVELS equ {NLEV}")
 out.append(f"SHAFT_REC equ {SHAFT_REC}")
@@ -688,7 +773,6 @@ for k, (pd, (drive, fname)) in enumerate(zip(packs, PACK_DISKS)):
 assert base <= 32, "out of banked RAM"
 txt = Path("src/assets.inc").read_text()
 txt = "\n".join(pk) + "\n" + txt
-txt += "pack_tab:\n        db " + ",".join(str(x) for x in ptab) + "\n"
 txt += f"NPACKS equ {len(packs)}\nPACK_REC equ 6\n"
 Path("src/assets.inc").write_text(txt)
 print(f"assets.inc: {len(names)} tiles, {len(rooms)} rooms, {len(SHAFTS)} shafts "

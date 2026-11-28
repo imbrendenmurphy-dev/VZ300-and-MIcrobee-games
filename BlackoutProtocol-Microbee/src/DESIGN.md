@@ -383,3 +383,36 @@ Shaft lifts (2026-11-23): Q/A **or the arrow keys** ride the lift (it read only 
 - **Polish**: ESC is a pause ("PAUSED. Y=QUIT"; the title says ESC PAUSE); the shaft reads FLOOR n,
   not LEVEL n; the game-over report shows 00:00:00 instead of a wrapped hour; READ.ME on the disk.
 - Bot re-run on the new levels: 0 door deaths on all three; blind-run deaths Story 19, Agent 20, Ghost 38; no room kills the blind bot more than twice on Story or Agent. Full test pass: completion (6 autosaves through CP/M), save/reset/load, write-protected save (SAVE FAILED), Ghost save/load, ESC pause, lifts, auto-boot, shard signal.
+
+**Hardware round 3 (2026-11-28)**
+- **Lift-stop flicker** fixed: when a shaft lift stops, the settled view goes onto *both* display
+  pages (`shaft_render`, `full_redraw`, `show_all`, as on entering a shaft); the scroll had left the
+  pages out of step, so the shaft flickered until you left it. Holding the arrow keys keeps a ride
+  going too.
+- **Lift-pad trail** fixed: a pad's old position (P_OY) is now where it was last *drawn*, not where
+  it was a tick ago; two or three logic ticks in one frame left lines behind.
+- **Wrist-deck in the shafts** (W); coming back redraws the shaft at the same floor and spot
+  (`shaft_resume`).
+- **Robots keep to solid floor**: `gen.py` trims every beat so there is floor under the robot's
+  whole body, lift-pad wells counting as gaps (32 beats were trimmed).
+- **Zaps, not bullets**: a robot fires only when Wren is within ZAP_REACH (44 half-pixels, ~11 cells)
+  in front of it, and the bolt dies after ZAP_LIFE (10) ticks, ~7 cells: a short discharge, as in
+  the genre's classic, not a shot across the room.
+- **Shafts at room scale**: floors are 22 rows (one room) apart; the lift moves 6 pixels a step
+  (~2.5 s a floor). The pair map is a row table plus the distinct rows (`pm_row`), so a tall shaft
+  fits the data window; only the combos the current shaft uses are regenerated each frame
+  (`cmb_scan`, `cmb_list`). Each wing's shaft has its own wall texture (its rooms' architecture),
+  cables, a cross-beam between floors and a lamp over each landing.
+- **Lither Wren**: smaller head, longer legs, slimmer limbs; a belt and a wider outline round the
+  near arm, so the figure reads as a body, not a blob.
+- **Splice terminal = key-card puzzle** (overlay 3, `src/overlay3.asm`): each wing's key is a 4x4
+  punch card cut into three connected fragments (its shards, `CARDS` in gen.py / `src/cards.inc`),
+  found turned and flipped. 1-3 picks a shard, R turns it, F flips it; the card shows covered holes in
+  the shard's colour, gaps grey and clashes red; three that tile the card exactly put the key online.
+  H straightens one shard for ten minutes of the clock.
+- **Tone locks**: one security terminal in each of five wings (Med Bay, Orchard Dome, Sample Vault,
+  Turbine Hall, Telescope) plays a tone sequence on six pads; repeat it on keys 1-6, three rounds of
+  4, 5 and 6 tones; it opens once for +1 SLEEP and +1 RESET (`tones_done`, saved).
+- Memory: the screens' tunes moved into overlays 1 and 3 and the dead pack tables went, so the main
+  program is 16.6 KB again; BLACKOUT.OV3 is block 29.
+- Bot after this round: 0 door deaths on all levels; blind-run deaths Story 19, Agent 20, Ghost 33 (Ghost was 38: zaps are short-range now). Tests: completion with the card puzzle (6 keys), tone lock opened (+1 SLEEP +1 RESET), save/reset/load, Ghost save, ESC, lifts, deck in a shaft, attract demo, lift stop (12 still frames), pad ride (no trail).
